@@ -11,18 +11,23 @@ procedure Files.Main is
    Reaped  : Boolean;
    Stopped : Boolean;
    Status  : Ada.Command_Line.Exit_Status := Ada.Command_Line.Success;
-begin
-   if Files.Recovery_CLI.Run_If_Requested then
+
+   --  Stop the background workers every exit path stops: Reaped and Stopped
+   --  say whether each finished in time.
+   procedure Shut_Down_Workers is
+   begin
       Files.Job_Scavenger.Shutdown (Reaped);
       Files.Job_Context.Shutdown;
       Files.Process_Jobs.Shutdown (Stopped);
+   end Shut_Down_Workers;
+begin
+   if Files.Recovery_CLI.Run_If_Requested then
+      Shut_Down_Workers;
       if not Reaped or else not Stopped then
          Hostkit.Process.End_Now (1);
       end if;
    elsif Files.Job_Helpers.Run_If_Requested then
-      Files.Job_Scavenger.Shutdown (Reaped);
-      Files.Job_Context.Shutdown;
-      Files.Process_Jobs.Shutdown (Stopped);
+      Shut_Down_Workers;
       if not Reaped or else not Stopped then
          --  Ada task finalization could otherwise wait without a bound for
          --  the coordinator monitor or orphan reaper.
@@ -31,9 +36,7 @@ begin
    else
       Files.Job_Scavenger.Scavenge;
       Status := Files.Application.Run;
-      Files.Job_Scavenger.Shutdown (Reaped);
-      Files.Job_Context.Shutdown;
-      Files.Process_Jobs.Shutdown (Stopped);
+      Shut_Down_Workers;
       if not Reaped or else not Stopped then
          --  Recovery is durable and resumes on the next launch. If only its
          --  monitor is still in a host filesystem call, a normal window close
@@ -45,9 +48,7 @@ begin
    end if;
 exception
    when others =>
-      Files.Job_Scavenger.Shutdown (Reaped);
-      Files.Job_Context.Shutdown;
-      Files.Process_Jobs.Shutdown (Stopped);
+      Shut_Down_Workers;
       if not Reaped or else not Stopped then
          Hostkit.Process.End_Now (1);
       end if;

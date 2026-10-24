@@ -444,16 +444,7 @@ package body Files.Application.Windows is
       Name   => Window_Access);
 
    function Safe_Environment_Value (Name : String) return String is
-   begin
-      if Ada.Environment_Variables.Exists (Name) then
-         return Ada.Environment_Variables.Value (Name);
-      end if;
-
-      return "";
-   exception
-      when others =>
-         return "";
-   end Safe_Environment_Value;
+     (Ada.Environment_Variables.Value (Name, ""));
 
    --  Persist the runtime settings to the central settings file. The reducer
    --  owns the actual serialization; this wrapper exists for the shell-only

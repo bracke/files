@@ -1,3 +1,4 @@
+with Guikit.Layout;
 with Guikit.Utf8;
 
 --  The Unicode primitives shared with Guikit.Utf8 (display width, codepoint
@@ -11,14 +12,8 @@ package body Files.UTF8 is
    function Saturating_Add
      (Left  : Natural;
       Right : Natural)
-      return Natural is
-   begin
-      if Left > Natural'Last - Right then
-         return Natural'Last;
-      else
-         return Left + Right;
-      end if;
-   end Saturating_Add;
+      return Natural
+     renames Guikit.Layout.Saturating_Add;
 
    function Is_Continuation (Value : Character) return Boolean is
       Code : constant Natural := Character'Pos (Value);
@@ -316,11 +311,6 @@ package body Files.UTF8 is
 
       return True;
    end Is_Valid;
-
-   function Encode_Codepoint
-     (Codepoint : Natural)
-      return String is
-     (Guikit.Utf8.Encode (Codepoint));
 
    function Previous_Boundary
      (Content : String;

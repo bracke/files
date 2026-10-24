@@ -1,3 +1,4 @@
+with Guikit.Layout;
 with Ada.Calendar;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
@@ -25,14 +26,8 @@ package body Files.Model.Support is
    function Saturating_Add
      (Left  : Natural;
       Right : Natural)
-      return Natural is
-   begin
-      if Left > Natural'Last - Right then
-         return Natural'Last;
-      else
-         return Left + Right;
-      end if;
-   end Saturating_Add;
+      return Natural
+     renames Guikit.Layout.Saturating_Add;
 
    function Scroll_Step (Lines : Integer) return Natural is
    begin

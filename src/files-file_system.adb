@@ -1110,4 +1110,29 @@ package body Files.File_System is
       return Mutation_Result
      renames Copy_Move.Execute_Drop_Import;
 
+   function Entry_Identity_Matches (Path, Expected : String) return Boolean is
+   begin
+      return Expected /= ""
+        and then (Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path))
+        and then Files.File_Identities.Token (Path) = Expected;
+   exception
+      when others =>
+         return False;
+   end Entry_Identity_Matches;
+
+   function Creation_Matches
+     (Path, Identity, Tree_Revision : String;
+      Retain_Verified : Boolean := False) return Boolean is
+   begin
+      if not Entry_Identity_Matches (Path, Identity) then
+         return Retain_Verified and then Identity /= "";
+      end if;
+      return
+        (if Hostkit.Fs.Is_Link (Path) then Tree_Revision = ""
+         else Tree_Revision /= "" and then Files.File_System.Tree_Revision (Path) = Tree_Revision);
+   exception
+      when others =>
+         return False;
+   end Creation_Matches;
+
 end Files.File_System;

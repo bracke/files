@@ -62,16 +62,7 @@ package body Files.Operations.Support is
    end Disabled;
 
    function Safe_Environment_Value (Name : String) return String is
-   begin
-      if Ada.Environment_Variables.Exists (Name) then
-         return Ada.Environment_Variables.Value (Name);
-      end if;
-
-      return "";
-   exception
-      when others =>
-         return "";
-   end Safe_Environment_Value;
+     (Ada.Environment_Variables.Value (Name, ""));
 
    function Executable_Is_Available
      (Executable : String)

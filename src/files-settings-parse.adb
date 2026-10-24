@@ -307,7 +307,7 @@ separate (Files.Settings)
                N : Integer;
             begin
                N := Integer'Value (Value);
-               if N < 10 or else N > 32 then
+               if N < Min_Font_Pixel_Size or else N > Max_Font_Pixel_Size then
                   Err := To_Unbounded_String ("error.settings.invalid_font_pixel_size");
                else
                   Settings.Font_Pixel_Size := Positive (N);

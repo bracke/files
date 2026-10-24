@@ -1,3 +1,4 @@
+with Guikit.Layout;
 separate (Files.Events)
    function Translate_Click
      (Snapshot    : Files.Rendering.View_Snapshot;
@@ -64,28 +65,14 @@ separate (Files.Events)
       function Saturating_Add
         (Left  : Natural;
          Right : Natural)
-         return Natural is
-      begin
-         if Left > Natural'Last - Right then
-            return Natural'Last;
-         else
-            return Left + Right;
-         end if;
-      end Saturating_Add;
+         return Natural
+        renames Guikit.Layout.Saturating_Add;
 
       function Saturating_Multiply
         (Value  : Natural;
          Factor : Natural)
-         return Natural is
-      begin
-         if Factor = 0 then
-            return 0;
-         elsif Value > Natural'Last / Factor then
-            return Natural'Last;
-         else
-            return Value * Factor;
-         end if;
-      end Saturating_Multiply;
+         return Natural
+        renames Guikit.Layout.Saturating_Multiply;
 
       --  Text_Width and Focused let a click on a focused, scrolled field
       --  (see Files.Rendering.Input_Scroll_Columns) land on the character

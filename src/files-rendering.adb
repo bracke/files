@@ -321,28 +321,14 @@ package body Files.Rendering is
    function Saturating_Add
      (Left  : Natural;
       Right : Natural)
-      return Natural is
-   begin
-      if Left > Natural'Last - Right then
-         return Natural'Last;
-      else
-         return Left + Right;
-      end if;
-   end Saturating_Add;
+      return Natural
+     renames Guikit.Layout.Saturating_Add;
 
    function Saturating_Multiply
      (Value  : Natural;
       Factor : Natural)
-      return Natural is
-   begin
-      if Factor = 0 then
-         return 0;
-      elsif Value > Natural'Last / Factor then
-         return Natural'Last;
-      else
-         return Value * Factor;
-      end if;
-   end Saturating_Multiply;
+      return Natural
+     renames Guikit.Layout.Saturating_Multiply;
 
    --  Geometry of one detail-view column: whether it is shown and, when shown,
    --  its left edge and width in window pixels.

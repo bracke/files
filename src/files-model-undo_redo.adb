@@ -38,34 +38,13 @@ package body Undo_Redo is
       end loop;
    end Discard_Retained;
 
-   function Identity_Matches (Path, Expected : String) return Boolean is
-   begin
-      return Expected /= ""
-        and then (Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path))
-        and then Files.File_Identities.Token (Path) = Expected;
-   exception
-      when others =>
-         return False;
-   end Identity_Matches;
+   function Identity_Matches (Path, Expected : String) return Boolean
+     renames Files.File_System.Entry_Identity_Matches;
 
    function Creation_Snapshot_Matches
      (Path, Identity, Tree_Revision : String;
       Retain_Verified : Boolean) return Boolean
-   is
-      Is_Link : Boolean;
-   begin
-      if not Identity_Matches (Path, Identity) then
-         return Retain_Verified and then Identity /= "";
-      end if;
-      Is_Link := Hostkit.Fs.Is_Link (Path);
-      return
-        (if Is_Link then Tree_Revision = ""
-         else Tree_Revision /= ""
-           and then Files.File_System.Tree_Revision (Path) = Tree_Revision);
-   exception
-      when others =>
-         return False;
-   end Creation_Snapshot_Matches;
+     renames Files.File_System.Creation_Matches;
 
    function Tree_Revision_Or_Empty (Path : String) return String is
    begin
@@ -76,72 +55,6 @@ package body Undo_Redo is
       when others =>
          return "";
    end Tree_Revision_Or_Empty;
-
-   function Valid_Natural_Image (Value : Files.Types.UString) return Boolean is
-      Text : constant String := Ada.Strings.Fixed.Trim (To_String (Value), Ada.Strings.Both);
-      Parsed : Natural;
-      pragma Unreferenced (Parsed);
-   begin
-      if Text = "" then
-         return False;
-      end if;
-      Parsed := Natural'Value (Text);
-      return True;
-   exception
-      when others =>
-         return False;
-   end Valid_Natural_Image;
-
-   function Valid_Ownership_Image (Value : Files.Types.UString) return Boolean is
-      Text       : constant String := To_String (Value);
-      First_Nul  : Natural := 0;
-      Second_Nul : Natural := 0;
-   begin
-      if Text = "" then
-         return False;
-      end if;
-      for Index in Text'Range loop
-         if Text (Index) = ASCII.NUL then
-            First_Nul := Index;
-            exit;
-         end if;
-      end loop;
-      if First_Nul /= 0 then
-         for Index in First_Nul + 1 .. Text'Last loop
-            if Text (Index) = ASCII.NUL then
-               Second_Nul := Index;
-               exit;
-            end if;
-         end loop;
-         if Second_Nul = 0 then
-            return False;
-         end if;
-         for Index in Second_Nul + 1 .. Text'Last loop
-            if Text (Index) = ASCII.NUL then
-               return False;
-            end if;
-         end loop;
-      end if;
-      declare
-         Numeric_Last : constant Natural :=
-           (if First_Nul = 0 then Text'Last else First_Nul - 1);
-         Numeric : constant String := Ada.Strings.Fixed.Trim
-           (Text (Text'First .. Numeric_Last), Ada.Strings.Both);
-         Space : constant Natural := Ada.Strings.Fixed.Index (Numeric, " ");
-         User, Group : Natural;
-         pragma Unreferenced (User, Group);
-      begin
-         if Space = 0 then
-            return False;
-         end if;
-         User := Natural'Value (Numeric (Numeric'First .. Space - 1));
-         Group := Natural'Value (Numeric (Space + 1 .. Numeric'Last));
-         return True;
-      end;
-   exception
-      when others =>
-         return False;
-   end Valid_Ownership_Image;
 
    function Try_Record_Undo
      (Model       : in out Window_Model;

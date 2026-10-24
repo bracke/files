@@ -6,34 +6,13 @@ separate (Files.Model)
 package body Paste_Exec is
    use type Files.File_System.Drop_Import_Mode;
 
-   function Identity_Matches (Path, Expected : String) return Boolean is
-   begin
-      return Expected /= ""
-        and then (Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path))
-        and then Files.File_Identities.Token (Path) = Expected;
-   exception
-      when others =>
-         return False;
-   end Identity_Matches;
+   function Identity_Matches (Path, Expected : String) return Boolean
+     renames Files.File_System.Entry_Identity_Matches;
 
    function Creation_Snapshot_Matches
-     (Path, Identity, Tree_Revision : String) return Boolean
-   is
-      use type Ada.Directories.File_Kind;
-      Is_Link : Boolean;
-   begin
-      if not Identity_Matches (Path, Identity) then
-         return False;
-      end if;
-      Is_Link := Hostkit.Fs.Is_Link (Path);
-      return
-        (if Is_Link then Tree_Revision = ""
-         else Tree_Revision /= ""
-           and then Files.File_System.Tree_Revision (Path) = Tree_Revision);
-   exception
-      when others =>
-         return False;
-   end Creation_Snapshot_Matches;
+     (Path, Identity, Tree_Revision : String;
+      Retain_Verified : Boolean := False) return Boolean
+     renames Files.File_System.Creation_Matches;
 
    procedure Begin_Paste_Execution
      (Model           : in out Window_Model;

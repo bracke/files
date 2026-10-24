@@ -1011,6 +1011,27 @@ package Files.File_System is
    --    unverifiable entry.
    function Tree_Revision (Path : String) return String;
 
+   --  Whether the entry at Path (a link included) still is the one whose
+   --  identity token was recorded as Expected. The guard Undo and Redo use
+   --  before touching anything they once created or moved.
+   --  @param Path Entry to check.
+   --  @param Expected Identity token recorded earlier; empty never matches.
+   --  @return True when Path exists and has that identity.
+   function Entry_Identity_Matches (Path, Expected : String) return Boolean;
+
+   --  Whether the entry at Path is still exactly what an operation created:
+   --  the same identity and, for anything but a link, the same tree revision.
+   --  Undo deletes a created entry only when this holds.
+   --  @param Path Created entry to check.
+   --  @param Identity Identity token recorded when it was created.
+   --  @param Tree_Revision Tree revision recorded then; empty for a link.
+   --  @param Retain_Verified Accept an entry already verified once whose
+   --    identity has since changed (a later pathname replacement).
+   --  @return True when Path is still the created entry.
+   function Creation_Matches
+     (Path, Identity, Tree_Revision : String;
+      Retain_Verified : Boolean := False) return Boolean;
+
    --  Permanently delete a single trashed or application recovery payload and
    --  its metadata.
    --

@@ -20,6 +20,11 @@ with Zlib;
 
 separate (Files.File_System)
 package body Thumbnails is
+
+   --  The largest source image decoded for a thumbnail: each side, and the
+   --  whole (2048 x 2048), so a hostile header cannot ask for gigabytes.
+   Max_Source_Side   : constant := 4096;
+   Max_Source_Pixels : constant := 4_194_304;
    package Stream_IO renames Ada.Streams.Stream_IO;
 
    use type Interfaces.C.int;
@@ -690,7 +695,7 @@ package body Thumbnails is
            or else H = 0
            or else W > 16_384
            or else H > 16_384
-           or else W > 4_194_304 / H
+           or else W > Max_Source_Pixels / H
          then
             return False;
          end if;
@@ -1286,9 +1291,9 @@ package body Thumbnails is
            or else Source_Height = 0
            or else Max_Value = 0
            or else Max_Value > 65_535
-           or else Source_Width > 4096
-           or else Source_Height > 4096
-           or else Source_Width * Source_Height > 4_194_304
+           or else Source_Width > Max_Source_Side
+           or else Source_Height > Max_Source_Side
+           or else Source_Width * Source_Height > Max_Source_Pixels
          then
             return False;
          end if;
@@ -1574,11 +1579,11 @@ package body Thumbnails is
            or else Position /= Natural (Bytes.Length)
            or else Width = 0
            or else Height = 0
-           or else Width > 4096
-           or else Height > 4096
+           or else Width > Max_Source_Side
+           or else Height > Max_Source_Side
            --  Guard against absurd dimensions (the inflated raster is bounded by
            --  RAM, not the stack -- see the heap-backed raster vector below).
-           or else Width * Height > 4_194_304
+           or else Width * Height > Max_Source_Pixels
            or else Bit_Depth /= 8
            or else Interlace /= 0
            or else Idat.Is_Empty

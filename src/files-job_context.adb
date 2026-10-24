@@ -474,22 +474,9 @@ package body Files.Job_Context is
    procedure Append_Record (Name, Header, Destination, Source, Identity : String);
 
    function Creation_Snapshot_Matches
-     (Path, Identity, Tree_Revision : String) return Boolean
-   is
-      Is_Link : Boolean;
-   begin
-      if Identity = "" or else Files.File_Identities.Token (Path) /= Identity then
-         return False;
-      end if;
-      Is_Link := Hostkit.Fs.Is_Link (Path);
-      return
-        (if Is_Link then Tree_Revision = ""
-         else Tree_Revision /= ""
-           and then Files.File_System.Tree_Revision (Path) = Tree_Revision);
-   exception
-      when others =>
-         return False;
-   end Creation_Snapshot_Matches;
+     (Path, Identity, Tree_Revision : String;
+      Retain_Verified : Boolean := False) return Boolean
+     renames Files.File_System.Creation_Matches;
 
    procedure Record_Created (Destination : String; Source : String := "") is
    begin

@@ -67,19 +67,8 @@ package body Files.Fonts is
       To_Unbounded_String ("/System/Library/Fonts"),
       To_Unbounded_String ("C:\Windows\Fonts")];
 
-   function Safe_Environment_Value
-     (Name : String)
-      return String is
-   begin
-      if Ada.Environment_Variables.Exists (Name) then
-         return Ada.Environment_Variables.Value (Name);
-      end if;
-
-      return "";
-   exception
-      when others =>
-         return "";
-   end Safe_Environment_Value;
+   function Safe_Environment_Value (Name : String) return String is
+     (Ada.Environment_Variables.Value (Name, ""));
 
    function Is_Ordinary_File
      (Path : String)

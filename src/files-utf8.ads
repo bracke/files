@@ -94,16 +94,6 @@ package Files.UTF8 is
      (Content : String)
       return Boolean;
 
-   --  Encode Codepoint as a UTF-8 byte string.
-   --
-   --  Invalid codepoints encode as U+FFFD.
-   --
-   --  @param Codepoint Unicode codepoint to encode.
-   --  @return UTF-8 encoded byte string.
-   function Encode_Codepoint
-     (Codepoint : Natural)
-      return String;
-
    --  Return the previous UTF-8 text boundary before or at Cursor.
    --
    --  Invalid bytes are treated as standalone boundary units.

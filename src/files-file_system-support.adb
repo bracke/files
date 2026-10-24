@@ -16,6 +16,9 @@ with CryptoLib.Hashes;
 with Hostkit.Metadata;
 
 package body Files.File_System.Support is
+
+   --  The most entries one directory may list before it counts as hostile.
+   Max_Directory_Entries : constant := 1_000_000;
    use Ada.Strings.Unbounded;
    use type Ada.Directories.File_Kind;
    use type Hostkit.Fs.Move_Outcome;
@@ -27,7 +30,7 @@ package body Files.File_System.Support is
       --  Memory is bounded by the name bytes; the entry cap only stops a
       --  pathological directory. At 100_000 an ordinary large folder (a
       --  maildir, a cache, a dataset) could not be opened, copied or deleted.
-      Max_Entries : constant Natural := 1_000_000;
+      Max_Entries : constant Natural := Max_Directory_Entries;
       Max_Name_Bytes : constant Natural := 64 * 1024 * 1024;
       Dir : GNAT.Directory_Operations.Dir_Type;
       type Name_Buffer is access String;
@@ -114,19 +117,8 @@ package body Files.File_System.Support is
       end if;
    end Safe_Close;
 
-   function Safe_Environment_Value
-     (Name : String)
-      return String is
-   begin
-      if Ada.Environment_Variables.Exists (Name) then
-         return Ada.Environment_Variables.Value (Name);
-      end if;
-
-      return "";
-   exception
-      when others =>
-         return "";
-   end Safe_Environment_Value;
+   function Safe_Environment_Value (Name : String) return String is
+     (Ada.Environment_Variables.Value (Name, ""));
 
    function Environment_Equals
      (Name     : String;
@@ -228,7 +220,7 @@ package body Files.File_System.Support is
          end Child;
       begin
          if Identity = "" or else Revision = "" or else Depth > 1_024
-           or else Natural (Result.Entries.Length) >= 1_000_000 or else Files.Job_Context.Cancelled
+           or else Natural (Result.Entries.Length) >= Max_Directory_Entries or else Files.Job_Context.Cancelled
          then
             raise Ada.Directories.Use_Error;
          end if;

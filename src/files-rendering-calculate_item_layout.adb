@@ -28,16 +28,23 @@ separate (Files.Rendering)
       Columns : Guikit.Item_Grid.Detail_Column_Bounds;
       Items   : Guikit.Item_Grid.Layout_Item_Vectors.Vector;
 
-      --  The two enums are identical (same six columns, same order).
+      --  By name, so a reordered or extended enum on either side fails to
+      --  compile instead of mislabelling columns.
       function As_Grid_Column (C : Files.Types.Detail_Column) return Guikit.Item_Grid.Detail_Column is
-        (Guikit.Item_Grid.Detail_Column'Val (Files.Types.Detail_Column'Pos (C)));
+        (case C is
+            when Files.Types.Name_Column        => Guikit.Item_Grid.Name_Column,
+            when Files.Types.Modified_Column    => Guikit.Item_Grid.Modified_Column,
+            when Files.Types.Size_Column        => Guikit.Item_Grid.Size_Column,
+            when Files.Types.Filetype_Column    => Guikit.Item_Grid.Filetype_Column,
+            when Files.Types.Created_Column     => Guikit.Item_Grid.Created_Column,
+            when Files.Types.Permissions_Column => Guikit.Item_Grid.Permissions_Column);
    begin
       for C in Files.Types.Detail_Column loop
          Columns (As_Grid_Column (C)) := (X => Geometry (C).X, Width => Geometry (C).Width);
       end loop;
 
       --  Iterate by cursor reference: .Element returns Item_Snapshot by value,
-      --  copying each item (thumbnail pixels included) just to read three fields.
+      --  copying each item just to read three fields.
       for It of Snapshot.Items loop
          Items.Append
            (Guikit.Item_Grid.Layout_Item'
