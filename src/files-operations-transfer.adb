@@ -460,7 +460,8 @@ package body Transfer is
                           Free_Bytes        => Capacity.Free_Bytes,
                           Free_Bytes_Known  => Capacity.Available,
                           Free_Inodes       => Capacity.Free_Inode_Count,
-                          Free_Inodes_Known => Capacity.Inodes_Known)
+                          Free_Inodes_Known => Capacity.Inodes_Known,
+                          Destination       => Destination)
                      then
                         return Failed;
                      end if;

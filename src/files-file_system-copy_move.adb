@@ -399,9 +399,11 @@ package body Copy_Move is
                                  --  intact, so discard our complete copy and allow
                                  --  paste-replace to restore its original destination.
                                  declare
+                                    --  Against the revision published, so anything
+                                    --  added to the copy since is never deleted.
                                     Removed : constant Mutation_Result := Delete_Created_Entry
                                       (Destination_Path, To_String (Copied_Identity),
-                                       Tree_Revision (Destination_Path));
+                                       To_String (Copied_Tree_Revision));
                                     pragma Unreferenced (Removed);
                                  begin
                                     null;

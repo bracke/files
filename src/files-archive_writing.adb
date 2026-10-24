@@ -5,6 +5,9 @@ with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 with Interfaces;
+with Hostkit.Fs;
+with Hostkit.Host;
+with Files.File_System;
 with Files.Job_Context;
 with Files.Types;
 
@@ -70,18 +73,73 @@ package body Files.Archive_Writing is
           (First <= Name'Last and then Name (First .. Name'Last) not in "." | "..");
    end Safe_Archive_Name;
 
+   function Names_Are_Extractable
+     (Entries          : Zlib.Archive_Entry_Array;
+      Dos_Rules        : Boolean;
+      Case_Insensitive : Boolean) return Boolean
+   is
+      Names_Seen : Archive_Name_Sets.Set;
+
+      --  Whether every '/'-separated segment of Name is one the destination
+      --  can store.
+      function Storable (Name : String) return Boolean is
+         First : Positive := Name'First;
+      begin
+         if not Dos_Rules then
+            return True;
+         end if;
+         for I in Name'First .. Name'Last + 1 loop
+            if I > Name'Last or else Name (I) = '/' then
+               if I > First
+                 and then not Files.File_System.Valid_Leaf_Name (Name (First .. I - 1), Files.File_System.Windows_Rules)
+               then
+                  return False;
+               end if;
+               First := I + 1;
+            end if;
+         end loop;
+         return True;
+      end Storable;
+
+      --  The name two entries collide under on the destination.
+      function Key (Name : String) return String is
+        (if Case_Insensitive then Files.Types.To_Lower (Name) else Name);
+   begin
+      for Member of Entries loop
+         declare
+            Name : constant String := Ada.Strings.Unbounded.To_String (Member.Name);
+            Is_Directory_Entry : constant Boolean :=
+              Name /= "" and then Name (Name'Last) = '/';
+         begin
+            --  A repeated directory entry is harmless (some writers emit one
+            --  per member); only a repeated file would silently overwrite.
+            if not Safe_Archive_Name (Name, Allow_Trailing_Separator => Is_Directory_Entry)
+              or else not Storable (Name)
+              or else (not Is_Directory_Entry and then Names_Seen.Contains (Key (Name)))
+            then
+               return False;
+            end if;
+            Names_Seen.Include (Key (Name));
+         end;
+      end loop;
+      return True;
+   end Names_Are_Extractable;
+
    function Extraction_Is_Within_Limits
      (Entries            : Zlib.Archive_Entry_Array;
       Free_Bytes         : Long_Long_Integer;
       Free_Bytes_Known   : Boolean;
       Free_Inodes        : Long_Long_Integer;
-      Free_Inodes_Known  : Boolean) return Boolean
+      Free_Inodes_Known  : Boolean;
+      Destination        : String := "") return Boolean
    is
+      use type Hostkit.Host.Kind;
       subtype U64 is Interfaces.Unsigned_64;
+      Dos_Rules          : constant Boolean :=
+        Destination /= "" and then Hostkit.Fs.Uses_Dos_Filename_Rules (Destination);
       Total_Uncompressed : U64 := 0;
       Total_Compressed   : U64 := 0;
       Total_Path_Bytes   : U64 := 0;
-      Names_Seen         : Archive_Name_Sets.Set;
 
       function Add_Would_Overflow (Left, Right : U64) return Boolean is
         (Left > U64'Last - Right);
@@ -95,7 +153,13 @@ package body Files.Archive_Writing is
         (if Add_Would_Overflow (Left, Right) then U64'Last
          else Left + Right);
    begin
-      if Entries'Length > Max_Extraction_Entries then
+      if Entries'Length > Max_Extraction_Entries
+        or else not Names_Are_Extractable
+          (Entries,
+           Dos_Rules        => Dos_Rules,
+           Case_Insensitive =>
+             Dos_Rules or else (Destination /= "" and then Hostkit.Host.Current = Hostkit.Host.MacOS))
+      then
          return False;
       end if;
 
@@ -109,16 +173,12 @@ package body Files.Archive_Writing is
          begin
             --  A repeated directory entry is harmless (some writers emit one
             --  per member); only a repeated file would silently overwrite.
-            if not Safe_Archive_Name
-              (Name, Allow_Trailing_Separator => Is_Directory_Entry)
-              or else (not Is_Directory_Entry and then Names_Seen.Contains (Name))
-              or else Add_Would_Overflow (Total_Uncompressed, Member.Uncompressed_Size)
+            if Add_Would_Overflow (Total_Uncompressed, Member.Uncompressed_Size)
               or else Add_Would_Overflow (Total_Compressed, Member.Compressed_Size)
               or else Add_Would_Overflow (Total_Path_Bytes, Path_Bytes)
             then
                return False;
             end if;
-            Names_Seen.Include (Name);
             Total_Uncompressed := Total_Uncompressed + Member.Uncompressed_Size;
             Total_Compressed := Total_Compressed + Member.Compressed_Size;
             Total_Path_Bytes := Total_Path_Bytes + Path_Bytes;

@@ -11232,6 +11232,38 @@ package body Files_Suite.Operations is
            (Catalogue, 1_000, True, 100, True),
          "expansion-limit arithmetic saturates instead of overflowing");
 
+      --  Name checks, per destination: every unsafe shape is refused, a
+      --  DOS-rules volume refuses names Windows cannot store, and on a
+      --  case-insensitive one names differing only in case collide.
+      declare
+         One : Zlib.Archive_Entry_Array (1 .. 1);
+         function Extractable (Name : String; Dos : Boolean := False; Folded : Boolean := False) return Boolean is
+         begin
+            One (1).Name := To_Unbounded_String (Name);
+            return Files.Archive_Writing.Names_Are_Extractable (One, Dos, Folded);
+         end Extractable;
+      begin
+         for Unsafe of Files.Types.String_Vectors.Vector'
+           ([To_Unbounded_String ("/etc/passwd"), To_Unbounded_String ("a/../../x"),
+             To_Unbounded_String ("a\b"), To_Unbounded_String ("C:x"), To_Unbounded_String (".."),
+             To_Unbounded_String ("./"), To_Unbounded_String ("a//b"), To_Unbounded_String ("")])
+         loop
+            Assert (not Extractable (To_String (Unsafe)), "unsafe archive name refused: " & To_String (Unsafe));
+         end loop;
+         Assert (Extractable ("dir/nul.txt") and then Extractable ("aux.c"),
+                 "a POSIX destination stores Windows device names");
+         Assert (not Extractable ("dir/nul.txt", Dos => True) and then not Extractable ("aux.c", Dos => True)
+                 and then not Extractable ("notes.", Dos => True) and then not Extractable ("a?b", Dos => True),
+                 "a DOS-rules destination refuses names Windows cannot store");
+         Assert (Extractable ("dir/report.txt", Dos => True), "an ordinary name is fine on a DOS volume");
+      end;
+      Catalogue (1).Name := To_Unbounded_String ("Makefile");
+      Catalogue (2).Name := To_Unbounded_String ("makefile");
+      Assert (Files.Archive_Writing.Names_Are_Extractable (Catalogue, False, Case_Insensitive => False),
+              "names differing in case are distinct on a case-sensitive volume");
+      Assert (not Files.Archive_Writing.Names_Are_Extractable (Catalogue, False, Case_Insensitive => True),
+              "names differing only in case collide on a case-insensitive volume");
+
       Ada.Directories.Create_Path (Dir);
       Write_File (Source_Report, Report_Payload);
       Write_File (Source_Notes, Notes_Payload);
@@ -16826,6 +16858,24 @@ package body Files_Suite.Operations is
       Assert (not Ada.Directories.Exists (Victim), "the created entry is gone");
       Assert (Record_Count = Before,
               "a verified delete unregisters the backup it preserved instead of leaking a record");
+
+      --  A rollback deletes against the revision captured when the copy was
+      --  published: a file added to it since keeps the whole tree.
+      Ada.Directories.Create_Path (Join (Root, "published-copy"));
+      Write_Binary_File (Join (Join (Root, "published-copy"), "copied.txt"), "copied");
+      declare
+         Copy     : constant String := Join (Root, "published-copy");
+         Identity : constant String := Files.File_Identities.Token (Copy);
+         Revision : constant String := Files.File_System.Tree_Revision (Copy);
+      begin
+         Write_Binary_File (Join (Copy, "added-since.txt"), "someone else's");
+         Assert (not Files.File_System.Delete_Created_Entry (Copy, Identity, Revision).Success,
+                 "a copy changed since it was published is not rolled back");
+         Assert (Ada.Directories.Exists (Join (Copy, "added-since.txt")), "the file added since is kept");
+         Assert (Files.File_System.Delete_Created_Entry
+                   (Copy, Identity, Files.File_System.Tree_Revision (Copy)).Success,
+                 "the same copy at its current revision is deleted");
+      end;
 
       --  A record whose stage is gone (as leaked by older builds) is reclaimed
       --  by the payload scan rather than accumulating forever.

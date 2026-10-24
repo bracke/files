@@ -413,22 +413,25 @@ package body Create is
          --  failing and stranding the file at the destination.
          declare
             Expected : Support.Source_Snapshot;
-            Copied_Identity : UString;
+            Copied_Identity, Copied_Tree_Revision : UString;
 
             --  On any failure once the copy has started, drop whatever it left at
             --  the destination so the source stays the single canonical copy: no
             --  partial tree stranded, and no duplicate if the source delete fails.
             procedure Discard_Destination is
+               --  Against the revision published, so anything added to the
+               --  copy since is never deleted.
                Removed : constant Mutation_Result := Delete_Created_Entry
-                 (To_Path, To_String (Copied_Identity), Tree_Revision (To_Path));
+                 (To_Path, To_String (Copied_Identity), To_String (Copied_Tree_Revision));
                pragma Unreferenced (Removed);
             begin
                null;
             end Discard_Destination;
          begin
             Expected := Support.Snapshot (From_Path);
-            Support.Copy_To_New_Path (From_Path, To_Path, Copied_Identity, Times => Expected.Times,
-                                      Preserve_Ownership => True);
+            Support.Copy_To_New_Path
+              (From_Path, To_Path, Copied_Identity, Copied_Tree_Revision, Times => Expected.Times,
+               Preserve_Ownership => True);
 
             declare
                Deleted : constant Mutation_Result := Recovery.Remove_Move_Source (From_Path, Expected);

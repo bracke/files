@@ -819,18 +819,18 @@ package body Trash is
             begin
                declare
                   Expected : constant Support.Source_Snapshot := Support.Snapshot (Path);
-                  Identity : UString;
+                  Identity, Revision : UString;
                   Removed : Mutation_Result;
                begin
                   Support.Copy_To_New_Path
-                    (Path, To_String (Target), Identity, Times => Expected.Times, Preserve_Ownership => True);
+                    (Path, To_String (Target), Identity, Revision, Times => Expected.Times, Preserve_Ownership => True);
                   Trashed_Path := Target;
                   Removed := Recovery.Remove_Move_Source (Path, Expected);
                   if not Removed.Success then
                      declare
                         Rolled_Back : constant Mutation_Result :=
                           Delete_Created_Entry
-                            (To_String (Target), To_String (Identity), Tree_Revision (To_String (Target)));
+                            (To_String (Target), To_String (Identity), To_String (Revision));
                      begin
                         if Rolled_Back.Success then
                            Trashed_Path := Null_Unbounded_String;
