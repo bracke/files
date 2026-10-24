@@ -230,6 +230,11 @@ package body History is
                then
                   Succeeded := False;
                else
+                  --  Its labels come back out of the trash with it.
+                  if Index <= Action.To.Last_Index then
+                     Files.Model.Note_Path_Move
+                       (Model, To_String (Action.From (Index)), To_String (Action.To (Index)));
+                  end if;
                   Action.Reverse_Completed.Append (Action.From.Element (Index));
                   Files.History_Journal.Checkpoint (Model, Action, False);
                end if;

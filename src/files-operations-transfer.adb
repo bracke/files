@@ -1015,6 +1015,10 @@ package body Transfer is
             Undo_To.Append (Item.Full_Path);
             Identities.Append
               (To_Unbounded_String (Files.File_Identities.Token (To_String (Trashed))));
+            --  Labels go into the trash with the item and come back with it,
+            --  so a new file at the old path inherits none. A native trash
+            --  that does not say where the item went keeps them in place.
+            Files.Model.Note_Path_Move (Model, To_String (Item.Full_Path), To_String (Trashed));
             Record_Progress;
          end;
       end loop;
@@ -1079,11 +1083,8 @@ package body Transfer is
 
          declare
             In_Trash : constant Boolean := Is_Trash_Child (To_String (Item.Full_Path));
-            --  The path its labels and favorites name: a trashed item keeps
-            --  them at the place it came from, for a restore.
-            Labeled  : constant String :=
-              (if In_Trash then Files.File_System.Trash_Original_Path (To_String (Item.Full_Path))
-               else To_String (Item.Full_Path));
+            --  A trashed item's labels went into the trash with it.
+            Labeled  : constant String := To_String (Item.Full_Path);
             Mutation : constant Files.File_System.Mutation_Result :=
               (if In_Trash
                then Files.File_System.Delete_Trashed_Item
@@ -1141,9 +1142,13 @@ package body Transfer is
          end if;
 
          declare
+            Original : constant String := Files.File_System.Trash_Original_Path (To_String (Item.Full_Path));
             Mutation : constant Files.File_System.Mutation_Result :=
               Files.File_System.Restore_From_Trash (To_String (Item.Full_Path));
          begin
+            if Mutation.Success then
+               Files.Model.Note_Path_Move (Model, To_String (Item.Full_Path), Original);
+            end if;
             if not Mutation.Success then
                Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
                declare
@@ -1201,7 +1206,8 @@ package body Transfer is
          exit when Files.Job_Context.Cancelled;
          Total := Total + 1;
          declare
-            Labeled  : constant String := Files.File_System.Trash_Original_Path (To_String (Item.Full_Path));
+            --  Its labels went into the trash with it.
+            Labeled  : constant String := To_String (Item.Full_Path);
             Mutation : constant Files.File_System.Mutation_Result :=
               Files.File_System.Delete_Trashed_Item (To_String (Item.Full_Path));
          begin

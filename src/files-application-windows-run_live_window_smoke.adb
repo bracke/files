@@ -22,6 +22,9 @@ separate (Files.Application.Windows)
       end Hold_Seconds;
 
       Hold : constant Natural := Hold_Seconds;
+
+      --  Extra frames a scenario may take for its readback to arrive.
+      Max_Readback_Wait_Frames : constant := 30;
    begin
       if not Plan.Can_Run or else Startup.Windows.Is_Empty then
          if Startup.Windows.Is_Empty then
@@ -102,70 +105,91 @@ separate (Files.Application.Windows)
                   Drive_Settings_Keys (Runtime_Windows (1), Outcome.Keys_Failed_Step);
                end if;
 
-               for Frame_Index in 1 .. Plan.Frame_Count loop
-                  Result.Frames_Attempted := Result.Frames_Attempted + 1;
-                  --  Render directly rather than through Render_All, whose
-                  --  per-window boundary would hide a failing frame from the smoke.
+               --  The readback trails the frame it reads, and the run's first
+               --  frames are the slowest: a scenario that ended before its
+               --  own readback arrived was judged on none (hash 0, a blank
+               --  verdict) -- or on the scenario before it -- and failed now
+               --  and then. Only a readback of a frame this scenario drew
+               --  counts, and the scenario renders on, up to a bound, until
+               --  one arrives.
+               declare
+                  Drawn_Before : array (1 .. Natural (Runtime_Windows.Length)) of Natural := [others => 0];
+                  Window_Index : Positive := 1;
+               begin
                   for Runtime of Runtime_Windows loop
-                     Render_Window (Runtime);
+                     Drawn_Before (Window_Index) := Guikit.Vulkan.Diagnostics (Runtime.Vulkan).Submitted_Frames;
+                     Window_Index := Window_Index + 1;
                   end loop;
-                  Result.Frame_Rendered :=
-                    Result.Frame_Rendered or else Any_Runtime_Frame_Rendered (Runtime_Windows);
-                  for Runtime of Runtime_Windows loop
-                     if Runtime.Last_Present_Status /= Guikit.Vulkan.Vulkan_Not_Initialized then
-                        declare
-                           Diagnostics : constant Guikit.Vulkan.Renderer_Diagnostics :=
-                             Guikit.Vulkan.Diagnostics (Runtime.Vulkan);
-                        begin
-                           Result.Last_Status := Runtime.Last_Present_Status;
-                           Result.Last_Vk_Result := Diagnostics.Last_Vk_Result;
-                           Result.Vulkan_Device_Ready :=
-                             Result.Vulkan_Device_Ready or else Diagnostics.Device_Ready;
-                           if Runtime.Last_Present_Status = Guikit.Vulkan.Vulkan_Presented then
-                              Result.Frames_Presented := Result.Frames_Presented + 1;
-                           end if;
-                           if Diagnostics.Framebuffer_Readback_Ready then
-                              Result.Framebuffer_Readback_Ready := True;
-                              Result.Last_Framebuffer_Bytes := Diagnostics.Last_Framebuffer_Bytes;
-                              Outcome.Rendered := True;
-                              Outcome.Readback_Ready := True;
-                              Outcome.Hash := Diagnostics.Last_Framebuffer_Hash;
-                              Outcome.Passed := Diagnostics.Framebuffer_Passed;
-
-                              --  Layout-derived region assertion: prove a
-                              --  specific UI element rendered at the pixel
-                              --  rectangle its layout computed. An empty region
-                              --  where the structural Analyze still passed is
-                              --  exactly what a coordinate/DPI-scaling
-                              --  regression produces, so it fails the scenario.
-                              declare
-                                 Rect : constant Region_Rect :=
-                                   Scenario_Region
-                                     (Runtime, Scenario,
-                                      Diagnostics.Frame_Width, Diagnostics.Frame_Height);
-                              begin
-                                 if Rect.Valid then
-                                    Outcome.Region_Checked := True;
-                                    Outcome.Region_Ink_Fraction :=
-                                      Guikit.Vulkan.Readback_Region_Ink_Fraction
-                                        (Runtime.Vulkan, Rect.X, Rect.Y, Rect.W, Rect.H);
-                                    Outcome.Region_Ink_Present :=
-                                      Guikit.Vulkan.Readback_Region_Has_Ink
-                                        (Runtime.Vulkan, Rect.X, Rect.Y, Rect.W, Rect.H);
-                                 end if;
-                              end;
-
-                              --  The default scenario feeds the legacy
-                              --  single-frame diagnostics printout.
-                              if Scenario = Scenario_Default then
-                                 Result.Last_Framebuffer_Hash := Diagnostics.Last_Framebuffer_Hash;
-                                 Result.Framebuffer_Analysis := Diagnostics.Framebuffer_Analysis;
+                  for Frame_Index in 1 .. Plan.Frame_Count + Max_Readback_Wait_Frames loop
+                     exit when Frame_Index > Plan.Frame_Count and then Outcome.Readback_Ready;
+                     Result.Frames_Attempted := Result.Frames_Attempted + 1;
+                     --  Render directly rather than through Render_All, whose
+                     --  per-window boundary would hide a failing frame from the smoke.
+                     for Runtime of Runtime_Windows loop
+                        Render_Window (Runtime);
+                     end loop;
+                     Result.Frame_Rendered :=
+                       Result.Frame_Rendered or else Any_Runtime_Frame_Rendered (Runtime_Windows);
+                     Window_Index := 1;
+                     for Runtime of Runtime_Windows loop
+                        if Runtime.Last_Present_Status /= Guikit.Vulkan.Vulkan_Not_Initialized then
+                           declare
+                              Diagnostics : constant Guikit.Vulkan.Renderer_Diagnostics :=
+                                Guikit.Vulkan.Diagnostics (Runtime.Vulkan);
+                           begin
+                              Result.Last_Status := Runtime.Last_Present_Status;
+                              Result.Last_Vk_Result := Diagnostics.Last_Vk_Result;
+                              Result.Vulkan_Device_Ready :=
+                                Result.Vulkan_Device_Ready or else Diagnostics.Device_Ready;
+                              if Runtime.Last_Present_Status = Guikit.Vulkan.Vulkan_Presented then
+                                 Result.Frames_Presented := Result.Frames_Presented + 1;
                               end if;
-                           end if;
-                        end;
-                     end if;
+                              if Diagnostics.Framebuffer_Readback_Ready
+                                and then Diagnostics.Last_Framebuffer_Frame > Drawn_Before (Window_Index)
+                              then
+                                 Result.Framebuffer_Readback_Ready := True;
+                                 Result.Last_Framebuffer_Bytes := Diagnostics.Last_Framebuffer_Bytes;
+                                 Outcome.Rendered := True;
+                                 Outcome.Readback_Ready := True;
+                                 Outcome.Hash := Diagnostics.Last_Framebuffer_Hash;
+                                 Outcome.Passed := Diagnostics.Framebuffer_Passed;
+
+                                 --  Layout-derived region assertion: prove a
+                                 --  specific UI element rendered at the pixel
+                                 --  rectangle its layout computed. An empty region
+                                 --  where the structural Analyze still passed is
+                                 --  exactly what a coordinate/DPI-scaling
+                                 --  regression produces, so it fails the scenario.
+                                 declare
+                                    Rect : constant Region_Rect :=
+                                      Scenario_Region
+                                        (Runtime, Scenario,
+                                         Diagnostics.Frame_Width, Diagnostics.Frame_Height);
+                                 begin
+                                    if Rect.Valid then
+                                       Outcome.Region_Checked := True;
+                                       Outcome.Region_Ink_Fraction :=
+                                         Guikit.Vulkan.Readback_Region_Ink_Fraction
+                                           (Runtime.Vulkan, Rect.X, Rect.Y, Rect.W, Rect.H);
+                                       Outcome.Region_Ink_Present :=
+                                         Guikit.Vulkan.Readback_Region_Has_Ink
+                                           (Runtime.Vulkan, Rect.X, Rect.Y, Rect.W, Rect.H);
+                                    end if;
+                                 end;
+
+                                 --  The default scenario feeds the legacy
+                                 --  single-frame diagnostics printout.
+                                 if Scenario = Scenario_Default then
+                                    Result.Last_Framebuffer_Hash := Diagnostics.Last_Framebuffer_Hash;
+                                    Result.Framebuffer_Analysis := Diagnostics.Framebuffer_Analysis;
+                                 end if;
+                              end if;
+                           end;
+                        end if;
+                        Window_Index := Window_Index + 1;
+                     end loop;
                   end loop;
-               end loop;
+               end;
 
                Result.Scenario_Results (Scenario) := Outcome;
                if Hold > 0 then
