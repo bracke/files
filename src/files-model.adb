@@ -3190,6 +3190,35 @@ package body Files.Model is
    procedure Prune_Folder_Sizes_To_Selection (Model : in out Window_Model)
      renames Folder_Sizes.Prune_Folder_Sizes_To_Selection;
 
+   procedure Set_Volume_Space
+     (Model   : in out Window_Model;
+      Path    : String;
+      Space   : Volume_Space;
+      Sampled : Ada.Calendar.Time) is
+   begin
+      if Model.Volume_Space_Value /= Space or else To_String (Model.Volume_Path) /= Path then
+         Model.Revision_Value := Model.Revision_Value + 1;
+      end if;
+      Model.Volume_Space_Value := Space;
+      Model.Volume_Path := To_Unbounded_String (Path);
+      Model.Volume_Sampled := Sampled;
+   end Set_Volume_Space;
+
+   function Volume_Space_Is_Current
+     (Model : Window_Model;
+      Now   : Ada.Calendar.Time)
+      return Boolean is
+   begin
+      return Length (Model.Volume_Path) > 0
+        and then To_String (Model.Volume_Path) = Current_Path (Model)
+        and then Now - Model.Volume_Sampled <= Volume_Space_Refresh_Interval;
+   end Volume_Space_Is_Current;
+
+   function Volume_Space_Of
+     (Model : Window_Model)
+      return Volume_Space is
+     (if To_String (Model.Volume_Path) = Current_Path (Model) then Model.Volume_Space_Value else (others => <>));
+
    function Folder_Size_Cached_For (Model : Window_Model; Path : String) return Boolean
      renames Folder_Sizes.Folder_Size_Cached_For;
 

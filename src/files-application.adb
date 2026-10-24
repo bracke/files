@@ -1,3 +1,4 @@
+with Ada.Calendar;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Exceptions;
@@ -9,6 +10,7 @@ with Interfaces;
 with GNAT.OS_Lib;
 
 with Hostkit.Fs;
+with Hostkit.Metadata;
 
 with Files.Commands;
 with Files.File_System;
@@ -345,6 +347,37 @@ package body Files.Application is
       end if;
    end Apply_Persisted_UI_State;
 
+   procedure Sample_Volume_Space
+     (Model : in out Files.Model.Window_Model)
+   is
+      Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+   begin
+      if not Files.Model.Volume_Space_Is_Current (Model, Now) then
+         declare
+            Path     : constant String := Files.Model.Current_Path (Model);
+            Capacity : constant Hostkit.Metadata.Volume_Capacity := Hostkit.Metadata.Volume_Capacity_Of (Path);
+         begin
+            Files.Model.Set_Volume_Space
+              (Model,
+               Path,
+               (Known       => Capacity.Available,
+                Free_Bytes  => Capacity.Free_Bytes,
+                Total_Bytes => Capacity.Capacity_Bytes),
+               Now);
+         end;
+      end if;
+   end Sample_Volume_Space;
+
+   function With_Volume_Space
+     (Model : Files.Model.Window_Model)
+      return Files.Model.Window_Model
+   is
+      Sampled : Files.Model.Window_Model := Model;
+   begin
+      Sample_Volume_Space (Sampled);
+      return Sampled;
+   end With_Volume_Space;
+
    function Resolve_Startup_Paths
      (Arguments : String_Vectors.Vector;
       Settings  : Files.Settings.Settings_Model)
@@ -554,7 +587,8 @@ package body Files.Application is
       for Window of Result.Windows loop
          declare
             Snapshot      : constant Files.Rendering.View_Snapshot :=
-              Files.Rendering.Build_Snapshot (Files.Model.Grouped (Window.Model, Result.Settings), Result.Settings);
+              Files.Rendering.Build_Snapshot
+                (With_Volume_Space (Files.Model.Grouped (Window.Model, Result.Settings)), Result.Settings);
             Frame         : constant Files.Rendering.Frame_Commands :=
               Files.Rendering.Build_Frame_Commands
                 (Snapshot    => Snapshot,

@@ -1009,11 +1009,51 @@ package body Files.Application.Windows is
    --  others of input, rendering, file watching or folder sizes, which a single
    --  handler around the whole loop pass did. The failing window's frame cache
    --  is dropped so its next frame is rebuilt rather than left stale.
+   --  Every window writes its whole settings model to the one shared file, so
+   --  each must see the others' changes: otherwise closing (or zooming) a
+   --  window with a stale copy silently reverts a theme, favourite or label
+   --  changed in another. A window whose settings moved since the last sync
+   --  hands them to every other window. For_Each_Window shares after every
+   --  window's step, so two windows can never both have unshared changes
+   --  (which would leave only one of them to win).
+   procedure Share_Settings_From
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector;
+      Index           : Positive)
+   is
+      use type Files.Settings.Settings_Model;
+   begin
+      if Runtime_Windows (Index).Settings = Runtime_Windows (Index).Synced_Settings then
+         return;
+      end if;
+
+      declare
+         Shared : constant Files.Settings.Settings_Model := Runtime_Windows (Index).Settings;
+      begin
+         for Runtime of Runtime_Windows loop
+            if Runtime.Settings /= Shared then
+               Runtime.Settings := Shared;
+               Runtime.Frame_Cache_Valid := False;
+            end if;
+            Runtime.Synced_Settings := Shared;
+         end loop;
+      end;
+   end Share_Settings_From;
+
+   procedure Sync_Settings_Across_Windows
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
+   begin
+      for Index in Runtime_Windows.First_Index .. Runtime_Windows.Last_Index loop
+         Share_Settings_From (Runtime_Windows, Index);
+      end loop;
+   end Sync_Settings_Across_Windows;
+
    procedure For_Each_Window
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector;
       Step            : not null access procedure (Runtime : in out Runtime_Window)) is
    begin
-      for Runtime of Runtime_Windows loop
+      for Index in Runtime_Windows.First_Index .. Runtime_Windows.Last_Index loop
+         declare
+            Runtime : Runtime_Window renames Runtime_Windows (Index);
          begin
             --  Keep the items in the drawn group order before any step reads
             --  or walks them; a no-op unless the model or grouping changed.
@@ -1023,6 +1063,7 @@ package body Files.Application.Windows is
             when others =>
                Runtime.Frame_Cache_Valid := False;
          end;
+         Share_Settings_From (Runtime_Windows, Index);
       end loop;
    end For_Each_Window;
 
@@ -1175,40 +1216,6 @@ package body Files.Application.Windows is
    begin
       For_Each_Window (Runtime_Windows, Handle_Scroll_Input'Access);
    end Handle_All_Scroll_Input;
-
-   --  Every window writes its whole settings model to the one shared file, so
-   --  each must see the others' changes: otherwise closing (or zooming) a
-   --  window with a stale copy silently reverts a theme, favourite or label
-   --  changed in another. A window whose settings moved since the last sync
-   --  hands them to every other window.
-   procedure Sync_Settings_Across_Windows
-     (Runtime_Windows : in out Runtime_Window_Vectors.Vector)
-   is
-      use type Files.Settings.Settings_Model;
-      Changed : Natural := 0;
-   begin
-      for Index in Runtime_Windows.First_Index .. Runtime_Windows.Last_Index loop
-         if Runtime_Windows (Index).Settings /= Runtime_Windows (Index).Synced_Settings then
-            Changed := Index;
-            exit;
-         end if;
-      end loop;
-      if Changed = 0 then
-         return;
-      end if;
-
-      declare
-         Shared : constant Files.Settings.Settings_Model := Runtime_Windows (Changed).Settings;
-      begin
-         for Runtime of Runtime_Windows loop
-            if Runtime.Settings /= Shared then
-               Runtime.Settings := Shared;
-               Runtime.Frame_Cache_Valid := False;
-            end if;
-            Runtime.Synced_Settings := Shared;
-         end loop;
-      end;
-   end Sync_Settings_Across_Windows;
 
    function Scale_Coordinate
      (Value  : Glfw.Input.Mouse.Coordinate;

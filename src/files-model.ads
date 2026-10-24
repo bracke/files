@@ -2924,6 +2924,48 @@ package Files.Model is
       Path  : String)
       return Boolean;
 
+   --  Free and total space of the volume holding the current directory.
+   type Volume_Space is record
+      Known       : Boolean := False;
+      Free_Bytes  : Long_Long_Integer := 0;
+      Total_Bytes : Long_Long_Integer := 0;
+   end record;
+
+   --  How long a volume-space sample stays current before the window layer
+   --  samples again, so the readout follows a delete, a paste or another
+   --  process rather than sticking until the user navigates away.
+   Volume_Space_Refresh_Interval : constant Duration := 3.0;
+
+   --  Record a volume-space sample. The window layer takes it (a statvfs);
+   --  Build_Snapshot only reads it, so building a snapshot touches no disk.
+   --  Bumps the revision only when what would be shown changed.
+   --
+   --  @param Model Model to update.
+   --  @param Path Directory the sample was taken for.
+   --  @param Space The sampled free and total bytes.
+   --  @param Sampled When it was taken.
+   procedure Set_Volume_Space
+     (Model   : in out Window_Model;
+      Path    : String;
+      Space   : Volume_Space;
+      Sampled : Ada.Calendar.Time);
+
+   --  @param Model Model to inspect.
+   --  @param Now The current time.
+   --  @return True when the sample is for the current directory and younger
+   --    than Volume_Space_Refresh_Interval.
+   function Volume_Space_Is_Current
+     (Model : Window_Model;
+      Now   : Ada.Calendar.Time)
+      return Boolean;
+
+   --  @param Model Model to inspect.
+   --  @return The last sample, or an unknown space when it was taken for
+   --    another directory.
+   function Volume_Space_Of
+     (Model : Window_Model)
+      return Volume_Space;
+
    --  Return the cached folder-size measurement for Path.
    --
    --  @param Model Model to inspect.
@@ -3172,6 +3214,11 @@ private
       --  differs, so snapshot invalidation follows the model automatically
       --  rather than relying on each call site to remember.
       Revision_Value : Natural := 0;
+      --  The volume-space sample (Set_Volume_Space) and where and when it was
+      --  taken; Volume_Sampled is meaningful only once Volume_Path is set.
+      Volume_Space_Value : Volume_Space;
+      Volume_Path        : UString;
+      Volume_Sampled     : Ada.Calendar.Time;
       --  The grouping the items are ordered by (Sync_Grouping): the effective
       --  mode, the labels and day it was computed with, and the revision it
       --  was last checked at.

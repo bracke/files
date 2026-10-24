@@ -80,27 +80,13 @@ separate (Files.Rendering)
       Snapshot.Primary_Selected_Visible_Index :=
         Files.Model.Selected_Index (Model);
       declare
-         --  Free-space comes from the current directory's filesystem via a
-         --  statvfs syscall. The platform accessor reports Available = False when
-         --  the volume cannot be measured (non-Linux stubs, unreadable paths), so
-         --  a bogus zero is never shown as a known value. Cache it per path so a
-         --  scroll (same directory) does not re-run the syscall every frame;
-         --  navigating to another directory refreshes it.
-         Path : constant String := Files.Model.Current_Path (Model);
-         Now  : constant Ada.Calendar.Time := Ada.Calendar.Clock;
-         use type Ada.Calendar.Time;
+         --  Sampled by the window layer (see Volume_Space_Is_Current); unknown
+         --  until it has been, so a bogus zero is never shown as a known value.
+         Space : constant Files.Model.Volume_Space := Files.Model.Volume_Space_Of (Model);
       begin
-         if not Free_Space_Cache_Is_Current (Path)
-         then
-            Cached_Free_Cap := Hostkit.Metadata.Volume_Capacity_Of (Path);
-            Cached_Free_Path := Ada.Strings.Unbounded.To_Unbounded_String (Path);
-            Cached_Free_Time := Now;
-            Cached_Free_Ready := True;
-         end if;
-
-         Snapshot.Free_Space_Known := Cached_Free_Cap.Available;
-         Snapshot.Free_Space_Bytes := Cached_Free_Cap.Free_Bytes;
-         Snapshot.Total_Space_Bytes := Cached_Free_Cap.Capacity_Bytes;
+         Snapshot.Free_Space_Known := Space.Known;
+         Snapshot.Free_Space_Bytes := Space.Free_Bytes;
+         Snapshot.Total_Space_Bytes := Space.Total_Bytes;
       end;
       Snapshot.Filter_Text := To_Unbounded_String (Files.Model.Filter_Text (Model));
       Snapshot.Search_Scope := Files.Model.Search_Scope_Of (Model);

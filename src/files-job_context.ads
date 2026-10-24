@@ -1,7 +1,16 @@
 with Files.Types;
 with Files.Job_Transports;
 
---  Helper-local cancellation and staging journal. Never set by the UI process.
+--  Cancellation and the staging journal, for whichever process is copying.
+--  Process-wide state, one instance per process, in two modes:
+--
+--  * In a job helper, Initialize names the private transport directory the
+--    parent handed it; cancellation and the journal of created stages are
+--    read from and written there.
+--  * In the UI process, Initialize is never called (Directory stays empty,
+--    Cancelled stays False), and a stage created by a foreground operation is
+--    journaled under a reserved job directory instead, so a stage it fails to
+--    discard is handed to the cleanup helper for retry. Shutdown releases it.
 package Files.Job_Context is
    --  @param Directory Absolute private helper transport directory, or empty
    --    outside a helper.

@@ -84,6 +84,10 @@ separate (Files.Application.Windows)
          end;
       end if;
 
+      --  A changed free-space reading bumps the model revision, so the
+      --  snapshot below is rebuilt only when what it shows has moved.
+      Sample_Volume_Space (Runtime.Model);
+
       declare
          Hover_X  : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Width);
          Hover_Y  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Height);
@@ -112,11 +116,6 @@ separate (Files.Application.Windows)
            and then Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model)
            and then Files.Settings.Same_Snapshot_Settings
                       (Runtime.Settings, Runtime.Cached_Settings_Key)
-           and then
-             (not (Runtime.Settings.Show_Used_Space
-                   or else Runtime.Settings.Show_Space_Bar)
-              or else Files.Rendering.Free_Space_Cache_Is_Current
-                        (Files.Model.Current_Path (Runtime.Model)))
            and then not Files.Model.Paste_Execution_Is_Active (Runtime.Model)
            and then not Runtime.Marquee_Active;
          Inputs_Match : constant Boolean :=

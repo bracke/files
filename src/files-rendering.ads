@@ -983,14 +983,6 @@ package Files.Rendering is
    --  @return True when the field should draw the used/free bar.
    function Free_Space_Bar_Active (Snapshot : View_Snapshot) return Boolean;
 
-   --  Whether the cached capacity sample still covers Path and is within its
-   --  refresh interval.  The window frame cache uses this to avoid keeping a
-   --  time-sensitive free-space snapshot forever while the model is idle.
-   --
-   --  @param Path Directory whose containing volume is displayed.
-   --  @return True when Build_Snapshot may reuse the current capacity sample.
-   function Free_Space_Cache_Is_Current (Path : String) return Boolean;
-
    --  The rendered pixel width of Free_Space_Label, or zero when there is no
    --  free field.
    --

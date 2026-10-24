@@ -38,28 +38,6 @@ package body Files.Rendering is
       return True;
    end "=";
 
-   --  Build_Snapshot queries the current volume's free space (a statvfs syscall)
-   --  on every rebuild -- i.e. every scroll frame that bumps the model revision,
-   --  though free space does not change at that cadence. Cache it per current
-   --  path so scrolling reuses it; navigating to another directory re-queries.
-   --  It also expires after a few seconds so the readout follows an in-place
-   --  change (a delete or paste in the same directory leaves the path unchanged,
-   --  and another process can change free space at any time) rather than sticking
-   --  until the user navigates away. Single-threaded render, so state is safe.
-   Free_Space_Refresh_Interval : constant Duration := 3.0;
-   Cached_Free_Path  : Ada.Strings.Unbounded.Unbounded_String;
-   Cached_Free_Cap   : Hostkit.Metadata.Volume_Capacity;
-   Cached_Free_Ready : Boolean := False;
-   Cached_Free_Time  : Ada.Calendar.Time;  --  meaningful only once Ready
-
-   function Free_Space_Cache_Is_Current (Path : String) return Boolean is
-   begin
-      return Cached_Free_Ready
-        and then Ada.Strings.Unbounded.To_String (Cached_Free_Path) = Path
-        and then Ada.Calendar."-" (Ada.Calendar.Clock, Cached_Free_Time) <=
-          Free_Space_Refresh_Interval;
-   end Free_Space_Cache_Is_Current;
-
    --  Text rendering is provided by the guikit toolkit; this process-wide
    --  renderer holds the shared font/atlas the whole app draws through.
    The_Renderer : Guikit.Text.Renderer;

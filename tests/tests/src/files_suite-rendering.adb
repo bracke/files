@@ -2007,18 +2007,34 @@ package body Files_Suite.Rendering is
               "the bottom bar omits the free-space indicator when the value is unknown");
 
       declare
-         Model    : constant Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         use type Ada.Calendar.Time;
+         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
          Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-         Built    : constant View_Snapshot := Build_Snapshot (Model, Settings);
-         pragma Unreferenced (Built);
          Path     : constant String := Files.Model.Current_Path (Model);
+         Now      : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+         Space    : constant Files.Model.Volume_Space := (Known => True, Free_Bytes => 100, Total_Bytes => 400);
+         Revision : Natural;
       begin
          Assert
-           (Free_Space_Cache_Is_Current (Path),
-            "building a snapshot installs a current capacity sample");
+           (not Build_Snapshot (Model, Settings).Free_Space_Known,
+            "building a snapshot does not query the disk: an unsampled model shows no free space");
+         Files.Model.Set_Volume_Space (Model, Path, Space, Now);
          Assert
-           (not Free_Space_Cache_Is_Current (Path & "/different"),
-            "a capacity sample cannot validate a different path's frame cache");
+           (Build_Snapshot (Model, Settings).Free_Space_Bytes = 100,
+            "the snapshot shows the sampled free space");
+         Assert (Files.Model.Volume_Space_Is_Current (Model, Now), "a fresh sample is current");
+         Assert
+           (not Files.Model.Volume_Space_Is_Current (Model, Now + 2.0 * Files.Model.Volume_Space_Refresh_Interval),
+            "a sample goes stale after the refresh interval");
+         Revision := Files.Model.Revision (Model);
+         Files.Model.Set_Volume_Space (Model, Path, Space, Now + 1.0);
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Revision (Model), Revision, "an unchanged sample does not force a snapshot rebuild");
+         Files.Model.Set_Volume_Space (Model, Path & "/different", Space, Now);
+         Assert
+           (not Files.Model.Volume_Space_Of (Model).Known
+            and then not Files.Model.Volume_Space_Is_Current (Model, Now),
+            "a sample for another directory is not shown for this one");
       end;
    end Test_Bottom_Bar_Free_Space;
 

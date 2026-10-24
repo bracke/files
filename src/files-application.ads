@@ -124,6 +124,14 @@ package Files.Application is
    procedure Apply_Shortcut_Overrides
      (Settings : Files.Settings.Settings_Model);
 
+   --  Sample the current directory's volume space into Model when its last
+   --  sample is stale (Files.Model.Volume_Space_Is_Current), so the snapshot
+   --  shows it without querying the disk itself.
+   --
+   --  @param Model Window model whose current directory is sampled.
+   procedure Sample_Volume_Space
+     (Model : in out Files.Model.Window_Model);
+
    --  Resolve command-line paths into one window model per valid directory.
    --
    --  @param Arguments Command-line arguments as paths.
