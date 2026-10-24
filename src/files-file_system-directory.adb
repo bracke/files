@@ -1963,80 +1963,54 @@ package body Directory is
       end Is_Symlink;
 
       function Walk (Directory : String; Depth : Natural) return Boolean is
-         Search : Ada.Directories.Search_Type;
-         Item   : Ada.Directories.Directory_Entry_Type;
-         Started : Boolean := False;
+
+         procedure Visit (Name : String) is
+            Full : constant String := Join_Path (Directory, Name);
+         begin
+            if Result.Capped then
+               return;
+            end if;
+            Visited := Visited + 1;
+            if Visited > Max_Entries then
+               Result.Capped := True;
+               return;
+            end if;
+
+            --  Every entry counts, a dangling link included: the folder lists it.
+            Result.Item_Count := Result.Item_Count + 1;
+
+            if Is_Symlink (Full) then
+               null;
+            elsif Ada.Directories.Kind (Full) = Ada.Directories.Directory then
+               declare
+                  Descended : constant Boolean := Walk (Full, Depth + 1);
+                  pragma Unreferenced (Descended);
+               begin
+                  null;
+               end;
+            elsif Ada.Directories.Kind (Full) = Ada.Directories.Ordinary_File then
+               Result.File_Count := Result.File_Count + 1;
+               Result.Total_Bytes :=
+                 Saturating_Long_Add (Result.Total_Bytes, Long_Long_Integer (Ada.Directories.Size (Full)));
+            end if;
+         exception
+            when others =>
+               --  Skip individual entries that cannot be classified or sized
+               --  (races, permission denials) without aborting the walk.
+               null;
+         end Visit;
       begin
          if Depth > Max_Depth then
             Result.Capped := True;
             return True;
          end if;
 
-         Ada.Directories.Start_Search
-           (Search    => Search,
-            Directory => Directory,
-            Pattern   => "",
-            Filter    =>
-              [Ada.Directories.Ordinary_File => True,
-               Ada.Directories.Directory     => True,
-               Ada.Directories.Special_File  => True]);
-         Started := True;
-
-         while Ada.Directories.More_Entries (Search) loop
-            Ada.Directories.Get_Next_Entry (Search, Item);
-            declare
-               Name : constant String := Ada.Directories.Simple_Name (Item);
-               Full : constant String := Ada.Directories.Full_Name (Item);
-            begin
-               if Name /= "." and then Name /= ".." then
-                  Visited := Visited + 1;
-                  if Visited > Max_Entries then
-                     Result.Capped := True;
-                     Ada.Directories.End_Search (Search);
-                     Started := False;
-                     return True;
-                  end if;
-
-                  Result.Item_Count := Result.Item_Count + 1;
-
-                  if Is_Symlink (Full) then
-                     null;
-                  elsif Ada.Directories.Kind (Item) = Ada.Directories.Directory then
-                     declare
-                        Descended : constant Boolean := Walk (Full, Depth + 1);
-                        pragma Unreferenced (Descended);
-                     begin
-                        null;
-                     end;
-                     exit when Result.Capped;
-                  elsif Ada.Directories.Kind (Item) = Ada.Directories.Ordinary_File then
-                     Result.File_Count := Result.File_Count + 1;
-                     Result.Total_Bytes :=
-                       Saturating_Long_Add
-                         (Result.Total_Bytes,
-                          Long_Long_Integer (Ada.Directories.Size (Item)));
-                  end if;
-               end if;
-            exception
-               when others =>
-                  --  Skip individual entries that cannot be classified or sized
-                  --  (races, permission denials) without aborting the walk.
-                  null;
-            end;
-         end loop;
-
-         Ada.Directories.End_Search (Search);
-         Started := False;
+         --  Ada.Directories' search drops a dangling link; this enumeration
+         --  neither follows nor drops links.
+         Support.For_Each_Entry (Directory, Visit'Access);
          return True;
       exception
          when others =>
-            if Started then
-               begin
-                  Ada.Directories.End_Search (Search);
-               exception
-                  when others => null;
-               end;
-            end if;
             --  An unreadable subdirectory is skipped rather than failing the
             --  whole measurement.  The caller distinguishes that case from an
             --  unreadable root, whose result must remain unavailable.
