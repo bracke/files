@@ -85,6 +85,37 @@ package body Files.Interaction is
         or else Outcome.Operation.Status = Files.Operations.Operation_Navigated;
    end Observe_Controller_Outcome;
 
+   --  Record the UI follow-ups of a settings command the controller applied:
+   --  the change itself, a live font-size change, a reloaded listing.
+   procedure Observe_Settings_Command
+     (Command           : Files.Commands.Command_Id;
+      Before            : Files.Settings.Settings_Model;
+      Settings          : Files.Settings.Settings_Model;
+      Current_Font_Size : Positive;
+      Result            : in out Interaction_Result) is
+   begin
+      case Command is
+         when Files.Commands.Save_Settings_Command =>
+            Result.Settings_Changed := True;
+            --  Apply a font-size change made in the settings pane live, the same
+            --  way Ctrl+scroll / Ctrl+= zoom does: signal the shell to sync the
+            --  runtime size and invalidate the glyph cache so text re-rasterizes
+            --  now rather than only on the next launch.
+            if Settings.Font_Pixel_Size /= Current_Font_Size then
+               Result.Font_Size_Changed := True;
+               Result.Needs_Glyph_Rebuild := True;
+            end if;
+         when Files.Commands.Toggle_Hidden_Files_Command =>
+            Result.Settings_Changed := True;
+            Result.Directory_Reloaded := True;
+         when Files.Commands.Toggle_Favorite_Command =>
+            --  A favorite toggle with nothing to toggle changes nothing.
+            Result.Settings_Changed := Files.Settings."/=" (Settings, Before);
+         when others =>
+            Result.Settings_Changed := Files.Commands.Requires_Settings_Path (Command);
+      end case;
+   end Observe_Settings_Command;
+
    procedure Persist_Settings
      (Settings      : Files.Settings.Settings_Model;
       Settings_Path : String)
@@ -181,26 +212,9 @@ package body Files.Interaction is
          Before : constant Files.Settings.Settings_Model := Settings;
       begin
          Outcome := Files.Controller.Execute_Command (Command, Model, Settings, Settings_Path, Modifiers);
-         case Command is
-            when Files.Commands.Save_Settings_Command =>
-               Result.Settings_Changed := True;
-               --  Apply a font-size change made in the settings pane live, the same
-               --  way Ctrl+scroll / Ctrl+= zoom does: signal the shell to sync the
-               --  runtime size and invalidate the glyph cache so text re-rasterizes
-               --  now rather than only on the next launch.
-               if Settings.Font_Pixel_Size /= Current_Font_Size then
-                  Result.Font_Size_Changed := True;
-                  Result.Needs_Glyph_Rebuild := True;
-               end if;
-            when Files.Commands.Toggle_Hidden_Files_Command =>
-               Result.Settings_Changed := True;
-               Result.Directory_Reloaded := True;
-            when Files.Commands.Toggle_Favorite_Command =>
-               --  A favorite toggle with nothing to toggle changes nothing.
-               Result.Settings_Changed := Files.Settings."/=" (Settings, Before);
-            when others =>
-               Result.Settings_Changed := Files.Commands.Requires_Settings_Path (Command);
-         end case;
+         if Files.Commands.Requires_Settings_Path (Command) then
+            Observe_Settings_Command (Command, Before, Settings, Current_Font_Size, Result);
+         end if;
       end;
 
       case Command is
@@ -363,43 +377,37 @@ package body Files.Interaction is
       end if;
 
       declare
+         Before  : constant Files.Settings.Settings_Model := Settings;
          Outcome : constant Files.Controller.Controller_Result :=
            Files.Controller.Handle_Key
-             (Model     => Model,
-              Settings  => Settings,
-              Key       => Key,
-              Modifiers => Modifiers,
+             (Model          => Model,
+              Settings       => Settings,
+              Settings_Path  => Settings_Path,
+              Key            => Key,
+              Modifiers      => Modifiers,
               Tree_Page_Rows => Tree_Page_Rows);
       begin
+         Observe_Controller_Outcome (Outcome, Result);
          if Files.Commands.Requires_Settings_Path (Outcome.Command)
            and then Outcome.Status = Files.Controller.Controller_Command_Executed
+           and then Files.Commands.Is_Enabled (Outcome.Command, Model)
          then
-            --  Re-route every settings-path command (a shortcut such as Ctrl+B,
-            --  or Enter in the palette) through Execute_Command for the in-out
-            --  settings handling: the read-only controller cannot apply them,
-            --  so they used to report success and do nothing. The shell then
-            --  dropped any parallel character event; surface that as a
-            --  follow-up flag so Apply_Interaction_Result performs the clear.
-            Execute_Command
-              (Model             => Model,
-               Settings          => Settings,
-               Settings_Path     => Settings_Path,
-               Command           => Outcome.Command,
-               Current_Font_Size => Current_Font_Size,
-               Result            => Result);
+            --  The controller applied a settings shortcut (or Enter in the
+            --  palette). The shell then dropped any parallel character event;
+            --  surface that as a follow-up flag so Apply_Interaction_Result
+            --  performs the clear.
+            Observe_Settings_Command (Outcome.Command, Before, Settings, Current_Font_Size, Result);
             Result.Clear_Pending_Text := True;
-         else
-            Observe_Controller_Outcome (Outcome, Result);
-            --  A view / info-pane change driven from the keyboard (Ctrl+1..4) has
-            --  already run inside Handle_Key; sync it to the settings so it
-            --  persists. Sync_Global_UI_State is idempotent -- it writes only when
-            --  the mirrored state actually differs -- so this is a no-op for any
-            --  other command.
-            if Files.Commands.Persists_Global_Ui_State (Outcome.Command)
-              and then Sync_Global_UI_State (Model, Settings, Settings_Path)
-            then
-               Result.Settings_Changed := True;
-            end if;
+         end if;
+         --  A view / info-pane change driven from the keyboard (Ctrl+1..4) has
+         --  already run inside Handle_Key; sync it to the settings so it
+         --  persists. Sync_Global_UI_State is idempotent -- it writes only when
+         --  the mirrored state actually differs -- so this is a no-op for any
+         --  other command.
+         if Files.Commands.Persists_Global_Ui_State (Outcome.Command)
+           and then Sync_Global_UI_State (Model, Settings, Settings_Path)
+         then
+            Result.Settings_Changed := True;
          end if;
       end;
 

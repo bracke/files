@@ -1089,6 +1089,31 @@ package body Files.Controller is
            else Controller_Selection_Moved);
    end Page_Selection_Result;
 
+   --  Both public Handle_Key overloads: Apply_Settings selects whether a
+   --  settings command the key resolves to is applied or only reported.
+   function Handle_Key
+     (Model          : in out Files.Model.Window_Model;
+      Settings       : in out Files.Settings.Settings_Model;
+      Settings_Path  : String;
+      Apply_Settings : Boolean;
+      Key            : Guikit.Input.Key_Code;
+      Modifiers      : Guikit.Input.Modifier_Set;
+      Tree_Page_Rows : Natural)
+      return Controller_Result
+ is separate;
+
+   function Handle_Key
+     (Model          : in out Files.Model.Window_Model;
+      Settings       : in out Files.Settings.Settings_Model;
+      Settings_Path  : String;
+      Key            : Guikit.Input.Key_Code;
+      Modifiers      : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Tree_Page_Rows : Natural := 0)
+      return Controller_Result is
+   begin
+      return Handle_Key (Model, Settings, Settings_Path, True, Key, Modifiers, Tree_Page_Rows);
+   end Handle_Key;
+
    function Handle_Key
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
@@ -1096,6 +1121,10 @@ package body Files.Controller is
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Tree_Page_Rows : Natural := 0)
       return Controller_Result
- is separate;
+   is
+      Unchanged : Files.Settings.Settings_Model := Settings;
+   begin
+      return Handle_Key (Model, Unchanged, "", False, Key, Modifiers, Tree_Page_Rows);
+   end Handle_Key;
 
 end Files.Controller;

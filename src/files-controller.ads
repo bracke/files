@@ -373,4 +373,24 @@ package Files.Controller is
       Tree_Page_Rows : Natural := 0)
       return Controller_Result;
 
+   --  Handle one key press, applying and persisting a settings command it
+   --  resolves to (a shortcut such as Ctrl+H, Enter in the palette).
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Live settings model, replaced by a settings command.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Key Key code.
+   --  @param Modifiers Active modifier keys.
+   --  @param Tree_Page_Rows Folder-tree rows visible in the live viewport, or
+   --    zero when geometry is unavailable.
+   --  @return Controller result with any operation details.
+   function Handle_Key
+     (Model          : in out Files.Model.Window_Model;
+      Settings       : in out Files.Settings.Settings_Model;
+      Settings_Path  : String;
+      Key            : Guikit.Input.Key_Code;
+      Modifiers      : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Tree_Page_Rows : Natural := 0)
+      return Controller_Result;
+
 end Files.Controller;

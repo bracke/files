@@ -5812,6 +5812,18 @@ package body Files_Suite.Interaction is
         (Model, Settings, "", Guikit.Input.Key_B, Ctrl, Base_Font, Result);
       Assert (Files.Settings.Is_Favorite (Settings, Ada.Directories.Full_Name (Victim)),
               "Ctrl+B favourites the selection through the keyboard path");
+      Assert (Result.Settings_Changed and then Result.Clear_Pending_Text,
+              "a settings shortcut reports the change and drops its character event");
+
+      --  The controller applies the shortcut itself when given the settings.
+      declare
+         Outcome : constant Files.Controller.Controller_Result :=
+           Files.Controller.Handle_Key (Model, Settings, "", Guikit.Input.Key_B, Ctrl);
+      begin
+         Assert (Outcome.Command = Files.Commands.Toggle_Favorite_Command
+                 and then not Files.Settings.Is_Favorite (Settings, Ada.Directories.Full_Name (Victim)),
+                 "the settings-aware controller applies Ctrl+B once");
+      end;
    end Test_Text_Focus_Blocks_File_Shortcuts;
 
    procedure Test_Recent_Commands_Registry (T : in out AUnit.Test_Cases.Test_Case'Class) is
