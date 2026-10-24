@@ -17147,10 +17147,13 @@ package body Files_Suite.Operations is
          "kind-mismatch recovery retains the committed duplicate and its Undo");
       Step := Complete_Operation
         (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      --  Flaked once on macOS Intel CI with nothing beside it: name what failed.
       Assert
         (Step.Status = Files.Operations.Operation_Success
          and then not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
-         "the recovered duplicate can still be undone safely");
+         "the recovered duplicate can still be undone safely: "
+         & Files.Operations.Operation_Status'Image (Step.Status) & " " & To_String (Step.Error_Key)
+         & (if Ada.Directories.Exists (Join (Root, "a (copy).txt")) then " copy-present" else " copy-gone"));
 
       Select_Name (Model, "a.txt");
       Ada.Environment_Variables.Set

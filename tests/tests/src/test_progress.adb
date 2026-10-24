@@ -1,4 +1,5 @@
 with Ada.Environment_Variables;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
@@ -7,6 +8,9 @@ with AUnit.Simple_Test_Cases;
 package body Test_Progress is
 
    Announce : constant Boolean := Ada.Environment_Variables.Value ("FILES_TEST_PROGRESS", "") /= "";
+   --  FILES_TEST_ONLY runs only the routines whose "test : routine" name
+   --  contains it, to repeat one under load.
+   Only     : constant String := Ada.Environment_Variables.Value ("FILES_TEST_ONLY", "");
 
    --  AUnit asks twice a routine; name each once.
    Last : Ada.Strings.Unbounded.Unbounded_String;
@@ -19,7 +23,7 @@ package body Test_Progress is
       pragma Unreferenced (Filter);
       use type AUnit.Message_String;
    begin
-      if Announce and then T in AUnit.Simple_Test_Cases.Test_Case'Class then
+      if (Announce or else Only /= "") and then T in AUnit.Simple_Test_Cases.Test_Case'Class then
          declare
             Item    : AUnit.Simple_Test_Cases.Test_Case'Class renames AUnit.Simple_Test_Cases.Test_Case'Class (T);
             Name    : constant AUnit.Message_String := AUnit.Simple_Test_Cases.Name (Item);
@@ -29,7 +33,10 @@ package body Test_Progress is
               & (if Routine = null then "" else " : " & Routine.all);
             use type Ada.Strings.Unbounded.Unbounded_String;
          begin
-            if Last /= Line then
+            if Only /= "" and then Ada.Strings.Fixed.Index (Line, Only) = 0 then
+               return False;
+            end if;
+            if Announce and then Last /= Line then
                Last := Ada.Strings.Unbounded.To_Unbounded_String (Line);
                Ada.Text_IO.Put_Line (Ada.Text_IO.Standard_Error, Line);
                Ada.Text_IO.Flush (Ada.Text_IO.Standard_Error);

@@ -1,7 +1,8 @@
 with AUnit.Test_Filters;
 with AUnit.Tests;
 
---  A test filter that runs everything and, when FILES_TEST_PROGRESS is not empty,
+--  A test filter that runs everything (or, when FILES_TEST_ONLY is set, the
+--  routines whose name contains it) and, when FILES_TEST_PROGRESS is not empty,
 --  names each routine on standard error before it runs -- so a run that dies
 --  without a report (a crash on Windows) says which test it was in.
 package Test_Progress is
