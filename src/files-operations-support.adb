@@ -211,4 +211,19 @@ package body Files.Operations.Support is
       return Reload;
    end Reload_With_Error;
 
+   procedure Generate_Missing_Thumbnails
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Items    : Files.File_System.Item_Vectors.Vector) is
+   begin
+      if Files.File_System.Thumbnails_Missing (Items) then
+         declare
+            Started : constant Operation_Result := Files.Refresh_Jobs.Start (Model, Settings, Force => True);
+            pragma Unreferenced (Started);
+         begin
+            null;
+         end;
+      end if;
+   end Generate_Missing_Thumbnails;
+
 end Files.Operations.Support;

@@ -21,7 +21,7 @@ package body Search is
          Query     => To_Unbounded_String (Query),
          Items     => Item_Vectors.Empty_Vector,
          Error_Key => Null_Unbounded_String);
-      Normalized_Query : constant String := Files.Types.To_Lower (Query);
+      Normalized_Query : constant String := Files.Types.Fold_Case (Query);
 
       --  Bound the walk independently of how many entries match. The only stop
       --  condition used to be Max_Items, which advances solely on a match, so a
@@ -37,7 +37,7 @@ package body Search is
       begin
          return Normalized_Query = ""
            or else Ada.Strings.Fixed.Index
-             (Files.Types.To_Lower (To_String (Name)), Normalized_Query) > 0;
+             (Files.Types.Fold_Case (To_String (Name)), Normalized_Query) > 0;
       end Matches;
 
       --  Every listed entry counts toward the scan cap; only names that match

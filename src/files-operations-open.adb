@@ -512,7 +512,7 @@ package body Open is
          elsif To_String (Prepared.Action.Executable) = "" then
             declare
                Load : constant Files.File_System.Directory_Load_Result :=
-                 Files.File_System.Load_Directory (To_String (Prepared.Path), Settings);
+                 Files.File_System.Load_Directory_Deferring_Thumbnails (To_String (Prepared.Path), Settings);
             begin
                if not Load.Success then
                   Files.Model.Set_Error (Model, To_String (Load.Error_Key));
@@ -526,6 +526,8 @@ package body Open is
                --  Opening a folder records it too: recent folders are useful.
                Files.Model.Note_Recent_Open (Model, To_String (Load.Path));
                Files.Model.Set_Error (Model, "");
+               --  Last, once the listing it refreshes is the current one.
+               Support.Generate_Missing_Thumbnails (Model, Settings, Load.Items);
                return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
             end;
          elsif not Open_Action_Executable_Is_Available (Prepared.Action) then

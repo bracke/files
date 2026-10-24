@@ -1,5 +1,8 @@
 with Ada.Characters.Handling;
 with Ada.Strings.Fixed;
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
+with Ada.Wide_Wide_Characters.Handling;
+with I18N.Normalization;
 with Files.UTF8;
 
 package body Files.Types is
@@ -147,6 +150,25 @@ package body Files.Types is
       return Ada.Strings.Unbounded.To_String (Result);
    end Fold_For_Sort;
 
+   function Fold_Case (Text : String) return String is
+   begin
+      if (for all C of Text => Character'Pos (C) < 128) then
+         return Ada.Characters.Handling.To_Lower (Text);
+      end if;
+      declare
+         Composed : constant String :=
+           (if I18N.Normalization.Available then I18N.Normalization.Normalize (Text, I18N.Normalization.NFC)
+            else Text);
+      begin
+         return Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode
+           (Ada.Wide_Wide_Characters.Handling.To_Lower
+              (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Decode (Composed)));
+      end;
+   exception
+      when others =>
+         return To_Lower (Text);
+   end Fold_Case;
+
    function Contains_Case_Insensitive
      (Haystack : String;
       Needle   : String)
@@ -157,7 +179,7 @@ package body Files.Types is
          return True;
       end if;
 
-      return Ada.Strings.Fixed.Index (To_Lower (Haystack), To_Lower (Needle)) > 0;
+      return Ada.Strings.Fixed.Index (Fold_Case (Haystack), Fold_Case (Needle)) > 0;
    end Contains_Case_Insensitive;
 
    function Move_Column

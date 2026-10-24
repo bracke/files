@@ -215,6 +215,7 @@ package body Files.Job_Records is
       Write_String (Stream, To_String (Value.Name), Max_Path_Length);
       Write_String (Stream, To_String (Value.Full_Path), Max_Path_Length);
       Write_String (Stream, To_String (Value.Parent_Path), Max_Path_Length);
+      Boolean'Output (Stream, Value.Hidden);
       Files.Types.Item_Kind'Output (Stream, Value.Kind);
       Write_String (Stream, To_String (Value.Filetype), Max_Text_Length);
       Write_String (Stream, To_String (Value.Icon_Id), Max_Text_Length);
@@ -250,6 +251,7 @@ package body Files.Job_Records is
       Result.Name := To_Unbounded_String (Read_String (Stream, Max_Path_Length));
       Result.Full_Path := To_Unbounded_String (Read_String (Stream, Max_Path_Length));
       Result.Parent_Path := To_Unbounded_String (Read_String (Stream, Max_Path_Length));
+      Result.Hidden := Boolean'Input (Stream);
       Result.Kind := Files.Types.Item_Kind'Input (Stream);
       Result.Filetype := To_Unbounded_String (Read_String (Stream, Max_Text_Length));
       Result.Icon_Id := To_Unbounded_String (Read_String (Stream, Max_Text_Length));

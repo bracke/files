@@ -1,3 +1,4 @@
+with Ada.Calendar;
 with Files.File_System.Support;
 with Ada.Strings.Unbounded;
 with Interfaces.C;
@@ -114,7 +115,16 @@ package body Directory is
    type Cache_Index is record
       Listed : Boolean := False;
       Names  : Thumbnail_Name_Sets.Set;
+      --  False for a listing the UI waits on: a missing thumbnail is then
+      --  left for a background listing to make.
+      Generate : Boolean := True;
+      --  True when Names is empty and the remembered listing answers
+      --  instead (Cache_Index_Memo), so it is never copied per directory.
+      Shared   : Boolean := False;
    end record;
+
+   --  Whether the cache holds Name, by the index or the listing it shares.
+   function Cache_Holds (Index : Cache_Index; Name : String) return Boolean;
 
    --  Read the cache directory once. A cache that does not exist yet yields an
    --  empty listing. An unreadable or oversized cache falls back to per-item
@@ -517,7 +527,7 @@ package body Directory is
       return Is_Image_Item (Kind, Filetype, Name, Icon_Id);
    end Should_Auto_Generate_Thumbnail;
 
-   function Index_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is
+   function List_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is
       Result : Cache_Index;
       Search : Ada.Directories.Search_Type;
       Item   : Ada.Directories.Directory_Entry_Type;
@@ -552,8 +562,74 @@ package body Directory is
    exception
       when others =>
          Safe_End_Search (Search, Started);
-         return (Listed => False, Names => Thumbnail_Name_Sets.Empty_Set);
+         return (Listed => False, Names => Thumbnail_Name_Sets.Empty_Set, Generate => True, Shared => False);
+   end List_Thumbnail_Cache;
+
+   --  The last listing of the shared thumbnail cache, so a run of directory
+   --  loads (a recursive search visits thousands) lists it once rather than
+   --  once per folder. It is reused only while the cache folder's time is
+   --  unchanged and older than the timestamp resolution, so a thumbnail
+   --  written since is never missed.
+   protected Cache_Index_Memo is
+      function Holds (Directory : String; Stamp : Ada.Calendar.Time) return Boolean;
+      function Contains (Name : String) return Boolean;
+      procedure Keep (Directory : String; Stamp : Ada.Calendar.Time; Index : Cache_Index);
+   private
+      Kept_Directory : Unbounded_String;
+      Kept_Stamp     : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+      Kept_Index     : Cache_Index;
+      Valid          : Boolean := False;
+   end Cache_Index_Memo;
+
+   protected body Cache_Index_Memo is
+      function Holds (Directory : String; Stamp : Ada.Calendar.Time) return Boolean is
+         use type Ada.Calendar.Time;
+      begin
+         return Valid and then To_String (Kept_Directory) = Directory and then Kept_Stamp = Stamp;
+      end Holds;
+
+      function Contains (Name : String) return Boolean is
+        (Valid and then Kept_Index.Names.Contains (Name));
+
+      procedure Keep (Directory : String; Stamp : Ada.Calendar.Time; Index : Cache_Index) is
+      begin
+         Kept_Directory := To_Unbounded_String (Directory);
+         Kept_Stamp := Stamp;
+         Kept_Index := Index;
+         Valid := True;
+      end Keep;
+   end Cache_Index_Memo;
+
+   function Index_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is
+      use type Ada.Calendar.Time;
+      Stamp : Ada.Calendar.Time;
+      Index : Cache_Index;
+      --  The remembered listing, answering for the cache in place.
+      Shared : constant Cache_Index :=
+        (Listed => True, Names => Thumbnail_Name_Sets.Empty_Set, Generate => True, Shared => True);
+   begin
+      if Cache_Directory = "" or else not Files.Fs.Directory_Exists (Cache_Directory) then
+         return List_Thumbnail_Cache (Cache_Directory);
+      end if;
+      Stamp := Ada.Directories.Modification_Time (Cache_Directory);
+      if Ada.Calendar.Clock - Stamp < 2.0 then
+         return List_Thumbnail_Cache (Cache_Directory);
+      end if;
+      if Cache_Index_Memo.Holds (Cache_Directory, Stamp) then
+         return Shared;
+      end if;
+      Index := List_Thumbnail_Cache (Cache_Directory);
+      if Index.Listed then
+         Cache_Index_Memo.Keep (Cache_Directory, Stamp, Index);
+      end if;
+      return Index;
+   exception
+      when others =>
+         return List_Thumbnail_Cache (Cache_Directory);
    end Index_Thumbnail_Cache;
+
+   function Cache_Holds (Index : Cache_Index; Name : String) return Boolean is
+     (if Index.Shared then Cache_Index_Memo.Contains (Name) else Index.Names.Contains (Name));
 
    function Thumbnail_For_Item
      (Full_Path       : String;
@@ -575,7 +651,7 @@ package body Directory is
       Present : constant Boolean :=
         (if Cached.Listed
          then Thumbnail_Path /= ""
-              and then Cached.Names.Contains (Ada.Directories.Simple_Name (Thumbnail_Path))
+              and then Cache_Holds (Cached, Ada.Directories.Simple_Name (Thumbnail_Path))
          else True);
 
       Loaded : Cached_Thumbnail :=
@@ -585,6 +661,7 @@ package body Directory is
                Pixels => Files.Types.Byte_Vectors.Empty_Vector));
    begin
       if Loaded.Loaded
+        or else not Cached.Generate
         or else not Should_Auto_Generate_Thumbnail (Kind, Filetype, Name, Icon_Id)
       then
          return Loaded;
@@ -1556,6 +1633,7 @@ package body Directory is
         (Name               => To_Unbounded_String (Name),
          Full_Path          => To_Unbounded_String (Full),
          Parent_Path        => To_Unbounded_String (Parent_Path),
+         Hidden             => Name'Length > 0 and then Name (Name'First) = '.',
          Kind               => Kind,
          Filetype           => To_Unbounded_String (Filetype),
          Icon_Id            => To_Unbounded_String (Icon_Id),
@@ -1644,24 +1722,31 @@ package body Directory is
      (Path     : String;
       Settings : Files.Settings.Settings_Model;
       Include  : access function
-        (Name : String; Kind : Files.Types.Item_Kind) return Boolean)
+        (Name : String; Kind : Files.Types.Item_Kind) return Boolean;
+      Generate_Thumbnails : Boolean := True)
       return Directory_Load_Result
    is
       Items : Item_Vectors.Vector;
       Normalized_Path : Unbounded_String;
-      Cached : constant Cache_Index :=
+      Cached : Cache_Index :=
         Index_Thumbnail_Cache (Default_Thumbnail_Cache_Directory (Path));
 
       procedure Add_Entry (Name : String) is
          Full : constant String := Join_Path (To_String (Normalized_Path), Name);
+         Hidden : constant Boolean := Name (Name'First) = '.' or else Hostkit.Fs.Is_Hidden (Full);
       begin
-         if Settings.Show_Hidden_Files or else Name (Name'First) /= '.' then
+         if Settings.Show_Hidden_Files or else not Hidden then
             declare
                Kind : constant Files.Types.Item_Kind := Kind_From_Path (Full);
             begin
                if Include = null or else Include (Name, Kind) then
-                  Items.Append
-                    (Item_For_Path (Full, Name, To_String (Normalized_Path), Kind, Settings, Cached));
+                  declare
+                     Item : Directory_Item :=
+                       Item_For_Path (Full, Name, To_String (Normalized_Path), Kind, Settings, Cached);
+                  begin
+                     Item.Hidden := Hidden;
+                     Items.Append (Item);
+                  end;
                end if;
             end;
          end if;
@@ -1675,6 +1760,7 @@ package body Directory is
          return (Success => False, Path => To_Unbounded_String (Path),
                  Items => Items, Error_Key => To_Unbounded_String ("error.directory.load"));
       end if;
+      Cached.Generate := Generate_Thumbnails;
       Normalized_Path := To_Unbounded_String (Ada.Directories.Full_Name (Path));
       Support.For_Each_Entry (Path, Add_Entry'Access);
       Sort_Items (Items, Settings.Sort_Field_Value, Settings.Sort_Ascending);
@@ -1693,6 +1779,27 @@ package body Directory is
    begin
       return Load_Directory_Filtered (Path, Settings, null);
    end Load_Directory;
+
+   function Load_Directory_Deferring_Thumbnails
+     (Path     : String;
+      Settings : Files.Settings.Settings_Model)
+      return Directory_Load_Result is
+   begin
+      return Load_Directory_Filtered (Path, Settings, null, Generate_Thumbnails => False);
+   end Load_Directory_Deferring_Thumbnails;
+
+   function Thumbnails_Missing (Items : Item_Vectors.Vector) return Boolean is
+   begin
+      for Item of Items loop
+         if not Item.Thumbnail_Available
+           and then Should_Auto_Generate_Thumbnail
+             (Item.Kind, To_String (Item.Filetype), To_String (Item.Name), To_String (Item.Icon_Id))
+         then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Thumbnails_Missing;
 
    function Load_Item
      (Full_Path : String;
@@ -1866,6 +1973,7 @@ package body Directory is
         (Name               => To_Unbounded_String (Name),
          Full_Path          => To_Unbounded_String (Join_Path (Parent_Path, Name)),
          Parent_Path        => To_Unbounded_String (Parent_Path),
+         Hidden             => Name'Length > 0 and then Name (Name'First) = '.',
          Kind               => Kind,
          Filetype           => To_Unbounded_String (Type_Name),
          Icon_Id            => To_Unbounded_String (Files.File_Types.Icon_Id_For (Settings, Kind, Type_Name)),
@@ -1905,6 +2013,7 @@ package body Directory is
         (Name               => To_Unbounded_String (Name),
          Full_Path          => To_Unbounded_String (Join_Path (Parent_Path, Name)),
          Parent_Path        => To_Unbounded_String (Parent_Path),
+         Hidden             => Name'Length > 0 and then Name (Name'First) = '.',
          Kind               => Kind,
          Filetype           => To_Unbounded_String (Filetype),
          Icon_Id            => To_Unbounded_String (Files.File_Types.Icon_Id_For (Settings, Kind, Filetype)),

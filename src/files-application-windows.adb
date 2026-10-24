@@ -2397,6 +2397,7 @@ package body Files.Application.Windows is
                  (Name        => To_Unbounded_String (Name),
                   Full_Path   => To_Unbounded_String (Parent & "/" & Name),
                   Parent_Path => To_Unbounded_String (Parent),
+                  Hidden      => False,
                   Kind        => Files.Types.Regular_File_Item,
                   Filetype    => To_Unbounded_String ("text/plain"),
                   Icon_Id     => To_Unbounded_String ("text"),

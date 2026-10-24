@@ -26,6 +26,9 @@ package Files.File_System is
       Name               : UString;
       Full_Path          : UString;
       Parent_Path        : UString;
+      --  Hidden by a leading dot or by the host's own flag (Windows hidden
+      --  attribute, macOS UF_HIDDEN).
+      Hidden             : Boolean := False;
       Kind               : Files.Types.Item_Kind := Files.Types.Unknown_Item;
       Filetype           : UString;
       Icon_Id            : UString;
@@ -374,6 +377,24 @@ package Files.File_System is
      (Path     : String;
       Settings : Files.Settings.Settings_Model)
       return Directory_Load_Result;
+
+   --  Load_Directory for a listing the UI waits on: thumbnails come from the
+   --  cache only, and generating the missing ones -- decoding every new photo
+   --  of a camera folder -- is left to a background listing.
+   --
+   --  @param Path Directory path to load.
+   --  @param Settings Settings model used for filtering and item metadata.
+   --  @return Directory load result.
+   function Load_Directory_Deferring_Thumbnails
+     (Path     : String;
+      Settings : Files.Settings.Settings_Model)
+      return Directory_Load_Result;
+
+   --  Whether any image in Items still lacks the thumbnail a listing makes.
+   --
+   --  @param Items Loaded items.
+   --  @return True when a background listing would add thumbnails.
+   function Thumbnails_Missing (Items : Item_Vectors.Vector) return Boolean;
 
    type Item_Load_Result is record
       Success   : Boolean := False;

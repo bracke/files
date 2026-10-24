@@ -11,8 +11,8 @@ package body Files.Type_Ahead is
       Prefix : String)
       return Boolean
    is
-      Lower_Name   : constant String := Files.Types.To_Lower (Name);
-      Lower_Prefix : constant String := Files.Types.To_Lower (Prefix);
+      Lower_Name   : constant String := Files.Types.Fold_Case (Name);
+      Lower_Prefix : constant String := Files.Types.Fold_Case (Prefix);
    begin
       if Lower_Prefix = "" then
          return False;

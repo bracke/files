@@ -94,4 +94,15 @@ private package Files.Operations.Support is
       Settings : Files.Settings.Settings_Model;
       Error_Key : String) return Operation_Result;
 
+   --  A listing loaded with Load_Directory_Deferring_Thumbnails: when an
+   --  image in it still lacks a thumbnail, start the background listing
+   --  that makes them, so the window never waits on decoding.
+   --  @param Model Window that shows Items.
+   --  @param Settings Directory settings for the background listing.
+   --  @param Items The listing just shown.
+   procedure Generate_Missing_Thumbnails
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Items    : Files.File_System.Item_Vectors.Vector);
+
 end Files.Operations.Support;

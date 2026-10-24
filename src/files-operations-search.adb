@@ -71,7 +71,7 @@ package body Search is
       end if;
 
       return Ada.Strings.Fixed.Index
-        (Files.Types.To_Lower (Bytes), Files.Types.To_Lower (Query)) > 0;
+        (Files.Types.Fold_Case (Bytes), Files.Types.Fold_Case (Query)) > 0;
    end Content_Matches;
 
    function Run_Content_Search

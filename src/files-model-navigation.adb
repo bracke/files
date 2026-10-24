@@ -71,7 +71,7 @@ package body Navigation is
          declare
             Name : constant String := To_String (Item.Name);
          begin
-            if Name'Length > 0 and then Name (Name'First) = '.' then
+            if Item.Hidden or else (Name'Length > 0 and then Name (Name'First) = '.') then
                Count := Count + 1;
             end if;
          end;

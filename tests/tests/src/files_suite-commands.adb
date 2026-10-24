@@ -1,4 +1,6 @@
 with Ada.Calendar;
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
+with I18N.Normalization;
 with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Environment_Variables;
@@ -1309,7 +1311,24 @@ package body Files_Suite.Commands is
       Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
       Result   : Files.Controller.Controller_Result;
       pragma Unreferenced (Result);
+
+      function U8 (Text : Wide_Wide_String) return String is
+        (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode (Text));
    begin
+      --  Matching folds every script's case, not just Latin-1, and a name
+      --  that is not UTF-8 still matches by its bytes.
+      Assert (Files.Types.Contains_Case_Insensitive (U8 ("ПРИВЕТ мир"), U8 ("привет"))
+              and then Files.Types.Contains_Case_Insensitive (U8 ("ŁÓDŹ.txt"), U8 ("łódź"))
+              and then Files.Types.Contains_Case_Insensitive (U8 ("ΕΛΛΆΔΑ"), U8 ("ελλάδα")),
+              "Cyrillic, Polish and Greek names match case-insensitively");
+      Assert (Files.Types.Contains_Case_Insensitive ("BAD" & Character'Val (16#FF#) & ".txt", "bad"),
+              "a name that is not UTF-8 still matches");
+      if I18N.Normalization.Available then
+         Assert (Files.Types.Contains_Case_Insensitive
+                   ("cafe" & Character'Val (16#CC#) & Character'Val (16#81#) & ".txt", U8 ("café")),
+                 "a decomposed name matches the composed letters typed");
+      end if;
+
       --  Shift+Up on the first item would wrap to the last and select all.
       Files.Model.Set_View_Mode (Model, Files.Types.Details);
       Files.Model.Select_Visible (Model, 1);

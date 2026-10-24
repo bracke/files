@@ -94,7 +94,7 @@ package body Navigation is
 
       declare
          Load : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (To_String (Path_Result.Directory_Path), Settings);
+           Files.File_System.Load_Directory_Deferring_Thumbnails (To_String (Path_Result.Directory_Path), Settings);
       begin
          if not Load.Success then
             Files.Model.Set_Error (Model, To_String (Load.Error_Key));
@@ -106,6 +106,8 @@ package body Navigation is
            (Model,
             Files.File_System.Directory_State (To_String (Path_Result.Directory_Path)));
          Files.Model.Set_Error (Model, "");
+         --  Last, once the listing it refreshes is the current one.
+         Support.Generate_Missing_Thumbnails (Model, Settings, Load.Items);
          return Make_Result (Operation_Navigated, Path => To_String (Path_Result.Directory_Path));
       end;
    end Commit_Path_Input;
@@ -133,7 +135,7 @@ package body Navigation is
 
       declare
          Load : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (To_String (Path_Result.Directory_Path), Settings);
+           Files.File_System.Load_Directory_Deferring_Thumbnails (To_String (Path_Result.Directory_Path), Settings);
       begin
          if not Load.Success then
             Files.Model.Set_Error (Model, To_String (Load.Error_Key));
@@ -151,6 +153,8 @@ package body Navigation is
             Files.Model.Close_Root_Selector (Model);
          end if;
          Files.Model.Set_Error (Model, "");
+         --  Last, once the listing it refreshes is the current one.
+         Support.Generate_Missing_Thumbnails (Model, Settings, Load.Items);
          return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
       end;
    end Load_And_Navigate;

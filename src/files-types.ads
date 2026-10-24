@@ -166,6 +166,17 @@ package Files.Types is
    --  @return Lower-case version of Text.
    function To_Lower (Text : String) return String;
 
+   --  Text folded for a case-insensitive match: every script's letters, not
+   --  only Latin-1 (Привет, Łódź, Ελλάδα), and one Unicode form, so a name
+   --  stored decomposed (é as e and a combining accent, as older Macs write
+   --  it) matches the composed é a user types. The result is for comparing
+   --  only -- its length can differ from Text's. Text that is not UTF-8
+   --  falls back to To_Lower.
+   --
+   --  @param Text Text to fold.
+   --  @return Folded text.
+   function Fold_Case (Text : String) return String;
+
    --  Return a case-insensitive, accent-folded sort key for Text: an
    --  ASCII-lowercased copy in which the accented Latin letters are reduced to
    --  their base letter (a-with-umlaut becomes a, sharp-s becomes ss, and so

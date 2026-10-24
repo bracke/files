@@ -178,8 +178,16 @@ package body Files.File_System is
         (Path     : String;
          Settings : Files.Settings.Settings_Model;
          Include  : access function
-           (Name : String; Kind : Files.Types.Item_Kind) return Boolean)
+           (Name : String; Kind : Files.Types.Item_Kind) return Boolean;
+         Generate_Thumbnails : Boolean := True)
          return Directory_Load_Result;
+
+      function Load_Directory_Deferring_Thumbnails
+        (Path     : String;
+         Settings : Files.Settings.Settings_Model)
+         return Directory_Load_Result;
+
+      function Thumbnails_Missing (Items : Item_Vectors.Vector) return Boolean;
 
       function Load_Item
         (Full_Path : String;
@@ -235,6 +243,15 @@ package body Files.File_System is
       Settings : Files.Settings.Settings_Model)
       return Directory_Load_Result
      renames Directory.Load_Directory;
+
+   function Load_Directory_Deferring_Thumbnails
+     (Path     : String;
+      Settings : Files.Settings.Settings_Model)
+      return Directory_Load_Result
+     renames Directory.Load_Directory_Deferring_Thumbnails;
+
+   function Thumbnails_Missing (Items : Item_Vectors.Vector) return Boolean
+     renames Directory.Thumbnails_Missing;
 
    function Load_Item
      (Full_Path : String;
