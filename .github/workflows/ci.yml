@@ -416,7 +416,7 @@ jobs:
       - name: Keep the crashed Windows test binary
         # Its unwind tables (.pdata/.xdata) are what the crash points at; the
         # binary lets them be checked against the backtrace offline.
-        if: always() && runner.os == 'Windows'
+        if: failure() && runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
           name: windows-tests-exe
