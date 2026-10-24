@@ -183,7 +183,10 @@ separate (Files.Controller)
             end if;
             Files.Model.Set_Error (Model, "");
          when Files.Commands.Toggle_Folder_Tree_Command =>
-            if Files.Model.Tree_Panel_Is_Open (Model) then
+            if Files.Model.Tree_Pick_Is_Active (Model) then
+               --  The picker's Cancel: leave the tree as it was before.
+               Files.Model.End_Tree_Pick (Model);
+            elsif Files.Model.Tree_Panel_Is_Open (Model) then
                Files.Model.Close_Tree_Panel (Model);
             else
                Seed_Tree_If_Needed (Model, Settings);

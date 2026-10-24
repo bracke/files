@@ -1041,11 +1041,6 @@ package body Files.Controller is
            else Controller_Selection_Moved);
    end Root_Jump_Result;
 
-   --  Grid selection paging uses a fixed page size: the exact viewport row
-   --  count is a GLFW/render concern the pure controller cannot see, so a
-   --  sensible constant page is used (matching the +/-10 keyboard scroll step).
-   Grid_Page_Rows : constant := 10;
-
    function First_Selection_Result
      (Model : in out Files.Model.Window_Model)
       return Controller_Result
@@ -1081,7 +1076,7 @@ package body Files.Controller is
    is
       Old_Index : constant Natural := Files.Model.Selected_Index (Model);
    begin
-      Files.Model.Move_Selection_By_Page (Model, Grid_Page_Rows, Down);
+      Files.Model.Move_Selection_By_Page (Model, Files.Model.Selection_Page_Rows (Model), Down);
       return
         Make_Result
           (if Files.Model.Selected_Index (Model) = Old_Index

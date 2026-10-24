@@ -304,7 +304,13 @@ package body Files.Application.Windows is
       Marquee_Rect_W   : Natural := 0;
       Marquee_Rect_H   : Natural := 0;
       Last_Click_Item : Natural := 0;
+      Last_Click_Path : Unbounded_String;
       Last_Click_Time : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+      --  A press on part of a selection, held back until its release shows
+      --  whether it began a drag of the whole selection.
+      Deferred_Click_Pending : Boolean := False;
+      Deferred_Click         : Files.Events.Input_Action;
+      Deferred_Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       --  Wall-clock of the last grid type-ahead keystroke; the event loop clears
       --  the pending prefix once this is older than Type_Ahead_Timeout so a fresh
       --  keystroke after a pause starts a new prefix.
@@ -870,6 +876,9 @@ package body Files.Application.Windows is
                 (Snapshot, Layout, Cell_Height_For (Runtime.Font_Pixel_Size));
          begin
             Files.Model.Set_Selection_Grid_Columns (Runtime.Model, Main_View.Columns);
+            Files.Model.Set_Selection_Page_Rows
+              (Runtime.Model,
+               Files.Rendering.Main_View_Page_Rows (Snapshot, Layout, Cell_Height_For (Runtime.Font_Pixel_Size)));
          end Apply;
       begin
          --  Runs before every key fire, auto-repeat included. The last
@@ -918,6 +927,32 @@ package body Files.Application.Windows is
 
    --  Run the window's key presses and typed text in the order they arrived,
    --  then auto-repeat the repeating keys still held.
+   --  Scroll the main view just far enough that the selected item is whole
+   --  in view, after a key or type-ahead moved the selection.
+   procedure Reveal_Selection (Runtime : in out Runtime_Window) is
+      Frame_W  : Glfw.Size := 0;
+      Frame_H  : Glfw.Size := 0;
+      Selected : constant Natural := Files.Model.Selected_Index (Runtime.Model);
+   begin
+      if Runtime.Handle = null or else Selected = 0 then
+         return;
+      end if;
+      Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
+      declare
+         Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+         Snapshot    : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+         Layout      : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+         Lines       : constant Natural :=
+           Files.Rendering.Scroll_Lines_Revealing (Snapshot, Layout, Line_Height, Positive (Selected));
+      begin
+         if Lines /= Files.Model.Main_View_Scroll_Lines (Runtime.Model) then
+            Files.Model.Set_Main_View_Scroll_Lines (Runtime.Model, Lines);
+         end if;
+      end;
+   end Reveal_Selection;
+
    procedure Handle_Keyboard
      (Runtime : in out Runtime_Window)
    is
@@ -925,6 +960,8 @@ package body Files.Application.Windows is
       Fired    : Pressed_Key_Map := [others => False];
       Consumed : Boolean := False;
       Now      : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+      Selected_Before : constant Natural := Files.Model.Selected_Index (Runtime.Model);
+      Path_Before     : constant String := Files.Model.Current_Path (Runtime.Model);
    begin
       if Runtime.Handle = null then
          return;
@@ -965,6 +1002,14 @@ package body Files.Application.Windows is
             end if;
          end if;
       end loop;
+
+      --  The selection follows the keyboard into view.
+      if Runtime.Handle /= null
+        and then (Files.Model.Selected_Index (Runtime.Model) /= Selected_Before
+                  or else Files.Model.Current_Path (Runtime.Model) /= Path_Before)
+      then
+         Reveal_Selection (Runtime);
+      end if;
    end Handle_Keyboard;
 
    --  Run one per-window step for every window, each behind its own exception
@@ -1656,7 +1701,11 @@ package body Files.Application.Windows is
             Marquee_Rect_W   => 0,
             Marquee_Rect_H   => 0,
             Last_Click_Item => 0,
+            Last_Click_Path => Null_Unbounded_String,
             Last_Click_Time => Ada.Calendar.Time_Of (1901, 1, 1),
+            Deferred_Click_Pending => False,
+            Deferred_Click  => <>,
+            Deferred_Modifiers => Guikit.Input.No_Modifiers,
             Type_Ahead_Input_At => Ada.Calendar.Time_Of (1901, 1, 1),
             Text            => <>,
             Text_Ready      => False,

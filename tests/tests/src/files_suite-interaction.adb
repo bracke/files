@@ -4936,11 +4936,12 @@ package body Files_Suite.Interaction is
       end;
 
       --  Enter confirms the pick: copy the source into the highlighted folder
-      --  (alpha) and close the sidebar.
+      --  (alpha). The sidebar was open before the pick, so it stays open.
       Files.Model.Set_Tree_Pick_Target (Model, Alpha);
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_Return, Guikit.Input.No_Modifiers, Base_Font, Result);
-      Assert (not Files.Model.Tree_Panel_Is_Open (Model), "Enter closes the pick tree");
+      Assert (not Files.Model.Tree_Pick_Is_Active (Model) and then Files.Model.Tree_Panel_Is_Open (Model),
+              "Enter ends the pick and keeps the sidebar that was open before it");
       Assert
         (Ada.Directories.Exists (Files_Suite.Support.Join (Alpha, "src.txt")),
          "Enter copies the source into the highlighted destination");

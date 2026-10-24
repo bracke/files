@@ -990,6 +990,21 @@ package body Files.Rendering is
       return Main_View_Layout
  is separate;
 
+   function Scroll_Lines_Revealing
+     (Snapshot      : View_Snapshot;
+      Layout        : Layout_Metrics;
+      Line_Height   : Positive;
+      Visible_Index : Positive)
+      return Natural
+ is separate;
+
+   function Main_View_Page_Rows
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Positive
+ is separate;
+
    function Calculate_Conflict_Dialog_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;

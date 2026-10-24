@@ -377,6 +377,13 @@ package body Files.Refresh_Jobs is
          Owe_Reload;
          Cancel (Model);
          return False;
+      elsif Files.Model.Command_Palette_Is_Open (Model)
+        or else Files.Model.Rename_Is_Active (Model)
+        or else Files.Model.Temporary_Item_Is_Active (Model)
+      then
+         --  Replacing the items would close the palette or drop the edit the
+         --  user opened while this read ran: keep the result until they finish.
+         return False;
       end if;
       Files.Process_Jobs.Poll (Job, Finished, Cancelled);
       if not Finished then
@@ -409,6 +416,11 @@ package body Files.Refresh_Jobs is
               Files.Model.Selected_Items (Model);
             Previous_Primary : constant Files.Types.UString :=
               Files.Model.Selected_Item (Model).Full_Path;
+            --  A refresh of the folder in view keeps where the user was: its
+            --  scroll, and a Quick Look whose item is still there.
+            Previous_Scroll  : constant Natural := Files.Model.Main_View_Scroll_Lines (Model);
+            Previewing       : constant Boolean := Files.Model.Quick_Look_Is_Open (Model);
+            Previewed        : constant String := Files.Model.Quick_Look_Path (Model);
          begin
             if Work.Recent then
                Files.Model.Navigate_Recent (Model, Done.Items);
@@ -427,6 +439,17 @@ package body Files.Refresh_Jobs is
             else
                Files.Model.Restore_Selection
                  (Model, Previous_Selection, To_String (Previous_Primary));
+            end if;
+            if not Work.Recent then
+               Files.Model.Set_Main_View_Scroll_Lines (Model, Previous_Scroll);
+            end if;
+            if Previewing
+              and then Previewed /= ""
+              and then To_String (Files.Model.Selected_Item (Model).Full_Path) = Previewed
+            then
+               --  Prepared afresh: the change being picked up may be to it.
+               Files.Model.Open_Quick_Look
+                 (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selected_Item (Model)));
             end if;
          end;
       end if;

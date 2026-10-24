@@ -180,6 +180,83 @@ separate (Files.Application.Windows)
       Expect (not Files.Model.Settings_Pane_Is_Open (Runtime.Model)
               and then Files.Model.Focus (Runtime.Model) = Files.Types.Focus_None);
 
+      --  The list: the selection follows the keyboard into view, and a press on
+      --  part of the selection keeps all of it until a release without a drag.
+      declare
+         function Selected_Shown return Boolean is
+            Frame_W, Frame_H : Glfw.Size := 0;
+            Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+         begin
+            Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
+            declare
+               Snapshot : constant Files.Rendering.View_Snapshot :=
+                 Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+               Layout   : constant Files.Rendering.Layout_Metrics :=
+                 Files.Rendering.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+            begin
+               for Cell of Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height) loop
+                  if Cell.Visible_Index = Files.Model.Selected_Index (Runtime.Model) then
+                     return Cell.Height > 0;
+                  end if;
+               end loop;
+               return False;
+            end;
+         end Selected_Shown;
+
+         --  Press (and later release) the left button over the item with
+         --  Visible_Index, through the window's own mouse step.
+         procedure Press_Item (Visible_Index : Positive) is
+            Window_W, Window_H, Frame_W, Frame_H : Glfw.Size := 0;
+            Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+         begin
+            Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
+            Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
+            declare
+               Snapshot : constant Files.Rendering.View_Snapshot :=
+                 Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+               Layout   : constant Files.Rendering.Layout_Metrics :=
+                 Files.Rendering.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+            begin
+               for Cell of Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height) loop
+                  if Cell.Visible_Index = Visible_Index and then Cell.Height > 0 and then Frame_W > 0 then
+                     Runtime.Handle.Drag_Start_X :=
+                       Glfw.Input.Mouse.Coordinate
+                         (Float (Cell.X + Cell.Width / 2) * Float (Window_W) / Float (Frame_W));
+                     Runtime.Handle.Drag_Start_Y :=
+                       Glfw.Input.Mouse.Coordinate
+                         (Float (Cell.Y + Cell.Height / 2) * Float (Window_H) / Float (Frame_H));
+                     Runtime.Handle.Pending_Left_Clicks := 1;
+                     Runtime.Handle.Drag_Moved := False;
+                     Handle_Mouse (Runtime);
+                     exit;
+                  end if;
+               end loop;
+            end;
+         end Press_Item;
+      begin
+         Files.Model.Replace_Items (Runtime.Model, Scenario_Overflow_Items (Runtime.Model));
+         Files.Model.Set_View_Mode (Runtime.Model, Files.Types.Details);
+         Files.Model.Select_Visible (Runtime.Model, 1);
+         Render_Window (Runtime);
+         Press (Tracked_End);
+         Expect (Files.Model.Main_View_Scroll_Lines (Runtime.Model) > 0 and then Selected_Shown);
+         Press (Tracked_Home);
+         Expect (Files.Model.Main_View_Scroll_Lines (Runtime.Model) = 0 and then Selected_Shown);
+         Press (Tracked_Page_Down);
+         Expect (Files.Model.Selected_Index (Runtime.Model) > 2 and then Selected_Shown);
+
+         Press (Tracked_Home);
+         Files.Model.Select_All_Visible (Runtime.Model);
+         Press_Item (2);
+         Expect (Files.Model.Selected_Count (Runtime.Model) = Files.Model.Visible_Count (Runtime.Model));
+         Runtime.Handle.Pending_Left_Releases := 1;
+         Handle_Mouse (Runtime);
+         Expect (Files.Model.Selected_Count (Runtime.Model) = 1
+                 and then Files.Model.Selected_Index (Runtime.Model) = 2);
+         Runtime.Last_Click_Item := 0;
+         Runtime.Last_Click_Path := Null_Unbounded_String;
+      end;
+
       --  Reopen and leave it on the second tab, so the final frame shows the
       --  panel the keys drove rather than the startup view.
       Press (Tracked_Comma, Ctrl);

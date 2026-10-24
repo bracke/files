@@ -159,9 +159,9 @@ separate (Files.Controller)
                   when Guikit.Input.Key_End =>
                      Files.Model.Select_Last_Visible (Model);
                   when Guikit.Input.Key_Page_Up =>
-                     Files.Model.Move_Selection_By_Page (Model, Grid_Page_Rows, False);
+                     Files.Model.Move_Selection_By_Page (Model, Files.Model.Selection_Page_Rows (Model), False);
                   when Guikit.Input.Key_Page_Down =>
-                     Files.Model.Move_Selection_By_Page (Model, Grid_Page_Rows, True);
+                     Files.Model.Move_Selection_By_Page (Model, Files.Model.Selection_Page_Rows (Model), True);
                   when others =>
                      null;
                end case;
@@ -348,11 +348,10 @@ separate (Files.Controller)
 
       --  Only the modal destination-pick tree owns the keyboard; the tree shown
       --  as an ordinary side panel leaves grid navigation alone. Escape cancels
-      --  the pick and closes the panel the Copy/Move-To command opened.
+      --  the pick and closes the panel if the Copy/Move-To command opened it.
       if Files.Model.Tree_Pick_Is_Active (Model) then
          if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
-            Files.Model.Clear_Tree_Pick (Model);
-            Files.Model.Close_Tree_Panel (Model);
+            Files.Model.End_Tree_Pick (Model);
             return Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
          elsif Key in Guikit.Input.Key_Up | Guikit.Input.Key_Down
                     | Guikit.Input.Key_Left | Guikit.Input.Key_Right
@@ -768,14 +767,7 @@ separate (Files.Controller)
                         First_Selected : Natural := 0;
                         Last_Selected  : Natural := 0;
                      begin
-                        for Index in 1 .. Files.Model.Visible_Count (Model) loop
-                           if Files.Model.Is_Selected (Model, Positive (Index)) then
-                              if First_Selected = 0 then
-                                 First_Selected := Index;
-                              end if;
-                              Last_Selected := Index;
-                           end if;
-                        end loop;
+                        Files.Model.Selected_Visible_Bounds (Model, First_Selected, Last_Selected);
 
                         if Old_Index = Last_Selected then
                            Anchor := First_Selected;
@@ -785,6 +777,13 @@ separate (Files.Controller)
                      end;
                   end if;
 
+                  if Action.Range_Selection
+                    and then Files.Model.Selection_Move_Would_Wrap (Model, Action.Direction)
+                  then
+                     --  Extending a range stops at the edge: wrapping would
+                     --  reach across the listing and select all between.
+                     return Make_Result (Controller_Ignored);
+                  end if;
                   Files.Model.Move_Selection (Model, Action.Direction);
                   if Action.Range_Selection then
                      declare

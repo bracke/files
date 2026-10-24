@@ -38,14 +38,7 @@ separate (Files.Controller)
                   First_Selected : Natural := 0;
                   Last_Selected  : Natural := 0;
                begin
-                  for Index in 1 .. Files.Model.Visible_Count (Model) loop
-                     if Files.Model.Is_Selected (Model, Positive (Index)) then
-                        if First_Selected = 0 then
-                           First_Selected := Index;
-                        end if;
-                        Last_Selected := Index;
-                     end if;
-                  end loop;
+                  Files.Model.Selected_Visible_Bounds (Model, First_Selected, Last_Selected);
 
                   if Old_Index = Last_Selected then
                      Anchor := First_Selected;

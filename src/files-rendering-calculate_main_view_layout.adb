@@ -97,5 +97,9 @@ separate (Files.Rendering)
          Scrollbar_Thumb_Y => (if Visible then Thumb_Y else 0),
          Scrollbar_Width   => (if Visible then Bar_W else 0),
          Scrollbar_Height  => Thumb_H,
-         Scrollbar_Track_Height => (if Visible then Viewport_H else 0));
+         Scrollbar_Track_Height => (if Visible then Viewport_H else 0),
+         Cell_Height       => Cell_H,
+         Row_Stride        => Row_Stride,
+         Viewport_Height   => Viewport_H,
+         Max_Scroll_Pixels => Max_Scroll);
    end Calculate_Main_View_Layout;

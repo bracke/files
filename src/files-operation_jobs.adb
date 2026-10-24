@@ -567,8 +567,8 @@ package body Files.Operation_Jobs is
          else Files.Model.Last_Error_Key (Model));
       Done.Recent := Files.Model.In_Recent_View (Model);
       Done.Selection := To_Unbounded_String (Files.Model.Selected_Name (Model));
-      for I in 1 .. Files.Model.Visible_Count (Model) loop
-         Done.Items.Append (Files.Model.Visible_Item (Model, I));
+      for Row of Files.Model.Visible_Rows (Model) loop
+         Done.Items.Append (Row.Item);
       end loop;
       Done.Signature := Files.Model.Directory_Signature_Of (Model);
       Files.Exclusive_Streams.Create

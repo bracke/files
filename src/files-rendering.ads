@@ -389,6 +389,14 @@ package Files.Rendering is
       Scrollbar_Width   : Natural := 0;
       Scrollbar_Height  : Natural := 0;
       Scrollbar_Track_Height : Natural := 0;
+      --  Row geometry, so callers can tell which rows the viewport shows: an
+      --  item at snapshot position P sits on row (P - 1) / Columns, Row_Stride
+      --  pixels apart, each Cell_Height tall, in a Viewport_Height window that
+      --  scrolls at most Max_Scroll_Pixels.
+      Cell_Height       : Natural := 0;
+      Row_Stride        : Natural := 0;
+      Viewport_Height   : Natural := 0;
+      Max_Scroll_Pixels : Natural := 0;
    end record;
 
    --  Palette overlay geometry lives in Guikit.Layout; kept under the local
@@ -917,6 +925,34 @@ package Files.Rendering is
       Layout      : Layout_Metrics;
       Line_Height : Positive := 20)
       return Main_View_Layout;
+
+   --  The main-view scroll, in lines, that shows the item with Visible_Index
+   --  whole: unchanged when it already is, otherwise just far enough that it
+   --  becomes the first or the last row in view.
+   --
+   --  @param Snapshot View snapshot holding the item and the current scroll.
+   --  @param Layout High-level window layout metrics.
+   --  @param Line_Height Text line height in pixels.
+   --  @param Visible_Index Visible index of the item to show.
+   --  @return Scroll position in lines.
+   function Scroll_Lines_Revealing
+     (Snapshot      : View_Snapshot;
+      Layout        : Layout_Metrics;
+      Line_Height   : Positive;
+      Visible_Index : Positive)
+      return Natural;
+
+   --  How many whole item rows the main view shows at once (at least one).
+   --
+   --  @param Snapshot View snapshot to lay out.
+   --  @param Layout High-level window layout metrics.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Rows in view.
+   function Main_View_Page_Rows
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Positive;
 
    --  Return the visible item index at a position.
    --

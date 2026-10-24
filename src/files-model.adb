@@ -1011,6 +1011,14 @@ package body Files.Model is
    function Selection_Grid_Columns (Model : Window_Model) return Positive
      renames Selection.Selection_Grid_Columns;
 
+   procedure Set_Selection_Page_Rows (Model : in out Window_Model; Rows : Positive) is
+   begin
+      Model.Selection_Page_Rows_Value := Rows;
+   end Set_Selection_Page_Rows;
+
+   function Selection_Page_Rows (Model : Window_Model) return Positive is
+     (Model.Selection_Page_Rows_Value);
+
    function Is_Selected (Model : Window_Model; Visible_Index : Positive) return Boolean
      renames Selection.Is_Selected;
 
@@ -2032,6 +2040,16 @@ package body Files.Model is
 
    procedure Set_Tree_Pick_Target (Model : in out Window_Model; Target : String)
      renames Tree_Panel.Set_Tree_Pick_Target;
+
+   procedure End_Tree_Pick (Model : in out Window_Model) is
+   begin
+      if Model.Tree_Pick_Opened_Panel then
+         Close_Tree_Panel (Model);
+      else
+         Clear_Tree_Pick (Model);
+      end if;
+      Model.Tree_Pick_Opened_Panel := False;
+   end End_Tree_Pick;
 
    procedure Clear_Tree_Pick (Model : in out Window_Model)
      renames Tree_Panel.Clear_Tree_Pick;
@@ -3242,5 +3260,46 @@ package body Files.Model is
 
    function Context_Menu_Highlight (Model : Window_Model) return Natural
      renames Context_Menu.Context_Menu_Highlight;
+
+   procedure Selected_Visible_Bounds
+     (Model : Window_Model;
+      First : out Natural;
+      Last  : out Natural)
+   is
+      Rows : constant Visible_Row_Vectors.Vector := Visible_Rows (Model);
+   begin
+      First := 0;
+      Last := 0;
+      for Index in Rows.First_Index .. Rows.Last_Index loop
+         if Rows (Index).Selected then
+            if First = 0 then
+               First := Index;
+            end if;
+            Last := Index;
+         end if;
+      end loop;
+   end Selected_Visible_Bounds;
+
+   function Selection_Move_Would_Wrap
+     (Model     : Window_Model;
+      Direction : Guikit.Input.Navigation_Direction)
+      return Boolean
+   is
+      Count   : constant Natural := Visible_Count (Model);
+      Current : constant Natural := Selected_Index (Model);
+      --  As Move_Selection steps a row.
+      Stride  : constant Natural :=
+        Natural'Max (1, Natural'Min (Natural (Model.Selection_Columns), Natural'Max (1, Count)));
+   begin
+      if Count = 0 or else Current = 0 then
+         return False;
+      end if;
+      case Direction is
+         when Guikit.Input.Move_Left  => return Current = 1;
+         when Guikit.Input.Move_Right => return Current = Count;
+         when Guikit.Input.Move_Up    => return Current <= Stride;
+         when Guikit.Input.Move_Down  => return Current + Stride > Count;
+      end case;
+   end Selection_Move_Would_Wrap;
 
 end Files.Model;

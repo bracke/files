@@ -350,6 +350,28 @@ package Files.Model is
      (Model : Window_Model)
       return Visible_Row_Vectors.Vector;
 
+   --  The first and last visible indexes that are selected, in one pass.
+   --
+   --  @param Model Model to inspect.
+   --  @param First First selected visible index, or zero when none is.
+   --  @param Last Last selected visible index, or zero when none is.
+   procedure Selected_Visible_Bounds
+     (Model : Window_Model;
+      First : out Natural;
+      Last  : out Natural);
+
+   --  Whether Move_Selection in Direction would wrap past an edge of the
+   --  listing (to the other end, or to the next column). Extending a range
+   --  stops at the edge instead.
+   --
+   --  @param Model Model to inspect.
+   --  @param Direction Arrow-key direction.
+   --  @return True when the move would wrap.
+   function Selection_Move_Would_Wrap
+     (Model     : Window_Model;
+      Direction : Guikit.Input.Navigation_Direction)
+      return Boolean;
+
    --  Set filter text and reconcile selection.
    --
    --  @param Model Model to update.
@@ -559,6 +581,23 @@ package Files.Model is
    --  @param Model Model to inspect.
    --  @return Number of visible item columns used as the vertical movement stride.
    function Selection_Grid_Columns
+     (Model : Window_Model)
+      return Positive;
+
+   --  Record how many item rows the main view shows, for Page Up and Page
+   --  Down. The shell measures it from the rendered layout before each key.
+   --
+   --  @param Model Model to update.
+   --  @param Rows Whole item rows in view.
+   procedure Set_Selection_Page_Rows
+     (Model : in out Window_Model;
+      Rows  : Positive);
+
+   --  Return the rows Page Up and Page Down move by (ten until measured).
+   --
+   --  @param Model Model to inspect.
+   --  @return Rows per page.
+   function Selection_Page_Rows
      (Model : Window_Model)
       return Positive;
 
@@ -1085,6 +1124,13 @@ package Files.Model is
    procedure Set_Tree_Pick_Target
      (Model  : in out Window_Model;
       Target : String);
+
+   --  Finish the destination picker: close the folder tree when the picker
+   --  opened it, or else leave the tree as the user had it.
+   --
+   --  @param Model Model to update.
+   procedure End_Tree_Pick
+     (Model : in out Window_Model);
 
    --  Clear the destination-picker sub-mode and its captured sources.
    --
@@ -2990,6 +3036,7 @@ private
       Selected_Item_Index  : Natural := 0;
       Selected_Item_Indexes : Natural_Vectors.Vector;
       Selection_Columns   : Positive := 1;
+      Selection_Page_Rows_Value : Positive := 10;
       View_Value           : Files.Types.View_Mode := Files.Types.Small_Icons;
       Sort_Field_Value     : Sort_Field := Sort_Name;
       Sort_Ascending       : Boolean := True;
@@ -3020,6 +3067,8 @@ private
       Tree_Pick_Mode_Value    : Tree_Pick_Mode := Pick_None;
       Tree_Pick_Sources_Value : Files.Types.String_Vectors.Vector;
       Tree_Pick_Target_Value  : UString;
+      --  Whether the picker opened the folder tree, which it then closes.
+      Tree_Pick_Opened_Panel  : Boolean := False;
       Tree_Keyboard_Value     : Boolean := False;
       Tree_Cursor_Value       : UString;
       Command_Palette_Open     : Boolean := False;

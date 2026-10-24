@@ -104,6 +104,7 @@ package body Files_Suite.Commands is
    procedure Test_Shortcut_Overrides (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Path_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Filter_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Range_Edges_And_Picker_Tree (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Rename_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Command_Palette_Escape_Priority (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Path_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -133,6 +134,9 @@ package body Files_Suite.Commands is
         (T, Test_Controller_Path_Input_Return'Access, "controller commits path input on Return");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Controller_Filter_Input_Return'Access, "controller commits filter input on Return");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Range_Edges_And_Picker_Tree'Access,
+         "Shift+arrow stops at the listing's edges, and Copy To leaves an open folder tree open");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Controller_Rename_Return'Access, "controller commits rename on Return");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1296,6 +1300,51 @@ package body Files_Suite.Commands is
          "file path input changes model to parent directory");
       Assert (Files.Model.Item_Count (Model) = 1, "file path input loads parent directory items");
    end Test_Controller_Path_Input_Return;
+
+   procedure Test_Range_Edges_And_Picker_Tree (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Shift    : constant Guikit.Input.Modifier_Set :=
+        [Guikit.Input.Shift_Key => True, others => False];
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Result   : Files.Controller.Controller_Result;
+      pragma Unreferenced (Result);
+   begin
+      --  Shift+Up on the first item would wrap to the last and select all.
+      Files.Model.Set_View_Mode (Model, Files.Types.Details);
+      Files.Model.Select_Visible (Model, 1);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Up, Shift);
+      Assert (Files.Model.Selected_Count (Model) = 1 and then Files.Model.Selected_Index (Model) = 1,
+              "Shift+Up on the first item selects nothing more");
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
+      Assert (Files.Model.Selected_Count (Model) = Files.Model.Visible_Count (Model)
+              and then Files.Model.Selected_Index (Model) = Files.Model.Visible_Count (Model),
+              "Shift+Down grows the range to the last item and stops there");
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
+      Assert (Files.Model.Selected_Index (Model) = 1, "a plain arrow still wraps");
+
+      --  Copy To on an already open folder tree leaves it open when the pick
+      --  ends; a tree the pick opened closes again.
+      Files.Model.Select_Visible (Model, 1);
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
+      Assert (Files.Model.Tree_Panel_Is_Open (Model), "the folder tree is open");
+      Result := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);
+      Assert (Files.Model.Tree_Pick_Is_Active (Model), "Copy To starts picking a destination");
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Assert (not Files.Model.Tree_Pick_Is_Active (Model) and then Files.Model.Tree_Panel_Is_Open (Model),
+              "Escape ends the pick and keeps the tree the user had open");
+      Result := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
+      Assert (not Files.Model.Tree_Pick_Is_Active (Model) and then Files.Model.Tree_Panel_Is_Open (Model),
+              "the picker's Cancel keeps it too");
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
+      Result := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);
+      Assert (Files.Model.Tree_Panel_Is_Open (Model), "Copy To opens a closed tree to pick in");
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
+      Assert (not Files.Model.Tree_Panel_Is_Open (Model), "and closes it again when the pick ends");
+   end Test_Range_Edges_And_Picker_Tree;
 
    procedure Test_Controller_Filter_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

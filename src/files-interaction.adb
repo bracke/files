@@ -359,7 +359,7 @@ package body Files.Interaction is
                   else Files.File_System.Drop_Copy));
          begin
             if Op.Status = Files.Operations.Operation_Success then
-               Files.Model.Close_Tree_Panel (Model);
+               Files.Model.End_Tree_Pick (Model);
                Result.Directory_Reloaded :=
                  not Files.Model.Paste_Conflict_Is_Active (Model)
                  and then not Files.Model.Paste_Execution_Is_Active (Model);

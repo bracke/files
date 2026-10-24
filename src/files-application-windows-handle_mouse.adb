@@ -109,21 +109,39 @@ separate (Files.Application.Windows)
          declare
             Now       : constant Ada.Calendar.Time := Ada.Calendar.Clock;
             Modifiers : constant Guikit.Input.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
+            --  Hit-test where the button went down, not where the cursor is
+            --  by the time a slow frame gets to the press.
             Action    : constant Files.Events.Input_Action :=
               Current_Click_Action
-                (Runtime, Window_W, Window_H, Frame_W, Frame_H, Cursor_X, Cursor_Y, Modifiers);
-            Activate  : constant Boolean :=
+                (Runtime, Window_W, Window_H, Frame_W, Frame_H,
+                 Runtime.Handle.Drag_Start_X, Runtime.Handle.Drag_Start_Y, Modifiers);
+            Is_Item   : constant Boolean :=
               Action.Kind = Files.Events.Item_Click_Input_Action
+              and then Action.Item_Index in 1 .. Files.Model.Visible_Count (Runtime.Model);
+            Path      : constant String :=
+              (if Is_Item
+               then To_String (Files.Model.Visible_Item (Runtime.Model, Action.Item_Index).Full_Path)
+               else "");
+            --  A double click is two clicks on the same file: the same row of
+            --  a listing reordered in between, or of the folder the first
+            --  click opened, is not.
+            Activate  : constant Boolean :=
+              Is_Item
               and then Action.Item_Index = Runtime.Last_Click_Item
+              and then Path = To_String (Runtime.Last_Click_Path)
               and then Now - Runtime.Last_Click_Time <= 0.5;
          begin
-            if Action.Kind = Files.Events.Item_Click_Input_Action then
+            Runtime.Deferred_Click_Pending := False;
+            if Is_Item and then not Activate then
                Runtime.Last_Click_Item := Action.Item_Index;
+               Runtime.Last_Click_Path := To_Unbounded_String (Path);
                Runtime.Last_Click_Time := Now;
                Runtime.Drag_Source_Index := Action.Item_Index;
             else
+               --  A double click is spent: a third click starts over.
                Runtime.Last_Click_Item := 0;
-               Runtime.Drag_Source_Index := 0;
+               Runtime.Last_Click_Path := Null_Unbounded_String;
+               Runtime.Drag_Source_Index := (if Is_Item then Action.Item_Index else 0);
             end if;
 
             if Activate then
@@ -133,6 +151,17 @@ separate (Files.Application.Windows)
                   Activated_Action.Activate := True;
                   Dispatch_Click_Action (Runtime, Activated_Action, Modifiers);
                end;
+            elsif Is_Item
+              and then not Modifiers (Guikit.Input.Shift_Key)
+              and then Files.Model.Is_Selected (Runtime.Model, Positive (Action.Item_Index))
+              and then (Files.Model.Selected_Count (Runtime.Model) > 1 or else Modifiers (Guikit.Input.Control_Key))
+            then
+               --  A press on part of the selection may start dragging all of
+               --  it: only a release without a drag selects just this item
+               --  (or, with Ctrl, toggles it).
+               Runtime.Deferred_Click_Pending := True;
+               Runtime.Deferred_Click := Action;
+               Runtime.Deferred_Modifiers := Modifiers;
             else
                Dispatch_Click_Action (Runtime, Action, Modifiers);
             end if;
@@ -160,6 +189,10 @@ separate (Files.Application.Windows)
             end;
          end if;
 
+         if Runtime.Deferred_Click_Pending and then not Runtime.Handle.Drag_Moved then
+            Dispatch_Click_Action (Runtime, Runtime.Deferred_Click, Runtime.Deferred_Modifiers);
+         end if;
+         Runtime.Deferred_Click_Pending := False;
          Runtime.Drag_Source_Index := 0;
          Runtime.Handle.Drag_Moved := False;
       end loop;
