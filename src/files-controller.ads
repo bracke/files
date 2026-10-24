@@ -113,6 +113,17 @@ package Files.Controller is
      (Settings      : Files.Settings.Settings_Model;
       Settings_Path : String);
 
+   --  Persist_Settings for a window: a write that fails, or is not durable,
+   --  is reported in the window's error line rather than dropped.
+   --
+   --  @param Model Window whose error line reports a failed write.
+   --  @param Settings Settings model to serialize.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   procedure Persist_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : Files.Settings.Settings_Model;
+      Settings_Path : String);
+
    --  Validate, save, apply, and refresh edited settings.
    --
    --  @param Model Window model to update.

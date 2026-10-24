@@ -121,6 +121,7 @@ package body Files_Suite.Interaction is
    procedure Test_Favorite_Group_Toggle_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Label_Picker_Applies_To_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Labels_Follow_Moves_And_Stay_Loadable (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Writes_Report_Failure (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Label_Picker_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Selector_Star_And_Clicks (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Stale_Entry_Is_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -240,6 +241,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Labels_Follow_Moves_And_Stay_Loadable'Access,
          "labels and favorites follow a rename, a folder move and Undo, and never outgrow the settings file");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Writes_Report_Failure'Access,
+         "settings toggles apply without a settings file, and a failed write is reported");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Color_Label_Picker_Keyboard'Access,
          "the color-label picker navigates by arrows and applies on Enter");
@@ -5430,6 +5434,29 @@ package body Files_Suite.Interaction is
               "the previously red item is overwritten to blue");
       Assert (Files.Settings.Label_Of (Settings, Three) = Files.Types.Blue, "the third item becomes blue");
    end Test_Color_Label_Picker_Applies_To_Selection;
+
+   procedure Test_Settings_Writes_Report_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Result   : Files.Interaction.Interaction_Result;
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Blocker  : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "not-a-folder");
+      Before   : constant Boolean := Settings.Show_File_Extensions;
+   begin
+      Files_Suite.Support.Reset_Root;
+      --  No settings file (smoke runs, tests): the toggle applies in memory.
+      Files.Interaction.Execute_Command
+        (Model, Settings, "", Files.Commands.Toggle_Show_Extensions_Command, Base_Font, Result => Result);
+      Assert (Settings.Show_File_Extensions /= Before and then Files.Model.Last_Error_Key (Model) = "",
+              "without a settings file the toggle applies and reports nothing");
+
+      --  A settings file that cannot be written: the change is reported.
+      Files_Suite.Support.Write_File (Blocker, "a file where a folder should be");
+      Files.Interaction.Execute_Command
+        (Model, Settings, Files_Suite.Support.Join (Blocker, "settings.conf"),
+         Files.Commands.Cycle_Group_By_Command, Base_Font, Result => Result);
+      Assert (Files.Model.Last_Error_Key (Model) /= "", "a settings file that cannot be written is reported");
+   end Test_Settings_Writes_Report_Failure;
 
    procedure Test_Labels_Follow_Moves_And_Stay_Loadable (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

@@ -3852,9 +3852,14 @@ begin
    Put_Line ("files project checks passed");
    Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Success);
 exception
-   when Program_Error =>
+   when E : Program_Error =>
+      --  A check that failed reports itself and raises Program_Error; a
+      --  Program_Error from anywhere else is a failure too, never a pass.
       Cleanup_Temps;
-      null;
+      if Ada.Exceptions.Exception_Message (E) /= "" then
+         Put_Line (Standard_Error, "files project checks failed: " & Ada.Exceptions.Exception_Information (E));
+      end if;
+      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
    when E : others =>
       Cleanup_Temps;
       Put_Line

@@ -30,17 +30,7 @@ separate (Files.Controller)
 
       Final := Applied.Settings;
       Store_Shortcut_Overrides (Final);
-      --  An empty path turns persistence off (smoke runs, tests): apply the
-      --  settings in memory without writing, like Persist_Settings does.
-      if Settings_Path = "" then
-         Saved :=
-           (Success   => True,
-            Durable   => True,
-            Path      => Null_Unbounded_String,
-            Error_Key => Null_Unbounded_String);
-      else
-         Saved := Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Final));
-      end if;
+      Saved := Write_Settings (Settings_Path, Final);
       if not Saved.Success then
          Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
          Operation.Status := Files.Operations.Operation_Failed;

@@ -121,6 +121,12 @@ package body Files.Interaction is
       Settings_Path : String)
       renames Files.Controller.Persist_Settings;
 
+   procedure Persist_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : Files.Settings.Settings_Model;
+      Settings_Path : String)
+      renames Files.Controller.Persist_Settings;
+
    --  Fold any paths the model queued while opening items into the persisted
    --  recent list and write the settings. A no-op when nothing was opened, so it
    --  is safe to call after every dispatch seam (open routes through several).
@@ -149,7 +155,7 @@ package body Files.Interaction is
          Files.Model.Set_Error (Model, "error.settings.full");
          return;
       end if;
-      Persist_Settings (Settings, Settings_Path);
+      Persist_Settings (Model, Settings, Settings_Path);
       Result.Settings_Changed := True;
    end Apply_Label;
 
@@ -177,7 +183,7 @@ package body Files.Interaction is
          end;
       end loop;
       if Changed then
-         Persist_Settings (Settings, Settings_Path);
+         Persist_Settings (Model, Settings, Settings_Path);
       end if;
       return Changed;
    end Follow_Path_Moves;
@@ -201,7 +207,7 @@ package body Files.Interaction is
       for Path of Opened loop
          Files.Settings.Note_Recent (Settings, To_String (Path));
       end loop;
-      Persist_Settings (Settings, Settings_Path);
+      Persist_Settings (Model, Settings, Settings_Path);
       Result.Settings_Changed := True;
    end Persist_Recent_Opens;
 
@@ -426,7 +432,7 @@ package body Files.Interaction is
          begin
             if New_Size /= Old_Size then
                Settings.Font_Pixel_Size := New_Size;
-               Persist_Settings (Settings, Settings_Path);
+               Persist_Settings (Model, Settings, Settings_Path);
                Result.Settings_Changed    := True;
                Result.Font_Size_Changed   := True;
                Result.Needs_Glyph_Rebuild := True;
@@ -636,7 +642,7 @@ package body Files.Interaction is
                   Files.Settings.Toggle_Favorite_Path
                     (Settings, Files.Model.Current_Path (Model));
                   if Files.Settings.Loadable (Settings) then
-                     Persist_Settings (Settings, Settings_Path);
+                     Persist_Settings (Model, Settings, Settings_Path);
                      Result.Settings_Changed := True;
                   else
                      Settings := Before;

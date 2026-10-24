@@ -84,7 +84,7 @@ begin
                Settings := Before;
                Files.Model.Set_Error (Model, "error.settings.full");
             elsif Changed then
-               Persist_Settings (Settings, Settings_Path);
+               Persist_Settings (Model, Settings, Settings_Path);
             end if;
             return Executed;
          end;
@@ -108,16 +108,16 @@ begin
                      Files.Types.Permissions_Column);
          begin
             Settings := Files.Settings.Toggle_Column (Settings, Column);
-            Persist_Settings (Settings, Settings_Path);
+            Persist_Settings (Model, Settings, Settings_Path);
             return Executed;
          end;
       when Files.Commands.Cycle_Group_By_Command =>
          Settings := Files.Settings.Cycle_Group_By (Settings);
-         Persist_Settings (Settings, Settings_Path);
+         Persist_Settings (Model, Settings, Settings_Path);
          return Executed;
       when Files.Commands.Clear_Recent_Command =>
          Files.Settings.Clear_Recent (Settings);
-         Persist_Settings (Settings, Settings_Path);
+         Persist_Settings (Model, Settings, Settings_Path);
          --  Rebuild the (now empty) recent view in place so it reflects the
          --  cleared list without leaving the view or touching history.
          if Files.Model.In_Recent_View (Model) then

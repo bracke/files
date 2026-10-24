@@ -109,6 +109,12 @@ package body Files.Controller is
       end if;
    end Seed_Tree_If_Needed;
 
+   --  Forward declaration: the settings-writing subunits come before its body.
+   function Write_Settings
+     (Settings_Path : String;
+      Settings      : Files.Settings.Settings_Model)
+      return Files.Settings.Settings_Write_Result;
+
    function Make_Result
      (Status    : Controller_Status;
       Command   : Files.Commands.Command_Id := Files.Commands.No_Command;
@@ -356,7 +362,7 @@ package body Files.Controller is
    begin
       Updated.Show_Hidden_Files := not Updated.Show_Hidden_Files;
 
-      Saved := Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Updated));
+      Saved := Write_Settings (Settings_Path, Updated);
       if not Saved.Success then
          Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
          Operation.Status := Files.Operations.Operation_Failed;
@@ -392,7 +398,7 @@ package body Files.Controller is
    begin
       Updated.Show_File_Extensions := not Updated.Show_File_Extensions;
 
-      Saved := Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Updated));
+      Saved := Write_Settings (Settings_Path, Updated);
       if not Saved.Success then
          Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
          Operation.Status := Files.Operations.Operation_Failed;
@@ -435,17 +441,40 @@ package body Files.Controller is
       return Execute_Command (Id, Model, Settings, Modifiers);
    end Handle_Command_Click;
 
+   --  The one place settings are written. An empty path turns persistence
+   --  off (smoke runs, tests): the settings apply in memory and count as saved.
+   function Write_Settings
+     (Settings_Path : String;
+      Settings      : Files.Settings.Settings_Model)
+      return Files.Settings.Settings_Write_Result is
+   begin
+      if Settings_Path = "" then
+         return (Success => True, Durable => True, Path => Null_Unbounded_String, Error_Key => Null_Unbounded_String);
+      end if;
+      return Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Settings));
+   end Write_Settings;
+
    procedure Persist_Settings
      (Settings      : Files.Settings.Settings_Model;
       Settings_Path : String)
    is
-      Saved : Files.Settings.Settings_Write_Result;
-   begin
-      if Settings_Path = "" then
-         return;
-      end if;
-      Saved := Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Settings));
+      Saved : constant Files.Settings.Settings_Write_Result := Write_Settings (Settings_Path, Settings);
       pragma Unreferenced (Saved);
+   begin
+      null;
+   end Persist_Settings;
+
+   procedure Persist_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : Files.Settings.Settings_Model;
+      Settings_Path : String)
+   is
+      Saved : constant Files.Settings.Settings_Write_Result := Write_Settings (Settings_Path, Settings);
+   begin
+      if not Saved.Success or else not Saved.Durable then
+         --  Applied, but not saved (or not safely): say so.
+         Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
+      end if;
    end Persist_Settings;
 
    function Apply_Settings_Command

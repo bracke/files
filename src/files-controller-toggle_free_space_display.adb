@@ -19,7 +19,7 @@ separate (Files.Controller)
          Updated.Show_Used_Space := True;
       end if;
 
-      Saved := Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Updated));
+      Saved := Write_Settings (Settings_Path, Updated);
       if not Saved.Success then
          Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
          Operation.Status := Files.Operations.Operation_Failed;

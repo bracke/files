@@ -1,3 +1,4 @@
+with Ada.IO_Exceptions;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Directories;
 with Ada.Streams.Stream_IO;
@@ -449,10 +450,18 @@ package body Files.Archive_Writing is
       end;
       Close (Source);
       Close (Output);
-      if not File_Paths.Is_Empty then
-         Ada.Directories.Delete_File (Source_Path);
-      end if;
+      --  The archive is complete. Removing the intermediate file is best
+      --  effort -- the caller's staging folder goes anyway -- and must not
+      --  turn a finished archive into a reported failure.
       Status := Zlib.Ok;
+      if not File_Paths.Is_Empty then
+         begin
+            Ada.Directories.Delete_File (Source_Path);
+         exception
+            when Ada.IO_Exceptions.Name_Error | Ada.IO_Exceptions.Use_Error =>
+               null;
+         end;
+      end if;
    exception
       when others =>
          Close (Source);

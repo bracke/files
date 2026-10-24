@@ -527,4 +527,32 @@ package body Files_Suite.Support is
       null;
    end Select_Name;
 
+   procedure Save (Guard : in out Environment_Guard; Name : String) is
+   begin
+      if Guard.Count = Guard.Saved'Last then
+         raise Program_Error with "Environment_Guard holds at most" & Guard.Saved'Last'Image & " variables";
+      end if;
+      Guard.Count := Guard.Count + 1;
+      Guard.Saved (Guard.Count) :=
+        (Name  => Ada.Strings.Unbounded.To_Unbounded_String (Name),
+         Value => Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value (Name, "")),
+         Was   => Ada.Environment_Variables.Exists (Name));
+   end Save;
+
+   overriding procedure Finalize (Guard : in out Environment_Guard) is
+   begin
+      for Index in reverse 1 .. Guard.Count loop
+         declare
+            Item : Saved_Variable renames Guard.Saved (Index);
+            Name : constant String := Ada.Strings.Unbounded.To_String (Item.Name);
+         begin
+            if Item.Was then
+               Ada.Environment_Variables.Set (Name, Ada.Strings.Unbounded.To_String (Item.Value));
+            else
+               Ada.Environment_Variables.Clear (Name);
+            end if;
+         end;
+      end loop;
+      Guard.Count := 0;
+   end Finalize;
 end Files_Suite.Support;

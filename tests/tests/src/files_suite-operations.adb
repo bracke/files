@@ -212,6 +212,7 @@ package body Files_Suite.Operations is
    procedure Test_Trash_Source_Verification (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Exclusive_New_Files (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Deep_Tree_Copy (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Environment_Guard (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Batch_Hard_Link_Copy (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    procedure Test_Empty_Trash_Hidden (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -801,6 +802,8 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Deep_Tree_Copy'Access,
          "deep copies complete safely and depth refusals clean staging");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Environment_Guard'Access, "the test environment guard restores variables, on an exception too");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Batch_Hard_Link_Copy'Access,
          "batch copies and retryable Redo retain hard links across selected roots");
@@ -4105,7 +4108,10 @@ package body Files_Suite.Operations is
       Found      : Boolean := False;
       Had_Cache  : constant Boolean := Ada.Environment_Variables.Exists ("XDG_CACHE_HOME");
       Old_Cache  : Unbounded_String;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
    begin
+      Files_Suite.Support.Save (Environment, "XDG_CACHE_HOME");
       if Had_Cache then
          Old_Cache := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_CACHE_HOME"));
       end if;
@@ -9408,6 +9414,32 @@ package body Files_Suite.Operations is
       end if;
    end Test_Exclusive_New_Files;
 
+   procedure Test_Environment_Guard (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Set_Name   : constant String := "FILES_TEST_GUARD_SET";
+      Unset_Name : constant String := "FILES_TEST_GUARD_UNSET";
+   begin
+      Ada.Environment_Variables.Set (Set_Name, "before");
+      Ada.Environment_Variables.Clear (Unset_Name);
+      begin
+         declare
+            Environment : Files_Suite.Support.Environment_Guard;
+         begin
+            Files_Suite.Support.Save (Environment, Set_Name);
+            Files_Suite.Support.Save (Environment, Unset_Name);
+            Ada.Environment_Variables.Set (Set_Name, "changed");
+            Ada.Environment_Variables.Set (Unset_Name, "created");
+            raise Constraint_Error;
+         end;
+      exception
+         when Constraint_Error =>
+            null;
+      end;
+      Assert (Ada.Environment_Variables.Value (Set_Name, "") = "before", "a set variable gets its value back");
+      Assert (not Ada.Environment_Variables.Exists (Unset_Name), "an unset variable is unset again");
+      Ada.Environment_Variables.Clear (Set_Name);
+   end Test_Environment_Guard;
+
    procedure Test_Deep_Tree_Copy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Source : constant String := Join (Root, "source");
@@ -9417,7 +9449,10 @@ package body Files_Suite.Operations is
       Mutation : Files.File_System.Mutation_Result;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Load : Files.File_System.Directory_Load_Result;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
    begin
+      Files_Suite.Support.Save (Environment, "TMPDIR");
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
          return;
       end if;
@@ -13958,7 +13993,12 @@ package body Files_Suite.Operations is
             Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
          end if;
       end Restore_Environment;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
    begin
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Save (Environment, "HOME");
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       if Had_Xdg then
          Old_Xdg := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
       end if;
@@ -14082,7 +14122,10 @@ package body Files_Suite.Operations is
       Old_Terminal : Unbounded_String;
       Shell_Path   : constant String := "/bin/sh";
       Missing_Path : constant String := Join (Root, "no-such-terminal-binary");
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
    begin
+      Files_Suite.Support.Save (Environment, "TERMINAL");
       Reset_Root;
       if Had_Terminal then
          Old_Terminal := To_Unbounded_String (Ada.Environment_Variables.Value ("TERMINAL"));

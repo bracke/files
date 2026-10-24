@@ -1,3 +1,4 @@
+with Ada.Finalization;
 with Files.Events;
 with Files.File_System;
 with Files.Model;
@@ -6,6 +7,22 @@ with Guikit.Input;
 with Files.Types;
 
 package Files_Suite.Support is
+
+   --  Restores the environment variables it saved when it leaves scope,
+   --  whether the test passed or an assertion raised, so a failing test
+   --  cannot leave HOME or TMPDIR pointing into its fixtures.
+   type Environment_Guard is new Ada.Finalization.Limited_Controlled with private;
+
+   --  Remember Name's current value (or that it is unset) for restoring.
+   --
+   --  @param Guard Guard that restores it.
+   --  @param Name Environment variable name.
+   procedure Save (Guard : in out Environment_Guard; Name : String);
+
+   --  Put every saved variable back as it was.
+   --
+   --  @param Guard Guard leaving scope.
+   overriding procedure Finalize (Guard : in out Environment_Guard);
 
    --  The scratch directory every fixture builds under.
    --
@@ -209,5 +226,20 @@ package Files_Suite.Support is
    --  @param Model Model whose selection is updated.
    --  @param Name Name of the item to select.
    procedure Select_Name (Model : in out Files.Model.Window_Model; Name : String);
+
+private
+
+   type Saved_Variable is record
+      Name  : Files.Types.UString;
+      Value : Files.Types.UString;
+      Was   : Boolean := False;
+   end record;
+
+   type Saved_Variables is array (1 .. 8) of Saved_Variable;
+
+   type Environment_Guard is new Ada.Finalization.Limited_Controlled with record
+      Count : Natural := 0;
+      Saved : Saved_Variables;
+   end record;
 
 end Files_Suite.Support;

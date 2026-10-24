@@ -190,8 +190,9 @@ separate (Files.Rendering.Build_Frame_Commands)
             Text_H   : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 3) / 4);
             Pad_Y    : constant Natural := Natural'Max (1, Line_Height / 8);
             Pad_X    : constant Natural := Pad_Y + 1;
-            Shown    : constant String :=
-              (if Ext'Length > 3 then Ext (Ext'First .. Ext'First + 2) else Ext);
+            --  Three display cells, cut at a character boundary: a byte
+            --  slice split a multibyte extension (.док) into invalid UTF-8.
+            Shown    : constant String := Files.UTF8.Prefix_By_Units (Ext, 3);
             Lbl      : constant Files.Extension_Labels.Label :=
               Files.Extension_Labels.Label_For (Shown, Text_H, Snapshot.Theme_Palette);
             Band_W   : constant Natural := Saturating_Add (Lbl.Width, 2 * Pad_X);

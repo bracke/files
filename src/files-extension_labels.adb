@@ -126,9 +126,11 @@ package body Files.Extension_Labels is
          W0    : Natural := 0;
          H0    : Natural := 0;
       begin
+         --  A glyph can start left of or above the origin (a negative bearing):
+         --  coordinates are clamped at zero rather than raising.
          for G of Result.Glyphs loop
-            W0 := Natural'Max (W0, Natural (Float'Ceiling (G.X + G.Width)));
-            H0 := Natural'Max (H0, Natural (Float'Ceiling (G.Y + G.Height)));
+            W0 := Natural'Max (W0, Natural (Float'Ceiling (Float'Max (0.0, G.X + G.Width))));
+            H0 := Natural'Max (H0, Natural (Float'Ceiling (Float'Max (0.0, G.Y + G.Height))));
          end loop;
          if W0 = 0 or else H0 = 0
            or else W0 > Max_Atlas_Bytes / 4
@@ -155,10 +157,10 @@ package body Files.Extension_Labels is
                     (if G.Atlas_W > 0 then G.Atlas_X else Natural (Float'Floor (G.U0 * Float (AW))));
                   SY0 : constant Natural :=
                     (if G.Atlas_W > 0 then G.Atlas_Y else Natural (Float'Floor (G.V0 * Float (AH))));
-                  GW  : constant Natural := Natural (Float'Rounding (G.Width));
-                  GH  : constant Natural := Natural (Float'Rounding (G.Height));
-                  DX0 : constant Natural := Natural (Float'Rounding (G.X));
-                  DY0 : constant Natural := Natural (Float'Rounding (G.Y));
+                  GW  : constant Natural := Natural (Float'Rounding (Float'Max (0.0, G.Width)));
+                  GH  : constant Natural := Natural (Float'Rounding (Float'Max (0.0, G.Height)));
+                  DX0 : constant Natural := Natural (Float'Rounding (Float'Max (0.0, G.X)));
+                  DY0 : constant Natural := Natural (Float'Rounding (Float'Max (0.0, G.Y)));
                begin
                   if GW > 0 and then GH > 0
                     and then SX0 < AW and then SY0 < AH
@@ -262,7 +264,19 @@ package body Files.Extension_Labels is
          if Natural (Cache.Length) >= Max_Cached_Labels then
             Cache.Clear;
          end if;
-         Cache.Insert (Key, Rasterize (Ext, Height, Theme));
+         declare
+            Made : Label;
+         begin
+            begin
+               Made := Rasterize (Ext, Height, Theme);
+            exception
+               when others =>
+                  --  Kept as an empty label: one that cannot be drawn is not
+                  --  tried again on every frame.
+                  Made := (Width => 0, Height => 0, Pixels => Files.Types.Byte_Vectors.Empty_Vector);
+            end;
+            Cache.Insert (Key, Made);
+         end;
       end if;
       return Cache.Element (Key);
    exception
