@@ -66,6 +66,10 @@ separate (Files_Suite.Operations)
       Load := Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
       Assert (Load.Success, "restore navigates into trash files directory");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
+      Assert (Files.Model.Current_Is_Trash (Model), "entering the trash settles that it is the trash");
+      Assert
+        (not Files.Model.Current_Is_Trash (Files_Suite.Support.Sample_Model),
+         "an ordinary directory is not the trash");
       Select_Name (Model, "restore-me.txt");
       Assert (Files.Model.Selected_Count (Model) = 1, "restore selects the trashed item");
 

@@ -505,6 +505,18 @@ package body Files.Model is
       Model.Type_Ahead_Buffer_Value := Null_Unbounded_String;
    end Claim_Overlay_Input;
 
+   --  Every change of directory goes through here: it starts a new view
+   --  incarnation and settles, once, whether the new directory is the trash,
+   --  so the commands and the snapshot can ask without touching the disk.
+   procedure Set_Current_Path
+     (Model : in out Window_Model;
+      Path  : UString) is
+   begin
+      Model.Current_Path_Value := Path;
+      Model.View_Incarnation_Value := Model.View_Incarnation_Value + 1;
+      Model.Current_Is_Trash_Value := Files.File_System.Is_Trash_Files_Directory (To_String (Path));
+   end Set_Current_Path;
+
    procedure Initialize
      (Model             : out Window_Model;
       Directory_Path    : String;
@@ -515,8 +527,7 @@ package body Files.Model is
       Clear_Folder_Size (Model);
       Model.Revision_Value := Model.Revision_Value + 1;
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
-      Model.Current_Path_Value := To_Unbounded_String (Directory_Path);
-      Model.View_Incarnation_Value := Model.View_Incarnation_Value + 1;
+      Set_Current_Path (Model, To_Unbounded_String (Directory_Path));
       Files.Process_Jobs.Reset (Model.Refresh_Job);
       Model.Home_Path_Value := To_Unbounded_String (Home_Path);
       Model.Items := Items;
@@ -617,6 +628,8 @@ package body Files.Model is
    --  Files.Model.Navigation child; these renamings keep them on the public API.
    function Current_Path (Model : Window_Model) return String
      renames Navigation.Current_Path;
+
+   function Current_Is_Trash (Model : Window_Model) return Boolean is (Model.Current_Is_Trash_Value);
 
    function Directory_Signature_Of (Model : Window_Model) return Files.File_System.Directory_Signature
      renames Navigation.Directory_Signature_Of;
@@ -1101,8 +1114,7 @@ package body Files.Model is
       Model.Recent_View_Active := False;
       Model.Search_Scope_Value := Files.Types.Filter_Here;
       Model.Search_Results_Active := False;
-      Model.Current_Path_Value := To_Unbounded_String (Directory_Path);
-      Model.View_Incarnation_Value := Model.View_Incarnation_Value + 1;
+      Set_Current_Path (Model, To_Unbounded_String (Directory_Path));
       Model.Items := Items;
       --  The model's order is the displayed order: keyboard and range
       --  selection walk it, so it must already be sorted by the model's field.
@@ -1144,8 +1156,7 @@ package body Files.Model is
       end if;
 
       Model.Recent_View_Active := True;
-      Model.Current_Path_Value := Null_Unbounded_String;
-      Model.View_Incarnation_Value := Model.View_Incarnation_Value + 1;
+      Set_Current_Path (Model, Null_Unbounded_String);
       --  Recent keeps its recency order, which is also the order drawn.
       Model.Items := Items;
       Model.Directory_Signature := Signature_From_Items ("", Items);
@@ -1193,8 +1204,7 @@ package body Files.Model is
          Model.Forward_History.Append (Model.Current_Path_Value);
       end if;
       Model.Recent_View_Active := False;
-      Model.Current_Path_Value := Previous;
-      Model.View_Incarnation_Value := Model.View_Incarnation_Value + 1;
+      Set_Current_Path (Model, Previous);
       Model.Path_Input_Value := Previous;
       Model.Path_Input_Cursor := Length (Previous);
       Model.Path_Input_Valid := True;
@@ -1241,8 +1251,7 @@ package body Files.Model is
          end loop;
       end if;
       Model.Recent_View_Active := False;
-      Model.Current_Path_Value := Next;
-      Model.View_Incarnation_Value := Model.View_Incarnation_Value + 1;
+      Set_Current_Path (Model, Next);
       Model.Path_Input_Value := Next;
       Model.Path_Input_Cursor := Length (Next);
       Model.Path_Input_Valid := True;

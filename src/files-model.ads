@@ -127,6 +127,15 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
+   --  Whether the current directory is the trash's files directory, settled
+   --  when the directory was entered (no disk access here).
+   --
+   --  @param Model Model to inspect.
+   --  @return True when the current directory is the trash.
+   function Current_Is_Trash
+     (Model : Window_Model)
+      return Boolean;
+
    --  Return the model current path.
    --
    --  @param Model Model to inspect.
@@ -3231,6 +3240,7 @@ private
       Listing_Revision_Value : Natural := 0;
       --  Generation of the displayed view; advanced only by navigation.
       View_Incarnation_Value : Natural := 0;
+      Current_Is_Trash_Value : Boolean := False;
       --  A discarded background read whose reload is still owed, and the view
       --  incarnation it is owed to.
       Owed_Refresh            : Boolean := False;

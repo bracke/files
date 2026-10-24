@@ -436,9 +436,7 @@ separate (Files.Rendering)
 
             Single_Item : constant Files.File_System.Directory_Item :=
               Files.Model.Selected_Item (Model);
-            In_Trash    : constant Boolean :=
-              Files.File_System.Is_Trash_Files_Directory
-                (Files.Model.Current_Path (Model));
+            In_Trash    : constant Boolean := Files.Model.Current_Is_Trash (Model);
          begin
             Snapshot.Permissions_Editable :=
               Files.Model.Selected_Count (Model) = 1

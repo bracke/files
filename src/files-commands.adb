@@ -631,8 +631,7 @@ package body Files.Commands is
    --  directory rather than an ordinary directory.
    function In_Trash_View (Model : Files.Model.Window_Model) return Boolean is
    begin
-      return Files.File_System.Is_Trash_Files_Directory
-        (Files.Model.Current_Path (Model));
+      return Files.Model.Current_Is_Trash (Model);
    end In_Trash_View;
 
    function Joined_Full_Paths
