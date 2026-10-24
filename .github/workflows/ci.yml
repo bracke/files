@@ -182,7 +182,7 @@ jobs:
           clone_at project_tools bddc1ebef8572662167610c4dfbbc8a337b590c0
           clone_at i18n 33d2dc7775f97adf4c227643b7d2b81850cc76da
           clone_at messages a6fb47b2a1d520d2e202dd9d7ac318375116615a
-          clone_at humanize 3ef4b23c3c00a4d274b2aa5c855029df822f7dfa
+          clone_at humanize 53e8975d83ff6408747d1536494afb1ad32654c3
           clone_at textrender 07f95959977ff02e9489bcbb7e4d6f11975f3bec
           clone_at zlib 56d3b4fab7bb749f04952c5ec118aab0ef0787b8
           clone_at guikit 25d9e1c2c9724f9572ad35af8333e31d817b37ab
