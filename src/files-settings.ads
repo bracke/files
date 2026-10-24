@@ -383,6 +383,18 @@ package Files.Settings is
       To       : String;
       Changed  : out Boolean);
 
+   --  Forget an item that is gone for good: every label, favorite and recent
+   --  path that is Path, or lies inside the folder Path, is dropped, so a new
+   --  item later created there does not inherit them.
+   --
+   --  @param Settings Settings model updated in place.
+   --  @param Path Full path of the removed item.
+   --  @param Changed True when any stored path was dropped.
+   procedure Forget_Path_References
+     (Settings : in out Settings_Model;
+      Path     : String;
+      Changed  : out Boolean);
+
    --  Whether Settings, once written, would load again: Parse bounds the file
    --  (size and entry count) against hostile input, so an edit that grows it
    --  past those bounds -- thousands of labels -- must be refused, not saved.

@@ -15,6 +15,26 @@ static int trash_fault_applied;
 void files_test_fault_reset(void) { trash_fault_applied = 0; }
 
 /* Faults are linked only into the test executable, never the application. */
+/* With FILES_TEST_STAGE_SYNC_FAULT set, syncing a recovery stage that already
+   holds its payload fails: the original has moved and Preserve must put it back. */
+int fsync(int fd) {
+    if (getenv("FILES_TEST_STAGE_SYNC_FAULT")) {
+        char link[64], actual[4096], payload[4200];
+        snprintf(link, sizeof(link), "/proc/self/fd/%d", fd);
+        ssize_t count = readlink(link, actual, sizeof(actual)-1);
+        if (count >= 0) {
+            actual[count] = 0;
+            const char *base = strrchr(actual, '/');
+            snprintf(payload, sizeof(payload), "%s/payload", actual);
+            if (base && !strncmp(base + 1, ".files-recovery-", 16) && access(payload, F_OK) == 0) {
+                errno = EIO;
+                return -1;
+            }
+        }
+    }
+    return (int)syscall(SYS_fsync, fd);
+}
+
 int chmod(const char *path, mode_t mode) {
     const char *trigger = getenv("FILES_TEST_DIRECTORY_RESTORE_FAULT");
     if (trigger && mode == 0555 && !strncmp(path, "/proc/self/fd/", 14)) {

@@ -528,6 +528,42 @@ package body Files.Settings is
       end loop;
    end Move_Path_References;
 
+   procedure Forget_Path_References
+     (Settings : in out Settings_Model;
+      Path     : String;
+      Changed  : out Boolean)
+   is
+      --  Path itself or an entry inside the folder Path.
+      function Under (Candidate : String) return Boolean is
+        (Candidate = Path
+         or else (Candidate'Length > Path'Length
+                  and then Candidate (Candidate'First .. Candidate'First + Path'Length - 1) = Path
+                  and then Candidate (Candidate'First + Path'Length) in '/' | GNAT.OS_Lib.Directory_Separator));
+
+      procedure Drop (Paths : in out String_Vectors.Vector) is
+      begin
+         for Index in reverse Paths.First_Index .. Paths.Last_Index loop
+            if Under (To_String (Paths (Index))) then
+               Paths.Delete (Index);
+               Changed := True;
+            end if;
+         end loop;
+      end Drop;
+   begin
+      Changed := False;
+      if Path = "" then
+         return;
+      end if;
+      Drop (Settings.Favorite_Paths);
+      Drop (Settings.Recent_Paths_Value);
+      for Index in reverse Settings.Labels.First_Index .. Settings.Labels.Last_Index loop
+         if Under (To_String (Settings.Labels (Index).Path)) then
+            Settings.Labels.Delete (Index);
+            Changed := True;
+         end if;
+      end loop;
+   end Forget_Path_References;
+
    function Loadable (Settings : Settings_Model) return Boolean is
      (Parse (To_Text (Settings)).Success);
 

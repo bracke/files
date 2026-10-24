@@ -167,8 +167,12 @@ package body Files.Interaction is
          declare
             Moved : Boolean;
          begin
-            Files.Settings.Move_Path_References
-              (Settings, To_String (From (Index)), To_String (To (Index)), Moved);
+            if Length (To (Index)) = 0 then
+               Files.Settings.Forget_Path_References (Settings, To_String (From (Index)), Moved);
+            else
+               Files.Settings.Move_Path_References
+                 (Settings, To_String (From (Index)), To_String (To (Index)), Moved);
+            end if;
             Changed := Changed or else Moved;
          end;
       end loop;

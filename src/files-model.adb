@@ -662,6 +662,16 @@ package body Files.Model is
       end if;
    end Note_Path_Move;
 
+   procedure Note_Path_Removed
+     (Model : in out Window_Model;
+      Path  : String) is
+   begin
+      if Path /= "" then
+         Model.Moved_From_Queue.Append (To_Unbounded_String (Path));
+         Model.Moved_To_Queue.Append (Null_Unbounded_String);
+      end if;
+   end Note_Path_Removed;
+
    procedure Take_Path_Moves
      (Model : in out Window_Model;
       From  : out Files.Types.String_Vectors.Vector;

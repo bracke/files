@@ -741,11 +741,21 @@ package Files.Model is
       From  : String;
       To    : String);
 
+   --  Record that the item at Path is gone for good (deleted, or purged from
+   --  the trash), so labels and favorites naming it are forgotten. Queued
+   --  with Note_Path_Move as a move to the empty path.
+   --
+   --  @param Model Model to update.
+   --  @param Path Full path of the removed item.
+   procedure Note_Path_Removed
+     (Model : in out Window_Model;
+      Path  : String);
+
    --  Return and clear the moves queued by Note_Path_Move, in order.
    --
    --  @param Model Model to update.
    --  @param From Old paths.
-   --  @param To New paths, parallel to From.
+   --  @param To New paths, parallel to From; empty for a removed item.
    procedure Take_Path_Moves
      (Model : in out Window_Model;
       From  : out Files.Types.String_Vectors.Vector;

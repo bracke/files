@@ -246,6 +246,7 @@ package body Files_Suite.Operations is
    procedure Test_Expand_User_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Chained_Rename_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Labels_Forget_Deleted_And_Follow_Background (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Search_Result_Actions_Stay_Beside_Source (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Multi_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -301,6 +302,7 @@ package body Files_Suite.Operations is
    procedure Test_Copy_Tree_Preserves_Symlinks (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Directory_Size_Over_Links (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Fifo_Never_Blocks (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Host_Hidden_Flag_Hides (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Conflict_Resolution_Core (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Execution_Batches (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -318,6 +320,7 @@ package body Files_Suite.Operations is
    procedure Test_Native_Replace_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Released_Recovery_Goes_To_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Command_Line (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Preserve_Puts_Original_Back (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Background_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Owed_Reloads (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Registry_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -395,6 +398,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Recovery_Command_Line'Access,
          "--recover restores a payload, and --discard-recovery deletes only a recovery payload");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Preserve_Puts_Original_Back'Access,
+         "a preserve that fails after moving the original puts it back where it was");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Background_Operations'Access,
                 "duplicate, archive, extract and recursive searches use cancellable helpers");
@@ -500,6 +506,9 @@ package body Files_Suite.Operations is
         (T, Test_Commit_Rename'Access, "commit rename mode");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Chained_Rename_Undo'Access, "one Undo reverses a batch whose renames chain (b to c, then a to b)");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Labels_Forget_Deleted_And_Follow_Background'Access,
+         "a permanent delete forgets labels and favorites, and a background Undo carries labels back");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Search_Result_Actions_Stay_Beside_Source'Access,
          "renaming, duplicating or linking a search result keeps it in its own folder");
@@ -631,6 +640,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Fifo_Never_Blocks'Access,
          "a FIFO lists, searches, previews, thumbnails and copies without blocking anything");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Host_Hidden_Flag_Hides'Access,
+         "a file the host marks hidden (or a dot file) is hidden in the listing and counted as hidden");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Paste_Conflict_Resolution_Core'Access,
          "pure paste-conflict resolver honors replace/skip/rename/no-conflict policies");
@@ -4883,6 +4895,75 @@ package body Files_Suite.Operations is
               "the link is made beside its source");
       Project_Tools.Files.Delete_Tree (Join (Root, "a"));
    end Test_Search_Result_Actions_Stay_Beside_Source;
+
+   procedure Test_Labels_Forget_Deleted_And_Follow_Background (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      use type Files.Types.Color_Label;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Gone     : constant String := Join (Root, "gone.txt");
+      Folder   : constant String := Join (Root, "folder");
+      Inner    : constant String := Join (Folder, "inner.txt");
+      Kept     : constant String := Join (Root, "kept.txt");
+      Renamed  : constant String := Join (Root, "renamed.txt");
+      Model    : Files.Model.Window_Model;
+      Load     : Files.File_System.Directory_Load_Result;
+      Step     : Files.Operations.Operation_Result;
+      Followed : Boolean;
+      pragma Unreferenced (Step, Followed);
+
+      procedure Show_Root (Background : Boolean) is
+      begin
+         Load := Files.File_System.Load_Directory (Root, Settings);
+         Files.Model.Initialize (Model, Root, Load.Items, Root);
+         Files.Model.Set_Background_Transfers (Model, Background);
+      end Show_Root;
+   begin
+      for Background in Boolean loop
+         Reset_Root;
+         Settings := Files.Settings.Default_Settings;
+         Ada.Directories.Create_Path (Folder);
+         Write_Binary_File (Gone, "x");
+         Write_Binary_File (Inner, "y");
+         Write_Binary_File (Kept, "z");
+         Files.Settings.Set_Label (Settings, Gone, Files.Types.Red);
+         Files.Settings.Set_Label (Settings, Inner, Files.Types.Blue);
+         Files.Settings.Set_Label (Settings, Kept, Files.Types.Green);
+         Files.Settings.Toggle_Favorite_Path (Settings, Folder);
+
+         Show_Root (Background);
+         Select_Name (Model, "gone.txt");
+         Step := Complete_Operation (Model, Settings, Files.Operations.Delete_Selected_Permanently (Model, Settings));
+         Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+         Assert (Files.Settings.Label_Of (Settings, Gone) = Files.Types.No_Label
+                 and then Files.Settings.Label_Of (Settings, Kept) = Files.Types.Green,
+                 "a permanently deleted file's label is forgotten, others kept"
+                 & (if Background then " (background)" else ""));
+
+         Show_Root (Background);
+         Select_Name (Model, "folder");
+         Step := Complete_Operation (Model, Settings, Files.Operations.Delete_Selected_Permanently (Model, Settings));
+         Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+         Assert (Files.Settings.Label_Of (Settings, Inner) = Files.Types.No_Label
+                 and then not Files.Settings.Is_Favorite (Settings, Folder),
+                 "deleting a folder forgets the labels inside it and its favorite"
+                 & (if Background then " (background)" else ""));
+
+         --  A rename in the window, then its Undo in the helper.
+         Show_Root (False);
+         Select_Name (Model, "kept.txt");
+         Files.Model.Toggle_Rename (Model);
+         Files.Model.Set_Rename_Text (Model, "renamed.txt");
+         Step := Files.Operations.Commit_Rename (Model, Settings);
+         Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+         Assert (Files.Settings.Label_Of (Settings, Renamed) = Files.Types.Green, "the label follows the rename");
+         Files.Model.Set_Background_Transfers (Model, Background);
+         Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+         Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
+         Assert (Files.Settings.Label_Of (Settings, Kept) = Files.Types.Green
+                 and then Files.Settings.Label_Of (Settings, Renamed) = Files.Types.No_Label,
+                 "Undo carries the label back" & (if Background then " (background)" else ""));
+      end loop;
+   end Test_Labels_Forget_Deleted_And_Follow_Background;
 
    procedure Test_Chained_Rename_Undo (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -12622,6 +12703,64 @@ package body Files_Suite.Operations is
 
    --  A FIFO opened for reading blocks until a writer arrives, so every path
    --  that reads a listed entry must refuse it or open it without waiting.
+   procedure Test_Host_Hidden_Flag_Hides (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dir      : constant String := Join (Root, "hiding");
+      Flagged  : constant String := Join (Dir, "flagged.txt");
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model;
+      Load     : Files.File_System.Directory_Load_Result;
+      Marked   : Boolean := False;
+
+      --  Mark Flagged hidden with the host's own tool; False where there is none.
+      function Mark return Boolean is
+         use type GNAT.OS_Lib.String_Access;
+         Program : constant String :=
+           (case Hostkit.Host.Current is
+               when Hostkit.Host.Windows => "attrib",
+               when Hostkit.Host.MacOS   => "chflags",
+               when others               => "");
+         Found   : GNAT.OS_Lib.String_Access :=
+           (if Program = "" then null else GNAT.OS_Lib.Locate_Exec_On_Path (Program));
+         Flag    : aliased String := (if Hostkit.Host.Current = Hostkit.Host.Windows then "+h" else "hidden");
+         Name    : aliased String := Flagged;
+         Success : Boolean := False;
+      begin
+         if Found /= null then
+            GNAT.OS_Lib.Spawn (Found.all, [Flag'Unchecked_Access, Name'Unchecked_Access], Success);
+            GNAT.OS_Lib.Free (Found);
+         end if;
+         return Success;
+      end Mark;
+
+      function Listed (Name : String) return Boolean is
+        (for some Item of Load.Items => To_String (Item.Name) = Name);
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Write_Binary_File (Join (Dir, "shown.txt"), "x");
+      Write_Binary_File (Join (Dir, ".dotted"), "x");
+      Write_Binary_File (Flagged, "x");
+      Marked := Mark;
+
+      Settings.Show_Hidden_Files := False;
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Assert (Listed ("shown.txt") and then not Listed (".dotted"), "a dot file is hidden");
+      Assert (not Marked or else not Listed ("flagged.txt"), "a file the host marks hidden is hidden");
+
+      Settings.Show_Hidden_Files := True;
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Files.Model.Initialize (Model, Dir, Load.Items, Root);
+      Assert (Listed (".dotted") and then Listed ("flagged.txt"), "Show Hidden Files lists both");
+      Assert (Files.Model.Hidden_Item_Count (Model) = (if Marked then 2 else 1),
+              "the hidden count includes what the host hides");
+      for Item of Load.Items loop
+         if To_String (Item.Name) = ".dotted" or else (Marked and then To_String (Item.Name) = "flagged.txt") then
+            Assert (Item.Hidden, To_String (Item.Name) & " is marked hidden");
+         end if;
+      end loop;
+   end Test_Host_Hidden_Flag_Hides;
+
    procedure Test_Fifo_Never_Blocks (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       function Make_Fifo (Path : Interfaces.C.Strings.chars_ptr; Mode : Interfaces.C.unsigned) return Interfaces.C.int
@@ -16889,6 +17028,61 @@ package body Files_Suite.Operations is
    exception
       when others => Restore_Environment; raise;
    end Test_Symlink_Recovery;
+
+   --  The stage sync after the move fails (files_test_metadata.c): the
+   --  original must be at its own path again, not left hidden in the stage.
+   procedure Test_Preserve_Puts_Original_Back (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dest     : constant String := Join (Root, "original.txt");
+      Had_Back : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
+      Old_Back : constant String := Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND", "");
+      Backup   : Files.Types.UString;
+      Result   : Files.File_System.Mutation_Result;
+
+      function Stages_Left return Natural is
+         Search : Ada.Directories.Search_Type;
+         Item   : Ada.Directories.Directory_Entry_Type;
+         Count  : Natural := 0;
+      begin
+         Ada.Directories.Start_Search
+           (Search, Root, ".files-recovery-*", [Ada.Directories.Directory => True, others => False]);
+         while Ada.Directories.More_Entries (Search) loop
+            Ada.Directories.Get_Next_Entry (Search, Item);
+            Count := Count + 1;
+         end loop;
+         Ada.Directories.End_Search (Search);
+         return Count;
+      end Stages_Left;
+
+      procedure Restore_Environment is
+      begin
+         Ada.Environment_Variables.Clear ("FILES_TEST_STAGE_SYNC_FAULT");
+         if Had_Back then
+            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", Old_Back);
+         else
+            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+         end if;
+      end Restore_Environment;
+   begin
+      if Hostkit.Host.Current /= Hostkit.Host.Linux then
+         return;
+      end if;
+      Reset_Root;
+      Write_Binary_File (Dest, "the original");
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
+      Ada.Environment_Variables.Set ("FILES_TEST_STAGE_SYNC_FAULT", "1");
+      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
+      Ada.Environment_Variables.Clear ("FILES_TEST_STAGE_SYNC_FAULT");
+      Assert (not Result.Success, "the preserve reports the failed sync");
+      Assert (Length (Backup) = 0, "no backup is left to recover from");
+      Assert (Project_Tools.Files.Read_Raw_File (Dest) = "the original", "the original is back at its own path");
+      Assert (Stages_Left = 0, "no hidden recovery folder is left behind");
+      Restore_Environment;
+   exception
+      when others =>
+         Restore_Environment;
+         raise;
+   end Test_Preserve_Puts_Original_Back;
 
    procedure Test_Recovery_Command_Line (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

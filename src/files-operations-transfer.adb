@@ -1078,13 +1078,22 @@ package body Transfer is
          end if;
 
          declare
+            In_Trash : constant Boolean := Is_Trash_Child (To_String (Item.Full_Path));
+            --  The path its labels and favorites name: a trashed item keeps
+            --  them at the place it came from, for a restore.
+            Labeled  : constant String :=
+              (if In_Trash then Files.File_System.Trash_Original_Path (To_String (Item.Full_Path))
+               else To_String (Item.Full_Path));
             Mutation : constant Files.File_System.Mutation_Result :=
-              (if Is_Trash_Child (To_String (Item.Full_Path))
+              (if In_Trash
                then Files.File_System.Delete_Trashed_Item
                       (To_String (Item.Full_Path))
                else Files.File_System.Delete_Permanently
                       (To_String (Item.Full_Path)));
          begin
+            if Mutation.Success then
+               Files.Model.Note_Path_Removed (Model, Labeled);
+            end if;
             if not Mutation.Success then
                Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
                declare
@@ -1192,9 +1201,13 @@ package body Transfer is
          exit when Files.Job_Context.Cancelled;
          Total := Total + 1;
          declare
+            Labeled  : constant String := Files.File_System.Trash_Original_Path (To_String (Item.Full_Path));
             Mutation : constant Files.File_System.Mutation_Result :=
               Files.File_System.Delete_Trashed_Item (To_String (Item.Full_Path));
          begin
+            if Mutation.Success then
+               Files.Model.Note_Path_Removed (Model, Labeled);
+            end if;
             if not Mutation.Success then
                Failed := Failed + 1;
                if Length (First_Error) = 0 then

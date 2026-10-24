@@ -47,7 +47,40 @@ package body Files.Operation_Jobs is
       Selection : Files.Types.UString;
       Visible_Error : Files.Types.UString;
       Signature : Files.File_System.Directory_Signature;
+      --  The renames, moves and removals the helper made (Note_Path_Move),
+      --  for the window's labels and favorites to follow.
+      Moved_From : Files.Types.String_Vectors.Vector;
+      Moved_To   : Files.Types.String_Vectors.Vector;
    end record;
+
+   Max_Moves : constant := 100_000;
+
+   procedure Write_Paths
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Paths  : Files.Types.String_Vectors.Vector) is
+   begin
+      Natural'Output (Stream, Natural (Paths.Length));
+      for Path of Paths loop
+         Files.Job_Records.Write_String (Stream, To_String (Path), Files.Job_Records.Max_Path_Length);
+      end loop;
+   end Write_Paths;
+
+   function Read_Paths
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
+      return Files.Types.String_Vectors.Vector
+   is
+      Count : constant Natural := Natural'Input (Stream);
+      Paths : Files.Types.String_Vectors.Vector;
+   begin
+      if Count > Max_Moves then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      for Index in 1 .. Count loop
+         Paths.Append
+           (To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Path_Length)));
+      end loop;
+      return Paths;
+   end Read_Paths;
 
    function Nul_Free (Value : String) return Boolean is
    begin
@@ -158,6 +191,8 @@ package body Files.Operation_Jobs is
         (Stream, To_String (Done.Visible_Error),
          Files.Job_Records.Max_Error_Length);
       Files.Job_Records.Write_Signature (Stream, Done.Signature);
+      Write_Paths (Stream, Done.Moved_From);
+      Write_Paths (Stream, Done.Moved_To);
    end Write_Outcome;
 
    function Read_Outcome (Path : String) return Outcome
@@ -188,6 +223,11 @@ package body Files.Operation_Jobs is
         (Files.Job_Records.Read_String
            (Input'Access, Files.Job_Records.Max_Error_Length));
       Done.Signature := Files.Job_Records.Read_Signature (Input'Access);
+      Done.Moved_From := Read_Paths (Input'Access);
+      Done.Moved_To := Read_Paths (Input'Access);
+      if Natural (Done.Moved_From.Length) /= Natural (Done.Moved_To.Length) then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
       if not Files.Lease_Streams.End_Of_Stream (Input) then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
@@ -404,6 +444,16 @@ package body Files.Operation_Jobs is
       if Done.Kind /= Work.Kind or else Done.Recent /= Work.Recent then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
+      --  What the helper renamed, moved or removed did happen, whatever the
+      --  window shows now: labels and favorites follow it.
+      for Index in Done.Moved_From.First_Index .. Done.Moved_From.Last_Index loop
+         if Length (Done.Moved_To (Index)) = 0 then
+            Files.Model.Note_Path_Removed (Model, To_String (Done.Moved_From (Index)));
+         else
+            Files.Model.Note_Path_Move
+              (Model, To_String (Done.Moved_From (Index)), To_String (Done.Moved_To (Index)));
+         end if;
+      end loop;
       if not Files.History_Journal.Restore
         (Files.Process_Jobs.Path (Job, ""), Model)
       then
@@ -571,6 +621,7 @@ package body Files.Operation_Jobs is
          Done.Items.Append (Row.Item);
       end loop;
       Done.Signature := Files.Model.Directory_Signature_Of (Model);
+      Files.Model.Take_Path_Moves (Model, Done.Moved_From, Done.Moved_To);
       Files.Exclusive_Streams.Create
         (File, Hostkit.Fs.Join (Directory, "result.tmp"));
       Write_Outcome (File'Access, Done);
