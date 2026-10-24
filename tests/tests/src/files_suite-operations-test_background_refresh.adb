@@ -22,10 +22,9 @@ separate (Files_Suite.Operations)
       procedure Await_Refresh (Expected : Boolean) is
          Applied : Boolean := False;
       begin
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             Applied := Files.Refresh_Jobs.Advance (Model, Settings) or else Applied;
             exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
-            delay 0.001;
          end loop;
          Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
                  "the background read finishes without synchronous enumeration");
@@ -36,10 +35,9 @@ separate (Files_Suite.Operations)
          Job : constant Files.Process_Jobs.Session := Files.Model.Background_Refresh (Model);
          Finished, Cancelled : Boolean;
       begin
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             Files.Process_Jobs.Poll (Job, Finished, Cancelled);
             exit when Finished;
-            delay 0.001;
          end loop;
          Assert (Finished and then not Cancelled, "the stale snapshot is ready before the view changes");
       end Await_Ready;

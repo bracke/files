@@ -25,10 +25,9 @@ separate (Files_Suite.Operations)
             Revision : constant Natural := Files.Model.Revision (Model);
          begin
             if Ready then
-               for Attempt in 1 .. 5_000 loop
+               for Attempt in Files_Suite.Support.Polling loop
                   Files.Process_Jobs.Poll (Job, Finished, Cancelled);
                   exit when Finished;
-                  delay 0.001;
                end loop;
                Assert (Finished and then not Cancelled, "the first job committed before a drop arrives");
             end if;

@@ -44,10 +44,9 @@ separate (Files_Suite.Operations)
          declare
             Job : constant Files.Process_Jobs.Session := Files.Model.Background_Operation (Model);
          begin
-            for Attempt in 1 .. 5_000 loop
+            for Attempt in Files_Suite.Support.Polling loop
                Files.Process_Jobs.Poll (Job, Finished, Cancelled);
                exit when Finished;
-               delay 0.001;
             end loop;
             Assert (Finished and then Ada.Directories.Exists (Dest), "the helper published before metadata failure");
             if Ada.Directories.Exists (Files.Process_Jobs.Path (Job, "history")) then

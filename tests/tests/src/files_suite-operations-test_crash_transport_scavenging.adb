@@ -172,9 +172,8 @@ separate (Files_Suite.Operations)
             Result := Files.File_System.Set_Permissions (Marker, 8#600#);
             Assert (Result.Success, "restore fallback marker access");
          end if;
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             exit when not Ada.Directories.Exists (To_String (Fallback_Path));
-            delay 0.001;
          end loop;
          Assert
            (not Ada.Directories.Exists (To_String (Fallback_Path))
@@ -213,10 +212,9 @@ separate (Files_Suite.Operations)
       Create_Abandoned (Retry_Report, Retry_Path);
       Ada.Environment_Variables.Set ("FILES_TEST_FAIL_SCAVENGER_ONCE", Retry_Control);
       Files.Job_Scavenger.Scavenge;
-      for Attempt in 1 .. 10_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when Ada.Directories.Exists (Retry_Control)
            and then not Ada.Directories.Exists (To_String (Retry_Path));
-         delay 0.001;
       end loop;
       Assert
         (Ada.Directories.Exists (Retry_Control)
@@ -232,12 +230,11 @@ separate (Files_Suite.Operations)
       Create_Abandoned (Delayed_Report, Delayed_Path);
       Ada.Environment_Variables.Set ("FILES_TEST_FAIL_SCAVENGER_UNTIL", Delayed_Control);
       Files.Job_Scavenger.Scavenge;
-      for Attempt in 1 .. 10_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when Ada.Directories.Exists (Delayed_Control & ".attempts")
            and then Ada.Strings.Fixed.Count
              (Project_Tools.Files.Read_Raw_File (Delayed_Control & ".attempts"),
               "failed coordinator") >= 2;
-         delay 0.001;
       end loop;
       Assert
         (Ada.Directories.Exists (Delayed_Control & ".attempts")
@@ -247,9 +244,8 @@ separate (Files_Suite.Operations)
          and then Ada.Directories.Exists (To_String (Delayed_Path)),
          "temporary coordinator failure survives both immediate attempts");
       Write_Binary_File (Delayed_Control, "release");
-      for Attempt in 1 .. 10_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when not Ada.Directories.Exists (To_String (Delayed_Path));
-         delay 0.001;
       end loop;
       Assert
         (not Ada.Directories.Exists (To_String (Delayed_Path)),
@@ -411,9 +407,8 @@ separate (Files_Suite.Operations)
 
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_SCAVENGER", Scavenge_Control);
       Files.Job_Scavenger.Scavenge;
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when Ada.Directories.Exists (Scavenge_Control & ".started");
-         delay 0.001;
       end loop;
       Assert
         (Ada.Directories.Exists (Scavenge_Control & ".started")
@@ -433,9 +428,8 @@ separate (Files_Suite.Operations)
             Write_Binary_File (Scavenge_Control & ".second-returned", "returned");
          end Second_Scan;
       begin
-         for Attempt in 1 .. 500 loop
+         for Attempt in Files_Suite.Support.Polling (Limit => 0.5) loop
             exit when Ada.Directories.Exists (Scavenge_Control & ".second-returned");
-            delay 0.001;
          end loop;
          Returned_Before_Release :=
            Ada.Directories.Exists (Scavenge_Control & ".second-returned");
@@ -449,9 +443,8 @@ separate (Files_Suite.Operations)
             Write_Binary_File (Scavenge_Control & ".release", "release");
             raise;
       end;
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when not Ada.Directories.Exists (To_String (Abandoned_Path));
-         delay 0.001;
       end loop;
       Assert
         (not Ada.Directories.Exists (To_String (Abandoned_Path))
@@ -698,10 +691,9 @@ separate (Files_Suite.Operations)
          "scavenging reports completion when only a live claimed transport remains");
 
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_SCAVENGER", Shutdown_Control);
-      for Attempt in 1 .. 100 loop
+      for Attempt in Files_Suite.Support.Polling (Interval => 0.05) loop
          Files.Job_Scavenger.Scavenge;
          exit when Ada.Directories.Exists (Shutdown_Control & ".started");
-         delay 0.05;
       end loop;
       Assert (Ada.Directories.Exists (Shutdown_Control & ".started"),
               "shutdown fixture starts a coordinator that waits for release");

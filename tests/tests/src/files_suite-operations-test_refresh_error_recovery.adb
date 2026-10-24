@@ -12,10 +12,9 @@ separate (Files_Suite.Operations)
       procedure Await_Refresh (Expected_Reload : Boolean) is
          Applied : Boolean := False;
       begin
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             Applied := Files.Refresh_Jobs.Advance (Model, Settings) or else Applied;
             exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
-            delay 0.001;
          end loop;
          Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model))
                  and then Applied = Expected_Reload, "the matching refresh completes with the expected listing update");
@@ -31,10 +30,9 @@ separate (Files_Suite.Operations)
          Job : constant Files.Process_Jobs.Session := Files.Model.Background_Refresh (Model);
          Finished, Cancelled : Boolean;
       begin
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             Files.Process_Jobs.Poll (Job, Finished, Cancelled);
             exit when Finished;
-            delay 0.001;
          end loop;
          Assert (Finished and then not Cancelled, "the recovery snapshot is ready before a later error is recorded");
       end Await_Ready;

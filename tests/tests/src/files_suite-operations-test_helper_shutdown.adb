@@ -39,9 +39,8 @@ separate (Files_Suite.Operations)
       Files.Process_Jobs.Reserve (Job);
       Started := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
       Files.Process_Jobs.Launch (Job, "--files-test-blocked");
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when Ada.Directories.Exists (To_String (Started));
-         delay 0.001;
       end loop;
       Assert (Ada.Directories.Exists (To_String (Started)), "the shutdown fixture enters blocked helper work");
       declare
@@ -55,27 +54,24 @@ separate (Files_Suite.Operations)
          Assert (Ada.Calendar.Clock - Before < Prompt_Limit,
                  "closing the last session never waits for blocked helper work");
       end;
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Files.Process_Jobs.Poll (Job, Finished, Cancelled);
          exit when not Ada.Directories.Exists (To_String (Started));
-         delay 0.001;
       end loop;
       Assert (not Ada.Directories.Exists (To_String (Started)),
               "terminated helpers are reaped and their transport is cleaned");
       Files.Process_Jobs.Reserve (Job);
       Started := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
       Files.Process_Jobs.Launch (Job, "--files-test-blocked");
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when Ada.Directories.Exists (To_String (Started));
-         delay 0.001;
       end loop;
       Assert (Ada.Directories.Exists (To_String (Started)), "the cancellation fixture enters blocked helper work");
       Before := Ada.Calendar.Clock;
       Files.Process_Jobs.Cancel (Job);
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Files.Process_Jobs.Poll (Job, Finished, Cancelled);
          exit when Finished;
-         delay 0.001;
       end loop;
       Assert (Finished and then Cancelled and then Ada.Calendar.Clock - Before < 3.5,
               "cancellation detaches stalled helpers after its bounded grace period");
@@ -84,17 +80,15 @@ separate (Files_Suite.Operations)
       Files.Process_Jobs.Reserve (Job);
       Started := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
       Files.Process_Jobs.Launch (Job, "--files-test-blocked");
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when Ada.Directories.Exists (To_String (Started));
-         delay 0.001;
       end loop;
       Assert (Ada.Directories.Exists (To_String (Started)),
               "the failed-stop fixture enters blocked helper work");
       Files.Process_Jobs.Testing.Simulate_Failed_Stop (Job);
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Files.Process_Jobs.Poll (Job, Finished, Cancelled);
          exit when Finished;
-         delay 0.001;
       end loop;
       Assert
         (Finished and then not Cancelled,

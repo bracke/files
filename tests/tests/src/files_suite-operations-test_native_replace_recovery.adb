@@ -82,10 +82,9 @@ separate (Files_Suite.Operations)
             Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
             Files.Model.Set_Background_Transfers (Model, Background);
             Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-            for Attempt in 1 .. 5_000 loop
+            for Attempt in Files_Suite.Support.Polling loop
                Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
                exit when not Files.Model.Paste_Execution_Is_Active (Model);
-               delay 0.001;
             end loop;
             Assert (Step.Status = Files.Operations.Operation_Success,
                     "Replace succeeds with a restorable native-backend backup");

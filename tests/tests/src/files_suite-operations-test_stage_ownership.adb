@@ -430,19 +430,17 @@ separate (Files_Suite.Operations)
          Ada.Directories.Delete_File (Join (To_String (Stage), ".files-owner"));
          Ada.Directories.Delete_Directory (To_String (Stage));
          Ada.Directories.Rename (Saved, To_String (Stage));
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             exit when not Ada.Directories.Exists (To_String (Stage))
               and then not Ada.Directories.Exists (To_String (Owner_Directory));
-            delay 0.001;
          end loop;
          Assert (not Ada.Directories.Exists (To_String (Stage))
                  and then not Ada.Directories.Exists (To_String (Owner_Directory)),
                  "idle foreground cleanup retries its durable record and removes its transport");
          if Ada.Directories.Exists ("/proc/thread-self/children") then
-            for Attempt in 1 .. 5_000 loop
+            for Attempt in Files_Suite.Support.Polling loop
                exit when Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children") =
                  To_String (Children_Before);
-               delay 0.001;
             end loop;
             Assert
               (Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children") =

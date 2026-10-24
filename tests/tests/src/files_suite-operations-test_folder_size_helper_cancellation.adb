@@ -24,9 +24,8 @@ separate (Files_Suite.Operations)
       procedure Await_Helper is
          File : Ada.Text_IO.File_Type;
       begin
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             exit when Ada.Directories.Exists (Marker);
-            delay 0.001;
          end loop;
          Assert (Ada.Directories.Exists (Marker), "the size helper reaches stalled filesystem work");
          Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Marker);
@@ -37,10 +36,9 @@ separate (Files_Suite.Operations)
 
       procedure Await_Reaped (Started : Unbounded_String) is
       begin
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             Files.Process_Jobs.Poll (Empty, Finished, Cancelled);
             exit when not Ada.Directories.Exists (To_String (Started));
-            delay 0.001;
          end loop;
          Assert (not Ada.Directories.Exists (To_String (Started)),
                  "the abandoned size helper is terminated and reaped");
@@ -105,11 +103,10 @@ separate (Files_Suite.Operations)
       Ada.Directories.Create_Path (Join (Root, "ready"));
       Write_Binary_File (Join (Join (Root, "ready"), "data"), "12345678");
       Files.Folder_Size.Request (Join (Root, "ready"));
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Files.Folder_Size.Step;
          Files.Folder_Size.Take (Path, Result, Available);
          exit when Available;
-         delay 0.001;
       end loop;
       --  A fresh request completes normally after a stalled scan was cancelled.
       Files_Suite.Support.Assert_Equal (Available, True, "a measurement after the cancelled scan arrives");
@@ -127,11 +124,10 @@ separate (Files_Suite.Operations)
             Files.Folder_Size.Request (Target);
             Files.Folder_Size.Step (Budget => 0);
             Assert (Files.Folder_Size.Is_Active, "zero budget leaves collection for a later frame");
-            for Attempt in 1 .. 5_000 loop
+            for Attempt in Files_Suite.Support.Polling loop
                Files.Folder_Size.Step;
                Files.Folder_Size.Take (Path, Result, Available);
                exit when Available;
-               delay 0.001;
             end loop;
             Assert (Available and then To_String (Path) = Target and then not Result.Available,
                     "missing and non-directory roots produce unavailable measurements in the helper");

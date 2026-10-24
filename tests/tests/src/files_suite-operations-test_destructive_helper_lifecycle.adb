@@ -80,9 +80,8 @@ separate (Files_Suite.Operations)
          begin
             Started := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
          end;
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             exit when Ada.Directories.Exists (To_String (Started));
-            delay 0.001;
          end loop;
          Assert (Ada.Directories.Exists (To_String (Started)), "the destructive helper reaches stalled work");
          if Job_Kind = Undo_Job then

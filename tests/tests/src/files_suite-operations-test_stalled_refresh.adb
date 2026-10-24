@@ -26,9 +26,8 @@ separate (Files_Suite.Operations)
       procedure Await_Stall is
          Job : constant Files.Process_Jobs.Session := Files.Model.Background_Refresh (Model);
       begin
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             exit when Ada.Directories.Exists (Files.Process_Jobs.Path (Job, "started"));
-            delay 0.001;
          end loop;
          Assert (Ada.Directories.Exists (Files.Process_Jobs.Path (Job, "started")),
                  "the refresh helper has entered deliberately stalled filesystem work");

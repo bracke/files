@@ -35,10 +35,9 @@ separate (Files_Suite.Operations)
                      if Background then
                         Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
                                 "the history action schedules a background refresh");
-                        for Attempt in 1 .. 5_000 loop
+                        for Attempt in Files_Suite.Support.Polling loop
                            Applied := Files.Refresh_Jobs.Advance (Model, Settings) or else Applied;
                            exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
-                           delay 0.001;
                         end loop;
                         Assert (Applied and then not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
                                 "Undo or Redo's own refresh applies without a fallback poll or manual reload");

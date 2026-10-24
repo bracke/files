@@ -101,9 +101,8 @@ begin
          elsif Ada.Command_Line.Argument (1) = "--files-test-hold-before-marker" then
             Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Ada.Command_Line.Argument (3) & ".started");
             Ada.Text_IO.Close (File);
-            for Attempt in 1 .. 10_000 loop
+            for Attempt in Files_Suite.Support.Polling loop
                exit when Ada.Directories.Exists (Ada.Command_Line.Argument (3) & ".release");
-               delay 0.001;
             end loop;
          end if;
          Hostkit.Process.End_Now (0);
@@ -289,9 +288,8 @@ begin
          then
             Hostkit.Process.End_Now (1);
          end if;
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             exit when Ada.Directories.Exists (Ada.Command_Line.Argument (3));
-            delay 0.001;
          end loop;
          Hostkit.Process.End_Now
            (if Ada.Directories.Exists (Ada.Command_Line.Argument (3)) then 0 else 1);
@@ -312,9 +310,8 @@ begin
          end if;
          Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Ada.Command_Line.Argument (3));
          Ada.Text_IO.Close (File);
-         for Attempt in 1 .. 10_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             exit when Ada.Directories.Exists (Ada.Command_Line.Argument (4));
-            delay 0.001;
          end loop;
          Hostkit.Process.End_Now
            (if Ada.Directories.Exists (Ada.Command_Line.Argument (4)) then 0 else 3);
@@ -351,10 +348,9 @@ begin
          Directory := Ada.Strings.Unbounded.To_Unbounded_String
            (Files.Process_Jobs.Path (Job, ""));
          Files.Process_Jobs.Launch (Job, "--files-test-blocked");
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             exit when Ada.Directories.Exists
               (Ada.Strings.Unbounded.To_String (Directory) & "/started");
-            delay 0.001;
          end loop;
          if not Ada.Directories.Exists
            (Ada.Strings.Unbounded.To_String (Directory) & "/started")

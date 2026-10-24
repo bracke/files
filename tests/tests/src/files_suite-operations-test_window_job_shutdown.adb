@@ -34,9 +34,8 @@ separate (Files_Suite.Operations)
 
       procedure Await_Started (Path : String) is
       begin
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             exit when Ada.Directories.Exists (Path);
-            delay 0.001;
          end loop;
          Assert (Ada.Directories.Exists (Path), "the helper enters stalled work before window closure: " & Path);
       end Await_Started;
@@ -109,10 +108,9 @@ separate (Files_Suite.Operations)
                     and then Ada.Directories.Exists (To_String (Other_Started)),
                     "closing one window leaves the surviving window and its helper active");
          end;
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             Files.Process_Jobs.Poll (Empty, Finished, Cancelled);
             exit when not Ada.Directories.Exists (To_String (Started));
-            delay 0.001;
          end loop;
          Assert (not Ada.Directories.Exists (To_String (Started)),
                  "the closed window's helper is terminated and reaped while another window stays open");
@@ -120,10 +118,9 @@ separate (Files_Suite.Operations)
                  and then not Ada.Directories.Exists (Join (Root, "destination.txt")),
                  "a stopped stalled transfer never writes after its window closes");
          Files.Application.Windows.Release_Window_Jobs (Remaining, Remaining_Watch);
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             Files.Process_Jobs.Poll (Empty, Finished, Cancelled);
             exit when not Ada.Directories.Exists (To_String (Other_Started));
-            delay 0.001;
          end loop;
          Assert (not Ada.Directories.Exists (To_String (Other_Started)),
                  "the surviving helper also closes independently");

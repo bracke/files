@@ -942,10 +942,9 @@ package body Files_Suite.Operations is
       Applied : Boolean;
       pragma Unreferenced (Applied);
    begin
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Applied := Files.Refresh_Jobs.Advance (Model, Settings);
          exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
-         delay 0.001;
       end loop;
       Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
               "the operation's reload completes");
@@ -2365,11 +2364,10 @@ package body Files_Suite.Operations is
              Files.Job_Transports.Claim_Busy,
          "recovery cannot claim the transport after the parent crashes while its helper lives");
       Write_Binary_File (Release_Path, "release");
-      for Attempt in 1 .. 10_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Outcome := Files.Job_Transports.Claim_Abandoned
            (To_String (Directory), To_String (Identity), Recovery_Owner);
          exit when Outcome = Files.Job_Transports.Claim_Acquired;
-         delay 0.001;
       end loop;
       Assert
         (Outcome = Files.Job_Transports.Claim_Acquired,

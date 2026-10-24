@@ -30,18 +30,16 @@ separate (Files_Suite.Operations)
       Ada.Directories.Create_Directory (Join (To_String (Transport), "stages"));
       Files.Process_Jobs.Reset (Job);
 
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when Ada.Directories.Exists (Marker);
-         delay 0.001;
       end loop;
       Assert
         (Ada.Directories.Exists (Marker)
          and then Ada.Directories.Exists (To_String (Transport)),
          "a zero-exit cleanup helper can leave its transport behind");
 
-      for Attempt in 1 .. 10_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when not Ada.Directories.Exists (To_String (Transport));
-         delay 0.001;
       end loop;
       Assert
         (not Ada.Directories.Exists (To_String (Transport)),

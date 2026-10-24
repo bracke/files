@@ -324,10 +324,9 @@ separate (Files_Suite.Operations)
                Actions.Append (Files.Paste.Resolved_Action'
                  (To_Unbounded_String (Join (Join (Root, "inbox"), "b.txt")), To_Unbounded_String (B), False, False));
                Files.Model.Begin_Paste_Execution (Model, Actions, Mode, False);
-               for Attempt in 1 .. 5_000 loop
+               for Attempt in Files_Suite.Support.Polling loop
                   Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
                   exit when Files.Model.Paste_Execution_Done (Model) = 1;
-                  delay 0.001;
                end loop;
                Assert (Files.Model.Paste_Execution_Done (Model) = 1, "the first paste member commits");
                Assert (Hostkit.Fs.Move_No_Replace (A, Saved_A), "retain the first owned entry between batches");

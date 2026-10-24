@@ -24,10 +24,9 @@ separate (Files_Suite.Operations)
              others => <>), 16, Guikit.Input.No_Modifiers, Routed);
          Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)), "the refresh is scheduled");
          Applied := False;
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             Applied := Files.Refresh_Jobs.Advance (Model, Settings) or else Applied;
             exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
-            delay 0.001;
          end loop;
          Assert (Applied and then Files.Model.Item_Count (Model) = 3,
                  "info metadata cannot invalidate a manual refresh started by the same action");

@@ -10,10 +10,9 @@ separate (Files_Suite.Operations)
       procedure Await_Job (Job : Files.Process_Jobs.Session; What : String) is
          Finished, Cancelled : Boolean := False;
       begin
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             Files.Process_Jobs.Poll (Job, Finished, Cancelled);
             exit when Finished;
-            delay 0.001;
          end loop;
          Assert (Finished and then not Cancelled, What);
       end Await_Job;
@@ -30,10 +29,9 @@ separate (Files_Suite.Operations)
       Step := Files.Operations.Duplicate_Selected (Model, Settings);
       Await_Job (Files.Model.Background_Operation (Model), "the duplicate helper finishes");
       Files.Model.Set_Error (Model, "error.undo.failed");
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
          exit when not Files.Model.Paste_Execution_Is_Active (Model);
-         delay 0.001;
       end loop;
       Assert (Step.Status = Files.Operations.Operation_Success, "the duplicate completes");
       Await_View (Model, Settings);

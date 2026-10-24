@@ -33,9 +33,8 @@ separate (Files_Suite.Operations)
          end if;
          if Length (Transport) > 0 and then Ada.Directories.Exists (To_String (Transport)) then
             Touch (Item ("release-cleanup-worker"));
-            for Attempt in 1 .. 5_000 loop
+            for Attempt in Files_Suite.Support.Polling loop
                exit when not Ada.Directories.Exists (To_String (Transport));
-               delay 0.001;
             end loop;
          end if;
          if Length (Transport) > 0 and then Ada.Directories.Exists (To_String (Transport)) then
@@ -53,9 +52,8 @@ separate (Files_Suite.Operations)
       Assert
         (Ada.Calendar.Clock - Before < Prompt_Limit,
          "session disposal returns without waiting for the cleanup worker");
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when Ada.Directories.Exists (Item ("cleanup-worker-started"));
-         delay 0.001;
       end loop;
       Assert
         (Ada.Directories.Exists (Item ("cleanup-worker-started"))
@@ -63,9 +61,8 @@ separate (Files_Suite.Operations)
          "the stalled worker remains owned after disposal returns");
 
       Touch (Item ("release-cleanup-worker"));
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when not Ada.Directories.Exists (To_String (Transport));
-         delay 0.001;
       end loop;
       Assert
         (not Ada.Directories.Exists (To_String (Transport)),
@@ -86,9 +83,8 @@ separate (Files_Suite.Operations)
             Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
             Ada.Directories.Create_Directory (Item ("stages"));
             Files.Process_Jobs.Reset (Job);
-            for Attempt in 1 .. 5_000 loop
+            for Attempt in Files_Suite.Support.Polling loop
                exit when Ada.Directories.Exists (Item ("cleanup-worker-started"));
-               delay 0.001;
             end loop;
             Assert
               (Ada.Directories.Exists (Item ("cleanup-worker-started")),
@@ -103,11 +99,10 @@ separate (Files_Suite.Operations)
             Resumed := Hostkit.Signals.Send_To_Process
               (Launcher_Id, Hostkit.Signals.Signal_Continue);
             Assert (Resumed, "the stopped cleanup worker remains resumable");
-            for Attempt in 1 .. 5_000 loop
+            for Attempt in Files_Suite.Support.Polling loop
                exit when not Ada.Directories.Exists (To_String (Transport))
                  and then Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children") =
                    Children_Before;
-               delay 0.001;
             end loop;
             Assert
               (not Ada.Directories.Exists (To_String (Transport))

@@ -604,10 +604,9 @@ separate (Files_Suite.Operations)
                  Marker_One,
                "a multi-launch result retains the first target's action metadata");
 
-            for Attempt in 1 .. 5_000 loop
+            for Attempt in Files_Suite.Support.Polling loop
                exit when Ada.Directories.Exists (Marker_One)
                  and then Ada.Directories.Exists (Marker_Two);
-               delay 0.001;
             end loop;
             Assert
               (Ada.Directories.Exists (Marker_One)

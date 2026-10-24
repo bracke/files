@@ -1,4 +1,6 @@
 with Ada.Finalization;
+with Ada.Iterator_Interfaces;
+with Ada.Real_Time;
 with Files.Events;
 with Files.File_System;
 with Files.Model;
@@ -54,6 +56,32 @@ package Files_Suite.Support is
    --  helper (which never finishes): long enough for a loaded CI runner to
    --  spawn a process, far short of anything that would wait.
    Prompt_Limit : constant Duration := 1.0;
+
+   --  How long a test waits for something it expects to happen (a helper
+   --  starting, a job finishing) before giving up. Generous, because a wait
+   --  only runs this long when the test is already failing.
+   Poll_Limit : constant Duration := 30.0;
+
+   type Poll_Cursor is new Natural;
+
+   --  @param Position A polling cursor.
+   --  @return True while the wait has time left.
+   function Has_Poll (Position : Poll_Cursor) return Boolean is (Position /= 0);
+
+   package Poll_Iterators is new Ada.Iterator_Interfaces (Poll_Cursor, Has_Poll);
+
+   --  Iterate until a deadline: "for Attempt in Polling loop ... exit when
+   --  Done; end loop;" runs the body, sleeps Interval, and runs it again
+   --  until the body exits or Limit has passed. The caller asserts the
+   --  condition afterwards, as with any bounded wait.
+   --
+   --  @param Limit Wall-clock bound on the whole wait.
+   --  @param Interval Sleep between attempts.
+   --  @return An iterator over the attempts.
+   function Polling
+     (Limit    : Duration := Poll_Limit;
+      Interval : Duration := 0.001)
+      return Poll_Iterators.Forward_Iterator'Class;
 
    --  Restores the environment variables it saved when it leaves scope,
    --  whether the test passed or an assertion raised, so a failing test
@@ -275,6 +303,15 @@ package Files_Suite.Support is
    procedure Select_Name (Model : in out Files.Model.Window_Model; Name : String);
 
 private
+
+   type Poll_Iterator is new Poll_Iterators.Forward_Iterator with record
+      Deadline : Ada.Real_Time.Time;
+      Interval : Duration;
+   end record;
+
+   overriding function First (Object : Poll_Iterator) return Poll_Cursor is (1);
+
+   overriding function Next (Object : Poll_Iterator; Position : Poll_Cursor) return Poll_Cursor;
 
    type Saved_Variable is record
       Name  : Files.Types.UString;

@@ -32,9 +32,8 @@ separate (Files_Suite.Operations)
       Result := Files.File_System.Set_Permissions (To_String (Transport), 8#700#);
       Assert (Result.Success, "restore access for the cleanup retry");
 
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when not Ada.Directories.Exists (To_String (Transport));
-         delay 0.001;
       end loop;
       Assert (not Ada.Directories.Exists (To_String (Transport)),
               "ordinary transport removal retries without a later job API call");

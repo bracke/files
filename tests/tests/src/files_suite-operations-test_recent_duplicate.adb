@@ -53,10 +53,9 @@ separate (Files_Suite.Operations)
                Applied : Boolean := False;
             begin
                if Background then
-                  for Attempt in 1 .. 5_000 loop
+                  for Attempt in Files_Suite.Support.Polling loop
                      Applied := Files.Refresh_Jobs.Advance (Model, Settings) or else Applied;
                      exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
-                     delay 0.001;
                   end loop;
                   Assert (Applied and then not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
                           "history refresh applies to the Recent view after a duplicate");
@@ -92,10 +91,9 @@ separate (Files_Suite.Operations)
             Assert (Step.Status = Files.Operations.Operation_Success,
                     "Recent Duplicate starts or completes successfully");
             if Background then
-               for Attempt in 1 .. 5_000 loop
+               for Attempt in Files_Suite.Support.Polling loop
                   Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
                   exit when not Files.Model.Paste_Execution_Is_Active (Model);
-                  delay 0.001;
                end loop;
             end if;
             Assert (Step.Status = Files.Operations.Operation_Success

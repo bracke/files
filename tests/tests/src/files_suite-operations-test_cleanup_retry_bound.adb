@@ -52,9 +52,8 @@ separate (Files_Suite.Operations)
       Ada.Directories.Create_Directory (Join (To_String (Transport), "stages"));
       Files.Process_Jobs.Reset (Job);
 
-      for Attempt in 1 .. 10_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when Failure_Count >= 2;
-         delay 0.001;
       end loop;
       Assert (Failure_Count = 2, "the parent makes its one bounded cleanup relaunch");
 
@@ -76,9 +75,8 @@ separate (Files_Suite.Operations)
                                    To_String (Transport)),
             "replace a released transport with a dangling link");
          Files.Process_Jobs.Reset (Job);
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             exit when Failure_Count >= 1;
-            delay 0.001;
          end loop;
          Assert
            (Failure_Count >= 1 and then Hostkit.Fs.Is_Link (To_String (Transport)),

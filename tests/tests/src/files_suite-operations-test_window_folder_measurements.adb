@@ -37,9 +37,8 @@ separate (Files_Suite.Operations)
       Select_Name (Other, "ordinary.txt");
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_FOLDER_SIZES", Marker);
       Files.Operations.Update_Folder_Size (Model, Settings);
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when Ada.Directories.Exists (Marker);
-         delay 0.001;
       end loop;
       Assert (Ada.Directories.Exists (Marker), "the first window's size helper reaches stalled reads");
       Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Marker);
@@ -58,10 +57,9 @@ separate (Files_Suite.Operations)
       Ada.Environment_Variables.Clear ("FILES_TEST_STALL_FOLDER_SIZES");
       Select_Name (Other, "folder");
       Files.Operations.Update_Folder_Size (Other, Settings);
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Files.Model.Poll_Folder_Sizes (Other);
          exit when not Files.Model.Folder_Scan_Is_Active (Other);
-         delay 0.001;
       end loop;
       Assert (Files.Model.Folder_Size_Value (Other, Folder).Total_Bytes = 3
               and then Files.Model.Folder_Scan_Is_Active (Model),
@@ -70,18 +68,16 @@ separate (Files_Suite.Operations)
       Step := Files.Operations.Refresh (Other, Settings);
       Assert (not Files.Model.Folder_Size_Cached_For (Other, Folder), "a successful refresh discards stale totals");
       Files.Operations.Update_Folder_Size (Other, Settings);
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Files.Model.Poll_Folder_Sizes (Other);
          exit when not Files.Model.Folder_Scan_Is_Active (Other);
-         delay 0.001;
       end loop;
       Assert (Files.Model.Folder_Size_Value (Other, Folder).Total_Bytes = 15,
               "refresh remeasures descendant changes even when parent entries were unchanged");
       Files.Model.Cancel_Folder_Scan (Model);
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Files.Process_Jobs.Poll (Empty, Finished, Cancelled);
          exit when not Ada.Directories.Exists (To_String (Started));
-         delay 0.001;
       end loop;
       Assert (not Ada.Directories.Exists (To_String (Started))
               and then Files.Model.Folder_Size_Value (Other, Folder).Total_Bytes = 15,
@@ -97,10 +93,9 @@ separate (Files_Suite.Operations)
       Assert (not Files.Model.Folder_Size_Cached_For (Other, Folder),
               "a completed background refresh also invalidates the prior size");
       Files.Operations.Update_Folder_Size (Other, Settings);
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Files.Model.Poll_Folder_Sizes (Other);
          exit when not Files.Model.Folder_Scan_Is_Active (Other);
-         delay 0.001;
       end loop;
       Assert (Files.Model.Folder_Size_Value (Other, Folder).Total_Bytes = 15,
               "measurement resumes normally after the asynchronous listing was applied");

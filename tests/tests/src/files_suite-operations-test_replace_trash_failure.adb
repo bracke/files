@@ -47,10 +47,9 @@ separate (Files_Suite.Operations)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, Background);
          Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
             exit when not Files.Model.Paste_Execution_Is_Active (Model);
-            delay 0.001;
          end loop;
          Assert (not Files.Model.Paste_Execution_Is_Active (Model), "a failed Replace finishes its execution");
          Assert (Step.Status = Files.Operations.Operation_Failed, "a trash failure aborts Replace");

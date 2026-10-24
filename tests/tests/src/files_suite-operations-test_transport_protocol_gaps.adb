@@ -151,9 +151,8 @@ separate (Files_Suite.Operations)
       Assert (Hostkit.Spawn.Start
         (Hostkit.Fs.Own_Executable, Arguments, (others => <>), Child) = Hostkit.Spawn.Spawn_Ok,
         "start a creator paused before marker publication");
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          exit when Ada.Directories.Exists (Control & ".started");
-         delay 0.001;
       end loop;
       Assert (Ada.Directories.Exists (Control & ".started"), "the creator holds its witness");
       declare
@@ -165,11 +164,10 @@ separate (Files_Suite.Operations)
            "recovery cannot claim a creator still between directory and marker publication");
       end;
       Signal_Release;
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Found := Hostkit.Spawn.Wait (Child, Hostkit.Spawn.Wait_Poll, Status);
          exit when Found and then Status.State in Hostkit.Spawn.Wait_Exited
            | Hostkit.Spawn.Wait_Signalled | Hostkit.Spawn.Wait_Lost;
-         delay 0.001;
       end loop;
       Assert (Found and then Status.State = Hostkit.Spawn.Wait_Exited
               and then Status.Exit_Code = 0, "the paused creator exits after release");

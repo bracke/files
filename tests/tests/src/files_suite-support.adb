@@ -47,6 +47,25 @@ with Hostkit.Fs;
 
 package body Files_Suite.Support is
 
+   function Polling
+     (Limit    : Duration := Poll_Limit;
+      Interval : Duration := 0.001)
+      return Poll_Iterators.Forward_Iterator'Class
+   is
+      use type Ada.Real_Time.Time;
+   begin
+      return Poll_Iterator'
+        (Deadline => Ada.Real_Time.Clock + Ada.Real_Time.To_Time_Span (Limit),
+         Interval => Interval);
+   end Polling;
+
+   overriding function Next (Object : Poll_Iterator; Position : Poll_Cursor) return Poll_Cursor is
+      use type Ada.Real_Time.Time;
+   begin
+      delay Object.Interval;
+      return (if Ada.Real_Time.Clock >= Object.Deadline then 0 else Position + 1);
+   end Next;
+
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;
    use type Ada.Calendar.Time;
@@ -123,11 +142,10 @@ package body Files_Suite.Support is
          --  short interval after its result has been collected.  Retry the
          --  idempotent cleanup so that this normal release latency does not
          --  poison every later test that shares Root.
-         for Attempt in 1 .. 100 loop
+         for Attempt in Polling (Interval => 0.01) loop
             Removed := Files.File_System.Delete_Permanently (Root);
             exit when Removed.Success
               or else not (Ada.Directories.Exists (Root) or else Hostkit.Fs.Is_Link (Root));
-            delay 0.01;
          end loop;
          Assert
            (Removed.Success

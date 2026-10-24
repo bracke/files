@@ -23,10 +23,9 @@ separate (Files_Suite.Operations)
          Other_Owner : constant Files.Transfer_Jobs.Session := Job;
       begin
          Files.Transfer_Jobs.Reset (Job);
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             Files.Transfer_Jobs.Poll (Other_Owner, Finished, Outcome);
             exit when Finished;
-            delay 0.001;
          end loop;
          Assert (Finished and then Outcome.Mutation.Success, "a copied session keeps its worker alive");
       end;
@@ -40,10 +39,9 @@ separate (Files_Suite.Operations)
       Files.Model.Set_Background_Transfers (Model, True);
       Actions.Append (Action);
       Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
          exit when not Files.Model.Paste_Execution_Is_Active (Model);
-         delay 0.001;
       end loop;
       Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the UI collects a completed background action");
       Assert (Step.Status = Files.Operations.Operation_Success, "background completion reports success");
@@ -72,10 +70,9 @@ separate (Files_Suite.Operations)
       end;
       Files.Transfer_Jobs.Start (Job, Action, Files.File_System.Drop_Copy);
       Files.Transfer_Jobs.Cancel (Job);
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Files.Transfer_Jobs.Poll (Job, Finished, Outcome);
          exit when Finished;
-         delay 0.001;
       end loop;
       Assert (Finished, "an already-started worker responds to cancellation");
       Assert (Ada.Directories.Size (Source) = 8_388_608, "worker cancellation retains the complete source");

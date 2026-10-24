@@ -22,10 +22,9 @@ separate (Files_Suite.Operations)
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
       Assert (Step.Status = Files.Operations.Operation_Success and then File_Has_Bytes (Path, "original recent bytes"),
               "Undo restores the trashed bytes before the asynchronous listing is ready");
-      for Attempt in 1 .. 5_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Applied := Files.Refresh_Jobs.Advance (Model, Settings) or else Applied;
          exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
-         delay 0.001;
       end loop;
       Assert (Applied and then not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model))
               and then Files.Model.In_Recent_View (Model) and then Files.Model.Item_Count (Model) = 1

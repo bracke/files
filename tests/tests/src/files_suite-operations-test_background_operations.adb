@@ -59,10 +59,9 @@ separate (Files_Suite.Operations)
       begin
          Assert (Files.Model.Paste_Execution_Is_Active (Model),
                  "a long operation returns with its progress overlay open");
-         for Attempt in 1 .. 10_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
             exit when not Files.Model.Paste_Execution_Is_Active (Model);
-            delay 0.001;
          end loop;
          Assert (not Files.Model.Paste_Execution_Is_Active (Model),
                  "the UI collects the helper result without blocking");
@@ -136,9 +135,8 @@ separate (Files_Suite.Operations)
            Files.Model.Background_Operation (Model);
          Marker : constant String := Files.Process_Jobs.Path (Job, "started");
       begin
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             exit when Ada.Directories.Exists (Marker);
-            delay 0.001;
          end loop;
          Assert (Ada.Directories.Exists (Marker),
                  "the duplicate helper reaches the pre-work cancellation point");
@@ -160,10 +158,9 @@ separate (Files_Suite.Operations)
            Files.Model.Background_Operation (Model);
          Finished, Cancelled : Boolean;
       begin
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             Files.Process_Jobs.Poll (Job, Finished, Cancelled);
             exit when Finished;
-            delay 0.001;
          end loop;
          Assert (Finished and then not Cancelled,
                  "the duplicate result is ready before the view changes");
@@ -198,10 +195,9 @@ separate (Files_Suite.Operations)
            Files.Model.Background_Operation (Model);
          Finished, Cancelled : Boolean;
       begin
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             Files.Process_Jobs.Poll (Job, Finished, Cancelled);
             exit when Finished;
-            delay 0.001;
          end loop;
          Assert (Finished and then not Cancelled,
                  "the duplicate result is ready before the round-trip navigation");
@@ -238,10 +234,9 @@ separate (Files_Suite.Operations)
            Files.Model.Background_Operation (Model);
          Finished, Cancelled : Boolean;
       begin
-         for Attempt in 1 .. 5_000 loop
+         for Attempt in Files_Suite.Support.Polling loop
             Files.Process_Jobs.Poll (Job, Finished, Cancelled);
             exit when Finished;
-            delay 0.001;
          end loop;
          Assert (Finished and then not Cancelled,
                  "the destructive result is ready before the view changes");
@@ -280,10 +275,9 @@ separate (Files_Suite.Operations)
       Ada.Environment_Variables.Set
         ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH", "1");
       Step := Files.Operations.Duplicate_Selected (Model, Settings);
-      for Attempt in 1 .. 10_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
          exit when not Files.Model.Paste_Execution_Is_Active (Model);
-         delay 0.001;
       end loop;
       Restore_Kind_Fault;
       Assert
@@ -309,10 +303,9 @@ separate (Files_Suite.Operations)
       Ada.Environment_Variables.Set
         ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH", "1");
       Step := Files.Operations.Duplicate_Selected (Model, Settings);
-      for Attempt in 1 .. 10_000 loop
+      for Attempt in Files_Suite.Support.Polling loop
          Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
          exit when not Files.Model.Paste_Execution_Is_Active (Model);
-         delay 0.001;
       end loop;
       Restore_Recent_Fault;
       Assert
