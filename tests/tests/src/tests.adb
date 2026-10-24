@@ -7,6 +7,7 @@ with GNAT.OS_Lib;
 
 with AUnit;
 with AUnit.Reporter.Text;
+with AUnit.Options;
 with AUnit.Run;
 with All_Suites;
 with Files.Job_Helpers;
@@ -32,6 +33,7 @@ with Hostkit.Lease_Files;
 with Hostkit.Process;
 with Hostkit.Signals;
 with Hostkit.Spawn;
+with Test_Progress;
 
 procedure Tests is
    use type AUnit.Status;
@@ -656,7 +658,8 @@ begin
       end if;
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Root);
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
-      Status := Run (Reporter);
+      Status :=
+        Run (Reporter, (AUnit.Options.Default_Options with delta Filter => Test_Progress.Filter'Access));
       if Status = AUnit.Failure then
          Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
       end if;

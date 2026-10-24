@@ -376,6 +376,9 @@ jobs:
             ${{ runner.os == 'macOS' && '/System/Library/Fonts/Supplemental/Arial.ttf'
             || runner.os == 'Windows' && 'C:/Windows/Fonts/consola.ttf'
             || '' }}
+          # Name each test as it starts on Windows, where a crash leaves no
+          # report to say which one it was in.
+          FILES_TEST_PROGRESS: ${{ runner.os == 'Windows' && '1' || '' }}
         run: |
           alr --non-interactive build
           # The binary is tests.exe on Windows, and bash will not find it under
