@@ -2623,6 +2623,9 @@ package body Files.Model is
       procedure Clear_Undo
         (Model : in out Window_Model);
 
+      procedure Release_History
+        (Model : in out Window_Model);
+
       function Undo_Available
         (Model : Window_Model)
          return Boolean;
@@ -2713,6 +2716,9 @@ package body Files.Model is
 
    procedure Clear_Undo (Model : in out Window_Model)
      renames Undo_Redo.Clear_Undo;
+
+   procedure Release_History (Model : in out Window_Model)
+     renames Undo_Redo.Release_History;
 
    function Undo_Available (Model : Window_Model) return Boolean
      renames Undo_Redo.Undo_Available;

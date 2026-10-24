@@ -292,6 +292,7 @@ es.command.view.toggle_hidden = Mostrar archivos ocultos
 es.details.size.unit.pib = PB
 es.error.compress.failed = No se pudo crear el archivo comprimido.
 es.error.compress.unportable_name = Archivo no creado: un nombre contiene dos puntos o barra invertida.
+es.error.compress.links_skipped = Los enlaces simbólicos no se incluyeron en el archivo.
 es.error.copy.failed = No se pudo copiar el elemento.
 es.error.create.no_temporary_item = No hay ninguna creación de archivo pendiente.
 es.error.create.pending = Ya hay una creación de archivo pendiente.

@@ -1526,6 +1526,9 @@ package body Files.Application.Windows is
       if Runtime.Handle = null then
          return;
       end if;
+      --  The window's undo history ends here; originals it kept for Undo go
+      --  to the system trash rather than staying hidden in their folders.
+      Files.Model.Release_History (Runtime.Model);
       if Glfw.Windows.Initialized (As_Window (Runtime.Handle)) then
          declare
             Window_W : Glfw.Size := 0;

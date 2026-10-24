@@ -292,6 +292,7 @@ sv.command.view.toggle_hidden = Visa dolda filer
 sv.details.size.unit.pib = PB
 sv.error.compress.failed = Det gick inte att skapa arkivet.
 sv.error.compress.unportable_name = Arkivet skapades inte: ett namn innehåller kolon eller omvänt snedstreck.
+sv.error.compress.links_skipped = Symboliska länkar utelämnades från arkivet.
 sv.error.copy.failed = Det gick inte att kopiera objektet.
 sv.error.create.no_temporary_item = Ingen pågående filskapelse finns.
 sv.error.create.pending = En filskapelse pågår redan.

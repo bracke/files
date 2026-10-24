@@ -407,6 +407,13 @@ package body Files.File_System is
    function Is_Recovery_Payload (Path : String) return Boolean
      renames Recovery.Recognizes;
 
+   function Release_Recovery_Payload (Path : String) return Mutation_Result is
+      function To_Trash (Entry_Path : String) return Mutation_Result is
+        (Trash.Move_To_Trash (Entry_Path));
+   begin
+      return Recovery.Release (Path, To_Trash'Access);
+   end Release_Recovery_Payload;
+
    function Registered_Recovery_Payloads return Files.Types.String_Vectors.Vector
      renames Recovery.Registered_Payloads;
 

@@ -2351,6 +2351,14 @@ package Files.Model is
       Retain_Verified_Main : Natural := 0;
       Retain_Verified_Restores : Natural := 0) return Boolean;
 
+   --  End the history with its window: originals a paste replaced, kept in a
+   --  hidden recovery folder only so Undo could put them back, go to the
+   --  system trash under their own names instead of staying hidden there.
+   --
+   --  @param Model Model to update.
+   procedure Release_History
+     (Model : in out Window_Model);
+
    --  Forget the entire undo and redo history.
    --
    --  @param Model Model to update.

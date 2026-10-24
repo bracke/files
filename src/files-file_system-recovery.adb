@@ -448,6 +448,46 @@ package body Files.File_System.Recovery is
          end if;
    end Unregister;
 
+   function Release
+     (Path     : String;
+      To_Trash : not null access function (Path : String) return Mutation_Result) return Mutation_Result
+   is
+      Stage  : constant String := Ada.Directories.Containing_Directory (Path);
+      Holder : constant String := Join_Path (Stage, "release");
+      Failed : constant Mutation_Result :=
+        (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
+   begin
+      if not Recognizes (Path) or else not Contains_Only_Owned_Entries (Stage) then
+         return Failed;
+      end if;
+      declare
+         Original : constant String := Original_Path (Path);
+         Leaf     : constant String :=
+           (if Valid_Absolute_Path (Original) then Ada.Directories.Simple_Name (Original) else "recovered");
+         --  A folder of its own, so the original's name cannot meet the
+         --  stage's own files.
+         Named    : constant String := Join_Path (Holder, Leaf);
+      begin
+         Ada.Directories.Create_Directory (Holder);
+         if not Support.Move_No_Replace (Path, Named) then
+            Ada.Directories.Delete_Directory (Holder);
+            return Failed;
+         end if;
+         if not To_Trash (Named).Success then
+            if Support.Move_No_Replace (Named, Path) then
+               Ada.Directories.Delete_Directory (Holder);
+            end if;
+            return Failed;
+         end if;
+      end;
+      Delete_Owned_Tree (Stage);
+      Unregister (Path);
+      return (Success => True, Error_Key => Null_Unbounded_String);
+   exception
+      when others =>
+         return Failed;
+   end Release;
+
    function Remove_Move_Source
      (Path : String; Expected : Support.Source_Snapshot) return Mutation_Result is
       use type Files.Types.String_Vectors.Vector;
@@ -545,6 +585,22 @@ package body Files.File_System.Recovery is
       Stage    : UString;
       Registry_Entry : UString;
       File     : aliased Files.Exclusive_Streams.Output_Stream;
+
+      --  Failing once the original has moved into the stage: move it back, so
+      --  a failure leaves nothing changed. Backup stays set only when that is
+      --  impossible, and then names the one place the original now is.
+      function Put_Back return Mutation_Result is
+         Failed : constant Mutation_Result :=
+           (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
+      begin
+         if Restore (To_String (Backup), Expected_Original => Original).Success then
+            Backup := Null_Unbounded_String;
+         end if;
+         return Failed;
+      exception
+         when others =>
+            return Failed;
+      end Put_Back;
    begin
       Backup := Null_Unbounded_String;
       if not Valid_Absolute_Path (Original) then
@@ -615,7 +671,7 @@ package body Files.File_System.Recovery is
       if Hostkit.Durability.Sync_Directory (To_String (Stage)) = Hostkit.Durability.Failed
         or else Hostkit.Durability.Sync_Directory (Parent) = Hostkit.Durability.Failed
       then
-         return (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
+         return Put_Back;
       end if;
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
@@ -626,7 +682,7 @@ package body Files.File_System.Recovery is
               or else Hostkit.Fs.Is_Link (Join_Path (To_String (Stage), "payload"))
             then
                Backup := To_Unbounded_String (Join_Path (To_String (Stage), "payload"));
-               return (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
+               return Put_Back;
             end if;
             begin
                Delete_Tree (To_String (Stage));

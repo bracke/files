@@ -241,6 +241,7 @@ package body Files_Suite.Operations is
    procedure Test_Leaf_Name_Rules (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Expand_User_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Chained_Rename_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Search_Result_Actions_Stay_Beside_Source (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Multi_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -310,6 +311,7 @@ package body Files_Suite.Operations is
    procedure Test_Stalled_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Symlink_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Native_Replace_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Released_Recovery_Goes_To_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Background_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Owed_Reloads (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Registry_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -381,6 +383,9 @@ package body Files_Suite.Operations is
         (T, Test_Symlink_Recovery'Access, "trash, permanent delete and Undo operate on valid and dangling links");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Native_Replace_Recovery'Access, "native-backend replacement supports rollback recovery and Undo");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Released_Recovery_Goes_To_Trash'Access,
+         "a replaced original kept for Undo goes to the trash under its own name when history ends");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Background_Operations'Access,
                 "duplicate, archive, extract and recursive searches use cancellable helpers");
@@ -484,6 +489,8 @@ package body Files_Suite.Operations is
         (T, Test_Expand_User_Path'Access, "a leading tilde in the path field expands to home");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Commit_Rename'Access, "commit rename mode");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Chained_Rename_Undo'Access, "one Undo reverses a batch whose renames chain (b to c, then a to b)");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Search_Result_Actions_Stay_Beside_Source'Access,
          "renaming, duplicating or linking a search result keeps it in its own folder");
@@ -4858,6 +4865,38 @@ package body Files_Suite.Operations is
               "the link is made beside its source");
       Project_Tools.Files.Delete_Tree (Join (Root, "a"));
    end Test_Search_Result_Actions_Stay_Beside_Source;
+
+   procedure Test_Chained_Rename_Undo (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      A        : constant String := Join (Root, "a.txt");
+      B        : constant String := Join (Root, "b.txt");
+      C        : constant String := Join (Root, "c.txt");
+      Model    : Files.Model.Window_Model;
+      Load     : Files.File_System.Directory_Load_Result;
+      Step     : Files.Operations.Operation_Result;
+   begin
+      Reset_Root;
+      Write_Binary_File (A, "A");
+      Write_Binary_File (B, "B");
+      Assert (Files.File_System.Rename_Item (B, C).Success and then Files.File_System.Rename_Item (A, B).Success,
+              "rename b to c, then a to b");
+      Load := Files.File_System.Load_Directory (Root, Settings);
+      Files.Model.Initialize (Model, Root, Load.Items, Root);
+      Files.Model.Record_Undo
+        (Model, Files.Model.Undo_Rename,
+         From => [To_Unbounded_String (C), To_Unbounded_String (B)],
+         To   => [To_Unbounded_String (B), To_Unbounded_String (A)]);
+      Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Assert (Step.Status = Files.Operations.Operation_Success, "one Undo reverses the chained batch");
+      Assert (Project_Tools.Files.Read_Raw_File (A) = "A" and then Project_Tools.Files.Read_Raw_File (B) = "B"
+              and then not Path_Exists (C),
+              "both renames are undone");
+      Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+      Assert (Step.Status = Files.Operations.Operation_Success
+              and then Project_Tools.Files.Read_Raw_File (C) = "B" and then Project_Tools.Files.Read_Raw_File (B) = "A",
+              "Redo replays the batch in its own order");
+   end Test_Chained_Rename_Undo;
 
    procedure Test_Commit_Rename (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -10062,6 +10101,29 @@ package body Files_Suite.Operations is
          Assert (Step.Status = Files.Operations.Operation_Failed
                  and then not Ada.Directories.Exists (Join (Join (Root, "two"), "same.zip")),
                  "duplicate archive entry names cannot overwrite or silently replace a selected input");
+         Await_View (Model, Settings);
+      end loop;
+      --  The archive writers cannot hold a symbolic link: the archive is still
+      --  made, and the user is told the link was left out.
+      for Background in Boolean loop
+         Reset_Root;
+         Ada.Directories.Create_Path (Join (Root, "bag"));
+         Write_Binary_File (Join (Join (Root, "bag"), "keep.txt"), "kept");
+         exit when not Files_Suite.Support.Create_Symlink ("keep.txt", Join (Join (Root, "bag"), "pointer"));
+         Settings := Files.Settings.Default_Settings;
+         Load := Files.File_System.Load_Directory (Root, Settings);
+         Files.Model.Initialize (Model, Root, Load.Items, Root);
+         Files.Model.Clear_Undo (Model);
+         Select_Name (Model, "bag");
+         Files.Model.Set_Background_Transfers (Model, Background);
+         Step := Complete_Operation
+           (Model, Settings, Files.Operations.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+         Assert (Step.Status = Files.Operations.Operation_Success
+                 and then Ada.Directories.Exists (Join (Root, "bag.zip")),
+                 "a folder holding a link still compresses");
+         Assert (Files.Model.Last_Error_Key (Model) = "error.compress.links_skipped",
+                 "compressing says the link was left out"
+                 & (if Background then " (background)" else " (foreground)"));
          Await_View (Model, Settings);
       end loop;
       if Hostkit.Host.Current /= Hostkit.Host.Windows then
@@ -16636,6 +16698,66 @@ package body Files_Suite.Operations is
    exception
       when others => Restore_Environment; raise;
    end Test_Symlink_Recovery;
+
+   procedure Test_Released_Recovery_Goes_To_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dest       : constant String := Join (Root, "replaced.txt");
+      Trash_Home : constant String := Root & "_release_xdg";
+      Trashed    : constant String := Join (Join (Join (Trash_Home, "Trash"), "files"), "replaced.txt");
+      Had_Back   : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
+      Old_Back   : constant String := Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND", "");
+      Had_Xdg    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
+      Old_Xdg    : constant String := Ada.Environment_Variables.Value ("XDG_DATA_HOME", "");
+      Backup     : Files.Types.UString;
+      Result     : Files.File_System.Mutation_Result;
+
+      procedure Restore_Environment is
+      begin
+         if Had_Back then
+            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", Old_Back);
+         else
+            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+         end if;
+         if Had_Xdg then
+            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Old_Xdg);
+         else
+            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
+         end if;
+      end Restore_Environment;
+   begin
+      if Hostkit.Host.Current /= Hostkit.Host.Linux then
+         return;
+      end if;
+      Reset_Root;
+      Project_Tools.Files.Delete_Tree (Trash_Home);
+      Write_Binary_File (Dest, "original");
+      --  A native backend keeps a replaced original in a private recovery
+      --  folder, since that trash cannot restore it programmatically.
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
+      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
+      Assert (Result.Success and then Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+              "Replace keeps the original as a recovery payload");
+
+      --  That trash is not reachable here: releasing fails and keeps it.
+      Result := Files.File_System.Release_Recovery_Payload (To_String (Backup));
+      Assert (not Result.Success and then Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+              "a release the trash refuses leaves the payload recoverable");
+
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
+      Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+      Result := Files.File_System.Release_Recovery_Payload (To_String (Backup));
+      Assert (Result.Success, "a released payload goes to the trash");
+      Assert (Project_Tools.Files.Read_Raw_File (Trashed) = "original",
+              "the trash holds the original under its own name");
+      Assert (not Ada.Directories.Exists (Ada.Directories.Containing_Directory (To_String (Backup))),
+              "the hidden recovery folder is gone");
+      Restore_Environment;
+      Project_Tools.Files.Delete_Tree (Trash_Home);
+   exception
+      when others =>
+         Restore_Environment;
+         raise;
+   end Test_Released_Recovery_Goes_To_Trash;
 
    procedure Test_Native_Replace_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

@@ -64,6 +64,7 @@ package body Transfer is
       Entry_Names : Files.Types.String_Vectors.Vector;
       Names_Seen  : Archive_Name_Sets.Set;
       Collection_Failed : Boolean := False;
+      Links_Skipped     : Natural := 0;
       Max_Archive_Entries : constant Natural :=
         (if Format = Zip_Archive then 65_535 else 100_000);
       Max_Archive_Depth : constant Natural := 64;
@@ -112,8 +113,9 @@ package body Transfer is
             --  Skip symlinks instead of following them: Ada.Directories.Kind
             --  dereferences a link, so a link to an ancestor would recurse
             --  unbounded (Storage_Error) and a link to a directory would archive
-            --  the target's contents under the link's name. Mirrors Copy_Tree /
-            --  Directory_Size, which also skip links via Hostkit.Fs.
+            --  the target's contents under the link's name. The archive
+            --  writers cannot store a link, so say it was left out.
+            Links_Skipped := Links_Skipped + 1;
             return;
          elsif Ada.Directories.Kind (Full) = Ada.Directories.Directory then
             if not Record_Entry (Full, Entry_Name) then
@@ -295,7 +297,14 @@ package body Transfer is
             Original_Tree_Revisions => Tree_Revisions);
 
          --  Reload so the new archive appears, and select it.
-         return Reload_Current_Directory (Model, Settings, Archive_Name);
+         declare
+            Reloaded : constant Operation_Result := Reload_Current_Directory (Model, Settings, Archive_Name);
+         begin
+            if Links_Skipped > 0 and then Reloaded.Status = Operation_Success then
+               Files.Model.Set_Error (Model, "error.compress.links_skipped");
+            end if;
+            return Reloaded;
+         end;
       exception
          when others =>
             Free_Text_Array (Inputs);

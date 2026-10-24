@@ -2,7 +2,9 @@
 with Files.File_System.Support;
 private package Files.File_System.Recovery is
    --  @param Path Original destination to preserve.
-   --  @param Backup Recoverable payload path, including on a partial move failure.
+   --  @param Backup Recoverable payload path. On failure it is empty -- the
+   --    original is back at Path -- unless the original moved into the stage
+   --    and could not be moved back; it then names where the original is.
    --  @return Result of preserving the original.
    function Preserve (Path : String; Backup : out Files.Types.UString) return Mutation_Result;
 
@@ -34,6 +36,17 @@ private package Files.File_System.Recovery is
    --  @return Result of restoring to its recorded original location.
    function Restore
      (Path : String; Expected_Identity : String := ""; Expected_Original : String := "") return Mutation_Result;
+
+   --  Hand a payload nothing will restore any more (its history is ending)
+   --  to the system trash under its original name, and remove its stage, so
+   --  a replaced original is neither lost nor left hidden beside its folder.
+   --  @param Path Payload returned by Preserve.
+   --  @param To_Trash Moves an entry to the system trash.
+   --  @return Success when the payload is in the trash and its stage gone;
+   --    on failure the payload is left where it was.
+   function Release
+     (Path     : String;
+      To_Trash : not null access function (Path : String) return Mutation_Result) return Mutation_Result;
 
    --  Remove a copied move's source atomically before recursive cleanup.
    --  @param Path Source whose complete destination copy has been published.

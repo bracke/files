@@ -697,6 +697,13 @@ package Files.File_System is
    --  @return True only for a recognized application recovery payload.
    function Is_Recovery_Payload (Path : String) return Boolean;
 
+   --  Move a recovery payload nothing will restore any more -- its undo
+   --  history is ending with the window -- to the system trash under its
+   --  original name, and remove the hidden folder that held it.
+   --  @param Path Recognized application recovery payload.
+   --  @return Success when the payload is in the trash.
+   function Release_Recovery_Payload (Path : String) return Mutation_Result;
+
    --  Return recoverable replacement payloads recorded across directories.
    --  Stale or damaged registry entries are omitted.
    --  @return Valid registered replacement-recovery payload paths.

@@ -292,6 +292,7 @@ fi.command.view.toggle_hidden = Näytä piilotiedostot
 fi.details.size.unit.pib = PB
 fi.error.compress.failed = Arkistoa ei voitu luoda.
 fi.error.compress.unportable_name = Arkistoa ei luotu: nimessä on kaksoispiste tai kenoviiva.
+fi.error.compress.links_skipped = Symboliset linkit jätettiin pois arkistosta.
 fi.error.copy.failed = Kohdetta ei voitu kopioida.
 fi.error.create.no_temporary_item = Odottavaa tiedoston luontia ei ole.
 fi.error.create.pending = Tiedoston luonti on jo odottamassa.

@@ -292,6 +292,7 @@ nb.command.view.toggle_hidden = Vis skjulte filer
 nb.details.size.unit.pib = PB
 nb.error.compress.failed = Kunne ikke opprette arkivet.
 nb.error.compress.unportable_name = Arkivet ble ikke opprettet: et navn inneholder kolon eller omvendt skråstrek.
+nb.error.compress.links_skipped = Symbolske lenker ble utelatt fra arkivet.
 nb.error.copy.failed = Kunne ikke kopiere elementet.
 nb.error.create.no_temporary_item = Det finnes ingen ventende filoppretting.
 nb.error.create.pending = En filoppretting venter allerede.

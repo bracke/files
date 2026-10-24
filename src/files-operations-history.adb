@@ -67,11 +67,15 @@ package body History is
          Files.History_Journal.Checkpoint (Model, Action, Forward);
       end Completed;
    begin
-      for Index in Sources.First_Index .. Sources.Last_Index loop
+      for Step in 0 .. Natural (Sources.Length) - 1 loop
          if Files.Job_Context.Cancelled then
             return False;
          end if;
          declare
+            --  Undo replays a batch last move first: renaming b to c and then
+            --  a to b undoes as b to a, then c to b.
+            Index  : constant Positive :=
+              (if Forward then Sources.First_Index + Step else Sources.Last_Index - Step);
             Source : constant String := To_String (Sources.Element (Index));
             Target : constant String := To_String (Targets.Element (Index));
             Identity : constant String :=

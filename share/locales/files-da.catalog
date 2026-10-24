@@ -292,6 +292,7 @@ da.command.view.toggle_hidden = Vis skjulte filer
 da.details.size.unit.pib = PB
 da.error.compress.failed = Arkivet kunne ikke oprettes.
 da.error.compress.unportable_name = Arkivet blev ikke oprettet: Et navn indeholder kolon eller omvendt skråstreg.
+da.error.compress.links_skipped = Symbolske links blev udeladt af arkivet.
 da.error.copy.failed = Elementet kunne ikke kopieres.
 da.error.create.no_temporary_item = Der er ingen igangværende filoprettelse.
 da.error.create.pending = En filoprettelse er allerede i gang.
