@@ -3468,7 +3468,7 @@ package body Files_Suite.Model is
          "the pure toggle prepares metadata-only info content");
 
       declare
-         Content  : Files.Quick_Look.Quick_Look_Content :=
+         Content  : constant Files.Quick_Look.Quick_Look_Content :=
            (Kind         => Files.Quick_Look.Image_Content,
             Image_Width  => Natural'Last,
             Image_Height => Natural'Last,

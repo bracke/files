@@ -1829,7 +1829,7 @@ package body Files_Suite.Commands is
          "the second shift-click extends the range from the original anchor, not the moved cursor");
       for Index in 1 .. 9 loop
          Assert
-           (Files.Model.Is_Selected (Model, Positive (Index)) = (Index in 3 .. 9),
+           (Files.Model.Is_Selected (Model, Index) = (Index in 3 .. 9),
             "exactly items 3..9 are selected after the range extension");
       end loop;
    end Test_Shift_Click_Range_Anchor;
@@ -1840,6 +1840,7 @@ package body Files_Suite.Commands is
       Items    : Files.File_System.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Result   : Files.Controller.Controller_Result;
+      pragma Unreferenced (Result);
       Sources  : Files.Types.String_Vectors.Vector;
    begin
       Reset_Root;
@@ -1892,6 +1893,7 @@ package body Files_Suite.Commands is
       Items    : Files.File_System.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Result   : Files.Controller.Controller_Result;
+      pragma Unreferenced (Result);
    begin
       Reset_Root;
       Items.Append (Files.File_System.Make_Item (Root, "a.txt", Files.Types.Regular_File_Item, "text/plain"));
@@ -1916,11 +1918,11 @@ package body Files_Suite.Commands is
 
    procedure Test_Tab_Focus_Ring (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Types.Focus_Target;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Items    : Files.File_System.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Result   : Files.Controller.Controller_Result;
+      pragma Unreferenced (Result);
       Shift    : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
    begin
       Reset_Root;
@@ -1953,6 +1955,7 @@ package body Files_Suite.Commands is
       Items    : Files.File_System.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Result   : Files.Controller.Controller_Result;
+      pragma Unreferenced (Result);
       Shift    : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
    begin
       Reset_Root;

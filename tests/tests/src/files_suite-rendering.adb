@@ -1883,8 +1883,8 @@ package body Files_Suite.Rendering is
               "the bottom bar omits the free-space indicator when the value is unknown");
 
       declare
-         Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
-         Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Model    : constant Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+         Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Built    : constant View_Snapshot := Build_Snapshot (Model, Settings);
          pragma Unreferenced (Built);
          Path     : constant String := Files.Model.Current_Path (Model);

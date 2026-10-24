@@ -4209,7 +4209,6 @@ package body Files_Suite.Operations is
       Emoji_Path : constant String :=
         "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf";
       F : Textrender.Fonts.Font;
-      use type Textrender.Fonts.Load_Result;
       use type Textrender.Fonts.Colour_Image_Format;
    begin
       if not Ada.Directories.Exists (Emoji_Path) then
@@ -4389,7 +4388,6 @@ package body Files_Suite.Operations is
 
    procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Hostkit.Host.Kind;
 
       Browsed    : constant String := Join (Root, "pictures");
       Cache_Home : constant String := Join (Root, "cache-home");
@@ -6831,8 +6829,11 @@ package body Files_Suite.Operations is
       Old_Fault : constant String := Ada.Environment_Variables.Value ("FILES_TEST_LOST_CREATION_METADATA", "");
       procedure Restore is
       begin
-         if Had_Fault then Ada.Environment_Variables.Set ("FILES_TEST_LOST_CREATION_METADATA", Old_Fault);
-         else Ada.Environment_Variables.Clear ("FILES_TEST_LOST_CREATION_METADATA"); end if;
+         if Had_Fault then
+            Ada.Environment_Variables.Set ("FILES_TEST_LOST_CREATION_METADATA", Old_Fault);
+         else
+            Ada.Environment_Variables.Clear ("FILES_TEST_LOST_CREATION_METADATA");
+         end if;
       end Restore;
    begin
       for Redo_Recovery in Boolean loop
@@ -7018,7 +7019,9 @@ package body Files_Suite.Operations is
          Files.Job_Context.Initialize ("");
          Files.Model.Clear_Paste_Execution (Model);
          Files.Refresh_Jobs.Cancel (Model);
-         if Ada.Streams.Stream_IO.Is_Open (File) then Ada.Streams.Stream_IO.Close (File); end if;
+         if Ada.Streams.Stream_IO.Is_Open (File) then
+            Ada.Streams.Stream_IO.Close (File);
+         end if;
          Restore;
          raise;
    end Test_Recovery_Entry_Identity;
@@ -7061,7 +7064,9 @@ package body Files_Suite.Operations is
                      Ada.Directories.Create_Directory (Source);
                      Write_Binary_File (Join (Source, "child"), "owned bytes");
                   when others =>
-                     if not Hostkit.Fs.Create_Link (Link_Target, Source) then return; end if;
+                     if not Hostkit.Fs.Create_Link (Link_Target, Source) then
+                        return;
+                     end if;
                end case;
                Load := Files.File_System.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
@@ -7181,15 +7186,20 @@ package body Files_Suite.Operations is
       Old_Tmp : constant String := Ada.Environment_Variables.Value ("TMPDIR", "");
       procedure Restore_Tmp is
       begin
-         if Had_Tmp then Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
-         else Ada.Environment_Variables.Clear ("TMPDIR"); end if;
+         if Had_Tmp then
+            Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
+         else
+            Ada.Environment_Variables.Clear ("TMPDIR");
+         end if;
       end Restore_Tmp;
       procedure Cleanup is
       begin
          Restore_Tmp;
          Files.Model.Clear_Paste_Execution (Model);
          Files.Refresh_Jobs.Cancel (Model);
-         if Length (Remote) > 0 then Project_Tools.Files.Delete_Tree (To_String (Remote)); end if;
+         if Length (Remote) > 0 then
+            Project_Tools.Files.Delete_Tree (To_String (Remote));
+         end if;
       end Cleanup;
       procedure Prepare is
       begin
@@ -7218,11 +7228,15 @@ package body Files_Suite.Operations is
       Mutation := Files.File_System.Copy_Tree (Join (Source, "precise"), Join (Root, "precise-copy"));
       Assert (Mutation.Success and then Ada.Directories.Modification_Time (Join (Root, "precise-copy")) = File_Time,
               "timestamp copies preserve the source's subsecond precision");
-      if Hostkit.Host.Current /= Hostkit.Host.Linux or else not Ada.Directories.Exists ("/dev/shm") then return; end if;
+      if Hostkit.Host.Current /= Hostkit.Host.Linux or else not Ada.Directories.Exists ("/dev/shm") then
+         return;
+      end if;
       Ada.Environment_Variables.Set ("TMPDIR", "/dev/shm");
       Remote := To_Unbounded_String (Hostkit.Fs.Create_Temporary_Directory ("files-test-timestamps-"));
       Restore_Tmp;
-      if Length (Remote) = 0 then return; end if;
+      if Length (Remote) = 0 then
+         return;
+      end if;
       Write_Binary_File (Join (Root, "mount-probe"), "probe");
       begin
          Ada.Directories.Rename (Join (Root, "mount-probe"), Join (To_String (Remote), "mount-probe"));
@@ -7297,13 +7311,18 @@ package body Files_Suite.Operations is
       Original_Id : Unbounded_String;
       procedure Restore_Tmp is
       begin
-         if Had_Tmp then Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
-         else Ada.Environment_Variables.Clear ("TMPDIR"); end if;
+         if Had_Tmp then
+            Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
+         else
+            Ada.Environment_Variables.Clear ("TMPDIR");
+         end if;
       end Restore_Tmp;
       procedure Cleanup is
       begin
          Restore_Tmp;
-         if Length (Remote) > 0 then Project_Tools.Files.Delete_Tree (To_String (Remote)); end if;
+         if Length (Remote) > 0 then
+            Project_Tools.Files.Delete_Tree (To_String (Remote));
+         end if;
       end Cleanup;
       function Change_Source return Boolean is
          Change_At : constant Positive := (if Current <= 2 then 4 elsif Current = 4 then 6 else 5);
@@ -7330,12 +7349,16 @@ package body Files_Suite.Operations is
          return False;
       end Change_Source;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux or else not Ada.Directories.Exists ("/dev/shm") then return; end if;
+      if Hostkit.Host.Current /= Hostkit.Host.Linux or else not Ada.Directories.Exists ("/dev/shm") then
+         return;
+      end if;
       Reset_Root;
       Ada.Environment_Variables.Set ("TMPDIR", "/dev/shm");
       Remote := To_Unbounded_String (Hostkit.Fs.Create_Temporary_Directory ("files-test-source-changes-"));
       Restore_Tmp;
-      if Length (Remote) = 0 then return; end if;
+      if Length (Remote) = 0 then
+         return;
+      end if;
       Write_Binary_File (Join (Root, "mount-probe"), "probe");
       begin
          Ada.Directories.Rename (Join (Root, "mount-probe"), Join (To_String (Remote), "mount-probe"));
@@ -7405,7 +7428,9 @@ package body Files_Suite.Operations is
                  "restore the owned metadata entry");
       end Replace_And_Refuse;
    begin
-      if not Files.File_System.Supports_Permissions then return; end if;
+      if not Files.File_System.Supports_Permissions then
+         return;
+      end if;
       for Background in Boolean loop
          for Kind in 1 .. 3 loop
             if Kind < 3 or else Files.File_System.Supports_Ownership then
@@ -7454,7 +7479,9 @@ package body Files_Suite.Operations is
       Uid, Gid : Natural;
       Available : Boolean;
    begin
-      if not Files.File_System.Supports_Permissions then return; end if;
+      if not Files.File_System.Supports_Permissions then
+         return;
+      end if;
       for Background in Boolean loop
          for Toggle in Boolean loop
             Reset_Root;
@@ -7536,8 +7563,11 @@ package body Files_Suite.Operations is
       Old_Fault : constant String := Ada.Environment_Variables.Value ("FILES_TEST_TRANSFER_RESULT_LOSS", "");
       procedure Restore is
       begin
-         if Had_Fault then Ada.Environment_Variables.Set ("FILES_TEST_TRANSFER_RESULT_LOSS", Old_Fault);
-         else Ada.Environment_Variables.Clear ("FILES_TEST_TRANSFER_RESULT_LOSS"); end if;
+         if Had_Fault then
+            Ada.Environment_Variables.Set ("FILES_TEST_TRANSFER_RESULT_LOSS", Old_Fault);
+         else
+            Ada.Environment_Variables.Clear ("FILES_TEST_TRANSFER_RESULT_LOSS");
+         end if;
       end Restore;
    begin
       for Mode in Files.File_System.Drop_Import_Mode loop
@@ -7546,7 +7576,9 @@ package body Files_Suite.Operations is
                Reset_Root;
                Ada.Directories.Create_Directory (Join (Root, "inbox"));
                Write_Binary_File (Source, "source bytes");
-               if Replaced then Write_Binary_File (Dest, "original destination"); end if;
+               if Replaced then
+                  Write_Binary_File (Dest, "original destination");
+               end if;
                Load := Files.File_System.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
                Files.Model.Clear_Undo (Model);
@@ -7623,7 +7655,9 @@ package body Files_Suite.Operations is
          return False;
       end Observe;
    begin
-      if not Files.File_System.Supports_Permissions then return; end if;
+      if not Files.File_System.Supports_Permissions then
+         return;
+      end if;
       Reset_Root;
       Ada.Directories.Create_Directory (Source);
       Ada.Directories.Create_Directory (Parent);
@@ -7772,16 +7806,23 @@ package body Files_Suite.Operations is
       end Check;
       procedure Restore_Tmp is
       begin
-         if Had_Tmp then Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
-         else Ada.Environment_Variables.Clear ("TMPDIR"); end if;
+         if Had_Tmp then
+            Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
+         else
+            Ada.Environment_Variables.Clear ("TMPDIR");
+         end if;
       end Restore_Tmp;
       procedure Cleanup is
       begin
          Restore_Tmp;
-         if Length (Remote) > 0 then Project_Tools.Files.Delete_Tree (To_String (Remote)); end if;
+         if Length (Remote) > 0 then
+            Project_Tools.Files.Delete_Tree (To_String (Remote));
+         end if;
       end Cleanup;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then return; end if;
+      if Hostkit.Host.Current /= Hostkit.Host.Linux then
+         return;
+      end if;
       Reset_Root;
       Ada.Directories.Create_Directory (Source);
       Write_Binary_File (Join (Source, "child"), "metadata bytes");
@@ -7793,11 +7834,15 @@ package body Files_Suite.Operations is
       Assert (Mutation.Success, "copy extended metadata fixture");
       Check (Join (Root, "copy"), True, Original_Directory);
       Check (Join (Root, "copy/child"), False, Original_File);
-      if not Ada.Directories.Exists ("/dev/shm") then return; end if;
+      if not Ada.Directories.Exists ("/dev/shm") then
+         return;
+      end if;
       Ada.Environment_Variables.Set ("TMPDIR", "/dev/shm");
       Remote := To_Unbounded_String (Hostkit.Fs.Create_Temporary_Directory ("files-test-extended-metadata-"));
       Restore_Tmp;
-      if Length (Remote) = 0 then return; end if;
+      if Length (Remote) = 0 then
+         return;
+      end if;
       Prepare (Join (Source, "child"), False);
       Prepare (Source, True);
       Mutation := Files.File_System.Rename_Item (Source, Join (To_String (Remote), "moved"));
@@ -7833,13 +7878,19 @@ package body Files_Suite.Operations is
       Old_Fault : constant String := Ada.Environment_Variables.Value ("FILES_TEST_TRANSFER_RESULT_LOSS", "");
       procedure Restore is
       begin
-         if Had_Fault then Ada.Environment_Variables.Set ("FILES_TEST_TRANSFER_RESULT_LOSS", Old_Fault);
-         else Ada.Environment_Variables.Clear ("FILES_TEST_TRANSFER_RESULT_LOSS"); end if;
+         if Had_Fault then
+            Ada.Environment_Variables.Set ("FILES_TEST_TRANSFER_RESULT_LOSS", Old_Fault);
+         else
+            Ada.Environment_Variables.Clear ("FILES_TEST_TRANSFER_RESULT_LOSS");
+         end if;
       end Restore;
       procedure Restore_Tmp is
       begin
-         if Had_Tmp then Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
-         else Ada.Environment_Variables.Clear ("TMPDIR"); end if;
+         if Had_Tmp then
+            Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
+         else
+            Ada.Environment_Variables.Clear ("TMPDIR");
+         end if;
       end Restore_Tmp;
       procedure Cleanup is
       begin
@@ -7847,7 +7898,9 @@ package body Files_Suite.Operations is
          Restore_Tmp;
          Files.Model.Clear_Paste_Execution (Model);
          Files.Refresh_Jobs.Cancel (Model);
-         if Length (Remote) > 0 then Project_Tools.Files.Delete_Tree (To_String (Remote)); end if;
+         if Length (Remote) > 0 then
+            Project_Tools.Files.Delete_Tree (To_String (Remote));
+         end if;
       end Cleanup;
    begin
       if Hostkit.Host.Current = Hostkit.Host.Linux and then Ada.Directories.Exists ("/dev/shm") then
@@ -7869,7 +7922,9 @@ package body Files_Suite.Operations is
                      Mutation := Files.File_System.Delete_Permanently (Dest);
                      Assert (Mutation.Success, "clear the previous recovered destination");
                   end if;
-                  if Replace then Write_Binary_File (Dest, "original destination"); end if;
+                  if Replace then
+                     Write_Binary_File (Dest, "original destination");
+                  end if;
                   Load := Files.File_System.Load_Directory (Parent, Settings);
                   Files.Model.Initialize (Model, Parent, Load.Items, Parent);
                   Files.Model.Clear_Undo (Model);
@@ -7933,8 +7988,11 @@ package body Files_Suite.Operations is
       Old_Back : constant String := Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND", "xdg");
       procedure Restore is
       begin
-         if Had_Xdg then Ada.Environment_Variables.Set ("XDG_DATA_HOME", Old_Xdg);
-         else Ada.Environment_Variables.Clear ("XDG_DATA_HOME"); end if;
+         if Had_Xdg then
+            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Old_Xdg);
+         else
+            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
+         end if;
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", Old_Back);
          Files.Model.Clear_Paste_Execution (Model);
          Files.Refresh_Jobs.Cancel (Model);
@@ -8031,15 +8089,20 @@ package body Files_Suite.Operations is
       Old_Tmp : constant String := Ada.Environment_Variables.Value ("TMPDIR", "");
       procedure Restore_Tmp is
       begin
-         if Had_Tmp then Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
-         else Ada.Environment_Variables.Clear ("TMPDIR"); end if;
+         if Had_Tmp then
+            Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
+         else
+            Ada.Environment_Variables.Clear ("TMPDIR");
+         end if;
       end Restore_Tmp;
       procedure Cleanup is
       begin
          Restore_Tmp;
          Files.Model.Clear_Paste_Execution (Model);
          Files.Refresh_Jobs.Cancel (Model);
-         if Length (Remote) > 0 then Project_Tools.Files.Delete_Tree (To_String (Remote)); end if;
+         if Length (Remote) > 0 then
+            Project_Tools.Files.Delete_Tree (To_String (Remote));
+         end if;
       end Cleanup;
       procedure Prepare (Path : String) is
          Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Path);
@@ -8052,13 +8115,19 @@ package body Files_Suite.Operations is
          Assert (Entry_Group (Name'Address) = Expected, "preserve the owning group without following links");
       end Check;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux or else not Ada.Directories.Exists ("/dev/shm") then return; end if;
+      if Hostkit.Host.Current /= Hostkit.Host.Linux or else not Ada.Directories.Exists ("/dev/shm") then
+         return;
+      end if;
       Expected := Supplementary_Group;
-      if Expected < 0 then return; end if;
+      if Expected < 0 then
+         return;
+      end if;
       Ada.Environment_Variables.Set ("TMPDIR", "/dev/shm");
       Remote := To_Unbounded_String (Hostkit.Fs.Create_Temporary_Directory ("files-test-move-ownership-"));
       Restore_Tmp;
-      if Length (Remote) = 0 then return; end if;
+      if Length (Remote) = 0 then
+         return;
+      end if;
       for Background in Boolean loop
          Reset_Root;
          Ada.Directories.Create_Directory (Source);
@@ -8108,13 +8177,18 @@ package body Files_Suite.Operations is
       Old_Tmp : constant String := Ada.Environment_Variables.Value ("TMPDIR", "");
       procedure Restore_Tmp is
       begin
-         if Had_Tmp then Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
-         else Ada.Environment_Variables.Clear ("TMPDIR"); end if;
+         if Had_Tmp then
+            Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
+         else
+            Ada.Environment_Variables.Clear ("TMPDIR");
+         end if;
       end Restore_Tmp;
       procedure Cleanup is
       begin
          Restore_Tmp;
-         if Length (Remote) > 0 then Project_Tools.Files.Delete_Tree (To_String (Remote)); end if;
+         if Length (Remote) > 0 then
+            Project_Tools.Files.Delete_Tree (To_String (Remote));
+         end if;
       end Cleanup;
       procedure Check (Path : String) is
       begin
@@ -8130,7 +8204,9 @@ package body Files_Suite.Operations is
                  "writes through a copied link update only its actual hard-linked sibling");
       end Check;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then return; end if;
+      if Hostkit.Host.Current /= Hostkit.Host.Linux then
+         return;
+      end if;
       Reset_Root;
       Ada.Directories.Create_Path (Join (Source, "sub"));
       Write_Binary_File (Join (Source, "first"), "linked bytes");
@@ -8141,11 +8217,15 @@ package body Files_Suite.Operations is
       Assert (Mutation.Success, "copy the hard-link tree");
       Check (Join (Root, "copy"));
       Assert (File_Has_Bytes (Join (Source, "first"), "linked bytes"), "a copy's links are independent of the source");
-      if not Ada.Directories.Exists ("/dev/shm") then return; end if;
+      if not Ada.Directories.Exists ("/dev/shm") then
+         return;
+      end if;
       Ada.Environment_Variables.Set ("TMPDIR", "/dev/shm");
       Remote := To_Unbounded_String (Hostkit.Fs.Create_Temporary_Directory ("files-test-hard-link-move-"));
       Restore_Tmp;
-      if Length (Remote) = 0 then return; end if;
+      if Length (Remote) = 0 then
+         return;
+      end if;
       Mutation := Files.File_System.Rename_Item (Source, Join (To_String (Remote), "moved"));
       Assert (Mutation.Success and then not Ada.Directories.Exists (Source), "move the hard-link tree");
       Check (Join (To_String (Remote), "moved"));
@@ -8184,7 +8264,9 @@ package body Files_Suite.Operations is
          end if;
       end Restore_Tmp;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then return; end if;
+      if Hostkit.Host.Current /= Hostkit.Host.Linux then
+         return;
+      end if;
       for Background in Boolean loop
          for Owner in 0 .. 1 loop
             Reset_Root;
@@ -8785,7 +8867,7 @@ package body Files_Suite.Operations is
         ((To_Unbounded_String (Name), Ada.Environment_Variables.Exists (Name),
           To_Unbounded_String (Ada.Environment_Variables.Value (Name, ""))));
       Saved : constant array (Positive range <>) of Saved_Environment :=
-        (Save ("TMPDIR"), Save ("XDG_DATA_HOME"), Save ("FILES_TRASH_BACKEND"));
+        [Save ("TMPDIR"), Save ("XDG_DATA_HOME"), Save ("FILES_TRASH_BACKEND")];
       procedure Cleanup is
       begin
          Files.Model.Clear_Paste_Execution (Model);
@@ -9118,10 +9200,16 @@ package body Files_Suite.Operations is
       Old_Backend : constant String := Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND", "");
       procedure Restore is
       begin
-         if Had_XDG then Ada.Environment_Variables.Set ("XDG_DATA_HOME", Old_XDG);
-         else Ada.Environment_Variables.Clear ("XDG_DATA_HOME"); end if;
-         if Had_Backend then Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", Old_Backend);
-         else Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND"); end if;
+         if Had_XDG then
+            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Old_XDG);
+         else
+            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
+         end if;
+         if Had_Backend then
+            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", Old_Backend);
+         else
+            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
+         end if;
       end Restore;
    begin
       for Background in Boolean loop
@@ -9433,6 +9521,7 @@ package body Files_Suite.Operations is
       Load : Files.File_System.Directory_Load_Result;
       Routed : Files.Interaction.Interaction_Result;
       Step : Files.Operations.Operation_Result;
+      pragma Unreferenced (Step);
       Revision : Natural;
    begin
       Reset_Root;
@@ -10013,6 +10102,7 @@ package body Files_Suite.Operations is
       Model, Other : Files.Model.Window_Model;
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
+      pragma Unreferenced (Step);
       Before : Ada.Calendar.Time;
       Folder : constant String := Join (Root, "folder");
       Marker : constant String := Join (Root, "size-started");
@@ -16142,6 +16232,7 @@ package body Files_Suite.Operations is
       Model : Files.Model.Window_Model;
       Watch : Files.Refresh_Jobs.Watch_Session;
       Step : Files.Operations.Operation_Result;
+      pragma Unreferenced (Step);
       Load : Files.File_System.Directory_Load_Result;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       Before : Ada.Calendar.Time;
@@ -16489,7 +16580,12 @@ package body Files_Suite.Operations is
             Assert (Project_Tools.Files.Read_Raw_File (Dest) = "new", "Replace publishes the new copy");
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-            Assert (Step.Status = Files.Operations.Operation_Success, "native-backend Replace is undoable");
+            --  Failed once on CI (2026-10-22) with no publish error beside it:
+            --  name the status and key, so the next failure says which.
+            Assert (Step.Status = Files.Operations.Operation_Success,
+                    "native-backend Replace is undoable (" & To_String (Backend)
+                    & (if Background then ", background" else ", foreground") & "): "
+                    & Files.Operations.Operation_Status'Image (Step.Status) & " " & To_String (Step.Error_Key));
             Assert (Project_Tools.Files.Read_Raw_File (Dest) = "original", "Undo restores the overwritten original");
             Assert (not Files.Model.Redo_Available (Model), "Replace with a backup remains undo-only");
          end loop;
@@ -18199,10 +18295,9 @@ package body Files_Suite.Operations is
          Exit_Status : Integer;
       begin
          Arguments.Append (To_Unbounded_String ("--files-test-drain-reaper"));
-         Assert
-           (Hostkit.Process.Run (Hostkit.Fs.Own_Executable, Arguments, Exit_Status)
-            and then Exit_Status = 0,
-            "shutdown drains queued orphan work before reporting completion");
+         Assert (Hostkit.Process.Run (Hostkit.Fs.Own_Executable, Arguments, Exit_Status),
+                 "the drain-reaper helper runs");
+         Assert (Exit_Status = 0, "shutdown drains queued orphan work before reporting completion");
       end;
       declare
          Arguments : Hostkit.String_Vectors.Vector;
@@ -19177,16 +19272,16 @@ package body Files_Suite.Operations is
            Files.Job_Transports.Recorded_Identity (To_String (Abandoned_Path));
          First, Second : Files.Job_Transports.Lease;
       begin
-        Assert
-          (Files.Job_Transports.Claim_Abandoned
-              (To_String (Abandoned_Path), Identity, First) =
-                Files.Job_Transports.Claim_Acquired
-            and then Files.Job_Transports.Holds
-              (First, To_String (Abandoned_Path))
-            and then Files.Job_Transports.Claim_Abandoned
-              (To_String (Abandoned_Path), Identity, Second) =
-                Files.Job_Transports.Claim_Busy,
-            "an abandoned transport has one acquired claim and reports later claims as busy");
+         Assert
+           (Files.Job_Transports.Claim_Abandoned
+               (To_String (Abandoned_Path), Identity, First) =
+                 Files.Job_Transports.Claim_Acquired
+             and then Files.Job_Transports.Holds
+               (First, To_String (Abandoned_Path))
+             and then Files.Job_Transports.Claim_Abandoned
+               (To_String (Abandoned_Path), Identity, Second) =
+                 Files.Job_Transports.Claim_Busy,
+             "an abandoned transport has one acquired claim and reports later claims as busy");
       end;
 
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_SCAVENGER", Scavenge_Control);

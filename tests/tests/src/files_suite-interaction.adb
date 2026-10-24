@@ -4932,7 +4932,6 @@ package body Files_Suite.Interaction is
    procedure Test_Tree_Panel_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use Ada.Strings.Unbounded;
-      use type Files.Types.Focus_Target;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       CResult  : Files.Controller.Controller_Result;
       Tree_Dir : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "panel-tree");
