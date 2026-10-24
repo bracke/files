@@ -12763,8 +12763,9 @@ package body Files_Suite.Operations is
 
    procedure Test_Fifo_Never_Blocks (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      function Make_Fifo (Path : Interfaces.C.Strings.chars_ptr; Mode : Interfaces.C.unsigned) return Interfaces.C.int
-        with Import, Convention => C, External_Name => "mkfifo";
+      --  Through the test's C helper: Windows has no mkfifo to link against.
+      function Make_Fifo (Path : Interfaces.C.Strings.chars_ptr) return Interfaces.C.int
+        with Import, Convention => C, External_Name => "files_test_make_fifo";
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Dir      : constant String := Join (Root, "with-fifo");
       Pipe     : constant String := Join (Dir, "pipe");
@@ -12782,7 +12783,7 @@ package body Files_Suite.Operations is
       declare
          C_Pipe : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Pipe);
       begin
-         Made := Integer (Make_Fifo (C_Pipe, 8#600#)) = 0;
+         Made := Integer (Make_Fifo (C_Pipe)) = 0;
          Interfaces.C.Strings.Free (C_Pipe);
       end;
       if not Made then

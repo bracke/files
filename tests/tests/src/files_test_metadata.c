@@ -180,3 +180,12 @@ int files_test_default_acl(const char *path, int owner) { (void)path; (void)owne
 int files_test_sparse_prepare(const char *path, int mixed) { (void)path; (void)mixed; return 0; }
 int files_test_sparse_check(const char *path, int mixed) { (void)path; (void)mixed; return 0; }
 #endif
+
+/* A FIFO for the non-blocking checks; Windows has none. */
+#if defined(_WIN32)
+int files_test_make_fifo(const char *path) { (void)path; return -1; }
+#else
+#include <sys/types.h>
+#include <sys/stat.h>
+int files_test_make_fifo(const char *path) { return mkfifo(path, 0600); }
+#endif
