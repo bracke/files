@@ -400,7 +400,8 @@ package body Transfer is
             Item_Name : constant String := To_String (Item.Name);
             Full_Path : constant String := To_String (Item.Full_Path);
             Destination : constant String :=
-              (if Files.Model.In_Recent_View (Model) then Ada.Directories.Containing_Directory (Full_Path)
+              (if Files.Model.In_Recent_View (Model) or else Files.Model.Search_Results_Are_Active (Model)
+               then Ada.Directories.Containing_Directory (Full_Path)
                else Directory);
          begin
             if Destination = "" then
@@ -640,10 +641,10 @@ package body Transfer is
             exit when Files.Job_Context.Cancelled;
             declare
                Source : constant String := To_String (Item.Full_Path);
-               --  Recent can select paths from several folders; each duplicate
-               --  belongs beside its source rather than in a virtual view's path.
+               --  Recent and search results can select paths from several
+               --  folders; each duplicate belongs beside its source.
                Destination_Directory : constant String :=
-                 (if Files.Model.In_Recent_View (Model)
+                 (if Files.Model.In_Recent_View (Model) or else Files.Model.Search_Results_Are_Active (Model)
                   then Ada.Directories.Containing_Directory (Source)
                   else Directory);
                Name   : constant String := To_String (Item.Name);
@@ -809,6 +810,11 @@ package body Transfer is
             Name   : constant String := To_String (Item.Name);
             Ext    : constant String := Leaf_Extension (Name);
             Base   : constant String := Leaf_Base (Name);
+            --  A search result's link belongs beside its source.
+            Link_Directory : constant String :=
+              (if Files.Model.Search_Results_Are_Active (Model)
+               then Ada.Directories.Containing_Directory (Source)
+               else Directory);
 
             --  A directory-unique link stem (without extension), e.g. "report
             --  (link)" or "report (link 2)" when earlier choices already exist.
@@ -819,7 +825,7 @@ package body Transfer is
                      Candidate : constant String := Base & Link_Marker (N);
                   begin
                      if not Exists_Safely
-                              (Ada.Directories.Compose (Directory, Candidate, Ext))
+                              (Ada.Directories.Compose (Link_Directory, Candidate, Ext))
                      then
                         return Candidate;
                      end if;
@@ -830,7 +836,7 @@ package body Transfer is
             end Unique_Stem;
 
             Dest_Path : constant String :=
-              Ada.Directories.Compose (Directory, Unique_Stem, Ext);
+              Ada.Directories.Compose (Link_Directory, Unique_Stem, Ext);
             Dest_Name : constant String := Ada.Directories.Simple_Name (Dest_Path);
             Mutation  : constant Files.File_System.Mutation_Result :=
               (if Hard
@@ -1899,10 +1905,16 @@ package body Transfer is
             Old_Full : constant String := To_String (Target.Old_Full_Path);
             Old_Name : constant String := To_String (Target.Old_Name);
             New_Name : constant String := To_String (Target.New_Name);
+            --  A recursive search lists items from below the current folder;
+            --  a rename keeps each one in its own folder.
+            Parent   : constant String :=
+              (if Files.Model.Search_Results_Are_Active (Model)
+               then Ada.Directories.Containing_Directory (Old_Full)
+               else Current_Dir);
          begin
             --  An unchanged name stays as it is, whatever it holds; a new one
             --  is a name the user typed.
-            if New_Name /= Old_Name and then not Files.File_System.Valid_Leaf_Name_At (New_Name, Current_Dir) then
+            if New_Name /= Old_Name and then not Files.File_System.Valid_Leaf_Name_At (New_Name, Parent) then
                Failure := Failure + 1;
                Record_First_Error ("error.name.invalid", Old_Full);
             elsif New_Name = Old_Name then
@@ -1918,7 +1930,7 @@ package body Transfer is
                end if;
             else
                declare
-                  New_Path : constant String := Files.File_System.Join_Path (Current_Dir, New_Name);
+                  New_Path : constant String := Files.File_System.Join_Path (Parent, New_Name);
                   Mutation : constant Files.File_System.Mutation_Result :=
                     Files.File_System.Rename_Item (Old_Full, New_Path);
                begin
