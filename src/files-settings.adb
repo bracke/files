@@ -86,9 +86,6 @@ package body Files.Settings is
       return Snapshot_Settings_Key_Of (Settings) = Key;
    end Same_Snapshot_Settings;
 
-   procedure Safe_Close
-     (File : in out Ada.Text_IO.File_Type);
-
    type Settings_Section is
      (No_Section,
       Filetypes_Section,
@@ -122,19 +119,6 @@ package body Files.Settings is
       Label : out Files.Types.Color_Label)
       return Boolean
  is separate;
-
-   procedure Safe_Close
-     (File : in out Ada.Text_IO.File_Type) is
-   begin
-      if Ada.Text_IO.Is_Open (File) then
-         begin
-            Ada.Text_IO.Close (File);
-         exception
-            when others =>
-               null;
-         end;
-      end if;
-   end Safe_Close;
 
    function Trim (Text : String) return String is
       First : Natural := Text'First;
