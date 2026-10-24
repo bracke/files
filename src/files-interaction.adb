@@ -285,44 +285,22 @@ package body Files.Interaction is
          end if;
       end;
 
-      case Command is
-         when Files.Commands.Select_Small_Icons_Command
-            | Files.Commands.Select_Large_Icons_Command
-            | Files.Commands.Select_Details_Command
-            | Files.Commands.Sort_By_Name_Command
-            | Files.Commands.Sort_By_Size_Command
-            | Files.Commands.Sort_By_Type_Command
-            | Files.Commands.Sort_By_Created_Command
-            | Files.Commands.Sort_By_Changed_Command
-            | Files.Commands.Toggle_Info_Pane_Command =>
-            if Sync_Global_UI_State (Model, Settings, Settings_Path) then
-               Result.Settings_Changed := True;
-            end if;
-         when others =>
-            null;
-      end case;
+      if Files.Commands.Persists_Global_Ui_State (Command)
+        and then Sync_Global_UI_State (Model, Settings, Settings_Path)
+      then
+         Result.Settings_Changed := True;
+      end if;
 
-      --  A sort change reorders the listing. The renderer re-sorts the snapshot
-      --  for display, but the model's item order (used by keyboard navigation)
-      --  is the load order, so re-list the directory to keep them in sync.
       --  Sync above has already updated the settings sort field that Refresh uses.
-      case Command is
-         when Files.Commands.Sort_By_Name_Command
-            | Files.Commands.Sort_By_Size_Command
-            | Files.Commands.Sort_By_Type_Command
-            | Files.Commands.Sort_By_Created_Command
-            | Files.Commands.Sort_By_Changed_Command =>
-            declare
-               Reloaded : constant Files.Operations.Operation_Result :=
-                 Files.Operations.Refresh (Model, Settings);
-               pragma Unreferenced (Reloaded);
-            begin
-               null;
-            end;
+      if Files.Commands.Reloads_Listing (Command) then
+         declare
+            Reloaded : constant Files.Operations.Operation_Result :=
+              Files.Operations.Refresh (Model, Settings);
+            pragma Unreferenced (Reloaded);
+         begin
             Result.Directory_Reloaded := True;
-         when others =>
-            null;
-      end case;
+         end;
+      end if;
 
       Result.Status := Outcome.Status;
       Result.Command_Executed := Outcome.Status = Files.Controller.Controller_Command_Executed;

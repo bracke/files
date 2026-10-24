@@ -415,158 +415,7 @@ package body Files.Commands is
    function Description_Key
      (Id : Command_Id)
       return String is
-   begin
-      case Id is
-         when No_Command =>
-            return "";
-         when Select_Small_Icons_Command =>
-            return "command.view.small.description";
-         when Select_Large_Icons_Command =>
-            return "command.view.large.description";
-         when Select_Details_Command =>
-            return "command.view.details.description";
-         when Toggle_Info_Pane_Command =>
-            return "command.info.toggle.description";
-         when Toggle_Hidden_Files_Command =>
-            return "command.view.toggle_hidden.description";
-         when Toggle_Show_Extensions_Command =>
-            return "command.view.toggle_extensions.description";
-         when Toggle_Free_Space_Display_Command =>
-            return "command.status.free_space_toggle.description";
-         when Toggle_Settings_Pane_Command =>
-            return "command.settings.toggle.description";
-         when Toggle_Sort_Menu_Command =>
-            return "command.sort.menu.description";
-         when Sort_By_Name_Command =>
-            return "command.sort.name.description";
-         when Sort_By_Size_Command =>
-            return "command.sort.size.description";
-         when Sort_By_Type_Command =>
-            return "command.sort.type.description";
-         when Sort_By_Created_Command =>
-            return "command.sort.created.description";
-         when Sort_By_Changed_Command =>
-            return "command.sort.changed.description";
-         when Focus_Path_Input_Command =>
-            return "command.path.focus.description";
-         when Navigate_Home_Command =>
-            return "command.navigate.home.description";
-         when Navigate_Back_Command =>
-            return "command.navigate.back.description";
-         when Navigate_Forward_Command =>
-            return "command.navigate.forward.description";
-         when Navigate_Parent_Command =>
-            return "command.navigate.parent.description";
-         when Create_File_Command =>
-            return "command.file.create.description";
-         when New_Folder_Command =>
-            return "command.file.new_folder.description";
-         when Delete_Selected_Items_Command =>
-            return "command.file.delete.description";
-         when Delete_Selected_Permanently_Command =>
-            return "command.file.delete_permanently.description";
-         when Rename_Selected_Items_Command =>
-            return "command.file.rename.description";
-         when Copy_Selected_Items_Command =>
-            return "command.file.copy.description";
-         when Cut_Selected_Items_Command =>
-            return "command.file.cut.description";
-         when Duplicate_Selected_Command =>
-            return "command.file.duplicate.description";
-         when Paste_Items_Command =>
-            return "command.file.paste.description";
-         when Open_Selected_Items_Command =>
-            return "command.file.open.description";
-         when Open_With_Command =>
-            return "command.file.open_with.description";
-         when Compress_Zip_Command =>
-            return "command.file.compress_zip.description";
-         when Compress_7z_Command =>
-            return "command.file.compress_7z.description";
-         when Extract_Archive_Command =>
-            return "command.file.extract.description";
-         when Generate_Thumbnails_Command =>
-            return "command.file.generate_thumbnails.description";
-         when Focus_Filter_Input_Command =>
-            return "command.filter.focus.description";
-         when Open_Command_Palette_Command =>
-            return "command.palette.open.description";
-         when Close_Command_Palette_Command =>
-            return "command.palette.close.description";
-         when Select_Drive_Command =>
-            return "command.drive.select.description";
-         when Open_Selected_Root_Command =>
-            return "command.drive.open_selected.description";
-         when Eject_Selected_Root_Command =>
-            return "command.drive.eject_selected.description";
-         when Clear_Filter_Command =>
-            return "command.filter.clear.description";
-         when Select_All_Command =>
-            return "command.selection.select_all.description";
-         when Invert_Selection_Command =>
-            return "command.selection.invert.description";
-         when Deselect_All_Command =>
-            return "command.selection.deselect_all.description";
-         when Search_Recursive_Command =>
-            return "command.directory.search_recursive.description";
-         when Search_Contents_Command =>
-            return "command.search.contents.description";
-         when Refresh_Directory_Command =>
-            return "command.directory.refresh.description";
-         when Save_Settings_Command =>
-            return "command.settings.save.description";
-         when Reset_Settings_Command =>
-            return "command.settings.reset.description";
-         when Toggle_Favorite_Command =>
-            return "command.favorite.toggle.description";
-         when Navigate_Trash_Command =>
-            return "command.trash.open.description";
-         when Restore_From_Trash_Command =>
-            return "command.trash.restore.description";
-         when Empty_Trash_Command =>
-            return "command.trash.empty.description";
-         when Open_Terminal_Command =>
-            return "command.terminal.open.description";
-         when Create_Symlink_Command =>
-            return "command.link.symbolic.description";
-         when Create_Hardlink_Command =>
-            return "command.link.hard.description";
-         when Undo_Command =>
-            return "command.edit.undo.description";
-         when Redo_Command =>
-            return "command.edit.redo.description";
-         when Toggle_Column_Modified_Command =>
-            return "command.columns.toggle_modified.description";
-         when Toggle_Column_Size_Command =>
-            return "command.columns.toggle_size.description";
-         when Toggle_Column_Type_Command =>
-            return "command.columns.toggle_type.description";
-         when Toggle_Column_Created_Command =>
-            return "command.columns.toggle_created.description";
-         when Toggle_Column_Permissions_Command =>
-            return "command.columns.toggle_permissions.description";
-         when Cycle_Group_By_Command =>
-            return "command.columns.cycle_group_by.description";
-         when Toggle_Folder_Tree_Command =>
-            return "command.tree.toggle.description";
-         when Copy_To_Command =>
-            return "command.copy_to.description";
-         when Move_To_Command =>
-            return "command.move_to.description";
-         when Copy_Path_Command =>
-            return "command.edit.copy_path.description";
-         when Open_Containing_Folder_Command =>
-            return "command.navigate.containing.description";
-         when Toggle_Quick_Look_Command =>
-            return "command.view.quick_look.description";
-         when Set_Color_Label_Command =>
-            return "command.label.set.description";
-         when Navigate_Recent_Command =>
-            return "command.navigate.recent.description";
-         when Clear_Recent_Command =>
-            return "command.recent.clear.description";
-      end case;
-   end Description_Key;
+     (if Name_Key (Id) = "" then "" else Name_Key (Id) & ".description");
 
    function Default_Shortcut_For
      (Id : Command_Id)
@@ -677,48 +526,50 @@ package body Files.Commands is
       return Id /= No_Command;
    end Command_Palette_Visible;
 
-   function Requires_Settings_Path
-     (Id : Command_Id)
-      return Boolean is
-   begin
-      case Id is
-         when Save_Settings_Command
-            | Toggle_Hidden_Files_Command
-            | Toggle_Show_Extensions_Command
-            | Toggle_Free_Space_Display_Command
-            | Toggle_Column_Modified_Command
-            | Toggle_Column_Size_Command
-            | Toggle_Column_Type_Command
-            | Toggle_Column_Created_Command
-            | Toggle_Column_Permissions_Command
-            | Cycle_Group_By_Command
-            | Toggle_Favorite_Command
-            | Clear_Recent_Command =>
-            return True;
-         when others =>
-            return False;
-      end case;
-   end Requires_Settings_Path;
+   --  What running a command does beyond its own effect, in one place: the
+   --  interaction layer reads these instead of keeping its own command lists.
+   type Command_Traits is record
+      --  Changes the settings file, so it needs the settings path.
+      Needs_Settings_Path : Boolean := False;
+      --  Changes view, sort or info-pane state that is mirrored into settings.
+      Persists_UI_State   : Boolean := False;
+      --  Reorders the listing, so the model's item order must be re-listed.
+      Reloads_Listing     : Boolean := False;
+   end record;
 
-   function Persists_Global_Ui_State
-     (Id : Command_Id)
-      return Boolean is
-   begin
-      case Id is
-         when Select_Small_Icons_Command
-            | Select_Large_Icons_Command
-            | Select_Details_Command
-            | Sort_By_Name_Command
-            | Sort_By_Size_Command
-            | Sort_By_Type_Command
-            | Sort_By_Created_Command
-            | Sort_By_Changed_Command
-            | Toggle_Info_Pane_Command =>
-            return True;
-         when others =>
-            return False;
-      end case;
-   end Persists_Global_Ui_State;
+   Settings_Writer : constant Command_Traits := (Needs_Settings_Path => True, others => False);
+   UI_State        : constant Command_Traits := (Persists_UI_State => True, others => False);
+   Sort_Order      : constant Command_Traits := (Persists_UI_State | Reloads_Listing => True, others => False);
+
+   Traits : constant array (Command_Id) of Command_Traits :=
+     [Save_Settings_Command
+      | Toggle_Hidden_Files_Command
+      | Toggle_Show_Extensions_Command
+      | Toggle_Free_Space_Display_Command
+      | Toggle_Column_Modified_Command
+      | Toggle_Column_Size_Command
+      | Toggle_Column_Type_Command
+      | Toggle_Column_Created_Command
+      | Toggle_Column_Permissions_Command
+      | Cycle_Group_By_Command
+      | Toggle_Favorite_Command
+      | Clear_Recent_Command      => Settings_Writer,
+      Select_Small_Icons_Command
+      | Select_Large_Icons_Command
+      | Select_Details_Command
+      | Toggle_Info_Pane_Command  => UI_State,
+      Sort_By_Name_Command
+      | Sort_By_Size_Command
+      | Sort_By_Type_Command
+      | Sort_By_Created_Command
+      | Sort_By_Changed_Command   => Sort_Order,
+      others                      => (others => False)];
+
+   function Requires_Settings_Path (Id : Command_Id) return Boolean is (Traits (Id).Needs_Settings_Path);
+
+   function Persists_Global_Ui_State (Id : Command_Id) return Boolean is (Traits (Id).Persists_UI_State);
+
+   function Reloads_Listing (Id : Command_Id) return Boolean is (Traits (Id).Reloads_Listing);
 
    function Command_Count return Natural is
    begin
