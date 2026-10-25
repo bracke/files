@@ -205,6 +205,10 @@ package body Files.File_System.Support is
 
    function Snapshot (Path : String; Content : Boolean := True) return Source_Snapshot is
       Result : Source_Snapshot;
+      --  On a DOS-family filesystem (FAT, exFAT) the change time is not an
+      --  independent stamp -- setting the modification time sets it too, to
+      --  two seconds -- so it pins nothing: every file is pinned by content.
+      Weak_Change_Time : constant Boolean := Content and then Hostkit.Fs.Uses_Dos_Filename_Rules (Path);
       package Sorting is new Files.Types.String_Vectors.Generic_Sorting;
       procedure Visit (Full_Path, Relative : String; Depth : Natural) is
          Saved_Times : Copy_Times;
@@ -215,7 +219,8 @@ package body Files.File_System.Support is
          Revision : constant String := Files.File_Identities.Revision
            (Full_Path, Depth /= 0 and then not Is_Directory);
          Is_Regular_File : constant Boolean :=
-           Content and then Depth = 0 and then not Is_Directory and then not Hostkit.Fs.Is_Link (Full_Path)
+           Content and then (Depth = 0 or else Weak_Change_Time)
+           and then not Is_Directory and then not Hostkit.Fs.Is_Link (Full_Path)
            and then Ada.Directories.Kind (Full_Path) = Ada.Directories.Ordinary_File;
          procedure Child (Name : String) is
          begin

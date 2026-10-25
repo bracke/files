@@ -88,6 +88,27 @@ is
    Info_Path : Unbounded_String;
    Info_Owned : Boolean := False;
 
+   --  Where the item came from, as its info file says it: absolute for the
+   --  home trash, relative to the volume's top for a volume trash.
+   function Info_Path_Text return String is
+      Original : constant String :=
+        GNAT.OS_Lib.Normalize_Pathname
+          ((if Recorded_Path = "" then Path else Recorded_Path), Resolve_Links => False);
+   begin
+      if Volume /= "" then
+         declare
+            Top : constant String := Volume_Trash_Top (Volume);
+         begin
+            if Original'Length > Top'Length + 1
+              and then Original (Original'First .. Original'First + Top'Length) = Top & "/"
+            then
+               return Original (Original'First + Top'Length + 1 .. Original'Last);
+            end if;
+         end;
+      end if;
+      return Original;
+   end Info_Path_Text;
+
    procedure Delete_Info_File_If_Present is
    begin
       if Info_Owned and then Ada.Directories.Exists (To_String (Info_Path)) then
@@ -167,10 +188,7 @@ begin
          use type GNAT.OS_Lib.File_Descriptor;
          Metadata : constant String :=
            "[Trash Info]" & ASCII.LF
-           & "Path="
-           & Trash_Info_Path_Value
-               (GNAT.OS_Lib.Normalize_Pathname
-                  ((if Recorded_Path = "" then Path else Recorded_Path), Resolve_Links => False))
+           & "Path=" & Trash_Info_Path_Value (Info_Path_Text)
            & ASCII.LF & "DeletionDate=" & Trash_Deletion_Date (Ada.Calendar.Clock) & ASCII.LF;
          --  Created last, so nothing runs between a refusal and Capture.
          Descriptor : GNAT.OS_Lib.File_Descriptor :=

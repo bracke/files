@@ -45,8 +45,8 @@ procedure Tests is
    Status   : AUnit.Status;
 
    --  The scratch directory this process made for the run, which it alone
-   --  removes at the end; empty when the caller supplied FILES_TEST_ROOT (and
-   --  so owns FILES_TEST_TEMP), and in every helper process, which inherits it.
+   --  removes at the end; empty when the caller supplied FILES_TEST_TEMP, and
+   --  in every helper process, which inherits it.
    Owned_Temp : Ada.Strings.Unbounded.Unbounded_String;
 
    --  How long a helper held by a test waits for the test to let it go, or to
@@ -73,7 +73,15 @@ procedure Tests is
       Ada.Directories.Rename (Partial, Path);
    end Publish;
 begin
-   if not Ada.Environment_Variables.Exists ("FILES_TEST_ROOT") then
+   --  Never reach a real drive's trash: the trash view's mount scan is off,
+   --  so Empty Trash in a test only meets trashes the tests made.
+   Ada.Environment_Variables.Set ("FILES_TEST_MOUNT_TRASHES", "off");
+
+   --  The scratch area for application state (the recovery index, the
+   --  volume-trash list) and helper jobs, made here unless the caller named
+   --  one -- also when the caller names only FILES_TEST_ROOT, so that state
+   --  never lands in the user's own data directory.
+   if not Ada.Environment_Variables.Exists ("FILES_TEST_TEMP") then
       declare
          Created_Temp : constant String :=
            Hostkit.Fs.Create_Temporary_Directory ("files-suite-");
@@ -86,12 +94,15 @@ begin
             raise Program_Error;
          end if;
          Ada.Directories.Create_Directory (Job_Temp);
-         Ada.Environment_Variables.Set
-           ("FILES_TEST_ROOT", Hostkit.Fs.Join (Suite_Temp, "fixtures"));
          Ada.Environment_Variables.Set ("FILES_TEST_TEMP", Suite_Temp);
          Ada.Environment_Variables.Set ("TMPDIR", Job_Temp);
          Owned_Temp := Ada.Strings.Unbounded.To_Unbounded_String (Suite_Temp);
       end;
+   end if;
+   if not Ada.Environment_Variables.Exists ("FILES_TEST_ROOT") then
+      Ada.Environment_Variables.Set
+        ("FILES_TEST_ROOT",
+         Hostkit.Fs.Join (Ada.Environment_Variables.Value ("FILES_TEST_TEMP"), "fixtures"));
    end if;
 
    if Ada.Command_Line.Argument_Count in 2 .. 3

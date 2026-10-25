@@ -88,7 +88,8 @@ function Original_Path (Trashed_Path : String) return String is
                      Decoded : constant String :=
                        Url_Decode (Line (Line'First + 5 .. Line'Last));
                   begin
-                     if not Valid_Original_Path (Decoded) then
+                     --  Relative is resolved, and checked, by the caller.
+                     if Decoded = "" or else (for some Item of Decoded => Item = ASCII.NUL) then
                         return "";
                      end if;
                      Result := To_Unbounded_String (Decoded);
@@ -118,14 +119,46 @@ function Original_Path (Trashed_Path : String) return String is
          return "";
    end Read_Original_Path;
 
+   --  Whether Value climbs out of where it is resolved (a ".." part).
+   function Climbs (Value : String) return Boolean is
+     (Value = ".." or else Ada.Strings.Fixed.Index (Value, "../") = Value'First
+      or else Ada.Strings.Fixed.Index (Value, "/../") > 0
+      or else (Value'Length >= 3 and then Value (Value'Last - 2 .. Value'Last) = "/.."));
+
    --  The home trash or the volume trash that holds it.
    Base : constant String := Trash_Base_Of (Trashed_Path);
 begin
    if Base = "" then
       return "";
    end if;
-   return Read_Original_Path
-     (Join_Path (Join_Path (Base, "info"), Ada.Directories.Simple_Name (Trashed_Path) & ".trashinfo"));
+   declare
+      Recorded : constant String := Read_Original_Path
+        (Join_Path (Join_Path (Base, "info"), Ada.Directories.Simple_Name (Trashed_Path) & ".trashinfo"));
+   begin
+      if Recorded = "" then
+         return "";
+      elsif Base = Trash_Base_Path then
+         --  The home trash records absolute paths.
+         return (if Valid_Original_Path (Recorded) then Recorded else "");
+      end if;
+      --  A volume trash records paths relative to the volume's top (as gio
+      --  and KIO write them, and as Move_To_Trash does), so they survive the
+      --  volume being mounted elsewhere. An absolute one must stay on the
+      --  volume: a crafted stick must not pick where a restore lands.
+      declare
+         Top : constant String := Volume_Trash_Top (Base);
+      begin
+         if Climbs (Recorded) then
+            return "";
+         elsif GNAT.OS_Lib.Is_Absolute_Path (Recorded) then
+            return
+              (if Recorded'Length > Top'Length + 1
+                 and then Recorded (Recorded'First .. Recorded'First + Top'Length) = Top & "/"
+               then Recorded else "");
+         end if;
+         return Join_Path (Top, Recorded);
+      end;
+   end;
 exception
    when others => return "";
 end Original_Path;

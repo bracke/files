@@ -741,6 +741,13 @@ package Files.File_System is
    --  @return True only when Path identifies the active payload directory.
    function Is_Trash_Files_Directory (Path : String) return Boolean;
 
+   --  Whether Path is an item in a volume's own trash, which the trash view
+   --  lists beside the home trash's items.
+   --
+   --  @param Path Entry to test.
+   --  @return True when Path is directly in a valid volume trash's files/.
+   function Is_Volume_Trash_Item (Path : String) return Boolean;
+
    --  Capture a payload's original path before recording restore history.
    --  @param Trashed_Path Trash or replacement recovery payload pathname.
    --  @return Original path from its sidecar, or empty on failure.

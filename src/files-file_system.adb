@@ -729,6 +729,16 @@ package body Files.File_System is
    --  link) owned by this user.
    function Valid_Volume_Trash_Base (Base : String) return Boolean;
 
+   --  Whether Parent may hold this user's volume trash: for the shared
+   --  .Trash (Shared), a real directory owned by root with the sticky bit,
+   --  so no one else can swap our folder in it for a link; for the volume's
+   --  top, a real directory others cannot write to without the sticky bit.
+   function Safe_Trash_Parent (Parent : String; Shared : Boolean) return Boolean;
+
+   --  The top of the volume a volume trash Base belongs to: the parent of
+   --  .Trash-$uid, or of .Trash for .Trash/$uid.
+   function Volume_Trash_Top (Base : String) return String;
+
    --  The volume trash to move Path into, created if need be and remembered
    --  for the trash view; "" when Path is on the home trash's device or its
    --  volume has no usable trash (read-only, no permission), and the home
@@ -885,11 +895,25 @@ package body Files.File_System is
 
    function Valid_Volume_Trash_Base (Base : String) return Boolean is separate;
 
+   function Safe_Trash_Parent (Parent : String; Shared : Boolean) return Boolean is separate;
+
+   function Volume_Trash_Top (Base : String) return String is
+     (if Ada.Directories.Simple_Name (Base) (1 .. Natural'Min (7, Ada.Directories.Simple_Name (Base)'Length))
+           = ".Trash-"
+      then Ada.Directories.Containing_Directory (Base)
+      else Ada.Directories.Containing_Directory (Ada.Directories.Containing_Directory (Base)));
+
    function Volume_Trash_For (Path : String) return String is separate;
 
    function Volume_Trash_Bases return Files.Types.String_Vectors.Vector is separate;
 
    function Trash_Base_Of (Trashed_Path : String) return String is separate;
+
+   function Is_Volume_Trash_Item (Path : String) return Boolean is
+      Base : constant String := Trash_Base_Of (Path);
+   begin
+      return Base /= "" and then Base /= Trash_Base_Path;
+   end Is_Volume_Trash_Item;
 
    function Path_Can_Be_Directory (Path : String) return Boolean is separate;
 

@@ -109,10 +109,14 @@ begin
          Shared : constant String := Join_Path (To_String (Top), ".Trash");
          Chosen : Unbounded_String;
       begin
-         if Files.Fs_Primitives.Directory_Exists (Shared) and then not Hostkit.Fs.Is_Link (Shared) then
+         --  Checked before anything is made in it: an untrusted .Trash is
+         --  not used at all, as the specification says.
+         if Safe_Trash_Parent (Shared, Shared => True)
+           and then Safe_Trash_Parent (To_String (Top), Shared => False)
+         then
             Chosen := To_Unbounded_String (Prepared (Join_Path (Shared, Id)));
          end if;
-         if Length (Chosen) = 0 then
+         if Length (Chosen) = 0 and then Safe_Trash_Parent (To_String (Top), Shared => False) then
             Chosen := To_Unbounded_String (Prepared (Join_Path (To_String (Top), ".Trash-" & Id)));
          end if;
          if Length (Chosen) > 0 then

@@ -193,7 +193,9 @@ private package Files.File_System.Support is
    --  Every entry below the root is pinned by its revision, change time
    --  included, which any write moves; only the root's change time is left
    --  out (the private rename that verifies a move changes it), so a root
-   --  file is pinned by its content instead.
+   --  file is pinned by its content instead. On a DOS-family filesystem the
+   --  change time moves with the modification time, so there every file's
+   --  content is read.
    --
    --  @param Path Source tree to snapshot without following links.
    --  @param Content False to skip reading the root file's content: the

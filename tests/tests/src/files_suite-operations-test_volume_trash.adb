@@ -13,36 +13,6 @@ separate (Files_Suite.Operations)
       Environment : Files_Suite.Support.Environment_Guard;
       Volume_Base : Unbounded_String;
 
-      --  The top of Path's filesystem: its highest ancestor on its device.
-      function Volume_Top (Path : String) return String is
-         Known  : Boolean;
-         Device : constant Long_Long_Integer := Hostkit.Metadata.Device_Id (Path, Known);
-         Top    : Unbounded_String := To_Unbounded_String (Path);
-      begin
-         loop
-            declare
-               Up : constant String := Ada.Directories.Containing_Directory (To_String (Top));
-               Up_Known : Boolean;
-            begin
-               exit when Up = To_String (Top)
-                 or else Hostkit.Metadata.Device_Id (Up, Up_Known) /= Device
-                 or else not Up_Known;
-               Top := To_Unbounded_String (Up);
-            end;
-         end loop;
-         return To_String (Top);
-      exception
-         when Ada.Directories.Use_Error => return To_String (Top);
-      end Volume_Top;
-
-      --  This user's numeric id, as volume trash names carry it.
-      function User_Id return String is
-         Id : Natural := 0;
-      begin
-         Assert (Hostkit.Process.Current_User_Id (Id), "the user has a numeric id");
-         return Ada.Strings.Fixed.Trim (Natural'Image (Id), Ada.Strings.Left);
-      end User_Id;
-
       --  Remote removes the volume trash it saw appear.
       procedure Clean is
       begin
@@ -78,9 +48,18 @@ separate (Files_Suite.Operations)
 
          Write_File (Volume_Item, "volume");
          --  No administrator's .Trash on a test volume: the per-user one.
-         Volume_Base := To_Unbounded_String (Join (Volume_Top (Remote.Path), ".Trash-" & User_Id));
-         Result := Files.File_System.Move_To_Trash (Volume_Item, Trashed);
-         Assert (Result.Success, "an item on another volume is trashed");
+         Volume_Base := To_Unbounded_String (Files_Suite.Volumes.Volume_Trash_Of (Remote.Path));
+         declare
+            Before : constant String := Files.File_Identities.Token (Volume_Item);
+         begin
+            Result := Files.File_System.Move_To_Trash (Volume_Item, Trashed);
+            Assert (Result.Success, "an item on another volume is trashed");
+            Files_Suite.Support.Assert_Equal
+              (Files.File_Identities.Token (To_String (Trashed)), Before,
+               "it was renamed into its volume's trash, not copied");
+            Assert (Files.File_System.Is_Volume_Trash_Item (To_String (Trashed)),
+                    "trash-view actions know it for a trash item (Delete removes its info file too)");
+         end;
          Files_Suite.Support.Assert_Equal
            (Ada.Directories.Containing_Directory (To_String (Trashed)),
             Join (To_String (Volume_Base), "files"),
@@ -94,6 +73,44 @@ separate (Files_Suite.Operations)
            (Files.File_System.Trash_Original_Path (To_String (Trashed)),
             Volume_Item,
             "the recorded original path is the item's");
+         Assert
+           (Ada.Strings.Fixed.Index
+              (Project_Tools.Files.Read_Raw_File
+                 (Join (Join (To_String (Volume_Base), "info"),
+                        Ada.Directories.Simple_Name (To_String (Trashed)) & ".trashinfo")),
+               "Path=/") = 0,
+            "a volume trash records the path relative to the volume's top, so a remount keeps it");
+
+         --  What another file manager left: a relative Path= resolves against
+         --  the volume; an absolute one off the volume is not trusted.
+         declare
+            Info : constant String := Join (To_String (Volume_Base), "info");
+            Foreign : constant String := Join (Join (To_String (Volume_Base), "files"), "foreign.txt");
+            Top : constant String := Ada.Directories.Containing_Directory (To_String (Volume_Base));
+         begin
+            Write_File (Foreign, "foreign");
+            Write_File
+              (Join (Info, "foreign.txt.trashinfo"),
+               "[Trash Info]" & ASCII.LF & "Path=some%20folder/foreign.txt" & ASCII.LF
+               & "DeletionDate=2026-01-01T00:00:00" & ASCII.LF);
+            Files_Suite.Support.Assert_Equal
+              (Files.File_System.Trash_Original_Path (Foreign),
+               Join (Join (Top, "some folder"), "foreign.txt"),
+               "a relative recorded path resolves against the volume's top");
+            Write_File
+              (Join (Info, "foreign.txt.trashinfo"),
+               "[Trash Info]" & ASCII.LF & "Path=/home/someone/.config/autostart/x.desktop" & ASCII.LF);
+            Files_Suite.Support.Assert_Equal
+              (Files.File_System.Trash_Original_Path (Foreign), "",
+               "a recorded path off the volume is not where a restore may land");
+            Write_File
+              (Join (Info, "foreign.txt.trashinfo"),
+               "[Trash Info]" & ASCII.LF & "Path=../../escape.txt" & ASCII.LF);
+            Files_Suite.Support.Assert_Equal
+              (Files.File_System.Trash_Original_Path (Foreign), "",
+               "a recorded path may not climb out of the volume");
+            Assert (Files.File_System.Delete_Trashed_Item (Foreign).Success, "remove the foreign item");
+         end;
 
          declare
             Load  : constant Files.File_System.Directory_Load_Result :=
@@ -120,6 +137,31 @@ separate (Files_Suite.Operations)
          Assert (not Ada.Directories.Exists (To_String (Trashed)), "the payload is gone");
 
          Result := Files.File_System.Delete_Trashed_Item (To_String (Home_Trashed));
+         Assert (Result.Success, "the home trash's item is deleted too");
+      end;
+
+      --  A volume trash whose files/ is a link is no trash: Empty Trash
+      --  would delete what it points at.
+      declare
+         Target : constant String := Join (Root, "not-trash");
+         Files_Dir : constant String := Join (To_String (Volume_Base), "files");
+         Kept : constant String := Join (Target, "kept.txt");
+      begin
+         Ada.Directories.Create_Path (Target);
+         Write_File (Kept, "kept");
+         Project_Tools.Files.Delete_Tree (Files_Dir);
+         if Files_Suite.Support.Create_Symlink (Target, Files_Dir) then
+            Assert (not Files.File_System.Is_Volume_Trash_Item (Join (Files_Dir, "kept.txt")),
+                    "an item reached through a linked files/ is not a trash item");
+            Assert (not Files.File_System.Delete_Trashed_Item (Join (Files_Dir, "kept.txt")).Success,
+                    "and is not deleted as one");
+            Assert (File_Has_Bytes (Kept, "kept"), "what the link points at is untouched");
+            Ada.Directories.Delete_File (Files_Dir);
+         else
+            --  The second volume, not the test root: a FAT stick has no links.
+            Files_Suite.Support.Skip ("Test_Volume_Trash", "the second volume takes no symbolic links");
+         end if;
+         Ada.Directories.Create_Directory (Files_Dir);
       end;
       Clean;
    exception

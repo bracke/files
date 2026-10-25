@@ -462,11 +462,22 @@ package body Files.File_System.Recovery is
          end if;
       end loop;
       Ada.Directories.End_Search (Search);
-      if Count = 0 then
-         Ada.Directories.Delete_Directory (Holder);
-      elsif Count = 1 and then Support.Move_No_Replace (To_String (Held), Path) then
-         Ada.Directories.Delete_Directory (Holder);
-      end if;
+      declare
+         --  Release names the held entry after the original; anything else
+         --  (a stage a nested move left there) is not this payload.
+         Original : constant String := Original_Path (Path);
+         Leaf     : constant String :=
+           (if Valid_Absolute_Path (Original) then Ada.Directories.Simple_Name (Original) else "recovered");
+      begin
+         if Count = 0 then
+            Ada.Directories.Delete_Directory (Holder);
+         elsif Count = 1
+           and then Ada.Directories.Simple_Name (To_String (Held)) = Leaf
+           and then Support.Move_No_Replace (To_String (Held), Path)
+         then
+            Ada.Directories.Delete_Directory (Holder);
+         end if;
+      end;
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
@@ -608,7 +619,11 @@ package body Files.File_System.Recovery is
       declare
          --  The source is read once, by the copy: a root file's content is
          --  pinned by the digest of the bytes copied, not hashed beforehand.
-         Shape     : constant Support.Source_Snapshot := Support.Snapshot (Source, Content => False);
+         --  On a DOS-family filesystem every file is pinned by content (see
+         --  Support.Snapshot), which only a full snapshot taken now can do.
+         Weak_Change_Time : constant Boolean := Hostkit.Fs.Uses_Dos_Filename_Rules (Source);
+         Shape     : constant Support.Source_Snapshot :=
+           Support.Snapshot (Source, Content => Weak_Change_Time);
          Digest    : aliased Files.Types.UString;
          Set_Aside : Boolean;
       begin
@@ -617,7 +632,8 @@ package body Files.File_System.Recovery is
             Preserve_Ownership => True, Batch => Batch, Root_Digest => Digest'Access);
          Copied := True;
          declare
-            Expected : constant Support.Source_Snapshot := Support.With_Root_Content (Shape, To_String (Digest));
+            Expected : constant Support.Source_Snapshot :=
+              (if Weak_Change_Time then Shape else Support.With_Root_Content (Shape, To_String (Digest)));
             Removed : constant Mutation_Result :=
               Remove_Move_Source (Source, Expected, Fallback_Key, Set_Aside);
          begin

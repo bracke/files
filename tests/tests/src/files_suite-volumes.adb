@@ -170,10 +170,36 @@ package body Files_Suite.Volumes is
       if Location /= "" and then Ada.Directories.Exists (Location) then
          Project_Tools.Files.Delete_Tree (Location);
       end if;
-      if Length (Directory.Volume_Trash) > 0
-        and then Ada.Directories.Exists (To_String (Directory.Volume_Trash))
-      then
-         Project_Tools.Files.Delete_Tree (To_String (Directory.Volume_Trash));
+      --  Only while it holds nothing: what is in it is another run's (two
+      --  suites can share a volume) or the user's, never ours to delete.
+      if Length (Directory.Volume_Trash) > 0 then
+         declare
+            Trash : constant String := To_String (Directory.Volume_Trash);
+
+            function Empty_Directory (Path : String) return Boolean is
+               Search : Ada.Directories.Search_Type;
+               Item   : Ada.Directories.Directory_Entry_Type;
+               Found  : Boolean := False;
+            begin
+               if not Ada.Directories.Exists (Path) then
+                  return True;
+               end if;
+               Ada.Directories.Start_Search (Search, Path, "");
+               while Ada.Directories.More_Entries (Search) loop
+                  Ada.Directories.Get_Next_Entry (Search, Item);
+                  Found := Found or else Ada.Directories.Simple_Name (Item) not in "." | "..";
+               end loop;
+               Ada.Directories.End_Search (Search);
+               return not Found;
+            end Empty_Directory;
+         begin
+            if Ada.Directories.Exists (Trash)
+              and then Empty_Directory (Ada.Directories.Compose (Trash, "files"))
+              and then Empty_Directory (Ada.Directories.Compose (Trash, "info"))
+            then
+               Project_Tools.Files.Delete_Tree (Trash);
+            end if;
+         end;
       end if;
       Directory.Volume_Trash := Null_Unbounded_String;
    exception
@@ -181,8 +207,6 @@ package body Files_Suite.Volumes is
          null;
    end Remove;
 
-   --  Where this user's freedesktop trash would be on the volume holding
-   --  Path: .Trash-$uid at the volume's top; "" without a numeric user id.
    function Volume_Trash_Of (Path : String) return String is
       Known  : Boolean;
       Device : constant Long_Long_Integer := Hostkit.Metadata.Device_Id (Path, Known);

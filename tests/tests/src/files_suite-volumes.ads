@@ -25,9 +25,17 @@ package Files_Suite.Volumes is
    --  @return The directory, or "" when no candidate qualifies here.
    function Other_Volume return String;
 
+   --  Where this user's freedesktop trash is, or would be, on the volume
+   --  holding Path: .Trash-$uid at the volume's top.
+   --
+   --  @param Path Any existing path on the volume.
+   --  @return The trash directory, or "" without a numeric user id.
+   function Volume_Trash_Of (Path : String) return String;
+
    --  A fresh directory on Other_Volume, removed with everything in it when the
    --  object leaves scope, whether the test passed or an assertion raised --
-   --  and with it the volume's trash, if trashing there made one.
+   --  and with it the volume's trash, if trashing there made one and it is
+   --  empty again.
    type Remote_Directory is new Ada.Finalization.Limited_Controlled with private;
 
    --  Make the directory, removing any one this object made before.

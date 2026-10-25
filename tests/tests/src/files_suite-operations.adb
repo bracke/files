@@ -212,6 +212,7 @@ package body Files_Suite.Operations is
    procedure Test_Move_Without_Read_Access (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Timestamps (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_Source_Changes (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Move_Source_Changes_Off_Volume (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Metadata_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Live_Metadata_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transfer_Result_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -1007,6 +1008,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Move_Source_Changes'Access, "cross-device moves retain edited and replaced sources");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Move_Source_Changes_Off_Volume'Access,
+         "a folder moved off another volume keeps its source when a child changes during the copy, on FAT too");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Metadata_History_Identity'Access, "metadata Undo and Redo refuse unrelated replacements");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Live_Metadata_History'Access, "metadata history records live modes and ownership");
@@ -1363,6 +1367,8 @@ package body Files_Suite.Operations is
    end Is_Owner_Only;
 
    procedure Test_Move_Source_Changes (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Move_Source_Changes_Off_Volume (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Metadata_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
