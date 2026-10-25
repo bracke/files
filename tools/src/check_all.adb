@@ -189,24 +189,22 @@ procedure Check_All is
 
    --  Concatenate the aggregator and every split section body of the AUnit
    --  suite, so contract checks can assert against the suite as a whole.
+   --  Every suite body, subunits included: a test moved into its own
+   --  files_suite-<suite>-test_<name>.adb must still count.
    function Suite_Sources return String is
-      Dir    : constant String := Root & "/tests/tests/src/";
+      Dir    : constant String := Root & "/tests/tests/src";
       Result : Unbounded_String;
-
-      procedure Add (Name : String) is
-      begin
-         Append (Result, Project_Tools.Text.Read_Text_File (Dir & Name));
-         Append (Result, ASCII.LF);
-      end Add;
+      Search : Ada.Directories.Search_Type;
+      Found  : Ada.Directories.Directory_Entry_Type;
    begin
-      Add ("files_suite.adb");
-      Add ("files_suite-startup.adb");
-      Add ("files_suite-model.adb");
-      Add ("files_suite-commands.adb");
-      Add ("files_suite-settings.adb");
-      Add ("files_suite-operations.adb");
-      Add ("files_suite-rendering.adb");
-      Add ("files_suite-support.adb");
+      Ada.Directories.Start_Search
+        (Search, Dir, "files_suite*.adb", [Ada.Directories.Ordinary_File => True, others => False]);
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Found);
+         Append (Result, Project_Tools.Text.Read_Text_File (Ada.Directories.Full_Name (Found)));
+         Append (Result, ASCII.LF);
+      end loop;
+      Ada.Directories.End_Search (Search);
       return To_String (Result);
    end Suite_Sources;
 

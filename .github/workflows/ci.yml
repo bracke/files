@@ -501,6 +501,40 @@ jobs:
           alr --non-interactive build
           ./bin/tests
 
+      - name: Line coverage of src/ (Linux)
+        # Which of the application's code the suite runs. The summary goes
+        # to the job page; tests/coverage-floor.txt, when present, holds the
+        # percentage the run must not fall below. Until a floor is recorded
+        # the step reports without failing the job.
+        if: runner.os == 'Linux'
+        continue-on-error: ${{ hashFiles('files/tests/coverage-floor.txt') == '' }}
+        shell: bash
+        working-directory: files/tests
+        run: |
+          python3 -m pip install --quiet gcovr
+          # -f: the objects from the steps above are not instrumented.
+          alr --non-interactive build -- -f -cargs -fprofile-arcs -ftest-coverage -largs --coverage
+          ./bin/tests > /dev/null || true
+          cd ..
+          gcovr --root . --filter 'src/' --exclude-unreachable-branches \
+            --txt-summary --txt coverage.txt --json-summary coverage-summary.json .
+          line=$(python3 -c "import json; print(json.load(open('coverage-summary.json'))['line_percent'])")
+          {
+            echo "### Line coverage of src/: ${line}%"
+            echo '```'
+            tail -n 40 coverage.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -f tests/coverage-floor.txt ]; then
+            floor=$(tr -d '[:space:]' < tests/coverage-floor.txt)
+            if python3 -c "import sys; sys.exit(0 if float('$line') >= float('$floor') else 1)"; then
+              echo "line coverage ${line}% (floor ${floor}%)"
+            else
+              echo "::error::line coverage ${line}% fell below the recorded floor ${floor}%"
+              exit 1
+            fi
+          fi
+
       - name: Live GPU smoke (Linux, software Vulkan)
         # Exercises the full GLFW + Vulkan render path headlessly under Xvfb with
         # the Mesa lavapipe software ICD, then structurally analyses the read-back
