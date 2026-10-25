@@ -217,6 +217,8 @@ package body Files_Suite.Volumes is
          return "";
       end if;
       loop
+         --  "/" has no parent: that is the top.
+         exit when To_String (Top) = "/";
          declare
             Up       : constant String := Ada.Directories.Containing_Directory (To_String (Top));
             Up_Known : Boolean;
@@ -225,8 +227,6 @@ package body Files_Suite.Volumes is
               or else Hostkit.Metadata.Device_Id (Up, Up_Known) /= Device
               or else not Up_Known;
             Top := To_Unbounded_String (Up);
-         exception
-            when Ada.Directories.Use_Error => exit;
          end;
       end loop;
       return

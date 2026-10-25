@@ -76,9 +76,10 @@ procedure Tests is
       Ada.Directories.Rename (Partial, Path);
    end Publish;
 begin
-   --  Never reach a real drive's trash: the trash view's mount scan is off,
-   --  so Empty Trash in a test only meets trashes the tests made.
-   Ada.Environment_Variables.Set ("FILES_TEST_MOUNT_TRASHES", "off");
+   --  Volume trashes are off (cross-device tests keep exercising the home
+   --  trash), and even where a test turns them on the trash view never scans
+   --  the mounts, so Empty Trash in a test never meets a real drive's trash.
+   Ada.Environment_Variables.Set ("FILES_TEST_VOLUME_TRASH", "off");
 
    --  The scratch area for application state (the recovery index, the
    --  volume-trash list) and helper jobs, made here unless the caller named

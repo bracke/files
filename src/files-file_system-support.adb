@@ -197,12 +197,17 @@ package body Files.File_System.Support is
       end if;
    end On_Large_Stack;
 
+   function Weak_Change_Times (Path : String) return Boolean is
+      Revision : constant Hostkit.Metadata.Entry_Revision := Hostkit.Metadata.Entry_Revision_Of (Path);
+   begin
+      return Hostkit.Fs.Uses_Dos_Filename_Rules (Path)
+        or else not Revision.Available
+        or else Revision.Changed_Nanoseconds = 0;
+   end Weak_Change_Times;
+
    function Snapshot (Path : String; Content : Boolean := True) return Source_Snapshot is
       Result : Source_Snapshot;
-      --  On a DOS-family filesystem (FAT, exFAT) the change time is not an
-      --  independent stamp -- setting the modification time sets it too, to
-      --  two seconds -- so it pins nothing: every file is pinned by content.
-      Weak_Change_Time : constant Boolean := Content and then Hostkit.Fs.Uses_Dos_Filename_Rules (Path);
+      Weak_Change_Time : constant Boolean := Content and then Weak_Change_Times (Path);
       package Sorting is new Files.Types.String_Vectors.Generic_Sorting;
       procedure Visit (Full_Path, Relative : String; Depth : Natural) is
          Saved_Times : Copy_Times;

@@ -182,13 +182,22 @@ private package Files.File_System.Support is
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
       Root_Digest : access Files.Types.UString := null);
 
+   --  Whether the change times of the filesystem holding Path cannot pin an
+   --  edit: a DOS-family one (FAT, exFAT), where setting the modification
+   --  time sets the change time too, or one that keeps whole seconds (HFS+,
+   --  ext3), where an edit in the same second leaves the change time as it
+   --  was. Snapshots there pin every file by content.
+   --
+   --  @param Path An existing entry on that filesystem.
+   --  @return True when the change time is no proof of an unchanged file.
+   function Weak_Change_Times (Path : String) return Boolean;
+
    --  A snapshot reads one file's content at most: a regular-file root's.
    --  Every entry below the root is pinned by its revision, change time
    --  included, which any write moves; only the root's change time is left
    --  out (the private rename that verifies a move changes it), so a root
-   --  file is pinned by its content instead. On a DOS-family filesystem the
-   --  change time moves with the modification time, so there every file's
-   --  content is read.
+   --  file is pinned by its content instead. Where Weak_Change_Times holds,
+   --  every file's content is read.
    --
    --  @param Path Source tree to snapshot without following links.
    --  @param Content False to skip reading the root file's content: the

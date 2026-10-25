@@ -5,6 +5,14 @@ separate (Files.File_System)
 function Volume_Trash_For (Path : String) return String is
    Uid : Natural;
 
+   --  Path's parent; "/" (or a drive root) is its own.
+   function Parent_Of (Path : String) return String is
+   begin
+      return Ada.Directories.Containing_Directory (Path);
+   exception
+      when Ada.Directories.Use_Error => return Path;
+   end Parent_Of;
+
    --  The device of Path, or of its nearest existing ancestor.
    function Device_Of (Start : String; Device : out Long_Long_Integer) return Boolean is
       Current : Unbounded_String := To_Unbounded_String (Start);
@@ -16,7 +24,7 @@ function Volume_Trash_For (Path : String) return String is
             return Known;
          end if;
          declare
-            Up : constant String := Ada.Directories.Containing_Directory (To_String (Current));
+            Up : constant String := Parent_Of (To_String (Current));
          begin
             exit when Up = To_String (Current);
             Current := To_Unbounded_String (Up);
@@ -98,7 +106,7 @@ begin
    begin
       loop
          declare
-            Up     : constant String := Ada.Directories.Containing_Directory (To_String (Top));
+            Up     : constant String := Parent_Of (To_String (Top));
             Device : Long_Long_Integer;
             Known  : Boolean;
          begin
@@ -106,8 +114,6 @@ begin
             Device := Hostkit.Metadata.Device_Id (Up, Known);
             exit when not Known or else Device /= Item_Device;
             Top := To_Unbounded_String (Up);
-         exception
-            when others => exit;
          end;
       end loop;
 

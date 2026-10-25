@@ -21,6 +21,7 @@ separate (Files_Suite.Operations)
    begin
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Save (Environment, "FILES_TEST_VOLUME_TRASH");
       if Hostkit.Host.Current = Hostkit.Host.Windows then
          Files_Suite.Support.Skip ("Test_Volume_Trash", "Windows has no freedesktop volume trash");
          return;
@@ -33,6 +34,8 @@ separate (Files_Suite.Operations)
       end if;
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Data_Home);
+      --  The suite runs with volume trashes off; this test is about them.
+      Ada.Environment_Variables.Set ("FILES_TEST_VOLUME_TRASH", "on");
       Project_Tools.Files.Delete_Tree (Data_Home);
 
       declare
@@ -49,6 +52,19 @@ separate (Files_Suite.Operations)
          Write_File (Volume_Item, "volume");
          --  No administrator's .Trash on a test volume: the per-user one.
          Volume_Base := To_Unbounded_String (Files_Suite.Volumes.Volume_Trash_Of (Remote.Path));
+         --  A volume whose top takes no trash (the root filesystem, mounted
+         --  read-only) falls back to the home trash, as it should: nothing
+         --  here to test.
+         if not Ada.Directories.Exists (To_String (Volume_Base)) then
+            begin
+               Ada.Directories.Create_Directory (To_String (Volume_Base));
+            exception
+               when Ada.Directories.Use_Error =>
+                  Files_Suite.Support.Skip ("Test_Volume_Trash", "the second volume's top takes no trash folder");
+                  Clean;
+                  return;
+            end;
+         end if;
          declare
             Before : constant String := Files.File_Identities.Token (Volume_Item);
          begin

@@ -619,9 +619,9 @@ package body Files.File_System.Recovery is
       declare
          --  The source is read once, by the copy: a root file's content is
          --  pinned by the digest of the bytes copied, not hashed beforehand.
-         --  On a DOS-family filesystem every file is pinned by content (see
+         --  Where change times are weak every file is pinned by content (see
          --  Support.Snapshot), which only a full snapshot taken now can do.
-         Weak_Change_Time : constant Boolean := Hostkit.Fs.Uses_Dos_Filename_Rules (Source);
+         Weak_Change_Time : constant Boolean := Support.Weak_Change_Times (Source);
          Shape     : constant Support.Source_Snapshot :=
            Support.Snapshot (Source, Content => Weak_Change_Time);
          Digest    : aliased Files.Types.UString;
