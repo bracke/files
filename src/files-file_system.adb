@@ -21,7 +21,7 @@ with GNAT.OS_Lib;
 with Zlib;
 
 with Files.File_Types;
-with Files.Fs;
+with Files.Fs_Primitives;
 with Files_Config;
 
 with Hostkit.Metadata;
@@ -707,6 +707,7 @@ package body Files.File_System is
    function Load_Directory_Filtered
      (Path     : String;
       Settings : Files.Settings.Settings_Model;
+      Options  : Files.Types.Listing_Options;
       Include  : access function
         (Name : String; Kind : Files.Types.Item_Kind) return Boolean;
       Generate_Thumbnails : Boolean := False)

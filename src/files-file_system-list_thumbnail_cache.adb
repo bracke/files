@@ -8,7 +8,7 @@ function List_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is
 begin
    Result.Listed := True;
 
-   if Cache_Directory = "" or else not Files.Fs.Directory_Exists (Cache_Directory) then
+   if Cache_Directory = "" or else not Files.Fs_Primitives.Directory_Exists (Cache_Directory) then
       return Result;
    end if;
 

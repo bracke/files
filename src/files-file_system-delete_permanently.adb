@@ -70,7 +70,7 @@ begin
    --  a directory -- is unlinked as a link and never followed, so deleting a
    --  link (or a folder that merely contains one) can never reach through
    --  into the link target's real contents. Ada.Directories.Delete_Tree,
-   --  used previously via Files.Fs, follows links and would.
+   --  used previously via Files.Fs_Primitives, follows links and would.
    Files.Io_Errors.Clear_Os_Error;
    Support.Delete_Tree (Path);
    return (Success => True, Error_Key => Null_Unbounded_String);

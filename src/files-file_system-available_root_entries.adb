@@ -186,7 +186,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
       if Natural (Roots.Length) >= Max_Discovered_Roots then
          return;
       end if;
-      if Files.Fs.Directory_Exists (Path)
+      if Files.Fs_Primitives.Directory_Exists (Path)
       then
          Full := To_Unbounded_String (Ada.Directories.Full_Name (Path));
          Name := To_Unbounded_String (Ada.Directories.Simple_Name (To_String (Full)));

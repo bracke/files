@@ -1,8 +1,8 @@
 separate (Files_Suite.Operations)
    function Find_Application
-     (Apps : Files.Applications.Application_Vectors.Vector;
+     (Apps : Files.Desktop_Applications.Application_Vectors.Vector;
       Name : String)
-      return Files.Applications.Application is
+      return Files.Desktop_Applications.Application is
    begin
       for App of Apps loop
          if To_String (App.Name) = Name then

@@ -5,7 +5,7 @@ with Ada.Strings.Unbounded;
 with Guikit.Layout;
 with Guikit.Settings_Panel;
 
-with Files.Applications;
+with Files.Desktop_Applications;
 with Files.Breadcrumbs;
 with Files.Command_Palette;
 with Files.Folder_Tree;
@@ -729,7 +729,8 @@ package body Files.Controller is
 
       Load     : constant Files.File_System.Directory_Load_Result :=
         Files.File_System.Load_Directory_Filtered
-          (Node_Path, Settings, Is_Directory'Access, Generate_Thumbnails => False);
+          (Node_Path, Settings, Files.Settings.Listing_Options_Of (Settings), Is_Directory'Access,
+           Generate_Thumbnails => False);
       Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
    begin
       if Load.Success then
@@ -757,13 +758,13 @@ package body Files.Controller is
    --  preflight and process creation are still observable and must be reported.
    function Launch_Application_Result
      (Model : in out Files.Model.Window_Model;
-      App   : Files.Applications.Application)
+      App   : Files.Desktop_Applications.Application)
       return Controller_Result
    is
       Targets : constant Files.Types.String_Vectors.Vector :=
         Files.Model.Open_With_Targets (Model);
-      Actions : constant Files.Applications.Open_Action_Vectors.Vector :=
-        Files.Applications.Build_Open_Actions (App, Targets);
+      Actions : constant Files.Desktop_Applications.Open_Action_Vectors.Vector :=
+        Files.Desktop_Applications.Build_Open_Actions (App, Targets);
       Action : constant Files.Settings.Open_Action :=
         Actions.First_Element;
       Operation   : Files.Operations.Operation_Result := Empty_Operation;
@@ -832,8 +833,8 @@ package body Files.Controller is
 
       if Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Open_With then
          declare
-            Apps : constant Files.Applications.Application_Vectors.Vector :=
-              Files.Applications.Available_Applications;
+            Apps : constant Files.Desktop_Applications.Application_Vectors.Vector :=
+              Files.Desktop_Applications.Available_Applications;
          begin
             if Id in 1 .. Natural (Apps.Length) then
                return Launch_Application_Result (Model, Apps.Element (Id));

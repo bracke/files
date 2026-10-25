@@ -64,11 +64,11 @@ separate (Files_Suite.Rendering)
 
          "the grouping band emits exactly one header row");
       Files_Suite.Support.Assert_Equal
-        (Item_At (Items, Header_Center_X, Header_Center_Y),
+        (Files.Rendering.Hit.Item_At (Items, Header_Center_X, Header_Center_Y),
          0,
          "clicking a group header row selects nothing");
       Files_Suite.Support.Assert_Equal
-        (Item_At (Items, Item_Center_X, Item_Center_Y),
+        (Files.Rendering.Hit.Item_At (Items, Item_Center_X, Item_Center_Y),
          1,
          "clicking a real row under a header still resolves to that item");
    end Test_Detail_Group_Header_Rows;

@@ -3,7 +3,7 @@ with Ada.Directories;
 with Hostkit.Fs;
 with Hostkit.Regular_Files;
 
-package body Files.Fs is
+package body Files.Fs_Primitives is
    use type Ada.Directories.File_Kind;
    use type Hostkit.Fs.Delete_Tree_Outcome;
 
@@ -66,4 +66,4 @@ package body Files.Fs is
       end if;
    end Delete_Tree;
 
-end Files.Fs;
+end Files.Fs_Primitives;

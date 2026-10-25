@@ -29,14 +29,15 @@ separate (Files_Suite.Rendering)
 
       declare
          At_Size : constant Detail_Column_Separator :=
-           Details_Header_Separator_At (Base, Layout, Row.Size_X, Header_Y, Line_Height => 20);
+           Files.Rendering.Hit.Details_Header_Separator_At (Base, Layout, Row.Size_X, Header_Y, Line_Height => 20);
          At_Modified : constant Detail_Column_Separator :=
-           Details_Header_Separator_At (Base, Layout, Row.Modified_X, Header_Y, Line_Height => 20);
+           Files.Rendering.Hit.Details_Header_Separator_At (Base, Layout, Row.Modified_X, Header_Y, Line_Height => 20);
          Mid_Name : constant Detail_Column_Separator :=
-           Details_Header_Separator_At
+           Files.Rendering.Hit.Details_Header_Separator_At
              (Base, Layout, Row.Name_X + Row.Name_Width / 2, Header_Y, Line_Height => 20);
          Above_Header : constant Detail_Column_Separator :=
-           Details_Header_Separator_At (Base, Layout, Row.Size_X, Row.Y + Row.Height, Line_Height => 20);
+           Files.Rendering.Hit.Details_Header_Separator_At
+             (Base, Layout, Row.Size_X, Row.Y + Row.Height, Line_Height => 20);
       begin
          Assert (At_Size.Present and then At_Size.Column = Files.Types.Size_Column,
                  "a press on the size column's left edge resolves to the size separator");

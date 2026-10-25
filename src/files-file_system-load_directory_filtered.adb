@@ -2,6 +2,7 @@ separate (Files.File_System)
 function Load_Directory_Filtered
   (Path     : String;
    Settings : Files.Settings.Settings_Model;
+   Options  : Files.Types.Listing_Options;
    Include  : access function
      (Name : String; Kind : Files.Types.Item_Kind) return Boolean;
    Generate_Thumbnails : Boolean := False)
@@ -23,7 +24,7 @@ is
          --  caught below like any other per-entry failure.
          Hidden : constant Boolean := Name (Name'First) = '.' or else Hostkit.Fs.Is_Hidden (Full);
       begin
-         if Settings.Show_Hidden_Files or else not Hidden then
+         if Options.Show_Hidden or else not Hidden then
             declare
                Kind : constant Files.Types.Item_Kind := Kind_From_Path (Full);
             begin
@@ -51,7 +52,7 @@ is
          begin
             if not Admitted then
                Admitted := Include = null
-                 and then (Settings.Show_Hidden_Files or else Name (Name'First) /= '.');
+                 and then (Options.Show_Hidden or else Name (Name'First) /= '.');
             end if;
             if Admitted then
                Items.Append
@@ -91,14 +92,14 @@ is
          end;
    end Add_Entry;
 begin
-   if not Files.Fs.Directory_Exists (Path) then
+   if not Files.Fs_Primitives.Directory_Exists (Path) then
       return (Success => False, Path => To_Unbounded_String (Path),
               Items => Items, Error_Key => To_Unbounded_String ("error.directory.load"));
    end if;
    Cached.Generate := Generate_Thumbnails;
    Normalized_Path := To_Unbounded_String (Ada.Directories.Full_Name (Path));
    Support.For_Each_Entry (Path, Add_Entry'Access);
-   Sort_Items (Items, Settings.Sort_Field_Value, Settings.Sort_Ascending);
+   Sort_Items (Items, Options.Sort_Field, Options.Sort_Ascending);
    return (Success => True, Path => Normalized_Path,
            Items => Items, Error_Key => Null_Unbounded_String);
 exception

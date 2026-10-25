@@ -8,12 +8,12 @@ begin
    --  bottom-bar control behind the transient menu.
    if Snapshot.Sort_Menu_Open then
       Command :=
-        Files.UI.Bottom_Bar_Sort_Menu_Command_At
+        Files.Rendering.Hit.Bottom_Bar_Sort_Menu_Command_At
           (X, Y, Width, Height, Snapshot.Sort_Field, Line_Height);
       if Command /= Files.Commands.No_Command then
          Result := Command_Action (Command, Activate);
          return;
-      elsif Files.UI.Bottom_Bar_Sort_Menu_Contains
+      elsif Files.Rendering.Hit.Bottom_Bar_Sort_Menu_Contains
               (X, Y, Width, Height, Snapshot.Sort_Field, Line_Height)
       then
          --  Padding inside the menu is inert and must not fall through.

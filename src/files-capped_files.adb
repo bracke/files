@@ -2,7 +2,7 @@ with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
 
-with Files.Fs;
+with Files.Fs_Primitives;
 
 package body Files.Capped_Files is
 
@@ -32,8 +32,8 @@ package body Files.Capped_Files is
       Status := Read_Failed;
       File :=
         (case Links is
-            when Refuse_Links => Files.Fs.Open_Regular_Read (Path),
-            when Follow_Links => Files.Fs.Open_Regular_Read_Following_Links (Path));
+            when Refuse_Links => Files.Fs_Primitives.Open_Regular_Read (Path),
+            when Follow_Links => Files.Fs_Primitives.Open_Regular_Read_Following_Links (Path));
       if File = GNAT.OS_Lib.Invalid_FD then
          return "";
       end if;

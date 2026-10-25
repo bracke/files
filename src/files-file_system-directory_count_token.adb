@@ -6,7 +6,7 @@ function Directory_Count_Token (Path : String) return String is
    Started   : Boolean := False;
    Capped    : Boolean := False;
 begin
-   if not Files.Fs.Directory_Exists (Path)
+   if not Files.Fs_Primitives.Directory_Exists (Path)
    then
       return "";
    end if;

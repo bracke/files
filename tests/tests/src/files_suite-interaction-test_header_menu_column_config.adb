@@ -41,7 +41,7 @@ separate (Files_Suite.Interaction)
          Header_X := Row.Name_X + Row.Name_Width / 2;
          Header_Y := (Layout.Main_Y + Row.Y) / 2;
          Assert
-           (Files.Rendering.Details_Header_Cell_At
+           (Files.Rendering.Hit.Details_Header_Cell_At
               (Snapshot, Layout, Header_X, Header_Y, Line).Present,
             "the derived coordinate lands on the details header band");
          In_Main :=

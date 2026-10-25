@@ -7,7 +7,7 @@ with GNAT.OS_Lib;
 with Files.Bounded_Streams;
 with Files.Descriptor_Streams;
 with Files.File_System;
-with Files.Fs;
+with Files.Fs_Primitives;
 with Files.Durable_Writes;
 with Files.Private_Directories;
 with Files.Process_Jobs;
@@ -260,7 +260,7 @@ package body Files.Job_Context is
         and then not Hostkit.Fs.Is_Link (Record_Directory)
         and then Ada.Directories.Exists (Record_Directory)
       then
-         Files.Fs.Delete_Tree (Record_Directory);
+         Files.Fs_Primitives.Delete_Tree (Record_Directory);
       end if;
    exception
       when Swallowed : others =>

@@ -7,9 +7,9 @@ separate (Files_Suite.Operations)
       Original_Directory : constant String := Ada.Directories.Current_Directory;
 
       function Find
-        (Apps : Files.Applications.Application_Vectors.Vector;
+        (Apps : Files.Desktop_Applications.Application_Vectors.Vector;
          Name : String)
-         return Files.Applications.Application renames Find_Application;
+         return Files.Desktop_Applications.Application renames Find_Application;
 
       --  XDG base-directory variables never make relative paths meaningful.
       --  Change the process directory so a buggy implementation would find
@@ -18,7 +18,7 @@ separate (Files_Suite.Operations)
       procedure Check is
          Relative_Home : constant String := Join (Root, "relative-home");
          Relative_Dirs : constant String := Join (Root, "relative-system");
-         Apps : Files.Applications.Application_Vectors.Vector;
+         Apps : Files.Desktop_Applications.Application_Vectors.Vector;
       begin
          Ada.Directories.Create_Path (Join (Relative_Home, "applications"));
          Ada.Directories.Create_Path (Join (Relative_Dirs, "applications"));
@@ -39,7 +39,7 @@ separate (Files_Suite.Operations)
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", "relative-home");
          Ada.Environment_Variables.Set
            ("XDG_DATA_DIRS", "relative-system:" & System_Base);
-         Apps := Files.Applications.Available_Applications;
+         Apps := Files.Desktop_Applications.Available_Applications;
          Files_Suite.Support.Assert_Equal
            (To_String (Find (Apps, "Relative Data Home").Exec),
             "",

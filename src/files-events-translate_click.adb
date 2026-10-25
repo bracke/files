@@ -44,10 +44,10 @@ separate (Files.Events)
         Files.Rendering.Calculate_Tree_Row_Layout (Snapshot, Tree_Panel_L, Line_Height);
       Tree_Page_Rows : constant Natural :=
         Files.Rendering.Tree_Row_Capacity (Snapshot, Tree_Panel_L);
-      Root_Index     : constant Natural := Files.Rendering.Root_Path_At (Root_Rows, X, Y);
-      Breadcrumb_Index    : constant Natural := Files.Rendering.Breadcrumb_At (Breadcrumb_Rows, X, Y);
-      Tree_Triangle_Index : constant Natural := Files.Rendering.Tree_Triangle_At (Tree_Rows_L, X, Y);
-      Tree_Node_Index     : constant Natural := Files.Rendering.Tree_Row_At (Tree_Rows_L, X, Y);
+      Root_Index     : constant Natural := Files.Rendering.Hit.Root_Path_At (Root_Rows, X, Y);
+      Breadcrumb_Index    : constant Natural := Files.Rendering.Hit.Breadcrumb_At (Breadcrumb_Rows, X, Y);
+      Tree_Triangle_Index : constant Natural := Files.Rendering.Hit.Tree_Triangle_At (Tree_Rows_L, X, Y);
+      Tree_Node_Index     : constant Natural := Files.Rendering.Hit.Tree_Row_At (Tree_Rows_L, X, Y);
       Command        : Files.Commands.Command_Id := Files.Commands.No_Command;
       Item_Index     : Natural := 0;
 

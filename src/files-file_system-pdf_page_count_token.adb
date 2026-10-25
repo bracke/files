@@ -23,7 +23,7 @@ function Pdf_Page_Count_Token (Path : String) return String is
       or else Value = ']'
       or else Value = '[');
 begin
-   File := Files.Fs.Open_Regular_Read (Path);
+   File := Files.Fs_Primitives.Open_Regular_Read (Path);
    if File = GNAT.OS_Lib.Invalid_FD then
       return "document.kind|pdf";
    end if;

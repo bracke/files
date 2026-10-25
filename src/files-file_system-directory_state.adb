@@ -77,7 +77,7 @@ is
       end;
    end Add_Entry;
 begin
-   if not Files.Fs.Directory_Exists (Path)
+   if not Files.Fs_Primitives.Directory_Exists (Path)
    then
       return Result;
    end if;

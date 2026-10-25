@@ -8,7 +8,7 @@ function Count_Text_Lines (Path : String) return Natural is
    Last_Was_LF : Boolean := False;
    Scanned     : Long_Long_Integer := 0;
 begin
-   File := Files.Fs.Open_Regular_Read (Path);
+   File := Files.Fs_Primitives.Open_Regular_Read (Path);
    if File = GNAT.OS_Lib.Invalid_FD then
       return 0;
    end if;

@@ -1,10 +1,12 @@
 with GNAT.OS_Lib;
 
---  Low-level filesystem helpers used by the files application.
---  These mirror the small subset of filesystem helpers the application
---  relies on, implemented directly on Ada.Directories so
---  the executable carries no external tooling-library runtime dependency.
-package Files.Fs is
+--  Low-level filesystem primitives shared across the application: existence
+--  and kind probes, no-follow regular-file opens, and a no-follow tree delete,
+--  implemented on Ada.Directories and Hostkit. Files.File_System builds the
+--  listing and metadata layer on these, but startup, fonts, operations, jobs,
+--  and capped reads use them directly too, so they are a public unit rather
+--  than a private child of Files.File_System.
+package Files.Fs_Primitives is
 
    --  @param Path Filesystem path to test.
    --  @return True when Path exists (file or directory).
@@ -40,4 +42,4 @@ package Files.Fs is
    --  @param Path File or directory tree to remove.
    procedure Delete_Tree (Path : String);
 
-end Files.Fs;
+end Files.Fs_Primitives;

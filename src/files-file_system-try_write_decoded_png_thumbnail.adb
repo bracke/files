@@ -116,7 +116,7 @@ separate (Files.File_System)
          end if;
       end Paeth;
    begin
-      File := Files.Fs.Open_Regular_Read (Source_Path);
+      File := Files.Fs_Primitives.Open_Regular_Read (Source_Path);
       if File = GNAT.OS_Lib.Invalid_FD then
          return False;
       end if;

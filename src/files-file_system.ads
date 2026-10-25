@@ -394,8 +394,14 @@ package Files.File_System is
    --  such as the folder tree's subdirectories, does not stat, classify and
    --  thumbnail every file it passes.
    --
+   --  This is the one load that applies the listing policy; it takes it as
+   --  Options rather than reading it from Settings, which it consults only for
+   --  filetype and icon classification. The Settings-only loads above and
+   --  below pass Files.Settings.Listing_Options_Of (Settings).
+   --
    --  @param Path Directory path to load.
    --  @param Settings Settings used for filetype and icon classification.
+   --  @param Options Hidden-entry and sort policy for the listing.
    --  @param Include Entry filter, or null for every entry.
    --  @param Name Entry name Include is asked about.
    --  @param Kind Entry kind Include is asked about.
@@ -404,6 +410,7 @@ package Files.File_System is
    function Load_Directory_Filtered
      (Path     : String;
       Settings : Files.Settings.Settings_Model;
+      Options  : Files.Types.Listing_Options;
       Include  : access function
         (Name : String; Kind : Files.Types.Item_Kind) return Boolean;
       Generate_Thumbnails : Boolean := False)

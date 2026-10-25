@@ -143,6 +143,15 @@ package Files.Settings is
       Labels               : Path_Label_Vectors.Vector;
    end record;
 
+   --  The listing policy (hidden entries, sort field and direction) the
+   --  settings ask a directory load for.
+   --
+   --  @param Settings Settings model to read.
+   --  @return The listing options Settings selects.
+   function Listing_Options_Of
+     (Settings : Settings_Model)
+      return Files.Types.Listing_Options;
+
    --  Capture the snapshot-relevant settings for caching.
    --
    --  @param Settings Settings model to read.

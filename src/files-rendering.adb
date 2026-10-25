@@ -77,7 +77,6 @@ package body Files.Rendering is
    Main_Grid_Gap : constant Natural := 8;
    Item_Content_Padding : constant Natural := 4;
    Item_Icon_Text_Gap : constant Natural := 12;
-   Details_Row_Padding : constant Natural := 4;
    Details_Column_Padding : constant Natural := 6;
    Command_Palette_Padding : constant Natural := Guikit.Layout.Palette_Padding;
    Command_Result_Row_Padding : constant Natural := Guikit.Layout.Palette_Result_Row_Padding;
@@ -305,17 +304,6 @@ package body Files.Rendering is
       Factor : Natural)
       return Natural
      renames Guikit.Layout.Saturating_Multiply;
-
-   --  Geometry of one detail-view column: whether it is shown and, when shown,
-   --  its left edge and width in window pixels.
-   type Detail_Column_Geometry is record
-      Visible : Boolean := False;
-      X       : Natural := 0;
-      Width   : Natural := 0;
-   end record;
-
-   type Detail_Column_Geometry_Array is
-     array (Files.Types.Detail_Column) of Detail_Column_Geometry;
 
    --  Proportional default width for a toggleable column, scaled to the line
    --  height so the layout tracks the font size. Applied whenever the settings
@@ -767,17 +755,6 @@ package body Files.Rendering is
          when Files.Types.Large_Icons => Guikit.Item_Grid.Icons_Large,
          when Files.Types.Details     => Guikit.Item_Grid.Details);
 
-   --  The main content rectangle: the main-view region inset on all sides by the
-   --  content padding, dropping the inset when the region is too small to hold
-   --  it. Shared by the item layout, the details header/rows, and their click
-   --  hit-tests so they agree on the drawable content area.
-   type Content_Rectangle is record
-      X      : Natural := 0;
-      Y      : Natural := 0;
-      Width  : Natural := 0;
-      Height : Natural := 0;
-   end record;
-
    function Main_Content_Rect (Layout : Layout_Metrics) return Content_Rectangle is
       Padding : constant Natural :=
         (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
@@ -908,72 +885,6 @@ package body Files.Rendering is
       return Paste_Progress_Layout
  is separate;
 
-   function Conflict_Hit_At
-     (Frame : Frame_Commands;
-      X     : Natural;
-      Y     : Natural)
-      return Conflict_Hit_Region is
-   begin
-      for Index in reverse 1 .. Natural (Frame.Conflict_Hits.Length) loop
-         declare
-            Region : constant Conflict_Hit_Region :=
-              Frame.Conflict_Hits.Element (Positive (Index));
-         begin
-            if Contains_Rectangle_Point
-              (Region.X, Region.Y, Region.Width, Region.Height, X, Y)
-            then
-               return Region;
-            end if;
-         end;
-      end loop;
-
-      return (others => <>);
-   end Conflict_Hit_At;
-
-   function Permission_Hit_At
-     (Frame : Frame_Commands;
-      X     : Natural;
-      Y     : Natural)
-      return Permission_Hit_Region is
-   begin
-      for Index in 1 .. Natural (Frame.Permission_Hits.Length) loop
-         declare
-            Region : constant Permission_Hit_Region :=
-              Frame.Permission_Hits.Element (Positive (Index));
-         begin
-            if Contains_Rectangle_Point
-              (Region.X, Region.Y, Region.Width, Region.Height, X, Y)
-            then
-               return Region;
-            end if;
-         end;
-      end loop;
-
-      return (others => <>);
-   end Permission_Hit_At;
-
-   function Ownership_Hit_At
-     (Frame : Frame_Commands;
-      X     : Natural;
-      Y     : Natural)
-      return Ownership_Hit_Region is
-   begin
-      for Index in 1 .. Natural (Frame.Ownership_Hits.Length) loop
-         declare
-            Region : constant Ownership_Hit_Region :=
-              Frame.Ownership_Hits.Element (Positive (Index));
-         begin
-            if Contains_Rectangle_Point
-              (Region.X, Region.Y, Region.Width, Region.Height, X, Y)
-            then
-               return Region;
-            end if;
-         end;
-      end loop;
-
-      return (others => <>);
-   end Ownership_Hit_At;
-
    function Calculate_Context_Menu_Layout
      (Snapshot    : View_Snapshot;
       Width       : Natural;
@@ -1014,67 +925,6 @@ package body Files.Rendering is
          return Menu.Column_Width;
       end if;
    end Context_Menu_Row_Width;
-
-   function Context_Menu_Row_At
-     (Menu : Context_Menu_Layout;
-      X    : Natural;
-      Y    : Natural)
-      return Natural is
-      First_Row_Y : constant Natural := Saturating_Add (Menu.Y, Menu.Padding);
-   begin
-      if not Menu.Visible
-        or else X < Menu.X
-        or else X - Menu.X >= Menu.Width
-        or else Y < Menu.Y
-        or else Y - Menu.Y >= Menu.Height
-        or else Y < First_Row_Y
-        or else Menu.Row_Height = 0
-      then
-         return 0;
-      end if;
-
-      --  Rows have variable heights (separators are shorter), so walk them in
-      --  the column under X and return the command row containing Y. Separator
-      --  rows are not selectable and resolve to no row.
-      declare
-         Second_Column : constant Boolean :=
-           Menu.Column_Count > 1
-           and then X - Menu.X >= Menu.Column_Width;
-         First_Row : constant Positive :=
-           (if Second_Column then Positive (Menu.Column_Break_Row + 1) else 1);
-         Last_Row  : constant Natural :=
-           (if Second_Column then Menu.Row_Count
-            elsif Menu.Column_Count > 1 then Menu.Column_Break_Row
-            else Menu.Row_Count);
-         Row_Top : Natural := First_Row_Y;
-      begin
-         for Row in First_Row .. Last_Row loop
-            declare
-               Row_H : constant Natural :=
-                 (if Menu.Row_Kinds (Row) = Separator_Row
-                  then Menu.Separator_Height
-                  else Menu.Row_Height);
-            begin
-               if Y >= Row_Top and then Y - Row_Top < Row_H then
-                  if Menu.Row_Kinds (Row) = Separator_Row then
-                     return 0;
-                  else
-                     return Row;
-                  end if;
-               end if;
-               Row_Top := Saturating_Add (Row_Top, Row_H);
-            end;
-         end loop;
-         return 0;
-      end;
-   end Context_Menu_Row_At;
-
-   function Item_At
-     (Items : Item_Layout_Vectors.Vector;
-      X     : Natural;
-      Y     : Natural)
-      return Natural
-      renames Guikit.Item_Grid.Item_At;
 
    procedure Marquee_Rect
      (Start_X   : Natural;
@@ -1119,15 +969,6 @@ package body Files.Rendering is
       end if;
    end Marquee_Auto_Scroll_Step;
 
-   function Items_In_Rect
-     (Items  : Item_Layout_Vectors.Vector;
-      X      : Natural;
-      Y      : Natural;
-      Width  : Natural;
-      Height : Natural)
-      return Visible_Index_Vectors.Vector
-      renames Guikit.Item_Grid.Items_In_Rect;
-
    procedure Rename_Field_Extent
      (Item      : Item_Layout;
       View_Mode : Files.Types.View_Mode;
@@ -1137,151 +978,6 @@ package body Files.Rendering is
    begin
       Guikit.Item_Grid.Rename_Field_Extent (Item, Grid_View (View_Mode), Renaming, Field_X, Field_W);
    end Rename_Field_Extent;
-
-   --  Map a detail column to the sort command a header click on it triggers.
-   --  Columns that do not define a sort (the permissions column) return
-   --  No_Command.
-   function Header_Sort_Command
-     (Column : Files.Types.Detail_Column)
-      return Files.Commands.Command_Id is
-   begin
-      case Column is
-         when Files.Types.Name_Column =>
-            return Files.Commands.Sort_By_Name_Command;
-         when Files.Types.Modified_Column =>
-            return Files.Commands.Sort_By_Changed_Command;
-         when Files.Types.Size_Column =>
-            return Files.Commands.Sort_By_Size_Command;
-         when Files.Types.Filetype_Column =>
-            return Files.Commands.Sort_By_Type_Command;
-         when Files.Types.Created_Column =>
-            return Files.Commands.Sort_By_Created_Command;
-         when Files.Types.Permissions_Column =>
-            return Files.Commands.No_Command;
-      end case;
-   end Header_Sort_Command;
-
-   function Details_Header_Cell_At
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      X           : Natural;
-      Y           : Natural;
-      Line_Height : Positive := 20)
-      return Detail_Header_Cell
-   is
-      Content : constant Content_Rectangle := Main_Content_Rect (Layout);
-      Content_X : constant Natural := Content.X;
-      Content_Y : constant Natural := Content.Y;
-      Content_W : constant Natural := Content.Width;
-      Content_H : constant Natural := Content.Height;
-      Header_H  : constant Natural :=
-        Natural'Min
-          (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
-      Header_Pad : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
-      Columns   : constant Detail_Column_Geometry_Array :=
-        Compute_Detail_Columns
-          (Snapshot.Detail_Columns_Visible,
-           Snapshot.Detail_Column_Widths,
-           Snapshot.Detail_Column_Order,
-           Content_X,
-           Content_W,
-           Line_Height,
-           Header_Pad);
-
-      function Within (Column : Files.Types.Detail_Column) return Boolean is
-      begin
-         return Columns (Column).Visible
-           and then Contains_Rectangle_Point
-             (Columns (Column).X, Content_Y, Columns (Column).Width, Header_H, X, Y);
-      end Within;
-   begin
-      if Snapshot.View_Mode /= Files.Types.Details
-        or else Header_H = 0
-        or else not Contains_Rectangle_Point (Content_X, Content_Y, Content_W, Header_H, X, Y)
-      then
-         return (Present => False, others => <>);
-      end if;
-
-      for Column in Files.Types.Detail_Column loop
-         if Within (Column) then
-            return
-              (Present => True,
-               Column  => Column,
-               Command => Header_Sort_Command (Column));
-         end if;
-      end loop;
-
-      return (Present => False, others => <>);
-   end Details_Header_Cell_At;
-
-   function Details_Header_Drop_Index
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      X           : Natural;
-      Y           : Natural;
-      Line_Height : Positive := 20)
-      return Natural
- is separate;
-
-   --  Half-width, in pixels, of the invisible hot zone straddling a header
-   --  column separator. A press within this band of a separator's edge begins a
-   --  resize; it is wide enough to be grabbable yet narrow enough that clicks
-   --  well inside a header cell still resolve to a sort.
-   Detail_Separator_Hot_Zone : constant := 5;
-
-   function Details_Header_Separator_At
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      X           : Natural;
-      Y           : Natural;
-      Line_Height : Positive := 20)
-      return Detail_Column_Separator
-   is
-      Content : constant Content_Rectangle := Main_Content_Rect (Layout);
-      Content_X : constant Natural := Content.X;
-      Content_Y : constant Natural := Content.Y;
-      Content_W : constant Natural := Content.Width;
-      Content_H : constant Natural := Content.Height;
-      Header_H  : constant Natural :=
-        Natural'Min
-          (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
-      Header_Pad : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
-      Columns   : constant Detail_Column_Geometry_Array :=
-        Compute_Detail_Columns
-          (Snapshot.Detail_Columns_Visible,
-           Snapshot.Detail_Column_Widths,
-           Snapshot.Detail_Column_Order,
-           Content_X,
-           Content_W,
-           Line_Height,
-           Header_Pad);
-      Low       : constant Natural :=
-        (if X > Detail_Separator_Hot_Zone then X - Detail_Separator_Hot_Zone else 0);
-      High      : constant Natural := Saturating_Add (X, Detail_Separator_Hot_Zone);
-   begin
-      if Snapshot.View_Mode /= Files.Types.Details
-        or else Header_H = 0
-        or else Y < Content_Y
-        or else Y >= Saturating_Add (Content_Y, Header_H)
-      then
-         return (Present => False, others => <>);
-      end if;
-
-      for Column in Files.Types.Optional_Detail_Column loop
-         if Columns (Column).Visible
-           and then Columns (Column).X >= Low
-           and then Columns (Column).X <= High
-         then
-            return
-              (Present  => True,
-               Column   => Column,
-               Origin_X => Columns (Column).X,
-               Width    => Columns (Column).Width);
-         end if;
-      end loop;
-
-      return (Present => False, others => <>);
-   end Details_Header_Separator_At;
 
    function Calculate_Command_Palette_Layout
      (Layout      : Layout_Metrics;
@@ -1449,23 +1145,6 @@ package body Files.Rendering is
       return Root_Path_Layout_Vectors.Vector
  is separate;
 
-   function Root_Path_At
-     (Rows : Root_Path_Layout_Vectors.Vector;
-      X    : Natural;
-      Y    : Natural)
-      return Natural is
-   begin
-      for Row of Rows loop
-         if Contains_Rectangle_Point
-              (Row.X, Row.Y, Row.Width, Row.Height, X, Y)
-         then
-            return Row.Root_Index;
-         end if;
-      end loop;
-
-      return 0;
-   end Root_Path_At;
-
    function Path_Favorite_Star_Region
      (Width       : Natural;
       Line_Height : Positive := 20)
@@ -1513,23 +1192,6 @@ package body Files.Rendering is
       Line_Height : Positive := 20)
       return Breadcrumb_Segment_Layout_Vectors.Vector
  is separate;
-
-   function Breadcrumb_At
-     (Rows : Breadcrumb_Segment_Layout_Vectors.Vector;
-      X    : Natural;
-      Y    : Natural)
-      return Natural is
-   begin
-      for Row of Rows loop
-         if Row.Clickable
-           and then Row.Segment_Index /= 0
-           and then Contains_Rectangle_Point (Row.X, Row.Y, Row.Width, Row.Height, X, Y)
-         then
-            return Row.Segment_Index;
-         end if;
-      end loop;
-      return 0;
-   end Breadcrumb_At;
 
    --  Height of the Choose/Cancel footer the tree panel reserves in pick
    --  mode; zero otherwise or when the panel is too short to spare a row.
@@ -1605,38 +1267,6 @@ package body Files.Rendering is
       Line_Height : Positive := 20)
       return Tree_Row_Layout_Vectors.Vector
  is separate;
-
-   function Tree_Row_At
-     (Rows : Tree_Row_Layout_Vectors.Vector;
-      X    : Natural;
-      Y    : Natural)
-      return Natural is
-   begin
-      for Row of Rows loop
-         if Contains_Rectangle_Point (Row.X, Row.Y, Row.Width, Row.Height, X, Y) then
-            return Row.Node_Index;
-         end if;
-      end loop;
-      return 0;
-   end Tree_Row_At;
-
-   function Tree_Triangle_At
-     (Rows : Tree_Row_Layout_Vectors.Vector;
-      X    : Natural;
-      Y    : Natural)
-      return Natural is
-   begin
-      for Row of Rows loop
-         if Row.Has_Children
-           and then Row.Triangle_W > 0
-           and then Contains_Rectangle_Point
-                      (Row.Triangle_X, Row.Triangle_Y, Row.Triangle_W, Row.Triangle_H, X, Y)
-         then
-            return Row.Node_Index;
-         end if;
-      end loop;
-      return 0;
-   end Tree_Triangle_At;
 
    function Tree_Pick_Buttons
      (Panel       : Tree_Panel_Layout;

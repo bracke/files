@@ -11,7 +11,7 @@ with Files.Capped_Files;
 with Files.Localization;
 with Files.Operations;
 
-package body Files.Applications is
+package body Files.Desktop_Applications is
    use Ada.Strings.Unbounded;
 
    --  Desktop files are discovered automatically from user-controlled XDG
@@ -1047,7 +1047,7 @@ package body Files.Applications is
             end if;
          exception
             when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.Applications");
+               Files.Diagnostics.Note (Swallowed, "Files.Desktop_Applications");
          end;
       end loop;
 
@@ -1058,7 +1058,7 @@ package body Files.Applications is
             Ada.Directories.End_Search (Search);
          exception
             when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.Applications");
+               Files.Diagnostics.Note (Swallowed, "Files.Desktop_Applications");
          end;
    end Scan_Directory;
 
@@ -1158,4 +1158,4 @@ package body Files.Applications is
          return Application_Vectors.Empty_Vector;
    end Available_Applications;
 
-end Files.Applications;
+end Files.Desktop_Applications;

@@ -16,7 +16,7 @@ is
    Seen   : Natural := 0;
    Total  : GNAT.OS_Lib.Large_File_Size;
 begin
-   File := Files.Fs.Open_Regular_Read (Path);
+   File := Files.Fs_Primitives.Open_Regular_Read (Path);
    if File = GNAT.OS_Lib.Invalid_FD then
       return Prefix & ".entries|0";
    end if;

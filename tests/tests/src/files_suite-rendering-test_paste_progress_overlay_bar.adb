@@ -24,7 +24,7 @@ separate (Files_Suite.Rendering)
       Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
       Expected_Fill := (Panel.Bar_Width * Snap.Paste_Progress_Done) / Snap.Paste_Progress_Total;
       Assert
-        (Conflict_Hit_At (Frame, Panel.Cancel_X + Panel.Cancel_Width / 2,
+        (Files.Rendering.Hit.Conflict_Hit_At (Frame, Panel.Cancel_X + Panel.Cancel_Width / 2,
            Panel.Cancel_Y + Panel.Cancel_Height / 2).Kind = Conflict_Hit_Progress_Cancel,
          "the paste-progress overlay exposes a hit-testable Cancel button");
       Assert (Expected_Fill > 0, "a partial progress produces a non-empty filled bar");

@@ -9,7 +9,7 @@ with GNAT.OS_Lib;
 with Files_Config;
 
 with Files.Folder_Size;
-with Files.Fs;
+with Files.Fs_Primitives;
 with Files.Paste;
 with Files.Transfer_Jobs;
 with Files.Process_Jobs;

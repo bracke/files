@@ -118,7 +118,7 @@ begin
       return "";
    end if;
 
-   File := Files.Fs.Open_Regular_Read (Path);
+   File := Files.Fs_Primitives.Open_Regular_Read (Path);
    if File = GNAT.OS_Lib.Invalid_FD then
       return "";
    end if;

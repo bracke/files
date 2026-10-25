@@ -4,7 +4,7 @@ with Files.Settings;
 with Files.Types;
 
 --  Discovery of installed desktop applications for the "Open With" picker.
-package Files.Applications is
+package Files.Desktop_Applications is
    subtype UString is Files.Types.UString;
 
    type Application is record
@@ -80,4 +80,4 @@ package Files.Applications is
       Targets : Files.Types.String_Vectors.Vector)
       return Open_Action_Vectors.Vector;
 
-end Files.Applications;
+end Files.Desktop_Applications;

@@ -24,7 +24,7 @@ separate (Files_Suite.Interaction)
          In_Main :=
            X >= Layout.Main_X and then X < Layout.Main_X + Layout.Main_Width
            and then Y >= Layout.Main_Y and then Y < Layout.Main_Y + Layout.Main_Height;
-         Index := Files.Rendering.Item_At (Items, X, Y);
+         Index := Files.Rendering.Hit.Item_At (Items, X, Y);
          Files.Interaction.Apply_Right_Click (Model, Settings, In_Main, Index, X, Y, Result);
       end;
       Assert (Files.Model.Context_Menu_Is_Open (Model), "context menu is open before the row click");
@@ -50,7 +50,7 @@ separate (Files_Suite.Interaction)
          Row_Y :=
            Files.Rendering.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
          Files_Suite.Support.Assert_Equal
-           (Files.Rendering.Context_Menu_Row_At (Menu, Row_X, Row_Y),
+           (Files.Rendering.Hit.Context_Menu_Row_At (Menu, Row_X, Row_Y),
             Target_Row,
             "the derived coordinate hit-tests back to the copy row");
 

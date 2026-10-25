@@ -1,6 +1,7 @@
 with Ada.Strings.Unbounded;
 
 with Guikit.Layout;
+with Files.Rendering.Hit;
 with Files.UTF8;
 with Files.UI;
 

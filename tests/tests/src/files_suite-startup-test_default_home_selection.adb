@@ -48,7 +48,7 @@ separate (Files_Suite.Startup)
            (Files.Application.Home_Directory /= Join (Root, "profile-home"),
             "a Windows profile variable does not decide the home on a POSIX host");
          Assert
-           (Files.Fs.Directory_Exists (Files.Application.Home_Directory),
+           (Files.Fs_Primitives.Directory_Exists (Files.Application.Home_Directory),
             "and what the password file reports is a directory that exists");
       end if;
 

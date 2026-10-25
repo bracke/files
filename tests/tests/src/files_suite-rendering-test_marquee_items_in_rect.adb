@@ -43,7 +43,7 @@ separate (Files_Suite.Rendering)
       --  two cells (details rows stack vertically, so 1 and 2 are adjacent).
       declare
          Hits : constant Visible_Index_Vectors.Vector :=
-           Items_In_Rect
+           Files.Rendering.Hit.Items_In_Rect
              (Items,
               X      => Cell_1.X + Cell_1.Width / 2,
               Y      => Cell_1.Y + Cell_1.Height / 2,
@@ -57,7 +57,7 @@ separate (Files_Suite.Rendering)
       --  top edge of cell 1 still touches it.
       declare
          Hits : constant Visible_Index_Vectors.Vector :=
-           Items_In_Rect (Items, Cell_1.X + 1, Cell_1.Y, Width => 1, Height => 1);
+           Files.Rendering.Hit.Items_In_Rect (Items, Cell_1.X + 1, Cell_1.Y, Width => 1, Height => 1);
       begin
          Assert (Natural (Hits.Length) = 1 and then Hits.First_Element = 1,
                  "a rectangle grazing a cell edge counts as a hit");
@@ -67,7 +67,7 @@ separate (Files_Suite.Rendering)
       declare
          Bottom : constant Natural := Layout.Main_Y + Layout.Main_Height;
          Hits   : constant Visible_Index_Vectors.Vector :=
-           Items_In_Rect (Items, Layout.Main_X, Bottom + 100, Width => 20, Height => 20);
+           Files.Rendering.Hit.Items_In_Rect (Items, Layout.Main_X, Bottom + 100, Width => 20, Height => 20);
       begin
          Assert (Hits.Is_Empty, "a rect over empty space below the grid returns no items");
       end;
@@ -75,7 +75,7 @@ separate (Files_Suite.Rendering)
       --  A zero-area rectangle (a plain click, no drag) touches nothing.
       declare
          Hits : constant Visible_Index_Vectors.Vector :=
-           Items_In_Rect (Items, Cell_1.X, Cell_1.Y, Width => 0, Height => 0);
+           Files.Rendering.Hit.Items_In_Rect (Items, Cell_1.X, Cell_1.Y, Width => 0, Height => 0);
       begin
          Assert (Hits.Is_Empty, "a zero-area marquee selects nothing (a plain click)");
       end;
@@ -101,7 +101,7 @@ separate (Files_Suite.Rendering)
       Files_Suite.Support.Assert_Equal (Rect_W, 10, "the normalized width is the corner x distance");
       declare
          Hits : constant Visible_Index_Vectors.Vector :=
-           Items_In_Rect (Items, Rect_X, Rect_Y, Rect_W, Rect_H);
+           Files.Rendering.Hit.Items_In_Rect (Items, Rect_X, Rect_Y, Rect_W, Rect_H);
       begin
          Assert (Exactly (Hits, Two), "an up-left drag selects the same two cells as down-right");
       end;

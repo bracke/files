@@ -19,6 +19,7 @@ with Files.Folder_Size;
 with Files.Interaction;
 with Files.Job_Scavenger;
 with Files.Operations;
+with Files.Rendering.Hit;
 with Guikit.Layout;
 with Guikit.Settings_Panel;
 with Guikit.Utf8;
@@ -1613,7 +1614,7 @@ package body Files.Application.Windows is
               Files.Rendering.Calculate_Layout
                 (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
             Drop     : constant Natural :=
-              Files.Rendering.Details_Header_Drop_Index
+              Files.Rendering.Hit.Details_Header_Drop_Index
                 (Snapshot, Layout, Natural'Max (0, X_Frame), Y_Frame, Line_Height);
             Result   : Files.Interaction.Interaction_Result;
          begin
@@ -1638,7 +1639,7 @@ package body Files.Application.Windows is
               Files.Rendering.Calculate_Layout
                 (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
             Cell     : constant Files.Rendering.Detail_Header_Cell :=
-              Files.Rendering.Details_Header_Cell_At
+              Files.Rendering.Hit.Details_Header_Cell_At
                 (Snapshot, Layout, Natural'Max (0, X_Frame), Y_Frame, Line_Height);
          begin
             if Cell.Present

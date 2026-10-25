@@ -1,6 +1,6 @@
 --  Whole-file reads bounded by a byte cap, for the small configuration,
 --  icon, settings, desktop-entry and thumbnail files the application parses.
---  Files are opened through Files.Fs, so only regular files are read and
+--  Files are opened through Files.Fs_Primitives, so only regular files are read and
 --  nothing blocks on a FIFO or device; the bytes come back unchanged.
 package Files.Capped_Files is
 

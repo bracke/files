@@ -46,7 +46,7 @@ begin
    --  was configured.  Pruning is destructive, so never follow that link
    --  and evict ordinary files from an unrelated target directory.
    if Hostkit.Fs.Is_Link (Cache_Directory)
-     or else not Files.Fs.Directory_Exists (Cache_Directory)
+     or else not Files.Fs_Primitives.Directory_Exists (Cache_Directory)
    then
       return;
    end if;

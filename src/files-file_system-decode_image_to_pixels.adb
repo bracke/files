@@ -42,7 +42,7 @@ begin
       return Result;
    end if;
 
-   Descriptor := Files.Fs.Open_Regular_Read (Path);
+   Descriptor := Files.Fs_Primitives.Open_Regular_Read (Path);
    if Descriptor = GNAT.OS_Lib.Invalid_FD then
       return Result;
    end if;

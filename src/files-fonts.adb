@@ -11,7 +11,7 @@ with Textrender.Fonts;
 
 with Files.File_System;
 
-with Files.Fs;
+with Files.Fs_Primitives;
 with Hostkit.Fs;
 
 package body Files.Fonts is
@@ -75,7 +75,7 @@ package body Files.Fonts is
      (Path : String)
       return Boolean is
    begin
-      return Path /= "" and then Files.Fs.File_Exists (Path);
+      return Path /= "" and then Files.Fs_Primitives.File_Exists (Path);
    exception
       when others =>
          return False;
@@ -198,7 +198,7 @@ package body Files.Fonts is
         or else Scanned >= Max_Scanned_Font_Entries
         or else Depth > Max_Search_Depth
         or else Root = ""
-        or else not Files.Fs.Directory_Exists (Root)
+        or else not Files.Fs_Primitives.Directory_Exists (Root)
       then
          return;
       end if;

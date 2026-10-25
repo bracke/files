@@ -25,6 +25,7 @@ with Files.UTF8;
 with Files.Quick_Look;
 with Guikit.Draw;
 with Files.Rendering;
+with Files.Rendering.Hit;
 with Files.Accessibility;
 with Files.Settings;
 with Files_Suite.Support;

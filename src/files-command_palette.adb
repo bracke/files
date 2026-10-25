@@ -1,6 +1,6 @@
 with Ada.Strings.Unbounded;
 
-with Files.Applications;
+with Files.Desktop_Applications;
 with Files.Commands;
 with Files.Localization;
 
@@ -24,8 +24,8 @@ package body Files.Command_Palette is
    begin
       if Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Open_With then
          declare
-            Apps : constant Files.Applications.Application_Vectors.Vector :=
-              Files.Applications.Available_Applications;
+            Apps : constant Files.Desktop_Applications.Application_Vectors.Vector :=
+              Files.Desktop_Applications.Available_Applications;
             Index : Natural := 0;
          begin
             for App of Apps loop

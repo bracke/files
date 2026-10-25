@@ -7,7 +7,7 @@ function Index_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is
    Shared : constant Cache_Index :=
      (Listed => True, Names => Thumbnail_Name_Sets.Empty_Set, Generate => True, Shared => True);
 begin
-   if Cache_Directory = "" or else not Files.Fs.Directory_Exists (Cache_Directory) then
+   if Cache_Directory = "" or else not Files.Fs_Primitives.Directory_Exists (Cache_Directory) then
       return List_Thumbnail_Cache (Cache_Directory);
    end if;
    Stamp := Ada.Directories.Modification_Time (Cache_Directory);

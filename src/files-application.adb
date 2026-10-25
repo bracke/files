@@ -14,7 +14,7 @@ with Hostkit.Metadata;
 
 with Files.Commands;
 with Files.File_System;
-with Files.Fs;
+with Files.Fs_Primitives;
 with Files.Application.Windows;
 with Files.Application.Windows.Smoke;
 with Files_Config;
@@ -146,7 +146,7 @@ package body Files.Application is
 
       function Existing_Directory (Path : String) return Boolean is
       begin
-         return Path /= "" and then Files.Fs.Directory_Exists (Path);
+         return Path /= "" and then Files.Fs_Primitives.Directory_Exists (Path);
       exception
          when others =>
             return False;
@@ -225,7 +225,7 @@ package body Files.Application is
       --  the path for an existing one would orphan the file -- Ensure_Default_File
       --  would find nothing at the new location and write a fresh default,
       --  silently, over choices that cannot be regenerated from anything.
-      if Files.Fs.File_Exists (Legacy) or else Host_Config = "" then
+      if Files.Fs_Primitives.File_Exists (Legacy) or else Host_Config = "" then
          return Legacy;
       end if;
 

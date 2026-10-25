@@ -8,7 +8,7 @@ is
    function Exists_Safely (Path : String) return Boolean is
    begin
       return Path /= "" and then
-        (Files.Fs.Exists (Path) or else Hostkit.Fs.Is_Link (Path));
+        (Files.Fs_Primitives.Exists (Path) or else Hostkit.Fs.Is_Link (Path));
    exception
       when others =>
          return False;

@@ -13,6 +13,7 @@ is
       Items     => Item_Vectors.Empty_Vector,
       Error_Key => Null_Unbounded_String);
    Normalized_Query : constant String := Files.Types.Fold_Case (Query);
+   Options          : constant Files.Types.Listing_Options := Files.Settings.Listing_Options_Of (Settings);
 
    --  Bound the walk independently of how many entries match. The only stop
    --  condition used to be Max_Items, which advances solely on a match, so a
@@ -54,7 +55,7 @@ is
       end if;
       declare
          Load : constant Directory_Load_Result :=
-           Load_Directory_Filtered (Directory_Path, Settings, Include'Access);
+           Load_Directory_Filtered (Directory_Path, Settings, Options, Include'Access);
       begin
          if not Load.Success then
             Result.Error_Key := To_Unbounded_String
@@ -86,7 +87,7 @@ is
            (if Depth = 0 then "error.directory.load" else "error.search.failed");
    end Visit;
 begin
-   if not Files.Fs.Directory_Exists (Root_Path)
+   if not Files.Fs_Primitives.Directory_Exists (Root_Path)
    then
       Result.Error_Key := To_Unbounded_String ("error.directory.load");
       return Result;

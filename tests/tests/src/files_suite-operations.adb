@@ -55,7 +55,7 @@ with Hostkit.Spawn;
 with Files.Accessibility;
 with Files.Application;
 with Files.Application.Windows;
-with Files.Applications;
+with Files.Desktop_Applications;
 with Files.Archive_Writing;
 with Files.Command_Palette;
 with Files.Commands;
@@ -397,9 +397,9 @@ package body Files_Suite.Operations is
    procedure With_Desktop_Application_Fixture (Check : not null access procedure);
    --  The application named Name, or one with every field empty.
    function Find_Application
-     (Apps : Files.Applications.Application_Vectors.Vector;
+     (Apps : Files.Desktop_Applications.Application_Vectors.Vector;
       Name : String)
-      return Files.Applications.Application;
+      return Files.Desktop_Applications.Application;
    procedure Test_Desktop_Application_Discovery (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Desktop_Exec_Expansion (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Open_With_Palette_Launch (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -1966,9 +1966,9 @@ package body Files_Suite.Operations is
    procedure With_Desktop_Application_Fixture (Check : not null access procedure) is separate;
 
    function Find_Application
-     (Apps : Files.Applications.Application_Vectors.Vector;
+     (Apps : Files.Desktop_Applications.Application_Vectors.Vector;
       Name : String)
-      return Files.Applications.Application is separate;
+      return Files.Desktop_Applications.Application is separate;
 
    procedure Test_Desktop_Application_Discovery (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

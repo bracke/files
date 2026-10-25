@@ -23,7 +23,7 @@ separate (Files_Suite.Interaction)
          In_Main :=
            X >= Layout.Main_X and then X < Layout.Main_X + Layout.Main_Width
            and then Y >= Layout.Main_Y and then Y < Layout.Main_Y + Layout.Main_Height;
-         Index := Files.Rendering.Item_At (Items, X, Y);
+         Index := Files.Rendering.Hit.Item_At (Items, X, Y);
          Files.Interaction.Apply_Right_Click
            (Model      => Model,
             Settings   => Settings,

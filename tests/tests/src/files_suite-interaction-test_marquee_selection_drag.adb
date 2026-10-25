@@ -55,7 +55,7 @@ separate (Files_Suite.Interaction)
             Y         => Rect_Y,
             Width     => Rect_W,
             Height    => Rect_H);
-         Hits := Files.Rendering.Items_In_Rect (Cells, Rect_X, Rect_Y, Rect_W, Rect_H);
+         Hits := Files.Rendering.Hit.Items_In_Rect (Cells, Rect_X, Rect_Y, Rect_W, Rect_H);
 
          --  Precedence: a press on empty grid space begins a marquee rather than
          --  clearing or ignoring, and it is not additive without a modifier.
@@ -99,7 +99,7 @@ separate (Files_Suite.Interaction)
             Header_Y : constant Natural :=
               (if Cell_1.Y > Line then Cell_1.Y - Line / 2 else Cell_1.Y);
             Header   : constant Files.Rendering.Detail_Header_Cell :=
-              Files.Rendering.Details_Header_Cell_At (Snapshot, Layout, Header_X, Header_Y, Line);
+              Files.Rendering.Hit.Details_Header_Cell_At (Snapshot, Layout, Header_X, Header_Y, Line);
             Action   : constant Files.Events.Input_Action :=
               Files.Events.Translate_Click
                 (Snapshot, Frame, Header_X, Header_Y, Window_W, Window_H, Line_Height => Line);
@@ -165,7 +165,7 @@ separate (Files_Suite.Interaction)
             "the additive marquee selects exactly the union");
 
          --  A zero-area marquee (a press that never dragged) selects nothing new.
-         Empty := Files.Rendering.Items_In_Rect (Cells, Rect_X, Rect_Y, 0, 0);
+         Empty := Files.Rendering.Hit.Items_In_Rect (Cells, Rect_X, Rect_Y, 0, 0);
          Assert (Empty.Is_Empty, "a zero-area marquee touches no items");
       end;
    end Test_Marquee_Selection_Drag;

@@ -316,18 +316,6 @@ package Files.Rendering is
       Line_Height : Positive := 20)
       return Context_Menu_Layout;
 
-   --  Return the row index at a window coordinate, or zero when outside.
-   --
-   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
-   --  @param X Window X coordinate.
-   --  @param Y Window Y coordinate.
-   --  @return Row index between 1 and Row_Count, or 0 when outside the menu.
-   function Context_Menu_Row_At
-     (Menu : Context_Menu_Layout;
-      X    : Natural;
-      Y    : Natural)
-      return Natural;
-
    --  Return the top Y coordinate of a menu row, accounting for the smaller
    --  height of any separator rows above it. Rows have variable heights, so a
    --  simple row * Row_Height offset is not correct; callers (renderer and
@@ -703,42 +691,6 @@ package Files.Rendering is
       Line_Height : Positive := 20)
       return Paste_Progress_Layout;
 
-   --  Return the paste-conflict-dialog control containing a point, if any.
-   --
-   --  @param Frame Frame whose conflict hit regions are tested.
-   --  @param X Point X coordinate in pixels.
-   --  @param Y Point Y coordinate in pixels.
-   --  @return The control at the point, or a region with Kind Conflict_Hit_None.
-   function Conflict_Hit_At
-     (Frame : Frame_Commands;
-      X     : Natural;
-      Y     : Natural)
-      return Conflict_Hit_Region;
-
-   --  Return the info-pane permission cell containing a point, if any.
-   --
-   --  @param Frame Frame whose permission hit regions are tested.
-   --  @param X Point X coordinate in pixels.
-   --  @param Y Point Y coordinate in pixels.
-   --  @return The cell at the point, or a region with Present False when none.
-   function Permission_Hit_At
-     (Frame : Frame_Commands;
-      X     : Natural;
-      Y     : Natural)
-      return Permission_Hit_Region;
-
-   --  Return the info-pane ownership value containing a point, if any.
-   --
-   --  @param Frame Frame whose ownership hit regions are tested.
-   --  @param X Point X coordinate in pixels.
-   --  @param Y Point Y coordinate in pixels.
-   --  @return The value at the point, or a region with Present False when none.
-   function Ownership_Hit_At
-     (Frame : Frame_Commands;
-      X     : Natural;
-      Y     : Natural)
-      return Ownership_Hit_Region;
-
    type Text_Renderer is private;
 
    --  Text rasterization outcome and glyph/atlas result. Re-exported from
@@ -842,18 +794,6 @@ package Files.Rendering is
       Line_Height : Positive)
       return Positive;
 
-   --  Return the visible item index at a position.
-   --
-   --  @param Items Item layout rectangles.
-   --  @param X Horizontal window coordinate.
-   --  @param Y Vertical window coordinate.
-   --  @return Visible item index, or zero when no item is hit.
-   function Item_At
-     (Items : Item_Layout_Vectors.Vector;
-      X     : Natural;
-      Y     : Natural)
-      return Natural;
-
    --  The rendered pixel width of Free_Space_Label, or zero when there is no
    --  free field.
    --
@@ -908,25 +848,6 @@ package Files.Rendering is
       Max_Step      : Positive := 4)
       return Integer;
 
-   --  Return, in ascending order, the one-based visible indices of every item
-   --  whose layout rectangle intersects the given (already normalized) marquee
-   --  rectangle. Any overlap counts as a hit; a zero-area rectangle (Width or
-   --  Height zero, e.g. a plain click that never dragged) touches nothing.
-   --
-   --  @param Items Item layout rectangles in visible-item order.
-   --  @param X Marquee left edge in framebuffer pixels.
-   --  @param Y Marquee top edge in framebuffer pixels.
-   --  @param Width Marquee width in framebuffer pixels.
-   --  @param Height Marquee height in framebuffer pixels.
-   --  @return Ascending visible indices the rectangle intersects.
-   function Items_In_Rect
-     (Items  : Item_Layout_Vectors.Vector;
-      X      : Natural;
-      Y      : Natural;
-      Width  : Natural;
-      Height : Natural)
-      return Visible_Index_Vectors.Vector;
-
    --  Return the horizontal extent of an item's inline rename field.
    --
    --  Both the renderer and the click hit-test use this so the editable region
@@ -956,47 +877,6 @@ package Files.Rendering is
       Command : Files.Commands.Command_Id := Files.Commands.No_Command;
    end record;
 
-   --  Hit-test a details-header coordinate against the header cell bodies,
-   --  returning the column under it plus its sort command. It reports every
-   --  column (including ones that do not sort) so a press can begin a
-   --  column-reorder drag. Returns a cell
-   --  with Present False outside the header band or the details view.
-   --
-   --  @param Snapshot Immutable view snapshot.
-   --  @param Layout Calculated frame layout.
-   --  @param X Horizontal window coordinate.
-   --  @param Y Vertical window coordinate.
-   --  @param Line_Height Text line height in pixels.
-   --  @return The header cell under the coordinate, or one with Present False.
-   function Details_Header_Cell_At
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      X           : Natural;
-      Y           : Natural;
-      Line_Height : Positive := 20)
-      return Detail_Header_Cell;
-
-   --  Return the target order slot for a column-reorder drop at (X, Y): the
-   --  one-based position the dragged column should occupy. It is the ordered
-   --  slot of the visible column under the pointer; a drop left of the first
-   --  optional column targets the slot just after the name column, and a drop
-   --  past the last visible column targets the final slot. Returns 0 when the
-   --  coordinate lies outside the details header band.
-   --
-   --  @param Snapshot Immutable view snapshot.
-   --  @param Layout Calculated frame layout.
-   --  @param X Horizontal window coordinate.
-   --  @param Y Vertical window coordinate.
-   --  @param Line_Height Text line height in pixels.
-   --  @return The target slot index, or 0 outside the header band.
-   function Details_Header_Drop_Index
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      X           : Natural;
-      Y           : Natural;
-      Line_Height : Positive := 20)
-      return Natural;
-
    --  A draggable details-header column separator. Present is False when a
    --  coordinate misses every separator hot zone. Column is the optional column
    --  a drag on this separator resizes (the column whose left edge the separator
@@ -1009,29 +889,6 @@ package Files.Rendering is
       Origin_X : Natural := 0;
       Width    : Natural := 0;
    end record;
-
-   --  Hit-test a details-header coordinate against the draggable column
-   --  separators. Every visible optional column carries a separator on its left
-   --  edge (the boundary shared with the column to its left); dragging that
-   --  separator resizes the optional column. The separator hot zone takes
-   --  precedence over the header cell's sort click, so a press on a separator
-   --  begins a resize instead of changing the sort field. Returns a separator
-   --  with Present False when the coordinate lies outside every hot zone, the
-   --  header band, or the details view.
-   --
-   --  @param Snapshot Immutable view snapshot.
-   --  @param Layout Calculated frame layout.
-   --  @param X Horizontal window coordinate.
-   --  @param Y Vertical window coordinate.
-   --  @param Line_Height Text line height in pixels.
-   --  @return The separator under the coordinate, or one with Present False.
-   function Details_Header_Separator_At
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      X           : Natural;
-      Y           : Natural;
-      Line_Height : Positive := 20)
-      return Detail_Column_Separator;
 
    --  Calculate command-palette search and result-section rectangles.
    --
@@ -1087,18 +944,6 @@ package Files.Rendering is
       Layout   : Root_Selector_Layout)
       return Root_Path_Layout_Vectors.Vector;
 
-   --  Return the root path index at a position.
-   --
-   --  @param Rows Root-selector row layouts.
-   --  @param X Horizontal window coordinate.
-   --  @param Y Vertical window coordinate.
-   --  @return Root path index, or zero when no root row is hit.
-   function Root_Path_At
-     (Rows : Root_Path_Layout_Vectors.Vector;
-      X    : Natural;
-      Y    : Natural)
-      return Natural;
-
    --  Calculate clickable breadcrumb segment rectangles inside the path bar.
    --
    --  Returns an empty vector while the path input is focused (edit mode). When
@@ -1115,18 +960,6 @@ package Files.Rendering is
       Width       : Natural;
       Line_Height : Positive := 20)
       return Breadcrumb_Segment_Layout_Vectors.Vector;
-
-   --  Return the breadcrumb segment index at a position, or zero.
-   --
-   --  @param Rows Breadcrumb segment rectangles.
-   --  @param X Horizontal window coordinate.
-   --  @param Y Vertical window coordinate.
-   --  @return One-based segment index of a clickable segment, or zero.
-   function Breadcrumb_At
-     (Rows : Breadcrumb_Segment_Layout_Vectors.Vector;
-      X    : Natural;
-      Y    : Natural)
-      return Natural;
 
    --  Rectangle of the clickable favorite-star toggle at the left of the path
    --  bar. Rendering, the path-bar layout, and click hit-testing all derive the
@@ -1225,30 +1058,6 @@ package Files.Rendering is
       Layout      : Tree_Panel_Layout;
       Line_Height : Positive := 20)
       return Tree_Row_Layout_Vectors.Vector;
-
-   --  Return the tree node index whose row contains a position, or zero.
-   --
-   --  @param Rows Tree row rectangles.
-   --  @param X Horizontal window coordinate.
-   --  @param Y Vertical window coordinate.
-   --  @return One-based tree node index, or zero when no row is hit.
-   function Tree_Row_At
-     (Rows : Tree_Row_Layout_Vectors.Vector;
-      X    : Natural;
-      Y    : Natural)
-      return Natural;
-
-   --  Return the tree node index whose expander triangle contains a position.
-   --
-   --  @param Rows Tree row rectangles.
-   --  @param X Horizontal window coordinate.
-   --  @param Y Vertical window coordinate.
-   --  @return One-based node index when an expander triangle is hit, else zero.
-   function Tree_Triangle_At
-     (Rows : Tree_Row_Layout_Vectors.Vector;
-      X    : Natural;
-      Y    : Natural)
-      return Natural;
 
    --  Calculate the destination picker's Choose/Cancel button bar geometry from
    --  the folder-tree panel layout. Visible is False when the panel is too small
@@ -1399,6 +1208,80 @@ package Files.Rendering is
       return Text_Render_Result;
 
 private
+   --  Layout seams shared by the body and the Files.Rendering.Hit child, so
+   --  the renderer and the click hit-tests compute the same geometry.
+
+   --  Vertical padding above and below a details-view row (and the header).
+   Details_Row_Padding : constant Natural := 4;
+
+   --  The main content rectangle: the main-view region inset on all sides by the
+   --  content padding, dropping the inset when the region is too small to hold
+   --  it. Shared by the item layout, the details header/rows, and their click
+   --  hit-tests so they agree on the drawable content area.
+   type Content_Rectangle is record
+      X      : Natural := 0;
+      Y      : Natural := 0;
+      Width  : Natural := 0;
+      Height : Natural := 0;
+   end record;
+
+   --  The main content rectangle for a window layout.
+   --
+   --  @param Layout High-level window layout metrics.
+   --  @return The padded main-view content rectangle.
+   function Main_Content_Rect (Layout : Layout_Metrics) return Content_Rectangle;
+
+   --  Geometry of one detail-view column: whether it is shown and, when shown,
+   --  its left edge and width in window pixels.
+   type Detail_Column_Geometry is record
+      Visible : Boolean := False;
+      X       : Natural := 0;
+      Width   : Natural := 0;
+   end record;
+
+   type Detail_Column_Geometry_Array is
+     array (Files.Types.Detail_Column) of Detail_Column_Geometry;
+
+   --  Lay out the visible detail columns left to right across the row content
+   --  area (see the body for the sizing rules). The sticky header, the header
+   --  hit-tests, and every item row share it so their columns always align.
+   --
+   --  @param Visible Per-column visibility flags.
+   --  @param Widths Per-column customized widths (zero means default).
+   --  @param Order Left-to-right permutation of the columns (name pinned first).
+   --  @param Content_X Left edge of the detail content area.
+   --  @param Content_W Width of the detail content area.
+   --  @param Line_Height Text line height in pixels.
+   --  @param Pad Row content padding applied before the icon gutter.
+   --  @return Per-column geometry for the visible columns.
+   function Compute_Detail_Columns
+     (Visible     : Files.Types.Detail_Column_Visibility;
+      Widths      : Files.Types.Detail_Column_Widths;
+      Order       : Files.Types.Detail_Column_Order;
+      Content_X   : Natural;
+      Content_W   : Natural;
+      Line_Height : Positive;
+      Pad         : Natural)
+      return Detail_Column_Geometry_Array;
+
+   --  Whether a point lies inside a rectangle; an empty rectangle holds none.
+   --
+   --  @param X Rectangle left edge.
+   --  @param Y Rectangle top edge.
+   --  @param Box_W Rectangle width.
+   --  @param Box_H Rectangle height.
+   --  @param Point_X Point X coordinate.
+   --  @param Point_Y Point Y coordinate.
+   --  @return True when the point is inside the rectangle.
+   function Contains_Rectangle_Point
+     (X        : Natural;
+      Y        : Natural;
+      Box_W    : Natural;
+      Box_H    : Natural;
+      Point_X  : Natural;
+      Point_Y  : Natural)
+      return Boolean;
+
    type Text_Renderer is record
       Loaded       : Boolean := False;
       Font_Path    : UString;

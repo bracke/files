@@ -100,7 +100,7 @@ is
    end Channel;
 begin
    if Path = ""
-     or else not Files.Fs.File_Exists (Path)
+     or else not Files.Fs_Primitives.File_Exists (Path)
    then
       return Result;
    end if;

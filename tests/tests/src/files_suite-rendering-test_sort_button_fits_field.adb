@@ -63,12 +63,12 @@ separate (Files_Suite.Rendering)
               (Visible_W < Menu_W,
                "the compact sort menu is clipped from its preferred width");
             Assert
-              (Files.UI.Bottom_Bar_Sort_Menu_Command_At
+              (Files.Rendering.Hit.Bottom_Bar_Sort_Menu_Command_At
                  (Compact_W, Row_Y, Compact_W, Height,
                   Files.Types.Sort_Name, 20) = Files.Commands.No_Command,
                "the clipped sort-menu edge cannot select a row");
             Assert
-              (not Files.UI.Bottom_Bar_Sort_Menu_Contains
+              (not Files.Rendering.Hit.Bottom_Bar_Sort_Menu_Contains
                  (Compact_W, Row_Y, Compact_W, Height,
                   Files.Types.Sort_Name, 20),
                "the clipped sort-menu edge is outside the menu");
@@ -82,11 +82,12 @@ separate (Files_Suite.Rendering)
              (1000, Files.Types.Sort_Name, 20);
       begin
          Files_Suite.Support.Assert_Equal
-           (Files.UI.Bottom_Bar_Sort_Menu_Command_At (Bar.Sort_Button_X, 0, 1000, Short_H, Files.Types.Sort_Name, 20),
+           (Files.Rendering.Hit.Bottom_Bar_Sort_Menu_Command_At
+              (Bar.Sort_Button_X, 0, 1000, Short_H, Files.Types.Sort_Name, 20),
             Files.Commands.No_Command,
             "compact sort-menu padding does not select a row");
          Assert
-           (Files.UI.Bottom_Bar_Sort_Menu_Contains
+           (Files.Rendering.Hit.Bottom_Bar_Sort_Menu_Contains
               (Bar.Sort_Button_X, 0, 1000, Short_H,
                Files.Types.Sort_Name, 20),
             "visible compact sort-menu padding remains inside the clipped panel");

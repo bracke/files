@@ -64,7 +64,7 @@ separate (Files_Suite.Rendering)
            (Has_Close_Button_Node (Frame, Close),
             "the open paste-conflict dialog emits a close-button accessibility node");
          Assert
-           (Conflict_Hit_At (Frame, Dialog.Replace_X + Dialog.Button_Width / 2,
+           (Files.Rendering.Hit.Conflict_Hit_At (Frame, Dialog.Replace_X + Dialog.Button_Width / 2,
               Dialog.Button_Y + Dialog.Button_Height / 2).Kind = Conflict_Hit_Replace,
             "the replace button is hit-testable at its center");
       end;

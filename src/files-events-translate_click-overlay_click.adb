@@ -10,7 +10,7 @@ begin
       declare
          use type Files.Rendering.Conflict_Hit_Kind;
          Hit : constant Files.Rendering.Conflict_Hit_Region :=
-           Files.Rendering.Conflict_Hit_At (Frame, X, Y);
+           Files.Rendering.Hit.Conflict_Hit_At (Frame, X, Y);
       begin
          if Hit.Kind = Files.Rendering.Conflict_Hit_Progress_Cancel then
             Result := Paste_Cancel_Action (Activate);
@@ -28,7 +28,7 @@ begin
       declare
          use type Files.Rendering.Conflict_Hit_Kind;
          Hit    : constant Files.Rendering.Conflict_Hit_Region :=
-           Files.Rendering.Conflict_Hit_At (Frame, X, Y);
+           Files.Rendering.Hit.Conflict_Hit_At (Frame, X, Y);
          Dialog : constant Files.Rendering.Conflict_Dialog_Layout :=
            Files.Rendering.Calculate_Conflict_Dialog_Layout (Snapshot, Layout, Line_Height);
       begin
@@ -198,7 +198,7 @@ begin
    elsif Snapshot.Root_Selector_Open then
       declare
          Root_Command : constant Files.Commands.Command_Id :=
-           Files.UI.Toolbar_Command_At (X, Y, Width, Line_Height);
+           Files.Rendering.Hit.Toolbar_Command_At (X, Y, Width, Line_Height);
       begin
          if Root_Command = Files.Commands.Select_Drive_Command then
             Result := Command_Action (Root_Command, Activate);

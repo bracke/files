@@ -107,7 +107,7 @@ is
                     or else Is_Separator (I (I'First + O'Length))));
    end Is_Within_Tree;
 begin
-   if not Files.Fs.Directory_Exists (Destination_Directory)
+   if not Files.Fs_Primitives.Directory_Exists (Destination_Directory)
    then
       Result.Error_Key := To_Unbounded_String ("error.drop.invalid_destination");
       return Result;

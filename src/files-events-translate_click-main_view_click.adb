@@ -7,7 +7,7 @@ begin
    --  precedence over the sort click on the header cell behind it.
    declare
       Separator : constant Files.Rendering.Detail_Column_Separator :=
-        Files.Rendering.Details_Header_Separator_At (Snapshot, Layout, X, Y, Line_Height);
+        Files.Rendering.Hit.Details_Header_Separator_At (Snapshot, Layout, X, Y, Line_Height);
    begin
       if Separator.Present then
          Result :=
@@ -24,7 +24,7 @@ begin
    --  drag never also fires a sort click.
    declare
       Cell : constant Files.Rendering.Detail_Header_Cell :=
-        Files.Rendering.Details_Header_Cell_At (Snapshot, Layout, X, Y, Line_Height);
+        Files.Rendering.Hit.Details_Header_Cell_At (Snapshot, Layout, X, Y, Line_Height);
    begin
       if Cell.Present then
          if Cell.Column in Files.Types.Optional_Detail_Column then
@@ -37,7 +37,7 @@ begin
       end if;
    end;
 
-   Item_Index := Files.Rendering.Item_At (Item_Layout, X, Y);
+   Item_Index := Files.Rendering.Hit.Item_At (Item_Layout, X, Y);
    if Item_Index /= 0 then
       if Snapshot.Rename_Active
         and then Item_Index <= Natural (Snapshot.Items.Length)

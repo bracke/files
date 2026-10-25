@@ -40,9 +40,9 @@ separate (Files.Application.Windows)
               X >= Layout.Main_X and then X < Layout.Main_X + Layout.Main_Width
               and then Y >= Layout.Main_Y and then Y < Layout.Main_Y + Layout.Main_Height;
             Item_Index : constant Natural :=
-              (if In_Main then Files.Rendering.Item_At (Item_Layout, X, Y) else 0);
+              (if In_Main then Files.Rendering.Hit.Item_At (Item_Layout, X, Y) else 0);
             In_Details_Header : constant Boolean :=
-              Files.Rendering.Details_Header_Cell_At
+              Files.Rendering.Hit.Details_Header_Cell_At
                 (Snapshot, Layout, X, Y, Cell_Height_For (Runtime.Font_Pixel_Size)).Present;
             Result : Files.Interaction.Interaction_Result;
          begin
@@ -80,7 +80,7 @@ separate (Files.Application.Windows)
                  Files.Rendering.Calculate_Context_Menu_Layout
                    (Snapshot, Natural (Frame_W), Natural (Frame_H),
                     Cell_Height_For (Runtime.Font_Pixel_Size));
-               Row      : constant Natural := Files.Rendering.Context_Menu_Row_At (Menu, X, Y);
+               Row      : constant Natural := Files.Rendering.Hit.Context_Menu_Row_At (Menu, X, Y);
                Modifiers : constant Guikit.Input.Modifier_Set :=
                  To_Modifiers (As_Window (Runtime.Handle));
                Command  : constant Files.Commands.Command_Id :=

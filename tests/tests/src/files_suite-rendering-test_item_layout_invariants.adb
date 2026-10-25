@@ -36,7 +36,7 @@ separate (Files_Suite.Rendering)
                First : constant Item_Layout := Items.Element (Items.First_Index);
             begin
                Files_Suite.Support.Assert_Equal
-                 (Item_At (Items, First.X + First.Width / 2, First.Y + First.Height / 2),
+                 (Files.Rendering.Hit.Item_At (Items, First.X + First.Width / 2, First.Y + First.Height / 2),
                   First.Visible_Index,
                   "a hit test inside a cell returns that item");
             end;

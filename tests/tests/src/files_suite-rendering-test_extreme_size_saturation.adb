@@ -82,7 +82,7 @@ separate (Files_Suite.Rendering)
              Width  => 1,
              Height => 1));
          Assert
-           (Conflict_Hit_At
+           (Files.Rendering.Hit.Conflict_Hit_At
               (Boundary_Frame, Natural'Last, Natural'Last).Kind =
                 Conflict_Hit_Replace,
             "hit testing accepts a one-pixel region at the coordinate limit");
@@ -95,7 +95,7 @@ separate (Files_Suite.Rendering)
          Boundary_Menu.Row_Height := 1;
          Boundary_Menu.Row_Count := 1;
          Files_Suite.Support.Assert_Equal
-           (Context_Menu_Row_At (Boundary_Menu, Natural'Last, Natural'Last),
+           (Files.Rendering.Hit.Context_Menu_Row_At (Boundary_Menu, Natural'Last, Natural'Last),
             1,
             "context-menu hit testing accepts the coordinate limit");
       end;

@@ -129,7 +129,7 @@ separate (Files.Application.Windows)
             Files.Interaction.Apply_Marquee_Selection
               (Model    => Runtime.Model,
                Hits     =>
-                 Files.Rendering.Items_In_Rect (Items, Rect_X, Rect_Y, Rect_W, Rect_H),
+                 Files.Rendering.Hit.Items_In_Rect (Items, Rect_X, Rect_Y, Rect_W, Rect_H),
                Additive => Runtime.Marquee_Additive,
                Base     => Runtime.Marquee_Base);
             Runtime.Marquee_Rect_X := Rect_X;

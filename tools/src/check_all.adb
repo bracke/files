@@ -2388,12 +2388,14 @@ procedure Check_All is
          "with GNAT.OS_Lib;",
          "event translation must not import process execution APIs");
       --  Lock the Files.* import boundary through the shared helper: event
-      --  translation may only import Files.UTF8 and Files.UI, which forbids the
-      --  mutable model, filesystem-operation, and filesystem-inspection units.
+      --  translation may only import Files.UTF8, Files.UI, and the pure
+      --  Files.Rendering.Hit geometry, which forbids the mutable model,
+      --  filesystem-operation, and filesystem-inspection units.
       Require_Only_Allowed_With_Clauses
         (Events_Body,
          "Files.",
-         [To_Unbounded_String ("Files.UTF8"),
+         [To_Unbounded_String ("Files.Rendering.Hit"),
+          To_Unbounded_String ("Files.UTF8"),
           To_Unbounded_String ("Files.UI")]);
       Require_Not_Contains_In_Unit
         (Events_Body,
@@ -2698,6 +2700,8 @@ procedure Check_All is
    procedure Check_Rendering_Architecture is
       Rendering_Body : constant String := Root & "/src/files-rendering.adb";
       Rendering_Spec : constant String := Root & "/src/files-rendering.ads";
+      Hit_Body       : constant String := Root & "/src/files-rendering-hit.adb";
+      Hit_Spec       : constant String := Root & "/src/files-rendering-hit.ads";
       Fonts_Body     : constant String := Root & "/src/files-fonts.adb";
       Fonts_Spec     : constant String := Root & "/src/files-fonts.ads";
       Application_Body : constant String := Root & "/src/files-application.adb";
@@ -2912,6 +2916,7 @@ procedure Check_All is
    begin
       Check_Rendering_Unit (Rendering_Spec, "rendering spec");
       Check_Rendering_Unit (Rendering_Body, "rendering body");
+      Check_Rendering_Unit (Hit_Spec, "hit-testing spec");
       Check_Rendering_Unit (Vulkan_Spec, "Vulkan rendering spec");
       Check_Rendering_Unit (Vulkan_Body, "Vulkan rendering body");
 
@@ -2941,6 +2946,13 @@ procedure Check_All is
           To_Unbounded_String ("Files.Localization"),
           To_Unbounded_String ("Files.UTF8"),
           To_Unbounded_String ("Files.UI")]);
+      --  Hit-testing stays pure geometry: it may import only the domain UI
+      --  layout it maps pixels through (the body is also covered above as a
+      --  files-rendering-* source).
+      Require_Only_Allowed_With_Clauses
+        (Hit_Body,
+         "Files.",
+         [To_Unbounded_String ("Files.UI")]);
 
       Require_Not_Contains
         (Fonts_Body,

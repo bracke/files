@@ -73,7 +73,7 @@ separate (Files_Suite.Rendering)
                     Context_Menu_Row_Top (Menu, Row) + Menu.Separator_Height / 2;
                begin
                   Files_Suite.Support.Assert_Equal
-                    (Context_Menu_Row_At (Menu, Probe_X, Probe_Y),
+                    (Files.Rendering.Hit.Context_Menu_Row_At (Menu, Probe_X, Probe_Y),
                      0,
                      "a hit test on a separator selects no row");
                end;
@@ -86,7 +86,7 @@ separate (Files_Suite.Rendering)
                     Context_Menu_Row_Top (Menu, Row) + Menu.Row_Height / 2;
                begin
                   Files_Suite.Support.Assert_Equal
-                    (Context_Menu_Row_At (Menu, Probe_X, Probe_Y),
+                    (Files.Rendering.Hit.Context_Menu_Row_At (Menu, Probe_X, Probe_Y),
                      Row,
                      "a hit test on a command row returns that row");
                end;
@@ -111,7 +111,7 @@ separate (Files_Suite.Rendering)
             --  hit test must honor the declared surface, not the latent rows.
             Clipped.Height := Menu.Padding;
             Files_Suite.Support.Assert_Equal
-              (Context_Menu_Row_At (Clipped, Probe_X, Probe_Y),
+              (Files.Rendering.Hit.Context_Menu_Row_At (Clipped, Probe_X, Probe_Y),
                0,
                "a row outside the declared context-menu height is not clickable");
          end;
@@ -139,7 +139,7 @@ separate (Files_Suite.Rendering)
                     Context_Menu_Row_Top (Menu, Row) + Menu.Row_Height / 2;
                begin
                   Files_Suite.Support.Assert_Equal
-                    (Context_Menu_Row_At (Menu, Probe_X, Probe_Y),
+                    (Files.Rendering.Hit.Context_Menu_Row_At (Menu, Probe_X, Probe_Y),
                      Row,
                      "every compact-menu command hit-tests in its displayed column");
                end;

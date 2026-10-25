@@ -3,12 +3,12 @@ separate (Files_Suite.Operations)
       pragma Unreferenced (T);
 
       function Find
-        (Apps : Files.Applications.Application_Vectors.Vector;
+        (Apps : Files.Desktop_Applications.Application_Vectors.Vector;
          Name : String)
-         return Files.Applications.Application renames Find_Application;
+         return Files.Desktop_Applications.Application renames Find_Application;
 
       function Count_Name
-        (Apps : Files.Applications.Application_Vectors.Vector;
+        (Apps : Files.Desktop_Applications.Application_Vectors.Vector;
          Name : String) return Natural
       is
          Result : Natural := 0;
@@ -22,10 +22,10 @@ separate (Files_Suite.Operations)
       end Count_Name;
 
       procedure Check is
-         Apps : constant Files.Applications.Application_Vectors.Vector :=
-           Files.Applications.Available_Applications;
-         Editor : constant Files.Applications.Application := Find (Apps, "Text Editor");
-         Viewer : constant Files.Applications.Application := Find (Apps, "Image Viewer");
+         Apps : constant Files.Desktop_Applications.Application_Vectors.Vector :=
+           Files.Desktop_Applications.Available_Applications;
+         Editor : constant Files.Desktop_Applications.Application := Find (Apps, "Text Editor");
+         Viewer : constant Files.Desktop_Applications.Application := Find (Apps, "Image Viewer");
       begin
          Files_Suite.Support.Assert_Equal
            (Natural (Apps.Length),

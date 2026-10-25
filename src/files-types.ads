@@ -56,6 +56,17 @@ package Files.Types is
       Sort_Created,
       Sort_Changed);
 
+   --  The listing policy a directory load applies: whether hidden entries are
+   --  listed, and the order the listed items are sorted into. A load reads only
+   --  these from the settings for filtering and ordering, so a caller with its
+   --  own policy (emptying the Trash lists hidden payloads too) states it here
+   --  instead of editing a copy of the whole settings.
+   type Listing_Options is record
+      Show_Hidden    : Boolean := False;
+      Sort_Field     : Files.Types.Sort_Field := Sort_Name;
+      Sort_Ascending : Boolean := True;
+   end record;
+
    --  Selectable detail-view columns. The name column is always shown and
    --  cannot be hidden; the remaining columns are individually toggleable and,
    --  when visible, laid out left to right in this declaration order.

@@ -71,7 +71,7 @@ separate (Files_Suite.Interaction)
          --  Dropping the dragged column over the modified column moves it there
          --  and persists the new order.
          Drop :=
-           Files.Rendering.Details_Header_Drop_Index
+           Files.Rendering.Hit.Details_Header_Drop_Index
              (Snapshot, Layout, Drop_X, Header_Y, Line_Height => Line);
          Assert (Drop in Files.Types.Detail_Column_Index,
                  "the drop coordinate resolves to a valid target slot");

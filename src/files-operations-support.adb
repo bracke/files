@@ -5,7 +5,7 @@ with GNAT.OS_Lib;
 
 with Files.File_System;
 with Files.Refresh_Jobs;
-with Files.Fs;
+with Files.Fs_Primitives;
 
 with Hostkit.Fs;
 with Hostkit.Host;
@@ -21,7 +21,7 @@ package body Files.Operations.Support is
 
    function Exists_Safely (Path : String) return Boolean is
    begin
-      return Files.Fs.Exists (Path) or else Hostkit.Fs.Is_Link (Path);
+      return Files.Fs_Primitives.Exists (Path) or else Hostkit.Fs.Is_Link (Path);
    exception
       when others =>
          return False;
@@ -89,7 +89,7 @@ package body Files.Operations.Support is
             --  directory passed the preflight and got launched. It is the same shape
             --  as the lstat-less Is_Symbolic_Link: a POSIX-flavoured helper that
             --  quietly says yes there instead of failing.
-            return Files.Fs.File_Exists (Executable)
+            return Files.Fs_Primitives.File_Exists (Executable)
               and then Hostkit.Fs.Is_Executable (Executable);
          end if;
       end loop;

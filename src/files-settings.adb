@@ -57,6 +57,16 @@ package body Files.Settings is
         and then not Contains_Line_Break (Path);
    end Persistent_Path_Is_Valid;
 
+   function Listing_Options_Of
+     (Settings : Settings_Model)
+      return Files.Types.Listing_Options is
+   begin
+      return
+        (Show_Hidden    => Settings.Show_Hidden_Files,
+         Sort_Field     => Settings.Sort_Field_Value,
+         Sort_Ascending => Settings.Sort_Ascending);
+   end Listing_Options_Of;
+
    function Snapshot_Settings_Key_Of
      (Settings : Settings_Model)
       return Snapshot_Settings_Key is

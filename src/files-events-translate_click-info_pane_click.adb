@@ -19,7 +19,7 @@ begin
    if Snapshot.Info_Pane_Open and then Snapshot.Permissions_Editable then
       declare
          Cell : constant Files.Rendering.Permission_Hit_Region :=
-           Files.Rendering.Permission_Hit_At (Frame, X, Y);
+           Files.Rendering.Hit.Permission_Hit_At (Frame, X, Y);
       begin
          if Cell.Present then
             Result :=
@@ -34,7 +34,7 @@ begin
    if Snapshot.Info_Pane_Open and then Snapshot.Ownership_Editable then
       declare
          Cell : constant Files.Rendering.Ownership_Hit_Region :=
-           Files.Rendering.Ownership_Hit_At (Frame, X, Y);
+           Files.Rendering.Hit.Ownership_Hit_At (Frame, X, Y);
       begin
          if Cell.Present then
             Result :=

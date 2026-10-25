@@ -24,6 +24,7 @@ with Files.Operations;
 with Files.Paste;
 with Guikit.Draw;
 with Files.Rendering;
+with Files.Rendering.Hit;
 with Files.Settings;
 with Guikit.Input;
 with Files.Types;
@@ -660,7 +661,7 @@ package body Files_Suite.Interaction is
       In_Main :=
         X >= Layout.Main_X and then X < Layout.Main_X + Layout.Main_Width
         and then Y >= Layout.Main_Y and then Y < Layout.Main_Y + Layout.Main_Height;
-      Index := Files.Rendering.Item_At (Items, X, Y);
+      Index := Files.Rendering.Hit.Item_At (Items, X, Y);
       Files.Interaction.Apply_Right_Click (Model, Settings, In_Main, Index, X, Y, Result);
    end Open_Item_Context_Menu;
 
@@ -679,7 +680,7 @@ package body Files_Suite.Interaction is
         Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line);
       X : constant Natural := Layout.Main_X + Layout.Main_Width / 2;
       Y : constant Natural := Layout.Main_Y + Layout.Main_Height / 2;
-      Index : constant Natural := Files.Rendering.Item_At (Items, X, Y);
+      Index : constant Natural := Files.Rendering.Hit.Item_At (Items, X, Y);
    begin
       Files.Interaction.Apply_Right_Click (Model, Settings, True, Index, X, Y, Result);
    end Open_Empty_Context_Menu;
@@ -717,7 +718,7 @@ package body Files_Suite.Interaction is
       Row_Y :=
         Files.Rendering.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
       Files_Suite.Support.Assert_Equal
-        (Files.Rendering.Context_Menu_Row_At (Menu, Row_X, Row_Y),
+        (Files.Rendering.Hit.Context_Menu_Row_At (Menu, Row_X, Row_Y),
          Target_Row,
          "the derived coordinate hit-tests back to the resolved menu row");
       Found := True;

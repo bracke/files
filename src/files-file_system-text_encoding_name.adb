@@ -40,7 +40,7 @@ function Text_Encoding_Name (Path : String) return String is
       return Value >= 16#80# and then Value <= 16#BF#;
    end Is_Continuation;
 begin
-   File := Files.Fs.Open_Regular_Read (Path);
+   File := Files.Fs_Primitives.Open_Regular_Read (Path);
    if File = GNAT.OS_Lib.Invalid_FD then
       return "binary";
    end if;

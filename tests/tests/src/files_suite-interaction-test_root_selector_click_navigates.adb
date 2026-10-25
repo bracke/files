@@ -36,7 +36,7 @@ separate (Files_Suite.Interaction)
             end if;
          end loop;
          Files_Suite.Support.Assert_Equal
-           (Files.Rendering.Root_Path_At (Rows, X, Y),
+           (Files.Rendering.Hit.Root_Path_At (Rows, X, Y),
             2,
             "the derived coordinate hit-tests back to the second root row");
          Action :=

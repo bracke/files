@@ -10,7 +10,6 @@ is
    Total       : Natural := 0;
    Failed      : Natural := 0;
    First_Error : Unbounded_String;
-   Enumeration_Settings : Files.Settings.Settings_Model := Settings;
 begin
    if Files.Model.Background_Transfers (Model) then
       return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Empty_Trash);
@@ -20,8 +19,12 @@ begin
    end if;
 
    --  Empty Trash purges every payload, regardless of display preferences.
-   Enumeration_Settings.Show_Hidden_Files := True;
-   Load := Files.File_System.Load_Directory (Trash_Dir, Enumeration_Settings);
+   Load :=
+     Files.File_System.Load_Directory_Filtered
+       (Trash_Dir,
+        Settings,
+        (Files.Settings.Listing_Options_Of (Settings) with delta Show_Hidden => True),
+        Include => null);
    if not Load.Success then
       Files.Model.Set_Error (Model, To_String (Load.Error_Key));
       return Make_Result (Operation_Failed, To_String (Load.Error_Key), Trash_Dir);

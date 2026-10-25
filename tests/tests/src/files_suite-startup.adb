@@ -37,7 +37,7 @@ with Files.Durable_Writes;
 with Files.Durable_Writes.Testing;
 with Files.Events;
 with Files.File_System;
-with Files.Fs;
+with Files.Fs_Primitives;
 with Files.File_Types;
 with Files.Fonts;
 with Files.Localization;

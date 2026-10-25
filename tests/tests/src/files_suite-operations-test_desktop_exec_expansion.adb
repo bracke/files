@@ -4,16 +4,16 @@ separate (Files_Suite.Operations)
       Apps_Dir : constant String := Join (Join (Root, "xdg_apps"), "applications");
 
       function Find
-        (Apps : Files.Applications.Application_Vectors.Vector;
+        (Apps : Files.Desktop_Applications.Application_Vectors.Vector;
          Name : String)
-         return Files.Applications.Application renames Find_Application;
+         return Files.Desktop_Applications.Application renames Find_Application;
 
       procedure Check is
-         Apps : constant Files.Applications.Application_Vectors.Vector :=
-           Files.Applications.Available_Applications;
-         Viewer : constant Files.Applications.Application := Find (Apps, "Image Viewer");
-         Quoted : constant Files.Applications.Application := Find (Apps, "Quoted App");
-         Localized : constant Files.Applications.Application :=
+         Apps : constant Files.Desktop_Applications.Application_Vectors.Vector :=
+           Files.Desktop_Applications.Available_Applications;
+         Viewer : constant Files.Desktop_Applications.Application := Find (Apps, "Image Viewer");
+         Quoted : constant Files.Desktop_Applications.Application := Find (Apps, "Quoted App");
+         Localized : constant Files.Desktop_Applications.Application :=
            Find (Apps, "Dansk Program");
       begin
          declare
@@ -22,7 +22,7 @@ separate (Files_Suite.Operations)
          begin
             Targets.Append (To_Unbounded_String ("/tmp/a.txt"));
             Targets.Append (To_Unbounded_String ("/tmp/b.txt"));
-            Action := Files.Applications.Build_Open_Action (Localized, Targets);
+            Action := Files.Desktop_Applications.Build_Open_Action (Localized, Targets);
             declare
                Context : constant String := "localized values and two-stage desktop escapes expand correctly";
             begin
@@ -46,7 +46,7 @@ separate (Files_Suite.Operations)
          begin
             Targets.Append (To_Unbounded_String ("/tmp/a.txt"));
             Targets.Append (To_Unbounded_String ("/tmp/b.txt"));
-            Action := Files.Applications.Build_Open_Action (Viewer, Targets);
+            Action := Files.Desktop_Applications.Build_Open_Action (Viewer, Targets);
             Files_Suite.Support.Assert_Equal
               (To_String (Action.Executable),
                "viewer",
@@ -78,7 +78,7 @@ separate (Files_Suite.Operations)
          begin
             Targets.Append (To_Unbounded_String ("/tmp/a file.txt"));
             Targets.Append (To_Unbounded_String ("/tmp/b.txt"));
-            Action := Files.Applications.Build_Open_Action (Quoted, Targets);
+            Action := Files.Desktop_Applications.Build_Open_Action (Quoted, Targets);
             Files_Suite.Support.Assert_Equal
               (To_String (Action.Executable),
                "/opt/Quoted Editor/bin/editor",
@@ -120,22 +120,22 @@ separate (Files_Suite.Operations)
 
          declare
             Targets : Files.Types.String_Vectors.Vector;
-            Single_App : constant Files.Applications.Application :=
+            Single_App : constant Files.Desktop_Applications.Application :=
               (Name         => To_Unbounded_String ("Single Target"),
                Exec         => To_Unbounded_String ("viewer --before %f --after"),
                Icon         => Null_Unbounded_String,
                Desktop_File => Null_Unbounded_String);
-            Percent_App : constant Files.Applications.Application :=
+            Percent_App : constant Files.Desktop_Applications.Application :=
               (Name         => To_Unbounded_String ("Percent Executable"),
                Exec         => To_Unbounded_String ("viewer%%tool %F"),
                Icon         => Null_Unbounded_String,
                Desktop_File => Null_Unbounded_String);
-            Actions : Files.Applications.Open_Action_Vectors.Vector;
+            Actions : Files.Desktop_Applications.Open_Action_Vectors.Vector;
             Action  : Files.Settings.Open_Action;
          begin
             Targets.Append (To_Unbounded_String ("/tmp/a.txt"));
             Targets.Append (To_Unbounded_String ("/tmp/b.txt"));
-            Actions := Files.Applications.Build_Open_Actions (Single_App, Targets);
+            Actions := Files.Desktop_Applications.Build_Open_Actions (Single_App, Targets);
             declare
                Context : constant String := "single-file fields produce one positional launch per selected target";
             begin
@@ -150,13 +150,13 @@ separate (Files_Suite.Operations)
                  (To_String (Actions.Element (2).Arguments.Element (2)), "/tmp/b.txt", Context & ": second target");
             end;
 
-            Actions := Files.Applications.Build_Open_Actions (Viewer, Targets);
+            Actions := Files.Desktop_Applications.Build_Open_Actions (Viewer, Targets);
             Assert
               (Natural (Actions.Length) = 1
                and then Natural (Actions.First_Element.Arguments.Length) = 3,
                "multi-file fields retain one launch containing every target");
 
-            Action := Files.Applications.Build_Open_Action (Percent_App, Targets);
+            Action := Files.Desktop_Applications.Build_Open_Action (Percent_App, Targets);
             Assert
               (To_String (Action.Executable) = "viewer%tool"
                and then Natural (Action.Arguments.Length) = 2,

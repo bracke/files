@@ -6,7 +6,7 @@ function Set_Permissions
 is
    function Exists_Safely (Candidate : String) return Boolean is
    begin
-      return Candidate /= "" and then Files.Fs.Exists (Candidate);
+      return Candidate /= "" and then Files.Fs_Primitives.Exists (Candidate);
    exception
       when others =>
          return False;
