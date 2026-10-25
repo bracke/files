@@ -26,7 +26,8 @@ package Files_Suite.Volumes is
    function Other_Volume return String;
 
    --  A fresh directory on Other_Volume, removed with everything in it when the
-   --  object leaves scope, whether the test passed or an assertion raised.
+   --  object leaves scope, whether the test passed or an assertion raised --
+   --  and with it the volume's trash, if trashing there made one.
    type Remote_Directory is new Ada.Finalization.Limited_Controlled with private;
 
    --  Make the directory, removing any one this object made before.
@@ -51,6 +52,10 @@ private
 
    type Remote_Directory is new Ada.Finalization.Limited_Controlled with record
       Location : Ada.Strings.Unbounded.Unbounded_String;
+      --  This user's trash at the top of the other volume, when it did not
+      --  exist yet: an item trashed there goes to it, and it is removed with
+      --  the directory.
+      Volume_Trash : Ada.Strings.Unbounded.Unbounded_String;
    end record;
 
 end Files_Suite.Volumes;

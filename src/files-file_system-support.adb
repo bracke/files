@@ -269,6 +269,28 @@ package body Files.File_System.Support is
       return Result;
    end Snapshot;
 
+   function Application_Data_Directory return String is
+      function Usable (Root : String) return Boolean is
+        (Root /= ""
+         and then (for all Item of Root => Item /= ASCII.NUL)
+         and then GNAT.OS_Lib.Is_Absolute_Path (Root));
+   begin
+      if Ada.Environment_Variables.Exists ("FILES_TEST_TEMP") then
+         declare
+            Root : constant String := Ada.Environment_Variables.Value ("FILES_TEST_TEMP");
+         begin
+            return (if Usable (Root) then Join_Path (Root, "data") else "");
+         end;
+      end if;
+      declare
+         Root : constant String := Hostkit.Fs.Application_Data_Directory;
+      begin
+         return (if Usable (Root) then Root else "");
+      end;
+   exception
+      when others => return "";
+   end Application_Data_Directory;
+
    function With_Root_Content (Snapshot : Source_Snapshot; Digest : String) return Source_Snapshot is
       package Sorting is new Files.Types.String_Vectors.Generic_Sorting;
       --  The root is the one entry with an empty relative path.

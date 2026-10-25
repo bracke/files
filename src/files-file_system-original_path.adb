@@ -118,12 +118,10 @@ function Original_Path (Trashed_Path : String) return String is
          return "";
    end Read_Original_Path;
 
-   Base : constant String := Trash_Base_Path;
-   Backend : constant Trash_Backend := Trash_Backend_Of_Current_Environment;
+   --  The home trash or the volume trash that holds it.
+   Base : constant String := Trash_Base_Of (Trashed_Path);
 begin
-   if Base = "" or else Backend not in Trash_Xdg_Data_Home | Trash_Home_Data then
-      return "";
-   elsif not Is_Trash_Payload (Trashed_Path, Trash_Files_Directory) then
+   if Base = "" then
       return "";
    end if;
    return Read_Original_Path

@@ -99,6 +99,23 @@ begin
    Cached.Generate := Generate_Thumbnails;
    Normalized_Path := To_Unbounded_String (Ada.Directories.Full_Name (Path));
    Support.For_Each_Entry (Path, Add_Entry'Access);
+   --  The trash view is the home trash and every volume's trash together:
+   --  an item trashed on a USB stick stays there, and is listed here.
+   if Is_Trash_Files_Directory (Path) then
+      for Base of Volume_Trash_Bases loop
+         declare
+            Volume_Files : constant String := Join_Path (To_String (Base), "files");
+         begin
+            Normalized_Path := To_Unbounded_String (Ada.Directories.Full_Name (Volume_Files));
+            Support.For_Each_Entry (Volume_Files, Add_Entry'Access);
+         exception
+            when Swallowed : others =>
+               --  An unreadable volume trash hides its items, not the trash.
+               Files.Diagnostics.Note (Swallowed, "Files.File_System.Trash");
+         end;
+      end loop;
+      Normalized_Path := To_Unbounded_String (Ada.Directories.Full_Name (Path));
+   end if;
    Sort_Items (Items, Options.Sort_Field, Options.Sort_Ascending);
    return (Success => True, Path => Normalized_Path,
            Items => Items, Error_Key => Null_Unbounded_String);

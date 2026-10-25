@@ -79,26 +79,7 @@ package body Files.File_System.Recovery is
       String'Output (Stream, Value);
    end Write_Bounded;
 
-   function Registry_Data_Directory return String is
-   begin
-      if Ada.Environment_Variables.Exists ("FILES_TEST_TEMP") then
-         declare
-            Root : constant String :=
-              Ada.Environment_Variables.Value ("FILES_TEST_TEMP");
-         begin
-            return
-              (if Valid_Absolute_Path (Root) then Join_Path (Root, "data")
-               else "");
-         end;
-      end if;
-      declare
-         Root : constant String := Hostkit.Fs.Application_Data_Directory;
-      begin
-         return (if Valid_Absolute_Path (Root) then Root else "");
-      end;
-   exception
-      when others => return "";
-   end Registry_Data_Directory;
+   function Registry_Data_Directory return String renames Support.Application_Data_Directory;
 
    function Registry_Root (Create : Boolean) return String is
       Data : constant String := Registry_Data_Directory;

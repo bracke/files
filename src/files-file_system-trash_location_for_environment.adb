@@ -42,12 +42,13 @@ begin
    end if;
 
    --  Windows has no HOME/XDG trash, so the shell Recycle Bin is the default
-   --  there; "xdg" forces the freedesktop implementation on any host, which is
+   --  there; "xdg" (or "macos-home") forces that implementation on any host, which is
    --  what lets it be exercised where it is not the default. Only the backend
    --  changes -- the base keeps whatever the layout above worked out, which is
    --  what the previous pair of functions did.
    if Files_Config.Alire_Host_OS = "windows"
      and then not Environment_Equals ("FILES_TRASH_BACKEND", "xdg")
+     and then not Environment_Equals ("FILES_TRASH_BACKEND", "macos-home")
    then
       Result.Backend := Trash_Windows_Recycle_Bin;
    end if;

@@ -6,6 +6,7 @@ with Ada.Text_IO;
 
 with Hostkit.Host;
 with Hostkit.Metadata;
+with Hostkit.Process;
 with Project_Tools.Files;
 
 with Files_Suite.Support;
@@ -169,10 +170,45 @@ package body Files_Suite.Volumes is
       if Location /= "" and then Ada.Directories.Exists (Location) then
          Project_Tools.Files.Delete_Tree (Location);
       end if;
+      if Length (Directory.Volume_Trash) > 0
+        and then Ada.Directories.Exists (To_String (Directory.Volume_Trash))
+      then
+         Project_Tools.Files.Delete_Tree (To_String (Directory.Volume_Trash));
+      end if;
+      Directory.Volume_Trash := Null_Unbounded_String;
    exception
       when others =>
          null;
    end Remove;
+
+   --  Where this user's freedesktop trash would be on the volume holding
+   --  Path: .Trash-$uid at the volume's top; "" without a numeric user id.
+   function Volume_Trash_Of (Path : String) return String is
+      Known  : Boolean;
+      Device : constant Long_Long_Integer := Hostkit.Metadata.Device_Id (Path, Known);
+      Top    : Unbounded_String := To_Unbounded_String (Path);
+      Id     : Natural;
+   begin
+      if not Known or else not Hostkit.Process.Current_User_Id (Id) then
+         return "";
+      end if;
+      loop
+         declare
+            Up       : constant String := Ada.Directories.Containing_Directory (To_String (Top));
+            Up_Known : Boolean;
+         begin
+            exit when Up = To_String (Top)
+              or else Hostkit.Metadata.Device_Id (Up, Up_Known) /= Device
+              or else not Up_Known;
+            Top := To_Unbounded_String (Up);
+         exception
+            when Ada.Directories.Use_Error => exit;
+         end;
+      end loop;
+      return
+        Ada.Directories.Compose
+          (To_String (Top), ".Trash-" & Ada.Strings.Fixed.Trim (Natural'Image (Id), Ada.Strings.Left));
+   end Volume_Trash_Of;
 
    procedure Create (Directory : in out Remote_Directory; Prefix : String) is
       Base : constant String := Other_Volume;
@@ -180,6 +216,13 @@ package body Files_Suite.Volumes is
       Remove (Directory);
       if Base /= "" then
          Directory.Location := To_Unbounded_String (Make_Directory (Base, Prefix));
+         declare
+            Trash : constant String := Volume_Trash_Of (Base);
+         begin
+            if Trash /= "" and then not Ada.Directories.Exists (Trash) then
+               Directory.Volume_Trash := To_Unbounded_String (Trash);
+            end if;
+         end;
       end if;
    end Create;
 

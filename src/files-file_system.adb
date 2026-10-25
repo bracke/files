@@ -704,6 +704,46 @@ package body Files.File_System is
       return Directory_Item
    is separate;
 
+   --  The freedesktop trash per volume: an item on another device than the
+   --  home trash goes to its volume's own trash ($topdir/.Trash/$uid when the
+   --  administrator made a sticky .Trash there, else $topdir/.Trash-$uid), a
+   --  rename instead of a copy into home. The trash view lists them all.
+
+   --  Whether volume trashes are used: the freedesktop backends, on a host
+   --  with numeric user ids.
+   function Volume_Trash_Supported return Boolean;
+
+   --  Decimal digits of Value, without the leading blank.
+   function Image_No_Space (Value : Natural) return String is
+     (Ada.Strings.Fixed.Trim (Natural'Image (Value), Ada.Strings.Left));
+
+   --  How many volume trashes the list of those trashed into keeps.
+   Max_Remembered_Volume_Trashes : constant := 64;
+
+   --  The volume trashes this application has trashed into, oldest first, as
+   --  Volume_Trash_For recorded them (unvalidated).
+   function Remembered_Volume_Trashes return Files.Types.String_Vectors.Vector;
+
+   --  Whether Base is one of this user's volume trash directories: named
+   --  .Trash-$uid, or $uid inside a sticky .Trash, a real directory (not a
+   --  link) owned by this user.
+   function Valid_Volume_Trash_Base (Base : String) return Boolean;
+
+   --  The volume trash to move Path into, created if need be and remembered
+   --  for the trash view; "" when Path is on the home trash's device or its
+   --  volume has no usable trash (read-only, no permission), and the home
+   --  trash is used.
+   function Volume_Trash_For (Path : String) return String;
+
+   --  Every existing volume trash of this user: on the mounts the root list
+   --  shows, and those this application has trashed into.
+   function Volume_Trash_Bases return Files.Types.String_Vectors.Vector;
+
+   --  The trash directory (holding files/ and info/) whose files/ directly
+   --  holds Trashed_Path: the home trash or a volume trash; "" for anything
+   --  else.
+   function Trash_Base_Of (Trashed_Path : String) return String;
+
    function Load_Directory_Filtered
      (Path     : String;
       Settings : Files.Settings.Settings_Model;
@@ -838,6 +878,18 @@ package body Files.File_System is
    function Valid_Original_Path (Path : String) return Boolean is separate;
 
    function Is_Trash_Payload (Path, Payload_Directory : String) return Boolean is separate;
+
+   function Volume_Trash_Supported return Boolean is separate;
+
+   function Remembered_Volume_Trashes return Files.Types.String_Vectors.Vector is separate;
+
+   function Valid_Volume_Trash_Base (Base : String) return Boolean is separate;
+
+   function Volume_Trash_For (Path : String) return String is separate;
+
+   function Volume_Trash_Bases return Files.Types.String_Vectors.Vector is separate;
+
+   function Trash_Base_Of (Trashed_Path : String) return String is separate;
 
    function Path_Can_Be_Directory (Path : String) return Boolean is separate;
 

@@ -70,7 +70,11 @@ is
 
    Backend    : constant Trash_Backend := Trash_Backend_Of_Current_Environment;
    Macos_Home : constant Boolean := Backend = Trash_Macos_Home;
-   Base       : constant String := Trash_Base_Path;
+   --  An item on another volume goes to that volume's own trash: a rename,
+   --  not a copy of everything into home.
+   Volume     : constant String :=
+     (if Backend in Trash_Xdg_Data_Home | Trash_Home_Data then Volume_Trash_For (Path) else "");
+   Base       : constant String := (if Volume /= "" then Volume else Trash_Base_Path);
    --  macOS ~/.Trash stores items at the top level, without the freedesktop
    --  files/info split or .trashinfo sidecars, so Finder recognizes them.
    Files_Dir  : constant String :=

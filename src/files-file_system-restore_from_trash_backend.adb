@@ -3,14 +3,11 @@ function Restore_From_Trash_Backend
   (Trashed_Path : String; Expected_Identity : String := ""; Expected_Original : String := "")
    return Mutation_Result
 is
-   Backend   : constant Trash_Backend := Trash_Backend_Of_Current_Environment;
-   Base      : constant String := Trash_Base_Path;
+   --  The home trash or the volume trash that holds it.
+   Base      : constant String := Trash_Base_Of (Trashed_Path);
 begin
    Files.Io_Errors.Reset;
-   if Base = ""
-     or else Backend not in Trash_Xdg_Data_Home | Trash_Home_Data
-     or else not Is_Trash_Payload (Trashed_Path, Trash_Files_Directory)
-   then
+   if Base = "" then
       return
         (Success   => False,
          Error_Key => To_Unbounded_String ("error.trash.restore_unavailable"));

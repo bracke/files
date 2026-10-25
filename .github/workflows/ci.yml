@@ -434,7 +434,7 @@ jobs:
           # fails on Linux and skips elsewhere (Link_Not_Made); none is expected
           # to on these runners, so none is budgeted. Raise a ceiling only
           # together with the Skip that needs it.
-          FILES_TEST_MAX_SKIPS: ${{ runner.os == 'Linux' && '1' || runner.os == 'macOS' && '34' || '40' }}
+          FILES_TEST_MAX_SKIPS: ${{ runner.os == 'Linux' && '1' || runner.os == 'macOS' && '34' || '41' }}
         run: |
           alr --non-interactive build
           # The runners keep UTC, where local and UTC time format alike, so a

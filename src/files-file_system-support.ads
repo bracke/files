@@ -203,6 +203,13 @@ private package Files.File_System.Support is
    --    digest, raising if any entry cannot be verified.
    function Snapshot (Path : String; Content : Boolean := True) return Source_Snapshot;
 
+   --  Where files keeps its own data (the recovery index, the volume-trash
+   --  list): the per-user application data directory, or FILES_TEST_TEMP's
+   --  data folder under the test suite.
+   --
+   --  @return The directory, or "" when none can be named.
+   function Application_Data_Directory return String;
+
    --  A snapshot taken with Content => False, completed with the digest of a
    --  regular-file root obtained another way (as it was copied), so the root
    --  is not read just to hash it.
