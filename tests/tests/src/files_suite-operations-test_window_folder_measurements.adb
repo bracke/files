@@ -6,7 +6,7 @@ separate (Files_Suite.Operations)
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       pragma Unreferenced (Step);
-      Before : Ada.Calendar.Time;
+      Before : Instant;
       Folder : constant String := Join (Root, "folder");
       Marker : constant String := Join (Root, "size-started");
       Started : Unbounded_String;
@@ -44,15 +44,15 @@ separate (Files_Suite.Operations)
       Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Marker);
       Started := To_Unbounded_String (Join (Ada.Text_IO.Get_Line (File), "started"));
       Ada.Text_IO.Close (File);
-      Before := Ada.Calendar.Clock;
+      Before := Now;
       for Frame in 1 .. 50 loop
          Files.Operations.Update_Folder_Size (Other, Settings);
          Files.Model.Poll_Folder_Sizes (Other);
          Files.Operations.Update_Folder_Size (Model, Settings);
          Files.Model.Poll_Folder_Sizes (Model);
       end loop;
-      Assert (Ada.Calendar.Clock - Before < Prompt_Limit and then Files.Model.Folder_Scan_Is_Active (Model)
-              and then Ada.Directories.Exists (To_String (Started)),
+      Assert_Within (Before, Prompt_Limit, "polling both windows never waits for the stalled scan");
+      Assert (Files.Model.Folder_Scan_Is_Active (Model) and then Ada.Directories.Exists (To_String (Started)),
               "input and cancellation in another window cannot terminate or restart a stalled scan");
       Ada.Environment_Variables.Clear ("FILES_TEST_STALL_FOLDER_SIZES");
       Select_Name (Other, "folder");

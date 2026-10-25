@@ -662,6 +662,26 @@ begin
       if Status = AUnit.Failure then
          Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
       end if;
+      --  A skip passes, so a test that quietly stops running here would go
+      --  unnoticed: CI names how many may skip on each host, and more fails.
+      declare
+         Ceiling : constant String := Ada.Environment_Variables.Value ("FILES_TEST_MAX_SKIPS", "");
+         Skipped : constant Natural := Files_Suite.Support.Skip_Count;
+      begin
+         if Ceiling /= "" then
+            if (for some C of Ceiling => C not in '0' .. '9') or else Ceiling'Length > 9 then
+               Ada.Text_IO.Put_Line
+                 (Ada.Text_IO.Standard_Error, "FILES_TEST_MAX_SKIPS=" & Ceiling & " is not a decimal count");
+               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+            elsif Skipped > Natural'Value (Ceiling) then
+               Ada.Text_IO.Put_Line
+                 (Ada.Text_IO.Standard_Error,
+                  "FAILED:" & Skipped'Image & " tests skipped, more than FILES_TEST_MAX_SKIPS=" & Ceiling
+                  & "; the SKIP lines above name them");
+               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+            end if;
+         end if;
+      end;
       declare
          Removed : constant Files.File_System.Mutation_Result := Files.File_System.Delete_Permanently (Trash_Root);
          pragma Unreferenced (Removed);

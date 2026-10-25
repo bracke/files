@@ -15,8 +15,6 @@ with AUnit;
 with AUnit.Assertions;
 with AUnit.Test_Cases;
 
-with Project_Tools.Files;
-
 with Glfw;
 with Glfw.Input.Mouse;
 
@@ -40,7 +38,6 @@ with Files.Events;
 with Files.File_System;
 with Files.Fs;
 with Files.File_Types;
-with Files.Features;
 with Files.Fonts;
 with Files.Localization;
 with Files.Model;
@@ -54,6 +51,7 @@ with Guikit.Input;
 with Files.Types;
 with Files.UTF8;
 with Files.UI;
+with Files_Suite.Repository;
 with Files_Suite.Support;
 
 package body Files_Suite.Startup is
@@ -132,10 +130,8 @@ package body Files_Suite.Startup is
    procedure Test_Locale_Variable_Precedence (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detected_Locale_Catalogs (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Host_Locale_Fallbacks (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_First_Implementation_Features (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Helper_Tooling_Is_Ada (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Desktop_Runtime_Wiring (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Desktop_Packaging_Contents (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Crate_Project_Wiring (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Live_Smoke_Gate_Outcome (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Live_Smoke_Scenarios_Verdict (T : in out AUnit.Test_Cases.Test_Case'Class);
 
@@ -201,14 +197,10 @@ package body Files_Suite.Startup is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Host_Locale_Fallbacks'Access, "the system locale is asked of the host, falling back to KDE formats");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_First_Implementation_Features'Access, "first implementation feature set and desktop runtime wiring");
-      AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Helper_Tooling_Is_Ada'Access, "project helper tooling is implemented in Ada");
+        (T, Test_Desktop_Runtime_Wiring'Access, "desktop runtime wiring and capability report");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Desktop_Packaging_Contents'Access,
          "desktop packaging ships its metadata, documentation and manifest entries");
-      AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Crate_Project_Wiring'Access, "crate manifests, project files and ignore lists are wired as expected");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Live_Smoke_Gate_Outcome'Access, "live smoke gate outcome taxonomy");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1980,39 +1972,6 @@ package body Files_Suite.Startup is
       end loop;
    end Test_Localization_Error_And_Command_Keys;
 
-   --  Repository lookups that work whether the suite runs from the repository
-   --  root, tests/ or tests/tests/.
-
-   function Repository_File_Exists (Path : String) return Boolean is
-   begin
-      return Ada.Directories.Exists (Path)
-        or else Ada.Directories.Exists ("../" & Path)
-        or else Ada.Directories.Exists ("../../" & Path);
-   end Repository_File_Exists;
-
-   function Repository_File_Contains
-     (Path    : String;
-      Pattern : String)
-      return Boolean is
-   begin
-      return
-        (Project_Tools.Files.File_Exists (Path)
-         and then Project_Tools.Files.File_Contains (Path, Pattern))
-        or else
-        (Project_Tools.Files.File_Exists ("../" & Path)
-         and then Project_Tools.Files.File_Contains ("../" & Path, Pattern))
-        or else
-        (Project_Tools.Files.File_Exists ("../../" & Path)
-         and then Project_Tools.Files.File_Contains ("../../" & Path, Pattern));
-   end Repository_File_Contains;
-
-   function Repository_Source_Contains (Pattern : String) return Boolean is
-   begin
-      return Project_Tools.Files.Any_File_Contains ("src", Pattern)
-        or else Project_Tools.Files.Any_File_Contains ("../src", Pattern)
-        or else Project_Tools.Files.Any_File_Contains ("../../src", Pattern);
-   end Repository_Source_Contains;
-
    procedure Test_Locale_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
    begin
@@ -2197,7 +2156,7 @@ package body Files_Suite.Startup is
       --  this checks, is that it asks one question instead of branching on the
       --  host itself before it even gets to the environment.
       Assert
-        (Repository_Source_Contains ("Hostkit.Host.Native_Locale"),
+        (Files_Suite.Repository.Source_Contains ("Hostkit.Host.Native_Locale"),
          "the system locale is asked of the host, not detected per OS here");
 
       --  LC_MESSAGES unset, as the precedence walk leaves it.
@@ -2252,35 +2211,20 @@ package body Files_Suite.Startup is
       end;
    end Test_Host_Locale_Fallbacks;
 
-   procedure Test_First_Implementation_Features (T : in out AUnit.Test_Cases.Test_Case'Class) is
+   procedure Test_Desktop_Runtime_Wiring (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
    begin
       Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Drag_And_Drop),
-         "drag-and-drop import belongs to the implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Thumbnail_Generation),
-         "thumbnail generation belongs to the implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Recursive_Search),
-         "recursive search belongs to the implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.File_Watching),
-         "file watching belongs to the implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Permanent_Delete),
-         "permanent deletion belongs to the implementation");
-      Assert
-        (Repository_Source_Contains ("glfwSetDropCallback")
-         and then Repository_Source_Contains ("Handle_Drop_Input"),
+        (Files_Suite.Repository.Source_Contains ("glfwSetDropCallback")
+         and then Files_Suite.Repository.Source_Contains ("Handle_Drop_Input"),
          "native file-drop callbacks are connected to controller import routing");
       Assert
-        (Repository_Source_Contains ("glfwSetWindowIcon")
-         and then Repository_Source_Contains ("Glfw.Windows.Icon.Set_Files_Icon"),
+        (Files_Suite.Repository.Source_Contains ("glfwSetWindowIcon")
+         and then Files_Suite.Repository.Source_Contains ("Glfw.Windows.Icon.Set_Files_Icon"),
          "native desktop windows receive the packaged application icon");
       Assert
-        (Repository_Source_Contains ("Guikit.Vulkan.Wait_For_Events")
-         and then Repository_Source_Contains ("Handle_File_Watch_Poll"),
+        (Files_Suite.Repository.Source_Contains ("Guikit.Vulkan.Wait_For_Events")
+         and then Files_Suite.Repository.Source_Contains ("Handle_File_Watch_Poll"),
          "directory file watching is polled from the desktop event loop");
       --  Native watching is connected to the event loop through a per-host
       --  seam, not by calling a kernel facility from window code: inotify is
@@ -2290,56 +2234,22 @@ package body Files_Suite.Startup is
       --  inotify/kqueue/FindFirstChangeNotification -- live in hostkit with
       --  them. What files still owns, and what this checks, is the wiring.
       Assert
-        (Repository_Source_Contains ("Hostkit.Watch.Poll")
-         and then Repository_Source_Contains ("Drain_Native_Watch"),
+        (Files_Suite.Repository.Source_Contains ("Hostkit.Watch.Poll")
+         and then Files_Suite.Repository.Source_Contains ("Drain_Native_Watch"),
          "native file watching is connected to the desktop event loop");
       --  "window code must not name inotify directly" is now a family-aware
       --  guardrail in check_all (Check_Desktop_Runtime_Contract), so it covers
       --  the window body and every one of its subunits, not just one file.
       Assert
-        (Files.Features.Included_In_First_Implementation
-           (Files.Features.Network_Filesystem_Special_Handling),
-         "network filesystem special handling belongs to the implementation");
-      Assert
-        (Repository_Source_Contains ("Root_Network_Mount")
-         and then Repository_File_Contains ("share/files.catalog", "en.root.network_mount.prefix = "),
+        (Files_Suite.Repository.Source_Contains ("Root_Network_Mount")
+         and then Files_Suite.Repository.File_Contains ("share/files.catalog", "en.root.network_mount.prefix = "),
          "root discovery includes network-specific root handling");
-      Assert
-        (not Files.Features.Included_In_First_Implementation (Files.Features.Shell_Open_By_Default),
-         "shell open actions remain opt-in");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Gpu_Screenshot_Tests),
-         "GPU screenshot comparison tests belong to the implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Platform_Trash),
-         "platform trash belongs to the first implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Root_Discovery),
-         "root discovery belongs to the first implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Open_Action_Execution),
-         "open-action execution belongs to the first implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Settings_Editing),
-         "settings editing belongs to the first implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Desktop_Packaging),
-         "desktop packaging metadata belongs to the first implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Permanent_Delete),
-         "permanent deletion is explicitly available only through its advanced API");
       declare
          Display_Available : constant Boolean := Files.Application.Windows.Live_Display_Available;
          Vulkan_Available  : constant Boolean := Files.Application.Windows.Vulkan_Runtime_Available;
          Capabilities      : constant Files.Application.Windows.Desktop_Capabilities :=
            Files.Application.Windows.Runtime_Capabilities;
       begin
-         Assert
-           (Display_Available or else not Display_Available,
-            "live display capability query returns deterministic boolean");
-         Assert
-           (Vulkan_Available or else not Vulkan_Available,
-            "Vulkan capability query returns deterministic boolean");
          Files_Suite.Support.Assert_Equal
            (Capabilities.Display_Available,
             Display_Available,
@@ -2348,258 +2258,71 @@ package body Files_Suite.Startup is
            (Capabilities.Vulkan_Available,
             Vulkan_Available,
             "desktop capability report includes Vulkan state");
-         Assert
-           (Capabilities.Native_Drop_Callbacks,
-            "desktop capability report includes native drop callbacks");
-         Assert
-           (Capabilities.Native_Drop_Automation,
-            "desktop capability report exposes drop event-source automation");
       end;
-   end Test_First_Implementation_Features;
-
-   procedure Test_Helper_Tooling_Is_Ada (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-
-      function Repository_Root return String is
-      begin
-         if Project_Tools.Files.Directory_Exists ("src")
-           and then Project_Tools.Files.Directory_Exists ("tests")
-         then
-            return ".";
-         elsif Project_Tools.Files.Directory_Exists ("../src")
-           and then Project_Tools.Files.Directory_Exists ("../tests")
-         then
-            return "..";
-         elsif Project_Tools.Files.Directory_Exists ("../../src")
-           and then Project_Tools.Files.Directory_Exists ("../../tests")
-         then
-            return "../..";
-         else
-            return ".";
-         end if;
-      end Repository_Root;
-
-      function Has_Suffix
-        (Text   : String;
-         Suffix : String)
-         return Boolean is
-      begin
-         return Text'Length >= Suffix'Length
-           and then Text (Text'Last - Suffix'Length + 1 .. Text'Last) = Suffix;
-      end Has_Suffix;
-
-      function Is_Skipped_Tree (Name : String) return Boolean is
-      begin
-         return Name = "."
-           or else Name = ".."
-           or else Name = ".git"
-           or else Name = ".alire"
-           or else Name = "alire"
-           or else Name = "bin"
-           or else Name = "obj";
-      end Is_Skipped_Tree;
-
-      function Is_Forbidden_Helper_Script (Name : String) return Boolean is
-      begin
-         return Has_Suffix (Name, ".sh")
-           or else Has_Suffix (Name, ".bash")
-           or else Has_Suffix (Name, ".zsh")
-           or else Has_Suffix (Name, ".fish")
-           or else Has_Suffix (Name, ".ps1")
-           or else Has_Suffix (Name, ".py")
-           or else Has_Suffix (Name, ".awk")
-           or else Has_Suffix (Name, ".pl");
-      end Is_Forbidden_Helper_Script;
-
-      function Forbidden_Helper_Script_Count (Path : String) return Natural is
-         Search   : Ada.Directories.Search_Type;
-         Dir_Item : Ada.Directories.Directory_Entry_Type;
-         Count    : Natural := 0;
-         Started  : Boolean := False;
-      begin
-         if not Project_Tools.Files.Directory_Exists (Path) then
-            return 0;
-         end if;
-
-         Ada.Directories.Start_Search
-           (Search    => Search,
-            Directory => Path,
-            Pattern   => "*",
-            Filter    => [Ada.Directories.Directory => True, Ada.Directories.Ordinary_File => True, others => False]);
-         Started := True;
-         while Ada.Directories.More_Entries (Search) loop
-            Ada.Directories.Get_Next_Entry (Search, Dir_Item);
-            declare
-               Name      : constant String := Ada.Directories.Simple_Name (Dir_Item);
-               Full_Path : constant String := Ada.Directories.Full_Name (Dir_Item);
-            begin
-               if Ada.Directories.Kind (Dir_Item) = Ada.Directories.Directory then
-                  if not Is_Skipped_Tree (Name) then
-                     Count := Count + Forbidden_Helper_Script_Count (Full_Path);
-                  end if;
-               elsif Is_Forbidden_Helper_Script (Name) then
-                  Count := Count + 1;
-               end if;
-            end;
-         end loop;
-         Ada.Directories.End_Search (Search);
-         Started := False;
-         return Count;
-      exception
-         when others =>
-            if Started then
-               Ada.Directories.End_Search (Search);
-            end if;
-            return Count;
-      end Forbidden_Helper_Script_Count;
-   begin
-      Files_Suite.Support.Assert_Equal
-        (Forbidden_Helper_Script_Count (Repository_Root),
-         0,
-         "all project helper tooling remains implemented in Ada");
-   end Test_Helper_Tooling_Is_Ada;
+   end Test_Desktop_Runtime_Wiring;
 
    procedure Test_Desktop_Packaging_Contents (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
    begin
       Assert
-        (Repository_File_Exists ("share/applications/files.desktop"),
+        (Files_Suite.Repository.File_Exists ("share/applications/files.desktop"),
          "desktop packaging includes a desktop entry");
       Assert
-        (Repository_File_Exists ("share/icons/hicolor/scalable/apps/files.svg"),
+        (Files_Suite.Repository.File_Exists ("share/icons/hicolor/scalable/apps/files.svg"),
          "desktop packaging includes an application icon");
       Assert
-        (Repository_File_Exists ("share/metainfo/dk.bracke.files.metainfo.xml"),
+        (Files_Suite.Repository.File_Exists ("share/metainfo/dk.bracke.files.metainfo.xml"),
          "desktop packaging includes AppStream metadata");
       Assert
-        (Repository_File_Exists ("share/files/package.manifest"),
+        (Files_Suite.Repository.File_Exists ("share/files/package.manifest"),
          "desktop packaging includes a release manifest");
       Assert
-        (Repository_File_Exists ("share/doc/files/quick-start.md"),
+        (Files_Suite.Repository.File_Exists ("share/doc/files/quick-start.md"),
          "desktop packaging includes a quick-start guide");
       Assert
-        (Repository_File_Contains ("share/doc/files/quick-start.md", "`Control+A` selects every visible item."),
+        (Files_Suite.Repository.File_Contains
+           ("share/doc/files/quick-start.md", "`Control+A` selects every visible item."),
          "quick-start guide documents the select-all shortcut");
       Assert
-        (Repository_File_Exists ("share/doc/files/settings-format.md"),
+        (Files_Suite.Repository.File_Exists ("share/doc/files/settings-format.md"),
          "desktop packaging includes settings format documentation");
       Assert
-        (Repository_File_Exists ("share/doc/files/platform-support.md"),
+        (Files_Suite.Repository.File_Exists ("share/doc/files/platform-support.md"),
          "desktop packaging includes platform support documentation");
       Assert
-        (Repository_File_Contains ("share/doc/files/platform-support.md", "Ada drop event-source"),
+        (Files_Suite.Repository.File_Contains ("share/doc/files/platform-support.md", "Ada drop event-source"),
          "platform support documentation records drop event-source support");
       Assert
-        (Repository_File_Exists ("share/doc/files/release-notes.md"),
+        (Files_Suite.Repository.File_Exists ("share/doc/files/release-notes.md"),
          "desktop packaging includes release notes");
       Assert
-        (Repository_File_Exists ("share/files.catalog"),
+        (Files_Suite.Repository.File_Exists ("share/files.catalog"),
          "desktop packaging includes the localization catalog");
       Assert
-        (Repository_File_Exists ("share/files/icons/folder.icon"),
+        (Files_Suite.Repository.File_Exists ("share/files/icons/folder.icon"),
          "desktop packaging includes bundled icon assets");
       Assert
-        (Repository_File_Exists ("share/files/icons/markdown.icon"),
+        (Files_Suite.Repository.File_Exists ("share/files/icons/markdown.icon"),
          "desktop packaging includes the complete bundled icon set");
       Assert
-        (Repository_File_Contains ("share/files/package.manifest", "share/files.catalog"),
+        (Files_Suite.Repository.File_Contains ("share/files/package.manifest", "share/files.catalog"),
          "release manifest includes localization catalog");
       Assert
-        (Repository_File_Contains ("share/files/package.manifest", "share/doc/files/quick-start.md"),
+        (Files_Suite.Repository.File_Contains ("share/files/package.manifest", "share/doc/files/quick-start.md"),
          "release manifest includes quick-start guide");
       Assert
-        (Repository_File_Contains ("share/files/package.manifest", "share/doc/files/settings-format.md"),
+        (Files_Suite.Repository.File_Contains ("share/files/package.manifest", "share/doc/files/settings-format.md"),
          "release manifest includes settings format documentation");
       Assert
-        (Repository_File_Contains ("share/files/package.manifest", "share/doc/files/platform-support.md"),
+        (Files_Suite.Repository.File_Contains ("share/files/package.manifest", "share/doc/files/platform-support.md"),
          "release manifest includes platform support documentation");
       Assert
-        (Repository_File_Contains ("share/files/package.manifest", "share/doc/files/release-notes.md"),
+        (Files_Suite.Repository.File_Contains ("share/files/package.manifest", "share/doc/files/release-notes.md"),
          "release manifest includes release notes");
       Assert
-        (Repository_File_Contains ("share/files/package.manifest", "share/files/icons/markdown.icon"),
+        (Files_Suite.Repository.File_Contains ("share/files/package.manifest", "share/files/icons/markdown.icon"),
          "release manifest includes bundled icon assets");
    end Test_Desktop_Packaging_Contents;
-
-   procedure Test_Crate_Project_Wiring (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-   begin
-      Assert
-        (Repository_File_Contains ("alire.toml", "guikit = ""^0.1.0""")
-         and then Repository_File_Contains ("alire.toml", "guikit = { path = ""../guikit"" }"),
-         "files crate pins guikit to the local relative path");
-      Assert
-        (Repository_File_Contains ("alire.toml", "i18n = ""^1.1.0""")
-         and then Repository_File_Contains ("alire.toml", "i18n = { path = ""../i18n"" }"),
-         "files crate pins i18n to the local relative path");
-      Assert
-        (Repository_File_Contains ("alire.toml", "textrender = ""^1.0.0""")
-         and then Repository_File_Contains ("alire.toml", "textrender = { path = ""../textrender"" }"),
-         "files crate pins textrender to the local relative path");
-      Assert
-        (Repository_File_Contains ("alire.toml", "openglada_glfw")
-         and then Repository_File_Contains ("alire.toml", "df_vulkan")
-         and then Repository_File_Contains ("alire.toml", "textrender"),
-         "files crate declares required windowing, rendering, and text-rendering dependencies");
-      Assert
-        (Repository_File_Contains ("tests/alire.toml", "files = ""^0.1.0""")
-         and then Repository_File_Contains ("tests/alire.toml", "files = { path = "".."" }"),
-         "top-level tests sub-crate pins the parent files crate by local relative path");
-      Assert
-        (Repository_File_Contains ("tests/alire.toml", "aunit"),
-         "top-level tests sub-crate declares the AUnit dependency");
-      Assert
-        (Repository_File_Contains ("tests/tests.gpr", "tests/src/")
-         and then Repository_File_Contains ("tests/tests.gpr", "for Main use (""tests.adb"""),
-         "top-level tests sub-crate reuses the AUnit suite sources");
-      Assert
-        (Repository_File_Contains ("tests/tests.gpr", "noop.adb")
-         and then Repository_File_Contains ("tests/tests.gpr", "failing.adb"),
-         "the suite ships the programs its open-action tests launch, rather than "
-         & "borrowing one from the host that may not exist or may never exit");
-      --  There used to be four source lists here, one per host, each selecting a
-      --  src/platform/<os> directory. Everything in those that was genuinely
-      --  per-host belongs to Hostkit now, so there is one list and no platform
-      --  tree -- and this guards against a per-OS directory quietly reappearing.
-      Assert
-        (Repository_File_Contains ("files.gpr", "for Source_Dirs use (""src/"", ""config/"");")
-         and then not Repository_File_Contains ("files.gpr", "src/platform/"),
-         "files project builds one source list for every host");
-      Assert
-        (Repository_File_Contains ("files.gpr", "for Main use (""files-main.adb"")")
-         and then Repository_File_Contains ("files.gpr", "use ""files"""),
-         "files project builds the expected binary entry point");
-      Assert
-        (Repository_File_Contains
-           ("tools/files_check_all.gpr",
-            "for Main use (""check_all.adb"", ""cldr_to_catalog.adb"", ""release_check.adb"")")
-         and then Repository_File_Contains ("tools/files_check_all.gpr", "use ""check_all""")
-         and then Repository_File_Contains ("tools/files_check_all.gpr", "use ""cldr_to_catalog""")
-         and then Repository_File_Contains ("tools/files_check_all.gpr", "use ""release_check"""),
-         "checker tooling project builds the expected Ada helpers");
-      Assert
-        (Repository_File_Contains ("tools/files_check_all.gpr", "for Source_Dirs use (""src"", ""config"")")
-         and then Repository_File_Contains ("tools/files_check_all.gpr", """-gnat2022"""),
-         "checker tooling project keeps Ada 2022 sources wired");
-      Assert
-        (Repository_File_Contains (".gitignore", "/obj/")
-         and then Repository_File_Contains (".gitignore", "/bin/")
-         and then Repository_File_Contains (".gitignore", "/alire/")
-         and then Repository_File_Contains (".gitignore", "/config/"),
-         "main crate ignores generated build artifacts");
-      Assert
-        (Repository_File_Contains ("tests/.gitignore", "/obj/")
-         and then Repository_File_Contains ("tests/.gitignore", "/bin/")
-         and then Repository_File_Contains ("tests/.gitignore", "/alire/")
-         and then Repository_File_Contains ("tests/.gitignore", "/config/"),
-         "top-level tests crate ignores generated build artifacts");
-      Assert
-        (Repository_File_Contains ("tools/.gitignore", "/obj/")
-         and then Repository_File_Contains ("tools/.gitignore", "/bin/")
-         and then Repository_File_Contains ("tools/.gitignore", "/alire/")
-         and then Repository_File_Contains ("tools/.gitignore", "/config/"),
-         "checker tooling crate ignores generated build artifacts");
-   end Test_Crate_Project_Wiring;
 
    procedure Test_Live_Smoke_Gate_Outcome (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

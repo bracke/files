@@ -17,8 +17,6 @@ with AUnit;
 with AUnit.Assertions;
 with AUnit.Test_Cases;
 
-with Project_Tools.Files;
-
 with Glfw;
 with Glfw.Input.Mouse;
 
@@ -37,7 +35,6 @@ with Files.Drop_Events;
 with Files.Events;
 with Files.File_System;
 with Files.File_Types;
-with Files.Features;
 with Files.Fonts;
 with Files.Localization;
 with Files.Model;
@@ -53,6 +50,7 @@ with Guikit.Input;
 with Files.Types;
 with Files.UTF8;
 with Files.UI;
+with Files_Suite.Repository;
 with Files_Suite.Support;
 
 package body Files_Suite.Model is
@@ -2543,29 +2541,6 @@ package body Files_Suite.Model is
       Entries  : Files.File_System.Root_Entry_Vectors.Vector;
       Root_Status : Files.File_System.Root_Discovery_Diagnostics;
 
-      function Repository_File_Contains
-        (Path    : String;
-         Pattern : String)
-         return Boolean is
-      begin
-         return
-           (Project_Tools.Files.File_Exists (Path)
-            and then Project_Tools.Files.File_Contains (Path, Pattern))
-           or else
-           (Project_Tools.Files.File_Exists ("../" & Path)
-            and then Project_Tools.Files.File_Contains ("../" & Path, Pattern))
-           or else
-           (Project_Tools.Files.File_Exists ("../../" & Path)
-           and then Project_Tools.Files.File_Contains ("../../" & Path, Pattern));
-      end Repository_File_Contains;
-
-      function Repository_Source_Contains (Pattern : String) return Boolean is
-      begin
-         return Project_Tools.Files.Any_File_Contains ("src", Pattern)
-           or else Project_Tools.Files.Any_File_Contains ("../src", Pattern)
-           or else Project_Tools.Files.Any_File_Contains ("../../src", Pattern);
-      end Repository_Source_Contains;
-
       function Starts_With
         (Text   : String;
          Prefix : String)
@@ -2611,11 +2586,9 @@ package body Files_Suite.Model is
         (Root_Status.Ready_Count,
          Natural (Entries.Length),
          "root diagnostics count ready roots");
-      Assert (Root_Status.Duplicate_Paths_Removed, "root diagnostics expose duplicate-removal policy");
-      Assert (Root_Status.Deterministic_Order, "root diagnostics expose deterministic ordering policy");
       Assert
-        (Repository_Source_Contains ("function Is_Mount_Container")
-         and then Repository_Source_Contains ("return not Is_Mount_Container"),
+        (Files_Suite.Repository.Source_Contains ("function Is_Mount_Container")
+         and then Files_Suite.Repository.Source_Contains ("return not Is_Mount_Container"),
          "root discovery excludes mount container rows");
       Files_Suite.Support.Assert_Equal
         (Natural (Roots_A.Length),

@@ -366,6 +366,44 @@ jobs:
           pass_count="$(printf '%s\n' "$out" | awk '$0 == "runtime-smoke: PASS" { n++ } END { print n + 0 }')"
           [ "$pass_count" -eq 1 ]
 
+      # The cross-device move tests need a writable directory on a different
+      # device than the suite's scratch root, and read its path from
+      # FILES_TEST_OTHER_VOLUME (Linux needs none: /dev/shm is its own tmpfs).
+      # A failure here is not fatal by itself: those tests then skip, and the
+      # FILES_TEST_MAX_SKIPS ceiling on the test step turns that into a red job.
+      - name: Mount a second volume for cross-device tests (macOS)
+        if: runner.os == 'macOS'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          # 262144 512-byte sectors: a 128 MiB RAM disk.
+          dev="$(hdiutil attach -nomount ram://262144 | awk 'NR == 1 { print $1 }')"
+          diskutil erasevolume HFS+ FilesTestVol "$dev"
+          test -d /Volumes/FilesTestVol
+          echo "FILES_TEST_OTHER_VOLUME=/Volumes/FilesTestVol" >> "$GITHUB_ENV"
+
+      - name: Mount a second volume for cross-device tests (Windows)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vhd = Join-Path $env:RUNNER_TEMP 'files-test-volume.vhd'
+          $script = Join-Path $env:RUNNER_TEMP 'files-test-volume.diskpart'
+          @(
+            "create vdisk file=`"$vhd`" maximum=256 type=expandable",
+            "select vdisk file=`"$vhd`"",
+            "attach vdisk",
+            "create partition primary",
+            "format fs=ntfs quick label=FilesTestVol",
+            "assign letter=R"
+          ) | Set-Content -Path $script -Encoding ascii
+          diskpart /s $script
+          if ($LASTEXITCODE -ne 0) { throw "diskpart exited with $LASTEXITCODE" }
+          if (-not (Test-Path 'R:\')) { throw 'the VHD did not mount as R:' }
+          'FILES_TEST_OTHER_VOLUME=R:\' | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
       - name: Build and run the test suite
         shell: bash
         working-directory: files/tests
@@ -379,6 +417,16 @@ jobs:
           # Name each test as it starts on Windows, where a crash leaves no
           # report to say which one it was in.
           FILES_TEST_PROGRESS: ${{ runner.os == 'Windows' && '1' || '' }}
+          # Multiplies the suite's "returns promptly" timing bounds: the shared
+          # macOS and Windows runners spawn helper processes far more slowly.
+          FILES_TEST_TIME_SCALE: ${{ (runner.os == 'macOS' || runner.os == 'Windows') && '2' || '1' }}
+          # How many tests may skip on each host before the run fails: a test that
+          # quietly stops running here passes in AUnit's count. Linux skips only
+          # the case-insensitive-volume test; macOS and Windows also skip the
+          # Linux-only tests (29), plus the Noto emoji font path (2) and invalid
+          # UTF-8 names (1), and on Windows the mode-bit (3), reserve, and FIFO
+          # tests. Raise a ceiling only together with the Skip that needs it.
+          FILES_TEST_MAX_SKIPS: ${{ runner.os == 'Linux' && '1' || runner.os == 'macOS' && '32' || '37' }}
         run: |
           alr --non-interactive build
           # The runners keep UTC, where local and UTC time format alike, so a

@@ -8,7 +8,7 @@ separate (Files_Suite.Operations)
       pragma Unreferenced (Step);
       Load : Files.File_System.Directory_Load_Result;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
-      Before : Ada.Calendar.Time;
+      Before : Instant;
       Had_Flag : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TEST_STALL_READS");
       Old_Flag : constant String := Ada.Environment_Variables.Value ("FILES_TEST_STALL_READS", "");
 
@@ -88,13 +88,12 @@ separate (Files_Suite.Operations)
       Step := Files.Operations.Refresh_If_Changed (Model, Settings);
       Files.Refresh_Jobs.Watch_Path (Watch, Root);
       Await_Stall;
-      Before := Ada.Calendar.Clock;
+      Before := Now;
       for Attempt in 1 .. 100 loop
          Assert (not Files.Refresh_Jobs.Advance (Model, Settings), "stalled reads leave the current listing intact");
          Assert (not Files.Refresh_Jobs.Poll_Watch (Watch), "watch polling never waits for registration or I/O");
       end loop;
-      Assert (Ada.Calendar.Clock - Before < Prompt_Limit,
-              "repeated UI polls return promptly while helpers are stalled");
+      Assert_Within (Before, Prompt_Limit, "repeated UI polls return promptly while helpers are stalled");
       Files.Model.Set_Filter (Model, "source");
       Assert (not Files.Refresh_Jobs.Advance (Model, Settings)
               and then not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
@@ -104,24 +103,25 @@ separate (Files_Suite.Operations)
       Actions.Append (Files.Paste.Resolved_Action'
                         (To_Unbounded_String (Join (Root, "source")),
                          To_Unbounded_String (Join (Root, "dest")), False, False));
-      Before := Ada.Calendar.Clock;
+      Before := Now;
       Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
       Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
               "starting paste immediately releases an outstanding read");
       Files.Operations.Cancel_Paste_Execution (Model);
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-      Assert (Ada.Calendar.Clock - Before < Prompt_Limit
-              and then not Files.Model.Paste_Execution_Is_Active (Model)
+      Assert_Within (Before, Prompt_Limit, "paste cancellation finalizes without waiting for a directory reload");
+      Assert (not Files.Model.Paste_Execution_Is_Active (Model)
               and then not Ada.Directories.Exists (Join (Root, "dest")),
-              "paste cancellation finalizes promptly without waiting for a directory reload");
+              "paste cancellation finalizes without copying");
       Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
               "paste finalization schedules its directory refresh independently");
       Await_Stall;
-      Before := Ada.Calendar.Clock;
+      Before := Now;
       Cleanup;
-      Assert (Ada.Calendar.Clock - Before < Prompt_Limit
-              and then not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
-              "window cleanup releases stalled refresh and native-watch helpers without waiting");
+      Assert_Within
+        (Before, Prompt_Limit, "window cleanup releases stalled refresh and native-watch helpers without waiting");
+      Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+              "window cleanup leaves no refresh helper active");
    exception
       when others =>
          Cleanup;

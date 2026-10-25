@@ -6,7 +6,7 @@ separate (Files_Suite.Operations)
       Watch : Files.Refresh_Jobs.Watch_Session;
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
-      Before : Ada.Calendar.Time;
+      Before : Instant;
       Started : Unbounded_String;
       Paths, Sources : Files.Types.String_Vectors.Vector;
       Action : Files.Model.Undo_Entry;
@@ -51,7 +51,7 @@ separate (Files_Suite.Operations)
             Files.Model.Push_Redo (Model, Action);
          end if;
          Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", "1");
-         Before := Ada.Calendar.Clock;
+         Before := Now;
          Step :=
            (case Job_Kind is
                when Trash_Job => Files.Operations.Delete_Selected (Model, Settings),
@@ -63,7 +63,7 @@ separate (Files_Suite.Operations)
          --  Three checks, each naming itself: a failure on a slow runner
          --  has to say which one it was and how long the launch took.
          declare
-            Elapsed : constant Duration := Ada.Calendar.Clock - Before;
+            Taken : constant Span := Elapsed (Before);
          begin
             Files_Suite.Support.Assert_Equal
               (Step.Status,
@@ -71,9 +71,7 @@ separate (Files_Suite.Operations)
                Kind'Image (Job_Kind) & " command did not launch: "
                & Files.Operations.Operation_Status'Image (Step.Status)
                & " " & To_String (Step.Error_Key));
-            Assert (Elapsed < Prompt_Limit,
-                    Kind'Image (Job_Kind) & " command took" & Duration'Image (Elapsed)
-                    & " s in the caller (limit" & Duration'Image (Prompt_Limit) & " s)");
+            Assert_Within (Taken, Prompt_Limit, Kind'Image (Job_Kind) & " command returns before its helper finishes");
             Assert (Files.Model.Paste_Execution_Is_Active (Model),
                     Kind'Image (Job_Kind) & " command left no background job running");
          end;
@@ -91,10 +89,9 @@ separate (Files_Suite.Operations)
             Step := Complete_Operation (Model, Settings, Step);
             Await_View (Model, Settings);
          else
-            Before := Ada.Calendar.Clock;
+            Before := Now;
             Files.Application.Windows.Release_Window_Jobs (Model, Watch);
-            Assert (Ada.Calendar.Clock - Before < Prompt_Limit,
-                    "window closure never joins a stalled destructive helper");
+            Assert_Within (Before, Prompt_Limit, "window closure never joins a stalled destructive helper");
          end if;
          Assert (File_Has_Bytes (Join (Root, "victim.txt"), "victim bytes")
                  and then not Ada.Directories.Exists (Join (Root, "new-copy.txt"))

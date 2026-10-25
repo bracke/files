@@ -3,7 +3,7 @@ separate (Files_Suite.Operations)
       pragma Unreferenced (T);
       Job       : Files.Process_Jobs.Session;
       Started   : Files.Types.UString;
-      Before    : Ada.Calendar.Time;
+      Before    : Instant;
       Finished  : Boolean;
       Cancelled : Boolean;
    begin
@@ -54,10 +54,9 @@ separate (Files_Suite.Operations)
          Files.Process_Jobs.Reset (Job);
          Files.Process_Jobs.Poll (Keeper, Finished, Cancelled);
          Assert (not Finished, "a copied session keeps its helper alive");
-         Before := Ada.Calendar.Clock;
+         Before := Now;
          Files.Process_Jobs.Reset (Keeper);
-         Assert (Ada.Calendar.Clock - Before < Prompt_Limit,
-                 "closing the last session never waits for blocked helper work");
+         Assert_Within (Before, Prompt_Limit, "closing the last session never waits for blocked helper work");
       end;
       for Attempt in Files_Suite.Support.Polling loop
          Files.Process_Jobs.Poll (Job, Finished, Cancelled);
@@ -72,14 +71,14 @@ separate (Files_Suite.Operations)
          exit when Ada.Directories.Exists (To_String (Started));
       end loop;
       Assert (Ada.Directories.Exists (To_String (Started)), "the cancellation fixture enters blocked helper work");
-      Before := Ada.Calendar.Clock;
+      Before := Now;
       Files.Process_Jobs.Cancel (Job);
       for Attempt in Files_Suite.Support.Polling loop
          Files.Process_Jobs.Poll (Job, Finished, Cancelled);
          exit when Finished;
       end loop;
-      Assert (Finished and then Cancelled and then Ada.Calendar.Clock - Before < 3.5,
-              "cancellation detaches stalled helpers after its bounded grace period");
+      Assert (Finished and then Cancelled, "cancellation detaches a stalled helper");
+      Assert_Within (Before, Detach_Limit, "cancellation detaches stalled helpers after its bounded grace period");
       Files.Process_Jobs.Reset (Job);
 
       Files.Process_Jobs.Reserve (Job);

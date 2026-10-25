@@ -7,7 +7,7 @@ separate (Files_Suite.Operations)
         Ada.Environment_Variables.Value ("FILES_TEST_STALL_CLEANUP_WORKER", "");
       Job       : Files.Process_Jobs.Session;
       Transport : Files.Types.UString;
-      Before    : Ada.Calendar.Time;
+      Before    : Instant;
 
       function Item (Name : String) return String is
         (Join (To_String (Transport), Name));
@@ -47,11 +47,14 @@ separate (Files_Suite.Operations)
       Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
       Ada.Directories.Create_Directory (Item ("stages"));
 
-      Before := Ada.Calendar.Clock;
+      Before := Now;
       Files.Process_Jobs.Reset (Job);
-      Assert
-        (Ada.Calendar.Clock - Before < Prompt_Limit,
-         "session disposal returns without waiting for the cleanup worker");
+      Assert_Within (Before, Prompt_Limit, "session disposal returns without waiting for the cleanup worker");
+      --  The worker is held until the release file appears, so a disposal that
+      --  had waited for it -- or cleaned up in its place -- would find the
+      --  transport gone.
+      Assert (Ada.Directories.Exists (To_String (Transport)),
+              "disposal hands the transport to the cleanup worker instead of removing it itself");
       for Attempt in Files_Suite.Support.Polling loop
          exit when Ada.Directories.Exists (Item ("cleanup-worker-started"));
       end loop;

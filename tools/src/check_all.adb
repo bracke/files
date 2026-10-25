@@ -917,6 +917,12 @@ procedure Check_All is
             Full : constant String := Ada.Directories.Full_Name (Dir_Entry);
          begin
             Check_Ada_Only_Tooling_File (Name, Full);
+            --  The Python scan covers the source trees, not the root itself.
+            if Ends_With (Ada.Characters.Handling.To_Lower (Name), ".py") then
+               Put_Line (Standard_Error, Full & ": non-Ada helper tooling is not allowed");
+               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+               raise Program_Error;
+            end if;
          end;
       end loop;
 
@@ -947,6 +953,9 @@ procedure Check_All is
       Check_Ada_Only_Tooling_In_Tree (Root & "/tests");
       Check_Ada_Only_Tooling_In_Tree (Root & "/tools");
       Check_Ada_Only_Tooling_In_Tree (Root & "/share");
+      Check_Ada_Only_Tooling_In_Tree (Root & "/.github");
+      Check_Ada_Only_Tooling_In_Tree (Root & "/.claude");
+      Check_Ada_Only_Tooling_In_Tree (Root & "/.config");
 
       --  Delegate Python-artifact detection to the shared tree check across the
       --  same source trees the inline scan covers.
@@ -956,6 +965,9 @@ procedure Check_All is
       Scan_Python (Root & "/tests");
       Scan_Python (Root & "/tools");
       Scan_Python (Root & "/share");
+      Scan_Python (Root & "/.github");
+      Scan_Python (Root & "/.claude");
+      Scan_Python (Root & "/.config");
 
       if Python_Errors > 0 then
          Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
@@ -2445,37 +2457,33 @@ procedure Check_All is
          "Run (""top-level AUnit tests"", Root & ""/tests"", ""./bin/tests"", []);",
          "full validation must run the top-level tests sub-crate");
       Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "files crate pins textrender to the local relative path",
-         "first-implementation policy tests must cover the textrender local pin");
+        (Top_Tests_Manifest,
+         "files = ""^0.1.0""",
+         "top-level tests sub-crate must depend on the files crate");
       Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "files project builds one source list for every host",
-         "first-implementation policy tests must cover the single per-host source list");
+        (Top_Tests_Manifest,
+         "files = { path = "".."" }",
+         "top-level tests sub-crate must pin the parent files crate by local relative path");
       Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "files project builds the expected binary entry point",
-         "first-implementation policy tests must cover the files binary entry point");
+        (Top_Tests_Manifest,
+         "aunit = ",
+         "top-level tests sub-crate must depend on AUnit");
       Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "checker tooling project builds the expected Ada helper",
-         "first-implementation policy tests must cover checker executable wiring");
+        (Top_Tests_Project,
+         "for Source_Dirs use (""tests/src/""",
+         "top-level tests sub-crate must build the AUnit suite sources");
       Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "checker tooling project keeps Ada 2022 sources wired",
-         "first-implementation policy tests must cover checker source wiring");
+        (Top_Tests_Project,
+         "for Main use (""tests.adb""",
+         "top-level tests sub-crate must build the AUnit runner");
       Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "main crate ignores generated build artifacts",
-         "first-implementation policy tests must cover main generated-artifact ignores");
+        (Top_Tests_Project,
+         """noop.adb""",
+         "the suite must ship the no-op program its open-action tests launch");
       Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "top-level tests crate ignores generated build artifacts",
-         "first-implementation policy tests must cover top-level tests generated-artifact ignores");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "checker tooling crate ignores generated build artifacts",
-         "first-implementation policy tests must cover checker generated-artifact ignores");
+        (Top_Tests_Project,
+         """failing.adb""",
+         "the suite must ship the failing program its open-action tests launch");
       Project_Tools.Files.Require_Contains
         (Tools_Manifest,
          "name = ""files_check_all""",
@@ -2506,6 +2514,14 @@ procedure Check_All is
          "checker tooling project must produce the CLDR importer executable");
       Project_Tools.Files.Require_Contains
         (Tools_Project,
+         "for Executable (""release_check.adb"") use ""release_check"";",
+         "checker tooling project must produce the release checker executable");
+      Project_Tools.Files.Require_Contains
+        (Tools_Project,
+         "for Source_Dirs use (""src"", ""config"");",
+         "checker tooling project must build its Ada sources and generated config");
+      Project_Tools.Files.Require_Contains
+        (Tools_Project,
          """-gnat2022""",
          "checker tooling project must compile as Ada 2022");
       Project_Tools.Files.Require_Contains
@@ -2524,6 +2540,22 @@ procedure Check_All is
         (Main_Ignore,
          "/config/",
          "files crate must ignore generated Alire config");
+      Project_Tools.Files.Require_Contains
+        (Top_Tests_Ignore,
+         "/obj/",
+         "top-level tests crate must ignore generated object directories");
+      Project_Tools.Files.Require_Contains
+        (Top_Tests_Ignore,
+         "/bin/",
+         "top-level tests crate must ignore generated executable directories");
+      Project_Tools.Files.Require_Contains
+        (Top_Tests_Ignore,
+         "/alire/",
+         "top-level tests crate must ignore generated Alire state");
+      Project_Tools.Files.Require_Contains
+        (Top_Tests_Ignore,
+         "/config/",
+         "top-level tests crate must ignore generated Alire config");
       Project_Tools.Files.Require_Contains
         (Tools_Ignore,
          "/obj/",
@@ -3834,7 +3866,7 @@ procedure Check_All is
       --  The floors are the counts as of the last change to a suite, so a
       --  lost test fails here; raise a floor when a suite grows.
       Require_Tests ("settings", 33);
-      Require_Tests ("startup", 29);
+      Require_Tests ("startup", 27);
       Require_Tests ("commands", 36);
       Require_Tests ("model", 47);
       Require_Tests ("interaction", 71);

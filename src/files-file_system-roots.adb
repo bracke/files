@@ -507,9 +507,7 @@ package body Roots is
          Windows_Drive_Count     => 0,
          Mount_Count             => 0,
          User_Mount_Count        => 0,
-         Network_Mount_Count     => 0,
-         Duplicate_Paths_Removed => True,
-         Deterministic_Order     => True);
+         Network_Mount_Count     => 0);
    begin
       for Root of Entries loop
          if Root.Ready = Root_Ready then

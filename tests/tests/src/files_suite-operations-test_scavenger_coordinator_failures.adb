@@ -50,17 +50,15 @@ separate (Files_Suite.Operations)
          Restricted : constant Boolean :=
            Hostkit.Host.Current = Hostkit.Host.Linux and then not Hostkit.Host.Is_Elevated;
          Result : Files.File_System.Mutation_Result;
-         Before : Ada.Calendar.Time;
+         Before : Instant;
       begin
          if Restricted then
             Result := Files.File_System.Set_Permissions (Marker, 0);
             Assert (Result.Success, "make the fallback scan wait for marker access");
          end if;
-         Before := Ada.Calendar.Clock;
+         Before := Now;
          Files.Job_Scavenger.Scavenge (Join (Root, "missing-scavenge-coordinator"));
-         Assert
-           (Ada.Calendar.Clock - Before < Prompt_Limit,
-            "startup returns promptly even when the coordinator cannot launch");
+         Assert_Within (Before, Prompt_Limit, "startup returns promptly even when the coordinator cannot launch");
          if Restricted then
             Result := Files.File_System.Set_Permissions (Marker, 8#600#);
             Assert (Result.Success, "restore fallback marker access");

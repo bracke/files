@@ -199,8 +199,6 @@ package Files.File_System is
       Metadata_Sidecar    : Boolean := False;
       Collision_Safe_Name : Boolean := False;
       Permanent_Delete    : Boolean := False;
-      Native_Diagnostics  : Boolean := True;
-      Multi_Item_Preflight : Boolean := True;
    end record;
 
    type Native_Trash_Request is record
@@ -264,8 +262,6 @@ package Files.File_System is
       Mount_Count             : Natural := 0;
       User_Mount_Count        : Natural := 0;
       Network_Mount_Count     : Natural := 0;
-      Duplicate_Paths_Removed : Boolean := True;
-      Deterministic_Order     : Boolean := True;
    end record;
 
    type Root_Volume_Capabilities is record

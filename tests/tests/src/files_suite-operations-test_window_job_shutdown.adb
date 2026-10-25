@@ -7,7 +7,7 @@ separate (Files_Suite.Operations)
       Empty : Files.Process_Jobs.Session;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       Started, Other_Started : Unbounded_String;
-      Before : Ada.Calendar.Time;
+      Before : Instant;
       Step : Files.Operations.Operation_Result;
       Finished, Cancelled : Boolean;
       Had_Reads : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TEST_STALL_READS");
@@ -92,14 +92,14 @@ separate (Files_Suite.Operations)
                end;
          end case;
          Files.Refresh_Jobs.Watch_Path (Closing_Watch, Root);
-         Before := Ada.Calendar.Clock;
+         Before := Now;
          Files.Application.Windows.Release_Window_Jobs (Closing, Closing_Watch);
          Files.Application.Windows.Release_Window_Jobs (Closing, Closing_Watch);
-         Assert (Ada.Calendar.Clock - Before < Prompt_Limit
-                 and then not Files.Model.Paste_Execution_Is_Active (Closing)
+         Assert_Within (Before, Prompt_Limit, "repeated window closure never joins stalled helpers");
+         Assert (not Files.Model.Paste_Execution_Is_Active (Closing)
                  and then not Files.Process_Jobs.Active (Files.Model.Background_Operation (Closing))
                  and then not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Closing)),
-                 "repeated window closure releases all jobs promptly without joining stalled helpers");
+                 "repeated window closure releases all of the window's jobs");
          declare
             Other : constant Files.Process_Jobs.Session := Files.Model.Background_Operation (Remaining);
          begin

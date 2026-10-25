@@ -1,24 +1,15 @@
+with Files_Suite.Volumes;
 separate (Files_Suite.Operations)
    procedure Test_Read_Only_Directory_Transfers (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Source : constant String := Join (Root, "source");
-      Remote : Unbounded_String;
+      Remote : Files_Suite.Volumes.Remote_Directory;
       Model : Files.Model.Window_Model;
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Paths : Files.Types.String_Vectors.Vector;
-      Had_Tmp : constant Boolean := Ada.Environment_Variables.Exists ("TMPDIR");
-      Old_Tmp : constant String := Ada.Environment_Variables.Value ("TMPDIR", "");
-      procedure Restore_Tmp is
-      begin
-         if Had_Tmp then
-            Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
-         else
-            Ada.Environment_Variables.Clear ("TMPDIR");
-         end if;
-      end Restore_Tmp;
       procedure Remove (Path : String) is
          Result : constant Files.File_System.Mutation_Result := Files.File_System.Delete_Created_Entry
            (Path, Files.File_Identities.Token (Path), Files.File_System.Tree_Revision (Path));
@@ -27,7 +18,6 @@ separate (Files_Suite.Operations)
       end Remove;
       procedure Cleanup is
       begin
-         Restore_Tmp;
          Files.Model.Clear_Paste_Execution (Model);
          Files.Refresh_Jobs.Cancel (Model);
          if Ada.Directories.Exists (Source) then
@@ -36,8 +26,8 @@ separate (Files_Suite.Operations)
          if Ada.Directories.Exists (Join (Root, "copy")) then
             Remove (Join (Root, "copy"));
          end if;
-         if Length (Remote) > 0 then
-            Remove (To_String (Remote));
+         if Remote.Path /= "" and then Ada.Directories.Exists (Remote.Path) then
+            Remove (Remote.Path);
          end if;
       end Cleanup;
       procedure Check (Path : String) is
@@ -61,18 +51,14 @@ separate (Files_Suite.Operations)
          end loop;
       end Check_Backups;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux or else not Ada.Directories.Exists ("/dev/shm") then
-         Files_Suite.Support.Skip
-           ("Test_Read_Only_Directory_Transfers",
-            "Hostkit.Host.Current /= Hostkit.Host.Linux or else not Ada.Director...");
+      if Hostkit.Host.Current /= Hostkit.Host.Linux then
+         Files_Suite.Support.Skip ("Test_Read_Only_Directory_Transfers", "Hostkit.Host.Current /= Hostkit.Host.Linux");
          return;
       end if;
       Settings.Show_Hidden_Files := True;
-      Ada.Environment_Variables.Set ("TMPDIR", "/dev/shm");
-      Remote := To_Unbounded_String (Hostkit.Fs.Create_Temporary_Directory ("files-test-read-only-move-"));
-      Restore_Tmp;
-      if Length (Remote) = 0 then
-         Files_Suite.Support.Skip ("Test_Read_Only_Directory_Transfers", "Length (Remote) = 0");
+      Remote.Create ("files-test-read-only-move-");
+      if Remote.Path = "" then
+         Files_Suite.Support.Skip ("Test_Read_Only_Directory_Transfers", Files_Suite.Volumes.No_Other_Volume);
          return;
       end if;
       for Background in Boolean loop
@@ -97,12 +83,12 @@ separate (Files_Suite.Operations)
          Paths.Append (To_Unbounded_String (Source));
          Step := Complete_Operation
            (Model, Settings, Files.Operations.Begin_Paste_To
-              (Model, Settings, Paths, To_String (Remote), Files.File_System.Drop_Move));
+              (Model, Settings, Paths, Remote.Path, Files.File_System.Drop_Move));
          Await_View (Model, Settings);
          Assert (Step.Status = Files.Operations.Operation_Success and then not Ada.Directories.Exists (Source),
                  "move a read-only root across filesystems");
          for Cycle in 1 .. 2 loop
-            Check (Join (To_String (Remote), "source"));
+            Check (Join (Remote.Path, "source"));
             Check_Backups (Root);
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
@@ -111,7 +97,7 @@ separate (Files_Suite.Operations)
                Files.Operations.Operation_Success,
                "Undo a read-only directory move");
             Check (Source);
-            Check_Backups (To_String (Remote));
+            Check_Backups (Remote.Path);
             Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
@@ -119,7 +105,7 @@ separate (Files_Suite.Operations)
                Files.Operations.Operation_Success,
                "Redo a read-only directory move");
          end loop;
-         Remove (Join (To_String (Remote), "source"));
+         Remove (Join (Remote.Path, "source"));
       end loop;
       Cleanup;
    exception

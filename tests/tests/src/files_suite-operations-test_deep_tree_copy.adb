@@ -1,3 +1,4 @@
+with Files_Suite.Volumes;
 separate (Files_Suite.Operations)
    procedure Test_Deep_Tree_Copy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,10 +9,8 @@ separate (Files_Suite.Operations)
       Mutation : Files.File_System.Mutation_Result;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Load : Files.File_System.Directory_Load_Result;
-      --  Restores what the test changes, on failure too.
-      Environment : Files_Suite.Support.Environment_Guard;
+      Remote : Files_Suite.Volumes.Remote_Directory;
    begin
-      Files_Suite.Support.Save (Environment, "TMPDIR");
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
          Files_Suite.Support.Skip ("Test_Deep_Tree_Copy", "Hostkit.Host.Current /= Hostkit.Host.Linux");
          return;
@@ -46,23 +45,16 @@ separate (Files_Suite.Operations)
 
       --  A cross-device move snapshots the whole source before it copies:
       --  that walk, too, must hold 1000 levels on any caller's stack.
-      if Ada.Directories.Exists ("/dev/shm") then
+      Remote.Create ("files-test-deep-");
+      if Remote.Path = "" then
+         Files_Suite.Support.Skip ("Test_Deep_Tree_Copy", Files_Suite.Volumes.No_Other_Volume);
+      else
          Reset_Root;
          declare
-            Old_Tmp  : constant String :=
-              (if Ada.Environment_Variables.Exists ("TMPDIR") then Ada.Environment_Variables.Value ("TMPDIR") else "");
-            Remote   : Unbounded_String;
             Paths    : Files.Types.String_Vectors.Vector;
             Plans    : Files.File_System.Drop_Import_Result;
             Moved    : Files.File_System.Mutation_Result;
          begin
-            Ada.Environment_Variables.Set ("TMPDIR", "/dev/shm");
-            Remote := To_Unbounded_String (Hostkit.Fs.Create_Temporary_Directory ("files-test-deep-"));
-            if Old_Tmp = "" then
-               Ada.Environment_Variables.Clear ("TMPDIR");
-            else
-               Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
-            end if;
             Leaf := To_Unbounded_String (Source);
             Ada.Directories.Create_Directory (Source);
             for N in 1 .. 1_000 loop
@@ -71,11 +63,10 @@ separate (Files_Suite.Operations)
             end loop;
             Write_Binary_File (Join (To_String (Leaf), "child"), "deep bytes");
             Paths.Append (To_Unbounded_String (Source));
-            Plans := Files.File_System.Plan_Drop_Import (Paths, To_String (Remote), Files.File_System.Drop_Move);
+            Plans := Files.File_System.Plan_Drop_Import (Paths, Remote.Path, Files.File_System.Drop_Move);
             Moved := Files.File_System.Execute_Drop_Import (Plans.Plans);
             Assert (Moved.Success and then not Ada.Directories.Exists (Source),
                     "a 1000-level tree moves across devices");
-            Project_Tools.Files.Delete_Tree (To_String (Remote));
          end;
       end if;
    end Test_Deep_Tree_Copy;

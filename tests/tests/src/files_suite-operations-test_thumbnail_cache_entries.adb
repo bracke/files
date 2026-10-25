@@ -143,21 +143,29 @@ separate (Files_Suite.Operations)
       declare
          Revision_Source : constant String := Join (Root, "revision-cached.ppm");
          First_Path, Second_Path : Unbounded_String;
+         Unix_Now : constant Long_Long_Integer :=
+           Long_Long_Integer
+             (Ada.Calendar."-" (Ada.Calendar.Clock, Ada.Calendar.Formatting.Time_Of (1970, 1, 1, 0.0, Time_Zone => 0)));
       begin
+         --  The edit keeps the size, so only the modification time tells the
+         --  versions apart. Date them explicitly rather than sleeping between
+         --  the writes: a filesystem that keeps whole (or, on FAT, even) seconds
+         --  would give two writes a moment apart the same time, and Windows
+         --  stamps from a clock that advances in steps of about 16 ms.
          Write_File
            (Revision_Source,
             "P3" & ASCII.LF & "1 1" & ASCII.LF & "255" & ASCII.LF & "255 0 0" & ASCII.LF);
+         Assert (Hostkit.Metadata.Set_File_Times (Revision_Source, Unix_Now - 200, Unix_Now - 200),
+                 "date the original image");
          First_Path := To_Unbounded_String
            (Files.File_System.Thumbnail_Path_For
               (Revision_Source,
                Files.File_System.Default_Thumbnail_Cache_Directory (Root), 64));
-         --  The edit keeps the size, so only the timestamps tell it apart.
-         --  Windows stamps them from a clock that advances in steps of up
-         --  to about 16 ms; an edit inside one step is indistinguishable.
-         delay 0.05;
          Write_File
            (Revision_Source,
             "P3" & ASCII.LF & "1 1" & ASCII.LF & "255" & ASCII.LF & "0 0 255" & ASCII.LF);
+         Assert (Hostkit.Metadata.Set_File_Times (Revision_Source, Unix_Now - 100, Unix_Now - 100),
+                 "date the edit later than the original");
          Second_Path := To_Unbounded_String
            (Files.File_System.Thumbnail_Path_For
               (Revision_Source,

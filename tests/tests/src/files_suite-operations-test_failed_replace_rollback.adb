@@ -1,15 +1,14 @@
+with Files_Suite.Volumes;
 separate (Files_Suite.Operations)
    procedure Test_Failed_Replace_Rollback (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Remote   : constant String :=
-        "/dev/shm/files_aunit_replace_recovery-" & Ada.Directories.Simple_Name (Root);
+      Remote   : Files_Suite.Volumes.Remote_Directory;
       Tree     : constant String := Join (Root, "replace-source");
       Locked   : constant String := Join (Tree, "locked");
-      Dest     : constant String := Join (Remote, "replace-target");
-      Had_Back : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
-      Old_Back : constant String :=
-        (if Had_Back then Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND") else "");
+      function Dest return String is (Join (Remote.Path, "replace-target"));
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
       Model    : Files.Model.Window_Model;
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Step     : Files.Operations.Operation_Result;
@@ -20,26 +19,19 @@ separate (Files_Suite.Operations)
          Files.Model.Clear_Paste_Execution (Model);
          Result := Files.File_System.Set_Permissions (Root, 8#755#);
          Result := Files.File_System.Set_Permissions (Locked, 8#755#);
-         Project_Tools.Files.Delete_Tree (Remote);
-         if Had_Back then
-            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", Old_Back);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         end if;
       end Cleanup;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux or else not Ada.Directories.Exists ("/dev/shm") then
-         Files_Suite.Support.Skip
-           ("Test_Failed_Replace_Rollback",
-            "Hostkit.Host.Current /= Hostkit.Host.Linux or else not Ada.Director...");
+      if Hostkit.Host.Current /= Hostkit.Host.Linux then
+         Files_Suite.Support.Skip ("Test_Failed_Replace_Rollback", "Hostkit.Host.Current /= Hostkit.Host.Linux");
          return;
       end if;
       Reset_Root;
-      begin
-         Ada.Directories.Create_Directory (Remote);
-      exception
-         when Ada.Directories.Use_Error | Ada.Directories.Name_Error => return;
-      end;
+      Remote.Create ("files-test-replace-recovery-");
+      if Remote.Path = "" then
+         Files_Suite.Support.Skip ("Test_Failed_Replace_Rollback", Files_Suite.Volumes.No_Other_Volume);
+         return;
+      end if;
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
       Actions.Append (Files.Paste.Resolved_Action'
                         (To_Unbounded_String (Tree), To_Unbounded_String (Dest), False, True));
@@ -51,7 +43,7 @@ separate (Files_Suite.Operations)
          Assert (Result.Success, "preserve a readonly nested directory in the copied destination");
          Result := Files.File_System.Set_Permissions (Root, 8#555#);
          Assert (Result.Success, "the fixture permits copying but refuses atomic source removal");
-         Files.Model.Initialize (Model, Remote, Files.File_System.Item_Vectors.Empty_Vector, Root);
+         Files.Model.Initialize (Model, Remote.Path, Files.File_System.Item_Vectors.Empty_Vector, Root);
          Files.Model.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);

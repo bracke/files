@@ -1,11 +1,10 @@
+with Files_Suite.Volumes;
 separate (Files_Suite.Operations)
    procedure Test_Move_Commit_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Source : constant String := Join (Root, "inbox/entry");
-      Remote : Unbounded_String;
-      Had_Tmp : constant Boolean := Ada.Environment_Variables.Exists ("TMPDIR");
-      Old_Tmp : constant String := Ada.Environment_Variables.Value ("TMPDIR", "");
+      Remote : Files_Suite.Volumes.Remote_Directory;
       Model : Files.Model.Window_Model;
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
@@ -21,34 +20,23 @@ separate (Files_Suite.Operations)
             Ada.Environment_Variables.Clear ("FILES_TEST_TRANSFER_RESULT_LOSS");
          end if;
       end Restore;
-      procedure Restore_Tmp is
-      begin
-         if Had_Tmp then
-            Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
-         else
-            Ada.Environment_Variables.Clear ("TMPDIR");
-         end if;
-      end Restore_Tmp;
       procedure Cleanup is
       begin
          Restore;
-         Restore_Tmp;
          Files.Model.Clear_Paste_Execution (Model);
          Files.Refresh_Jobs.Cancel (Model);
-         if Length (Remote) > 0 then
-            Project_Tools.Files.Delete_Tree (To_String (Remote));
-         end if;
       end Cleanup;
    begin
-      if Hostkit.Host.Current = Hostkit.Host.Linux and then Ada.Directories.Exists ("/dev/shm") then
-         Ada.Environment_Variables.Set ("TMPDIR", "/dev/shm");
-         Remote := To_Unbounded_String (Hostkit.Fs.Create_Temporary_Directory ("files-test-move-commit-"));
-         Restore_Tmp;
+      --  The same-device half runs everywhere; the cross-device half needs a
+      --  second volume, and is counted as skipped where there is none.
+      Remote.Create ("files-test-move-commit-");
+      if Remote.Path = "" then
+         Files_Suite.Support.Skip ("Test_Move_Commit_Recovery", Files_Suite.Volumes.No_Other_Volume);
       end if;
       for Cross_Device in Boolean loop
-         if not Cross_Device or else Length (Remote) > 0 then
+         if not Cross_Device or else Remote.Path /= "" then
             declare
-               Parent : constant String := (if Cross_Device then To_String (Remote) else Root);
+               Parent : constant String := (if Cross_Device then Remote.Path else Root);
                Dest : constant String := Join (Parent, "entry");
             begin
                for Replace in Boolean loop

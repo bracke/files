@@ -1,3 +1,4 @@
+with Files_Suite.Volumes;
 separate (Files_Suite.Operations)
    procedure Test_Move_Ownership (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,30 +10,16 @@ separate (Files_Suite.Operations)
         with Import, Convention => C, External_Name => "files_test_entry_group";
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Source : constant String := Join (Root, "source");
-      Remote : Unbounded_String;
+      Remote : Files_Suite.Volumes.Remote_Directory;
       Expected : Interfaces.C.long_long;
       Model : Files.Model.Window_Model;
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
-      Had_Tmp : constant Boolean := Ada.Environment_Variables.Exists ("TMPDIR");
-      Old_Tmp : constant String := Ada.Environment_Variables.Value ("TMPDIR", "");
-      procedure Restore_Tmp is
-      begin
-         if Had_Tmp then
-            Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
-         else
-            Ada.Environment_Variables.Clear ("TMPDIR");
-         end if;
-      end Restore_Tmp;
       procedure Cleanup is
       begin
-         Restore_Tmp;
          Files.Model.Clear_Paste_Execution (Model);
          Files.Refresh_Jobs.Cancel (Model);
-         if Length (Remote) > 0 then
-            Project_Tools.Files.Delete_Tree (To_String (Remote));
-         end if;
       end Cleanup;
       procedure Prepare (Path : String) is
          Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Path);
@@ -45,10 +32,8 @@ separate (Files_Suite.Operations)
          Assert (Entry_Group (Name'Address) = Expected, "preserve the owning group without following links");
       end Check;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux or else not Ada.Directories.Exists ("/dev/shm") then
-         Files_Suite.Support.Skip
-           ("Test_Move_Ownership",
-            "Hostkit.Host.Current /= Hostkit.Host.Linux or else not Ada.Director...");
+      if Hostkit.Host.Current /= Hostkit.Host.Linux then
+         Files_Suite.Support.Skip ("Test_Move_Ownership", "Hostkit.Host.Current /= Hostkit.Host.Linux");
          return;
       end if;
       Expected := Supplementary_Group;
@@ -56,11 +41,9 @@ separate (Files_Suite.Operations)
          Files_Suite.Support.Skip ("Test_Move_Ownership", "Expected < 0");
          return;
       end if;
-      Ada.Environment_Variables.Set ("TMPDIR", "/dev/shm");
-      Remote := To_Unbounded_String (Hostkit.Fs.Create_Temporary_Directory ("files-test-move-ownership-"));
-      Restore_Tmp;
-      if Length (Remote) = 0 then
-         Files_Suite.Support.Skip ("Test_Move_Ownership", "Length (Remote) = 0");
+      Remote.Create ("files-test-move-ownership-");
+      if Remote.Path = "" then
+         Files_Suite.Support.Skip ("Test_Move_Ownership", Files_Suite.Volumes.No_Other_Volume);
          return;
       end if;
       for Background in Boolean loop
@@ -77,7 +60,7 @@ separate (Files_Suite.Operations)
          Files.Model.Set_Background_Transfers (Model, Background);
          Actions.Clear;
          Actions.Append (Files.Paste.Resolved_Action'
-           (To_Unbounded_String (Source), To_Unbounded_String (Join (To_String (Remote), "source")), False, False));
+           (To_Unbounded_String (Source), To_Unbounded_String (Join (Remote.Path, "source")), False, False));
          Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move, False);
          Step := Complete_Operation (Model, Settings, Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
          Await_View (Model, Settings);
@@ -86,9 +69,9 @@ separate (Files_Suite.Operations)
             Files.Operations.Operation_Success,
             "move the ownership tree across filesystems");
          for Cycle in 1 .. 2 loop
-            Check (Join (To_String (Remote), "source"));
-            Check (Join (To_String (Remote), "source/child"));
-            Check (Join (To_String (Remote), "source/link"));
+            Check (Join (Remote.Path, "source"));
+            Check (Join (Remote.Path, "source/child"));
+            Check (Join (Remote.Path, "source/link"));
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
@@ -105,7 +88,7 @@ separate (Files_Suite.Operations)
                Files.Operations.Operation_Success,
                "Redo the ownership-preserving move");
          end loop;
-         Project_Tools.Files.Delete_Tree (Join (To_String (Remote), "source"));
+         Project_Tools.Files.Delete_Tree (Join (Remote.Path, "source"));
       end loop;
       Cleanup;
    exception

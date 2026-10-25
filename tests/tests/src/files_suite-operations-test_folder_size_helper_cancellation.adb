@@ -8,7 +8,7 @@ separate (Files_Suite.Operations)
       Result : Files.File_System.Directory_Size_Result;
       Available, Finished, Cancelled : Boolean;
       Empty : Files.Process_Jobs.Session;
-      Before : Ada.Calendar.Time;
+      Before : Instant;
       Targets : Files.Folder_Size.Path_Vectors.Vector;
 
       procedure Restore is
@@ -62,40 +62,39 @@ separate (Files_Suite.Operations)
          and then Files.Folder_Size.Target_For_Test = "",
          "folder-size requests reject NUL-containing targets before launching a helper");
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_FOLDER_SIZES", Marker);
-      Before := Ada.Calendar.Clock;
+      Before := Now;
       Files.Folder_Size.Request (Join (Root, "unreadable-or-missing"));
-      --  Posting starts a helper process, which on a busy Windows runner can
-      --  alone take longer than a quarter second; inspecting the stalled
-      --  target in the caller would block far longer than this bound.
-      Assert (Ada.Calendar.Clock - Before < 2.0, "posting a size request does not inspect its target");
+      --  Posting starts a helper process, so it gets a launch's headroom;
+      --  inspecting the stalled target in the caller would block far longer.
+      Assert_Within (Before, Launch_Limit, "posting a size request does not inspect its target");
       Await_Helper;
       Targets.Append (To_Unbounded_String (Join (Root, "unreadable-or-missing")));
       Targets.Append (To_Unbounded_String (Join (Root, "another-window")));
-      Before := Ada.Calendar.Clock;
+      Before := Now;
       for Frame in 1 .. 50 loop
          Files.Folder_Size.Set_Targets (Targets);
          Files.Folder_Size.Step;
          Files.Folder_Size.Take (Path, Result, Available);
          Assert (not Available, "a stalled scan does not publish a partial total");
       end loop;
-      Assert (Ada.Calendar.Clock - Before < Prompt_Limit and then Files.Folder_Size.Is_Active
-              and then Ada.Directories.Exists (To_String (Started)),
-              "repeated frame polling preserves the active helper and never waits for its filesystem work");
+      Assert_Within (Before, Prompt_Limit, "repeated frame polling never waits for the helper's filesystem work");
+      Assert (Files.Folder_Size.Is_Active and then Ada.Directories.Exists (To_String (Started)),
+              "repeated frame polling preserves the active helper");
       Previous := Started;
       Ada.Directories.Delete_File (Marker);
-      Before := Ada.Calendar.Clock;
+      Before := Now;
       Files.Folder_Size.Request (Join (Root, "another-window"));
       --  Retargeting starts a replacement helper: the same headroom as posting.
-      Assert (Ada.Calendar.Clock - Before < 2.0, "retargeting does not join the abandoned scan");
+      Assert_Within (Before, Launch_Limit, "retargeting does not join the abandoned scan");
       Await_Helper;
       Assert (Started /= Previous, "retargeting starts a separate helper");
       Await_Reaped (Previous);
       Assert (Ada.Directories.Exists (To_String (Started)), "retargeting leaves the replacement helper active");
-      Before := Ada.Calendar.Clock;
+      Before := Now;
       Files.Folder_Size.Cancel;
       Files.Folder_Size.Cancel;
-      Assert (Ada.Calendar.Clock - Before < Prompt_Limit and then not Files.Folder_Size.Is_Active,
-              "repeated cancellation is prompt even while a size read is stalled");
+      Assert_Within (Before, Prompt_Limit, "repeated cancellation is prompt even while a size read is stalled");
+      Assert (not Files.Folder_Size.Is_Active, "cancellation leaves no size request active");
       Await_Reaped (Started);
       Files.Folder_Size.Take (Path, Result, Available);
       Assert (not Available, "cancelled requests never publish stale measurements");

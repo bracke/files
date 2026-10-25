@@ -1,3 +1,4 @@
+with Files_Suite.Repository;
 separate (Files_Suite.Operations)
    procedure Test_Thumbnail_Generation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -90,9 +91,7 @@ separate (Files_Suite.Operations)
          end;
       end;
       Assert
-        (Project_Tools.Files.Any_File_Contains ("src", "gdk_pixbuf_loader_new")
-         or else Project_Tools.Files.Any_File_Contains ("../src", "gdk_pixbuf_loader_new")
-         or else Project_Tools.Files.Any_File_Contains ("../../src", "gdk_pixbuf_loader_new"),
+        (Files_Suite.Repository.Source_Contains ("gdk_pixbuf_loader_new"),
          "JPEG thumbnail decoding is routed through the native image loader binding");
 
       Write_File

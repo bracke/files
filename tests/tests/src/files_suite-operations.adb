@@ -67,7 +67,6 @@ with Files.Events;
 with Files.File_System;
 with Files.Io_Errors;
 with Files.File_Types;
-with Files.Features;
 with Files.Folder_Size;
 with Files.Folder_Tree;
 with Files.Fonts;
@@ -156,9 +155,6 @@ package body Files_Suite.Operations is
 
    overriding function Name (T : Operation_Test_Case) return AUnit.Message_String;
    overriding procedure Register_Tests (T : in out Operation_Test_Case);
-
-   --  How long a call may take and still not have waited for a stalled helper.
-   Prompt_Limit : constant Duration := Files_Suite.Support.Prompt_Limit;
 
    function Complete_Operation
      (Model : in out Files.Model.Window_Model;
@@ -1773,7 +1769,7 @@ package body Files_Suite.Operations is
       Target : Unbounded_String;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Special_Entry_Metadata", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Hardlink_Dangling_Symlink", "Hostkit.Host.Current /= Hostkit.Host.Linux");
          return;
       end if;
       Reset_Root;
@@ -1836,7 +1832,7 @@ package body Files_Suite.Operations is
       Step : Files.Operations.Operation_Result;
    begin
       if not Hostkit.Metadata.Mode_Bits_Are_Native then
-         Files_Suite.Support.Skip ("Test_Special_Entry_Metadata", "not Hostkit.Metadata.Mode_Bits_Are_Native");
+         Files_Suite.Support.Skip ("Test_Unreadable_Hardlink_History", "not Hostkit.Metadata.Mode_Bits_Are_Native");
          return;
       end if;
 

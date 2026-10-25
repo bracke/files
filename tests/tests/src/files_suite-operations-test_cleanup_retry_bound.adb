@@ -7,6 +7,9 @@ separate (Files_Suite.Operations)
       Marker    : constant String := Join (Root, "cleanup-worker-failures");
       Job       : Files.Process_Jobs.Session;
       Transport : Files.Types.UString;
+      --  Longer than the parent's 2 s delay before a cleanup relaunch, with
+      --  room for the spawn.
+      Quiet_Seconds : constant Duration := 3.0;
 
       function Failure_Count return Natural is
          Count : Natural := 0;
@@ -53,11 +56,33 @@ separate (Files_Suite.Operations)
       Files.Process_Jobs.Reset (Job);
 
       for Attempt in Files_Suite.Support.Polling loop
-         exit when Failure_Count >= 2;
+         exit when Failure_Count >= 1;
       end loop;
-      Files_Suite.Support.Assert_Equal (Failure_Count, 2, "the parent makes its one bounded cleanup relaunch");
+      Assert (Failure_Count >= 1, "the parent launches a cleanup worker");
+      declare
+         First_Failure : constant Instant := Now;
+         Relaunch      : Duration;
+      begin
+         for Attempt in Files_Suite.Support.Polling loop
+            exit when Failure_Count >= 2;
+         end loop;
+         Files_Suite.Support.Assert_Equal (Failure_Count, 2, "the parent makes its one bounded cleanup relaunch");
+         Relaunch := Seconds (Elapsed (First_Failure));
 
-      delay 3.0;
+         --  Nothing in the parent reports that it gave up (Process_Jobs keeps
+         --  its failure count and orphan queue in its body), so the proof is
+         --  that no third worker appears within a window a relaunch would have
+         --  used. A relaunch waits out the parent's 2 s retry delay, then a
+         --  spawn: wait the larger of the fixed floor and half again the
+         --  relaunch this runner just took (so a slow runner waits longer by
+         --  itself), and stop early if a third worker does report.
+         for Attempt in Files_Suite.Support.Polling
+           (Limit    => Duration'Max (Quiet_Seconds, Relaunch * 3 / 2),
+            Interval => 0.01)
+         loop
+            exit when Failure_Count > 2;
+         end loop;
+      end;
       Assert
         (Failure_Count = 2 and then Ada.Directories.Exists (To_String (Transport)),
          "persistent cleanup refusal stops worker churn and leaves durable recovery state");

@@ -270,9 +270,7 @@ package body Trash is
                Xdg_Compatible      => False,
                Metadata_Sidecar    => False,
                Collision_Safe_Name => True,
-               Permanent_Delete    => False,
-               Native_Diagnostics  => True,
-               Multi_Item_Preflight => True);
+               Permanent_Delete    => False);
          when Trash_Xdg_Data_Home | Trash_Home_Data | Trash_Macos_Home =>
             return
               (Backend             => Backend,
@@ -280,9 +278,7 @@ package body Trash is
                Xdg_Compatible      => Backend /= Trash_Macos_Home,
                Metadata_Sidecar    => True,
                Collision_Safe_Name => True,
-               Permanent_Delete    => False,
-               Native_Diagnostics  => True,
-               Multi_Item_Preflight => True);
+               Permanent_Delete    => False);
          when Trash_Unavailable =>
             return
               (Backend             => Trash_Unavailable,
@@ -290,9 +286,7 @@ package body Trash is
                Xdg_Compatible      => False,
                Metadata_Sidecar    => False,
                Collision_Safe_Name => False,
-               Permanent_Delete    => False,
-               Native_Diagnostics  => True,
-               Multi_Item_Preflight => True);
+               Permanent_Delete    => False);
       end case;
    end Trash_Capabilities_Of_Current_Environment;
 

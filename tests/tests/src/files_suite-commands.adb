@@ -35,7 +35,6 @@ with Files.Drop_Events;
 with Files.Events;
 with Files.File_System;
 with Files.File_Types;
-with Files.Features;
 with Files.Fonts;
 with Files.Localization;
 with Files.Model;

@@ -16,7 +16,7 @@ separate (Files_Suite.Operations)
       Record_Alias : constant String := Join (Root, "stage-record-hardlink");
       Children_Before : Files.Types.UString;
       Transport_Identity : Files.Types.UString;
-      Before    : Ada.Calendar.Time;
+      Before    : Instant;
 
       procedure Add_Stage_Record
         (Record_Name, Path, Expected_Identity : String;
@@ -164,15 +164,19 @@ separate (Files_Suite.Operations)
             Assert (Result.Success, "restore stage record access for cleanup");
          end;
       end if;
-      Before := Ada.Calendar.Clock;
-      Assert
-        (not Files.Job_Helpers.Run_Cleanup
+      Before := Now;
+      declare
+         Cleaned : constant Boolean := Files.Job_Helpers.Run_Cleanup
            (Transport, To_String (Transport_Identity), Attempt_Limit => 2,
-            Initial_Retry_Delay => 0.001, Maximum_Retry_Delay => 0.001)
-         and then Ada.Calendar.Clock - Before < Prompt_Limit
-         and then not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-corrupt"))
-         and then not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-truncated")),
-         "bounded cleanup does not retry permanently malformed stage records");
+            Initial_Retry_Delay => 0.001, Maximum_Retry_Delay => 0.001);
+      begin
+         Assert_Within (Before, Prompt_Limit, "bounded cleanup gives up on malformed stage records without waiting");
+         Assert
+           (not Cleaned
+            and then not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-corrupt"))
+            and then not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-truncated")),
+            "bounded cleanup does not retry permanently malformed stage records");
+      end;
       Files.Job_Context.Initialize ("");
       Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Root));
       Write_Binary_File (Join (To_String (Stage), "partial"), "foreground partial");

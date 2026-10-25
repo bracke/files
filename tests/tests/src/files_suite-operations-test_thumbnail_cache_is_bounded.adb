@@ -70,8 +70,12 @@ separate (Files_Suite.Operations)
          "cache pruning never deletes an unrelated file");
 
       --  Housekeeping must never be a precondition for anything.
+      --  Pruning a missing cache returns without raising (an exception would
+      --  fail this test) and does not bring the directory into being.
       Files.File_System.Prune_Thumbnail_Cache (Join (Root, "no-such-cache"), 1);
-      Assert (True, "pruning a cache directory that does not exist is harmless");
+      Assert
+        (not Path_Exists (Join (Root, "no-such-cache")),
+         "pruning a cache directory that does not exist does not create it");
 
       --  Directory_Exists follows symlinks.  Pruning must not consequently
       --  treat an arbitrary link target as cache contents and delete from it.
