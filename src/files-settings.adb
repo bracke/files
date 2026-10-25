@@ -473,6 +473,60 @@ package body Files.Settings is
       Label    : Files.Types.Color_Label)
  is separate;
 
+   function Index_Paths
+     (Settings : Settings_Model)
+      return Path_Index
+   is
+      Result : Path_Index;
+   begin
+      --  Is_Favorite and Label_Of skip invalid paths and take the first stored
+      --  entry, so index only valid paths and keep the first of any repeat.
+      for Existing of Settings.Favorite_Paths loop
+         declare
+            Path : constant String := To_String (Existing);
+         begin
+            if Persistent_Path_Is_Valid (Path) and then not Result.Favorites.Contains (Path) then
+               Result.Favorites.Insert (Path);
+            end if;
+         end;
+      end loop;
+      for Entry_Value of Settings.Labels loop
+         declare
+            Path : constant String := To_String (Entry_Value.Path);
+         begin
+            if Persistent_Path_Is_Valid (Path) and then not Result.Labels.Contains (Path) then
+               Result.Labels.Insert (Path, Entry_Value.Label);
+            end if;
+         end;
+      end loop;
+      return Result;
+   end Index_Paths;
+
+   function Is_Favorite
+     (Index : Path_Index;
+      Path  : String)
+      return Boolean is
+   begin
+      return Persistent_Path_Is_Valid (Path) and then Index.Favorites.Contains (Path);
+   end Is_Favorite;
+
+   function Label_Of
+     (Index : Path_Index;
+      Path  : String)
+      return Files.Types.Color_Label
+   is
+      Found : Path_Label_Maps.Cursor;
+   begin
+      if not Persistent_Path_Is_Valid (Path) then
+         return Files.Types.No_Label;
+      end if;
+      Found := Index.Labels.Find (Path);
+      if Path_Label_Maps.Has_Element (Found) then
+         return Path_Label_Maps.Element (Found);
+      end if;
+      return Files.Types.No_Label;
+   end Label_Of;
+
    procedure Move_Path_References
      (Settings : in out Settings_Model;
       From     : String;

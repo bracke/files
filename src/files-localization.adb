@@ -1,4 +1,5 @@
 with Files.Diagnostics;
+with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Vectors;
 with Ada.Characters.Handling;
 with Ada.Directories;
@@ -6,6 +7,7 @@ with Ada.Environment_Variables;
 with Ada.Streams;
 with Ada.Strings;
 with Ada.Strings.Fixed;
+with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 
 with Messages.Arguments;
@@ -35,10 +37,42 @@ package body Files.Localization is
    Loaded_Locales : String_Vectors.Vector;
    Humanize_Loaded : Boolean := False;
 
+   --  Text is asked per listed item and from every label of every snapshot
+   --  rebuild (hover included), so it memoizes the two costly steps. Like the
+   --  rest of this package's state the memos are main-thread only: a task
+   --  must not call Text (see Files.Job_Scavenger).
+   --
+   --  System_Locale, keyed on the raw locale variables it reads. Reading them
+   --  is cheap next to normalizing them (and, with none set, asking the host),
+   --  and a changed variable (a test switching LC_ALL) misses the memo.
+   Locale_Memo_Valid       : Boolean := False;
+   Locale_Memo_LC_All      : Unbounded_String;
+   Locale_Memo_LC_Messages : Unbounded_String;
+   Locale_Memo_Lang        : Unbounded_String;
+   Locale_Memo_Value       : Unbounded_String;
+
+   --  Rendered text by effective locale and key. A render depends only on the
+   --  catalogs loaded into Runtime, so Load_Locale empties it whenever it
+   --  loads another; it is also emptied past Max_Cached_Texts, which bounds a
+   --  caller that passes ever-new keys.
+   package Text_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => String,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+
+   Max_Cached_Texts : constant := 16_384;
+   Text_Cache       : Text_Maps.Map;
+
    function Environment_Locale (Name : String) return String;
    function Environment_Portable_Locale (Name : String) return Boolean;
    function Configured_Category_Locale (Category_Key : String) return String;
    function Native_System_Locale return String;
+   function Resolve_System_Locale return String;
+   function Uncached_Text
+     (Key              : String;
+      Effective_Locale : String)
+      return String;
    function Render_Text
      (Key    : String;
       Locale : String)
@@ -159,6 +193,32 @@ package body Files.Localization is
    end Normalize_Locale;
 
    function System_Locale return String is
+      LC_All      : constant String := Ada.Environment_Variables.Value ("LC_ALL", "");
+      LC_Messages : constant String := Ada.Environment_Variables.Value ("LC_MESSAGES", "");
+      Lang        : constant String := Ada.Environment_Variables.Value ("LANG", "");
+   begin
+      if Locale_Memo_Valid
+        and then Locale_Memo_LC_All = LC_All
+        and then Locale_Memo_LC_Messages = LC_Messages
+        and then Locale_Memo_Lang = Lang
+      then
+         return To_String (Locale_Memo_Value);
+      end if;
+
+      declare
+         Resolved : constant String := Resolve_System_Locale;
+      begin
+         Locale_Memo_LC_All := To_Unbounded_String (LC_All);
+         Locale_Memo_LC_Messages := To_Unbounded_String (LC_Messages);
+         Locale_Memo_Lang := To_Unbounded_String (Lang);
+         Locale_Memo_Value := To_Unbounded_String (Resolved);
+         Locale_Memo_Valid := True;
+         return Resolved;
+      end;
+   end System_Locale;
+
+   --  System_Locale's answer worked out afresh from the environment.
+   function Resolve_System_Locale return String is
       LC_All      : constant String := Environment_Locale ("LC_ALL");
       LC_Messages : constant String := Environment_Locale ("LC_MESSAGES");
       Lang        : constant String := Environment_Locale ("LANG");
@@ -180,13 +240,12 @@ package body Files.Localization is
       end;
 
       return "en";
-   end System_Locale;
+   end Resolve_System_Locale;
 
    function System_Time_Locale return String is
       LC_All  : constant String := Environment_Locale ("LC_ALL");
       LC_Time : constant String := Environment_Locale ("LC_TIME");
       Lang    : constant String := Environment_Locale ("LANG");
-      Config  : constant String := Configured_Category_Locale ("LC_TIME");
    begin
       if LC_All /= "" then
          return LC_All;
@@ -194,11 +253,19 @@ package body Files.Localization is
          return LC_Time;
       elsif Lang /= "" and then not Environment_Portable_Locale ("LANG") then
          return Lang;
-      elsif Config /= "" then
-         return Config;
-      elsif Lang /= "" then
-         return Lang;
       end if;
+
+      --  Only now read the desktop's configuration files: the variables above
+      --  usually decide, and this is asked per formatted date or size.
+      declare
+         Config : constant String := Configured_Category_Locale ("LC_TIME");
+      begin
+         if Config /= "" then
+            return Config;
+         elsif Lang /= "" then
+            return Lang;
+         end if;
+      end;
 
       declare
          Native : constant String := Native_System_Locale;
@@ -215,7 +282,6 @@ package body Files.Localization is
       LC_All     : constant String := Environment_Locale ("LC_ALL");
       LC_Numeric : constant String := Environment_Locale ("LC_NUMERIC");
       Lang       : constant String := Environment_Locale ("LANG");
-      Config     : constant String := Configured_Category_Locale ("LC_NUMERIC");
    begin
       if LC_All /= "" then
          return LC_All;
@@ -223,11 +289,19 @@ package body Files.Localization is
          return LC_Numeric;
       elsif Lang /= "" and then not Environment_Portable_Locale ("LANG") then
          return Lang;
-      elsif Config /= "" then
-         return Config;
-      elsif Lang /= "" then
-         return Lang;
       end if;
+
+      --  Only now read the desktop's configuration files: the variables above
+      --  usually decide, and this is asked per formatted date or size.
+      declare
+         Config : constant String := Configured_Category_Locale ("LC_NUMERIC");
+      begin
+         if Config /= "" then
+            return Config;
+         elsif Lang /= "" then
+            return Lang;
+         end if;
+      end;
 
       declare
          Native : constant String := Native_System_Locale;
@@ -557,6 +631,8 @@ package body Files.Localization is
       end if;
 
       Loaded_Locales.Append (To_Unbounded_String (Normalized));
+      --  The new catalog may answer what an earlier render fell back on.
+      Text_Cache.Clear;
 
       for Index in Normalized'Range loop
          if Normalized (Index) = '-' then
@@ -599,10 +675,37 @@ package body Files.Localization is
    is
       Effective_Locale : constant String :=
         (if Locale'Length = 0 then System_Locale else Normalize_Locale (Locale));
+      --  A locale is a short identifier (Normalize_Locale), never a NUL.
+      Cache_Key : constant String := Effective_Locale & ASCII.NUL & Key;
+      Found     : constant Text_Maps.Cursor := Text_Cache.Find (Cache_Key);
    begin
+      --  A hit was rendered after this locale was loaded and before any later
+      --  load (which empties the cache), so it is what a render would give now.
+      if Text_Maps.Has_Element (Found) then
+         return Text_Maps.Element (Found);
+      end if;
+
       Ensure_Initialized;
       Load_Locale (Effective_Locale);
 
+      declare
+         Rendered : constant String := Uncached_Text (Key, Effective_Locale);
+      begin
+         if Natural (Text_Cache.Length) >= Max_Cached_Texts then
+            Text_Cache.Clear;
+         end if;
+         Text_Cache.Include (Cache_Key, Rendered);
+         return Rendered;
+      end;
+   end Text;
+
+   --  Text's answer for an already normalized locale whose catalogs are
+   --  loaded: the regional message, else its language's, else Key.
+   function Uncached_Text
+     (Key              : String;
+      Effective_Locale : String)
+      return String is
+   begin
       declare
          Rendered : constant String := Render_Text (Key, Effective_Locale);
       begin
@@ -646,7 +749,7 @@ package body Files.Localization is
       end loop;
 
       return Key;
-   end Text;
+   end Uncached_Text;
 
    function Render_Text
      (Key    : String;

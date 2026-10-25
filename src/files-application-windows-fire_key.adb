@@ -39,18 +39,11 @@ separate (Files.Application.Windows)
                return Files.Rendering.Tree_Row_Capacity (Snapshot, Tree);
             end Capacity_For;
          begin
-            --  Key repeats arrive between frames; the last rendered snapshot
-            --  is current unless the model or settings moved since, so reuse
-            --  it rather than paying the O(items) rebuild on every keystroke.
-            if Runtime.Frame_Cache_Valid
-              and then Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model)
-              and then Files.Settings.Same_Snapshot_Settings
-                         (Runtime.Settings, Runtime.Cached_Settings_Key)
-            then
-               return Capacity_For (Runtime.Cached_Snapshot);
-            end if;
-            return Capacity_For
-              (Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings));
+            --  Key repeats arrive between frames; the current snapshot is
+            --  rebuilt only when the model or settings moved since, rather
+            --  than paying the O(items) rebuild on every keystroke.
+            Refresh_Snapshot (Runtime);
+            return Capacity_For (Runtime.Snapshots (Runtime.Current_Slot));
          end;
       end Tree_Page_Rows;
    begin

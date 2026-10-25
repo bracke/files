@@ -870,6 +870,10 @@ package Files.Rendering is
 
    subtype Text_Render_Result is Guikit.Draw.Text_Render_Result;
 
+   --  How many selected items the info pane lists in detail. Past a hundred
+   --  the list is unreadable anyway; the selection count shows the extent.
+   Max_Info_Items : constant := 100;
+
    --  Build an immutable snapshot from the mutable model.
    --
    --  @param Model Window model to snapshot.

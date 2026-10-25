@@ -9,7 +9,9 @@ package Files.Localization is
    --  @return Normalized locale such as da-DK, or en for empty, C, or POSIX.
    function Normalize_Locale (Value : String) return String;
 
-   --  Return the process locale inferred from the environment.
+   --  Return the process locale inferred from the environment. The answer is
+   --  remembered until LC_ALL, LC_MESSAGES or LANG changes; with none of them
+   --  set, the host's native locale is therefore asked once, not per call.
    --
    --  @return Normalized locale from LC_ALL, LC_MESSAGES, or LANG; en when none is usable.
    function System_Locale return String;

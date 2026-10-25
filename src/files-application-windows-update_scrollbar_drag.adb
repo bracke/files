@@ -28,11 +28,11 @@ separate (Files.Application.Windows)
          return;
       end if;
 
+      Refresh_Snapshot (Runtime);
       declare
          Y_Frame      : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
          Line_Height  : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-         Snapshot     : constant Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+         Snapshot     : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Current_Slot);
          Layout       : constant Files.Rendering.Layout_Metrics :=
            Files.Rendering.Calculate_Layout
              (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);

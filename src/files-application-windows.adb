@@ -252,6 +252,10 @@ package body Files.Application.Windows is
    function Cell_Width_For  (Size : Positive) return Positive is
      (Guikit.Layout.Caret_Advance_Width (Cell_Height_For (Size)));
 
+   --  A window keeps two view snapshots (see Runtime_Window.Snapshots).
+   type Snapshot_Slot is range 1 .. 2;
+   type Snapshot_Slot_Array is array (Snapshot_Slot) of Files.Rendering.View_Snapshot;
+
    type Runtime_Window is record
       Handle          : Window_Access;
       A11y_Key        : Files.Accessibility.Window_Key := 0;
@@ -352,16 +356,30 @@ package body Files.Application.Windows is
       --  interaction stays paced to the display; it decays to zero when idle and
       --  the present gate may then skip.
       Present_Grace              : Natural := 0;
-      Cached_Snapshot      : Files.Rendering.View_Snapshot;
-      --  Model revision the Cached_Snapshot was built at. The next render reuses
-      --  the snapshot only when the model's current revision still matches, so a
-      --  background poll (file watch, folder sizes) that changed nothing no
-      --  longer forces the O(items) Build_Snapshot.
+      --  The window's view snapshots. Snapshots (Current_Slot) is the model as
+      --  it is now, kept current by Refresh_Snapshot for the render and for
+      --  every input handler that lays the view out; Snapshots (Drawn_Slot) is
+      --  the one Cached_Frame was built from, what is on screen, which clicks
+      --  are hit-tested against. They are one slot until the model changes
+      --  between frames: Refresh_Snapshot then builds into the other slot, so
+      --  the drawn snapshot survives until the next render draws the new one.
+      --  Snapshot_Valid is False until the first build and after any change
+      --  the keys below do not see (a replaced model).
+      Snapshots       : Snapshot_Slot_Array;
+      Current_Slot    : Snapshot_Slot := 1;
+      Drawn_Slot      : Snapshot_Slot := 1;
+      Snapshot_Valid  : Boolean := False;
+      --  Wall-clock minute the current snapshot was built in: relative times
+      --  and the Today / This week bands are computed from the clock.
+      Snapshot_Minute : Natural := 0;
+      --  Model revision the current snapshot was built at. It is reused only
+      --  while the model's revision still matches, so a background poll (file
+      --  watch, folder sizes) that changed nothing forces no O(items) rebuild.
       Cached_Model_Revision : Natural := 0;
       --  Snapshot-relevant settings (theme, columns, visibility, favorites,
-      --  labels) the Cached_Snapshot was built with. Together with the model
-      --  revision these are the whole of Build_Snapshot's inputs, so the snapshot
-      --  is reused only while both still match -- no explicit invalidation.
+      --  labels) the current snapshot was built with. With the model revision
+      --  these are the whole of Build_Snapshot's inputs, so the snapshot is
+      --  reused only while both still match -- no explicit invalidation.
       Cached_Settings_Key  : Files.Settings.Snapshot_Settings_Key;
       Cached_Frame         : Files.Rendering.Frame_Commands;
       Cached_Frame_W       : Natural := 0;
@@ -378,9 +396,9 @@ package body Files.Application.Windows is
       Cached_Marquee_Y     : Natural := 0;
       Cached_Marquee_W     : Natural := 0;
       Cached_Marquee_H     : Natural := 0;
-      --  Wall-clock minute the cached snapshot and frame were built in.
-      --  Relative times ("now", "Today 23:50") and the Today / This week
-      --  group bands are computed from the clock, which no other key covers.
+      --  Wall-clock minute the cached frame was built in. Relative times
+      --  ("now", "Today 23:50") and the Today / This week group bands are
+      --  computed from the clock, which no other key covers.
       Cached_Minute        : Natural := 0;
       Last_Glyph_Count : Natural := 0;
       Last_Missing_Glyph_Count : Natural := 0;
@@ -852,6 +870,43 @@ package body Files.Application.Windows is
      (Key : Tracked_Key)
       return Guikit.Input.Key_Code is separate;
 
+   --  @return Minutes since 2000-01-01 by the wall clock: the key that tells
+   --    a snapshot or frame built in an earlier minute (relative times) apart.
+   function Wall_Clock_Minute return Natural is separate;
+
+   --  Make Runtime.Snapshots (Runtime.Current_Slot) the snapshot of the model
+   --  and settings as they are now, rebuilding it only when the model revision,
+   --  the snapshot settings or the minute moved since it was built (or a paste
+   --  is running, whose progress no revision tracks). This is the render's own
+   --  validity check, so a handler that lays the view out between frames
+   --  shares the snapshot the next render draws instead of rebuilding it per
+   --  event. A rebuild never overwrites the drawn snapshot (Drawn_Slot).
+   --  Callers rename the slot after calling, and call again after mutating the
+   --  model before they lay it out again.
+   --
+   --  @param Runtime Window whose current snapshot is brought up to date.
+   procedure Refresh_Snapshot (Runtime : in out Runtime_Window) is
+      Minute : constant Natural := Wall_Clock_Minute;
+   begin
+      if Runtime.Snapshot_Valid
+        and then Runtime.Snapshot_Minute = Minute
+        and then Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model)
+        and then Files.Settings.Same_Snapshot_Settings (Runtime.Settings, Runtime.Cached_Settings_Key)
+        and then not Files.Model.Paste_Execution_Is_Active (Runtime.Model)
+      then
+         return;
+      end if;
+
+      if Runtime.Current_Slot = Runtime.Drawn_Slot then
+         Runtime.Current_Slot := (if Runtime.Drawn_Slot = 1 then 2 else 1);
+      end if;
+      Runtime.Snapshots (Runtime.Current_Slot) := Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+      Runtime.Cached_Model_Revision := Files.Model.Revision (Runtime.Model);
+      Runtime.Cached_Settings_Key := Files.Settings.Snapshot_Settings_Key_Of (Runtime.Settings);
+      Runtime.Snapshot_Minute := Minute;
+      Runtime.Snapshot_Valid := True;
+   end Refresh_Snapshot;
+
    procedure Refresh_Selection_Grid_Columns
      (Runtime : in out Runtime_Window)
    is
@@ -883,17 +938,10 @@ package body Files.Application.Windows is
                Files.Rendering.Main_View_Page_Rows (Snapshot, Layout, Cell_Height_For (Runtime.Font_Pixel_Size)));
          end Apply;
       begin
-         --  Runs before every key fire, auto-repeat included. The last
-         --  rendered snapshot is current unless the model or settings moved
-         --  since, so reuse it rather than rebuilding O(items) per keystroke.
-         if Runtime.Frame_Cache_Valid
-           and then Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model)
-           and then Files.Settings.Same_Snapshot_Settings (Runtime.Settings, Runtime.Cached_Settings_Key)
-         then
-            Apply (Runtime.Cached_Snapshot);
-         else
-            Apply (Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings));
-         end if;
+         --  Runs before every key fire, auto-repeat included; the current
+         --  snapshot is rebuilt only when the model or settings moved.
+         Refresh_Snapshot (Runtime);
+         Apply (Runtime.Snapshots (Runtime.Current_Slot));
       end;
    end Refresh_Selection_Grid_Columns;
 
@@ -940,10 +988,10 @@ package body Files.Application.Windows is
          return;
       end if;
       Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
+      Refresh_Snapshot (Runtime);
       declare
          Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-         Snapshot    : constant Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+         Snapshot    : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Current_Slot);
          Layout      : constant Files.Rendering.Layout_Metrics :=
            Files.Rendering.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
          Lines       : constant Natural :=
@@ -1043,6 +1091,7 @@ package body Files.Application.Windows is
             if Runtime.Settings /= Shared then
                Runtime.Settings := Shared;
                Runtime.Frame_Cache_Valid := False;
+               Runtime.Snapshot_Valid := False;
             end if;
             Runtime.Synced_Settings := Shared;
          end loop;
@@ -1072,6 +1121,7 @@ package body Files.Application.Windows is
          exception
             when others =>
                Runtime.Frame_Cache_Valid := False;
+               Runtime.Snapshot_Valid := False;
          end;
          Share_Settings_From (Runtime_Windows, Index);
       end loop;
@@ -1396,11 +1446,20 @@ package body Files.Application.Windows is
          return (Kind => Files.Events.No_Input_Action, others => <>);
       end if;
 
+      --  Hit-test against what is on screen: the snapshot Cached_Frame was
+      --  built from, not the model as a refresh since may have changed it, so
+      --  the clicked index names the item that was drawn under the pointer.
+      --  Before the first frame there is nothing drawn; use the model as is.
+      if not Runtime.Frame_Cache_Valid then
+         Refresh_Snapshot (Runtime);
+      end if;
+
       declare
          X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
          Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-         Snapshot : constant Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+         Slot     : constant Snapshot_Slot :=
+           (if Runtime.Frame_Cache_Valid then Runtime.Drawn_Slot else Runtime.Current_Slot);
+         Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Slot);
       begin
          return
            Files.Events.Translate_Click
@@ -1734,7 +1793,11 @@ package body Files.Application.Windows is
             Last_Present_Palette_Open  => False,
             Last_Present_Settings_Open => False,
             Present_Grace              => 0,
-            Cached_Snapshot      => <>,
+            Snapshots            => <>,
+            Current_Slot         => 1,
+            Drawn_Slot           => 1,
+            Snapshot_Valid       => False,
+            Snapshot_Minute      => 0,
             Cached_Model_Revision => 0,
             Cached_Settings_Key  => <>,
             Cached_Frame         => <>,
@@ -1880,11 +1943,11 @@ package body Files.Application.Windows is
       end if;
 
       if Runtime.Column_Reorder_Started then
+         Refresh_Snapshot (Runtime);
          declare
             Y_Frame  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
             Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-            Snapshot : constant Files.Rendering.View_Snapshot :=
-              Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+            Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Current_Slot);
             Layout   : constant Files.Rendering.Layout_Metrics :=
               Files.Rendering.Calculate_Layout
                 (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
@@ -1905,11 +1968,11 @@ package body Files.Application.Windows is
             end if;
          end;
       elsif Runtime.Column_Reorder_Sort /= Files.Commands.No_Command then
+         Refresh_Snapshot (Runtime);
          declare
             Y_Frame  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
             Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-            Snapshot : constant Files.Rendering.View_Snapshot :=
-              Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+            Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Current_Slot);
             Layout   : constant Files.Rendering.Layout_Metrics :=
               Files.Rendering.Calculate_Layout
                 (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
@@ -2470,6 +2533,7 @@ package body Files.Application.Windows is
       Runtime.Text_Ready := False;
       Runtime.Text_Glyph_Key := Null_Unbounded_String;
       Runtime.Frame_Cache_Valid := False;
+      Runtime.Snapshot_Valid := False;
       Apply_Scenario (Runtime, Scenario);
    end Prepare_Scenario;
 
@@ -2688,6 +2752,7 @@ package body Files.Application.Windows is
                      Files.Model.Set_Error
                        (Runtime.Model, "error.recovery.unsafe_transport");
                      Runtime.Frame_Cache_Valid := False;
+                     Runtime.Snapshot_Valid := False;
                   end if;
                end loop;
                Recovery_Reported := True;

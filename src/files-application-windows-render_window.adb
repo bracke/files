@@ -1,5 +1,3 @@
-with Ada.Calendar;
-
 separate (Files.Application.Windows)
    procedure Render_Window
      (Runtime : in out Runtime_Window)
@@ -86,9 +84,10 @@ separate (Files.Application.Windows)
          end;
       end if;
 
-      --  A changed free-space reading bumps the model revision, so the
-      --  snapshot below is rebuilt only when what it shows has moved.
+      --  A changed free-space reading or owner name bumps the model revision,
+      --  so the snapshot below is rebuilt only when what it shows has moved.
       Sample_Volume_Space (Runtime.Model);
+      Sample_Account_Names (Runtime.Model);
 
       declare
          Hover_X  : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Width);
@@ -102,24 +101,7 @@ separate (Files.Application.Windows)
            Mouse_Down
            and then Runtime.Drag_Source_Index /= 0
            and then Runtime.Handle.Drag_Moved;
-         Current_Minute : constant Natural :=
-           Natural
-             ((Long_Long_Integer
-                 (Ada.Calendar."-" (Ada.Calendar.Clock, Ada.Calendar.Time_Of (2000, 1, 1)))
-               / 60) mod Long_Long_Integer (Natural'Last));
-         --  Reuse the cached snapshot when the model and settings are unchanged
-         --  since it was built. Build_Snapshot is O(items) with a sort and
-         --  per-item work, so skipping it on unchanged frames is the main saving.
-         --  The per-frame animations (paste progress, marquee drag) mutate the
-         --  model as they run above, so always rebuild while they are active.
-         Reuse_Snapshot : constant Boolean :=
-           Runtime.Frame_Cache_Valid
-           and then Runtime.Cached_Minute = Current_Minute
-           and then Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model)
-           and then Files.Settings.Same_Snapshot_Settings
-                      (Runtime.Settings, Runtime.Cached_Settings_Key)
-           and then not Files.Model.Paste_Execution_Is_Active (Runtime.Model)
-           and then not Runtime.Marquee_Active;
+         Current_Minute : constant Natural := Wall_Clock_Minute;
          Inputs_Match : constant Boolean :=
            Runtime.Frame_Cache_Valid
            and then Runtime.Cached_Minute = Current_Minute
@@ -183,34 +165,32 @@ separate (Files.Application.Windows)
             Runtime.Frame_Cache_Valid := True;
          end Rebuild_Frame;
       begin
-         if Reuse_Snapshot then
-            --  Model + snapshot-relevant settings unchanged: the cached snapshot
-            --  is still current, so reuse it in place -- no per-frame deep copy
-            --  or deep compare of the whole snapshot (thumbnail pixels and all).
-            --  Rebuild the frame only if a non-model input (size, hover, drag,
-            --  marquee) changed.
-            if not Inputs_Match then
-               Rebuild_Frame (Runtime.Cached_Snapshot);
-            end if;
-         else
-            declare
-               Fresh : constant Files.Rendering.View_Snapshot :=
-                 Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
-            begin
-               if not Inputs_Match or else Fresh /= Runtime.Cached_Snapshot then
-                  Runtime.Cached_Snapshot := Fresh;
-                  Rebuild_Frame (Fresh);
+         --  Build_Snapshot is O(items) with a sort and per-item work, so the
+         --  snapshot is rebuilt only when the model, the snapshot settings or
+         --  the minute moved since it was built -- here or by an input handler
+         --  since the last frame (Refresh_Snapshot). The animations above
+         --  (paste progress, marquee drag) bump the revision, or, for paste
+         --  progress, make Refresh_Snapshot rebuild while it runs.
+         Refresh_Snapshot (Runtime);
+         declare
+            Current : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Current_Slot);
+         begin
+            if Runtime.Current_Slot = Runtime.Drawn_Slot then
+               --  The snapshot is the one drawn last: reuse it in place -- no
+               --  per-frame deep copy or deep compare (thumbnail pixels and
+               --  all). Rebuild the frame only if a non-model input (size,
+               --  hover, drag, marquee) changed.
+               if not Inputs_Match then
+                  Rebuild_Frame (Current);
                end if;
-            end;
-         end if;
-
-         --  Cached_Snapshot now reflects the current model at this revision and
-         --  these settings (it was reused, or just rebuilt above), so the next
-         --  render reuses it until the model revision or a snapshot-relevant
-         --  setting changes -- the whole of Build_Snapshot's inputs.
-         Runtime.Cached_Model_Revision := Files.Model.Revision (Runtime.Model);
-         Runtime.Cached_Settings_Key :=
-           Files.Settings.Snapshot_Settings_Key_Of (Runtime.Settings);
+            else
+               --  A rebuilt snapshot: draw it unless it equals what is drawn.
+               if not Inputs_Match or else Current /= Runtime.Snapshots (Runtime.Drawn_Slot) then
+                  Rebuild_Frame (Current);
+               end if;
+               Runtime.Drawn_Slot := Runtime.Current_Slot;
+            end if;
+         end;
       end;
 
       --  Anything that changes what is on screen -- a rebuilt frame, an open (or
@@ -243,7 +223,7 @@ separate (Files.Application.Windows)
          --  state lives in the component and changes every frame) can be merged
          --  in fresh without polluting the cache.
          Frame : Files.Rendering.Frame_Commands := Runtime.Cached_Frame;
-         Snapshot : Files.Rendering.View_Snapshot renames Runtime.Cached_Snapshot;
+         Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Drawn_Slot);
       begin
          if Files.Model.Command_Palette_Is_Open (Runtime.Model) then
             declare

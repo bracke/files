@@ -2975,6 +2975,57 @@ package Files.Model is
      (Model : Window_Model)
       return Volume_Space;
 
+   --  Which numeric account an owner name belongs to: a user id or a group id.
+   type Account_Kind is (User_Account, Group_Account);
+
+   --  Record the name of a user or group id. The window layer resolves it (an
+   --  NSS lookup); Build_Snapshot only reads it, so building a snapshot asks
+   --  the OS nothing. Bumps the revision only when the recorded name changed.
+   --
+   --  @param Model Model to update.
+   --  @param Kind Whether Id is a user id or a group id.
+   --  @param Id Numeric user or group id.
+   --  @param Name Resolved name, or "" when the id has none.
+   procedure Set_Account_Name
+     (Model : in out Window_Model;
+      Kind  : Account_Kind;
+      Id    : Natural;
+      Name  : String);
+
+   --  @param Model Model to inspect.
+   --  @param Kind Whether Id is a user id or a group id.
+   --  @param Id Numeric user or group id.
+   --  @return True when a name (possibly "") was recorded for Id.
+   function Account_Name_Known
+     (Model : Window_Model;
+      Kind  : Account_Kind;
+      Id    : Natural)
+      return Boolean;
+
+   --  @param Model Model to inspect.
+   --  @param Kind Whether Id is a user id or a group id.
+   --  @param Id Numeric user or group id.
+   --  @return The recorded name, or "" when none was recorded.
+   function Account_Name
+     (Model : Window_Model;
+      Kind  : Account_Kind;
+      Id    : Natural)
+      return String;
+
+   --  Note that the account names the info pane needs were sampled at the
+   --  current revision, so the window layer can skip sampling until the model
+   --  changes again. Does not bump the revision.
+   --
+   --  @param Model Model to update.
+   procedure Note_Account_Names_Sampled
+     (Model : in out Window_Model);
+
+   --  @param Model Model to inspect.
+   --  @return True when Note_Account_Names_Sampled ran at the current revision.
+   function Account_Names_Current
+     (Model : Window_Model)
+      return Boolean;
+
    --  Return the cached folder-size measurement for Path.
    --
    --  @param Model Model to inspect.
@@ -3070,6 +3121,14 @@ private
      (Key_Type     => UString,
       Element_Type => Files.File_System.Directory_Size_Result,
       "<"          => Ada.Strings.Unbounded."<");
+
+   --  Resolved account names keyed by numeric id (Set_Account_Name).
+   package Account_Name_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Natural,
+      Element_Type => UString,
+      "="          => Ada.Strings.Unbounded."=");
+
+   type Account_Name_Tables is array (Account_Kind) of Account_Name_Maps.Map;
 
    --  The right-click menu: where it opened, what it was opened on, and the
    --  keyboard highlight (0 = none). Every default is the closed state.
@@ -3228,6 +3287,10 @@ private
       Volume_Space_Value : Volume_Space;
       Volume_Path        : UString;
       Volume_Sampled     : Ada.Calendar.Time;
+      --  Owner and group names resolved by the window layer, and the revision
+      --  they were last sampled at (Natural'Last: never).
+      Account_Names         : Account_Name_Tables;
+      Account_Names_Sampled : Natural := Natural'Last;
       --  The grouping the items are ordered by (Sync_Grouping): the effective
       --  mode, the labels and day it was computed with, and the revision it
       --  was last checked at.

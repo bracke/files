@@ -368,15 +368,58 @@ package body Files.Application is
       end if;
    end Sample_Volume_Space;
 
-   function With_Volume_Space
+   procedure Sample_Account_Names
+     (Model : in out Files.Model.Window_Model)
+   is
+      --  Record Item's owner and group names unless they already are.
+      procedure Sample (Item : Files.File_System.Directory_Item) is
+      begin
+         if not Item.Ownership_Available then
+            return;
+         end if;
+         if not Files.Model.Account_Name_Known (Model, Files.Model.User_Account, Item.Owner_Id) then
+            Files.Model.Set_Account_Name
+              (Model, Files.Model.User_Account, Item.Owner_Id, Files.File_System.User_Name_For_Id (Item.Owner_Id));
+         end if;
+         if not Files.Model.Account_Name_Known (Model, Files.Model.Group_Account, Item.Group_Id) then
+            Files.Model.Set_Account_Name
+              (Model, Files.Model.Group_Account, Item.Group_Id, Files.File_System.Group_Name_For_Id (Item.Group_Id));
+         end if;
+      end Sample;
+   begin
+      if Files.Model.Account_Names_Current (Model) then
+         return;
+      end if;
+      --  The same items Build_Snapshot lists in the info pane.
+      if Files.Model.Info_Pane_Is_Open (Model) and then Files.Model.Selected_Count (Model) > 0 then
+         declare
+            Items : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+            Count : Natural := 0;
+         begin
+            if Items.Is_Empty then
+               Sample (Files.Model.Selected_Item (Model));
+            end if;
+            for Item of Items loop
+               exit when Count >= Files.Rendering.Max_Info_Items;
+               Sample (Item);
+               Count := Count + 1;
+            end loop;
+         end;
+      end if;
+      --  After any Set_Account_Name above, so its revision bump is covered.
+      Files.Model.Note_Account_Names_Sampled (Model);
+   end Sample_Account_Names;
+
+   function With_Host_Samples
      (Model : Files.Model.Window_Model)
       return Files.Model.Window_Model
    is
       Sampled : Files.Model.Window_Model := Model;
    begin
       Sample_Volume_Space (Sampled);
+      Sample_Account_Names (Sampled);
       return Sampled;
-   end With_Volume_Space;
+   end With_Host_Samples;
 
    function Resolve_Startup_Paths
      (Arguments : String_Vectors.Vector;
@@ -593,7 +636,7 @@ package body Files.Application is
          declare
             Snapshot      : constant Files.Rendering.View_Snapshot :=
               Files.Rendering.Build_Snapshot
-                (With_Volume_Space (Files.Model.Grouped (Window.Model, Result.Settings)), Result.Settings);
+                (With_Host_Samples (Files.Model.Grouped (Window.Model, Result.Settings)), Result.Settings);
             Frame         : constant Files.Rendering.Frame_Commands :=
               Files.Rendering.Build_Frame_Commands
                 (Snapshot    => Snapshot,

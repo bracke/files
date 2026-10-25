@@ -43,16 +43,19 @@ separate (Files.Application.Windows)
          end if;
       end if;
 
+      --  The selection this drag move sets bumps the model revision, so the
+      --  render that follows rebuilds the snapshot once; laying out here reuses
+      --  the current one (normally the frame just drawn).
+      Refresh_Snapshot (Runtime);
       declare
          Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
 
-         Snapshot  : Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
          Layout    : Files.Rendering.Layout_Metrics :=
            Files.Rendering.Calculate_Layout
-             (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+             (Runtime.Snapshots (Runtime.Current_Slot), Natural (Frame_W), Natural (Frame_H), Line_Height);
          Main_View : Files.Rendering.Main_View_Layout :=
-           Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
+           Files.Rendering.Calculate_Main_View_Layout
+             (Runtime.Snapshots (Runtime.Current_Slot), Layout, Line_Height);
       begin
          --  Auto-scroll: while the cursor is dragged to (or past) the top or
          --  bottom of the scrollable rows area, scroll the list so items beyond
@@ -90,11 +93,13 @@ separate (Files.Application.Windows)
                         --  Rebuild against the new scroll, then re-anchor the
                         --  origin by the scroll's actual pixel shift (which the
                         --  renderer may snap to a row period, so measure it).
-                        Snapshot := Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+                        Refresh_Snapshot (Runtime);
                         Layout := Files.Rendering.Calculate_Layout
-                          (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
+                          (Runtime.Snapshots (Runtime.Current_Slot), Natural (Frame_W), Natural (Frame_H),
+                           Line_Height);
                         Main_View :=
-                          Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
+                          Files.Rendering.Calculate_Main_View_Layout
+                            (Runtime.Snapshots (Runtime.Current_Slot), Layout, Line_Height);
                         Runtime.Marquee_Origin_Y :=
                           Runtime.Marquee_Origin_Y
                           - (Integer (Main_View.Scroll_Pixels) - Integer (Old_Px));
@@ -106,7 +111,7 @@ separate (Files.Application.Windows)
 
          declare
             Items  : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-              Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
+              Files.Rendering.Calculate_Item_Layout (Runtime.Snapshots (Runtime.Current_Slot), Layout, Line_Height);
             Rect_X : Natural;
             Rect_Y : Natural;
             Rect_W : Natural;

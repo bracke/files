@@ -3,6 +3,9 @@ separate (Files.Rendering.Build_Snapshot)
      (Item : Files.File_System.Directory_Item)
       return UString
    is
+      --  Read once: the regular-file branch below compares it up to 17 times.
+      Filetype : constant String := To_String (Item.Filetype);
+
       --  Upper-case only ASCII letters. A byte-wise To_Upper would corrupt a
       --  UTF-8 extension: a 3-byte lead (0xE0..0xEF) falls in Latin-1's lowercase
       --  range and would be mapped, mojibaking a CJK or emoji extension.
@@ -39,41 +42,41 @@ separate (Files.Rendering.Build_Snapshot)
          when Files.Types.Executable_Item =>
             return To_Unbounded_String (Files.Localization.Text ("info.kind.executable"));
          when Files.Types.Regular_File_Item =>
-            if To_String (Item.Filetype) = "text/plain" then
+            if Filetype = "text/plain" then
                return To_Unbounded_String (Files.Localization.Text ("info.kind.text"));
-            elsif To_String (Item.Filetype) = "text/markdown" then
+            elsif Filetype = "text/markdown" then
                return To_Unbounded_String (Files.Localization.Text ("info.kind.markdown"));
-            elsif To_String (Item.Filetype) = "text/x-ada" then
+            elsif Filetype = "text/x-ada" then
                return To_Unbounded_String (Files.Localization.Text ("info.kind.source.ada"));
-            elsif To_String (Item.Filetype) = "application/json" then
+            elsif Filetype = "application/json" then
                return To_Unbounded_String (Files.Localization.Text ("info.kind.source.json"));
-            elsif To_String (Item.Filetype) = "application/xml" then
+            elsif Filetype = "application/xml" then
                return To_Unbounded_String (Files.Localization.Text ("info.kind.source.xml"));
-            elsif To_String (Item.Filetype) = "image/png" then
+            elsif Filetype = "image/png" then
                return To_Unbounded_String (Files.Localization.Text ("info.kind.image.png"));
-            elsif To_String (Item.Filetype) = "image/jpeg" then
+            elsif Filetype = "image/jpeg" then
                return To_Unbounded_String (Files.Localization.Text ("info.kind.image.jpeg"));
-            elsif To_String (Item.Filetype) = "application/pdf" then
+            elsif Filetype = "application/pdf" then
                return To_Unbounded_String (Files.Localization.Text ("info.kind.document.pdf"));
-            elsif To_String (Item.Filetype) =
+            elsif Filetype =
               "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             then
                return To_Unbounded_String (Files.Localization.Text ("info.kind.document.word"));
-            elsif To_String (Item.Filetype) =
+            elsif Filetype =
               "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             then
                return To_Unbounded_String (Files.Localization.Text ("info.kind.document.spreadsheet"));
-            elsif To_String (Item.Filetype) = "application/zip"
-              or else To_String (Item.Filetype) = "application/x-tar"
-              or else To_String (Item.Filetype) = "application/gzip-tar"
-              or else To_String (Item.Filetype) = "application/gzip"
+            elsif Filetype = "application/zip"
+              or else Filetype = "application/x-tar"
+              or else Filetype = "application/gzip-tar"
+              or else Filetype = "application/gzip"
             then
                return To_Unbounded_String (Files.Localization.Text ("info.kind.archive"));
-            elsif To_String (Item.Filetype) = "audio/mpeg"
-              or else To_String (Item.Filetype) = "audio/wav"
+            elsif Filetype = "audio/mpeg"
+              or else Filetype = "audio/wav"
             then
                return To_Unbounded_String (Files.Localization.Text ("info.kind.audio"));
-            elsif To_String (Item.Filetype) = "video/mp4" then
+            elsif Filetype = "video/mp4" then
                return To_Unbounded_String (Files.Localization.Text ("info.kind.video"));
             end if;
 

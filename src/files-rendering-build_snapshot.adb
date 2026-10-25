@@ -5,8 +5,6 @@ separate (Files.Rendering)
       Settings : Files.Settings.Settings_Model)
       return View_Snapshot
    is
-      --  Selected items whose details the info pane lists.
-      Max_Info_Items : constant := 100;
       Snapshot : View_Snapshot;
 
       function Natural_Text (Value : Natural) return String is
@@ -244,11 +242,15 @@ separate (Files.Rendering)
             return Cut_Active and then Cut_Paths.Contains (Full_Path);
          end Is_Cut_Pending;
          Rows : constant Files.Model.Visible_Row_Vectors.Vector := Files.Model.Visible_Rows (Model);
+         --  Favorites and labels hashed by path once: each item asks both, and
+         --  a scan of the two lists per item made a rebuild O(items x labels).
+         Paths : constant Files.Settings.Path_Index := Files.Settings.Index_Paths (Settings);
       begin
          for Index in Rows.First_Index .. Rows.Last_Index loop
             declare
                Row  : Files.Model.Visible_Row renames Rows (Index);
                Item : Files.File_System.Directory_Item renames Row.Item;
+               Full_Path : constant String := To_String (Item.Full_Path);
                Rename_On     : Boolean;
                Rename_Value  : Ada.Strings.Unbounded.Unbounded_String;
                Rename_Cursor : Natural;
@@ -287,10 +289,8 @@ separate (Files.Rendering)
                      Rename_Cursor      => Rename_Cursor,
                      Is_Group_Header    => False,
                      Group_Label        => Null_Unbounded_String,
-                     Is_Favorite        =>
-                       Files.Settings.Is_Favorite (Settings, To_String (Item.Full_Path)),
-                     Label              =>
-                       Files.Settings.Label_Of (Settings, To_String (Item.Full_Path))));
+                     Is_Favorite        => Files.Settings.Is_Favorite (Paths, Full_Path),
+                     Label              => Files.Settings.Label_Of (Paths, Full_Path)));
             end;
          end loop;
       end;
@@ -423,12 +423,15 @@ separate (Files.Rendering)
                   end;
                end if;
 
-               --  Resolve owner/group names for display (cached per session).
+               --  Owner/group names as the window layer sampled them into the
+               --  model; an id not sampled yet shows as its number.
                if Item.Ownership_Available then
                   Info.Owner_Name :=
-                    To_Unbounded_String (Files.File_System.User_Name_For_Id (Item.Owner_Id));
+                    To_Unbounded_String
+                      (Files.Model.Account_Name (Model, Files.Model.User_Account, Item.Owner_Id));
                   Info.Group_Name :=
-                    To_Unbounded_String (Files.File_System.Group_Name_For_Id (Item.Group_Id));
+                    To_Unbounded_String
+                      (Files.Model.Account_Name (Model, Files.Model.Group_Account, Item.Group_Id));
                end if;
 
                return Info;

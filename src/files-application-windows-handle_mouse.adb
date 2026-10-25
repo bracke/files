@@ -24,11 +24,11 @@ separate (Files.Application.Windows)
 
       while Runtime.Handle.Pending_Right_Clicks > 0 loop
          Runtime.Handle.Pending_Right_Clicks := Runtime.Handle.Pending_Right_Clicks - 1;
+         Refresh_Snapshot (Runtime);
          declare
             X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
             Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-            Snapshot : constant Files.Rendering.View_Snapshot :=
-              Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+            Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Current_Slot);
             Layout   : constant Files.Rendering.Layout_Metrics :=
               Files.Rendering.Calculate_Layout
                 (Snapshot, Natural (Frame_W), Natural (Frame_H),
@@ -71,11 +71,11 @@ separate (Files.Application.Windows)
          Runtime.Handle.Pending_Left_Clicks := Runtime.Handle.Pending_Left_Clicks - 1;
 
          if Files.Model.Context_Menu_Is_Open (Runtime.Model) then
+            Refresh_Snapshot (Runtime);
             declare
                X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
                Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-               Snapshot : constant Files.Rendering.View_Snapshot :=
-                 Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+               Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Current_Slot);
                Menu     : constant Files.Rendering.Context_Menu_Layout :=
                  Files.Rendering.Calculate_Context_Menu_Layout
                    (Snapshot, Natural (Frame_W), Natural (Frame_H),

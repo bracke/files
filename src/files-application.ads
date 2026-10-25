@@ -132,6 +132,15 @@ package Files.Application is
    procedure Sample_Volume_Space
      (Model : in out Files.Model.Window_Model);
 
+   --  Resolve the owner and group names of the items the info pane lists into
+   --  Model (Files.Model.Set_Account_Name), so the snapshot shows names without
+   --  an NSS lookup of its own. Does nothing while the model is unchanged
+   --  since the last sample, or when the info pane shows no item.
+   --
+   --  @param Model Window model whose info-pane items are sampled.
+   procedure Sample_Account_Names
+     (Model : in out Files.Model.Window_Model);
+
    --  Resolve command-line paths into one window model per valid directory.
    --
    --  @param Arguments Command-line arguments as paths.

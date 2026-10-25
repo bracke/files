@@ -1,4 +1,5 @@
 with Ada.Containers.Indefinite_Hashed_Maps;
+with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Containers.Vectors;
 with Ada.Strings.Hash;
 
@@ -373,6 +374,59 @@ package Files.Settings is
      (Settings : in out Settings_Model;
       Path     : String;
       Label    : Files.Types.Color_Label);
+
+   --  Path-keyed color labels, as indexed by Index_Paths.
+   package Path_Label_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => Files.Types.Color_Label,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=",
+      "="             => Files.Types."=");
+
+   --  Favorite paths, as indexed by Index_Paths.
+   package Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+     (Element_Type        => String,
+      Hash                => Ada.Strings.Hash,
+      Equivalent_Elements => "=");
+
+   --  The favorites and labels of one settings model, hashed by path so a
+   --  caller that asks about many paths (one view snapshot asks once per
+   --  listed item) pays one lookup per path instead of a scan of both lists.
+   --  It is a copy: build it again after the settings change.
+   type Path_Index is record
+      Favorites : Path_Sets.Set;
+      Labels    : Path_Label_Maps.Map;
+   end record;
+
+   --  Index the favorites and labels of Settings by path.
+   --
+   --  @param Settings Settings model to index.
+   --  @return Index answering exactly as Is_Favorite and Label_Of on Settings do.
+   function Index_Paths
+     (Settings : Settings_Model)
+      return Path_Index;
+
+   --  Report whether Path is a stored favorite, as Is_Favorite on the indexed
+   --  settings would.
+   --
+   --  @param Index Index built by Index_Paths.
+   --  @param Path Full item or folder path to test.
+   --  @return True when Path is a stored favorite, False otherwise.
+   function Is_Favorite
+     (Index : Path_Index;
+      Path  : String)
+      return Boolean;
+
+   --  Return the color label stored for Path, as Label_Of on the indexed
+   --  settings would.
+   --
+   --  @param Index Index built by Index_Paths.
+   --  @param Path Full item or folder path to look up.
+   --  @return The stored color label, or No_Label when Path has none.
+   function Label_Of
+     (Index : Path_Index;
+      Path  : String)
+      return Files.Types.Color_Label;
 
    --  Follow a rename or move: every label, favorite and recent path that is
    --  From, or lies inside the folder From, is rewritten to the same place

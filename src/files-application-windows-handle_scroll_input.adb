@@ -60,11 +60,11 @@ separate (Files.Application.Windows)
       elsif not Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H) then
          Action := (Kind => Files.Events.No_Input_Action, others => <>);
       else
+         Refresh_Snapshot (Runtime);
          declare
             X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
             Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-            Snapshot : constant Files.Rendering.View_Snapshot :=
-              Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+            Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Current_Slot);
          begin
             Action :=
               Files.Events.Translate_Scroll_At

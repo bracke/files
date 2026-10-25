@@ -2258,6 +2258,64 @@ package body Files.Model is
       return Volume_Space is
      (if To_String (Model.Volume_Path) = Current_Path (Model) then Model.Volume_Space_Value else (others => <>));
 
+   procedure Set_Account_Name
+     (Model : in out Window_Model;
+      Kind  : Account_Kind;
+      Id    : Natural;
+      Name  : String)
+   is
+      --  Ids on one host are few, but bound the table so a long session over
+      --  many foreign volumes cannot grow it without limit.
+      Max_Account_Names : constant := 4096;
+      Names : Account_Name_Maps.Map renames Model.Account_Names (Kind);
+      Found : constant Account_Name_Maps.Cursor := Names.Find (Id);
+   begin
+      if Account_Name_Maps.Has_Element (Found) then
+         if To_String (Account_Name_Maps.Element (Found)) /= Name then
+            Names.Replace_Element (Found, To_Unbounded_String (Name));
+            Model.Revision_Value := Model.Revision_Value + 1;
+         end if;
+         return;
+      end if;
+      if Natural (Names.Length) >= Max_Account_Names then
+         Names.Clear;
+      end if;
+      Names.Insert (Id, To_Unbounded_String (Name));
+      Model.Revision_Value := Model.Revision_Value + 1;
+   end Set_Account_Name;
+
+   function Account_Name_Known
+     (Model : Window_Model;
+      Kind  : Account_Kind;
+      Id    : Natural)
+      return Boolean is
+     (Model.Account_Names (Kind).Contains (Id));
+
+   function Account_Name
+     (Model : Window_Model;
+      Kind  : Account_Kind;
+      Id    : Natural)
+      return String
+   is
+      Found : constant Account_Name_Maps.Cursor := Model.Account_Names (Kind).Find (Id);
+   begin
+      if Account_Name_Maps.Has_Element (Found) then
+         return To_String (Account_Name_Maps.Element (Found));
+      end if;
+      return "";
+   end Account_Name;
+
+   procedure Note_Account_Names_Sampled
+     (Model : in out Window_Model) is
+   begin
+      Model.Account_Names_Sampled := Model.Revision_Value;
+   end Note_Account_Names_Sampled;
+
+   function Account_Names_Current
+     (Model : Window_Model)
+      return Boolean is
+     (Model.Account_Names_Sampled = Model.Revision_Value);
+
    procedure Open_Context_Menu
      (Model      : in out Window_Model;
       X          : Natural;
