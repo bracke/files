@@ -414,9 +414,13 @@ jobs:
             ${{ runner.os == 'macOS' && '/System/Library/Fonts/Supplemental/Arial.ttf'
             || runner.os == 'Windows' && 'C:/Windows/Fonts/consola.ttf'
             || '' }}
-          # Name each test as it starts on Windows, where a crash leaves no
-          # report to say which one it was in.
-          FILES_TEST_PROGRESS: ${{ runner.os == 'Windows' && '1' || '' }}
+          # Name each test as it starts. On Windows a crash leaves no report
+          # to say which test it was in; everywhere, the log's timestamps then
+          # show how long each test took.
+          FILES_TEST_PROGRESS: '1'
+          # Each caught-and-carried-on exception goes to stderr, so an
+          # intermittent failure leaves a trace in the log.
+          FILES_DIAGNOSTICS: '1'
           # Multiplies the suite's "returns promptly" timing bounds: the shared
           # macOS and Windows runners spawn helper processes far more slowly.
           FILES_TEST_TIME_SCALE: ${{ (runner.os == 'macOS' || runner.os == 'Windows') && '2' || '1' }}
@@ -491,6 +495,8 @@ jobs:
           # runtime collision.
           FILES_CFLAGS: -fanalyzer -fsanitize=undefined -fno-omit-frame-pointer
           FILES_LDFLAGS: -fsanitize=undefined
+          FILES_TEST_PROGRESS: '1'
+          FILES_DIAGNOSTICS: '1'
         run: |
           alr --non-interactive build
           ./bin/tests

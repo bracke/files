@@ -249,6 +249,9 @@ separate (Files_Suite.Operations)
       for Attempt in Files_Suite.Support.Polling loop
          exit when not Ada.Directories.Exists (Transport);
       end loop;
+      Assert
+        (not Ada.Directories.Exists (Transport),
+         "the released transport is cleaned up once its planted records are gone");
    exception
       when others => Files.Job_Context.Initialize (""); raise;
    end Test_Stage_Record_Cleanup;
