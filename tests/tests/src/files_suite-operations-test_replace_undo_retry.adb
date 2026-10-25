@@ -3,27 +3,11 @@ separate (Files_Suite.Operations)
       pragma Unreferenced (T);
       type Scenario_Kind is (Copy_Replace, Move_Replace, Recovery_Only);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Had_Xdg : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
-      Had_Back : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
-      Old_Xdg : constant String :=
-        (if Had_Xdg then Ada.Environment_Variables.Value ("XDG_DATA_HOME") else "");
-      Old_Back : constant String :=
-        (if Had_Back then Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND") else "");
-
-      procedure Restore_Environment is
-      begin
-         if Had_Xdg then
-            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Old_Xdg);
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
-         end if;
-         if Had_Back then
-            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", Old_Back);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         end if;
-      end Restore_Environment;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
    begin
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       for Native in Boolean loop
          for Scenario in Scenario_Kind loop
             Reset_Root;
@@ -103,7 +87,4 @@ separate (Files_Suite.Operations)
             end;
          end loop;
       end loop;
-      Restore_Environment;
-   exception
-      when others => Restore_Environment; raise;
    end Test_Replace_Undo_Retry;

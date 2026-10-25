@@ -79,9 +79,18 @@ separate (Files_Suite.Operations)
                   Files.Operations.Operation_Success,
                   "the synchronous recovery succeeds");
             end if;
-            Assert (Files.Model.Last_Error_Key (Model) = "" and then Files.Model.Item_Count (Model) = 1
-                    and then Files.Model.Selected_Name (Model) = "alpha",
-                    "successful manual and automatic refreshes clear obsolete errors and preserve selection");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Last_Error_Key (Model),
+               "",
+               "successful manual and automatic refreshes clear obsolete errors and preserve selection: no error");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Item_Count (Model),
+               1,
+               "successful manual and automatic refreshes clear obsolete errors and preserve selection: item count");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Selected_Name (Model),
+               "alpha",
+               "successful manual and automatic refreshes clear obsolete errors and preserve selection: selection");
          end loop;
       end loop;
       Files.Model.Set_Background_Transfers (Model, True);
@@ -118,10 +127,17 @@ separate (Files_Suite.Operations)
            (Model, (if Operation_Error then "error.trash.restore_exists" else "error.directory.load"));
          Start_Refresh (True);
          Await_Refresh (True);
-         Assert (Files.Model.In_Recent_View (Model) and then Files.Model.Item_Count (Model) = 1
-                 and then Files.Model.Last_Error_Key (Model) =
-                   (if Operation_Error then "error.trash.restore_exists" else ""),
-                 "successful Recent refresh clears load errors while retaining operation errors");
+         Assert
+           (Files.Model.In_Recent_View (Model),
+            "successful Recent refresh clears load errors while retaining operation errors: still in Recent");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Item_Count (Model),
+            1,
+            "successful Recent refresh clears load errors while retaining operation errors: item count");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Last_Error_Key (Model),
+            (if Operation_Error then "error.trash.restore_exists" else ""),
+            "successful Recent refresh clears load errors while retaining operation errors: error key");
       end loop;
    exception
       when others => Files.Refresh_Jobs.Cancel (Model); raise;

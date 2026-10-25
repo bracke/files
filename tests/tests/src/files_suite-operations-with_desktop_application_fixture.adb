@@ -7,16 +7,8 @@ separate (Files_Suite.Operations)
       System_Base : constant String := Join (Root, "xdg_system");
       System_Apps : constant String := Join (System_Base, "applications");
       Try_Exec    : constant String := Files_Suite.Support.No_Op_Executable;
-      Had_Home   : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
-      Had_Dirs   : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_DIRS");
-      Had_Desktop : constant Boolean :=
-        Ada.Environment_Variables.Exists ("XDG_CURRENT_DESKTOP");
-      Had_Locale : constant Boolean :=
-        Ada.Environment_Variables.Exists ("LC_ALL");
-      Old_Home   : Unbounded_String;
-      Old_Dirs   : Unbounded_String;
-      Old_Desktop : Unbounded_String;
-      Old_Locale : Unbounded_String;
+      --  Restores what Check changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
 
       function Desktop_Escape (Value : String) return String is
          Result : Unbounded_String;
@@ -46,45 +38,12 @@ separate (Files_Suite.Operations)
          return To_String (Result);
       end Desktop_Exec_Escape;
 
-      procedure Restore_Environment is
-      begin
-         if Had_Home then
-            Ada.Environment_Variables.Set ("XDG_DATA_HOME", To_String (Old_Home));
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
-         end if;
-         if Had_Dirs then
-            Ada.Environment_Variables.Set ("XDG_DATA_DIRS", To_String (Old_Dirs));
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_DIRS");
-         end if;
-         if Had_Desktop then
-            Ada.Environment_Variables.Set
-              ("XDG_CURRENT_DESKTOP", To_String (Old_Desktop));
-         else
-            Ada.Environment_Variables.Clear ("XDG_CURRENT_DESKTOP");
-         end if;
-         if Had_Locale then
-            Ada.Environment_Variables.Set ("LC_ALL", To_String (Old_Locale));
-         else
-            Ada.Environment_Variables.Clear ("LC_ALL");
-         end if;
-      end Restore_Environment;
    begin
-      if Had_Home then
-         Old_Home := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
-      end if;
-      if Had_Dirs then
-         Old_Dirs := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_DIRS"));
-      end if;
-      if Had_Desktop then
-         Old_Desktop := To_Unbounded_String
-           (Ada.Environment_Variables.Value ("XDG_CURRENT_DESKTOP"));
-      end if;
-      if Had_Locale then
-         Old_Locale := To_Unbounded_String
-           (Ada.Environment_Variables.Value ("LC_ALL"));
-      end if;
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Save (Environment, "XDG_DATA_DIRS");
+      Files_Suite.Support.Save (Environment, "XDG_CURRENT_DESKTOP");
+      Files_Suite.Support.Save (Environment, "LC_ALL");
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
 
       Reset_Root;
       Ada.Directories.Create_Path (Apps_Dir);
@@ -335,9 +294,4 @@ separate (Files_Suite.Operations)
       Ada.Environment_Variables.Set ("LC_ALL", "da_DK.UTF-8");
 
       Check.all;
-      Restore_Environment;
-   exception
-      when others =>
-         Restore_Environment;
-         raise;
    end With_Desktop_Application_Fixture;

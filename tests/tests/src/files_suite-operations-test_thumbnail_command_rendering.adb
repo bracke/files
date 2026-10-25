@@ -94,11 +94,17 @@ separate (Files_Suite.Operations)
             Pixel_Offset : constant Positive := Positive (Thumbnail_Tile * 64 * 4 + 1);
          begin
             Assert
-              (Thumbnail_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset) = 255
-               and then Thumbnail_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset + 1) = 0
-               and then Thumbnail_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset + 2) = 0
-               and then Thumbnail_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset + 3) = 255,
-               "vulkan icon atlas rasterizes large-icons cached thumbnail pixels");
+              (Thumbnail_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset) = 255,
+               "vulkan icon atlas rasterizes large-icons cached thumbnail pixels: red");
+            Assert
+              (Thumbnail_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset + 1) = 0,
+               "vulkan icon atlas rasterizes large-icons cached thumbnail pixels: green");
+            Assert
+              (Thumbnail_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset + 2) = 0,
+               "vulkan icon atlas rasterizes large-icons cached thumbnail pixels: blue");
+            Assert
+              (Thumbnail_Batch.Icon_Atlas_Pixels.Element (Pixel_Offset + 3) = 255,
+               "vulkan icon atlas rasterizes large-icons cached thumbnail pixels: alpha");
          end;
       end;
       for Mode in Files.Types.Small_Icons .. Files.Types.Details loop
@@ -116,11 +122,17 @@ separate (Files_Suite.Operations)
                   Assert
                     (To_String (Command.Icon_Id) /= "thumbnail",
                      "non-large item icon command keeps filetype icon");
+                  Files_Suite.Support.Assert_Equal
+                    (Command.Thumbnail_Width,
+                     0,
+                     "non-large item icon command does not carry thumbnail pixels: no width");
+                  Files_Suite.Support.Assert_Equal
+                    (Command.Thumbnail_Height,
+                     0,
+                     "non-large item icon command does not carry thumbnail pixels: no height");
                   Assert
-                    (Command.Thumbnail_Width = 0
-                     and then Command.Thumbnail_Height = 0
-                     and then Command.Thumbnail_Pixels.Is_Empty,
-                     "non-large item icon command does not carry thumbnail pixels");
+                    (Command.Thumbnail_Pixels.Is_Empty,
+                     "non-large item icon command does not carry thumbnail pixels: no pixels");
                end loop;
             end;
          end if;

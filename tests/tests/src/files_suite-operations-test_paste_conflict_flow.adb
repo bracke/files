@@ -84,6 +84,10 @@ separate (Files_Suite.Operations)
       Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       Resolved :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Skip, False);
+      Files_Suite.Support.Assert_Equal
+        (Resolved.Status,
+         Files.Operations.Operation_Success,
+         "skip resolves successfully");
       Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "skip clears the dialog");
       Files_Suite.Support.Assert_Equal
         (Read (Join (Dest_Dir, "a.txt")),
@@ -101,6 +105,10 @@ separate (Files_Suite.Operations)
       Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       Resolved :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Rename, False);
+      Files_Suite.Support.Assert_Equal
+        (Resolved.Status,
+         Files.Operations.Operation_Success,
+         "rename resolves successfully");
       Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "rename clears the dialog");
       Files_Suite.Support.Assert_Equal
         (Read (Join (Dest_Dir, "a.txt")),
@@ -129,6 +137,10 @@ separate (Files_Suite.Operations)
       Assert (Files.Model.Paste_Conflict_Is_Active (Model), "two collisions arm the dialog");
       Resolved :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, True);
+      Files_Suite.Support.Assert_Equal
+        (Resolved.Status,
+         Files.Operations.Operation_Success,
+         "apply-to-all resolves successfully");
       Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "apply-to-all resolves both without a second prompt");
       Files_Suite.Support.Assert_Equal
         (Read (Join (Dest_Dir, "a.txt")),
@@ -149,6 +161,10 @@ separate (Files_Suite.Operations)
       Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       Resolved :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Cancel, False);
+      Files_Suite.Support.Assert_Equal
+        (Resolved.Status,
+         Files.Operations.Operation_Success,
+         "cancel resolves successfully");
       Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "cancel clears the dialog");
       Files_Suite.Support.Assert_Equal
         (Read (Join (Dest_Dir, "a.txt")),

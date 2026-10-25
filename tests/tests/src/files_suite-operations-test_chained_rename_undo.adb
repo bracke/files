@@ -25,11 +25,14 @@ separate (Files_Suite.Operations)
         (Step.Status,
          Files.Operations.Operation_Success,
          "one Undo reverses the chained batch");
-      Assert (Project_Tools.Files.Read_Raw_File (A) = "A" and then Project_Tools.Files.Read_Raw_File (B) = "B"
-              and then not Path_Exists (C),
-              "both renames are undone");
+      Files_Suite.Support.Assert_Equal (Project_Tools.Files.Read_Raw_File (A), "A", "both renames are undone: a");
+      Files_Suite.Support.Assert_Equal (Project_Tools.Files.Read_Raw_File (B), "B", "both renames are undone: b");
+      Assert (not Path_Exists (C), "both renames are undone: c is gone");
       Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-      Assert (Step.Status = Files.Operations.Operation_Success
-              and then Project_Tools.Files.Read_Raw_File (C) = "B" and then Project_Tools.Files.Read_Raw_File (B) = "A",
-              "Redo replays the batch in its own order");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status, Files.Operations.Operation_Success, "Redo replays the batch in its own order: status");
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (C), "B", "Redo replays the batch in its own order: c");
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (B), "A", "Redo replays the batch in its own order: b");
    end Test_Chained_Rename_Undo;

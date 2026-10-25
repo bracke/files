@@ -22,10 +22,14 @@ separate (Files_Suite.Operations)
                   null;
             end;
             Assert
-              (not Unexpected_Success
-               and then Hostkit.Fs.Is_Link (Linked_Path)
-               and then Ada.Directories.Exists (Real_Directory),
-               "private-directory hardening rejects a link without removing it or its target");
+              (not Unexpected_Success,
+               "private-directory hardening rejects a link without removing it or its target: refused");
+            Assert
+              (Hostkit.Fs.Is_Link (Linked_Path),
+               "private-directory hardening rejects a link without removing it or its target: link kept");
+            Assert
+              (Ada.Directories.Exists (Real_Directory),
+               "private-directory hardening rejects a link without removing it or its target: target kept");
             declare
                Removed : constant Boolean := Hostkit.Fs.Delete_Link (Linked_Path);
                pragma Unreferenced (Removed);

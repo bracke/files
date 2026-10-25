@@ -6,24 +6,11 @@ separate (Files_Suite.Operations)
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Hidden, Visible : Unbounded_String;
-      Had_XDG : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
-      Old_XDG : constant String := Ada.Environment_Variables.Value ("XDG_DATA_HOME", "");
-      Had_Backend : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
-      Old_Backend : constant String := Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND", "");
-      procedure Restore is
-      begin
-         if Had_XDG then
-            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Old_XDG);
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
-         end if;
-         if Had_Backend then
-            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", Old_Backend);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         end if;
-      end Restore;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
    begin
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       for Background in Boolean loop
          for Show_Hidden in Boolean loop
             Reset_Root;
@@ -40,16 +27,20 @@ separate (Files_Suite.Operations)
             Settings.Show_Hidden_Files := Show_Hidden;
             Step := Complete_Operation (Model, Settings, Files.Operations.Empty_Trash (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success
-                    and then not Ada.Directories.Exists (To_String (Hidden))
-                    and then not Ada.Directories.Exists (To_String (Visible))
-                    and then not Ada.Directories.Exists
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "Empty Trash purges hidden and visible payloads and hidden restore metadata: status");
+            Assert (not Ada.Directories.Exists (To_String (Hidden)),
+                    "Empty Trash purges hidden and visible payloads and hidden restore metadata: hidden payload");
+            Assert (not Ada.Directories.Exists (To_String (Visible)),
+                    "Empty Trash purges hidden and visible payloads and hidden restore metadata: visible payload");
+            Assert (not Ada.Directories.Exists
                       (Join (Join (Join (Join (Root, "xdg"), "Trash"), "info"), ".hidden.trashinfo")),
-                    "Empty Trash purges hidden and visible payloads and hidden restore metadata");
+                    "Empty Trash purges hidden and visible payloads and hidden restore metadata: hidden metadata");
          end loop;
       end loop;
-      Restore;
    exception
       when others =>
-         Restore; Files.Model.Clear_Paste_Execution (Model); Files.Refresh_Jobs.Cancel (Model); raise;
+         Files.Model.Clear_Paste_Execution (Model); Files.Refresh_Jobs.Cancel (Model); raise;
    end Test_Empty_Trash_Hidden;

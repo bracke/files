@@ -5,33 +5,12 @@ separate (Files_Suite.Operations)
       Trash_Home   : constant String := Root & "_restore_guard_xdg";
       Trash_File   : constant String := Join (Join (Trash_Home, "Trash"), "files");
       Trash_Info   : constant String := Join (Join (Trash_Home, "Trash"), "info");
-      Had_Xdg_Data : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
-      Had_Backend  : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
-      Old_Xdg_Data : Unbounded_String;
-      Old_Backend  : Unbounded_String;
       Mutation     : Files.File_System.Mutation_Result;
-
-      procedure Restore_Environment is
-      begin
-         if Had_Xdg_Data then
-            Ada.Environment_Variables.Set ("XDG_DATA_HOME", To_String (Old_Xdg_Data));
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
-         end if;
-         if Had_Backend then
-            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", To_String (Old_Backend));
-         else
-            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         end if;
-      end Restore_Environment;
+      --  Restores what the test changes, on failure too.
+      Environment  : Files_Suite.Support.Environment_Guard;
    begin
-      if Had_Xdg_Data then
-         Old_Xdg_Data := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
-      end if;
-      if Had_Backend then
-         Old_Backend := To_Unbounded_String (Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND"));
-      end if;
-
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
@@ -145,11 +124,13 @@ separate (Files_Suite.Operations)
          Write_File (Outside, "unrelated payload");
          Mutation := Files.File_System.Restore_From_Trash
            (Outside, Expected_Original => Target);
+         Assert (not Mutation.Success, "restore refuses an entry outside the active trash payload directory: refused");
          Assert
-           (not Mutation.Success
-            and then Project_Tools.Files.File_Contains (Outside, "unrelated payload")
-            and then not Ada.Directories.Exists (Target),
-            "restore refuses an entry outside the active trash payload directory");
+           (Project_Tools.Files.File_Contains (Outside, "unrelated payload"),
+            "restore refuses an entry outside the active trash payload directory: outside entry kept");
+         Assert
+           (not Ada.Directories.Exists (Target),
+            "restore refuses an entry outside the active trash payload directory: target not created");
          Mutation := Files.File_System.Delete_Trashed_Item (Outside);
          Assert
            (not Mutation.Success
@@ -158,9 +139,4 @@ separate (Files_Suite.Operations)
       end;
 
       Project_Tools.Files.Delete_Tree (Trash_Home);
-      Restore_Environment;
-   exception
-      when others =>
-         Restore_Environment;
-         raise;
    end Test_Restore_From_Trash_Guards;

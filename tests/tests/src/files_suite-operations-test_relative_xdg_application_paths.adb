@@ -40,11 +40,20 @@ separate (Files_Suite.Operations)
          Ada.Environment_Variables.Set
            ("XDG_DATA_DIRS", "relative-system:" & System_Base);
          Apps := Files.Applications.Available_Applications;
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Relative Data Home").Exec),
+            "",
+            "application discovery ignores relative XDG paths and keeps absolute components"
+            & ": relative data home ignored");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Relative Data Directory").Exec),
+            "",
+            "application discovery ignores relative XDG paths and keeps absolute components"
+            & ": relative data directory ignored");
          Assert
-           (To_String (Find (Apps, "Relative Data Home").Exec) = ""
-            and then To_String (Find (Apps, "Relative Data Directory").Exec) = ""
-            and then To_String (Find (Apps, "Absolute System Directory").Exec) /= "",
-            "application discovery ignores relative XDG paths and keeps absolute components");
+           (To_String (Find (Apps, "Absolute System Directory").Exec) /= "",
+            "application discovery ignores relative XDG paths and keeps absolute components"
+            & ": absolute system directory kept");
          Ada.Directories.Set_Directory (Original_Directory);
       exception
          when others =>

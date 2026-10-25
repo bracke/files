@@ -15,8 +15,15 @@ separate (Files_Suite.Operations)
       Files.Model.Select_All_Visible (Model);
       Step := Complete_Operation
                        (Model, Settings, Files.Operations.Delete_Selected (Model, Settings));
-      Assert (Step.Status = Files.Operations.Operation_Success and then Files.Model.Item_Count (Model) = 0
-              and then not Ada.Directories.Exists (Path), "trashing the Recent item removes it from the view");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "trashing the Recent item removes it from the view: status");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         0,
+         "trashing the Recent item removes it from the view: item count");
+      Assert (not Ada.Directories.Exists (Path), "trashing the Recent item removes it from the view: path trashed");
       Files.Model.Set_Background_Transfers (Model, True);
       Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
@@ -26,9 +33,30 @@ separate (Files_Suite.Operations)
          Applied := Files.Refresh_Jobs.Advance (Model, Settings) or else Applied;
          exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
       end loop;
-      Assert (Applied and then not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model))
-              and then Files.Model.In_Recent_View (Model) and then Files.Model.Item_Count (Model) = 1
-              and then Files.Model.Visible_Item (Model, 1).Full_Path = To_Unbounded_String (Path)
-              and then Files.Model.Last_Error_Key (Model) = "",
-              "Undo's refresh immediately relists the restored Recent item without manual refresh or watcher fallback");
+      Assert
+        (Applied,
+         "Undo's refresh immediately relists the restored Recent item without manual refresh or watcher fallback"
+         & ": applied");
+      Assert
+        (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+         "Undo's refresh immediately relists the restored Recent item without manual refresh or watcher fallback"
+         & ": refresh finished");
+      Assert
+        (Files.Model.In_Recent_View (Model),
+         "Undo's refresh immediately relists the restored Recent item without manual refresh or watcher fallback"
+         & ": still in Recent");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         1,
+         "Undo's refresh immediately relists the restored Recent item without manual refresh or watcher fallback"
+         & ": item count");
+      Assert
+        (Files.Model.Visible_Item (Model, 1).Full_Path = To_Unbounded_String (Path),
+         "Undo's refresh immediately relists the restored Recent item without manual refresh or watcher fallback"
+         & ": restored item listed");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
+         "Undo's refresh immediately relists the restored Recent item without manual refresh or watcher fallback"
+         & ": no error");
    end Test_Recent_Trash_Undo_Refresh;

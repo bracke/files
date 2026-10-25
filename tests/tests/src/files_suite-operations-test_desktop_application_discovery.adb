@@ -63,36 +63,81 @@ separate (Files_Suite.Operations)
            (To_String (Find (Apps, "ZZ CRLF Application").Exec),
             "viewer %F",
             "desktop entries with CRLF line endings are accepted");
-         Assert
-           (To_String (Find (Apps, "Invalid Boolean").Exec) = ""
-            and then To_String (Find (Apps, "Duplicate Key").Exec) = ""
-            and then To_String (Find (Apps, "Duplicate Group").Exec) = "",
-            "invalid booleans, duplicate keys, and duplicate groups are rejected");
-         Assert
-           (To_String (Find (Apps, "Duplicate Auxiliary Group").Exec) = ""
-            and then To_String (Find (Apps, "Malformed Line").Exec) = ""
-            and then To_String (Find (Apps, "Malformed Group").Exec) = "",
-            "malformed syntax and duplicate auxiliary groups are rejected");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Invalid Boolean").Exec),
+            "",
+            "invalid booleans, duplicate keys, and duplicate groups are rejected: "
+            & "Invalid Boolean");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Duplicate Key").Exec),
+            "",
+            "invalid booleans, duplicate keys, and duplicate groups are rejected: "
+            & "Duplicate Key");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Duplicate Group").Exec),
+            "",
+            "invalid booleans, duplicate keys, and duplicate groups are rejected: "
+            & "Duplicate Group");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Duplicate Auxiliary Group").Exec),
+            "",
+            "malformed syntax and duplicate auxiliary groups are rejected: "
+            & "Duplicate Auxiliary Group");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Malformed Line").Exec),
+            "",
+            "malformed syntax and duplicate auxiliary groups are rejected: "
+            & "Malformed Line");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Malformed Group").Exec),
+            "",
+            "malformed syntax and duplicate auxiliary groups are rejected: "
+            & "Malformed Group");
          Assert
            (To_String (Find (Apps, "Localized Name Only").Exec) = ""
             and then To_String (Find (Apps, "Localized Icon Only").Exec) = "",
             "localized values require their unlocalized base keys");
          Assert
-           (To_String (Find (Apps, "V Current Desktop").Exec) /= ""
-            and then To_String (Find (Apps, "Only Other Desktop").Exec) = ""
-            and then To_String (Find (Apps, "Not Current Desktop").Exec) = ""
-            and then To_String
-              (Find (Apps, "W Other Desktop Exclusion").Exec) /= "",
-            "desktop visibility keys are applied to every current desktop name");
+           (To_String (Find (Apps, "V Current Desktop").Exec) /= "",
+            "desktop visibility keys are applied to every current desktop name: "
+            & "V Current Desktop");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Only Other Desktop").Exec),
+            "",
+            "desktop visibility keys are applied to every current desktop name: "
+            & "Only Other Desktop");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Not Current Desktop").Exec),
+            "",
+            "desktop visibility keys are applied to every current desktop name: "
+            & "Not Current Desktop");
          Assert
-           (To_String (Find (Apps, "X Both Visibility Lists").Exec) /= ""
-            and then To_String
-              (Find (Apps, "Excluded By Later Desktop").Exec) = ""
-            and then To_String (Find (Apps, "Y Escaped Desktop Name").Exec) /= ""
-            and then To_String (Find (Apps, "Invalid List Escape").Exec) = ""
-            and then To_String
-              (Find (Apps, "Overlapping Visibility Lists").Exec) = "",
-            "visibility lists decode escapes, honor later exclusions, and permit only disjoint coexistence");
+           (To_String (Find (Apps, "W Other Desktop Exclusion").Exec) /= "",
+            "desktop visibility keys are applied to every current desktop name: "
+            & "W Other Desktop Exclusion");
+         Assert
+           (To_String (Find (Apps, "X Both Visibility Lists").Exec) /= "",
+            "visibility lists decode escapes, honor later exclusions, and permit only disjoint coexistence: "
+            & "X Both Visibility Lists");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Excluded By Later Desktop").Exec),
+            "",
+            "visibility lists decode escapes, honor later exclusions, and permit only disjoint coexistence: "
+            & "Excluded By Later Desktop");
+         Assert
+           (To_String (Find (Apps, "Y Escaped Desktop Name").Exec) /= "",
+            "visibility lists decode escapes, honor later exclusions, and permit only disjoint coexistence: "
+            & "Y Escaped Desktop Name");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Invalid List Escape").Exec),
+            "",
+            "visibility lists decode escapes, honor later exclusions, and permit only disjoint coexistence: "
+            & "Invalid List Escape");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Overlapping Visibility Lists").Exec),
+            "",
+            "visibility lists decode escapes, honor later exclusions, and permit only disjoint coexistence: "
+            & "Overlapping Visibility Lists");
          Files_Suite.Support.Assert_Equal
            (To_String (Editor.Exec),
             "editor %F",

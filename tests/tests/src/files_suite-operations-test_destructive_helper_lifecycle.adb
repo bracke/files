@@ -10,24 +10,19 @@ separate (Files_Suite.Operations)
       Started : Unbounded_String;
       Paths, Sources : Files.Types.String_Vectors.Vector;
       Action : Files.Model.Undo_Entry;
-      Had_Flag : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TEST_STALL_OPERATIONS");
-      Old_Flag : constant String := Ada.Environment_Variables.Value ("FILES_TEST_STALL_OPERATIONS", "");
-      Old_Xdg : constant String := Ada.Environment_Variables.Value ("XDG_DATA_HOME", "");
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
       --  The stalled helper never finishes, so a command that waited for it
       --  would hang; the limit bounds only the launch, a process spawn that
       --  takes about half a second on the slow Windows and macOS Intel runners.
       type Kind is (Trash_Job, Delete_Job, Restore_Job, Empty_Job, Undo_Job, Redo_Job);
-      procedure Restore is
+      procedure Release_Jobs is
       begin
          Files.Application.Windows.Release_Window_Jobs (Model, Watch);
-         Ada.Environment_Variables.Set ("XDG_DATA_HOME", Old_Xdg);
-         if Had_Flag then
-            Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", Old_Flag);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TEST_STALL_OPERATIONS");
-         end if;
-      end Restore;
+      end Release_Jobs;
    begin
+      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_OPERATIONS");
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
       for Job_Kind in Kind loop
          Reset_Root;
          Write_Binary_File (Join (Root, "victim.txt"), "victim bytes");
@@ -93,11 +88,18 @@ separate (Files_Suite.Operations)
             Files.Application.Windows.Release_Window_Jobs (Model, Watch);
             Assert_Within (Before, Prompt_Limit, "window closure never joins a stalled destructive helper");
          end if;
-         Assert (File_Has_Bytes (Join (Root, "victim.txt"), "victim bytes")
-                 and then not Ada.Directories.Exists (Join (Root, "new-copy.txt"))
-                 and then Files.Model.Undo_Available (Model) = (Job_Kind = Undo_Job)
-                 and then Files.Model.Redo_Available (Model) = (Job_Kind = Redo_Job),
-                 "cancellation before execution preserves source bytes and both history stacks");
+         declare
+            Context : constant String :=
+              "cancellation before execution preserves source bytes and both history stacks ("
+              & Kind'Image (Job_Kind) & ")";
+         begin
+            Assert (File_Has_Bytes (Join (Root, "victim.txt"), "victim bytes"), Context & ": source bytes");
+            Assert (not Ada.Directories.Exists (Join (Root, "new-copy.txt")), Context & ": no new copy");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Undo_Available (Model), Job_Kind = Undo_Job, Context & ": Undo stack");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Redo_Available (Model), Job_Kind = Redo_Job, Context & ": Redo stack");
+         end;
          Ada.Environment_Variables.Clear ("FILES_TEST_STALL_OPERATIONS");
       end loop;
       Reset_Root;
@@ -110,9 +112,11 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "victim.txt");
       Step := Complete_Operation (Model, Settings, Files.Operations.Delete_Selected (Model, Settings));
       Await_View (Model, Settings);
-      Assert (Step.Status = Files.Operations.Operation_Success and then Files.Model.Undo_Available (Model)
-              and then not Ada.Directories.Exists (Join (Root, "victim.txt")),
-              "background trash records complete Undo");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status, Files.Operations.Operation_Success, "background trash records complete Undo: status");
+      Assert (Files.Model.Undo_Available (Model), "background trash records complete Undo: Undo recorded");
+      Assert (not Ada.Directories.Exists (Join (Root, "victim.txt")),
+              "background trash records complete Undo: source trashed");
       Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
       Await_View (Model, Settings);
       Assert (Step.Status = Files.Operations.Operation_Success
@@ -175,14 +179,21 @@ separate (Files_Suite.Operations)
       Files.Job_Context.Initialize (Join (Root, "blocked-transport"));
       Step := Files.Operations.Undo_Last (Model, Settings);
       Files.Job_Context.Initialize ("");
-      Assert (Step.Status = Files.Operations.Operation_Failed and then Files.Model.Undo_Available (Model)
-              and then File_Has_Bytes (Join (Root, "checkpoint-target"), "preserve original bytes"),
-              "a checkpoint failure before mutation retains both the original and its retriable Undo action");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Failed,
+         "a checkpoint failure before mutation retains both the original and its retriable Undo action: status");
+      Assert (Files.Model.Undo_Available (Model),
+              "a checkpoint failure before mutation retains both the original and its retriable Undo action: "
+              & "Undo retained");
+      Assert (File_Has_Bytes (Join (Root, "checkpoint-target"), "preserve original bytes"),
+              "a checkpoint failure before mutation retains both the original and its retriable Undo action: "
+              & "original kept");
       Step := Files.Operations.Undo_Last (Model, Settings);
       Assert (Step.Status = Files.Operations.Operation_Success
               and then not Ada.Directories.Exists (Join (Root, "checkpoint-target")),
               "Undo retries successfully once checkpoint transport is available");
-      Restore;
+      Release_Jobs;
    exception
-      when others => Files.Job_Context.Initialize (""); Restore; raise;
+      when others => Files.Job_Context.Initialize (""); Release_Jobs; raise;
    end Test_Destructive_Helper_Lifecycle;

@@ -33,12 +33,22 @@ separate (Files_Suite.Operations)
                         else Files.Operations.Run_Recursive_Search (Model, Settings));
                Step := Complete_Operation (Model, Settings, Step);
                Mutation := Files.File_System.Set_Permissions (To_String (Denied), 8#755#);
-               Assert (Step.Status = Files.Operations.Operation_Failed
-                       and then Files.Model.Item_Count (Model) = 2
-                       and then not Files.Model.Search_Results_Are_Active (Model)
-                       and then To_String (Step.Error_Key) =
-                         (if Case_Id = 1 then "error.directory.load" else "error.search.failed"),
-                       "read failures preserve the listing and report an error instead of partial success");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Failed,
+                  "read failures preserve the listing and report an error instead of partial success: status");
+               Files_Suite.Support.Assert_Equal
+                 (Files.Model.Item_Count (Model),
+                  2,
+                  "read failures preserve the listing and report an error instead of partial success: item count");
+               Assert
+                 (not Files.Model.Search_Results_Are_Active (Model),
+                  "read failures preserve the listing and report an error instead of partial success"
+                  & ": results inactive");
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Step.Error_Key),
+                  (if Case_Id = 1 then "error.directory.load" else "error.search.failed"),
+                  "read failures preserve the listing and report an error instead of partial success: error key");
             end loop;
          end loop;
       end loop;

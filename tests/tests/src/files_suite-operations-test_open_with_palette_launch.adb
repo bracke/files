@@ -23,22 +23,43 @@ separate (Files_Suite.Operations)
 
             Routed := Files.Controller.Activate_Palette_Command
               (Model, Files.Settings.Default_Settings);
-            Assert
-              (Routed.Operation.Status = Files.Operations.Operation_Action_Executed
-               and then Routed.Operation.Execution_Attempted
-               and then Routed.Operation.Executable_Found,
+            Files_Suite.Support.Assert_Equal
+              (Routed.Operation.Status,
+               Files.Operations.Operation_Action_Executed,
                "Open With launches a single-target application for multiple selections: "
                & "status=" & Files.Operations.Operation_Status'Image (Routed.Operation.Status)
                & " attempted=" & Boolean'Image (Routed.Operation.Execution_Attempted)
                & " found=" & Boolean'Image (Routed.Operation.Executable_Found)
                & " exit=" & Integer'Image (Routed.Operation.Exit_Status)
-               & " executable=" & To_String (Routed.Operation.Action_Executable));
+               & " executable=" & To_String (Routed.Operation.Action_Executable) & ": status");
             Assert
-              (To_String (Routed.Operation.Path) = Marker_One
-               and then Routed.Operation.Action_Arguments = 1
-               and then To_String (Routed.Operation.Action.Arguments.First_Element) =
-                 Marker_One,
-               "a multi-launch result retains the first target's action metadata");
+              (Routed.Operation.Execution_Attempted,
+               "Open With launches a single-target application for multiple selections: "
+               & "status=" & Files.Operations.Operation_Status'Image (Routed.Operation.Status)
+               & " attempted=" & Boolean'Image (Routed.Operation.Execution_Attempted)
+               & " found=" & Boolean'Image (Routed.Operation.Executable_Found)
+               & " exit=" & Integer'Image (Routed.Operation.Exit_Status)
+               & " executable=" & To_String (Routed.Operation.Action_Executable) & ": attempted");
+            Assert
+              (Routed.Operation.Executable_Found,
+               "Open With launches a single-target application for multiple selections: "
+               & "status=" & Files.Operations.Operation_Status'Image (Routed.Operation.Status)
+               & " attempted=" & Boolean'Image (Routed.Operation.Execution_Attempted)
+               & " found=" & Boolean'Image (Routed.Operation.Executable_Found)
+               & " exit=" & Integer'Image (Routed.Operation.Exit_Status)
+               & " executable=" & To_String (Routed.Operation.Action_Executable) & ": executable found");
+            Files_Suite.Support.Assert_Equal
+              (To_String (Routed.Operation.Path),
+               Marker_One,
+               "a multi-launch result retains the first target's action metadata: path");
+            Files_Suite.Support.Assert_Equal
+              (Routed.Operation.Action_Arguments,
+               1,
+               "a multi-launch result retains the first target's action metadata: argument count");
+            Files_Suite.Support.Assert_Equal
+              (To_String (Routed.Operation.Action.Arguments.First_Element),
+               Marker_One,
+               "a multi-launch result retains the first target's action metadata: first argument");
 
             for Attempt in Files_Suite.Support.Polling loop
                exit when Ada.Directories.Exists (Marker_One)

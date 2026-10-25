@@ -53,16 +53,19 @@ separate (Files_Suite.Operations)
             "copy a hard-link family as separate roots");
          Check;
          Write_Binary_File (Join (Parent, "first"), "copied edit");
-         Assert (File_Has_Bytes (Join (Parent, "second"), "copied edit")
-                 and then File_Has_Bytes (Join (Source, "first"), "shared bytes")
-                 and then File_Has_Bytes (Join (Parent, "third"), "shared bytes"),
-                 "editing a copied alias affects only its copied family");
+         Assert (File_Has_Bytes (Join (Parent, "second"), "copied edit"),
+                 "editing a copied alias affects only its copied family: the copied alias sees it");
+         Assert (File_Has_Bytes (Join (Source, "first"), "shared bytes"),
+                 "editing a copied alias affects only its copied family: the source is untouched");
+         Assert (File_Has_Bytes (Join (Parent, "third"), "shared bytes"),
+                 "editing a copied alias affects only its copied family: the other copied family is untouched");
          Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Failed
-                 and then File_Has_Bytes (Join (Parent, "first"), "copied edit")
-                 and then Files.Model.Undo_Available (Model),
-                 "Undo keeps an edited copied hard-link family");
+         Files_Suite.Support.Assert_Equal
+           (Step.Status, Files.Operations.Operation_Failed, "Undo keeps an edited copied hard-link family: status");
+         Assert (File_Has_Bytes (Join (Parent, "first"), "copied edit"),
+                 "Undo keeps an edited copied hard-link family: the edit is kept");
+         Assert (Files.Model.Undo_Available (Model), "Undo keeps an edited copied hard-link family: Undo retained");
          Write_Binary_File (Join (Parent, "first"), "shared bytes");
          GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp
            (Join (Parent, "first"), GNAT.OS_Lib.File_Time_Stamp (Join (Source, "first")));
@@ -116,10 +119,15 @@ separate (Files_Suite.Operations)
          Ada.Directories.Delete_File (Join (Parent, "second"));
          Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Failed
-                 and then File_Has_Bytes (Join (Parent, "first"), "altered byte")
-                 and then not Ada.Directories.Exists (Join (Parent, "second")),
-                 "a retry refuses a same-size edited copy even when its modification time is restored");
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Failed,
+            "a retry refuses a same-size edited copy even when its modification time is restored: status");
+         Assert (File_Has_Bytes (Join (Parent, "first"), "altered byte"),
+                 "a retry refuses a same-size edited copy even when its modification time is restored: edit kept");
+         Assert (not Ada.Directories.Exists (Join (Parent, "second")),
+                 "a retry refuses a same-size edited copy even when its modification time is restored: "
+                 & "nothing recreated");
       end loop;
    exception
       when others =>

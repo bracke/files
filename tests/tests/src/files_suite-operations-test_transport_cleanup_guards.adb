@@ -14,10 +14,13 @@ separate (Files_Suite.Operations)
          Assert
            (not Files.Job_Helpers.Run_Cleanup
               (Victim, Files.File_Identities.Token (Victim), Attempt_Limit => 1,
-               Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0)
-            and then Ada.Directories.Exists (Victim)
-            and then Project_Tools.Files.Read_Raw_File (Join (Victim, "keep")) = "unrelated",
-            "cleanup refuses an arbitrary unmarked directory");
+               Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0),
+            "cleanup refuses an arbitrary unmarked directory: refused");
+         Assert (Ada.Directories.Exists (Victim), "cleanup refuses an arbitrary unmarked directory: directory kept");
+         Files_Suite.Support.Assert_Equal
+           (Project_Tools.Files.Read_Raw_File (Join (Victim, "keep")),
+            "unrelated",
+            "cleanup refuses an arbitrary unmarked directory: contents untouched");
       end;
 
       declare
@@ -53,12 +56,15 @@ separate (Files_Suite.Operations)
       begin
          if Linked then
             Assert
-              (Hostkit.Fs.Is_Link (Link_Path)
-               and then not Files.Job_Helpers.Run_Cleanup
-                 (Link_Path, "untrusted", Attempt_Limit => 1,
-                  Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0)
-               and then Hostkit.Fs.Is_Link (Link_Path),
-               "cleanup never reports a dangling symlink as a removed transport");
+              (Hostkit.Fs.Is_Link (Link_Path),
+               "cleanup never reports a dangling symlink as a removed transport: link present");
+            Assert
+              (not Files.Job_Helpers.Run_Cleanup
+                 (Link_Path, "untrusted", Attempt_Limit => 1, Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0),
+               "cleanup never reports a dangling symlink as a removed transport: not reported removed");
+            Assert
+              (Hostkit.Fs.Is_Link (Link_Path),
+               "cleanup never reports a dangling symlink as a removed transport: link kept");
             Ada.Directories.Delete_File (Link_Path);
          end if;
       end;
@@ -132,11 +138,15 @@ separate (Files_Suite.Operations)
          Assert
            (not Files.Job_Helpers.Run_Cleanup
               (To_String (Original), To_String (Expected), Attempt_Limit => 1,
-               Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0)
-            and then Project_Tools.Files.Read_Raw_File
-              (Join (To_String (Original), "keep")) = "replacement"
-            and then Ada.Directories.Exists (To_String (Saved)),
-            "cleanup refuses a replacement carrying the original transport marker");
+               Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0),
+            "cleanup refuses a replacement carrying the original transport marker: refused");
+         Files_Suite.Support.Assert_Equal
+           (Project_Tools.Files.Read_Raw_File (Join (To_String (Original), "keep")),
+            "replacement",
+            "cleanup refuses a replacement carrying the original transport marker: replacement contents kept");
+         Assert
+           (Ada.Directories.Exists (To_String (Saved)),
+            "cleanup refuses a replacement carrying the original transport marker: saved original kept");
          Restore;
       exception
          when others => Restore; raise;

@@ -182,8 +182,9 @@ separate (Files_Suite.Operations)
          Assert (Found_Created, "info pane frame includes localized missing creation row");
          Assert (Found_Modified, "info pane frame includes localized modified row");
          Assert (Found_Permissions, "info pane frame includes localized permissions label");
-         Assert (Header_R and then Header_W and then Header_E,
-                 "info pane permission matrix has an R/W/E column header");
+         Assert (Header_R, "info pane permission matrix has an R/W/E column header: R");
+         Assert (Header_W, "info pane permission matrix has an R/W/E column header: W");
+         Assert (Header_E, "info pane permission matrix has an R/W/E column header: E");
          Assert (Row_User and then Row_Other,
                  "info pane permission matrix labels its user/group/other rows");
          Assert (not Found_Perm_Text,

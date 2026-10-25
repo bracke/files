@@ -42,18 +42,32 @@ separate (Files_Suite.Operations)
                Await_View (Model, Settings);
                Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Failed
-                       and then File_Has_Bytes (A, "unrelated a") and then not Ada.Directories.Exists (B),
-                       "later paste steps cannot recapture a replacement as an owned entry");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Failed,
+                  "later paste steps cannot recapture a replacement as an owned entry: status");
+               Assert
+                 (File_Has_Bytes (A, "unrelated a"),
+                  "later paste steps cannot recapture a replacement as an owned entry: A replacement kept");
+               Assert
+                 (not Ada.Directories.Exists (B),
+                  "later paste steps cannot recapture a replacement as an owned entry: B not created");
                Mutation := Files.File_System.Delete_Permanently (A);
                Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Saved_A, A),
                        "restore the owned first entry");
                Write_Binary_File (B, "unrelated b");
                Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Success
-                       and then not Ada.Directories.Exists (A) and then File_Has_Bytes (B, "unrelated b"),
-                       "partial Undo retries preserve unrelated entries at already reversed paths");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Success,
+                  "partial Undo retries preserve unrelated entries at already reversed paths: status");
+               Assert
+                 (not Ada.Directories.Exists (A),
+                  "partial Undo retries preserve unrelated entries at already reversed paths: A removed");
+               Assert
+                 (File_Has_Bytes (B, "unrelated b"),
+                  "partial Undo retries preserve unrelated entries at already reversed paths: B replacement kept");
             end;
          end loop;
       end loop;

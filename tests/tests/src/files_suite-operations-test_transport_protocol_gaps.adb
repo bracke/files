@@ -80,11 +80,11 @@ separate (Files_Suite.Operations)
                when Ada.Directories.Use_Error => Rejected := True;
             end;
             Files.Process_Jobs.Poll (Job, Finished, Cancelled);
+            Assert (Rejected, "a planted hardlink is not accepted as a cancellation marker: rejected");
+            Assert (not Cancelled, "a planted hardlink is not accepted as a cancellation marker: not cancelled");
             Assert
-              (Rejected and then not Cancelled
-               and then not Files.Process_Jobs.Cancellation_Requested
-                 (Files.Process_Jobs.Path (Job, "")),
-               "a planted hardlink is not accepted as a cancellation marker");
+              (not Files.Process_Jobs.Cancellation_Requested (Files.Process_Jobs.Path (Job, "")),
+               "a planted hardlink is not accepted as a cancellation marker: no cancellation requested");
             Files_Suite.Support.Assert_Equal
               (Project_Tools.Files.Read_Raw_File (Victim),
                "unchanged",
@@ -170,8 +170,9 @@ separate (Files_Suite.Operations)
          exit when Found and then Status.State in Hostkit.Spawn.Wait_Exited
            | Hostkit.Spawn.Wait_Signalled | Hostkit.Spawn.Wait_Lost;
       end loop;
-      Assert (Found and then Status.State = Hostkit.Spawn.Wait_Exited
-              and then Status.Exit_Code = 0, "the paused creator exits after release");
+      Assert (Found, "the paused creator exits after release: found");
+      Assert (Status.State = Hostkit.Spawn.Wait_Exited, "the paused creator exits after release: exited");
+      Files_Suite.Support.Assert_Equal (Status.Exit_Code, 0, "the paused creator exits after release: exit code");
       Hostkit.Spawn.Release (Child);
       Found := Files.Job_Scavenger.Run (Minimum_Unmarked_Age => 0.0, Wait_For_Grace => False);
       Assert (not Ada.Directories.Exists (Held), "recovery reclaims the creator after its lock closes");

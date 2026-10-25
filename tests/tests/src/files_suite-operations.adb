@@ -1473,28 +1473,39 @@ package body Files_Suite.Operations is
                     Files.Operations.Create_Symlink_Selected (Model, Settings),
                   when Create_Hard_Link =>
                     Files.Operations.Create_Hardlink_Selected (Model, Settings));
-            Assert
-              (Step.Status = Files.Operations.Operation_Disabled
-               and then Files.Model.Last_Error_Key (Model) = "error.create.pending"
-               and then Files.Model.Temporary_Item_Is_Active (Model)
-               and then not Files.Model.Undo_Available (Model)
-               and then not Files.Process_Jobs.Active
-                 (Files.Model.Background_Operation (Model))
-               and then not Ada.Directories.Exists (Join (Root, "source (copy).zip"))
-               and then not Ada.Directories.Exists (Join (Root, "source (1).zip"))
-               and then not Ada.Directories.Exists (Join (Root, "source"))
-               and then not Ada.Directories.Exists (Join (Root, "source (link).zip"))
-               and then not Hostkit.Fs.Is_Link (Join (Root, "source (link).zip")),
-               "direct selection mutations preserve a pending inline creation");
+            declare
+               Context : constant String := "direct selection mutations preserve a pending inline creation";
+            begin
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status, Files.Operations.Operation_Disabled, Context & ": status");
+               Files_Suite.Support.Assert_Equal
+                 (Files.Model.Last_Error_Key (Model), "error.create.pending", Context & ": error key");
+               Assert (Files.Model.Temporary_Item_Is_Active (Model), Context & ": the inline creation stays active");
+               Assert (not Files.Model.Undo_Available (Model), Context & ": no Undo entry");
+               Assert (not Files.Process_Jobs.Active (Files.Model.Background_Operation (Model)),
+                       Context & ": no background operation");
+               Assert (not Ada.Directories.Exists (Join (Root, "source (copy).zip")), Context & ": no duplicate");
+               Assert (not Ada.Directories.Exists (Join (Root, "source (1).zip")), Context & ": no archive");
+               Assert (not Ada.Directories.Exists (Join (Root, "source")), Context & ": no extraction");
+               Assert (not Ada.Directories.Exists (Join (Root, "source (link).zip")), Context & ": no link entry");
+               Assert (not Hostkit.Fs.Is_Link (Join (Root, "source (link).zip")), Context & ": no dangling link");
+            end;
 
             if Kind = Duplicate_Item then
                Routed := Files.Controller.Execute_Command
                  (Files.Commands.Duplicate_Selected_Command, Model, Settings);
-               Assert
-                 (Routed.Status = Files.Controller.Controller_Ignored
-                  and then Routed.Operation.Status = Files.Operations.Operation_Disabled
-                  and then To_String (Routed.Operation.Error_Key) = "error.create.pending",
-                  "the disabled command reports the pending edit instead of failing silently");
+               Files_Suite.Support.Assert_Equal
+                 (Routed.Status,
+                  Files.Controller.Controller_Ignored,
+                  "the disabled command reports the pending edit instead of failing silently: controller status");
+               Files_Suite.Support.Assert_Equal
+                 (Routed.Operation.Status,
+                  Files.Operations.Operation_Disabled,
+                  "the disabled command reports the pending edit instead of failing silently: operation status");
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Routed.Operation.Error_Key),
+                  "error.create.pending",
+                  "the disabled command reports the pending edit instead of failing silently: error key");
             end if;
          end loop;
       end loop;
@@ -1515,34 +1526,47 @@ package body Files_Suite.Operations is
          Sources.Append
            (To_Unbounded_String (Join (Join (Root, "inbox"), "incoming.txt")));
          Step := Files.Operations.Begin_Paste (Model, Settings, Sources);
-         Assert
-           (Step.Status = Files.Operations.Operation_Disabled
-            and then To_String (Step.Error_Key) = "error.create.pending"
-            and then Files.Model.Temporary_Item_Is_Active (Model)
-            and then not Files.Model.Paste_Execution_Is_Active (Model)
-            and then not Files.Model.Paste_Conflict_Is_Active (Model)
-            and then not Ada.Directories.Exists
-              (Join (Join (Root, "view"), "incoming.txt")),
-            "clipboard paste cannot write beneath a pending inline creation");
+         declare
+            Context : constant String := "clipboard paste cannot write beneath a pending inline creation";
+         begin
+            Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Disabled, Context & ": status");
+            Files_Suite.Support.Assert_Equal
+              (To_String (Step.Error_Key), "error.create.pending", Context & ": error key");
+            Assert (Files.Model.Temporary_Item_Is_Active (Model), Context & ": the inline creation stays active");
+            Assert (not Files.Model.Paste_Execution_Is_Active (Model), Context & ": no paste execution");
+            Assert (not Files.Model.Paste_Conflict_Is_Active (Model), Context & ": no paste conflict");
+            Assert (not Ada.Directories.Exists (Join (Join (Root, "view"), "incoming.txt")),
+                    Context & ": nothing written");
+         end;
          Outcome := Files.Controller.Handle_Drop_Import
            (Model, Settings, Sources);
+         Files_Suite.Support.Assert_Equal
+           (Outcome.Operation.Status,
+            Files.Operations.Operation_Disabled,
+            "external drops share the pending-create paste guard: status");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Outcome.Operation.Error_Key),
+            "error.create.pending",
+            "external drops share the pending-create paste guard: error key");
          Assert
-           (Outcome.Operation.Status = Files.Operations.Operation_Disabled
-            and then To_String (Outcome.Operation.Error_Key) = "error.create.pending"
-            and then Files.Model.Temporary_Item_Is_Active (Model)
-            and then not Ada.Directories.Exists
-              (Join (Join (Root, "view"), "incoming.txt")),
-            "external drops share the pending-create paste guard");
+           (Files.Model.Temporary_Item_Is_Active (Model),
+            "external drops share the pending-create paste guard: the inline creation stays active");
+         Assert
+           (not Ada.Directories.Exists (Join (Join (Root, "view"), "incoming.txt")),
+            "external drops share the pending-create paste guard: nothing written");
          Step := Files.Operations.Begin_Paste_To
            (Model, Settings, Sources, Join (Root, "view"),
             Files.File_System.Drop_Move, From_Clipboard => False);
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Disabled,
+            "targeted moves preserve both the pending editor and their source: status");
          Assert
-           (Step.Status = Files.Operations.Operation_Disabled
-            and then Ada.Directories.Exists
-              (Join (Join (Root, "inbox"), "incoming.txt"))
-            and then not Ada.Directories.Exists
-              (Join (Join (Root, "view"), "incoming.txt")),
-            "targeted moves preserve both the pending editor and their source");
+           (Ada.Directories.Exists (Join (Join (Root, "inbox"), "incoming.txt")),
+            "targeted moves preserve both the pending editor and their source: source kept");
+         Assert
+           (not Ada.Directories.Exists (Join (Join (Root, "view"), "incoming.txt")),
+            "targeted moves preserve both the pending editor and their source: nothing written");
       end;
    exception
       when others =>
@@ -1608,23 +1632,34 @@ package body Files_Suite.Operations is
         (Ada.Strings.Unbounded.To_String (Path),
          Tree,
          "result path matches the requested root");
-      Assert (Result.Available = Reference.Available
-                and then Result.Total_Bytes = Reference.Total_Bytes
-                and then Result.File_Count = Reference.File_Count
-                and then Result.Item_Count = Reference.Item_Count
-                and then Result.Capped = Reference.Capped,
-              "background totals equal Directory_Size for the same tree");
+      Files_Suite.Support.Assert_Equal
+        (Result.Available,
+         Reference.Available,
+         "background totals equal Directory_Size for the same tree: availability");
+      Files_Suite.Support.Assert_Equal
+        (Result.Total_Bytes,
+         Reference.Total_Bytes,
+         "background totals equal Directory_Size for the same tree: bytes");
+      Files_Suite.Support.Assert_Equal
+        (Result.File_Count,
+         Reference.File_Count,
+         "background totals equal Directory_Size for the same tree: files");
+      Files_Suite.Support.Assert_Equal
+        (Result.Item_Count,
+         Reference.Item_Count,
+         "background totals equal Directory_Size for the same tree: items");
+      Files_Suite.Support.Assert_Equal
+        (Result.Capped,
+         Reference.Capped,
+         "background totals equal Directory_Size for the same tree: capped");
       --  Independent check of the constructed tree: 4 files, 21 bytes,
       --  4 files + 3 directories = 7 visited items, within the guards.
-      Assert (Reference.Available
-                and then Reference.File_Count = 4
-                and then Reference.Total_Bytes = 21
-                and then Reference.Item_Count = 7
-                and then not Reference.Capped,
-              "reference totals match the constructed tree; got files="
-                & Natural'Image (Reference.File_Count)
-                & " bytes=" & Long_Long_Integer'Image (Reference.Total_Bytes)
-                & " items=" & Natural'Image (Reference.Item_Count));
+      Assert (Reference.Available, "reference totals match the constructed tree: available");
+      Files_Suite.Support.Assert_Equal (Reference.File_Count, 4, "reference totals match the constructed tree: files");
+      Files_Suite.Support.Assert_Equal
+        (Reference.Total_Bytes, 21, "reference totals match the constructed tree: bytes");
+      Files_Suite.Support.Assert_Equal (Reference.Item_Count, 7, "reference totals match the constructed tree: items");
+      Assert (not Reference.Capped, "reference totals match the constructed tree: not capped");
    end Test_Background_Folder_Size_Matches_Reference;
 
    --  A multi-item selection measures every selected directory: each folder's
@@ -1777,9 +1812,12 @@ package body Files_Suite.Operations is
       Assert (Hostkit.Fs.Create_Link ("missing-target", Source),
               "prepare a dangling symbolic link source");
       Mutation := Files.File_System.Create_Hard_Link (Source, Direct_Link);
-      Assert (Mutation.Success and then Hostkit.Fs.Is_Link (Direct_Link)
-                and then Files.File_Identities.Token (Direct_Link) = Files.File_Identities.Token (Source),
-              "direct creation hard-links the symbolic link entry itself");
+      Assert (Mutation.Success, "direct creation hard-links the symbolic link entry itself: created");
+      Assert (Hostkit.Fs.Is_Link (Direct_Link), "direct creation hard-links the symbolic link entry itself: a link");
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Identities.Token (Direct_Link),
+         Files.File_Identities.Token (Source),
+         "direct creation hard-links the symbolic link entry itself: same inode");
       Assert (Hostkit.Fs.Read_Link_Target (Direct_Link, Target)
                 and then To_String (Target) = "missing-target",
               "the direct hard link retains the unresolved target text");
@@ -1787,9 +1825,13 @@ package body Files_Suite.Operations is
       Assert (Hostkit.Fs.Create_Link ("missing-target", Occupied),
               "prepare a dangling destination collision");
       Mutation := Files.File_System.Create_Directory (Occupied);
-      Assert (not Mutation.Success and then To_String (Mutation.Error_Key) = "error.file.exists"
-                and then Hostkit.Fs.Is_Link (Occupied),
-              "folder creation identifies and preserves a dangling link collision");
+      Assert (not Mutation.Success, "folder creation identifies and preserves a dangling link collision: refused");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Mutation.Error_Key),
+         "error.file.exists",
+         "folder creation identifies and preserves a dangling link collision: error key");
+      Assert (Hostkit.Fs.Is_Link (Occupied),
+              "folder creation identifies and preserves a dangling link collision: link kept");
       Mutation := Files.File_System.Create_Symbolic_Link (Source, Occupied);
       Assert (not Mutation.Success and then To_String (Mutation.Error_Key) = "error.file.exists",
               "symbolic-link creation identifies a dangling link collision");
@@ -1807,15 +1849,20 @@ package body Files_Suite.Operations is
               "the selected dangling link can be hard-linked");
       Assert (Files.Model.Undo_Available (Model), "the created link has Undo history");
       Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Step.Status = Files.Operations.Operation_Success
-                and then not Hostkit.Fs.Is_Link (Link_Path)
-                and then Hostkit.Fs.Is_Link (Source),
-              "Undo removes only the new symbolic link entry");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status, Files.Operations.Operation_Success, "Undo removes only the new symbolic link entry: status");
+      Assert (not Hostkit.Fs.Is_Link (Link_Path), "Undo removes only the new symbolic link entry: new link removed");
+      Assert (Hostkit.Fs.Is_Link (Source), "Undo removes only the new symbolic link entry: source kept");
       Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-      Assert (Step.Status = Files.Operations.Operation_Success
-                and then Hostkit.Fs.Is_Link (Link_Path)
-                and then Files.File_Identities.Token (Link_Path) = Files.File_Identities.Token (Source),
-              "Redo recreates a hard link to the same symbolic link inode");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "Redo recreates a hard link to the same symbolic link inode: status");
+      Assert (Hostkit.Fs.Is_Link (Link_Path), "Redo recreates a hard link to the same symbolic link inode: a link");
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Identities.Token (Link_Path),
+         Files.File_Identities.Token (Source),
+         "Redo recreates a hard link to the same symbolic link inode: same inode");
    end Test_Hardlink_Dangling_Symlink;
 
    procedure Test_Unreadable_Hardlink_History
@@ -2357,10 +2404,13 @@ package body Files_Suite.Operations is
       Arguments.Append (To_Unbounded_String (Ready_Path));
       Arguments.Append (To_Unbounded_String (Release_Path));
       Assert
-        (Hostkit.Process.Run (Hostkit.Fs.Own_Executable, Arguments, Exit_Status)
-         and then Exit_Status = 0
-         and then Ada.Directories.Exists (Ready_Path),
-         "the parent exits abruptly after its helper joins the lease");
+        (Hostkit.Process.Run (Hostkit.Fs.Own_Executable, Arguments, Exit_Status),
+         "the parent exits abruptly after its helper joins the lease: the parent runs");
+      Files_Suite.Support.Assert_Equal
+        (Exit_Status, 0, "the parent exits abruptly after its helper joins the lease: exit status");
+      Assert
+        (Ada.Directories.Exists (Ready_Path),
+         "the parent exits abruptly after its helper joins the lease: the helper joined");
       Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Report_Path);
       Directory := To_Unbounded_String (Ada.Text_IO.Get_Line (File));
       Ada.Text_IO.Close (File);
@@ -2390,10 +2440,13 @@ package body Files_Suite.Operations is
       Arguments.Append (To_Unbounded_String (Refused_Path));
       Arguments.Append (To_Unbounded_String (Release_Path));
       Assert
-        (not Hostkit.Process.Run (Hostkit.Fs.Own_Executable, Arguments, Exit_Status)
-         and then Exit_Status = 2
-         and then not Ada.Directories.Exists (Refused_Path),
-         "a helper cannot join a retiring transport after recovery releases its lease");
+        (not Hostkit.Process.Run (Hostkit.Fs.Own_Executable, Arguments, Exit_Status),
+         "a helper cannot join a retiring transport after recovery releases its lease: the helper fails");
+      Files_Suite.Support.Assert_Equal
+        (Exit_Status, 2, "a helper cannot join a retiring transport after recovery releases its lease: exit status");
+      Assert
+        (not Ada.Directories.Exists (Refused_Path),
+         "a helper cannot join a retiring transport after recovery releases its lease: no refusal marker");
       Assert
         (Files.Job_Cleanup.Run (To_String (Directory), To_String (Identity)) =
            Files.Job_Cleanup.Cleanup_Removed,

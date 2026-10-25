@@ -4,14 +4,6 @@ separate (Files_Suite.Operations)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Source   : constant String := Join (Root, "native-source");
       Dest     : constant String := Join (Root, "native-dest");
-      Had_Back : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
-      Old_Back : constant String :=
-        (if Had_Back then
-           Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND") else "");
-      Had_Test_Temp : constant Boolean :=
-        Ada.Environment_Variables.Exists ("FILES_TEST_TEMP");
-      Old_Test_Temp : constant String :=
-        Ada.Environment_Variables.Value ("FILES_TEST_TEMP", "");
       Model    : Files.Model.Window_Model;
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Step     : Files.Operations.Operation_Result;
@@ -23,25 +15,10 @@ separate (Files_Suite.Operations)
         "files-relative-recovery-" & Ada.Directories.Simple_Name (Root);
       Registry_Source : constant String := Join (Root, "registry-source");
 
-      procedure Restore_Test_Temp is
-      begin
-         if Had_Test_Temp then
-            Ada.Environment_Variables.Set ("FILES_TEST_TEMP", Old_Test_Temp);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TEST_TEMP");
-         end if;
-      end Restore_Test_Temp;
-
-      procedure Restore_Environment is
-      begin
-         if Had_Back then
-            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", Old_Back);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         end if;
-         Restore_Test_Temp;
-      end Restore_Environment;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
    begin
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       declare
          Fake_Stage : constant String := Join (Root, ".files-recovery-900");
@@ -59,17 +36,29 @@ separate (Files_Suite.Operations)
          Project_Tools.Files.Delete_Tree (Fake_Stage);
       end;
       Write_Binary_File (Registry_Source, "registry payload");
-      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
-      Ada.Environment_Variables.Set ("FILES_TEST_TEMP", Relative_Registry);
-      Result := Files.File_System.Preserve_For_Replace (Registry_Source, Backup);
-      Restore_Test_Temp;
+      declare
+         --  FILES_TEST_TEMP comes back as soon as this preserve is done.
+         Test_Temp : Files_Suite.Support.Environment_Guard;
+      begin
+         Files_Suite.Support.Save (Test_Temp, "FILES_TEST_TEMP");
+         Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
+         Ada.Environment_Variables.Set ("FILES_TEST_TEMP", Relative_Registry);
+         Result := Files.File_System.Preserve_For_Replace (Registry_Source, Backup);
+      end;
       Assert
-        (not Result.Success
-         and then Length (Backup) = 0
-         and then Project_Tools.Files.File_Contains
-           (Registry_Source, "registry payload")
-         and then not Ada.Directories.Exists (Relative_Registry),
-         "a relative recovery registry root cannot redirect private records into the process directory");
+        (not Result.Success,
+         "a relative recovery registry root cannot redirect private records into the process directory: refused");
+      Files_Suite.Support.Assert_Equal
+        (Length (Backup),
+         0,
+         "a relative recovery registry root cannot redirect private records into the process directory: no backup");
+      Assert
+        (Project_Tools.Files.File_Contains (Registry_Source, "registry payload"),
+         "a relative recovery registry root cannot redirect private records into the process directory: source kept");
+      Assert
+        (not Ada.Directories.Exists (Relative_Registry),
+         "a relative recovery registry root cannot redirect private records into the process directory"
+         & ": nothing written to the process directory");
       Ada.Directories.Delete_File (Registry_Source);
       Write_Binary_File (Source, "new");
       Write_Binary_File (Dest, "original");
@@ -163,11 +152,13 @@ separate (Files_Suite.Operations)
       end;
       Result := Files.File_System.Restore_From_Trash
         (To_String (Backup), Expected_Original => Relative_Target);
+      Assert (not Result.Success, "recovery refuses a relative caller-supplied restore path: refused");
       Assert
-        (not Result.Success
-         and then Ada.Directories.Exists (To_String (Backup))
-         and then not Ada.Directories.Exists (Relative_Target),
-         "recovery refuses a relative caller-supplied restore path");
+        (Ada.Directories.Exists (To_String (Backup)),
+         "recovery refuses a relative caller-supplied restore path: backup kept");
+      Assert
+        (not Ada.Directories.Exists (Relative_Target),
+         "recovery refuses a relative caller-supplied restore path: relative target not created");
       Result := Files.File_System.Restore_From_Trash
         (To_String (Backup),
          Expected_Original => Dest & Character'Val (0) & "suffix");
@@ -196,7 +187,6 @@ separate (Files_Suite.Operations)
         (Project_Tools.Files.Read_Raw_File (Dest),
          "original",
          "recovery retry restores the original bytes");
-      Restore_Environment;
    exception
-      when others => Files.Model.Clear_Paste_Execution (Model); Restore_Environment; raise;
+      when others => Files.Model.Clear_Paste_Execution (Model); raise;
    end Test_Native_Replace_Recovery;

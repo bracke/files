@@ -65,8 +65,14 @@ separate (Files_Suite.Operations)
          Files.Operations.Operation_Success,
          "a retried Undo retains the full action for Redo");
       Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Result.Status = Files.Operations.Operation_Success
-              and then Ada.Directories.Exists (Orig_A) and then Ada.Directories.Exists (Orig_B)
-              and then not Ada.Directories.Exists (Moved_A) and then not Ada.Directories.Exists (Moved_B),
-              "Undo after Redo reverses both items in a fresh cycle");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
+         "Undo after Redo reverses both items in a fresh cycle: status");
+      Assert (Ada.Directories.Exists (Orig_A), "Undo after Redo reverses both items in a fresh cycle: a restored");
+      Assert (Ada.Directories.Exists (Orig_B), "Undo after Redo reverses both items in a fresh cycle: b restored");
+      Assert (not Ada.Directories.Exists (Moved_A),
+              "Undo after Redo reverses both items in a fresh cycle: a moved back");
+      Assert (not Ada.Directories.Exists (Moved_B),
+              "Undo after Redo reverses both items in a fresh cycle: b moved back");
    end Test_Multi_Item_Undo_Recompletes;

@@ -33,18 +33,29 @@ separate (Files_Suite.Operations)
                        "mixed and directory-only selections produce successful ZIP and 7z archives");
                Ada.Directories.Create_Directory (Verify);
                Zlib.Extract_Archive_File_To_Directory (To_String (Archive), Verify, "", Status);
-               Assert (Status = Zlib.Ok
-                       and then Ada.Directories.Exists (Join (Join (Join (Verify, "bag"), "empty"), "nested"))
-                       and then Ada.Directories.Exists (Join (Join (Verify, "bag"), "other empty"))
-                       and then (Empty_Only or else
-                                 File_Has_Bytes (Join (Join (Verify, "bag"), "data.txt"), "payload bytes")),
-                       "round-trip extraction preserves every empty directory and file payload");
+               declare
+                  Context : constant String :=
+                    "round-trip extraction preserves every empty directory and file payload";
+               begin
+                  Assert (Status = Zlib.Ok, Context & ": extraction succeeds");
+                  Assert (Ada.Directories.Exists (Join (Join (Join (Verify, "bag"), "empty"), "nested")),
+                          Context & ": nested empty directory");
+                  Assert (Ada.Directories.Exists (Join (Join (Verify, "bag"), "other empty")),
+                          Context & ": other empty directory");
+                  Assert (Empty_Only or else
+                            File_Has_Bytes (Join (Join (Verify, "bag"), "data.txt"), "payload bytes"),
+                          Context & ": file payload");
+               end;
                Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Success
-                       and then not Ada.Directories.Exists (To_String (Archive))
-                       and then Ada.Directories.Exists (Join (Join (Join (Root, "bag"), "empty"), "nested")),
-                       "Undo removes the archive while preserving its source directories");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Success,
+                  "Undo removes the archive while preserving its source directories: status");
+               Assert (not Ada.Directories.Exists (To_String (Archive)),
+                       "Undo removes the archive while preserving its source directories: archive removed");
+               Assert (Ada.Directories.Exists (Join (Join (Join (Root, "bag"), "empty"), "nested")),
+                       "Undo removes the archive while preserving its source directories: sources kept");
             end loop;
          end loop;
       end loop;

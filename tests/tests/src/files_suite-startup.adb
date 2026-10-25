@@ -377,45 +377,13 @@ package body Files_Suite.Startup is
       --  first, with HOME as its last resort. Setting HOME alone left Hostkit
       --  pointing at the real profile on Windows, so the function correctly
       --  declined the host location and the test failed for the wrong reason.
-      Had_Home    : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
-      Had_Profile : constant Boolean := Ada.Environment_Variables.Exists ("USERPROFILE");
-      Had_Xdg     : constant Boolean := Ada.Environment_Variables.Exists ("XDG_CONFIG_HOME");
-      Old_Home    : Unbounded_String;
-      Old_Profile : Unbounded_String;
-      Old_Xdg     : Unbounded_String;
-
-      procedure Restore is
-      begin
-         if Had_Home then
-            Ada.Environment_Variables.Set ("HOME", To_String (Old_Home));
-         else
-            Ada.Environment_Variables.Clear ("HOME");
-         end if;
-
-         if Had_Profile then
-            Ada.Environment_Variables.Set ("USERPROFILE", To_String (Old_Profile));
-         else
-            Ada.Environment_Variables.Clear ("USERPROFILE");
-         end if;
-
-         if Had_Xdg then
-            Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", To_String (Old_Xdg));
-         else
-            Ada.Environment_Variables.Clear ("XDG_CONFIG_HOME");
-         end if;
-      end Restore;
+      --
+      --  The guard restores HOME, USERPROFILE and XDG_CONFIG_HOME, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
    begin
-      if Had_Home then
-         Old_Home := To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
-      end if;
-
-      if Had_Profile then
-         Old_Profile := To_Unbounded_String (Ada.Environment_Variables.Value ("USERPROFILE"));
-      end if;
-
-      if Had_Xdg then
-         Old_Xdg := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_CONFIG_HOME"));
-      end if;
+      Files_Suite.Support.Save (Environment, "HOME");
+      Files_Suite.Support.Save (Environment, "USERPROFILE");
+      Files_Suite.Support.Save (Environment, "XDG_CONFIG_HOME");
 
       Reset_Root;
       Ada.Directories.Create_Path (Scratch_Home);
@@ -480,12 +448,6 @@ package body Files_Suite.Startup is
                "on this host the locations differ, so the guard above is doing work");
          end if;
       end;
-
-      Restore;
-   exception
-      when others =>
-         Restore;
-         raise;
    end Test_Existing_Settings_File_Is_Not_Orphaned;
 
    procedure Test_Default_Home_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -502,88 +464,16 @@ package body Files_Suite.Startup is
            "settings.conf");
       Expected_Xdg      : constant String :=
         Files.File_System.Join_Path (Files.File_System.Join_Path (Xdg_Path, "files"), "settings.conf");
-      Had_Files_Setting : constant Boolean := Ada.Environment_Variables.Exists ("FILES_SETTINGS");
-      Had_Xdg_Config    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_CONFIG_HOME");
-      Had_Home          : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
-      Had_User_Profile  : constant Boolean := Ada.Environment_Variables.Exists ("USERPROFILE");
-      Had_Home_Drive    : constant Boolean := Ada.Environment_Variables.Exists ("HOMEDRIVE");
-      Had_Home_Path     : constant Boolean := Ada.Environment_Variables.Exists ("HOMEPATH");
-      Had_Home_Share    : constant Boolean := Ada.Environment_Variables.Exists ("HOMESHARE");
-      Old_Files_Setting : Unbounded_String;
-      Old_Xdg_Config    : Unbounded_String;
-      Old_Home          : Unbounded_String;
-      Old_User_Profile  : Unbounded_String;
-      Old_Home_Drive    : Unbounded_String;
-      Old_Home_Path     : Unbounded_String;
-      Old_Home_Share    : Unbounded_String;
-
-      procedure Restore_Environment is
-      begin
-         if Had_Files_Setting then
-            Ada.Environment_Variables.Set ("FILES_SETTINGS", To_String (Old_Files_Setting));
-         else
-            Ada.Environment_Variables.Clear ("FILES_SETTINGS");
-         end if;
-
-         if Had_Xdg_Config then
-            Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", To_String (Old_Xdg_Config));
-         else
-            Ada.Environment_Variables.Clear ("XDG_CONFIG_HOME");
-         end if;
-
-         if Had_Home then
-            Ada.Environment_Variables.Set ("HOME", To_String (Old_Home));
-         else
-            Ada.Environment_Variables.Clear ("HOME");
-         end if;
-
-         if Had_User_Profile then
-            Ada.Environment_Variables.Set ("USERPROFILE", To_String (Old_User_Profile));
-         else
-            Ada.Environment_Variables.Clear ("USERPROFILE");
-         end if;
-
-         if Had_Home_Drive then
-            Ada.Environment_Variables.Set ("HOMEDRIVE", To_String (Old_Home_Drive));
-         else
-            Ada.Environment_Variables.Clear ("HOMEDRIVE");
-         end if;
-
-         if Had_Home_Path then
-            Ada.Environment_Variables.Set ("HOMEPATH", To_String (Old_Home_Path));
-         else
-            Ada.Environment_Variables.Clear ("HOMEPATH");
-         end if;
-
-         if Had_Home_Share then
-            Ada.Environment_Variables.Set ("HOMESHARE", To_String (Old_Home_Share));
-         else
-            Ada.Environment_Variables.Clear ("HOMESHARE");
-         end if;
-      end Restore_Environment;
+      --  Restores every variable the test changes, on failure too.
+      Environment       : Files_Suite.Support.Environment_Guard;
    begin
-      if Had_Files_Setting then
-         Old_Files_Setting := To_Unbounded_String (Ada.Environment_Variables.Value ("FILES_SETTINGS"));
-      end if;
-
-      if Had_Xdg_Config then
-         Old_Xdg_Config := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_CONFIG_HOME"));
-      end if;
-      if Had_Home then
-         Old_Home := To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
-      end if;
-      if Had_User_Profile then
-         Old_User_Profile := To_Unbounded_String (Ada.Environment_Variables.Value ("USERPROFILE"));
-      end if;
-      if Had_Home_Drive then
-         Old_Home_Drive := To_Unbounded_String (Ada.Environment_Variables.Value ("HOMEDRIVE"));
-      end if;
-      if Had_Home_Path then
-         Old_Home_Path := To_Unbounded_String (Ada.Environment_Variables.Value ("HOMEPATH"));
-      end if;
-      if Had_Home_Share then
-         Old_Home_Share := To_Unbounded_String (Ada.Environment_Variables.Value ("HOMESHARE"));
-      end if;
+      Files_Suite.Support.Save (Environment, "FILES_SETTINGS");
+      Files_Suite.Support.Save (Environment, "XDG_CONFIG_HOME");
+      Files_Suite.Support.Save (Environment, "HOME");
+      Files_Suite.Support.Save (Environment, "USERPROFILE");
+      Files_Suite.Support.Save (Environment, "HOMEDRIVE");
+      Files_Suite.Support.Save (Environment, "HOMEPATH");
+      Files_Suite.Support.Save (Environment, "HOMESHARE");
 
       Assert (Files.Application.Home_Directory /= "", "home directory fallback is never empty");
       Ada.Directories.Create_Path (Join (Root, "profile-home"));
@@ -698,11 +588,6 @@ package body Files_Suite.Startup is
         (Files.Application.Configured_Settings_Path (Home_Path),
          Expected_Default,
          "empty XDG_CONFIG_HOME is ignored");
-      Restore_Environment;
-   exception
-      when others =>
-         Restore_Environment;
-         raise;
    end Test_Default_Home_Selection;
 
    procedure Test_Startup_Loads_Settings_File (T : in out AUnit.Test_Cases.Test_Case'Class) is

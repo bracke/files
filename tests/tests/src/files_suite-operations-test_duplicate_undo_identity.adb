@@ -41,11 +41,16 @@ separate (Files_Suite.Operations)
                Write_Binary_File (Join (Dest, "user-added"), "new user bytes");
                Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Failed
-                       and then Files.Model.Undo_Available (Model)
-                       and then File_Has_Bytes (Join (Dest, "child"), "same bytes")
-                       and then File_Has_Bytes (Join (Dest, "user-added"), "new user bytes"),
-                       "Undo refuses a copied directory after a user adds a child and retains the complete tree");
+               declare
+                  Context : constant String :=
+                    "Undo refuses a copied directory after a user adds a child and retains the complete tree";
+               begin
+                  Files_Suite.Support.Assert_Equal
+                    (Step.Status, Files.Operations.Operation_Failed, Context & ": status");
+                  Assert (Files.Model.Undo_Available (Model), Context & ": Undo retained");
+                  Assert (File_Has_Bytes (Join (Dest, "child"), "same bytes"), Context & ": copied child kept");
+                  Assert (File_Has_Bytes (Join (Dest, "user-added"), "new user bytes"), Context & ": user child kept");
+               end;
                Ada.Directories.Delete_File (Join (Dest, "user-added"));
                GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp
                  (Dest, GNAT.OS_Lib.GM_Time_Of (2022, 3, 4, 5, 6, 8));
@@ -74,10 +79,15 @@ separate (Files_Suite.Operations)
             Assert (Mutation.Success, "replace the pathname with an identical but unrelated entry");
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Failed
-                    and then Files.Model.Undo_Available (Model)
-                    and then (Ada.Directories.Exists (Dest) or else Hostkit.Fs.Is_Link (Dest)),
-                    "Undo refuses a replacement even when its contents and link target are identical");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Failed,
+               "Undo refuses a replacement even when its contents and link target are identical: status");
+            Assert (Files.Model.Undo_Available (Model),
+                    "Undo refuses a replacement even when its contents and link target are identical: Undo retained");
+            Assert (Ada.Directories.Exists (Dest) or else Hostkit.Fs.Is_Link (Dest),
+                    "Undo refuses a replacement even when its contents and link target are identical: "
+                    & "replacement kept");
             Mutation := Files.File_System.Delete_Permanently (Dest);
             Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Old_Dest, Dest),
                     "put the owned entry back so the action can be retried");

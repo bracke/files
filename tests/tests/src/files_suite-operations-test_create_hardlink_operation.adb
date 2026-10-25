@@ -58,13 +58,24 @@ separate (Files_Suite.Operations)
       Ada.Directories.Delete_File (Join (Dir, "b.txt"));
       Routed := Files.Controller.Execute_Command
         (Files.Commands.Create_Hardlink_Command, Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Failed,
+         "a partial link batch refreshes and retains one undoable committed link: status");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.link.failed",
+         "a partial link batch refreshes and retains one undoable committed link: error key");
       Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Failed
-         and then Files.Model.Last_Error_Key (Model) = "error.link.failed"
-         and then Ada.Directories.Exists (Join (Dir, "a (link).txt"))
-         and then Files.Model.Select_By_Name (Model, "a (link).txt")
-         and then Natural (Files.Model.Undo_From_Paths (Model).Length) = 1,
-         "a partial link batch refreshes and retains one undoable committed link");
+        (Ada.Directories.Exists (Join (Dir, "a (link).txt")),
+         "a partial link batch refreshes and retains one undoable committed link: link created");
+      Assert
+        (Files.Model.Select_By_Name (Model, "a (link).txt"),
+         "a partial link batch refreshes and retains one undoable committed link: link listed");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Files.Model.Undo_From_Paths (Model).Length),
+         1,
+         "a partial link batch refreshes and retains one undoable committed link: Undo paths");
       Routed := Files.Controller.Execute_Command
         (Files.Commands.Undo_Command, Model, Settings);
       Assert

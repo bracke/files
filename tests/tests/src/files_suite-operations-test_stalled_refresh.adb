@@ -9,18 +9,13 @@ separate (Files_Suite.Operations)
       Load : Files.File_System.Directory_Load_Result;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       Before : Instant;
-      Had_Flag : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TEST_STALL_READS");
-      Old_Flag : constant String := Ada.Environment_Variables.Value ("FILES_TEST_STALL_READS", "");
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
 
       procedure Cleanup is
       begin
          Files.Refresh_Jobs.Cancel (Model);
          Files.Refresh_Jobs.Release_Watch (Watch);
-         if Had_Flag then
-            Ada.Environment_Variables.Set ("FILES_TEST_STALL_READS", Old_Flag);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TEST_STALL_READS");
-         end if;
       end Cleanup;
 
       procedure Await_Stall is
@@ -33,6 +28,7 @@ separate (Files_Suite.Operations)
                  "the refresh helper has entered deliberately stalled filesystem work");
       end Await_Stall;
    begin
+      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_READS");
       Reset_Root;
       declare
          Oversized : constant String (1 .. 32 * 1024 + 1) :=
@@ -58,10 +54,14 @@ separate (Files_Suite.Operations)
          Ada.Directories.Create_Directory (Directory);
          Write_Binary_File (Changed, "");
          Assert
-           (Files.Refresh_Jobs.Testing.Claim_Notification (Directory)
-            and then not Ada.Directories.Exists (Changed)
-            and then Ada.Directories.Exists (Claimed),
-            "watch polling atomically claims the notification being acknowledged");
+           (Files.Refresh_Jobs.Testing.Claim_Notification (Directory),
+            "watch polling atomically claims the notification being acknowledged: claimed");
+         Assert
+           (not Ada.Directories.Exists (Changed),
+            "watch polling atomically claims the notification being acknowledged: notification consumed");
+         Assert
+           (Ada.Directories.Exists (Claimed),
+            "watch polling atomically claims the notification being acknowledged: claim marker present");
          Write_Binary_File (Changed, "");
          Ada.Directories.Delete_File (Claimed);
          Assert

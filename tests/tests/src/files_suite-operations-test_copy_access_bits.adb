@@ -25,13 +25,17 @@ separate (Files_Suite.Operations)
          Assert (Mutation.Success, "prepare source access bits");
          Mutation := Files.File_System.Copy_Tree (Source, Dest);
          Mode := Files.File_System.Permission_Bits_Of (Dest, Available);
-         Assert (Mutation.Success and then Available and then Mode = 8#750#,
-                 "copy preserves ordinary access bits on files and directories");
+         Assert (Mutation.Success, "copy preserves ordinary access bits on files and directories: copied");
+         Assert (Available, "copy preserves ordinary access bits on files and directories: mode readable");
+         Files_Suite.Support.Assert_Equal
+           (Mode, 8#750#, "copy preserves ordinary access bits on files and directories: mode");
          if Directory_Copy then
             Mode := Files.File_System.Permission_Bits_Of (Join (Dest, "run.sh"), Available);
-            Assert (Available and then Mode = 8#750#
-                    and then File_Has_Bytes (Join (Dest, "run.sh"), "executable bytes"),
-                    "recursive copies preserve executable bits and content");
+            Assert (Available, "recursive copies preserve executable bits and content: mode readable");
+            Files_Suite.Support.Assert_Equal
+              (Mode, 8#750#, "recursive copies preserve executable bits and content: mode");
+            Assert (File_Has_Bytes (Join (Dest, "run.sh"), "executable bytes"),
+                    "recursive copies preserve executable bits and content: content");
          end if;
       end loop;
       Reset_Root;
@@ -40,6 +44,10 @@ separate (Files_Suite.Operations)
       Assert (Mutation.Success, "prepare sticky and privilege bits");
       Mutation := Files.File_System.Copy_Tree (Source, Dest);
       Mode := Files.File_System.Permission_Bits_Of (Dest, Available);
-      Assert (Mutation.Success and then Available and then Mode = 8#1777#,
-              "directory copies preserve sticky deletion protection while stripping setuid and setgid");
+      Assert (Mutation.Success,
+              "directory copies preserve sticky deletion protection while stripping setuid and setgid: copied");
+      Assert (Available,
+              "directory copies preserve sticky deletion protection while stripping setuid and setgid: mode readable");
+      Files_Suite.Support.Assert_Equal
+        (Mode, 8#1777#, "directory copies preserve sticky deletion protection while stripping setuid and setgid: mode");
    end Test_Copy_Access_Bits;

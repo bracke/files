@@ -7,17 +7,8 @@ separate (Files_Suite.Operations)
       Load : Files.File_System.Directory_Load_Result;
       Routed : Files.Interaction.Interaction_Result;
       Fault_Name : constant String := "FILES_TEST_REFRESH_RESULT_INCONSISTENT";
-      Had_Fault : constant Boolean := Ada.Environment_Variables.Exists (Fault_Name);
-      Old_Fault : constant String := Ada.Environment_Variables.Value (Fault_Name, "");
-
-      procedure Restore_Fault is
-      begin
-         if Had_Fault then
-            Ada.Environment_Variables.Set (Fault_Name, Old_Fault);
-         else
-            Ada.Environment_Variables.Clear (Fault_Name);
-         end if;
-      end Restore_Fault;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
 
       procedure Await_Refresh (Expected : Boolean) is
          Applied : Boolean := False;
@@ -45,6 +36,7 @@ separate (Files_Suite.Operations)
          Assert (Finished and then not Cancelled, "the stale snapshot is ready before the view changes");
       end Await_Ready;
    begin
+      Files_Suite.Support.Save (Environment, Fault_Name);
       Ada.Environment_Variables.Clear (Fault_Name);
       Reset_Root;
       Write_Binary_File (Join (Root, "alpha"), "alpha");
@@ -55,10 +47,16 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "alpha");
       Write_Binary_File (Join (Root, "beta"), "beta");
       Step := Files.Operations.Refresh_If_Changed (Model, Settings);
-      Assert (Step.Status = Files.Operations.Operation_Success
-              and then Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model))
-              and then Files.Model.Item_Count (Model) = 1,
-              "watch polling schedules a read while retaining the displayed items");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "watch polling schedules a read while retaining the displayed items: status");
+      Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+              "watch polling schedules a read while retaining the displayed items: read scheduled");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         1,
+         "watch polling schedules a read while retaining the displayed items: items retained");
       Await_Refresh (True);
       Assert (Files.Model.Item_Count (Model) = 2 and then Files.Model.Selected_Name (Model) = "alpha",
               "a changed snapshot adds the new item and preserves selection");
@@ -150,10 +148,8 @@ separate (Files_Suite.Operations)
       Await_Refresh (True);
       Assert (Files.Model.In_Recent_View (Model) and then Files.Model.Item_Count (Model) = 1,
               "explicit Recent refresh also loads its items in a helper");
-      Restore_Fault;
    exception
       when others =>
          Files.Refresh_Jobs.Cancel (Model);
-         Restore_Fault;
          raise;
    end Test_Background_Refresh;

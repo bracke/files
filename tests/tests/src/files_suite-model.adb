@@ -2865,61 +2865,19 @@ package body Files_Suite.Model is
    procedure Test_Root_Discovery_Environment_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Entries  : Files.File_System.Root_Entry_Vectors.Vector;
-      Had_Home       : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
-      Had_User_Profile : constant Boolean := Ada.Environment_Variables.Exists ("USERPROFILE");
-      Had_Home_Drive : constant Boolean := Ada.Environment_Variables.Exists ("HOMEDRIVE");
-      Had_Home_Path  : constant Boolean := Ada.Environment_Variables.Exists ("HOMEPATH");
-      Old_Home       : Unbounded_String;
-      Old_User_Profile : Unbounded_String;
-      Old_Home_Drive : Unbounded_String;
-      Old_Home_Path  : Unbounded_String;
-
-      procedure Restore_Root_Environment is
-      begin
-         if Had_Home then
-            Ada.Environment_Variables.Set ("HOME", To_String (Old_Home));
-         else
-            Ada.Environment_Variables.Clear ("HOME");
-         end if;
-
-         if Had_User_Profile then
-            Ada.Environment_Variables.Set ("USERPROFILE", To_String (Old_User_Profile));
-         else
-            Ada.Environment_Variables.Clear ("USERPROFILE");
-         end if;
-
-         if Had_Home_Drive then
-            Ada.Environment_Variables.Set ("HOMEDRIVE", To_String (Old_Home_Drive));
-         else
-            Ada.Environment_Variables.Clear ("HOMEDRIVE");
-         end if;
-
-         if Had_Home_Path then
-            Ada.Environment_Variables.Set ("HOMEPATH", To_String (Old_Home_Path));
-         else
-            Ada.Environment_Variables.Clear ("HOMEPATH");
-         end if;
-      end Restore_Root_Environment;
-
    begin
-      if Had_Home then
-         Old_Home := To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
-      end if;
-      if Had_User_Profile then
-         Old_User_Profile := To_Unbounded_String (Ada.Environment_Variables.Value ("USERPROFILE"));
-      end if;
-      if Had_Home_Drive then
-         Old_Home_Drive := To_Unbounded_String (Ada.Environment_Variables.Value ("HOMEDRIVE"));
-      end if;
-      if Had_Home_Path then
-         Old_Home_Path := To_Unbounded_String (Ada.Environment_Variables.Value ("HOMEPATH"));
-      end if;
-
       Reset_Root;
       declare
          Drive_Profile_Path : constant String := Join (Root, "drive-profile-root");
          Found_Drive_Profile : Boolean := False;
+         --  Restores HOME, USERPROFILE, HOMEDRIVE and HOMEPATH when the block
+         --  ends, on failure too.
+         Environment : Files_Suite.Support.Environment_Guard;
       begin
+         Files_Suite.Support.Save (Environment, "HOME");
+         Files_Suite.Support.Save (Environment, "USERPROFILE");
+         Files_Suite.Support.Save (Environment, "HOMEDRIVE");
+         Files_Suite.Support.Save (Environment, "HOMEPATH");
          Ada.Directories.Create_Path (Drive_Profile_Path);
          Ada.Environment_Variables.Set ("HOMEDRIVE", Root);
          Ada.Environment_Variables.Set ("HOMEPATH", "/drive-profile-root");
@@ -2934,17 +2892,19 @@ package body Files_Suite.Model is
          Assert
            (Found_Drive_Profile,
             "available roots include HOMEDRIVE and HOMEPATH profile directory");
-         Restore_Root_Environment;
-      exception
-         when others =>
-         Restore_Root_Environment;
-         raise;
       end;
       declare
          Shared_Profile_Path : constant String := Join (Root, "shared-profile-root");
          Shared_Profile_Full : Unbounded_String;
          Shared_Profile_Count : Natural := 0;
+         --  Restores HOME, USERPROFILE, HOMEDRIVE and HOMEPATH when the block
+         --  ends, on failure too.
+         Environment : Files_Suite.Support.Environment_Guard;
       begin
+         Files_Suite.Support.Save (Environment, "HOME");
+         Files_Suite.Support.Save (Environment, "USERPROFILE");
+         Files_Suite.Support.Save (Environment, "HOMEDRIVE");
+         Files_Suite.Support.Save (Environment, "HOMEPATH");
          Ada.Directories.Create_Path (Shared_Profile_Path);
          Shared_Profile_Full := To_Unbounded_String (Ada.Directories.Full_Name (Shared_Profile_Path));
          Ada.Environment_Variables.Set ("HOME", Shared_Profile_Path);
@@ -2959,11 +2919,6 @@ package body Files_Suite.Model is
            (Shared_Profile_Count,
             1,
             "available roots collapse duplicate HOME and USERPROFILE directories");
-         Restore_Root_Environment;
-      exception
-         when others =>
-            Restore_Root_Environment;
-            raise;
       end;
    end Test_Root_Discovery_Environment_Profiles;
 
@@ -4482,7 +4437,6 @@ package body Files_Suite.Model is
       Model    : Files.Model.Window_Model;
       Items    : Files.File_System.Item_Vectors.Vector;
       Result   : Files.Controller.Controller_Result;
-      pragma Unreferenced (Result);
       Operation : Files.Operations.Operation_Result;
    begin
       Reset_Root;
@@ -4493,6 +4447,9 @@ package body Files_Suite.Model is
       --  Open a gap in the untitled names before creating.
       Ada.Directories.Delete_File (Join (Root, "untitled 2.txt"));
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status, Files.Operations.Operation_Success,
+         "create command opens a temporary item at the first name gap (status)");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Temporary_Item_Name (Model),
          "untitled 2.txt",
@@ -4712,7 +4669,6 @@ package body Files_Suite.Model is
       Model    : Files.Model.Window_Model;
       Items    : Files.File_System.Item_Vectors.Vector;
       Result   : Files.Controller.Controller_Result;
-      pragma Unreferenced (Result);
       Dangling_Untitled : Boolean := False;
    begin
       Reset_Root;
@@ -4737,6 +4693,9 @@ package body Files_Suite.Model is
       Files.Model.Initialize (Model, Root, Items, Root);
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status, Files.Operations.Operation_Success,
+         "untitled name generation creates its first temporary item (status)");
+      Files_Suite.Support.Assert_Equal
         (Files.Model.Temporary_Item_Name (Model),
          (if Dangling_Untitled then "untitled 4.txt" else "untitled 2.txt"),
          "create uses the first suffix without an existing directory entry");
@@ -4757,6 +4716,9 @@ package body Files_Suite.Model is
          end loop;
       end;
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status, Files.Operations.Operation_Success,
+         "untitled name generation creates its next temporary item (status)");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Temporary_Item_Name (Model),
          "untitled 11.txt",
@@ -4995,10 +4957,14 @@ package body Files_Suite.Model is
          "image types, in any case");
       Assert (Typed (Files.Types.Regular_File_Item, "audio/flac") = 3
               and then Typed (Files.Types.Regular_File_Item, "video/mp4") = 4, "audio, then video");
-      Assert (Typed (Files.Types.Regular_File_Item, "text/plain") = 5
-              and then Typed (Files.Types.Regular_File_Item, "application/pdf") = 5
-              and then Typed (Files.Types.Regular_File_Item, "application/vnd.oasis.opendocument.text") = 5,
-              "documents");
+      Files_Suite.Support.Assert_Equal
+        (Typed (Files.Types.Regular_File_Item, "text/plain"), 5, "documents (text/plain)");
+      Files_Suite.Support.Assert_Equal
+        (Typed (Files.Types.Regular_File_Item, "application/pdf"), 5, "documents (application/pdf)");
+      Files_Suite.Support.Assert_Equal
+        (Typed (Files.Types.Regular_File_Item, "application/vnd.oasis.opendocument.text"),
+         5,
+         "documents (application/vnd.oasis.opendocument.text)");
       Assert (Typed (Files.Types.Regular_File_Item, "application/zip") = 6
               and then Typed (Files.Types.Regular_File_Item, "application/x-7z-compressed") = 6, "archives");
       Assert (Typed (Files.Types.Regular_File_Item, "application/octet-stream") = 7
@@ -5083,8 +5049,9 @@ package body Files_Suite.Model is
          Files_Suite.Support.Assert_Equal (Header_Count, 3, "three occupied label bands emit three headers");
          Assert (Header_Before_Alpha, "the first labeled item sits under a band header");
          --  Band order: Red (Alpha) before Blue (Gamma) before Unlabeled (Beta).
-         Assert (Alpha_Pos > 0 and then Gamma_Pos > 0 and then Beta_Pos > 0,
-                 "every real item is placed under a band");
+         Assert (Alpha_Pos > 0, "every real item is placed under a band (Alpha.txt)");
+         Assert (Gamma_Pos > 0, "every real item is placed under a band (Gamma.md)");
+         Assert (Beta_Pos > 0, "every real item is placed under a band (Beta.txt)");
          Assert (Alpha_Pos < Gamma_Pos, "the red band precedes the blue band");
          Assert (Gamma_Pos < Beta_Pos, "the blue band precedes the unlabeled band");
       end;

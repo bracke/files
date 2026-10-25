@@ -81,9 +81,15 @@ separate (Files_Suite.Operations)
       String'Output (Ada.Streams.Stream_IO.Stream (File), To_String (Identity));
       Ada.Streams.Stream_IO.Close (File);
       Files.Process_Jobs.Clean_Stages (Transport_Job);
-      Assert (Ada.Directories.Exists (To_String (Stage)) and then Ada.Directories.Exists (Saved)
-              and then Ada.Directories.Exists (Join (Transport, "stages")),
-              "cleanup preserves a replacement and retains its ownership record for retry");
+      Assert
+        (Ada.Directories.Exists (To_String (Stage)),
+         "cleanup preserves a replacement and retains its ownership record for retry: replacement stage kept");
+      Assert
+        (Ada.Directories.Exists (Saved),
+         "cleanup preserves a replacement and retains its ownership record for retry: ownership record kept");
+      Assert
+        (Ada.Directories.Exists (Join (Transport, "stages")),
+         "cleanup preserves a replacement and retains its ownership record for retry: stages directory kept");
       Ada.Directories.Delete_File (Join (To_String (Stage), ".files-owner"));
       Ada.Directories.Delete_Directory (To_String (Stage));
       Ada.Directories.Rename (Saved, To_String (Stage));

@@ -22,18 +22,34 @@ separate (Files_Suite.Operations)
                      else Files.Operations.Run_Recursive_Search (Model, Settings));
             Revision := Files.Model.Revision (Model);
             Outcome := Files.Controller.Append_Focused_Text (Model, "x");
-            Assert (Outcome.Status = Files.Controller.Controller_Ignored
-                    and then Files.Model.Filter_Text (Model) = "alpha"
-                    and then Files.Model.Revision (Model) = Revision,
-                    "native character input cannot edit the active search snapshot");
+            Files_Suite.Support.Assert_Equal
+              (Outcome.Status,
+               Files.Controller.Controller_Ignored,
+               "native character input cannot edit the active search snapshot: status");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Filter_Text (Model),
+               "alpha",
+               "native character input cannot edit the active search snapshot: filter");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Revision (Model),
+               Revision,
+               "native character input cannot edit the active search snapshot: revision");
             if Stale then
                Files.Model.Set_Filter (Model, "beta");
             end if;
             Step := Complete_Operation (Model, Settings, Step);
-            Assert (Step.Status = Files.Operations.Operation_Success
-                    and then Files.Model.Search_Results_Are_Active (Model) = not Stale
-                    and then Files.Model.Item_Count (Model) = (if Stale then 2 else 1),
-                    "changed queries discard old outcomes while unchanged searches apply");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "changed queries discard old outcomes while unchanged searches apply: status");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Search_Results_Are_Active (Model),
+               not Stale,
+               "changed queries discard old outcomes while unchanged searches apply: results active");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Item_Count (Model),
+               (if Stale then 2 else 1),
+               "changed queries discard old outcomes while unchanged searches apply: item count");
          end loop;
       end loop;
    exception

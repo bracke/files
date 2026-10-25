@@ -80,10 +80,14 @@ separate (Files_Suite.Operations)
       Thumbnail := Files.File_System.Generate_Thumbnail (Decoded_Png_Source, Thumbnail_Cache, Size => 2);
       Assert (Thumbnail.Status = Files.File_System.Thumbnail_Generated, "decoded PNG thumbnail succeeds");
       Assert
-        (File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (255) & Byte (0) & Byte (0))
-         and then File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (255) & Byte (0))
-         and then File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (0) & Byte (255)),
-         "decoded PNG thumbnail preserves source pixel colors");
+        (File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (255) & Byte (0) & Byte (0)),
+         "decoded PNG thumbnail preserves source pixel colors: red pixel");
+      Assert
+        (File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (255) & Byte (0)),
+         "decoded PNG thumbnail preserves source pixel colors: green pixel");
+      Assert
+        (File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (0) & Byte (255)),
+         "decoded PNG thumbnail preserves source pixel colors: blue pixel");
 
       declare
          Source : constant String := Join (Root, "transparent-picture.png");
@@ -162,11 +166,13 @@ separate (Files_Suite.Operations)
          Generated := Files.File_System.Generate_Thumbnail
            (Source, Thumbnail_Cache, Size => 2);
          Assert
-           (Generated.Status = Files.File_System.Thumbnail_Generated
-            and then File_Has_Bytes
-              (To_String (Generated.Thumbnail_Path), Expected)
-            and then not File_Has_Bytes
-              (To_String (Generated.Thumbnail_Path), Hidden),
-            "true-colour PNG tRNS transparency is composited against white");
+           (Generated.Status = Files.File_System.Thumbnail_Generated,
+            "true-colour PNG tRNS transparency is composited against white: generated");
+         Assert
+           (File_Has_Bytes (To_String (Generated.Thumbnail_Path), Expected),
+            "true-colour PNG tRNS transparency is composited against white: composited colour");
+         Assert
+           (not File_Has_Bytes (To_String (Generated.Thumbnail_Path), Hidden),
+            "true-colour PNG tRNS transparency is composited against white: hidden colour absent");
       end;
    end Test_Png_Thumbnail_Decoding;

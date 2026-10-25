@@ -32,16 +32,31 @@ separate (Files_Suite.Operations)
          begin
             Write_Binary_File (Dest, "edited bytes");
             GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp (Dest, Stamp);
-            Assert (Files.File_Identities.Token (Dest) = To_String (Old_Token)
-                    and then Files.File_Identities.Revision (Dest, False) = Metadata
-                    and then Files.File_System.Tree_Revision (Dest) /= Snapshot,
-                    "a same-size edit with restored mtime keeps its old metadata but changes its content digest");
+            Files_Suite.Support.Assert_Equal
+              (Files.File_Identities.Token (Dest),
+               To_String (Old_Token),
+               "a same-size edit with restored mtime keeps its old metadata but changes its content digest"
+               & ": identity token");
+            Assert
+              (Files.File_Identities.Revision (Dest, False) = Metadata,
+               "a same-size edit with restored mtime keeps its old metadata but changes its content digest"
+               & ": metadata revision kept");
+            Assert
+              (Files.File_System.Tree_Revision (Dest) /= Snapshot,
+               "a same-size edit with restored mtime keeps its old metadata but changes its content digest"
+               & ": content digest changed");
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Failed
-                    and then Files.Model.Undo_Available (Model)
-                    and then File_Has_Bytes (Dest, "edited bytes"),
-                    "Undo retains a same-size edited copy and its retryable action");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Failed,
+               "Undo retains a same-size edited copy and its retryable action: status");
+            Assert
+              (Files.Model.Undo_Available (Model),
+               "Undo retains a same-size edited copy and its retryable action: undo kept");
+            Assert
+              (File_Has_Bytes (Dest, "edited bytes"),
+               "Undo retains a same-size edited copy and its retryable action: edited bytes kept");
          end;
          Reset_Root;
          Ada.Directories.Create_Directory (Source);
@@ -72,10 +87,16 @@ separate (Files_Suite.Operations)
                     "a copied directory revision tracks same-size edits to a child");
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Failed
-                    and then Files.Model.Undo_Available (Model)
-                    and then File_Has_Bytes (Child, "edited bytes"),
-                    "Undo retains a copied directory whose child bytes changed");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Failed,
+               "Undo retains a copied directory whose child bytes changed: status");
+            Assert
+              (Files.Model.Undo_Available (Model),
+               "Undo retains a copied directory whose child bytes changed: undo kept");
+            Assert
+              (File_Has_Bytes (Child, "edited bytes"),
+               "Undo retains a copied directory whose child bytes changed: edited bytes kept");
          end;
       end loop;
    exception

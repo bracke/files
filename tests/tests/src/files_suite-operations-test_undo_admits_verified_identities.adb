@@ -56,9 +56,15 @@ separate (Files_Suite.Operations)
                Files.Types.String_Vectors.Empty_Vector, Redoable => False,
                Original_Identities => Candidate_Identities,
                Original_Tree_Revisions => Candidate_Revisions);
-            Assert (not Recorded and then Files.Model.Undo_From_Paths (Model).First_Element = Older
-                    and then File_Has_Bytes (Stale, "replacement bytes"),
-                    "a stale supplied identity cannot enter history or displace an older action");
+            Assert
+              (not Recorded,
+               "a stale supplied identity cannot enter history or displace an older action: not recorded");
+            Assert
+              (Files.Model.Undo_From_Paths (Model).First_Element = Older,
+               "a stale supplied identity cannot enter history or displace an older action: older action kept");
+            Assert
+              (File_Has_Bytes (Stale, "replacement bytes"),
+               "a stale supplied identity cannot enter history or displace an older action: replacement kept");
 
             Write_Binary_File (Prefix, "verified bytes");
             Candidate.Clear;
@@ -85,11 +91,14 @@ separate (Files_Suite.Operations)
                Original_Identities => Candidate_Identities,
                Original_Tree_Revisions => Candidate_Revisions,
                Retain_Verified_Main => 1);
+            Assert (Recorded, "a verified prefix does not admit a newly appended stale snapshot: recorded");
+            Files_Suite.Support.Assert_Equal
+              (Natural (Files.Model.Undo_From_Paths (Model).Length),
+               1,
+               "a verified prefix does not admit a newly appended stale snapshot: one path");
             Assert
-              (Recorded
-               and then Natural (Files.Model.Undo_From_Paths (Model).Length) = 1
-               and then Files.Model.Undo_From_Paths (Model).First_Element = Prefix,
-               "a verified prefix does not admit a newly appended stale snapshot");
+              (Files.Model.Undo_From_Paths (Model).First_Element = Prefix,
+               "a verified prefix does not admit a newly appended stale snapshot: prefix kept");
             Files.Model.Take_Undo (Model, Previous, Found);
 
             Candidate.Clear;
@@ -146,16 +155,28 @@ separate (Files_Suite.Operations)
             Files.Types.String_Vectors.Empty_Vector, Redoable => False,
             Original_Identities => Identities,
             Original_Tree_Revisions => Revisions);
-         Assert (Recorded
-                 and then Natural (Files.Model.Undo_From_Paths (Model).Length) = 1
-                 and then Files.Model.Undo_From_Paths (Model).First_Element = Verifiable,
-                 "mixed history retains only members with verifiable publication identities");
+         Assert (Recorded, "mixed history retains only members with verifiable publication identities: recorded");
+         Files_Suite.Support.Assert_Equal
+           (Natural (Files.Model.Undo_From_Paths (Model).Length),
+            1,
+            "mixed history retains only members with verifiable publication identities: one path");
+         Assert
+           (Files.Model.Undo_From_Paths (Model).First_Element = Verifiable,
+            "mixed history retains only members with verifiable publication identities: verifiable member kept");
          Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-         Assert (Step.Status = Files.Operations.Operation_Success
-                 and then Ada.Directories.Exists (Unverifiable)
-                 and then not Ada.Directories.Exists (Verifiable)
-                 and then Files.Model.Undo_Available (Model),
-                 "filtered Undo removes its verified member and leaves untracked data intact");
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Success,
+            "filtered Undo removes its verified member and leaves untracked data intact: status");
+         Assert
+           (Ada.Directories.Exists (Unverifiable),
+            "filtered Undo removes its verified member and leaves untracked data intact: unverifiable kept");
+         Assert
+           (not Ada.Directories.Exists (Verifiable),
+            "filtered Undo removes its verified member and leaves untracked data intact: verifiable removed");
+         Assert
+           (Files.Model.Undo_Available (Model),
+            "filtered Undo removes its verified member and leaves untracked data intact: undo available");
          Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
          Assert (Step.Status = Files.Operations.Operation_Success
                  and then not Ada.Directories.Exists (Older),

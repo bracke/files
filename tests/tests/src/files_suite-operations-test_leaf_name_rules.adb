@@ -25,10 +25,12 @@ separate (Files_Suite.Operations)
       Assert (not Win ("ch*.txt"), "Windows rejects an asterisk in a name");
       Assert (Posix ("a|b.txt") and then Posix ("a<b>.txt"), "POSIX allows pipe and angle brackets");
       Assert (not Win ("a|b.txt") and then not Win ("a<b>.txt"), "Windows rejects pipe and angle brackets");
-      Assert (Posix ("aux") and then Posix ("CON.txt") and then Posix ("CONIN$"),
-              "POSIX allows reserved-device-style names");
-      Assert (not Win ("aux") and then not Win ("CON.txt") and then not Win ("CONIN$"),
-              "Windows rejects reserved device names");
+      Assert (Posix ("aux"), "POSIX allows reserved-device-style names: aux");
+      Assert (Posix ("CON.txt"), "POSIX allows reserved-device-style names: CON.txt");
+      Assert (Posix ("CONIN$"), "POSIX allows reserved-device-style names: CONIN$");
+      Assert (not Win ("aux"), "Windows rejects reserved device names: aux");
+      Assert (not Win ("CON.txt"), "Windows rejects reserved device names: CON.txt");
+      Assert (not Win ("CONIN$"), "Windows rejects reserved device names: CONIN$");
       Assert (Posix ("ends-with-dot."), "POSIX allows a trailing dot");
       Assert (not Win ("ends-with-dot."), "Windows rejects a trailing dot");
 

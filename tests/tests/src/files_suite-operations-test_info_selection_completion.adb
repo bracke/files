@@ -19,10 +19,14 @@ separate (Files_Suite.Operations)
       Files.Model.Ensure_Selected_Item_Extra (Model);
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_End, Guikit.Input.No_Modifiers, 16, Routed);
-      Assert (Files.Model.Selected_Name (Model) = "b.txt"
-              and then Files.Model.Selected_Item (Model).Filetype_Extra_Loaded
-              and then Length (Files.Model.Selected_Item (Model).Filetype_Extra) > 0,
-              "keyboard selection populates details for the new selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Name (Model),
+         "b.txt",
+         "keyboard selection populates details for the new selection: selection moved");
+      Assert (Files.Model.Selected_Item (Model).Filetype_Extra_Loaded,
+              "keyboard selection populates details for the new selection: details loaded");
+      Assert (Length (Files.Model.Selected_Item (Model).Filetype_Extra) > 0,
+              "keyboard selection populates details for the new selection: details present");
       Files.Model.Set_Background_Transfers (Model, True);
       Step := Files.Operations.Refresh (Model, Settings);
       Await_View (Model, Settings);

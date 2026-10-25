@@ -1,10 +1,8 @@
 separate (Files_Suite.Operations)
    procedure Test_Autonomous_Cleanup_Worker (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Flag_Had  : constant Boolean :=
-        Ada.Environment_Variables.Exists ("FILES_TEST_STALL_CLEANUP_WORKER");
-      Flag_Old  : constant String :=
-        Ada.Environment_Variables.Value ("FILES_TEST_STALL_CLEANUP_WORKER", "");
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
       Job       : Files.Process_Jobs.Session;
       Transport : Files.Types.UString;
       Before    : Instant;
@@ -24,13 +22,8 @@ separate (Files_Suite.Operations)
             end if;
       end Touch;
 
-      procedure Restore is
+      procedure Release_Transport is
       begin
-         if Flag_Had then
-            Ada.Environment_Variables.Set ("FILES_TEST_STALL_CLEANUP_WORKER", Flag_Old);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TEST_STALL_CLEANUP_WORKER");
-         end if;
          if Length (Transport) > 0 and then Ada.Directories.Exists (To_String (Transport)) then
             Touch (Item ("release-cleanup-worker"));
             for Attempt in Files_Suite.Support.Polling loop
@@ -40,8 +33,9 @@ separate (Files_Suite.Operations)
          if Length (Transport) > 0 and then Ada.Directories.Exists (To_String (Transport)) then
             Project_Tools.Files.Delete_Tree (To_String (Transport));
          end if;
-      end Restore;
+      end Release_Transport;
    begin
+      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_CLEANUP_WORKER");
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_CLEANUP_WORKER", "1");
       Files.Process_Jobs.Reserve (Job);
       Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
@@ -114,9 +108,9 @@ separate (Files_Suite.Operations)
                "stopped and continued cleanup workers stay owned until reaped");
          end;
       end if;
-      Restore;
+      Release_Transport;
    exception
       when others =>
-         Restore;
+         Release_Transport;
          raise;
    end Test_Autonomous_Cleanup_Worker;

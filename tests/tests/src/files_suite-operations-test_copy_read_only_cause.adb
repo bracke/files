@@ -42,11 +42,14 @@ separate (Files_Suite.Operations)
             Files.File_System.Drop_Import_Mode'Image (Mode) & " into a read-only folder says permission was denied");
       end loop;
       Unlock_Directory (Locked);
-      Assert (File_Has_Bytes (Source, "source bytes")
-              and then Ada.Directories.Exists (Join (Folder, "inside.txt"))
-              and then not Ada.Directories.Exists (Join (Locked, "source.txt"))
-              and then not Ada.Directories.Exists (Join (Locked, "folder")),
-              "refused copies and moves leave the sources and add nothing");
+      Assert (File_Has_Bytes (Source, "source bytes"),
+              "refused copies and moves leave the sources and add nothing: source file kept");
+      Assert (Ada.Directories.Exists (Join (Folder, "inside.txt")),
+              "refused copies and moves leave the sources and add nothing: source folder kept");
+      Assert (not Ada.Directories.Exists (Join (Locked, "source.txt")),
+              "refused copies and moves leave the sources and add nothing: no file added");
+      Assert (not Ada.Directories.Exists (Join (Locked, "folder")),
+              "refused copies and moves leave the sources and add nothing: no folder added");
 
       --  The next copy starts afresh: the earlier refusal does not explain it.
       Mutation := Files.File_System.Copy_Tree (Join (Root, "absent.txt"), Join (Root, "copy.txt"));

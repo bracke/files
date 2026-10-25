@@ -35,51 +35,107 @@ separate (Files_Suite.Operations)
             Write_Binary_File (Dest_B, "unrelated collision");
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-            Assert (Step.Status = Files.Operations.Operation_Failed and then File_Has_Bytes (Dest_A, "original a")
-                    and then not Ada.Directories.Exists (Source_A), "the first forward move completes before B fails");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Failed,
+               "the first forward move completes before B fails: status");
+            Assert (File_Has_Bytes (Dest_A, "original a"), "the first forward move completes before B fails: A moved");
+            Assert
+              (not Ada.Directories.Exists (Source_A),
+               "the first forward move completes before B fails: A source vacated");
             Write_Binary_File (Source_A, "unrelated new source");
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-            Assert (Step.Status = Files.Operations.Operation_Failed
-                    and then File_Has_Bytes (Source_A, "unrelated new source")
-                    and then File_Has_Bytes (Dest_A, "original a")
-                    and then File_Has_Bytes (Dest_B, "unrelated collision"),
-                    "repeated partial Redo leaves completed moves and unrelated paths intact");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Failed,
+               "repeated partial Redo leaves completed moves and unrelated paths intact: status");
+            Assert
+              (File_Has_Bytes (Source_A, "unrelated new source"),
+               "repeated partial Redo leaves completed moves and unrelated paths intact: new source A intact");
+            Assert
+              (File_Has_Bytes (Dest_A, "original a"),
+               "repeated partial Redo leaves completed moves and unrelated paths intact: moved A intact");
+            Assert
+              (File_Has_Bytes (Dest_B, "unrelated collision"),
+               "repeated partial Redo leaves completed moves and unrelated paths intact: B collision intact");
             Ada.Directories.Rename (Dest_A, Saved_A);
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-            Assert (Step.Status = Files.Operations.Operation_Failed
-                    and then not Ada.Directories.Exists (Dest_A)
-                    and then File_Has_Bytes (Source_A, "unrelated new source")
-                    and then Files.Model.Redo_Available (Model),
-                    "a missing completed move invalidates its marker without moving a replacement source");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Failed,
+               "a missing completed move invalidates its marker without moving a replacement source: status");
+            Assert
+              (not Ada.Directories.Exists (Dest_A),
+               "a missing completed move invalidates its marker without moving a replacement source"
+               & ": moved A stays missing");
+            Assert
+              (File_Has_Bytes (Source_A, "unrelated new source"),
+               "a missing completed move invalidates its marker without moving a replacement source"
+               & ": new source A intact");
+            Assert
+              (Files.Model.Redo_Available (Model),
+               "a missing completed move invalidates its marker without moving a replacement source: redo available");
             Ada.Directories.Rename (Saved_A, Dest_A);
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-            Assert (Step.Status = Files.Operations.Operation_Failed
-                    and then File_Has_Bytes (Dest_A, "original a")
-                    and then Files.Model.Redo_Available (Model),
-                    "restoring the moved entry makes its invalidated marker retryable");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Failed,
+               "restoring the moved entry makes its invalidated marker retryable: status");
+            Assert
+              (File_Has_Bytes (Dest_A, "original a"),
+               "restoring the moved entry makes its invalidated marker retryable: A restored");
+            Assert
+              (Files.Model.Redo_Available (Model),
+               "restoring the moved entry makes its invalidated marker retryable: redo available");
             Ada.Directories.Delete_File (Dest_B);
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-            Assert (Step.Status = Files.Operations.Operation_Success
-                    and then Files.Model.Undo_Available (Model) and then not Files.Model.Redo_Available (Model)
-                    and then File_Has_Bytes (Source_A, "unrelated new source")
-                    and then File_Has_Bytes (Dest_B, "original b"),
-                    "unblocking B completes Redo without moving the unrelated recreated source A");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "unblocking B completes Redo without moving the unrelated recreated source A: status");
+            Assert
+              (Files.Model.Undo_Available (Model),
+               "unblocking B completes Redo without moving the unrelated recreated source A: undo available");
+            Assert
+              (not Files.Model.Redo_Available (Model),
+               "unblocking B completes Redo without moving the unrelated recreated source A: redo consumed");
+            Assert
+              (File_Has_Bytes (Source_A, "unrelated new source"),
+               "unblocking B completes Redo without moving the unrelated recreated source A: new source A intact");
+            Assert
+              (File_Has_Bytes (Dest_B, "original b"),
+               "unblocking B completes Redo without moving the unrelated recreated source A: B moved");
             Ada.Directories.Delete_File (Source_A);
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-            Assert (Step.Status = Files.Operations.Operation_Success
-                    and then File_Has_Bytes (Source_A, "original a") and then File_Has_Bytes (Source_B, "original b"),
-                    "Undo reverses both moves after a recovered Redo");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "Undo reverses both moves after a recovered Redo: status");
+            Assert (File_Has_Bytes (Source_A, "original a"), "Undo reverses both moves after a recovered Redo: A back");
+            Assert (File_Has_Bytes (Source_B, "original b"), "Undo reverses both moves after a recovered Redo: B back");
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-            Assert (Step.Status = Files.Operations.Operation_Success
-                    and then File_Has_Bytes (Dest_A, "original a") and then File_Has_Bytes (Dest_B, "original b")
-                    and then not Ada.Directories.Exists (Source_A) and then not Ada.Directories.Exists (Source_B),
-                    "a fresh Redo cycle moves both items after its progress was cleared");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "a fresh Redo cycle moves both items after its progress was cleared: status");
+            Assert
+              (File_Has_Bytes (Dest_A, "original a"),
+               "a fresh Redo cycle moves both items after its progress was cleared: A moved");
+            Assert
+              (File_Has_Bytes (Dest_B, "original b"),
+               "a fresh Redo cycle moves both items after its progress was cleared: B moved");
+            Assert
+              (not Ada.Directories.Exists (Source_A),
+               "a fresh Redo cycle moves both items after its progress was cleared: A source vacated");
+            Assert
+              (not Ada.Directories.Exists (Source_B),
+               "a fresh Redo cycle moves both items after its progress was cleared: B source vacated");
          end;
       end loop;
    end Test_Partial_Redo_Move;

@@ -12,16 +12,8 @@ separate (Files_Suite.Operations)
       Mutation : Files.File_System.Mutation_Result;
       Destinations, Sources, Identities, Tree_Revisions : Files.Types.String_Vectors.Vector;
       File : Ada.Streams.Stream_IO.File_Type;
-      Had_Fault : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TEST_LOST_CREATION_METADATA");
-      Old_Fault : constant String := Ada.Environment_Variables.Value ("FILES_TEST_LOST_CREATION_METADATA", "");
-      procedure Restore is
-      begin
-         if Had_Fault then
-            Ada.Environment_Variables.Set ("FILES_TEST_LOST_CREATION_METADATA", Old_Fault);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TEST_LOST_CREATION_METADATA");
-         end if;
-      end Restore;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
    begin
       for Redo_Recovery in Boolean loop
          Reset_Root;
@@ -41,6 +33,7 @@ separate (Files_Suite.Operations)
             Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "prepare Redo recovery");
          end if;
          Files.Model.Set_Background_Transfers (Model, True);
+         Files_Suite.Support.Save (Environment, "FILES_TEST_LOST_CREATION_METADATA");
          Ada.Environment_Variables.Set ("FILES_TEST_LOST_CREATION_METADATA", "1");
          Step := (if Redo_Recovery then Files.Operations.Redo_Last (Model, Settings)
                   else Files.Operations.Duplicate_Selected (Model, Settings));
@@ -58,7 +51,8 @@ separate (Files_Suite.Operations)
             Ada.Directories.Create_Directory (Files.Process_Jobs.Path (Job, "history"));
             Assert (Hostkit.Fs.Move_No_Replace (Dest, Saved), "retain the published entry");
             Write_Binary_File (Dest, "unrelated replacement");
-            Restore;
+            --  The fault is over: put the variable back now, not at scope exit.
+            Files_Suite.Support.Finalize (Environment);
             Step := Complete_Operation (Model, Settings, Step);
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
@@ -69,10 +63,16 @@ separate (Files_Suite.Operations)
                Assert (Files.Model.Redo_Available (Model), "the interrupted Redo is retryable");
                Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
                Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Failed
-                       and then File_Has_Bytes (Dest, "unrelated replacement")
-                       and then Files.Model.Redo_Available (Model),
-                       "retry rejects a replacement behind the recovered completion marker");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Failed,
+                  "retry rejects a replacement behind the recovered completion marker: status");
+               Assert
+                 (File_Has_Bytes (Dest, "unrelated replacement"),
+                  "retry rejects a replacement behind the recovered completion marker: replacement kept");
+               Assert
+                 (Files.Model.Redo_Available (Model),
+                  "retry rejects a replacement behind the recovered completion marker: redo available");
                Mutation := Files.File_System.Delete_Permanently (Dest);
                Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Saved, Dest),
                        "restore the helper's completed publication for retry");
@@ -128,12 +128,12 @@ separate (Files_Suite.Operations)
             Files.Job_Context.Read_Created
               (Journal_Directory, Destinations, Sources, Identities,
                Tree_Revisions);
-            Assert
-              (Project_Tools.Files.Read_Raw_File (Victim) =
-                 "protected recovery journal"
-               and then Destinations.Is_Empty
-               and then Identities.Is_Empty,
-               "created journal I/O refuses a multiply-linked file");
+            Files_Suite.Support.Assert_Equal
+              (Project_Tools.Files.Read_Raw_File (Victim),
+               "protected recovery journal",
+               "created journal I/O refuses a multiply-linked file: victim unchanged");
+            Assert (Destinations.Is_Empty, "created journal I/O refuses a multiply-linked file: no destinations");
+            Assert (Identities.Is_Empty, "created journal I/O refuses a multiply-linked file: no identities");
          end if;
       end;
       Ada.Directories.Create_Directory (Join (Root, "journal"));
@@ -160,9 +160,15 @@ separate (Files_Suite.Operations)
       Files.Job_Context.Read_Created
         (Join (Root, "journal"), Destinations, Sources, Identities, Tree_Revisions);
       Assert
-        (Destinations.Is_Empty and then Sources.Is_Empty and then Identities.Is_Empty
-         and then Tree_Revisions.Is_Empty,
-         "an oversized recovery journal is rejected before allocating records");
+        (Destinations.Is_Empty,
+         "an oversized recovery journal is rejected before allocating records: no destinations");
+      Assert (Sources.Is_Empty, "an oversized recovery journal is rejected before allocating records: no sources");
+      Assert
+        (Identities.Is_Empty,
+         "an oversized recovery journal is rejected before allocating records: no identities");
+      Assert
+        (Tree_Revisions.Is_Empty,
+         "an oversized recovery journal is rejected before allocating records: no tree revisions");
       Ada.Directories.Delete_File (Join (Join (Root, "journal"), "created"));
       Ada.Streams.Stream_IO.Create
         (File, Ada.Streams.Stream_IO.Out_File,
@@ -176,10 +182,10 @@ separate (Files_Suite.Operations)
       Files.Job_Context.Read_Created
         (Join (Root, "journal"), Destinations, Sources, Identities,
          Tree_Revisions);
-      Assert
-        (Destinations.Is_Empty and then Sources.Is_Empty
-         and then Identities.Is_Empty and then Tree_Revisions.Is_Empty,
-         "created recovery records reject relative destination paths");
+      Assert (Destinations.Is_Empty, "created recovery records reject relative destination paths: no destinations");
+      Assert (Sources.Is_Empty, "created recovery records reject relative destination paths: no sources");
+      Assert (Identities.Is_Empty, "created recovery records reject relative destination paths: no identities");
+      Assert (Tree_Revisions.Is_Empty, "created recovery records reject relative destination paths: no tree revisions");
       Ada.Streams.Stream_IO.Create
         (File, Ada.Streams.Stream_IO.Out_File,
          Join (Join (Root, "journal"), "moved"));
@@ -190,17 +196,18 @@ separate (Files_Suite.Operations)
       Ada.Streams.Stream_IO.Close (File);
       Files.Job_Context.Read_Moved
         (Join (Root, "journal"), Destinations, Sources, Identities);
-      Assert
-        (Destinations.Is_Empty and then Sources.Is_Empty
-         and then Identities.Is_Empty,
-         "moved recovery records reject relative source paths");
+      Assert (Destinations.Is_Empty, "moved recovery records reject relative source paths: no destinations");
+      Assert (Sources.Is_Empty, "moved recovery records reject relative source paths: no sources");
+      Assert (Identities.Is_Empty, "moved recovery records reject relative source paths: no identities");
       Files.Job_Context.Read_Created
         ("relative-recovery-journal", Destinations, Sources, Identities,
          Tree_Revisions);
+      Assert (Destinations.Is_Empty, "recovery journal readers reject relative transport directories: no destinations");
+      Assert (Sources.Is_Empty, "recovery journal readers reject relative transport directories: no sources");
+      Assert (Identities.Is_Empty, "recovery journal readers reject relative transport directories: no identities");
       Assert
-        (Destinations.Is_Empty and then Sources.Is_Empty
-         and then Identities.Is_Empty and then Tree_Revisions.Is_Empty,
-         "recovery journal readers reject relative transport directories");
+        (Tree_Revisions.Is_Empty,
+         "recovery journal readers reject relative transport directories: no tree revisions");
       Ada.Directories.Delete_File (Join (Join (Root, "journal"), "created"));
       Ada.Streams.Stream_IO.Create
         (File, Ada.Streams.Stream_IO.Out_File, Join (Join (Root, "journal"), "created"));
@@ -210,7 +217,6 @@ separate (Files_Suite.Operations)
       Files.Job_Context.Read_Created
         (Join (Root, "journal"), Destinations, Sources, Identities, Tree_Revisions);
       Assert (Destinations.Is_Empty and then Identities.Is_Empty, "identity-free legacy journals fail closed");
-      Restore;
    exception
       when others =>
          Files.Job_Context.Initialize ("");
@@ -219,6 +225,5 @@ separate (Files_Suite.Operations)
          if Ada.Streams.Stream_IO.Is_Open (File) then
             Ada.Streams.Stream_IO.Close (File);
          end if;
-         Restore;
          raise;
    end Test_Recovery_Entry_Identity;

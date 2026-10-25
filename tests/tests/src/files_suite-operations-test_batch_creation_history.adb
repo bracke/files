@@ -46,11 +46,18 @@ separate (Files_Suite.Operations)
                                     else Files.Operations.Duplicate_Selected (Model, Settings)));
                Await_View (Model, Settings);
                Created := Files.Model.Undo_From_Paths (Model);
-               Assert (Step.Status = (if Partial then Files.Operations.Operation_Failed
-                                     else Files.Operations.Operation_Success)
-                       and then Natural (Files.Model.Undo_History (Model).Length) = 2
-                       and then Natural (Created.Length) = (if Partial then 1 else 2),
-                       "successful and partial batches add one action without replacing prior history");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  (if Partial then Files.Operations.Operation_Failed else Files.Operations.Operation_Success),
+                  "successful and partial batches add one action without replacing prior history: status");
+               Files_Suite.Support.Assert_Equal
+                 (Natural (Files.Model.Undo_History (Model).Length),
+                  2,
+                  "successful and partial batches add one action without replacing prior history: history length");
+               Files_Suite.Support.Assert_Equal
+                 (Natural (Created.Length),
+                  (if Partial then 1 else 2),
+                  "successful and partial batches add one action without replacing prior history: created paths");
                if Partial then
                   declare
                      Expected_Name : constant String :=
@@ -88,11 +95,19 @@ separate (Files_Suite.Operations)
                   Write_Binary_File (Keep, "unrelated replacement");
                   Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                   Await_View (Model, Settings);
-                  Assert (Step.Status = Files.Operations.Operation_Success
-                          and then not Files.Model.Undo_Available (Model)
-                          and then not Ada.Directories.Exists (Join (Root, "prior"))
-                          and then File_Has_Bytes (Keep, "unrelated replacement"),
-                          "the next Undo reaches the prior action and never touches a recreated batch path");
+                  Files_Suite.Support.Assert_Equal
+                    (Step.Status,
+                     Files.Operations.Operation_Success,
+                     "the next Undo reaches the prior action and never touches a recreated batch path: status");
+                  Assert (not Files.Model.Undo_Available (Model),
+                          "the next Undo reaches the prior action and never touches a recreated batch path: "
+                          & "history empty");
+                  Assert (not Ada.Directories.Exists (Join (Root, "prior")),
+                          "the next Undo reaches the prior action and never touches a recreated batch path: "
+                          & "prior action undone");
+                  Assert (File_Has_Bytes (Keep, "unrelated replacement"),
+                          "the next Undo reaches the prior action and never touches a recreated batch path: "
+                          & "replacement kept");
                end;
             end loop;
          end loop;

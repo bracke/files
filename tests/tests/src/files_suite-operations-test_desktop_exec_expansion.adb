@@ -23,16 +23,21 @@ separate (Files_Suite.Operations)
             Targets.Append (To_Unbounded_String ("/tmp/a.txt"));
             Targets.Append (To_Unbounded_String ("/tmp/b.txt"));
             Action := Files.Applications.Build_Open_Action (Localized, Targets);
-            Assert
-              (To_String (Localized.Icon) = "regional\icon"
-               and then Natural (Action.Arguments.Length) = 6
-               and then To_String (Action.Arguments.Element (1)) =
-                 "--label=Dansk Program"
-               and then To_String (Action.Arguments.Element (2)) = "C:\Temp"
-               and then To_String (Action.Arguments.Element (5)) = "--icon"
-               and then To_String (Action.Arguments.Element (6)) =
-                 "regional\icon",
-               "localized values and two-stage desktop escapes expand correctly");
+            declare
+               Context : constant String := "localized values and two-stage desktop escapes expand correctly";
+            begin
+               Files_Suite.Support.Assert_Equal (To_String (Localized.Icon), "regional\icon", Context & ": icon");
+               Files_Suite.Support.Assert_Equal
+                 (Natural (Action.Arguments.Length), 6, Context & ": argument count");
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Action.Arguments.Element (1)), "--label=Dansk Program", Context & ": argument 1");
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Action.Arguments.Element (2)), "C:\Temp", Context & ": argument 2");
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Action.Arguments.Element (5)), "--icon", Context & ": argument 5");
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Action.Arguments.Element (6)), "regional\icon", Context & ": argument 6");
+            end;
          end;
 
          declare
@@ -131,15 +136,19 @@ separate (Files_Suite.Operations)
             Targets.Append (To_Unbounded_String ("/tmp/a.txt"));
             Targets.Append (To_Unbounded_String ("/tmp/b.txt"));
             Actions := Files.Applications.Build_Open_Actions (Single_App, Targets);
-            Assert
-              (Natural (Actions.Length) = 2
-               and then Natural (Actions.Element (1).Arguments.Length) = 3
-               and then To_String (Actions.Element (1).Arguments.Element (2)) =
-                 "/tmp/a.txt"
-               and then Natural (Actions.Element (2).Arguments.Length) = 3
-               and then To_String (Actions.Element (2).Arguments.Element (2)) =
-                 "/tmp/b.txt",
-               "single-file fields produce one positional launch per selected target");
+            declare
+               Context : constant String := "single-file fields produce one positional launch per selected target";
+            begin
+               Files_Suite.Support.Assert_Equal (Natural (Actions.Length), 2, Context & ": launch count");
+               Files_Suite.Support.Assert_Equal
+                 (Natural (Actions.Element (1).Arguments.Length), 3, Context & ": first launch argument count");
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Actions.Element (1).Arguments.Element (2)), "/tmp/a.txt", Context & ": first target");
+               Files_Suite.Support.Assert_Equal
+                 (Natural (Actions.Element (2).Arguments.Length), 3, Context & ": second launch argument count");
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Actions.Element (2).Arguments.Element (2)), "/tmp/b.txt", Context & ": second target");
+            end;
 
             Actions := Files.Applications.Build_Open_Actions (Viewer, Targets);
             Assert

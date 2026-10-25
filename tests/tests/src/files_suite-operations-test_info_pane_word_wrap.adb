@@ -41,7 +41,8 @@ separate (Files_Suite.Operations)
               or else To_String (Text.Text) = "33 lines.";
          end loop;
 
-         Assert (Found_First and then Found_Second and then not Found_Broken,
-                 "info metadata wraps at word boundaries instead of splitting words");
+         Assert (Found_First, "info metadata wraps at word boundaries instead of splitting words: first line");
+         Assert (Found_Second, "info metadata wraps at word boundaries instead of splitting words: second line");
+         Assert (not Found_Broken, "info metadata wraps at word boundaries instead of splitting words: no split word");
       end;
    end Test_Info_Pane_Word_Wrap;

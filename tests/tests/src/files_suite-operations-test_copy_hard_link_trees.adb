@@ -7,12 +7,15 @@ separate (Files_Suite.Operations)
       Mutation : Files.File_System.Mutation_Result;
       procedure Check (Path : String) is
       begin
-         Assert (Files.File_Identities.Token (Join (Path, "first")) /= ""
-                 and then Files.File_Identities.Token (Join (Path, "first"))
-                   = Files.File_Identities.Token (Join (Path, "sub/second"))
-                 and then Files.File_Identities.Token (Join (Path, "first"))
+         Assert (Files.File_Identities.Token (Join (Path, "first")) /= "",
+                 "preserve hard links across child directories without merging files with equal bytes: identity");
+         Files_Suite.Support.Assert_Equal
+           (Files.File_Identities.Token (Join (Path, "first")),
+            Files.File_Identities.Token (Join (Path, "sub/second")),
+            "preserve hard links across child directories without merging files with equal bytes: linked");
+         Assert (Files.File_Identities.Token (Join (Path, "first"))
                    /= Files.File_Identities.Token (Join (Path, "unrelated")),
-                 "preserve hard links across child directories without merging files with equal bytes");
+                 "preserve hard links across child directories without merging files with equal bytes: not merged");
          Write_Binary_File (Join (Path, "first"), "changed through one link");
          Assert (File_Has_Bytes (Join (Path, "sub/second"), "changed through one link")
                  and then File_Has_Bytes (Join (Path, "unrelated"), "linked bytes"),

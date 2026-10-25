@@ -437,8 +437,12 @@ package body Files_Suite.Rendering is
             Bottom_Text_Y := C.Y;
          end if;
       end loop;
-      Assert (Header_Field_Top >= 0 and then Header_Text_Y >= 0 and then Bottom_Text_Y >= 0,
-              "the header field, header label and a bottom-bar label are all present");
+      Assert (Header_Field_Top >= 0,
+              "the header field, header label and a bottom-bar label are all present (header field)");
+      Assert (Header_Text_Y >= 0,
+              "the header field, header label and a bottom-bar label are all present (header label)");
+      Assert (Bottom_Text_Y >= 0,
+              "the header field, header label and a bottom-bar label are all present (bottom-bar label)");
       --  Same offset within their fields: both optically centred alike.
       Files_Suite.Support.Assert_Equal
         (Header_Text_Y - Header_Field_Top,
@@ -477,8 +481,12 @@ package body Files_Suite.Rendering is
             Icon_Center := I.Y + I.Size / 2;
          end if;
       end loop;
-      Assert (Toolbar_Text_Y >= 0 and then Bottom_Text_Y >= 0 and then Icon_Center >= 0,
-              "a toolbar text, a bottom-bar text and a toolbar icon are all present");
+      Assert (Toolbar_Text_Y >= 0,
+              "a toolbar text, a bottom-bar text and a toolbar icon are all present (toolbar text)");
+      Assert (Bottom_Text_Y >= 0,
+              "a toolbar text, a bottom-bar text and a toolbar icon are all present (bottom-bar text)");
+      Assert (Icon_Center >= 0,
+              "a toolbar text, a bottom-bar text and a toolbar icon are all present (toolbar icon)");
       --  Text: same optical offset within its field as the bottom-bar text.
       Files_Suite.Support.Assert_Equal
         (Toolbar_Text_Y - Toolbar_Top,
@@ -536,11 +544,9 @@ package body Files_Suite.Rendering is
                  and then Command.Y < Layout.Main_Y + Layout.Main_Height
                then
                   Found := True;
-                  Assert
-                    (Command.X >= Layout.Main_X
-                     and then Command.X + Command.Width <= Layout.Main_X + Layout.Main_Width
-                     and then Command.Y >= Layout.Main_Y
-                     and then Command.Y + Command.Height <= Layout.Main_Y + Layout.Main_Height,
+                  Files_Suite.Support.Assert_Inside
+                    (Command.X, Command.Y, Command.Width, Command.Height,
+                     Layout.Main_X, Layout.Main_Y, Layout.Main_Width, Layout.Main_Height,
                      "empty-state text stays inside the compact main view");
                end if;
             end loop;
@@ -636,27 +642,33 @@ package body Files_Suite.Rendering is
                      if Node.X >= Info.X and then Node.X < Right
                        and then (Node.Role = Role_Pane or else Node.Role = Role_List_Item)
                      then
+                        Assert (Node.Y >= Info.Y, "information-pane accessibility nodes stay inside the pane (top)");
                         Assert
-                          (Node.Y >= Info.Y
-                           and then Node.Y <= Bottom
-                           and then Node.Height <= Bottom - Node.Y,
-                           "information-pane accessibility nodes stay inside the pane");
+                          (Node.Y <= Bottom,
+                           "information-pane accessibility nodes stay inside the pane (start above the bottom)");
+                        Assert
+                          (Node.Height <= Bottom - Node.Y,
+                           "information-pane accessibility nodes stay inside the pane (height)");
                      end if;
                   end loop;
 
                   for Hit of Frame.Permission_Hits loop
+                     Assert (Hit.Y >= Info.Y, "permission hit regions stay inside the information pane (top)");
                      Assert
-                       (Hit.Y >= Info.Y
-                        and then Hit.Y <= Bottom
-                        and then Hit.Height <= Bottom - Hit.Y,
-                        "permission hit regions stay inside the information pane");
+                       (Hit.Y <= Bottom,
+                        "permission hit regions stay inside the information pane (start above the bottom)");
+                     Assert
+                       (Hit.Height <= Bottom - Hit.Y,
+                        "permission hit regions stay inside the information pane (height)");
                   end loop;
                   for Hit of Frame.Ownership_Hits loop
+                     Assert (Hit.Y >= Info.Y, "ownership hit regions stay inside the information pane (top)");
                      Assert
-                       (Hit.Y >= Info.Y
-                        and then Hit.Y <= Bottom
-                        and then Hit.Height <= Bottom - Hit.Y,
-                        "ownership hit regions stay inside the information pane");
+                       (Hit.Y <= Bottom,
+                        "ownership hit regions stay inside the information pane (start above the bottom)");
+                     Assert
+                       (Hit.Height <= Bottom - Hit.Y,
+                        "ownership hit regions stay inside the information pane (height)");
                   end loop;
                end;
             end loop;
@@ -1187,31 +1199,23 @@ package body Files_Suite.Rendering is
                  Build_Frame_Commands (Snap, Width, Height, 20);
             begin
                for Command of Frame.Rectangles loop
-                  Assert
-                    (Command.Width > 0 and then Command.Height > 0
-                     and then Command.X + Command.Width <= Width
-                     and then Command.Y + Command.Height <= Height,
+                  Files_Suite.Support.Assert_Fits
+                    (Command.X, Command.Y, Command.Width, Command.Height, Width, Height,
                      "rectangle commands stay inside the compact framebuffer");
                end loop;
                for Command of Frame.Text loop
-                  Assert
-                    (Command.Width > 0 and then Command.Height > 0
-                     and then Command.X + Command.Width <= Width
-                     and then Command.Y + Command.Height <= Height,
+                  Files_Suite.Support.Assert_Fits
+                    (Command.X, Command.Y, Command.Width, Command.Height, Width, Height,
                      "text commands stay inside the compact framebuffer");
                end loop;
                for Tip of Frame.Tooltips loop
-                  Assert
-                    (Tip.Width > 0 and then Tip.Height > 0
-                     and then Tip.X + Tip.Width <= Width
-                     and then Tip.Y + Tip.Height <= Height,
+                  Files_Suite.Support.Assert_Fits
+                    (Tip.X, Tip.Y, Tip.Width, Tip.Height, Width, Height,
                      "tooltip regions stay inside the compact framebuffer");
                end loop;
                for Node of Frame.Accessibility loop
-                  Assert
-                    (Node.Width > 0 and then Node.Height > 0
-                     and then Node.X + Node.Width <= Width
-                     and then Node.Y + Node.Height <= Height,
+                  Files_Suite.Support.Assert_Fits
+                    (Node.X, Node.Y, Node.Width, Node.Height, Width, Height,
                      "accessibility nodes stay inside the compact framebuffer");
                end loop;
                for Icon of Frame.Icons loop
@@ -1221,22 +1225,24 @@ package body Files_Suite.Rendering is
                      Draw_H : constant Natural :=
                        (if Icon.Draw_Height > 0 then Icon.Draw_Height else Icon.Size);
                   begin
-                     Assert
-                       (Draw_W > 0 and then Draw_H > 0
-                        and then Icon.X + Draw_W <= Width
-                        and then Icon.Y + Draw_H <= Height,
+                     Files_Suite.Support.Assert_Fits
+                       (Icon.X, Icon.Y, Draw_W, Draw_H, Width, Height,
                         "icon commands stay inside the compact framebuffer");
                   end;
                end loop;
                for Triangle of Frame.Triangles loop
-                  Assert
-                    (Triangle.X1 >= 0.0 and then Triangle.X1 <= Float (Width)
-                     and then Triangle.X2 >= 0.0 and then Triangle.X2 <= Float (Width)
-                     and then Triangle.X3 >= 0.0 and then Triangle.X3 <= Float (Width)
-                     and then Triangle.Y1 >= 0.0 and then Triangle.Y1 <= Float (Height)
-                     and then Triangle.Y2 >= 0.0 and then Triangle.Y2 <= Float (Height)
-                     and then Triangle.Y3 >= 0.0 and then Triangle.Y3 <= Float (Height),
-                     "triangle commands stay inside the compact framebuffer");
+                  Files_Suite.Support.Assert_Between
+                    (Triangle.X1, 0.0, Float (Width), "triangle commands stay inside the compact framebuffer (X1)");
+                  Files_Suite.Support.Assert_Between
+                    (Triangle.X2, 0.0, Float (Width), "triangle commands stay inside the compact framebuffer (X2)");
+                  Files_Suite.Support.Assert_Between
+                    (Triangle.X3, 0.0, Float (Width), "triangle commands stay inside the compact framebuffer (X3)");
+                  Files_Suite.Support.Assert_Between
+                    (Triangle.Y1, 0.0, Float (Height), "triangle commands stay inside the compact framebuffer (Y1)");
+                  Files_Suite.Support.Assert_Between
+                    (Triangle.Y2, 0.0, Float (Height), "triangle commands stay inside the compact framebuffer (Y2)");
+                  Files_Suite.Support.Assert_Between
+                    (Triangle.Y3, 0.0, Float (Height), "triangle commands stay inside the compact framebuffer (Y3)");
                end loop;
             end;
          end loop;
@@ -1299,32 +1305,26 @@ package body Files_Suite.Rendering is
                        Build_Frame_Commands (Snap, Width, Height, 20);
                   begin
                      for Command of Frame.Overlay_Rectangles loop
-                        Assert
-                          (Command.Width > 0 and then Command.Height > 0
-                           and then Command.X + Command.Width <= Width
-                           and then Command.Y + Command.Height <= Height,
+                        Files_Suite.Support.Assert_Fits
+                          (Command.X, Command.Y, Command.Width, Command.Height, Width, Height,
                            "overlay rectangles stay inside the compact framebuffer");
                      end loop;
                      for Command of Frame.Overlay_Text loop
-                        Assert
-                          (Command.Width > 0 and then Command.Height > 0
-                           and then Command.X + Command.Width <= Width
-                           and then Command.Y + Command.Height <= Height,
+                        Files_Suite.Support.Assert_Fits
+                          (Command.X, Command.Y, Command.Width, Command.Height, Width, Height,
                            "overlay text stays inside the compact framebuffer");
                      end loop;
                      for Node of Frame.Accessibility loop
-                        Assert
-                          (Node.Width > 0 and then Node.Height > 0
-                           and then Node.X + Node.Width <= Width
-                           and then Node.Y + Node.Height <= Height,
+                        Files_Suite.Support.Assert_Fits
+                          (Node.X, Node.Y, Node.Width, Node.Height, Width, Height,
                            "overlay accessibility stays inside the compact framebuffer");
                      end loop;
                      for Hit of Frame.Conflict_Hits loop
                         Assert
-                          (Hit.Kind /= Conflict_Hit_None
-                           and then Hit.Width > 0 and then Hit.Height > 0
-                           and then Hit.X + Hit.Width <= Width
-                           and then Hit.Y + Hit.Height <= Height,
+                          (Hit.Kind /= Conflict_Hit_None,
+                           "dialog hit regions stay inside the compact framebuffer (hit kind)");
+                        Files_Suite.Support.Assert_Fits
+                          (Hit.X, Hit.Y, Hit.Width, Hit.Height, Width, Height,
                            "dialog hit regions stay inside the compact framebuffer");
                      end loop;
                      for Icon of Frame.Icons loop
@@ -1335,10 +1335,8 @@ package body Files_Suite.Rendering is
                               Draw_H : constant Natural :=
                                 (if Icon.Draw_Height > 0 then Icon.Draw_Height else Icon.Size);
                            begin
-                              Assert
-                                (Draw_W > 0 and then Draw_H > 0
-                                 and then Icon.X + Draw_W <= Width
-                                 and then Icon.Y + Draw_H <= Height,
+                              Files_Suite.Support.Assert_Fits
+                                (Icon.X, Icon.Y, Draw_W, Draw_H, Width, Height,
                                  "overlay icons stay inside the compact framebuffer");
                            end;
                         end if;
@@ -1459,9 +1457,9 @@ package body Files_Suite.Rendering is
       Label : constant Files.Extension_Labels.Label :=
         Files.Extension_Labels.Label_For ("txt", Natural'Last, Theme_Dark);
    begin
-      Assert
-        (Label.Width = 0 and then Label.Height = 0 and then Label.Pixels.Is_Empty,
-         "an impossible extension-label size fails closed");
+      Files_Suite.Support.Assert_Equal (Label.Width, 0, "an impossible extension-label size fails closed (width)");
+      Files_Suite.Support.Assert_Equal (Label.Height, 0, "an impossible extension-label size fails closed (height)");
+      Assert (Label.Pixels.Is_Empty, "an impossible extension-label size fails closed (pixels)");
    end Test_Extension_Label_Extreme_Height;
 
    --  Return the caret rectangle (a 1-2px wide Text_Color bar) emitted in Frame,
@@ -1594,23 +1592,19 @@ package body Files_Suite.Rendering is
                  Calculate_Layout (Snap, Width, Height, 20);
                Frame  : constant Frame_Commands :=
                  Build_Frame_Commands (Snap, Width, Height, 20);
-               Main_Right : constant Natural := Layout.Main_X + Layout.Main_Width;
-               Main_Bottom : constant Natural := Layout.Main_Y + Layout.Main_Height;
             begin
                for Rect of Frame.Overlay_Rectangles loop
-                  Assert
-                    (Rect.X >= Layout.Main_X and then Rect.Y >= Layout.Main_Y
-                     and then Rect.X + Rect.Width <= Main_Right
-                     and then Rect.Y + Rect.Height <= Main_Bottom,
+                  Files_Suite.Support.Assert_Inside
+                    (Rect.X, Rect.Y, Rect.Width, Rect.Height,
+                     Layout.Main_X, Layout.Main_Y, Layout.Main_Width, Layout.Main_Height,
                      "extension-badge backgrounds stay inside the main viewport");
                end loop;
                for Icon of Frame.Icons loop
                   if Ada.Strings.Fixed.Index (To_String (Icon.Icon_Id), "extlabel:") = 1 then
                      Found := True;
-                     Assert
-                       (Icon.X >= Layout.Main_X and then Icon.Y >= Layout.Main_Y
-                        and then Icon.X + Icon.Draw_Width <= Main_Right
-                        and then Icon.Y + Icon.Draw_Height <= Main_Bottom,
+                     Files_Suite.Support.Assert_Inside
+                       (Icon.X, Icon.Y, Icon.Draw_Width, Icon.Draw_Height,
+                        Layout.Main_X, Layout.Main_Y, Layout.Main_Width, Layout.Main_Height,
                         "extension-label bitmaps stay inside the main viewport");
                   end if;
                end loop;
@@ -2474,11 +2468,8 @@ package body Files_Suite.Rendering is
             "a click outside the root selector dismisses it without activating the background");
          for Node of Frame.Accessibility loop
             A11y_Count := A11y_Count + 1;
-            Assert
-              (Node.X >= Root.X
-               and then Node.Y >= Root.Y
-               and then Node.X + Node.Width <= Root.X + Root.Width
-               and then Node.Y + Node.Height <= Root.Y + Root.Height,
+            Files_Suite.Support.Assert_Inside
+              (Node.X, Node.Y, Node.Width, Node.Height, Root.X, Root.Y, Root.Width, Root.Height,
                "the root selector exposes no background accessibility nodes");
          end loop;
          Assert (A11y_Count > 1, "the root selector retains its list choices and close button");
@@ -2544,11 +2535,8 @@ package body Files_Suite.Rendering is
 
          for Node of Frame.Accessibility loop
             Accessibility_Count := Accessibility_Count + 1;
-            Assert
-              (Node.X >= Dialog.X
-               and then Node.Y >= Dialog.Y
-               and then Node.X + Node.Width <= Dialog.X + Dialog.Width
-               and then Node.Y + Node.Height <= Dialog.Y + Dialog.Height,
+            Files_Suite.Support.Assert_Inside
+              (Node.X, Node.Y, Node.Width, Node.Height, Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height,
                "a modal conflict dialog exposes no background accessibility nodes");
          end loop;
       end;
@@ -2903,11 +2891,8 @@ package body Files_Suite.Rendering is
             Assert (Surface_Seen, "the context menu uses the opaque overlay surface role");
             for Node of Frame.Accessibility loop
                A11y_Count := A11y_Count + 1;
-               Assert
-                 (Node.X >= Menu.X
-                  and then Node.Y >= Menu.Y
-                  and then Node.X + Node.Width <= Menu.X + Menu.Width
-                  and then Node.Y + Node.Height <= Menu.Y + Menu.Height,
+               Files_Suite.Support.Assert_Inside
+                 (Node.X, Node.Y, Node.Width, Node.Height, Menu.X, Menu.Y, Menu.Width, Menu.Height,
                   "the context menu exposes no background accessibility nodes");
             end loop;
             Assert (A11y_Count > 1, "the context menu retains its list and command choices");
@@ -3135,16 +3120,17 @@ package body Files_Suite.Rendering is
       Rows    := Calculate_Tree_Row_Layout (Snap, Panel, LH);
       Frame   := Build_Frame_Commands (Snap, Width, 200, LH);
 
+      Assert (not Rows.Is_Empty, "tree scrolling lays out the requested source row first (any rows)");
+      Files_Suite.Support.Assert_Equal
+        (Rows.First_Element.Visible_Row_Index, 4,
+         "tree scrolling lays out the requested source row first (visible row index)");
+      Files_Suite.Support.Assert_Equal
+        (Rows.First_Element.Node_Index, 4, "tree scrolling lays out the requested source row first (node index)");
+      Assert (Panel.Scrollbar_Visible, "an overflowing tree exposes a bounded scrollbar thumb (visible)");
+      Assert (Panel.Scrollbar_Height > 0, "an overflowing tree exposes a bounded scrollbar thumb (thumb height)");
       Assert
-        (not Rows.Is_Empty
-         and then Rows.First_Element.Visible_Row_Index = 4
-         and then Rows.First_Element.Node_Index = 4,
-         "tree scrolling lays out the requested source row first");
-      Assert
-        (Panel.Scrollbar_Visible
-         and then Panel.Scrollbar_Height > 0
-         and then Panel.Scrollbar_Track_Height > Panel.Scrollbar_Height,
-         "an overflowing tree exposes a bounded scrollbar thumb");
+        (Panel.Scrollbar_Track_Height > Panel.Scrollbar_Height,
+         "an overflowing tree exposes a bounded scrollbar thumb (thumb shorter than track)");
       Assert
         (not Buttons.Visible
          or else Panel.Scrollbar_Y + Panel.Scrollbar_Track_Height <= Buttons.Y,
@@ -3252,11 +3238,8 @@ package body Files_Suite.Rendering is
 
       for Node of Frame.Accessibility loop
          A11y_Count := A11y_Count + 1;
-         Assert
-           (Node.X >= Panel.X
-            and then Node.Y >= Panel.Y
-            and then Node.X + Node.Width <= Panel.X + Panel.Width
-            and then Node.Y + Node.Height <= Panel.Y + Panel.Height,
+         Files_Suite.Support.Assert_Inside
+           (Node.X, Node.Y, Node.Width, Node.Height, Panel.X, Panel.Y, Panel.Width, Panel.Height,
             "the modal destination picker exposes no background accessibility nodes");
       end loop;
       Assert
@@ -3390,11 +3373,8 @@ package body Files_Suite.Rendering is
 
       for Node of Frame.Accessibility loop
          Accessibility_Count := Accessibility_Count + 1;
-         Assert
-           (Node.X >= Panel.X
-            and then Node.Y >= Panel.Y
-            and then Node.X + Node.Width <= Panel.X + Panel.Width
-            and then Node.Y + Node.Height <= Panel.Y + Panel.Height,
+         Files_Suite.Support.Assert_Inside
+           (Node.X, Node.Y, Node.Width, Node.Height, Panel.X, Panel.Y, Panel.Width, Panel.Height,
             "blocking paste progress exposes no background accessibility nodes");
       end loop;
       Assert
@@ -3431,11 +3411,8 @@ package body Files_Suite.Rendering is
             and then Dialog.Button_Y + Dialog.Button_Height <= Dialog.Y + Dialog.Height,
             "the compact conflict action row stays inside its panel");
          for Node of Frame.Accessibility loop
-            Assert
-              (Node.X >= Dialog.X
-               and then Node.Y >= Dialog.Y
-               and then Node.X + Node.Width <= Dialog.X + Dialog.Width
-               and then Node.Y + Node.Height <= Dialog.Y + Dialog.Height,
+            Files_Suite.Support.Assert_Inside
+              (Node.X, Node.Y, Node.Width, Node.Height, Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height,
                "compact conflict accessibility controls stay inside the panel");
          end loop;
       end;
@@ -3460,11 +3437,8 @@ package body Files_Suite.Rendering is
             and then Panel.Cancel_Y + Panel.Cancel_Height <= Panel.Y + Panel.Height,
             "the compact progress Cancel button stays inside its panel");
          for Node of Frame.Accessibility loop
-            Assert
-              (Node.X >= Panel.X
-               and then Node.Y >= Panel.Y
-               and then Node.X + Node.Width <= Panel.X + Panel.Width
-               and then Node.Y + Node.Height <= Panel.Y + Panel.Height,
+            Files_Suite.Support.Assert_Inside
+              (Node.X, Node.Y, Node.Width, Node.Height, Panel.X, Panel.Y, Panel.Width, Panel.Height,
                "compact progress accessibility controls stay inside the panel");
          end loop;
       end;
@@ -3589,11 +3563,8 @@ package body Files_Suite.Rendering is
 
       for Node of Frame.Accessibility loop
          A11y_Count := A11y_Count + 1;
-         Assert
-           (Node.X >= QL.X
-            and then Node.Y >= QL.Y
-            and then Node.X + Node.Width <= QL.X + QL.Width
-            and then Node.Y + Node.Height <= QL.Y + QL.Height,
+         Files_Suite.Support.Assert_Inside
+           (Node.X, Node.Y, Node.Width, Node.Height, QL.X, QL.Y, QL.Width, QL.Height,
             "Quick Look exposes no background accessibility nodes");
          if Node.Role = Role_Dialog
            and then Node.Description = Snap.Quick_Look_Name
@@ -3686,11 +3657,8 @@ package body Files_Suite.Rendering is
          "the label picker panel background does not remain beneath grid icons");
       for Node of Frame.Accessibility loop
          A11y_Count := A11y_Count + 1;
-         Assert
-           (Node.X >= Picker.X
-            and then Node.Y >= Picker.Y
-            and then Node.X + Node.Width <= Picker.X + Picker.Width
-            and then Node.Y + Node.Height <= Picker.Y + Picker.Height,
+         Files_Suite.Support.Assert_Inside
+           (Node.X, Node.Y, Node.Width, Node.Height, Picker.X, Picker.Y, Picker.Width, Picker.Height,
             "the label picker exposes no background accessibility nodes");
       end loop;
       Assert
@@ -3717,19 +3685,15 @@ package body Files_Suite.Rendering is
            (Compact_Picker.Swatch_Size > 0,
             "a compact but usable picker retains visible color swatches");
          for Swatch of Compact_Picker.Swatches loop
-            Assert
-              (Swatch.X >= Compact_Picker.X
-               and then Swatch.Y >= Compact_Picker.Y
-               and then Swatch.X + Swatch.Width <= Compact_Picker.X + Compact_Picker.Width
-               and then Swatch.Y + Swatch.Height <= Compact_Picker.Y + Compact_Picker.Height,
+            Files_Suite.Support.Assert_Inside
+              (Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height,
+               Compact_Picker.X, Compact_Picker.Y, Compact_Picker.Width, Compact_Picker.Height,
                "every compact color swatch stays inside the picker panel");
          end loop;
          for Node of Compact_Frame.Accessibility loop
-            Assert
-              (Node.X >= Compact_Picker.X
-               and then Node.Y >= Compact_Picker.Y
-               and then Node.X + Node.Width <= Compact_Picker.X + Compact_Picker.Width
-               and then Node.Y + Node.Height <= Compact_Picker.Y + Compact_Picker.Height,
+            Files_Suite.Support.Assert_Inside
+              (Node.X, Node.Y, Node.Width, Node.Height,
+               Compact_Picker.X, Compact_Picker.Y, Compact_Picker.Width, Compact_Picker.Height,
                "compact picker accessibility regions stay inside the visible panel");
          end loop;
       end;
@@ -4227,8 +4191,9 @@ package body Files_Suite.Rendering is
                end if;
             end if;
          end loop;
-         Assert (Has_Counts and then Has_Free and then Has_Pane,
-                 "the counts, free-space and info-pane texts are all present");
+         Assert (Has_Counts, "the counts, free-space and info-pane texts are all present (counts)");
+         Assert (Has_Free, "the counts, free-space and info-pane texts are all present (free space)");
+         Assert (Has_Pane, "the counts, free-space and info-pane texts are all present (info pane)");
          Assert (Counts_C = Pane_C,
                  "the counts text uses the same active colour as the info-pane toggle");
          Assert (Counts_C = Free_C,
@@ -4343,8 +4308,10 @@ package body Files_Suite.Rendering is
    begin
       --  No free field: the toggle spans the whole status region.
       Files.UI.Split_Status_Region (200, 300, 0, TW, DX, FX, FW);
-      Assert (TW = 300 and then DX = 0 and then FX = 0 and then FW = 0,
-              "with no free field the toggle spans the whole info region");
+      Files_Suite.Support.Assert_Equal (TW, 300, "with no free field the toggle spans the whole info region (TW)");
+      Files_Suite.Support.Assert_Equal (DX, 0, "with no free field the toggle spans the whole info region (DX)");
+      Files_Suite.Support.Assert_Equal (FX, 0, "with no free field the toggle spans the whole info region (FX)");
+      Files_Suite.Support.Assert_Equal (FW, 0, "with no free field the toggle spans the whole info region (FW)");
 
       --  Too narrow for the free field plus divider gaps: no split.
       Files.UI.Split_Status_Region (200, 80, 60, TW, DX, FX, FW);
@@ -5158,10 +5125,8 @@ package body Files_Suite.Rendering is
                     Has_Drag        => True);
             begin
                for Rect of Frame.Overlay_Rectangles loop
-                  Assert
-                    (Rect.Width > 0 and then Rect.Height > 0
-                     and then Rect.X + Rect.Width <= Width
-                     and then Rect.Y + Rect.Height <= Height,
+                  Files_Suite.Support.Assert_Fits
+                    (Rect.X, Rect.Y, Rect.Width, Rect.Height, Width, Height,
                      "compact drag-preview rectangles stay inside the framebuffer");
                end loop;
                for Icon of Frame.Icons loop

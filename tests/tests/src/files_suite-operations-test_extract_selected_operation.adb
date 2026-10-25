@@ -94,9 +94,13 @@ separate (Files_Suite.Operations)
          end loop;
          Assert (Extractable ("dir/nul.txt") and then Extractable ("aux.c"),
                  "a POSIX destination stores Windows device names");
-         Assert (not Extractable ("dir/nul.txt", Dos => True) and then not Extractable ("aux.c", Dos => True)
-                 and then not Extractable ("notes.", Dos => True) and then not Extractable ("a?b", Dos => True),
-                 "a DOS-rules destination refuses names Windows cannot store");
+         for Unstorable of Files.Types.String_Vectors.Vector'
+           ([To_Unbounded_String ("dir/nul.txt"), To_Unbounded_String ("aux.c"),
+             To_Unbounded_String ("notes."), To_Unbounded_String ("a?b")])
+         loop
+            Assert (not Extractable (To_String (Unstorable), Dos => True),
+                    "a DOS-rules destination refuses names Windows cannot store: " & To_String (Unstorable));
+         end loop;
          Assert (Extractable ("dir/report.txt", Dos => True), "an ordinary name is fine on a DOS volume");
       end;
       Catalogue (1).Name := To_Unbounded_String ("Makefile");

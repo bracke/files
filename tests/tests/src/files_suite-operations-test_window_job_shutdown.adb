@@ -10,26 +10,14 @@ separate (Files_Suite.Operations)
       Before : Instant;
       Step : Files.Operations.Operation_Result;
       Finished, Cancelled : Boolean;
-      Had_Reads : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TEST_STALL_READS");
-      Old_Reads : constant String := Ada.Environment_Variables.Value ("FILES_TEST_STALL_READS", "");
-      Had_Transfers : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TEST_STALL_TRANSFERS");
-      Old_Transfers : constant String := Ada.Environment_Variables.Value ("FILES_TEST_STALL_TRANSFERS", "");
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
       type Scenario_Kind is (Operation_Job, Transfer_Job, Refresh_Job);
 
       procedure Cleanup is
       begin
          Files.Application.Windows.Release_Window_Jobs (Closing, Closing_Watch);
          Files.Application.Windows.Release_Window_Jobs (Remaining, Remaining_Watch);
-         if Had_Reads then
-            Ada.Environment_Variables.Set ("FILES_TEST_STALL_READS", Old_Reads);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TEST_STALL_READS");
-         end if;
-         if Had_Transfers then
-            Ada.Environment_Variables.Set ("FILES_TEST_STALL_TRANSFERS", Old_Transfers);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TEST_STALL_TRANSFERS");
-         end if;
       end Cleanup;
 
       procedure Await_Started (Path : String) is
@@ -52,6 +40,8 @@ separate (Files_Suite.Operations)
          Files.Process_Jobs.Reset (Job); --  The window is now its helper's only owner.
       end Attach_Operation;
    begin
+      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_READS");
+      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_TRANSFERS");
       for Scenario in Scenario_Kind loop
          Reset_Root;
          Write_Binary_File (Join (Root, "source.txt"), "source bytes");
@@ -96,17 +86,29 @@ separate (Files_Suite.Operations)
          Files.Application.Windows.Release_Window_Jobs (Closing, Closing_Watch);
          Files.Application.Windows.Release_Window_Jobs (Closing, Closing_Watch);
          Assert_Within (Before, Prompt_Limit, "repeated window closure never joins stalled helpers");
-         Assert (not Files.Model.Paste_Execution_Is_Active (Closing)
-                 and then not Files.Process_Jobs.Active (Files.Model.Background_Operation (Closing))
-                 and then not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Closing)),
-                 "repeated window closure releases all of the window's jobs");
+         Assert
+           (not Files.Model.Paste_Execution_Is_Active (Closing),
+            "repeated window closure releases all of the window's jobs: paste released");
+         Assert
+           (not Files.Process_Jobs.Active (Files.Model.Background_Operation (Closing)),
+            "repeated window closure releases all of the window's jobs: operation job released");
+         Assert
+           (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Closing)),
+            "repeated window closure releases all of the window's jobs: refresh job released");
          declare
             Other : constant Files.Process_Jobs.Session := Files.Model.Background_Operation (Remaining);
          begin
             Files.Process_Jobs.Poll (Other, Finished, Cancelled);
-            Assert (not Finished and then not Cancelled and then Files.Model.Paste_Execution_Is_Active (Remaining)
-                    and then Ada.Directories.Exists (To_String (Other_Started)),
-                    "closing one window leaves the surviving window and its helper active");
+            Assert (not Finished, "closing one window leaves the surviving window and its helper active: not finished");
+            Assert
+              (not Cancelled,
+               "closing one window leaves the surviving window and its helper active: not cancelled");
+            Assert
+              (Files.Model.Paste_Execution_Is_Active (Remaining),
+               "closing one window leaves the surviving window and its helper active: surviving paste active");
+            Assert
+              (Ada.Directories.Exists (To_String (Other_Started)),
+               "closing one window leaves the surviving window and its helper active: surviving helper still running");
          end;
          for Attempt in Files_Suite.Support.Polling loop
             Files.Process_Jobs.Poll (Empty, Finished, Cancelled);

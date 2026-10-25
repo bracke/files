@@ -51,10 +51,14 @@ separate (Files_Suite.Operations)
          if Hostkit.Fs.Create_Hard_Link (Marker, Marker_Alias) then
             Files.Job_Transports.Inspect_Marker
               (To_String (Transport), Identity, Read_Error);
+            Assert (not Read_Error, "marker inspection rejects a multiply-linked authority file: no read error");
+            Files_Suite.Support.Assert_Equal
+              (Length (Identity),
+               0,
+               "marker inspection rejects a multiply-linked authority file: no identity");
             Assert
-              (not Read_Error and then Length (Identity) = 0
-               and then Ada.Directories.Exists (To_String (Transport)),
-               "marker inspection rejects a multiply-linked authority file");
+              (Ada.Directories.Exists (To_String (Transport)),
+               "marker inspection rejects a multiply-linked authority file: transport kept");
             Ada.Directories.Delete_File (Marker_Alias);
          end if;
          Result := Files.File_System.Set_Permissions (Marker, 0);

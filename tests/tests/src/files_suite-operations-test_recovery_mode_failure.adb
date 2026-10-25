@@ -4,20 +4,16 @@ separate (Files_Suite.Operations)
       Source : constant String := Join (Root, "original");
       Backup : Unbounded_String;
       Mutation : Files.File_System.Mutation_Result;
-      Had_Backend : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
-      Old_Backend : constant String := Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND", "");
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
       procedure Cleanup is
       begin
-         Ada.Environment_Variables.Clear ("FILES_TEST_DIRECTORY_RESTORE_FAULT");
-         Ada.Environment_Variables.Clear ("FILES_TEST_DIRECTORY_RESTORE_BLOCK");
-         if Had_Backend then
-            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", Old_Backend);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         end if;
          Mutation := Files.File_System.Set_Permissions (Source, 8#755#);
       end Cleanup;
    begin
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Save (Environment, "FILES_TEST_DIRECTORY_RESTORE_FAULT");
+      Files_Suite.Support.Save (Environment, "FILES_TEST_DIRECTORY_RESTORE_BLOCK");
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
          Files_Suite.Support.Skip ("Test_Recovery_Mode_Failure", "Hostkit.Host.Current /= Hostkit.Host.Linux");
          return;
@@ -41,9 +37,16 @@ separate (Files_Suite.Operations)
             Assert (File_Has_Bytes (Join (Source, "replacement"), "replacement bytes"),
                     "rollback never overwrites a replacement at the original pathname");
          else
-            Assert (Length (Backup) = 0 and then File_Has_Bytes (Join (Source, "child"), "original bytes")
-                    and then Metadata_Mode_Of (Source) = 8#555#,
-                    "a failed restoration rolls back the complete original and its mode");
+            Files_Suite.Support.Assert_Equal
+              (Length (Backup),
+               0,
+               "a failed restoration rolls back the complete original and its mode: no backup");
+            Assert
+              (File_Has_Bytes (Join (Source, "child"), "original bytes"),
+               "a failed restoration rolls back the complete original and its mode: original bytes restored");
+            Assert
+              (Metadata_Mode_Of (Source) = 8#555#,
+               "a failed restoration rolls back the complete original and its mode: mode restored");
          end if;
          Ada.Environment_Variables.Clear ("FILES_TEST_DIRECTORY_RESTORE_FAULT");
          Ada.Environment_Variables.Clear ("FILES_TEST_DIRECTORY_RESTORE_BLOCK");
@@ -59,18 +62,23 @@ separate (Files_Suite.Operations)
                   Mutation := Files.File_System.Restore_From_Trash
                     (To_String (Backup),
                      Files.File_Identities.Token (To_String (Backup)), Source);
+                  Assert (not Mutation.Success, "recovery refuses a multiply-linked mode record: refused");
                   Assert
-                    (not Mutation.Success
-                     and then Ada.Directories.Exists (To_String (Backup))
-                     and then not Ada.Directories.Exists (Source),
-                     "recovery refuses a multiply-linked mode record");
+                    (Ada.Directories.Exists (To_String (Backup)),
+                     "recovery refuses a multiply-linked mode record: backup kept");
+                  Assert
+                    (not Ada.Directories.Exists (Source),
+                     "recovery refuses a multiply-linked mode record: source not created");
                   Ada.Directories.Delete_File (Mode_Alias);
                end if;
             end;
             Mutation := Files.File_System.Restore_From_Trash
               (To_String (Backup), Files.File_Identities.Token (To_String (Backup)), Source);
-            Assert (Mutation.Success and then File_Has_Bytes (Join (Source, "child"), "original bytes")
-                    and then Metadata_Mode_Of (Source) = 8#555#, "retry restores the original bytes and mode");
+            Assert (Mutation.Success, "retry restores the original bytes and mode: restored");
+            Assert
+              (File_Has_Bytes (Join (Source, "child"), "original bytes"),
+               "retry restores the original bytes and mode: bytes restored");
+            Assert (Metadata_Mode_Of (Source) = 8#555#, "retry restores the original bytes and mode: mode restored");
          end if;
          Mutation := Files.File_System.Set_Permissions (Source, 8#755#);
       end loop;
@@ -106,9 +114,14 @@ separate (Files_Suite.Operations)
             Assert (Files.File_System.Delete_Permanently (Source).Success, "remove the test rollback obstruction");
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success
-                    and then File_Has_Bytes (Join (Source, "child"), "original bytes")
-                    and then Metadata_Mode_Of (Source) = 8#555#, "Undo recovers the retained original and mode");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "Undo recovers the retained original and mode: status");
+            Assert
+              (File_Has_Bytes (Join (Source, "child"), "original bytes"),
+               "Undo recovers the retained original and mode: bytes restored");
+            Assert (Metadata_Mode_Of (Source) = 8#555#, "Undo recovers the retained original and mode: mode restored");
             Mutation := Files.File_System.Set_Permissions (Source, 8#755#);
          exception
             when others =>

@@ -5,34 +5,16 @@ separate (Files_Suite.Operations)
       Target   : constant String := Join (Root, "link-target");
       Link     : constant String := Join (Root, "trash-link");
       Renamed  : constant String := Join (Root, "renamed-link");
-      Had_Xdg  : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
-      Had_Back : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
-      Old_Xdg  : constant String :=
-        (if Had_Xdg then
-           Ada.Environment_Variables.Value ("XDG_DATA_HOME") else "");
-      Old_Back : constant String :=
-        (if Had_Back then
-           Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND") else "");
       Trashed  : Files.Types.UString;
       Result   : Files.File_System.Mutation_Result;
       Paths    : Files.Types.String_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Step     : Files.Operations.Operation_Result;
-
-      procedure Restore_Environment is
-      begin
-         if Had_Xdg then
-            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Old_Xdg);
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
-         end if;
-         if Had_Back then
-            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", Old_Back);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         end if;
-      end Restore_Environment;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
    begin
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       Write_Binary_File (Target, "target");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Root, "link-data"));
@@ -45,7 +27,6 @@ separate (Files_Suite.Operations)
                 when 3 => Files.File_System.Trash_Files_Directory,
                 when others => Root), Link)
          then
-            Restore_Environment;
             return;
          end if;
          Result := Files.File_System.Move_To_Trash (Link, Trashed);
@@ -75,9 +56,13 @@ separate (Files_Suite.Operations)
             Assert (Result.Success and then Hostkit.Fs.Is_Link (Link),
                     "a no-op rename accepts a dangling link");
             Result := Files.File_System.Rename_Item (Link, Renamed);
-            Assert (Result.Success and then Hostkit.Fs.Is_Link (Renamed)
-                    and then not Hostkit.Fs.Is_Link (Link),
-                    "rename moves a dangling link without following its missing target");
+            Assert (Result.Success, "rename moves a dangling link without following its missing target: renamed");
+            Assert
+              (Hostkit.Fs.Is_Link (Renamed),
+               "rename moves a dangling link without following its missing target: new link present");
+            Assert
+              (not Hostkit.Fs.Is_Link (Link),
+               "rename moves a dangling link without following its missing target: old link gone");
             Result := Files.File_System.Rename_Item (Renamed, Link, Identity);
             Assert (Result.Success and then Hostkit.Fs.Is_Link (Link),
                     "guarded rename restores the same dangling link by identity");
@@ -95,9 +80,14 @@ separate (Files_Suite.Operations)
                Single : constant Files.File_System.Item_Load_Result :=
                  Files.File_System.Load_Item (Join (Output, "trash-link"), Settings);
             begin
-               Assert (Listing.Success and then Natural (Listing.Items.Length) = 1
-                       and then Listing.Items.First_Element.Kind = Files.Types.Symlink_Item,
-                       "folder listings show dangling links as links");
+               Assert (Listing.Success, "folder listings show dangling links as links: listed");
+               Files_Suite.Support.Assert_Equal
+                 (Natural (Listing.Items.Length),
+                  1,
+                  "folder listings show dangling links as links: one item");
+               Assert
+                 (Listing.Items.First_Element.Kind = Files.Types.Symlink_Item,
+                  "folder listings show dangling links as links: listed as a link");
                Assert (Single.Success and then Single.Item.Kind = Files.Types.Symlink_Item,
                        "single-item loading accepts a dangling link");
                Files_Suite.Support.Assert_Equal
@@ -113,9 +103,13 @@ separate (Files_Suite.Operations)
                Assert (Hostkit.Fs.Create_Link ("../missing", Join (Nested, "broken")),
                        "create a nested dangling-link fixture");
                Result := Files.File_System.Copy_Tree (Output, Copied);
-               Assert (Result.Success and then Hostkit.Fs.Is_Link (Join (Copied, "trash-link"))
-                       and then Hostkit.Fs.Is_Link (Join (Join (Copied, "nested"), "broken")),
-                       "recursive copies preserve every nested dangling link");
+               Assert (Result.Success, "recursive copies preserve every nested dangling link: copied");
+               Assert
+                 (Hostkit.Fs.Is_Link (Join (Copied, "trash-link")),
+                  "recursive copies preserve every nested dangling link: top-level link kept");
+               Assert
+                 (Hostkit.Fs.Is_Link (Join (Join (Copied, "nested"), "broken")),
+                  "recursive copies preserve every nested dangling link: nested link kept");
                Result := Files.File_System.Delete_Permanently (Copied);
                Assert (Result.Success and then not Ada.Directories.Exists (Copied),
                        "recursive deletion removes folders containing dangling links");
@@ -132,7 +126,4 @@ separate (Files_Suite.Operations)
          Assert (Step.Status = Files.Operations.Operation_Success and then not Hostkit.Fs.Is_Link (Link),
                  "Undo removes a created dangling link");
       end if;
-      Restore_Environment;
-   exception
-      when others => Restore_Environment; raise;
    end Test_Symlink_Recovery;

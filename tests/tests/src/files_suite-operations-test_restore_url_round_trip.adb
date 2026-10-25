@@ -10,33 +10,12 @@ separate (Files_Suite.Operations)
       Special_Name : constant String := "a b%c.txt";
       Source_Path  : constant String := Join (Root, Special_Name);
       Trashed_Path : constant String := Join (Trash_File, Special_Name);
-      Had_Xdg_Data : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
-      Had_Backend  : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
-      Old_Xdg_Data : Unbounded_String;
-      Old_Backend  : Unbounded_String;
       Mutation     : Files.File_System.Mutation_Result;
-
-      procedure Restore_Environment is
-      begin
-         if Had_Xdg_Data then
-            Ada.Environment_Variables.Set ("XDG_DATA_HOME", To_String (Old_Xdg_Data));
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
-         end if;
-         if Had_Backend then
-            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", To_String (Old_Backend));
-         else
-            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         end if;
-      end Restore_Environment;
+      --  Restores what the test changes, on failure too.
+      Environment  : Files_Suite.Support.Environment_Guard;
    begin
-      if Had_Xdg_Data then
-         Old_Xdg_Data := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
-      end if;
-      if Had_Backend then
-         Old_Backend := To_Unbounded_String (Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND"));
-      end if;
-
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
@@ -56,9 +35,4 @@ separate (Files_Suite.Operations)
          "the decoded original path round-trips exactly through Url_Decode");
 
       Project_Tools.Files.Delete_Tree (Trash_Home);
-      Restore_Environment;
-   exception
-      when others =>
-         Restore_Environment;
-         raise;
    end Test_Restore_Url_Round_Trip;

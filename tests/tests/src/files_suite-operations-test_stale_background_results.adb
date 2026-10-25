@@ -40,11 +40,18 @@ separate (Files_Suite.Operations)
       Load := Files.File_System.Load_Directory (Other, Settings);
       Files.Model.Navigate_To (Model, Other, Load.Items);
       Finish;
-      Assert
-        (Files.Model.Current_Path (Model) = Other
-         and then Files.Model.Item_Count (Model) = 1
-         and then To_String (Files.Model.Visible_Item (Model, 1).Name) = "other.txt",
-         "a completed operation cannot replace a newer directory view with its old snapshot");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Other,
+         "a completed operation cannot replace a newer directory view with its old snapshot: current path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         1,
+         "a completed operation cannot replace a newer directory view with its old snapshot: item count");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Files.Model.Visible_Item (Model, 1).Name),
+         "other.txt",
+         "a completed operation cannot replace a newer directory view with its old snapshot: listed item");
       Assert
         (Ada.Directories.Exists (Join (Root, "a (copy).txt"))
          and then Files.Model.Undo_Available (Model),
@@ -53,10 +60,16 @@ separate (Files_Suite.Operations)
         (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
       Await_View (Model, Settings);
       Assert
-        (not Ada.Directories.Exists (Join (Root, "a (copy).txt"))
-         and then Files.Model.Current_Path (Model) = Other
-         and then Files.Model.Item_Count (Model) = 1,
-         "undoing the stale-view operation leaves the newer directory view intact");
+        (not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
+         "undoing the stale-view operation leaves the newer directory view intact: copy removed");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Other,
+         "undoing the stale-view operation leaves the newer directory view intact: current path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         1,
+         "undoing the stale-view operation leaves the newer directory view intact: item count");
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Navigate_To (Model, Root, Load.Items);
 
@@ -81,12 +94,17 @@ separate (Files_Suite.Operations)
       Files.Model.Begin_Create_File (Model, "pending.txt");
       Files.Model.Set_Error (Model, "error.trash.restore_exists");
       Finish;
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
+         "an old result cannot overwrite a newer incarnation of the same directory view: current path");
       Assert
-        (Files.Model.Current_Path (Model) = Root
-         and then Files.Model.Temporary_Item_Is_Active (Model)
-         and then Files.Model.Last_Error_Key (Model) =
-           "error.trash.restore_exists",
-         "an old result cannot overwrite a newer incarnation of the same directory view");
+        (Files.Model.Temporary_Item_Is_Active (Model),
+         "an old result cannot overwrite a newer incarnation of the same directory view: temporary item active");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.trash.restore_exists",
+         "an old result cannot overwrite a newer incarnation of the same directory view: error key");
       Assert
         (Ada.Directories.Exists (Join (Root, "a (copy).txt"))
          and then Files.Model.Undo_Available (Model),
@@ -118,13 +136,20 @@ separate (Files_Suite.Operations)
       Files.Model.Begin_Create_File (Model, "pending.txt");
       Files.Model.Set_Error (Model, "error.trash.restore_exists");
       Finish;
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Other,
+         "an old destructive result cannot refresh or alter newer view state: current path");
       Assert
-        (Files.Model.Current_Path (Model) = Other
-         and then Files.Model.Temporary_Item_Is_Active (Model)
-         and then Files.Model.Last_Error_Key (Model) = "error.trash.restore_exists"
-         and then not Files.Process_Jobs.Active
-           (Files.Model.Background_Refresh (Model)),
-         "an old destructive result cannot refresh or alter newer view state");
+        (Files.Model.Temporary_Item_Is_Active (Model),
+         "an old destructive result cannot refresh or alter newer view state: temporary item active");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.trash.restore_exists",
+         "an old destructive result cannot refresh or alter newer view state: error key");
+      Assert
+        (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+         "an old destructive result cannot refresh or alter newer view state: no refresh started");
       Assert
         (not Ada.Directories.Exists (Join (Root, "a.txt"))
          and then Files.Model.Undo_Available (Model),
@@ -134,10 +159,16 @@ separate (Files_Suite.Operations)
         (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
       Await_View (Model, Settings);
       Assert
-        (Ada.Directories.Exists (Join (Root, "a.txt"))
-         and then Files.Model.Current_Path (Model) = Other
-         and then Files.Model.Item_Count (Model) = 1,
-         "undoing the stale destructive result leaves the newer view intact");
+        (Ada.Directories.Exists (Join (Root, "a.txt")),
+         "undoing the stale destructive result leaves the newer view intact: original restored");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Other,
+         "undoing the stale destructive result leaves the newer view intact: current path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         1,
+         "undoing the stale destructive result leaves the newer view intact: item count");
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Navigate_To (Model, Root, Load.Items);
    exception

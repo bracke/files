@@ -5,19 +5,6 @@ separate (Files_Suite.Operations)
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
-      Had_Stall : constant Boolean :=
-        Ada.Environment_Variables.Exists ("FILES_TEST_STALL_OPERATIONS");
-      Old_Stall : constant String :=
-        Ada.Environment_Variables.Value ("FILES_TEST_STALL_OPERATIONS", "");
-
-      procedure Restore_Stall is
-      begin
-         if Had_Stall then
-            Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", Old_Stall);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TEST_STALL_OPERATIONS");
-         end if;
-      end Restore_Stall;
 
       procedure Finish is
       begin
@@ -82,33 +69,45 @@ separate (Files_Suite.Operations)
               "background name search returns recursive results");
       Step := Files.Operations.Run_Content_Search (Model, Settings);
       Finish;
-      Assert (Files.Model.Search_Results_Are_Active (Model) and then Files.Model.Item_Count (Model) = 2
-                and then Files.Model.Visible_Count (Model) = 2,
-              "background content search returns matches regardless of filename");
+      Assert (Files.Model.Search_Results_Are_Active (Model),
+              "background content search returns matches regardless of filename: search results active");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         2,
+         "background content search returns matches regardless of filename: item count");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Visible_Count (Model),
+         2,
+         "background content search returns matches regardless of filename: visible count");
       Files.Model.Set_Filter (Model, "");
       Step := Files.Operations.Refresh (Model, Settings);
       Select_Name (Model, "a.txt");
-      Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", "1");
-      Step := Files.Operations.Duplicate_Selected (Model, Settings);
       declare
-         Job : constant Files.Process_Jobs.Session :=
-           Files.Model.Background_Operation (Model);
-         Marker : constant String := Files.Process_Jobs.Path (Job, "started");
+         --  The helper stalls for this duplicate only; the guard puts the
+         --  variable back before the cancellation, on failure too.
+         Stall : Files_Suite.Support.Environment_Guard;
       begin
-         for Attempt in Files_Suite.Support.Polling loop
-            exit when Ada.Directories.Exists (Marker);
-         end loop;
-         Assert (Ada.Directories.Exists (Marker),
-                 "the duplicate helper reaches the pre-work cancellation point");
+         Files_Suite.Support.Save (Stall, "FILES_TEST_STALL_OPERATIONS");
+         Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", "1");
+         Step := Files.Operations.Duplicate_Selected (Model, Settings);
+         declare
+            Job : constant Files.Process_Jobs.Session :=
+              Files.Model.Background_Operation (Model);
+            Marker : constant String := Files.Process_Jobs.Path (Job, "started");
+         begin
+            for Attempt in Files_Suite.Support.Polling loop
+               exit when Ada.Directories.Exists (Marker);
+            end loop;
+            Assert (Ada.Directories.Exists (Marker),
+                    "the duplicate helper reaches the pre-work cancellation point");
+         end;
       end;
-      Restore_Stall;
       Files.Operations.Cancel_Paste_Execution (Model);
       Finish;
       Assert (not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
               "cancellation before work publishes no duplicate");
    exception
       when others =>
-         Restore_Stall;
          Files.Model.Clear_Paste_Execution (Model);
          raise;
    end Test_Background_Operations;

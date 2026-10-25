@@ -10,8 +10,6 @@ separate (Files_Suite.Operations)
       Folder : constant String := Join (Root, "folder");
       Marker : constant String := Join (Root, "size-started");
       Started : Unbounded_String;
-      Had_Flag : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TEST_STALL_FOLDER_SIZES");
-      Old_Flag : constant String := Ada.Environment_Variables.Value ("FILES_TEST_STALL_FOLDER_SIZES", "");
       File : Ada.Text_IO.File_Type;
       Empty : Files.Process_Jobs.Session;
       Finished, Cancelled : Boolean;
@@ -19,13 +17,11 @@ separate (Files_Suite.Operations)
       begin
          Files.Model.Cancel_Folder_Scan (Model);
          Files.Model.Cancel_Folder_Scan (Other);
-         if Had_Flag then
-            Ada.Environment_Variables.Set ("FILES_TEST_STALL_FOLDER_SIZES", Old_Flag);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TEST_STALL_FOLDER_SIZES");
-         end if;
       end Restore;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
    begin
+      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_FOLDER_SIZES");
       Reset_Root;
       Ada.Directories.Create_Path (Folder);
       Write_Binary_File (Join (Folder, "data"), "one");

@@ -50,12 +50,16 @@ separate (Files_Suite.Operations)
             Measured : constant Files.File_System.Directory_Size_Result :=
               Files.Model.Folder_Size_Value (Model, Path);
          begin
-            Assert (Measured.Available = Reference.Available
-                      and then Measured.Total_Bytes = Reference.Total_Bytes
-                      and then Measured.File_Count = Reference.File_Count
-                      and then Measured.Item_Count = Reference.Item_Count
-                      and then Measured.Capped = Reference.Capped,
-                    "background folder size matches Directory_Size");
+            Files_Suite.Support.Assert_Equal
+              (Measured.Available, Reference.Available, "background folder size matches Directory_Size: availability");
+            Files_Suite.Support.Assert_Equal
+              (Measured.Total_Bytes, Reference.Total_Bytes, "background folder size matches Directory_Size: bytes");
+            Files_Suite.Support.Assert_Equal
+              (Measured.File_Count, Reference.File_Count, "background folder size matches Directory_Size: files");
+            Files_Suite.Support.Assert_Equal
+              (Measured.Item_Count, Reference.Item_Count, "background folder size matches Directory_Size: items");
+            Files_Suite.Support.Assert_Equal
+              (Measured.Capped, Reference.Capped, "background folder size matches Directory_Size: capped");
          end;
       end;
    end Test_Folder_Size_Is_Lazy;

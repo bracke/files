@@ -32,10 +32,18 @@ separate (Files_Suite.Operations)
       end Cleanup;
       procedure Check (Path : String) is
       begin
-         Assert (Metadata_Mode_Of (Path) = 8#555# and then Metadata_Mode_Of (Join (Path, "locked")) = 8#555#
-                 and then Metadata_Mode_Of (Join (Path, "locked/child")) = 8#444#
-                 and then File_Has_Bytes (Join (Path, "locked/child"), "read-only bytes"),
-                 "publication and history preserve root, child directory and file permissions");
+         Assert
+           (Metadata_Mode_Of (Path) = 8#555#,
+            "publication and history preserve root, child directory and file permissions: root mode");
+         Assert
+           (Metadata_Mode_Of (Join (Path, "locked")) = 8#555#,
+            "publication and history preserve root, child directory and file permissions: child directory mode");
+         Assert
+           (Metadata_Mode_Of (Join (Path, "locked/child")) = 8#444#,
+            "publication and history preserve root, child directory and file permissions: file mode");
+         Assert
+           (File_Has_Bytes (Join (Path, "locked/child"), "read-only bytes"),
+            "publication and history preserve root, child directory and file permissions: file bytes");
       end Check;
       procedure Check_Backups (Parent : String) is
          Listing : constant Files.File_System.Directory_Load_Result :=

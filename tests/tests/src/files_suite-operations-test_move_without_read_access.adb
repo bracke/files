@@ -36,11 +36,16 @@ separate (Files_Suite.Operations)
          Step := Complete_Operation
            (Model, Settings, Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Success
-                 and then not Ada.Directories.Exists (Source)
-                 and then Ada.Directories.Exists (Destination)
-                 and then Files.Model.Undo_Available (Model),
-                 "same-device paste moves an unreadable entry and retains Undo");
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Success,
+            "same-device paste moves an unreadable entry and retains Undo: status");
+         Assert (not Ada.Directories.Exists (Source),
+                 "same-device paste moves an unreadable entry and retains Undo: source moved");
+         Assert (Ada.Directories.Exists (Destination),
+                 "same-device paste moves an unreadable entry and retains Undo: destination exists");
+         Assert (Files.Model.Undo_Available (Model),
+                 "same-device paste moves an unreadable entry and retains Undo: Undo recorded");
          Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Assert (Step.Status = Files.Operations.Operation_Success

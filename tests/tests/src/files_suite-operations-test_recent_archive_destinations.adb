@@ -33,9 +33,23 @@ separate (Files_Suite.Operations)
          Ada.Directories.Set_Directory (Cwd);
          Step := Complete_Operation
            (Model, Settings, Files.Operations.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
-         Assert (Step.Status = Files.Operations.Operation_Success and then Ada.Directories.Exists (Zip)
-                 and then Files.Model.In_Recent_View (Model) and then Files.Model.Item_Count (Model) = 2,
-                 "Recent compression publishes beside the first selected source and preserves the complete view");
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Success,
+            "Recent compression publishes beside the first selected source and preserves the complete view: status");
+         Assert
+           (Ada.Directories.Exists (Zip),
+            "Recent compression publishes beside the first selected source and preserves the complete view"
+            & ": archive created");
+         Assert
+           (Files.Model.In_Recent_View (Model),
+            "Recent compression publishes beside the first selected source and preserves the complete view"
+            & ": still in Recent");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Item_Count (Model),
+            2,
+            "Recent compression publishes beside the first selected source and preserves the complete view"
+            & ": item count");
          Mutation := Files.File_System.Copy_Tree (Zip, Copy_Zip);
          Assert (Mutation.Success, "prepare an archive in another source directory");
          Ada.Directories.Create_Path (Join (Two, "note"));
@@ -49,21 +63,54 @@ separate (Files_Suite.Operations)
          Files.Model.Navigate_Recent (Model, Archives);
          Files.Model.Select_All_Visible (Model);
          Step := Complete_Operation (Model, Settings, Files.Operations.Extract_Selected (Model, Settings));
-         Assert (Step.Status = Files.Operations.Operation_Success and then Files.Model.In_Recent_View (Model)
-                 and then File_Has_Bytes (Join (Join (Two, "note (1)"), "note.txt"), "note bytes")
-                 and then File_Has_Bytes (Join (Join (One, "copy"), "report.txt"), "report bytes")
-                 and then not Ada.Directories.Exists (Join (Cwd, "note.zip"))
-                 and then not Ada.Directories.Exists (Join (Cwd, "note"))
-                 and then not Ada.Directories.Exists (Join (Cwd, "copy"))
-                 and then File_Has_Bytes (Join (Cwd, "keep"), "working directory bytes"),
-                 "each Recent archive extracts beside itself with collision handling and leaves CWD intact");
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Success,
+            "each Recent archive extracts beside itself with collision handling and leaves CWD intact: status");
+         Assert
+           (Files.Model.In_Recent_View (Model),
+            "each Recent archive extracts beside itself with collision handling and leaves CWD intact"
+            & ": still in Recent");
+         Assert
+           (File_Has_Bytes (Join (Join (Two, "note (1)"), "note.txt"), "note bytes"),
+            "each Recent archive extracts beside itself with collision handling and leaves CWD intact"
+            & ": note extracted under a collision name");
+         Assert
+           (File_Has_Bytes (Join (Join (One, "copy"), "report.txt"), "report bytes"),
+            "each Recent archive extracts beside itself with collision handling and leaves CWD intact"
+            & ": copy extracted beside its archive");
+         Assert
+           (not Ada.Directories.Exists (Join (Cwd, "note.zip")),
+            "each Recent archive extracts beside itself with collision handling and leaves CWD intact"
+            & ": no note.zip in CWD");
+         Assert
+           (not Ada.Directories.Exists (Join (Cwd, "note")),
+            "each Recent archive extracts beside itself with collision handling and leaves CWD intact"
+            & ": no note folder in CWD");
+         Assert
+           (not Ada.Directories.Exists (Join (Cwd, "copy")),
+            "each Recent archive extracts beside itself with collision handling and leaves CWD intact"
+            & ": no copy folder in CWD");
+         Assert
+           (File_Has_Bytes (Join (Cwd, "keep"), "working directory bytes"),
+            "each Recent archive extracts beside itself with collision handling and leaves CWD intact"
+            & ": CWD file intact");
          Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Success
-                 and then not Ada.Directories.Exists (Join (Two, "note (1)"))
-                 and then not Ada.Directories.Exists (Join (One, "copy"))
-                 and then Ada.Directories.Exists (Join (Two, "note")) and then Ada.Directories.Exists (Zip),
-                 "Undo removes only the newly extracted adjacent folders");
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Success,
+            "Undo removes only the newly extracted adjacent folders: status");
+         Assert
+           (not Ada.Directories.Exists (Join (Two, "note (1)")),
+            "Undo removes only the newly extracted adjacent folders: new note folder removed");
+         Assert
+           (not Ada.Directories.Exists (Join (One, "copy")),
+            "Undo removes only the newly extracted adjacent folders: new copy folder removed");
+         Assert
+           (Ada.Directories.Exists (Join (Two, "note")),
+            "Undo removes only the newly extracted adjacent folders: existing note folder kept");
+         Assert (Ada.Directories.Exists (Zip), "Undo removes only the newly extracted adjacent folders: archive kept");
          Ada.Directories.Set_Directory (Original_Cwd);
       end loop;
    exception

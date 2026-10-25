@@ -46,9 +46,9 @@ separate (Files_Suite.Operations)
             Now_Avail        : Boolean := False;
          begin
             Files.File_System.Ownership_Of (Target, Now_Uid, Now_Gid, Now_Avail);
-            Assert
-              (Now_Avail and then Now_Uid = Uid and then Now_Gid = Gid,
-               "a denied chown leaves the file ownership unchanged");
+            Assert (Now_Avail, "a denied chown leaves the file ownership unchanged: ownership readable");
+            Assert (Now_Uid = Uid, "a denied chown leaves the file ownership unchanged: uid");
+            Assert (Now_Gid = Gid, "a denied chown leaves the file ownership unchanged: gid");
          end;
       end if;
    end Test_Set_Ownership_Denied;

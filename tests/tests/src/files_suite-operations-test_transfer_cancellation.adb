@@ -69,9 +69,11 @@ separate (Files_Suite.Operations)
             raise;
       end;
       Files.File_Identities.Testing.Set_Unavailable (False);
+      Assert (not Result.Success, "a move without a recoverable identity is refused before publication: refused");
       Assert
-        (not Result.Success
-         and then Ada.Directories.Exists (Source)
-         and then not Ada.Directories.Exists (Dest),
-         "a move without a recoverable identity is refused before publication");
+        (Ada.Directories.Exists (Source),
+         "a move without a recoverable identity is refused before publication: source kept");
+      Assert
+        (not Ada.Directories.Exists (Dest),
+         "a move without a recoverable identity is refused before publication: destination not created");
    end Test_Transfer_Cancellation;

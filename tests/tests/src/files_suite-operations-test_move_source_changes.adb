@@ -64,9 +64,13 @@ separate (Files_Suite.Operations)
            (To_Unbounded_String (Source), To_Unbounded_String (Join (Remote.Path, "destination")),
             Files.File_System.Drop_Move, True, Null_Unbounded_String));
          Mutation := Files.File_System.Execute_Drop_Import (Paths, Change_Source'Unrestricted_Access);
-         Assert (not Mutation.Success and then Ada.Directories.Exists (Source)
-                 and then not Ada.Directories.Exists (Join (Remote.Path, "destination")),
-                 "a changed move source is kept and only the owned destination copy is rolled back");
+         Assert (not Mutation.Success,
+                 "a changed move source is kept and only the owned destination copy is rolled back: refused");
+         Assert (Ada.Directories.Exists (Source),
+                 "a changed move source is kept and only the owned destination copy is rolled back: source kept");
+         Assert (not Ada.Directories.Exists (Join (Remote.Path, "destination")),
+                 "a changed move source is kept and only the owned destination copy is rolled back: "
+                 & "destination removed");
          Assert (File_Has_Bytes
            ((if Kind <= 2 then Source elsif Kind = 4 then Join (Source, "late-child") else Join (Source, "child")),
             "new bytes"), "the uncopied replacement or edit survives failure");

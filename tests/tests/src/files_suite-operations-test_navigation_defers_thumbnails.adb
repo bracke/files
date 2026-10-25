@@ -3,21 +3,11 @@ separate (Files_Suite.Operations)
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Photos   : constant String := Join (Root, "photos");
-      Had_Cache : constant Boolean := Ada.Environment_Variables.Exists ("XDG_CACHE_HOME");
-      Old_Cache : constant String := Ada.Environment_Variables.Value ("XDG_CACHE_HOME", "");
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
-      pragma Unreferenced (Step);
-
-      procedure Restore is
-      begin
-         if Had_Cache then
-            Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Old_Cache);
-         else
-            Ada.Environment_Variables.Clear ("XDG_CACHE_HOME");
-         end if;
-      end Restore;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
 
       function Photo_Has_Thumbnail return Boolean is
       begin
@@ -29,6 +19,7 @@ separate (Files_Suite.Operations)
          return False;
       end Photo_Has_Thumbnail;
    begin
+      Files_Suite.Support.Save (Environment, "XDG_CACHE_HOME");
       Reset_Root;
       Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Join (Root, "cache-home"));
       Ada.Directories.Create_Path (Photos);
@@ -47,13 +38,12 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "photos");
       Step := Files.Operations.Open_Selected (Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Step.Status, Files.Operations.Operation_Navigated, "opening the folder navigates into it");
       Assert (Files.Model.Current_Path (Model) = Photos and then not Photo_Has_Thumbnail,
               "opening the folder shows it at once, before its thumbnail exists");
       Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
               "and starts the background listing that makes it");
       Await_View (Model, Settings);
       Assert (Photo_Has_Thumbnail, "the background listing brings the thumbnail");
-      Restore;
-   exception
-      when others => Restore; raise;
    end Test_Navigation_Defers_Thumbnails;

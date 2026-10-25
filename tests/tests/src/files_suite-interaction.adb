@@ -536,10 +536,14 @@ package body Files_Suite.Interaction is
 
       Click (Model, Settings, X3, Y3, Shift, Result);
       Assert
-        (Files.Model.Is_Selected (Model, 1)
-           and then Files.Model.Is_Selected (Model, 2)
-           and then Files.Model.Is_Selected (Model, 3),
-         "shift-click selects the inclusive range from the anchor to the clicked item");
+        (Files.Model.Is_Selected (Model, 1),
+         "shift-click selects the inclusive range from the anchor to the clicked item (item 1)");
+      Assert
+        (Files.Model.Is_Selected (Model, 2),
+         "shift-click selects the inclusive range from the anchor to the clicked item (item 2)");
+      Assert
+        (Files.Model.Is_Selected (Model, 3),
+         "shift-click selects the inclusive range from the anchor to the clicked item (item 3)");
       Files_Suite.Support.Assert_Equal
         (Selected_Item_Nodes (Model),
          3,
@@ -559,9 +563,10 @@ package body Files_Suite.Interaction is
       declare
          Outcome : constant Files.Controller.Controller_Result :=
            Files.Controller.Append_Focused_Text (Model, "rep");
-         pragma Unreferenced (Outcome);
       begin
-         null;
+         Files_Suite.Support.Assert_Equal
+           (Outcome.Status, Files.Controller.Controller_Text_Updated,
+            "typed text lands in the focused filter input (status)");
       end;
       Files_Suite.Support.Assert_Equal
         (Files.Model.Filter_Text (Model),
@@ -573,9 +578,10 @@ package body Files_Suite.Interaction is
       declare
          Outcome : constant Files.Controller.Controller_Result :=
            Files.Controller.Append_Focused_Text (Model, "view");
-         pragma Unreferenced (Outcome);
       begin
-         null;
+         Files_Suite.Support.Assert_Equal
+           (Outcome.Status, Files.Controller.Controller_Text_Updated,
+            "typed text lands in the command-palette input (status)");
       end;
       Files_Suite.Support.Assert_Equal
         (Files.Model.Palette_Query (Model),
@@ -925,11 +931,15 @@ package body Files_Suite.Interaction is
           Command => Files.Commands.Toggle_Info_Pane_Command,
           others  => <>),
          Base_Font, Guikit.Input.No_Modifiers, Result);
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Revision (Model), Before,
+         "a stale background command cannot mutate behind the command palette (revision)");
       Assert
-        (Files.Model.Revision (Model) = Before
-         and then Files.Model.Info_Pane_Is_Open (Model)
-         and then Files.Model.Command_Palette_Is_Open (Model),
-         "a stale background command cannot mutate behind the command palette");
+        (Files.Model.Info_Pane_Is_Open (Model),
+         "a stale background command cannot mutate behind the command palette (info pane open)");
+      Assert
+        (Files.Model.Command_Palette_Is_Open (Model),
+         "a stale background command cannot mutate behind the command palette (palette open)");
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -990,12 +1000,20 @@ package body Files_Suite.Interaction is
       Assert (Files.Model.Is_Selected (Model, 2), "right-click selects the unselected item under the cursor");
       Assert (Result.Context_Menu_Changed, "the result reports the context-menu change");
       Assert
-        (not Result.Settings_Changed
-         and then not Result.Font_Size_Changed
-         and then not Result.Needs_Glyph_Rebuild
-         and then not Result.Directory_Reloaded
-         and then not Result.Clear_Pending_Text,
-         "right-click clears follow-up flags left by an earlier interaction");
+        (not Result.Settings_Changed,
+         "right-click clears follow-up flags left by an earlier interaction (settings changed)");
+      Assert
+        (not Result.Font_Size_Changed,
+         "right-click clears follow-up flags left by an earlier interaction (font size changed)");
+      Assert
+        (not Result.Needs_Glyph_Rebuild,
+         "right-click clears follow-up flags left by an earlier interaction (needs glyph rebuild)");
+      Assert
+        (not Result.Directory_Reloaded,
+         "right-click clears follow-up flags left by an earlier interaction (directory reloaded)");
+      Assert
+        (not Result.Clear_Pending_Text,
+         "right-click clears follow-up flags left by an earlier interaction (clear pending text)");
 
       --  A queued click can carry an index from an older layout. It must not
       --  open an item menu whose commands would act on the current selection.
@@ -1134,10 +1152,12 @@ package body Files_Suite.Interaction is
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
       Assert
-        (not Files.Model.Clipboard_Has_Items (Model)
-         and then not Result.Command_Executed
-         and then not Result.Context_Menu_Changed,
-         "a stale menu-row action is inert after its menu closes");
+        (not Files.Model.Clipboard_Has_Items (Model),
+         "a stale menu-row action is inert after its menu closes (clipboard empty)");
+      Assert (not Result.Command_Executed, "a stale menu-row action is inert after its menu closes (command executed)");
+      Assert
+        (not Result.Context_Menu_Changed,
+         "a stale menu-row action is inert after its menu closes (context menu changed)");
 
       --  A click that misses every menu row still closes the menu and must not
       --  leak follow-up flags from an earlier result stored in the same object.
@@ -1151,11 +1171,17 @@ package body Files_Suite.Interaction is
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
       Assert
-        (Files.Model.Context_Menu_Is_Open (Model)
-         and then not Files.Model.Clipboard_Has_Items (Model)
-         and then not Result.Command_Executed
-         and then not Result.Context_Menu_Changed,
-         "an item-only command is rejected by the open empty-area menu");
+        (Files.Model.Context_Menu_Is_Open (Model),
+         "an item-only command is rejected by the open empty-area menu (menu open)");
+      Assert
+        (not Files.Model.Clipboard_Has_Items (Model),
+         "an item-only command is rejected by the open empty-area menu (clipboard empty)");
+      Assert
+        (not Result.Command_Executed,
+         "an item-only command is rejected by the open empty-area menu (command executed)");
+      Assert
+        (not Result.Context_Menu_Changed,
+         "an item-only command is rejected by the open empty-area menu (context menu changed)");
 
       Result.Settings_Changed := True;
       Result.Font_Size_Changed := True;
@@ -1172,15 +1198,29 @@ package body Files_Suite.Interaction is
          Result            => Result);
       Assert (not Files.Model.Context_Menu_Is_Open (Model), "a missed menu row still closes the menu");
       Assert
-        (Result.Context_Menu_Changed
-         and then Result.Command = Files.Commands.No_Command
-         and then not Result.Command_Executed
-         and then not Result.Settings_Changed
-         and then not Result.Font_Size_Changed
-         and then not Result.Needs_Glyph_Rebuild
-         and then not Result.Directory_Reloaded
-         and then not Result.Clear_Pending_Text,
-         "a missed menu row returns only its own context-menu follow-up");
+        (Result.Context_Menu_Changed,
+         "a missed menu row returns only its own context-menu follow-up (context menu changed)");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command, Files.Commands.No_Command,
+         "a missed menu row returns only its own context-menu follow-up (command)");
+      Assert
+        (not Result.Command_Executed,
+         "a missed menu row returns only its own context-menu follow-up (command executed)");
+      Assert
+        (not Result.Settings_Changed,
+         "a missed menu row returns only its own context-menu follow-up (settings changed)");
+      Assert
+        (not Result.Font_Size_Changed,
+         "a missed menu row returns only its own context-menu follow-up (font size changed)");
+      Assert
+        (not Result.Needs_Glyph_Rebuild,
+         "a missed menu row returns only its own context-menu follow-up (needs glyph rebuild)");
+      Assert
+        (not Result.Directory_Reloaded,
+         "a missed menu row returns only its own context-menu follow-up (directory reloaded)");
+      Assert
+        (not Result.Clear_Pending_Text,
+         "a missed menu row returns only its own context-menu follow-up (clear pending text)");
 
       --  Keyboard open/close routes mutate the same menu state through the
       --  controller and must report the transition through the reducer result.
@@ -1484,10 +1524,16 @@ package body Files_Suite.Interaction is
          declare
             SC : constant Files.Commands.Shortcut := Files.Commands.Shortcut_For (Cmd);
          begin
-            Assert (SC.Present and then SC.Key = Guikit.Input.Key_5
-                    and then SC.Modifiers (Guikit.Input.Control_Key)
-                    and then SC.Modifiers (Guikit.Input.Shift_Key),
-                    "the captured chord rebinds the command in the live keymap");
+            Assert (SC.Present, "the captured chord rebinds the command in the live keymap (present)");
+            Files_Suite.Support.Assert_Equal
+              (SC.Key, Guikit.Input.Key_5,
+               "the captured chord rebinds the command in the live keymap (key)");
+            Assert
+              (SC.Modifiers (Guikit.Input.Control_Key),
+               "the captured chord rebinds the command in the live keymap (Control)");
+            Assert
+              (SC.Modifiers (Guikit.Input.Shift_Key),
+               "the captured chord rebinds the command in the live keymap (Shift)");
          end;
       end;
 
@@ -1836,10 +1882,14 @@ package body Files_Suite.Interaction is
          Files.Settings.Default_Font_Pixel_Size,
          "an input-owning overlay blocks keyboard zoom behind it");
       Assert
-        (not Result.Settings_Changed
-         and then not Result.Font_Size_Changed
-         and then not Result.Needs_Glyph_Rebuild,
-         "blocked keyboard zoom reports no settings or glyph change");
+        (not Result.Settings_Changed,
+         "blocked keyboard zoom reports no settings or glyph change (settings changed)");
+      Assert
+        (not Result.Font_Size_Changed,
+         "blocked keyboard zoom reports no settings or glyph change (font size changed)");
+      Assert
+        (not Result.Needs_Glyph_Rebuild,
+         "blocked keyboard zoom reports no settings or glyph change (needs glyph rebuild)");
       Assert
         (Result.Clear_Pending_Text,
          "a blocked zoom chord still consumes its parallel character event");
@@ -2032,11 +2082,15 @@ package body Files_Suite.Interaction is
       begin
          Files.Model.Toggle_Sort_Menu (Model);
          Outcome := Files.Controller.Handle_Scroll (Model, 3);
-         Assert
-           (Outcome.Status = Files.Controller.Controller_Ignored
-            and then Files.Model.Main_View_Scroll_Lines (Model) = Main_Before
-            and then Files.Model.Info_Pane_Scroll_Lines (Model) = Info_Before,
-            "auto scrolling is contained while a non-scrolling overlay owns input");
+         Files_Suite.Support.Assert_Equal
+           (Outcome.Status, Files.Controller.Controller_Ignored,
+            "auto scrolling is contained while a non-scrolling overlay owns input (status)");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Main_View_Scroll_Lines (Model), Main_Before,
+            "auto scrolling is contained while a non-scrolling overlay owns input (main view scroll)");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Info_Pane_Scroll_Lines (Model), Info_Before,
+            "auto scrolling is contained while a non-scrolling overlay owns input (info pane scroll)");
          Outcome :=
            Files.Controller.Handle_Targeted_Scroll
              (Model, Files.Events.Scroll_Main_View, 3);
@@ -2138,10 +2192,14 @@ package body Files_Suite.Interaction is
                and then Action.Scroll_Area = Files.Events.Scroll_Tree_Panel,
                "wheel input over the folder tree targets the tree rather than the main view");
             Assert
-              (Tree.Scrollbar_Visible
-               and then Drag_Action.Kind = Files.Events.Scrollbar_Drag_Begin_Input_Action
-               and then Drag_Action.Scroll_Area = Files.Events.Scroll_Tree_Panel,
-               "the long folder tree exposes a draggable tree scrollbar thumb");
+              (Tree.Scrollbar_Visible,
+               "the long folder tree exposes a draggable tree scrollbar thumb (scrollbar visible)");
+            Files_Suite.Support.Assert_Equal
+              (Drag_Action.Kind, Files.Events.Scrollbar_Drag_Begin_Input_Action,
+               "the long folder tree exposes a draggable tree scrollbar thumb (action kind)");
+            Assert
+              (Drag_Action.Scroll_Area = Files.Events.Scroll_Tree_Panel,
+               "the long folder tree exposes a draggable tree scrollbar thumb (scroll area)");
 
             if Maximum > 1 then
                declare
@@ -2165,11 +2223,15 @@ package body Files_Suite.Interaction is
                             + Paged_Tree.Scrollbar_Track_Height - 1,
                           Target_W, Target_H, Line_Height => Line);
                   begin
+                     Files_Suite.Support.Assert_Equal
+                       (Page_Action.Kind, Files.Events.Scroll_Input_Action,
+                        "tree track paging clamps its delta at the final full page (action kind)");
                      Assert
-                       (Page_Action.Kind = Files.Events.Scroll_Input_Action
-                        and then Page_Action.Scroll_Area = Files.Events.Scroll_Tree_Panel
-                        and then Page_Action.Scroll_Lines = Integer (Expected),
-                        "tree track paging clamps its delta at the final full page");
+                       (Page_Action.Scroll_Area = Files.Events.Scroll_Tree_Panel,
+                        "tree track paging clamps its delta at the final full page (scroll area)");
+                     Files_Suite.Support.Assert_Equal
+                       (Page_Action.Scroll_Lines, Integer (Expected),
+                        "tree track paging clamps its delta at the final full page (scroll lines)");
                   end;
                end;
             end if;
@@ -2667,12 +2729,18 @@ package body Files_Suite.Interaction is
             Files.Interaction.Apply_Input_Action
               (Model, Settings, "", Action, Base_Font,
                Guikit.Input.No_Modifiers, Result);
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Current_Path (Model), Path_Before,
+               "a delayed root-row click is contained by the stacked palette (path)");
             Assert
-              (Files.Model.Current_Path (Model) = Path_Before
-               and then Files.Model.Root_Selector_Is_Open (Model)
-               and then Files.Model.Command_Palette_Is_Open (Model)
-               and then Result.Status = Files.Controller.Controller_Ignored,
-               "a delayed root-row click is contained by the stacked palette");
+              (Files.Model.Root_Selector_Is_Open (Model),
+               "a delayed root-row click is contained by the stacked palette (root selector open)");
+            Assert
+              (Files.Model.Command_Palette_Is_Open (Model),
+               "a delayed root-row click is contained by the stacked palette (palette open)");
+            Files_Suite.Support.Assert_Equal
+              (Result.Status, Files.Controller.Controller_Ignored,
+               "a delayed root-row click is contained by the stacked palette (status)");
             Files.Model.Close_Command_Palette (Model);
          end;
 
@@ -3447,10 +3515,15 @@ package body Files_Suite.Interaction is
          Base := Files.Interaction.Selected_Visible_Indices (Model);
          Files.Interaction.Apply_Marquee_Selection
            (Model, Hits, Additive => True, Base => Base);
-         Assert (Files.Model.Is_Selected (Model, 1)
-                 and then Files.Model.Is_Selected (Model, 2)
-                 and then Files.Model.Is_Selected (Model, 4),
-                 "an additive marquee unions the touched items with the prior selection");
+         Assert
+           (Files.Model.Is_Selected (Model, 1),
+            "an additive marquee unions the touched items with the prior selection (item 1)");
+         Assert
+           (Files.Model.Is_Selected (Model, 2),
+            "an additive marquee unions the touched items with the prior selection (item 2)");
+         Assert
+           (Files.Model.Is_Selected (Model, 4),
+            "an additive marquee unions the touched items with the prior selection (item 4)");
          Files_Suite.Support.Assert_Equal
            (Files.Model.Selected_Count (Model),
             3,
@@ -3667,46 +3740,13 @@ package body Files_Suite.Interaction is
         Files_Suite.Support.Join (Files_Suite.Support.Join (Trash_Home, "Trash"), "files");
       Doomed      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "doomed.txt");
       Restore_Src : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "restore-me.txt");
-      Had_Data    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
-      Had_Home    : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
-      Had_Backend : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
-      Old_Data    : Ada.Strings.Unbounded.Unbounded_String;
-      Old_Home    : Ada.Strings.Unbounded.Unbounded_String;
-      Old_Backend : Ada.Strings.Unbounded.Unbounded_String;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
       Model       : Files.Model.Window_Model;
-
-      procedure Restore_Environment is
-      begin
-         if Had_Data then
-            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Ada.Strings.Unbounded.To_String (Old_Data));
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
-         end if;
-         if Had_Home then
-            Ada.Environment_Variables.Set ("HOME", Ada.Strings.Unbounded.To_String (Old_Home));
-         else
-            Ada.Environment_Variables.Clear ("HOME");
-         end if;
-         if Had_Backend then
-            Ada.Environment_Variables.Set
-              ("FILES_TRASH_BACKEND", Ada.Strings.Unbounded.To_String (Old_Backend));
-         else
-            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         end if;
-      end Restore_Environment;
    begin
-      if Had_Data then
-         Old_Data :=
-           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
-      end if;
-      if Had_Home then
-         Old_Home :=
-           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
-      end if;
-      if Had_Backend then
-         Old_Backend :=
-           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND"));
-      end if;
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Save (Environment, "HOME");
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
 
       Files_Suite.Support.Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
@@ -3771,11 +3811,6 @@ package body Files_Suite.Interaction is
       end;
 
       Project_Tools.Files.Delete_Tree (Trash_Home);
-      Restore_Environment;
-   exception
-      when others =>
-         Restore_Environment;
-         raise;
    end Test_Context_Menu_Trash_Lifecycle;
 
    procedure Test_Item_Menu_Contents_And_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -3889,10 +3924,14 @@ package body Files_Suite.Interaction is
             Guikit.Input.No_Modifiers, Base_Font, Result);
       end;
       Assert
-        (not Files.Model.Context_Menu_Is_Open (Model)
-         and then Files.Model.Tree_Pick_Is_Active (Model)
-         and then Files.Model.Tree_Panel_Is_Open (Model),
-         "context-menu Enter opens Copy to without immediately confirming it");
+        (not Files.Model.Context_Menu_Is_Open (Model),
+         "context-menu Enter opens Copy to without immediately confirming it (menu closed)");
+      Assert
+        (Files.Model.Tree_Pick_Is_Active (Model),
+         "context-menu Enter opens Copy to without immediately confirming it (tree pick active)");
+      Assert
+        (Files.Model.Tree_Panel_Is_Open (Model),
+         "context-menu Enter opens Copy to without immediately confirming it (tree panel open)");
       Assert
         (not Files.Model.Paste_Conflict_Is_Active (Model)
          and then not Files.Model.Paste_Execution_Is_Active (Model),
@@ -4078,48 +4117,15 @@ package body Files_Suite.Interaction is
       Result      : Files.Interaction.Interaction_Result;
       Trash_Home  : constant String := Files_Suite.Support.Root & "_restore_enable_xdg";
       Doomed      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "doomed.txt");
-      Had_Data    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
-      Had_Home    : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
-      Had_Backend : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
-      Old_Data    : Ada.Strings.Unbounded.Unbounded_String;
-      Old_Home    : Ada.Strings.Unbounded.Unbounded_String;
-      Old_Backend : Ada.Strings.Unbounded.Unbounded_String;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
       Model       : Files.Model.Window_Model;
       Mutation    : Files.File_System.Mutation_Result;
       Load        : Files.File_System.Directory_Load_Result;
-
-      procedure Restore_Environment is
-      begin
-         if Had_Data then
-            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Ada.Strings.Unbounded.To_String (Old_Data));
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
-         end if;
-         if Had_Home then
-            Ada.Environment_Variables.Set ("HOME", Ada.Strings.Unbounded.To_String (Old_Home));
-         else
-            Ada.Environment_Variables.Clear ("HOME");
-         end if;
-         if Had_Backend then
-            Ada.Environment_Variables.Set
-              ("FILES_TRASH_BACKEND", Ada.Strings.Unbounded.To_String (Old_Backend));
-         else
-            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         end if;
-      end Restore_Environment;
    begin
-      if Had_Data then
-         Old_Data :=
-           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
-      end if;
-      if Had_Home then
-         Old_Home :=
-           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
-      end if;
-      if Had_Backend then
-         Old_Backend :=
-           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND"));
-      end if;
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Save (Environment, "HOME");
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
 
       Files_Suite.Support.Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
@@ -4151,11 +4157,6 @@ package body Files_Suite.Interaction is
               "Restore From Trash is enabled with a selection inside the trash directory");
 
       Project_Tools.Files.Delete_Tree (Trash_Home);
-      Restore_Environment;
-   exception
-      when others =>
-         Restore_Environment;
-         raise;
    end Test_Restore_From_Trash_Enablement_By_Context;
 
    procedure Test_Paste_Enablement_Reflects_Clipboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -4526,47 +4527,14 @@ package body Files_Suite.Interaction is
       Trash_File  : constant String :=
         Files_Suite.Support.Join (Files_Suite.Support.Join (Trash_Home, "Trash"), "files");
       Doomed      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "doomed.txt");
-      Had_Data    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
-      Had_Home    : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
-      Had_Backend : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
-      Old_Data    : Ada.Strings.Unbounded.Unbounded_String;
-      Old_Home    : Ada.Strings.Unbounded.Unbounded_String;
-      Old_Backend : Ada.Strings.Unbounded.Unbounded_String;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
       Model       : Files.Model.Window_Model;
       Load        : Files.File_System.Directory_Load_Result;
-
-      procedure Restore_Environment is
-      begin
-         if Had_Data then
-            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Ada.Strings.Unbounded.To_String (Old_Data));
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
-         end if;
-         if Had_Home then
-            Ada.Environment_Variables.Set ("HOME", Ada.Strings.Unbounded.To_String (Old_Home));
-         else
-            Ada.Environment_Variables.Clear ("HOME");
-         end if;
-         if Had_Backend then
-            Ada.Environment_Variables.Set
-              ("FILES_TRASH_BACKEND", Ada.Strings.Unbounded.To_String (Old_Backend));
-         else
-            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         end if;
-      end Restore_Environment;
    begin
-      if Had_Data then
-         Old_Data :=
-           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
-      end if;
-      if Had_Home then
-         Old_Home :=
-           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
-      end if;
-      if Had_Backend then
-         Old_Backend :=
-           Ada.Strings.Unbounded.To_Unbounded_String (Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND"));
-      end if;
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Save (Environment, "HOME");
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
 
       Files_Suite.Support.Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
@@ -4606,11 +4574,6 @@ package body Files_Suite.Interaction is
          "restore removes the file from the trash directory");
 
       Project_Tools.Files.Delete_Tree (Trash_Home);
-      Restore_Environment;
-   exception
-      when others =>
-         Restore_Environment;
-         raise;
    end Test_Sequence_Trash_Then_Restore;
 
    procedure Test_Sequence_Cut_Paste_Into_Subdir (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -4779,9 +4742,9 @@ package body Files_Suite.Interaction is
       --  arrow navigation walks the raw load order and moves the wrong way.
       declare
          Reload : constant Files.Operations.Operation_Result := Files.Operations.Refresh (Model, Settings);
-         pragma Unreferenced (Reload);
       begin
-         null;
+         Files_Suite.Support.Assert_Equal
+           (Reload.Status, Files.Operations.Operation_Success, "the descending directory reloads");
       end;
       --  Two-column grid: Down should move down a row (two display positions).
       Files.Model.Set_Selection_Grid_Columns (Model, 2);
@@ -4868,12 +4831,20 @@ package body Files_Suite.Interaction is
          Files.Types.Group_By_Type,
          "the group-by command advances the grouping mode");
       Assert
-        (not Result.Font_Size_Changed
-         and then not Result.Needs_Glyph_Rebuild
-         and then not Result.Directory_Reloaded
-         and then not Result.Clear_Pending_Text
-         and then not Result.Context_Menu_Changed,
-         "direct command execution clears unrelated follow-up flags");
+        (not Result.Font_Size_Changed,
+         "direct command execution clears unrelated follow-up flags (font size changed)");
+      Assert
+        (not Result.Needs_Glyph_Rebuild,
+         "direct command execution clears unrelated follow-up flags (needs glyph rebuild)");
+      Assert
+        (not Result.Directory_Reloaded,
+         "direct command execution clears unrelated follow-up flags (directory reloaded)");
+      Assert
+        (not Result.Clear_Pending_Text,
+         "direct command execution clears unrelated follow-up flags (clear pending text)");
+      Assert
+        (not Result.Context_Menu_Changed,
+         "direct command execution clears unrelated follow-up flags (context menu changed)");
 
       --  With grouping active in the details view, Build_Snapshot inserts a
       --  non-selectable header row (Visible_Index zero) ahead of the items.
@@ -4954,25 +4925,30 @@ package body Files_Suite.Interaction is
                and then To_String (Drive_Path.Last_Element.Ancestor_Path) =
                  "C:\Users\Alice",
                "Windows drive breadcrumbs retain native separators");
-            Assert
-              (Natural (UNC_Path.Length) = 3
-               and then To_String (UNC_Path.First_Element.Ancestor_Path) =
-                 "\\server"
-               and then To_String (UNC_Path.Last_Element.Ancestor_Path) =
-                 "\\server\share\folder",
-               "UNC breadcrumb click targets retain their two-separator root");
+            Files_Suite.Support.Assert_Equal
+              (Natural (UNC_Path.Length), 3,
+               "UNC breadcrumb click targets retain their two-separator root (segment count)");
+            Files_Suite.Support.Assert_Equal
+              (To_String (UNC_Path.First_Element.Ancestor_Path), "\\server",
+               "UNC breadcrumb click targets retain their two-separator root (first target)");
+            Files_Suite.Support.Assert_Equal
+              (To_String (UNC_Path.Last_Element.Ancestor_Path), "\\server\share\folder",
+               "UNC breadcrumb click targets retain their two-separator root (last target)");
          end;
       else
          declare
             Backslash_Name : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
               Files.Breadcrumbs.Segments ("/tmp/a\b");
          begin
-            Assert
-              (Natural (Backslash_Name.Length) = 2
-               and then To_String (Backslash_Name.Last_Element.Label) = "a\b"
-               and then To_String (Backslash_Name.Last_Element.Ancestor_Path) =
-                 "/tmp/a\b",
-               "POSIX breadcrumbs keep backslashes inside a filename");
+            Files_Suite.Support.Assert_Equal
+              (Natural (Backslash_Name.Length), 2,
+               "POSIX breadcrumbs keep backslashes inside a filename (segment count)");
+            Files_Suite.Support.Assert_Equal
+              (To_String (Backslash_Name.Last_Element.Label), "a\b",
+               "POSIX breadcrumbs keep backslashes inside a filename (last label)");
+            Files_Suite.Support.Assert_Equal
+              (To_String (Backslash_Name.Last_Element.Ancestor_Path), "/tmp/a\b",
+               "POSIX breadcrumbs keep backslashes inside a filename (last target)");
          end;
       end if;
 
@@ -5268,11 +5244,15 @@ package body Files_Suite.Interaction is
       CResult :=
         Files.Controller.Handle_Key
           (Model, Settings, Guikit.Input.Key_Down, Tree_Page_Rows => 2);
-      Assert
-        (CResult.Status = Files.Controller.Controller_Selection_Moved
-         and then Files.Model.Tree_Pick_Target (Model) = To_String (Rows.Element (3).Path)
-         and then Files.Model.Tree_Panel_Scroll_Rows (Model) = 1,
-         "keyboard tree navigation reveals a highlight that crosses the viewport edge");
+      Files_Suite.Support.Assert_Equal
+        (CResult.Status, Files.Controller.Controller_Selection_Moved,
+         "keyboard tree navigation reveals a highlight that crosses the viewport edge (status)");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Tree_Pick_Target (Model), To_String (Rows.Element (3).Path),
+         "keyboard tree navigation reveals a highlight that crosses the viewport edge (target)");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Tree_Panel_Scroll_Rows (Model), 1,
+         "keyboard tree navigation reveals a highlight that crosses the viewport edge (scroll rows)");
 
       --  Right on the alpha folder (which has a child) expands it; Left collapses.
       Files.Model.Set_Tree_Pick_Target (Model, Alpha);
@@ -5308,11 +5288,15 @@ package body Files_Suite.Interaction is
               Files.Controller.Handle_Tree_Click
                 (Model, Settings, Alpha_Node, Toggle => True);
          end;
-         Assert
-           (CResult.Status = Files.Controller.Controller_Command_Executed
-            and then Natural (Files.Model.Tree_Visible_Rows (Model).Length) = Before
-            and then Files.Model.Tree_Pick_Target (Model) = Alpha,
-            "collapsing an ancestor retargets a hidden destination to that ancestor");
+         Files_Suite.Support.Assert_Equal
+           (CResult.Status, Files.Controller.Controller_Command_Executed,
+            "collapsing an ancestor retargets a hidden destination to that ancestor (status)");
+         Files_Suite.Support.Assert_Equal
+           (Natural (Files.Model.Tree_Visible_Rows (Model).Length), Before,
+            "collapsing an ancestor retargets a hidden destination to that ancestor (visible rows)");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Tree_Pick_Target (Model), Alpha,
+            "collapsing an ancestor retargets a hidden destination to that ancestor (target)");
       end;
 
       --  Enter confirms the pick: copy the source into the highlighted folder
@@ -5380,10 +5364,15 @@ package body Files_Suite.Interaction is
       Selected := Files.Model.Selected_Index (Model);
       Files.Model.Set_Tree_Cursor (Model, Tree_Dir);
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Assert (CResult.Status = Files.Controller.Controller_Selection_Moved
-              and then Files.Model.Tree_Cursor (Model) = Alpha
-              and then Files.Model.Selected_Index (Model) = Selected,
-              "Down moves the tree highlight, not the grid selection");
+      Files_Suite.Support.Assert_Equal
+        (CResult.Status, Files.Controller.Controller_Selection_Moved,
+         "Down moves the tree highlight, not the grid selection (status)");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Tree_Cursor (Model), Alpha,
+         "Down moves the tree highlight, not the grid selection (tree cursor)");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model), Selected,
+         "Down moves the tree highlight, not the grid selection (grid selection)");
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Assert (CResult.Status = Files.Controller.Controller_Command_Executed
               and then Files.Model.Tree_Has_Keyboard (Model),
@@ -5478,12 +5467,18 @@ package body Files_Suite.Interaction is
             Files.Interaction.Apply_Input_Action
               (Model, Settings, "", Action, Base_Font,
                Guikit.Input.No_Modifiers, Result);
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Current_Path (Model), Path_Before,
+               "a delayed tree-row click is contained by the context menu (path)");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Revision (Model), Revision,
+               "a delayed tree-row click is contained by the context menu (revision)");
             Assert
-              (Files.Model.Current_Path (Model) = Path_Before
-               and then Files.Model.Revision (Model) = Revision
-               and then Files.Model.Context_Menu_Is_Open (Model)
-               and then Result.Status = Files.Controller.Controller_Ignored,
-               "a delayed tree-row click is contained by the context menu");
+              (Files.Model.Context_Menu_Is_Open (Model),
+               "a delayed tree-row click is contained by the context menu (menu open)");
+            Files_Suite.Support.Assert_Equal
+              (Result.Status, Files.Controller.Controller_Ignored,
+               "a delayed tree-row click is contained by the context menu (status)");
          end;
          Files.Model.Close_Context_Menu (Model);
 
@@ -5631,17 +5626,33 @@ package body Files_Suite.Interaction is
          Base_Font,
          Guikit.Input.No_Modifiers,
          Result);
+      Files_Suite.Support.Assert_Equal
+        (Result.Status, Files.Controller.Controller_Ignored,
+         "a reused interaction result does not retain follow-up flags from the prior action (status)");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command, Files.Commands.No_Command,
+         "a reused interaction result does not retain follow-up flags from the prior action (command)");
       Assert
-        (Result.Status = Files.Controller.Controller_Ignored
-         and then Result.Command = Files.Commands.No_Command
-         and then not Result.Command_Executed
-         and then not Result.Settings_Changed
-         and then not Result.Font_Size_Changed
-         and then not Result.Needs_Glyph_Rebuild
-         and then not Result.Directory_Reloaded
-         and then not Result.Clear_Pending_Text
-         and then not Result.Context_Menu_Changed,
-         "a reused interaction result does not retain follow-up flags from the prior action");
+        (not Result.Command_Executed,
+         "a reused interaction result does not retain follow-up flags from the prior action (command executed)");
+      Assert
+        (not Result.Settings_Changed,
+         "a reused interaction result does not retain follow-up flags from the prior action (settings changed)");
+      Assert
+        (not Result.Font_Size_Changed,
+         "a reused interaction result does not retain follow-up flags from the prior action (font size changed)");
+      Assert
+        (not Result.Needs_Glyph_Rebuild,
+         "a reused interaction result does not retain follow-up flags from the prior action (needs glyph rebuild)");
+      Assert
+        (not Result.Directory_Reloaded,
+         "a reused interaction result does not retain follow-up flags from the prior action (directory reloaded)");
+      Assert
+        (not Result.Clear_Pending_Text,
+         "a reused interaction result does not retain follow-up flags from the prior action (clear pending text)");
+      Assert
+        (not Result.Context_Menu_Changed,
+         "a reused interaction result does not retain follow-up flags from the prior action (context menu changed)");
 
       --  Toggling the same selection again removes the favorite.
       Files.Interaction.Apply_Input_Action
@@ -6294,8 +6305,10 @@ package body Files_Suite.Interaction is
          declare
             Typed : constant Files.Controller.Controller_Result :=
               Files.Controller.Append_Focused_Text (Model, " ");
-            pragma Unreferenced (Typed);
          begin
+            Files_Suite.Support.Assert_Equal
+              (Typed.Status, Files.Controller.Controller_Text_Updated,
+               "the space character types into the focused filter input (status)");
             Files_Suite.Support.Assert_Equal
               (Files.Model.Filter_Text (Model),
                " ",

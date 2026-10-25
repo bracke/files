@@ -10,21 +10,16 @@ separate (Files_Suite.Operations)
       Paths : Files.Types.String_Vectors.Vector;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       Selected : Boolean;
-      Had_Xdg : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
-      Old_Xdg : constant String := Ada.Environment_Variables.Value ("XDG_DATA_HOME", "");
-      Old_Back : constant String := Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND", "xdg");
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
       procedure Restore is
       begin
-         if Had_Xdg then
-            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Old_Xdg);
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
-         end if;
-         Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", Old_Back);
          Files.Model.Clear_Paste_Execution (Model);
          Files.Refresh_Jobs.Cancel (Model);
       end Restore;
    begin
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       for Background in Boolean loop
          for Scenario in 1 .. 3 loop
             for Fault in 1 .. 3 loop
@@ -83,10 +78,19 @@ separate (Files_Suite.Operations)
                   end if;
                   Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                   Await_View (Model, Settings);
-                  Assert (Step.Status = Files.Operations.Operation_Success
-                          and then File_Has_Bytes (Source, "original bytes")
-                          and then not Ada.Directories.Exists (Redirected),
-                          "Undo restores to its recorded destination despite changed, truncated or missing sidecars");
+                  Files_Suite.Support.Assert_Equal
+                    (Step.Status,
+                     Files.Operations.Operation_Success,
+                     "Undo restores to its recorded destination despite changed, truncated or missing sidecars"
+                     & ": status");
+                  Assert
+                    (File_Has_Bytes (Source, "original bytes"),
+                     "Undo restores to its recorded destination despite changed, truncated or missing sidecars"
+                     & ": source restored");
+                  Assert
+                    (not Ada.Directories.Exists (Redirected),
+                     "Undo restores to its recorded destination despite changed, truncated or missing sidecars"
+                     & ": redirect target not created");
                end;
             end loop;
          end loop;

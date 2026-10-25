@@ -83,9 +83,14 @@ separate (Files_Suite.Operations)
                Write_Binary_File (Source, "unrelated target");
                Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Failed and then Files.Model.Undo_Available (Model)
-                       and then File_Has_Bytes (Source, "unrelated target"),
-                       "history cannot mark an unrelated existing target as already moved");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Failed,
+                  "history cannot mark an unrelated existing target as already moved: status");
+               Assert (Files.Model.Undo_Available (Model),
+                       "history cannot mark an unrelated existing target as already moved: Undo retained");
+               Assert (File_Has_Bytes (Source, "unrelated target"),
+                       "history cannot mark an unrelated existing target as already moved: target kept");
             end loop;
          end loop;
       end loop;

@@ -24,9 +24,17 @@ separate (Files_Suite.Operations)
 
             procedure Check_Recent is
             begin
-               Assert (Files.Model.In_Recent_View (Model) and then Files.Model.Current_Path (Model) = ""
-                       and then Files.Model.Visible_Count (Model) = Natural (Expected_Rows.Length),
-                       "Duplicate and history operations retain the complete Recent view");
+               Assert
+                 (Files.Model.In_Recent_View (Model),
+                  "Duplicate and history operations retain the complete Recent view: still in Recent");
+               Files_Suite.Support.Assert_Equal
+                 (Files.Model.Current_Path (Model),
+                  "",
+                  "Duplicate and history operations retain the complete Recent view: current path");
+               Files_Suite.Support.Assert_Equal
+                 (Files.Model.Visible_Count (Model),
+                  Natural (Expected_Rows.Length),
+                  "Duplicate and history operations retain the complete Recent view: visible count");
                for Index in Expected_Rows.First_Index .. Expected_Rows.Last_Index loop
                   Assert (Files.Model.Visible_Item (Model, Index).Full_Path = Expected_Rows.Element (Index),
                           "Recent keeps its order and its unselected rows after helper completion");
@@ -42,11 +50,18 @@ separate (Files_Suite.Operations)
                        "same-name Recent files duplicate beside their own sources with independent collision handling");
                Assert (File_Has_Bytes (Join (Copy_Bundle, "payload.txt"), "bundle bytes"),
                        "a Recent directory duplicates beside its source with complete contents");
-               Assert (File_Has_Bytes (Existing, "existing copy bytes")
-                       and then File_Has_Bytes (Source_A, "source a bytes")
-                       and then File_Has_Bytes (Source_B, "source b bytes")
-                       and then File_Has_Bytes (Unselected, "unselected bytes"),
-                       "Duplicate preserves sources, existing copies and unselected items");
+               Assert
+                 (File_Has_Bytes (Existing, "existing copy bytes"),
+                  "Duplicate preserves sources, existing copies and unselected items: existing copy");
+               Assert
+                 (File_Has_Bytes (Source_A, "source a bytes"),
+                  "Duplicate preserves sources, existing copies and unselected items: source a");
+               Assert
+                 (File_Has_Bytes (Source_B, "source b bytes"),
+                  "Duplicate preserves sources, existing copies and unselected items: source b");
+               Assert
+                 (File_Has_Bytes (Unselected, "unselected bytes"),
+                  "Duplicate preserves sources, existing copies and unselected items: unselected item");
             end Check_Copies;
 
             procedure Await_Refresh is
@@ -101,19 +116,37 @@ separate (Files_Suite.Operations)
                   exit when not Files.Model.Paste_Execution_Is_Active (Model);
                end loop;
             end if;
-            Assert (Step.Status = Files.Operations.Operation_Success
-                    and then not Files.Model.Paste_Execution_Is_Active (Model)
-                    and then Files.Model.Last_Error_Key (Model) = ""
-                    and then Files.Model.Undo_Available (Model),
-                    "Recent Duplicate reports success and records all created paths for Undo");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "Recent Duplicate reports success and records all created paths for Undo: status");
+            Assert
+              (not Files.Model.Paste_Execution_Is_Active (Model),
+               "Recent Duplicate reports success and records all created paths for Undo: paste finished");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Last_Error_Key (Model),
+               "",
+               "Recent Duplicate reports success and records all created paths for Undo: no error");
+            Assert
+              (Files.Model.Undo_Available (Model),
+               "Recent Duplicate reports success and records all created paths for Undo: undo available");
             Check_Recent;
             Check_Copies;
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-            Assert (Step.Status = Files.Operations.Operation_Success
-                    and then not Ada.Directories.Exists (Copy_A) and then not Ada.Directories.Exists (Copy_B)
-                    and then not Ada.Directories.Exists (Copy_Bundle),
-                    "Undo removes every adjacent copy from its source folder");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "Undo removes every adjacent copy from its source folder: status");
+            Assert
+              (not Ada.Directories.Exists (Copy_A),
+               "Undo removes every adjacent copy from its source folder: copy A removed");
+            Assert
+              (not Ada.Directories.Exists (Copy_B),
+               "Undo removes every adjacent copy from its source folder: copy B removed");
+            Assert
+              (not Ada.Directories.Exists (Copy_Bundle),
+               "Undo removes every adjacent copy from its source folder: bundle copy removed");
             Await_Refresh;
             Check_Recent;
             Assert (File_Has_Bytes (Existing, "existing copy bytes"), "Undo preserves the pre-existing copy collision");

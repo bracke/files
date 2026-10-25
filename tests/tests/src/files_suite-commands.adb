@@ -577,6 +577,10 @@ package body Files_Suite.Commands is
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "controller opens the settings pane");
       Result := Files.Controller.Execute_Command (Files.Commands.Close_Command_Palette_Command, Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Result.Status, Files.Controller.Controller_Command_Executed, "the close command runs over the settings pane");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command, Files.Commands.Close_Command_Palette_Command, "the close command reports itself");
       Assert
         (not Files.Model.Settings_Pane_Is_Open (Model),
          "the close command closes the settings pane rather than only dropping focus");
@@ -584,7 +588,6 @@ package body Files_Suite.Commands is
         (Files.Model.Focus (Model),
          Files.Types.Focus_None,
          "closing the settings pane releases its keyboard focus");
-      pragma Unreferenced (Result);
    end Test_Close_Command_Closes_Settings_Pane;
 
    procedure Test_Settings_Field_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -830,11 +833,15 @@ package body Files_Suite.Commands is
         (not Files.Commands.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
          "rename is disabled in the virtual recent view without a destination directory");
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status, Files.Operations.Operation_Disabled,
+         "disabled recent-view create reports the missing parent without starting an edit (status)");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model), "error.file.parent_missing",
+         "disabled recent-view create reports the missing parent without starting an edit (error key)");
       Assert
-        (Result.Operation.Status = Files.Operations.Operation_Disabled
-         and then Files.Model.Last_Error_Key (Model) = "error.file.parent_missing"
-         and then not Files.Model.Temporary_Item_Is_Active (Model),
-         "disabled recent-view create reports the missing parent without starting an edit");
+        (not Files.Model.Temporary_Item_Is_Active (Model),
+         "disabled recent-view create reports the missing parent without starting an edit (no edit started)");
       Result := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       Assert
         (Result.Operation.Status = Files.Operations.Operation_Disabled
@@ -1547,10 +1554,16 @@ package body Files_Suite.Commands is
       declare
          S : constant Files.Commands.Shortcut := Files.Commands.Parse_Shortcut ("control+shift+f7");
       begin
-         Assert (S.Present and then S.Key = Guikit.Input.Key_F7
-                 and then S.Modifiers (Guikit.Input.Control_Key)
-                 and then S.Modifiers (Guikit.Input.Shift_Key),
-                 "control+shift+f7 parses the expanded function key with both modifiers");
+         Assert (S.Present, "control+shift+f7 parses the expanded function key with both modifiers (present)");
+         Files_Suite.Support.Assert_Equal
+           (S.Key, Guikit.Input.Key_F7,
+            "control+shift+f7 parses the expanded function key with both modifiers (key)");
+         Assert
+           (S.Modifiers (Guikit.Input.Control_Key),
+            "control+shift+f7 parses the expanded function key with both modifiers (Control)");
+         Assert
+           (S.Modifiers (Guikit.Input.Shift_Key),
+            "control+shift+f7 parses the expanded function key with both modifiers (Shift)");
          --  Shown to people with the language's modifier names (the suite runs
          --  in English); the stored form above is unchanged.
          Files_Suite.Support.Assert_Equal
@@ -1822,24 +1835,40 @@ package body Files_Suite.Commands is
          "both selected names are being renamed");
 
       Moved := Files.Model.Rename_Set_All_Carets_Home (Model);
-      Moved := Files.Model.Rename_Delete_Forward (Model);
+      Assert (Files.Model.Rename_Delete_Forward (Model), "Delete removes one letter (a field changed)");
       Assert (Name (1) = U8 ("afé über.txt") and then Name (2) = U8 ("aïve ölig.txt"), "Delete removes one letter");
-      Moved := Files.Model.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right);
-      Moved := Files.Model.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right);
-      Moved := Files.Model.Rename_Delete_Forward (Model);
+      Assert
+        (Files.Model.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right),
+         "Delete after a multibyte letter takes the whole next letter (first caret move)");
+      Assert
+        (Files.Model.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right),
+         "Delete after a multibyte letter takes the whole next letter (second caret move)");
+      Assert
+        (Files.Model.Rename_Delete_Forward (Model),
+         "Delete after a multibyte letter takes the whole next letter (a field changed)");
       Assert (Name (1) = U8 ("af über.txt") and then Name (2) = U8 ("aïe ölig.txt"),
               "Delete after a multibyte letter takes the whole next letter");
-      Moved := Files.Model.Rename_Delete_Backward (Model);
+      Assert
+        (Files.Model.Rename_Delete_Backward (Model),
+         "Backspace takes the whole multibyte letter before the caret (a field changed)");
       Assert (Name (1) = U8 ("a über.txt") and then Name (2) = U8 ("ae ölig.txt"),
               "Backspace takes the whole multibyte letter before the caret");
 
       Moved := Files.Model.Rename_Set_All_Carets_Home (Model);
-      Moved := Files.Model.Rename_Delete_Word_Forward (Model);
-      Assert (All_Valid and then Ada.Strings.Fixed.Index (Name (1), U8 ("über")) > 0
-              and then Ada.Strings.Fixed.Index (Name (2), U8 ("ölig")) > 0,
-              "Ctrl+Delete removes the first word and leaves the next one whole");
+      Assert
+        (Files.Model.Rename_Delete_Word_Forward (Model),
+         "Ctrl+Delete removes the first word and leaves the next one whole (a field changed)");
+      Assert (All_Valid, "Ctrl+Delete removes the first word and leaves the next one whole (valid UTF-8)");
+      Assert
+        (Ada.Strings.Fixed.Index (Name (1), U8 ("über")) > 0,
+         "Ctrl+Delete removes the first word and leaves the next one whole (first name)");
+      Assert
+        (Ada.Strings.Fixed.Index (Name (2), U8 ("ölig")) > 0,
+         "Ctrl+Delete removes the first word and leaves the next one whole (second name)");
       Moved := Files.Model.Rename_Set_All_Carets_End (Model);
-      Moved := Files.Model.Rename_Delete_Word_Backward (Model);
+      Assert
+        (Files.Model.Rename_Delete_Word_Backward (Model),
+         "Ctrl+Backspace leaves every name valid UTF-8 (a field changed)");
       Assert (All_Valid, "Ctrl+Backspace leaves every name valid UTF-8");
    end Test_Multi_Rename_Multibyte_Edits;
 
@@ -1857,10 +1886,15 @@ package body Files_Suite.Commands is
    begin
       --  Matching folds every script's case, not just Latin-1, and a name
       --  that is not UTF-8 still matches by its bytes.
-      Assert (Files.Types.Contains_Case_Insensitive (U8 ("ПРИВЕТ мир"), U8 ("привет"))
-              and then Files.Types.Contains_Case_Insensitive (U8 ("ŁÓDŹ.txt"), U8 ("łódź"))
-              and then Files.Types.Contains_Case_Insensitive (U8 ("ΕΛΛΆΔΑ"), U8 ("ελλάδα")),
-              "Cyrillic, Polish and Greek names match case-insensitively");
+      Assert
+        (Files.Types.Contains_Case_Insensitive (U8 ("ПРИВЕТ мир"), U8 ("привет")),
+         "Cyrillic, Polish and Greek names match case-insensitively (Cyrillic)");
+      Assert
+        (Files.Types.Contains_Case_Insensitive (U8 ("ŁÓDŹ.txt"), U8 ("łódź")),
+         "Cyrillic, Polish and Greek names match case-insensitively (Polish)");
+      Assert
+        (Files.Types.Contains_Case_Insensitive (U8 ("ΕΛΛΆΔΑ"), U8 ("ελλάδα")),
+         "Cyrillic, Polish and Greek names match case-insensitively (Greek)");
       Assert (Files.Types.Contains_Case_Insensitive ("BAD" & Character'Val (16#FF#) & ".txt", "bad"),
               "a name that is not UTF-8 still matches");
       if I18N.Normalization.Available then
@@ -2328,11 +2362,15 @@ package body Files_Suite.Commands is
            [Character'Val (16#E0#), Character'Val (16#80#),
             Character'Val (16#80#)];
       begin
-         Assert
-           (Files.UTF8.Next_Boundary (Malformed, 0) = 1
-              and then Files.UTF8.Next_Boundary (Malformed, 1) = 2
-              and then Files.UTF8.Previous_Boundary (Malformed, 3) = 2,
-            "overlong UTF-8 bytes remain separate cursor and deletion units");
+         Files_Suite.Support.Assert_Equal
+           (Files.UTF8.Next_Boundary (Malformed, 0), 1,
+            "overlong UTF-8 bytes remain separate cursor and deletion units (next from 0)");
+         Files_Suite.Support.Assert_Equal
+           (Files.UTF8.Next_Boundary (Malformed, 1), 2,
+            "overlong UTF-8 bytes remain separate cursor and deletion units (next from 1)");
+         Files_Suite.Support.Assert_Equal
+           (Files.UTF8.Previous_Boundary (Malformed, 3), 2,
+            "overlong UTF-8 bytes remain separate cursor and deletion units (previous from 3)");
       end;
       Files.Controller.Replace_Focused_Text (Model, "beta");
    end Test_Filter_Word_Editing;

@@ -32,9 +32,16 @@ separate (Files_Suite.Operations)
                      Files.Transfer_Jobs.Run_Helper (Transport);
                      Outcome := Files.Transfer_Jobs.Testing.Read_Result
                        (Join (Transport, "result"));
-                     Assert (Outcome.Mutation.Success and then not Outcome.Cancelled
-                             and then Length (Outcome.Mutation.Error_Key) = 0,
-                             "the helper acknowledges a committed mutation despite a journal failure");
+                     Assert
+                       (Outcome.Mutation.Success,
+                        "the helper acknowledges a committed mutation despite a journal failure: success");
+                     Assert
+                       (not Outcome.Cancelled,
+                        "the helper acknowledges a committed mutation despite a journal failure: not cancelled");
+                     Files_Suite.Support.Assert_Equal
+                       (Length (Outcome.Mutation.Error_Key),
+                        0,
+                        "the helper acknowledges a committed mutation despite a journal failure: no error key");
                      Assert (Length (Outcome.Created_Identity) > 0
                              and then Outcome.Created_Identity = Files.File_Identities.Token (Dest),
                              "the helper result retains ownership without a publication journal");
@@ -48,10 +55,17 @@ separate (Files_Suite.Operations)
                      Actions.Append (Action);
                      Files.Model.Begin_Paste_Execution (Model, Actions, Mode);
                      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-                     Assert (Step.Status = Files.Operations.Operation_Success
-                             and then not Files.Model.Paste_Execution_Is_Active (Model)
-                             and then Files.Model.Last_Error_Key (Model) = "",
-                             "paste completion reports the committed mutation accurately");
+                     Files_Suite.Support.Assert_Equal
+                       (Step.Status,
+                        Files.Operations.Operation_Success,
+                        "paste completion reports the committed mutation accurately: status");
+                     Assert
+                       (not Files.Model.Paste_Execution_Is_Active (Model),
+                        "paste completion reports the committed mutation accurately: paste finished");
+                     Files_Suite.Support.Assert_Equal
+                       (Files.Model.Last_Error_Key (Model),
+                        "",
+                        "paste completion reports the committed mutation accurately: no error");
                      Assert (Files.Model.Undo_Available (Model),
                              "paste still records Undo when the publication journal is unavailable");
                   end if;

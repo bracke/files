@@ -3,18 +3,11 @@ separate (Files_Suite.Operations)
       pragma Unreferenced (T);
       Active          : Files.Process_Jobs.Session;
       Shutdown_Control : constant String := Join (Root, "shutdown-coordinator");
-      Had_Scavenge_Stall : constant Boolean :=
-        Ada.Environment_Variables.Exists ("FILES_TEST_STALL_SCAVENGER");
-      Old_Scavenge_Stall : constant String :=
-        Ada.Environment_Variables.Value ("FILES_TEST_STALL_SCAVENGER", "");
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
 
       procedure Restore is
       begin
-         if Had_Scavenge_Stall then
-            Ada.Environment_Variables.Set ("FILES_TEST_STALL_SCAVENGER", Old_Scavenge_Stall);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TEST_STALL_SCAVENGER");
-         end if;
          if Ada.Directories.Exists (Shutdown_Control & ".started")
            and then not Ada.Directories.Exists (Shutdown_Control & ".release")
          then
@@ -23,6 +16,7 @@ separate (Files_Suite.Operations)
          Files.Process_Jobs.Reset (Active);
       end Restore;
    begin
+      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_SCAVENGER");
       Reset_Root;
       --  A live job keeps its transport present, as it is during startup recovery.
       Files.Process_Jobs.Reserve (Active);

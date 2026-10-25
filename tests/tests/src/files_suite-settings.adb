@@ -662,11 +662,15 @@ package body Files_Suite.Settings is
            (To_String (Expanded.Arguments.Element (1)),
             "/tmp/example",
             "a POSIX backslash filename keeps its real parent");
-         Assert
-           (To_String (Expanded.Arguments.Element (2)) = "a\b.txt"
-            and then To_String (Expanded.Arguments.Element (3)) = "a\b"
-            and then To_String (Expanded.Arguments.Element (4)) = "txt",
-            "a POSIX backslash remains part of name and stem placeholders");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Expanded.Arguments.Element (2)), "a\b.txt",
+            "a POSIX backslash remains part of name and stem placeholders (name)");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Expanded.Arguments.Element (3)), "a\b",
+            "a POSIX backslash remains part of name and stem placeholders (stem)");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Expanded.Arguments.Element (4)), "txt",
+            "a POSIX backslash remains part of name and stem placeholders (extension)");
       end if;
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "C:\tmp\dir.with.dots\main.adb");
       Files_Suite.Support.Assert_Equal
@@ -3654,10 +3658,10 @@ package body Files_Suite.Settings is
            Files.Commands.Shortcut_Override (Files.Commands.Select_Small_Icons_Command, Is_Set);
       begin
          pragma Unreferenced (Ignore);
-         Assert (SC.Present and then SC.Key = Guikit.Input.Key_5
-                 and then SC.Modifiers (Guikit.Input.Control_Key)
-                 and then SC.Modifiers (Guikit.Input.Shift_Key),
-                 "the live keymap reflects the rebind");
+         Assert (SC.Present, "the live keymap reflects the rebind (present)");
+         Files_Suite.Support.Assert_Equal (SC.Key, Guikit.Input.Key_5, "the live keymap reflects the rebind (key)");
+         Assert (SC.Modifiers (Guikit.Input.Control_Key), "the live keymap reflects the rebind (Control)");
+         Assert (SC.Modifiers (Guikit.Input.Shift_Key), "the live keymap reflects the rebind (Shift)");
          Assert (Is_Set, "the rebind is recorded as an override");
          Files_Suite.Support.Assert_Equal
            (Row_Value ("shortcut.view.small"),

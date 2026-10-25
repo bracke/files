@@ -55,10 +55,12 @@ separate (Files_Suite.Operations)
          Assert (not Files.Model.Paste_Execution_Is_Active (Model)
                  and then Step.Status = Files.Operations.Operation_Failed,
                  "refused source removal completes as a failed replacement");
-         Assert (not Files.Model.Undo_Available (Model)
-                 and then File_Has_Bytes (Dest, "original")
-                 and then File_Has_Bytes (Join (Locked, "keep"), "complete"),
-                 "rollback restores the original, preserves the source and leaves no unusable history");
+         Assert (not Files.Model.Undo_Available (Model),
+                 "rollback restores the original, preserves the source and leaves no unusable history: no history");
+         Assert (File_Has_Bytes (Dest, "original"),
+                 "rollback restores the original, preserves the source and leaves no unusable history: original");
+         Assert (File_Has_Bytes (Join (Locked, "keep"), "complete"),
+                 "rollback restores the original, preserves the source and leaves no unusable history: source");
          Await_View (Model, Settings);
          Result := Files.File_System.Set_Permissions (Locked, 8#755#);
          Project_Tools.Files.Delete_Tree (Tree);

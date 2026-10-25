@@ -8,18 +8,11 @@ separate (Files_Suite.Operations)
       Report_Path     : constant String := Join (Root, "abandoned-transport");
       Pre_Lease_Report : constant String := Join (Root, "pre-lease-transport");
       Scavenge_Control : constant String := Join (Root, "scavenge-coordinator");
-      Had_Scavenge_Stall : constant Boolean :=
-        Ada.Environment_Variables.Exists ("FILES_TEST_STALL_SCAVENGER");
-      Old_Scavenge_Stall : constant String :=
-        Ada.Environment_Variables.Value ("FILES_TEST_STALL_SCAVENGER", "");
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
 
       procedure Restore is
       begin
-         if Had_Scavenge_Stall then
-            Ada.Environment_Variables.Set ("FILES_TEST_STALL_SCAVENGER", Old_Scavenge_Stall);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TEST_STALL_SCAVENGER");
-         end if;
          if Ada.Directories.Exists (Scavenge_Control & ".started")
            and then not Ada.Directories.Exists (Scavenge_Control & ".release")
          then
@@ -30,6 +23,7 @@ separate (Files_Suite.Operations)
          Remove_Transport_Fixture (Pre_Lease_Path);
       end Restore;
    begin
+      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_SCAVENGER");
       Reset_Root;
       Files.Process_Jobs.Reserve (Active);
       Active_Path := To_Unbounded_String (Files.Process_Jobs.Path (Active, ""));
@@ -37,9 +31,11 @@ separate (Files_Suite.Operations)
       Create_Abandoned_Transport (Report_Path, Abandoned_Path);
       Create_Abandoned_Transport (Pre_Lease_Report, Pre_Lease_Path);
       Assert
-        (Ada.Directories.Exists (To_String (Abandoned_Path))
-         and then Ada.Directories.Exists (To_String (Pre_Lease_Path)),
-         "abnormal exits leave their transports for startup recovery");
+        (Ada.Directories.Exists (To_String (Abandoned_Path)),
+         "abnormal exits leave their transports for startup recovery: the abandoned transport");
+      Assert
+        (Ada.Directories.Exists (To_String (Pre_Lease_Path)),
+         "abnormal exits leave their transports for startup recovery: the pre-lease transport");
       declare
          Marker_Header : constant String := "files-job-transport-4";
          Marker_Path   : constant String := Join (To_String (Pre_Lease_Path), ".files-job-transport");
@@ -61,10 +57,9 @@ separate (Files_Suite.Operations)
          Recorded_Owner := To_Unbounded_String
            (String'Input (Ada.Streams.Stream_IO.Stream (Marker_File)));
          Ada.Streams.Stream_IO.Close (Marker_File);
-         Assert
-           (To_String (Recorded_Header) = Marker_Header
-            and then Length (Recorded_Owner) > 0,
-            "the current fixture includes its lease identity");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Recorded_Header), Marker_Header, "the current fixture includes its lease identity: header");
+         Assert (Length (Recorded_Owner) > 0, "the current fixture includes its lease identity: owner recorded");
          Marker_Data (Header_At + Marker_Header'Length - 1) := '3';
          Write_Binary_File (Marker_Path, Marker_Data);
          declare
@@ -110,15 +105,16 @@ separate (Files_Suite.Operations)
          First, Second : Files.Job_Transports.Lease;
       begin
          Assert
-           (Files.Job_Transports.Claim_Abandoned
-               (To_String (Abandoned_Path), Identity, First) =
-                 Files.Job_Transports.Claim_Acquired
-             and then Files.Job_Transports.Holds
-               (First, To_String (Abandoned_Path))
-             and then Files.Job_Transports.Claim_Abandoned
-               (To_String (Abandoned_Path), Identity, Second) =
-                 Files.Job_Transports.Claim_Busy,
-             "an abandoned transport has one acquired claim and reports later claims as busy");
+           (Files.Job_Transports.Claim_Abandoned (To_String (Abandoned_Path), Identity, First) =
+              Files.Job_Transports.Claim_Acquired,
+            "an abandoned transport has one acquired claim and reports later claims as busy: first claim acquired");
+         Assert
+           (Files.Job_Transports.Holds (First, To_String (Abandoned_Path)),
+            "an abandoned transport has one acquired claim and reports later claims as busy: first claim holds");
+         Assert
+           (Files.Job_Transports.Claim_Abandoned (To_String (Abandoned_Path), Identity, Second) =
+              Files.Job_Transports.Claim_Busy,
+            "an abandoned transport has one acquired claim and reports later claims as busy: second claim busy");
       end;
 
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_SCAVENGER", Scavenge_Control);
@@ -127,10 +123,16 @@ separate (Files_Suite.Operations)
          exit when Ada.Directories.Exists (Scavenge_Control & ".started");
       end loop;
       Assert
-        (Ada.Directories.Exists (Scavenge_Control & ".started")
-         and then Ada.Directories.Exists (To_String (Abandoned_Path))
-         and then Ada.Directories.Exists (To_String (Pre_Lease_Path)),
-         "startup recovery uses one bounded coordinator before processing transports");
+        (Ada.Directories.Exists (Scavenge_Control & ".started"),
+         "startup recovery uses one bounded coordinator before processing transports: the coordinator started");
+      Assert
+        (Ada.Directories.Exists (To_String (Abandoned_Path)),
+         "startup recovery uses one bounded coordinator before processing transports: "
+         & "the abandoned transport is still there");
+      Assert
+        (Ada.Directories.Exists (To_String (Pre_Lease_Path)),
+         "startup recovery uses one bounded coordinator before processing transports: "
+         & "the pre-lease transport is still there");
       declare
          First_Child : constant String :=
            Project_Tools.Files.Read_Raw_File (Scavenge_Control & ".started");
@@ -152,8 +154,10 @@ separate (Files_Suite.Operations)
          Same_Child := Project_Tools.Files.Read_Raw_File
            (Scavenge_Control & ".started") = First_Child;
          Write_Binary_File (Scavenge_Control & ".release", "release");
-         Assert (Returned_Before_Release and then Same_Child,
-                 "a repeated scan returns promptly without starting another coordinator");
+         Assert (Returned_Before_Release,
+                 "a repeated scan returns promptly without starting another coordinator: returned before release");
+         Assert (Same_Child,
+                 "a repeated scan returns promptly without starting another coordinator: same coordinator");
       exception
          when others =>
             Write_Binary_File (Scavenge_Control & ".release", "release");
@@ -163,9 +167,13 @@ separate (Files_Suite.Operations)
          exit when not Ada.Directories.Exists (To_String (Abandoned_Path));
       end loop;
       Assert
-        (not Ada.Directories.Exists (To_String (Abandoned_Path))
-         and then Ada.Directories.Exists (To_String (Pre_Lease_Path)),
-         "startup scavenging removes abandoned jobs but preserves unprovable development transports");
+        (not Ada.Directories.Exists (To_String (Abandoned_Path)),
+         "startup scavenging removes abandoned jobs but preserves unprovable development transports: "
+         & "abandoned removed");
+      Assert
+        (Ada.Directories.Exists (To_String (Pre_Lease_Path)),
+         "startup scavenging removes abandoned jobs but preserves unprovable development transports: "
+         & "development transport kept");
       Assert
         (Ada.Directories.Exists (To_String (Active_Path)),
          "startup scavenging preserves a transport whose owner is still live");

@@ -42,12 +42,20 @@ separate (Files_Suite.Operations)
       Files.Model.Toggle_Rename (Model);
       Files.Model.Set_Rename_Text (Model, "recent-renamed-must-not-write-7f62b1");
       Result := Files.Operations.Commit_Rename (Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Disabled,
+         "direct recent-view rename cannot move an item into the process directory: status");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.rename.disabled",
+         "direct recent-view rename cannot move an item into the process directory: error key");
       Assert
-        (Result.Status = Files.Operations.Operation_Disabled
-         and then Files.Model.Last_Error_Key (Model) = "error.rename.disabled"
-         and then Ada.Directories.Exists (Join (Root, "created.txt"))
-         and then not Ada.Directories.Exists ("recent-renamed-must-not-write-7f62b1"),
-         "direct recent-view rename cannot move an item into the process directory");
+        (Ada.Directories.Exists (Join (Root, "created.txt")),
+         "direct recent-view rename cannot move an item into the process directory: source kept");
+      Assert
+        (not Ada.Directories.Exists ("recent-renamed-must-not-write-7f62b1"),
+         "direct recent-view rename cannot move an item into the process directory: nothing written");
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Files.Model.Begin_Create_File (Model, Guard_Name);
       Result := Files.Operations.Commit_Create_File (Model, Settings);
@@ -69,15 +77,27 @@ separate (Files_Suite.Operations)
       Files.Model.Set_Filter (Model, "created");
       Files.Model.Set_Background_Transfers (Model, True);
       Result := Files.Operations.Run_Recursive_Search (Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Disabled,
+         "recent-view name search is rejected before a background helper starts: status");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.directory.load",
+         "recent-view name search is rejected before a background helper starts: error key");
       Assert
-        (Result.Status = Files.Operations.Operation_Disabled
-         and then Files.Model.Last_Error_Key (Model) = "error.directory.load"
-         and then not Files.Process_Jobs.Active (Files.Model.Background_Operation (Model)),
-         "recent-view name search is rejected before a background helper starts");
+        (not Files.Process_Jobs.Active (Files.Model.Background_Operation (Model)),
+         "recent-view name search is rejected before a background helper starts: no helper");
       Result := Files.Operations.Run_Content_Search (Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Disabled,
+         "recent-view content search is rejected before a background helper starts: status");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.directory.load",
+         "recent-view content search is rejected before a background helper starts: error key");
       Assert
-        (Result.Status = Files.Operations.Operation_Disabled
-         and then Files.Model.Last_Error_Key (Model) = "error.directory.load"
-         and then not Files.Process_Jobs.Active (Files.Model.Background_Operation (Model)),
-         "recent-view content search is rejected before a background helper starts");
+        (not Files.Process_Jobs.Active (Files.Model.Background_Operation (Model)),
+         "recent-view content search is rejected before a background helper starts: no helper");
    end Test_Commit_Create_File;

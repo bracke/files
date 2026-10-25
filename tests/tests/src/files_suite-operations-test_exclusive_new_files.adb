@@ -9,8 +9,9 @@ separate (Files_Suite.Operations)
       if Hostkit.Host.Current = Hostkit.Host.Linux then
          Assert (Hostkit.Fs.Create_Link (Target, Link), "create a dangling symbolic link");
          Mutation := Files.File_System.Create_Empty_File (Link);
-         Assert (not Mutation.Success and then Hostkit.Fs.Is_Link (Link)
-                 and then not Ada.Directories.Exists (Target), "creation preserves a dangling link and its target");
+         Assert (not Mutation.Success, "creation preserves a dangling link and its target: refused");
+         Assert (Hostkit.Fs.Is_Link (Link), "creation preserves a dangling link and its target: link kept");
+         Assert (not Ada.Directories.Exists (Target), "creation preserves a dangling link and its target: no target");
          Write_Binary_File (Target, "existing bytes");
          Mutation := Files.File_System.Create_Empty_File (Link);
          Assert (not Mutation.Success and then File_Has_Bytes (Target, "existing bytes"),
@@ -35,9 +36,15 @@ separate (Files_Suite.Operations)
             if Available and then User_Id /= 0 then
                Assert (Files.File_System.Set_Permissions (Parent, 8#555#).Success, "prepare a read-only parent");
                Mutation := Files.File_System.Create_Empty_File (Join (Parent, "child"));
-               Assert (not Mutation.Success and then To_String (Mutation.Error_Key) = "error.io.denied"
-                       and then not Ada.Directories.Exists (Join (Parent, "child")),
-                       "a creation access failure reports permission denied without claiming a collision");
+               Assert (not Mutation.Success,
+                       "a creation access failure reports permission denied without claiming a collision: refused");
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Mutation.Error_Key),
+                  "error.io.denied",
+                  "a creation access failure reports permission denied without claiming a collision: error key");
+               Assert (not Ada.Directories.Exists (Join (Parent, "child")),
+                       "a creation access failure reports permission denied without claiming a collision: "
+                       & "nothing created");
             end if;
             Mutation := Files.File_System.Set_Permissions (Parent, 8#755#);
          exception

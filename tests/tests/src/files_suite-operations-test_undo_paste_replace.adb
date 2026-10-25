@@ -3,49 +3,12 @@ separate (Files_Suite.Operations)
       pragma Unreferenced (T);
       Settings    : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Trash_Home  : constant String := Root & "_replace_xdg";
-      Had_Xdg     : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
-      Had_Home    : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
-      Had_Backend : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
-      Old_Xdg     : Unbounded_String;
-      Old_Home    : Unbounded_String;
-      Old_Backend : Unbounded_String;
-
-      procedure Restore_Environment is
-      begin
-         if Had_Xdg then
-            Ada.Environment_Variables.Set ("XDG_DATA_HOME", To_String (Old_Xdg));
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
-         end if;
-
-         if Had_Home then
-            Ada.Environment_Variables.Set ("HOME", To_String (Old_Home));
-         else
-            Ada.Environment_Variables.Clear ("HOME");
-         end if;
-
-         if Had_Backend then
-            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", To_String (Old_Backend));
-         else
-            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         end if;
-      end Restore_Environment;
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Environment_Guard;
    begin
       Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
       Files_Suite.Support.Save (Environment, "HOME");
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
-      if Had_Xdg then
-         Old_Xdg := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
-      end if;
-      if Had_Home then
-         Old_Home := To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
-      end if;
-      if Had_Backend then
-         Old_Backend := To_Unbounded_String (Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND"));
-      end if;
-
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
       --  Sandbox the trash so Clear_Replaced_Destination can trash the overwritten
@@ -81,6 +44,8 @@ separate (Files_Suite.Operations)
          Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
          Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
          Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 8);
+         Files_Suite.Support.Assert_Equal
+           (Step.Status, Files.Operations.Operation_Success, "the copy-replace paste succeeds");
          Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the copy-replace paste finalizes");
          Files_Suite.Support.Assert_Equal
            (Files.File_System.Read_Preview_Text (Dest, 3),
@@ -127,6 +92,8 @@ separate (Files_Suite.Operations)
          Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
          Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
          Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 8);
+         Files_Suite.Support.Assert_Equal
+           (Step.Status, Files.Operations.Operation_Success, "the move-replace paste succeeds");
          Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the move-replace paste finalizes");
          Assert
            (Files.File_System.Read_Preview_Text (Dest, 3) = "new"
@@ -150,6 +117,5 @@ separate (Files_Suite.Operations)
          end if;
       end;
 
-      Restore_Environment;
       Project_Tools.Files.Delete_Tree (Trash_Home);
    end Test_Undo_Paste_Replace;

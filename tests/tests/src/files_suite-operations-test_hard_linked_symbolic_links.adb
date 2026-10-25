@@ -10,10 +10,16 @@ separate (Files_Suite.Operations)
          Second : constant String := Join (Path, "sub/second");
          Target : Unbounded_String;
       begin
-         Assert (Hostkit.Fs.Is_Link (First) and then Hostkit.Fs.Is_Link (Second)
-                 and then Files.File_Identities.Token (First) /= ""
-                 and then Files.File_Identities.Token (First) = Files.File_Identities.Token (Second),
-                 "copied symbolic links retain their shared inode across child directories");
+         Assert (Hostkit.Fs.Is_Link (First),
+                 "copied symbolic links retain their shared inode across child directories: first is a link");
+         Assert (Hostkit.Fs.Is_Link (Second),
+                 "copied symbolic links retain their shared inode across child directories: second is a link");
+         Assert (Files.File_Identities.Token (First) /= "",
+                 "copied symbolic links retain their shared inode across child directories: identity");
+         Files_Suite.Support.Assert_Equal
+           (Files.File_Identities.Token (First),
+            Files.File_Identities.Token (Second),
+            "copied symbolic links retain their shared inode across child directories: shared inode");
          Assert (Hostkit.Fs.Read_Link_Target (First, Target) and then To_String (Target) = "missing-target",
                  "hard-link preservation neither resolves nor alters a symbolic link target");
       end Check;

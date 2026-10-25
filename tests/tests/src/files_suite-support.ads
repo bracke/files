@@ -57,6 +57,50 @@ package Files_Suite.Support is
    --  @param Message What the check is about.
    procedure Assert_Equal (Actual, Expected : Boolean; Message : String);
 
+   --  Assert that the rectangle at X, Y of Width by Height lies inside the
+   --  one at Outer_X, Outer_Y of Outer_Width by Outer_Height. Each edge is
+   --  its own check, so a failure names the edge that crosses ("left edge",
+   --  "top edge", "right edge", "bottom edge") and both coordinates.
+   --
+   --  @param X Inner left.
+   --  @param Y Inner top.
+   --  @param Width Inner width.
+   --  @param Height Inner height.
+   --  @param Outer_X Outer left.
+   --  @param Outer_Y Outer top.
+   --  @param Outer_Width Outer width.
+   --  @param Outer_Height Outer height.
+   --  @param Message What the check is about.
+   procedure Assert_Inside
+     (X, Y, Width, Height                         : Integer;
+      Outer_X, Outer_Y, Outer_Width, Outer_Height : Integer;
+      Message                                     : String);
+
+   --  Assert that the rectangle at X, Y of Width by Height is not empty and
+   --  ends inside a Frame_Width by Frame_Height framebuffer. Each part is its
+   --  own check ("width", "height", "right edge", "bottom edge").
+   --
+   --  @param X Left.
+   --  @param Y Top.
+   --  @param Width Width, which must be positive.
+   --  @param Height Height, which must be positive.
+   --  @param Frame_Width Framebuffer width.
+   --  @param Frame_Height Framebuffer height.
+   --  @param Message What the check is about.
+   procedure Assert_Fits
+     (X, Y, Width, Height       : Integer;
+      Frame_Width, Frame_Height : Integer;
+      Message                   : String);
+
+   --  Assert Low <= Value <= High, one check per bound ("below" / "above"),
+   --  each saying the value and the bound it crossed.
+   --
+   --  @param Value Observed value.
+   --  @param Low Smallest allowed value.
+   --  @param High Largest allowed value.
+   --  @param Message What the check is about.
+   procedure Assert_Between (Value, Low, High : Float; Message : String);
+
    --  Assert_Equal for the enumerations the suite compares most.
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Operations.Operation_Status);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Commands.Command_Id);

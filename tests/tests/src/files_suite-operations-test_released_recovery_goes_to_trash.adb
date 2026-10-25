@@ -4,27 +4,13 @@ separate (Files_Suite.Operations)
       Dest       : constant String := Join (Root, "replaced.txt");
       Trash_Home : constant String := Root & "_release_xdg";
       Trashed    : constant String := Join (Join (Join (Trash_Home, "Trash"), "files"), "replaced.txt");
-      Had_Back   : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
-      Old_Back   : constant String := Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND", "");
-      Had_Xdg    : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
-      Old_Xdg    : constant String := Ada.Environment_Variables.Value ("XDG_DATA_HOME", "");
       Backup     : Files.Types.UString;
       Result     : Files.File_System.Mutation_Result;
-
-      procedure Restore_Environment is
-      begin
-         if Had_Back then
-            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", Old_Back);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         end if;
-         if Had_Xdg then
-            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Old_Xdg);
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
-         end if;
-      end Restore_Environment;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
    begin
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
          Files_Suite.Support.Skip
            ("Test_Released_Recovery_Goes_To_Trash",
@@ -56,10 +42,5 @@ separate (Files_Suite.Operations)
          "the trash holds the original under its own name");
       Assert (not Ada.Directories.Exists (Ada.Directories.Containing_Directory (To_String (Backup))),
               "the hidden recovery folder is gone");
-      Restore_Environment;
       Project_Tools.Files.Delete_Tree (Trash_Home);
-   exception
-      when others =>
-         Restore_Environment;
-         raise;
    end Test_Released_Recovery_Goes_To_Trash;

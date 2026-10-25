@@ -9,17 +9,12 @@ separate (Files_Suite.Operations)
       Sources : Files.Types.String_Vectors.Vector;
       Source_Parent : constant String := Join (Root, "source");
       Destination : constant String := Join (Root, "destination");
-      Old_XDG : constant String := Ada.Environment_Variables.Value ("XDG_DATA_HOME", "");
-      Had_XDG : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
       procedure Restore is
       begin
          if Ada.Directories.Exists (Source_Parent) then
             Mutation := Files.File_System.Set_Permissions (Source_Parent, 8#755#);
-         end if;
-         if Had_XDG then
-            Ada.Environment_Variables.Set ("XDG_DATA_HOME", Old_XDG);
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
          end if;
       end Restore;
    begin
@@ -27,6 +22,7 @@ separate (Files_Suite.Operations)
          Files_Suite.Support.Skip ("Test_Failed_Move_Rollback", "Hostkit.Host.Current /= Hostkit.Host.Linux");
          return;
       end if;
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
       for Background in Boolean loop
          for Replace in Boolean loop
             Reset_Root;
@@ -54,10 +50,14 @@ separate (Files_Suite.Operations)
             Step := Complete_Operation (Model, Settings, Step);
             Await_View (Model, Settings);
             Mutation := Files.File_System.Set_Permissions (Source_Parent, 8#755#);
-            Assert (Step.Status = Files.Operations.Operation_Failed
-                    and then File_Has_Bytes (Join (Source_Parent, "item.txt"), "source bytes")
-                    and then not Files.Model.Undo_Available (Model),
-                    "a refused move leaves its source intact and no unusable Undo entry");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Failed,
+               "a refused move leaves its source intact and no unusable Undo entry: the move fails");
+            Assert (File_Has_Bytes (Join (Source_Parent, "item.txt"), "source bytes"),
+                    "a refused move leaves its source intact and no unusable Undo entry: source intact");
+            Assert (not Files.Model.Undo_Available (Model),
+                    "a refused move leaves its source intact and no unusable Undo entry: no Undo entry");
             Assert ((if Replace then File_Has_Bytes (Join (Destination, "item.txt"), "original bytes")
                      else not Ada.Directories.Exists (Join (Destination, "item.txt"))),
                     "the published copy is removed and a replaced destination is restored");

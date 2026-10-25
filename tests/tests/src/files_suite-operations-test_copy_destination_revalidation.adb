@@ -66,16 +66,24 @@ separate (Files_Suite.Operations)
             Plans := Files.File_System.Plan_Drop_Import
               (Paths, Parent, Files.File_System.Drop_Move);
             Assert
-              (Plans.Success
-               and then Natural (Plans.Plans.Length) = 1
-               and then To_String (Plans.Plans.First_Element.Destination_Path) = Stay,
-               "a move through an alias to the same directory is planned as a no-op");
+              (Plans.Success, "a move through an alias to the same directory is planned as a no-op: planned");
+            Files_Suite.Support.Assert_Equal
+              (Natural (Plans.Plans.Length),
+               1,
+               "a move through an alias to the same directory is planned as a no-op: plan count");
+            Files_Suite.Support.Assert_Equal
+              (To_String (Plans.Plans.First_Element.Destination_Path),
+               Stay,
+               "a move through an alias to the same directory is planned as a no-op: destination");
             Mutation := Files.File_System.Execute_Drop_Import (Plans.Plans);
             Assert
-              (Mutation.Success
-               and then File_Has_Bytes (Stay, "stay")
-               and then not Ada.Directories.Exists (Join (Child, "stay 2.txt")),
-               "the aliased same-directory move keeps the original name and bytes");
+              (Mutation.Success, "the aliased same-directory move keeps the original name and bytes: succeeds");
+            Assert
+              (File_Has_Bytes (Stay, "stay"),
+               "the aliased same-directory move keeps the original name and bytes: bytes");
+            Assert
+              (not Ada.Directories.Exists (Join (Child, "stay 2.txt")),
+               "the aliased same-directory move keeps the original name and bytes: no renamed copy");
             Ada.Directories.Delete_File (Stay);
          end;
          Mutation := Files.File_System.Copy_Tree (Source, Dest);

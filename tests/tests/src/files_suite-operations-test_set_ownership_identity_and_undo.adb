@@ -63,8 +63,8 @@ separate (Files_Suite.Operations)
          Now_Avail        : Boolean := False;
       begin
          Files.File_System.Ownership_Of (Target, New_Uid, New_Gid, Now_Avail);
-         Assert
-           (Now_Avail and then New_Uid = Uid and then New_Gid = Gid,
-            "ownership is unchanged after identity chown and undo");
+         Assert (Now_Avail, "ownership is unchanged after identity chown and undo: ownership readable");
+         Assert (New_Uid = Uid, "ownership is unchanged after identity chown and undo: uid");
+         Assert (New_Gid = Gid, "ownership is unchanged after identity chown and undo: gid");
       end;
    end Test_Set_Ownership_Identity_And_Undo;

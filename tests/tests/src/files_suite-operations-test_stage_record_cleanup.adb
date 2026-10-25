@@ -121,14 +121,21 @@ separate (Files_Suite.Operations)
          Ada.Directories.Delete_File (Record_Alias);
       end if;
       Assert
-        (not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-corrupt"))
-         and then not Ada.Directories.Exists
-           (Join (Join (Transport, "stages"), "stage-oversized"))
-         and then not Ada.Directories.Exists
-           (Join (Join (Transport, "stages"), "stage-truncated"))
-         and then not Ada.Directories.Exists
-           (Join (Join (Transport, "stages"), "stage-relative")),
-         "malformed and allocation-sized stage records are discarded without trusting their contents");
+        (not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-corrupt")),
+         "malformed and allocation-sized stage records are discarded without trusting their contents"
+         & ": corrupt record discarded");
+      Assert
+        (not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-oversized")),
+         "malformed and allocation-sized stage records are discarded without trusting their contents"
+         & ": oversized record discarded");
+      Assert
+        (not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-truncated")),
+         "malformed and allocation-sized stage records are discarded without trusting their contents"
+         & ": truncated record discarded");
+      Assert
+        (not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-relative")),
+         "malformed and allocation-sized stage records are discarded without trusting their contents"
+         & ": relative record discarded");
       Assert (not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-absent")),
               "a write-ahead reservation with no created pathname is discarded safely");
       Assert
@@ -172,10 +179,14 @@ separate (Files_Suite.Operations)
       begin
          Assert_Within (Before, Prompt_Limit, "bounded cleanup gives up on malformed stage records without waiting");
          Assert
-           (not Cleaned
-            and then not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-corrupt"))
-            and then not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-truncated")),
-            "bounded cleanup does not retry permanently malformed stage records");
+           (not Cleaned,
+            "bounded cleanup does not retry permanently malformed stage records: not reported as cleaned");
+         Assert
+           (not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-corrupt")),
+            "bounded cleanup does not retry permanently malformed stage records: corrupt record gone");
+         Assert
+           (not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-truncated")),
+            "bounded cleanup does not retry permanently malformed stage records: truncated record gone");
       end;
       Files.Job_Context.Initialize ("");
       Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Root));

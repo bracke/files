@@ -104,17 +104,29 @@ separate (Files_Suite.Operations)
                Files.Model.Set_Clipboard
                  (Trash_Model, Trash_Sources, Files.Model.Clipboard_Copy);
                Assert
-                 (not Files.Commands.Is_Enabled (Files.Commands.Create_File_Command, Trash_Model)
-                  and then not Files.Commands.Is_Enabled (Files.Commands.New_Folder_Command, Trash_Model)
-                  and then not Files.Commands.Is_Enabled (Files.Commands.Paste_Items_Command, Trash_Model),
-                  "create and paste commands are disabled in the trash payload view");
+                 (not Files.Commands.Is_Enabled (Files.Commands.Create_File_Command, Trash_Model),
+                  "create and paste commands are disabled in the trash payload view: create file disabled");
                Assert
-                 (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Trash_Model)
-                  and then not Files.Commands.Is_Enabled (Files.Commands.Cut_Selected_Items_Command, Trash_Model)
-                  and then not Files.Commands.Is_Enabled (Files.Commands.Duplicate_Selected_Command, Trash_Model)
-                  and then not Files.Commands.Is_Enabled (Files.Commands.Compress_Zip_Command, Trash_Model)
-                  and then not Files.Commands.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Trash_Model),
-                  "commands that would desynchronize trash metadata are disabled");
+                 (not Files.Commands.Is_Enabled (Files.Commands.New_Folder_Command, Trash_Model),
+                  "create and paste commands are disabled in the trash payload view: new folder disabled");
+               Assert
+                 (not Files.Commands.Is_Enabled (Files.Commands.Paste_Items_Command, Trash_Model),
+                  "create and paste commands are disabled in the trash payload view: paste disabled");
+               Assert
+                 (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Trash_Model),
+                  "commands that would desynchronize trash metadata are disabled: delete disabled");
+               Assert
+                 (not Files.Commands.Is_Enabled (Files.Commands.Cut_Selected_Items_Command, Trash_Model),
+                  "commands that would desynchronize trash metadata are disabled: cut disabled");
+               Assert
+                 (not Files.Commands.Is_Enabled (Files.Commands.Duplicate_Selected_Command, Trash_Model),
+                  "commands that would desynchronize trash metadata are disabled: duplicate disabled");
+               Assert
+                 (not Files.Commands.Is_Enabled (Files.Commands.Compress_Zip_Command, Trash_Model),
+                  "commands that would desynchronize trash metadata are disabled: compress disabled");
+               Assert
+                 (not Files.Commands.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Trash_Model),
+                  "commands that would desynchronize trash metadata are disabled: rename disabled");
                Files.Model.Set_Background_Transfers (Trash_Model, True);
                Trash_Result := Files.Operations.Delete_Selected (Trash_Model, Settings);
                Assert

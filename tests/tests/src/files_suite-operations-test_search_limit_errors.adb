@@ -24,11 +24,21 @@ separate (Files_Suite.Operations)
             Step := (if Contents then Files.Operations.Run_Content_Search (Model, Settings)
                      else Files.Operations.Run_Recursive_Search (Model, Settings));
             Step := Complete_Operation (Model, Settings, Step);
-            Assert (Step.Status = Files.Operations.Operation_Failed
-                    and then To_String (Step.Error_Key) = "error.search.failed"
-                    and then Files.Model.Item_Count (Model) = 1
-                    and then not Files.Model.Search_Results_Are_Active (Model),
-                    "a skipped deep subtree is a failed search, preserving the prior listing");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Failed,
+               "a skipped deep subtree is a failed search, preserving the prior listing: status");
+            Files_Suite.Support.Assert_Equal
+              (To_String (Step.Error_Key),
+               "error.search.failed",
+               "a skipped deep subtree is a failed search, preserving the prior listing: error key");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Item_Count (Model),
+               1,
+               "a skipped deep subtree is a failed search, preserving the prior listing: item count");
+            Assert
+              (not Files.Model.Search_Results_Are_Active (Model),
+               "a skipped deep subtree is a failed search, preserving the prior listing: results inactive");
          end loop;
       end loop;
       Reset_Root;

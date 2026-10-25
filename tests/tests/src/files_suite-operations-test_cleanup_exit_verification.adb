@@ -2,27 +2,23 @@ separate (Files_Suite.Operations)
    procedure Test_Cleanup_Exit_Verification (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Variable  : constant String := "FILES_TEST_SKIP_CLEANUP_ONCE";
-      Had_Value : constant Boolean := Ada.Environment_Variables.Exists (Variable);
-      Old_Value : constant String := Ada.Environment_Variables.Value (Variable, "");
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
       Marker    : constant String := Join (Root, "cleanup-worker-skipped");
       Job       : Files.Process_Jobs.Session;
       Transport : Files.Types.UString;
 
-      procedure Restore is
+      procedure Clean_Up is
       begin
-         if Had_Value then
-            Ada.Environment_Variables.Set (Variable, Old_Value);
-         else
-            Ada.Environment_Variables.Clear (Variable);
-         end if;
          if Length (Transport) > 0 and then Ada.Directories.Exists (To_String (Transport)) then
             Project_Tools.Files.Delete_Tree (To_String (Transport));
          end if;
          if Ada.Directories.Exists (Marker) then
             Ada.Directories.Delete_File (Marker);
          end if;
-      end Restore;
+      end Clean_Up;
    begin
+      Files_Suite.Support.Save (Environment, Variable);
       Reset_Root;
       Ada.Environment_Variables.Set (Variable, Marker);
       Files.Process_Jobs.Reserve (Job);
@@ -34,9 +30,11 @@ separate (Files_Suite.Operations)
          exit when Ada.Directories.Exists (Marker);
       end loop;
       Assert
-        (Ada.Directories.Exists (Marker)
-         and then Ada.Directories.Exists (To_String (Transport)),
-         "a zero-exit cleanup helper can leave its transport behind");
+        (Ada.Directories.Exists (Marker),
+         "a zero-exit cleanup helper can leave its transport behind: the helper ran");
+      Assert
+        (Ada.Directories.Exists (To_String (Transport)),
+         "a zero-exit cleanup helper can leave its transport behind: the transport remains");
 
       for Attempt in Files_Suite.Support.Polling loop
          exit when not Ada.Directories.Exists (To_String (Transport));
@@ -44,9 +42,9 @@ separate (Files_Suite.Operations)
       Assert
         (not Ada.Directories.Exists (To_String (Transport)),
          "the reaper retries when a zero-exit cleanup helper leaves its transport behind");
-      Restore;
+      Clean_Up;
    exception
       when others =>
-         Restore;
+         Clean_Up;
          raise;
    end Test_Cleanup_Exit_Verification;

@@ -9,16 +9,8 @@ separate (Files_Suite.Operations)
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
-      Had_Fault : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TEST_TRANSFER_RESULT_LOSS");
-      Old_Fault : constant String := Ada.Environment_Variables.Value ("FILES_TEST_TRANSFER_RESULT_LOSS", "");
-      procedure Restore is
-      begin
-         if Had_Fault then
-            Ada.Environment_Variables.Set ("FILES_TEST_TRANSFER_RESULT_LOSS", Old_Fault);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TEST_TRANSFER_RESULT_LOSS");
-         end if;
-      end Restore;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
    begin
       for Mode in Files.File_System.Drop_Import_Mode loop
          for Replaced in Boolean loop
@@ -36,6 +28,7 @@ separate (Files_Suite.Operations)
                Actions.Clear;
                Actions.Append (Files.Paste.Resolved_Action'
                  (To_Unbounded_String (Source), To_Unbounded_String (Dest), False, Replaced));
+               Files_Suite.Support.Save (Environment, "FILES_TEST_TRANSFER_RESULT_LOSS");
                Ada.Environment_Variables.Set ("FILES_TEST_TRANSFER_RESULT_LOSS",
                  (case Fault is when 1 => "missing", when 2 => "checkpoint", when 3 => "journal",
                   when others => "replacement"));
@@ -66,7 +59,8 @@ separate (Files_Suite.Operations)
                   Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Dest & "-saved", Dest),
                           "restore the published paste entry");
                end if;
-               Restore;
+               --  The fault is over: put the variable back now, not at scope exit.
+               Files_Suite.Support.Finalize (Environment);
                Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Assert (Step.Status = Files.Operations.Operation_Success
@@ -81,11 +75,9 @@ separate (Files_Suite.Operations)
             end loop;
          end loop;
       end loop;
-      Restore;
    exception
       when others =>
          Files.Model.Clear_Paste_Execution (Model);
          Files.Refresh_Jobs.Cancel (Model);
-         Restore;
          raise;
    end Test_Transfer_Result_Recovery;

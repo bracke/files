@@ -78,9 +78,16 @@ separate (Files_Suite.Operations)
               Ada.Streams.Stream_Element (Character'Pos (Header (Index)));
          end loop;
          Assert
-           (not Files.File_System.Image_Bytes_Extent (Data, Width, Height)
-            and then Width = 0 and then Height = 0,
-            "encoded images above the colour-glyph pixel budget are rejected");
+           (not Files.File_System.Image_Bytes_Extent (Data, Width, Height),
+            "encoded images above the colour-glyph pixel budget are rejected: rejected");
+         Files_Suite.Support.Assert_Equal
+           (Width,
+            0,
+            "encoded images above the colour-glyph pixel budget are rejected: width cleared");
+         Files_Suite.Support.Assert_Equal
+           (Height,
+            0,
+            "encoded images above the colour-glyph pixel budget are rejected: height cleared");
          declare
             Decoded : constant Files.File_System.Decoded_Image :=
               Files.File_System.Decode_Image_Bytes (Data);
@@ -105,10 +112,14 @@ separate (Files_Suite.Operations)
       Thumbnail := Files.File_System.Generate_Thumbnail (Ppm_Thumbnail_Source, Thumbnail_Cache, Size => 2);
       Assert (Thumbnail.Status = Files.File_System.Thumbnail_Generated, "decoded PPM thumbnail succeeds");
       Assert
-        (File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (255) & Byte (0) & Byte (0))
-         and then File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (255) & Byte (0))
-         and then File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (0) & Byte (255)),
-         "decoded PPM thumbnail preserves source pixel colors");
+        (File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (255) & Byte (0) & Byte (0)),
+         "decoded PPM thumbnail preserves source pixel colors: red pixel");
+      Assert
+        (File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (255) & Byte (0)),
+         "decoded PPM thumbnail preserves source pixel colors: green pixel");
+      Assert
+        (File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (0) & Byte (255)),
+         "decoded PPM thumbnail preserves source pixel colors: blue pixel");
 
       Thumbnail := Files.File_System.Generate_Thumbnail (Join (Root, "missing.png"), Thumbnail_Cache, Size => 8);
       Assert

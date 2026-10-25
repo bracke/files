@@ -56,6 +56,10 @@ separate (Files_Suite.Operations)
          "the first batch completes two writes");
 
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "the second batch reports success");
       Assert (Files.Model.Paste_Execution_Is_Active (Model), "the execution is still in progress after two batches");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Paste_Execution_Done (Model),
@@ -63,6 +67,10 @@ separate (Files_Suite.Operations)
          "progress advances to four writes");
 
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "the third batch reports success");
       Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the third batch finalizes the execution");
 
       for N in 1 .. Count loop

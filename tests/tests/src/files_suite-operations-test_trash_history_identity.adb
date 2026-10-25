@@ -47,10 +47,20 @@ separate (Files_Suite.Operations)
                Write_Binary_File (Payload, "unrelated replacement");
                Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Failed and then Files.Model.Undo_Available (Model)
-                       and then File_Has_Bytes (Payload, "unrelated replacement")
-                       and then not Ada.Directories.Exists (Source),
-                       "Undo refuses to restore an unrelated trash payload and retains retryable history");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Failed,
+                  "Undo refuses to restore an unrelated trash payload and retains retryable history: status");
+               Assert
+                 (Files.Model.Undo_Available (Model),
+                  "Undo refuses to restore an unrelated trash payload and retains retryable history: undo kept");
+               Assert
+                 (File_Has_Bytes (Payload, "unrelated replacement"),
+                  "Undo refuses to restore an unrelated trash payload and retains retryable history: replacement kept");
+               Assert
+                 (not Ada.Directories.Exists (Source),
+                  "Undo refuses to restore an unrelated trash payload and retains retryable history"
+                  & ": source not created");
                Mutation := Files.File_System.Delete_Permanently (Payload);
                Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Saved, Payload),
                        "put the original trash payload back");

@@ -46,11 +46,15 @@ separate (Files_Suite.Operations)
                  Files.File_System.Directory_Size (Root_Link);
             begin
                Project_Tools.Files.Delete_Tree (Root_Link);
-               Assert
-                 (not Guarded.Available
-                  and then Guarded.Total_Bytes = 0
-                  and then Guarded.Item_Count = 0,
-                  "folder sizing refuses a symlink supplied as its root");
+               Assert (not Guarded.Available, "folder sizing refuses a symlink supplied as its root: unavailable");
+               Files_Suite.Support.Assert_Equal
+                 (Guarded.Total_Bytes,
+                  0,
+                  "folder sizing refuses a symlink supplied as its root: no bytes");
+               Files_Suite.Support.Assert_Equal
+                 (Guarded.Item_Count,
+                  0,
+                  "folder sizing refuses a symlink supplied as its root: no items");
             end;
          end if;
       end;
@@ -97,12 +101,23 @@ separate (Files_Suite.Operations)
             Assert (Mutation.Success, "restore the folder-size test root mode");
             if Denied then
                Assert
-                 (not Guarded.Available
-                  and then Guarded.Total_Bytes = 0
-                  and then Guarded.File_Count = 0
-                  and then Guarded.Item_Count = 0
-                  and then not Guarded.Capped,
-                  "an unreadable size root is unavailable, not an empty measurement");
+                 (not Guarded.Available,
+                  "an unreadable size root is unavailable, not an empty measurement: unavailable");
+               Files_Suite.Support.Assert_Equal
+                 (Guarded.Total_Bytes,
+                  0,
+                  "an unreadable size root is unavailable, not an empty measurement: no bytes");
+               Files_Suite.Support.Assert_Equal
+                 (Guarded.File_Count,
+                  0,
+                  "an unreadable size root is unavailable, not an empty measurement: no files");
+               Files_Suite.Support.Assert_Equal
+                 (Guarded.Item_Count,
+                  0,
+                  "an unreadable size root is unavailable, not an empty measurement: no items");
+               Assert
+                 (not Guarded.Capped,
+                  "an unreadable size root is unavailable, not an empty measurement: not capped");
             end if;
          end if;
          Project_Tools.Files.Delete_Tree (Locked);

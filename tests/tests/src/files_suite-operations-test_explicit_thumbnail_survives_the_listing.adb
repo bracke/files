@@ -7,15 +7,10 @@ separate (Files_Suite.Operations)
       Generated  : Files.File_System.Thumbnail_Result;
       Listed     : Files.File_System.Directory_Load_Result;
       Found      : Boolean := False;
-      Had_Cache  : constant Boolean := Ada.Environment_Variables.Exists ("XDG_CACHE_HOME");
-      Old_Cache  : Unbounded_String;
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Environment_Guard;
    begin
       Files_Suite.Support.Save (Environment, "XDG_CACHE_HOME");
-      if Had_Cache then
-         Old_Cache := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_CACHE_HOME"));
-      end if;
 
       Reset_Root;
       Write_File (Not_Image, "just text, no image anywhere in it");
@@ -49,10 +44,4 @@ separate (Files_Suite.Operations)
       end loop;
 
       Assert (Found, "the text file is listed");
-
-      if Had_Cache then
-         Ada.Environment_Variables.Set ("XDG_CACHE_HOME", To_String (Old_Cache));
-      else
-         Ada.Environment_Variables.Clear ("XDG_CACHE_HOME");
-      end if;
    end Test_Explicit_Thumbnail_Survives_The_Listing;

@@ -9,7 +9,6 @@ separate (Files_Suite.Operations)
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
-      pragma Unreferenced (Step);
 
       function Img (N : Integer) return String is
       begin
@@ -38,12 +37,20 @@ separate (Files_Suite.Operations)
 
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "the first batch reports success");
+      Files_Suite.Support.Assert_Equal
         (Files.Model.Paste_Execution_Done (Model),
          2,
          "two writes complete before cancelling");
 
       Files.Operations.Cancel_Paste_Execution (Model);
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "a cancelled paste finalizes without an error");
       Assert (not Files.Model.Paste_Execution_Is_Active (Model), "a cancelled paste finalizes on the next advance");
 
       Assert (Ada.Directories.Exists (Dest (1)), "the first completed copy is kept");
@@ -62,6 +69,10 @@ separate (Files_Suite.Operations)
 
       Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "undo of the cancelled paste succeeds");
       Assert (not Ada.Directories.Exists (Dest (1)), "undo removes the first completed copy");
       Assert (not Ada.Directories.Exists (Dest (2)), "undo removes the second completed copy");
    end Test_Paste_Execution_Cancel;

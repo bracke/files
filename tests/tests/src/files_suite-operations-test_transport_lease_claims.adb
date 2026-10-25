@@ -25,12 +25,15 @@ separate (Files_Suite.Operations)
       begin
          Ada.Directories.Delete_File (Lease_Path);
          Assert
-           (Files.Job_Transports.Claim_Abandoned
-              (To_String (Missing_Lease_Path), Identity, Claim) =
-                Files.Job_Transports.Claim_Unrecoverable
-            and then Files.Job_Scavenger.Run (Wait_For_Grace => False)
-            and then Ada.Directories.Exists (To_String (Missing_Lease_Path)),
-            "a missing lease is reported as terminal and its transport is preserved");
+           (Files.Job_Transports.Claim_Abandoned (To_String (Missing_Lease_Path), Identity, Claim) =
+              Files.Job_Transports.Claim_Unrecoverable,
+            "a missing lease is reported as terminal and its transport is preserved: reported unrecoverable");
+         Assert
+           (Files.Job_Scavenger.Run (Wait_For_Grace => False),
+            "a missing lease is reported as terminal and its transport is preserved: scavenger completes");
+         Assert
+           (Ada.Directories.Exists (To_String (Missing_Lease_Path)),
+            "a missing lease is reported as terminal and its transport is preserved: transport kept");
          Write_Binary_File (Lease_Path, "");
          Assert
            (Files.Job_Scavenger.Run (Wait_For_Grace => False)
@@ -43,14 +46,16 @@ separate (Files_Suite.Operations)
          Claim : Files.Job_Transports.Lease;
       begin
          Assert
-           (Active_Identity /= ""
-            and then Files.Job_Transports.Claim_Abandoned
-              (To_String (Active_Path), Active_Identity, Claim) =
-                Files.Job_Transports.Claim_Busy
-            and then Files.Job_Transports.Claim_Abandoned
-              (To_String (Active_Path), "wrong identity", Claim) =
-                Files.Job_Transports.Claim_Refused,
-            "lease claims distinguish a live owner from invalid identity input");
+           (Active_Identity /= "",
+            "lease claims distinguish a live owner from invalid identity input: identity recorded");
+         Assert
+           (Files.Job_Transports.Claim_Abandoned (To_String (Active_Path), Active_Identity, Claim) =
+              Files.Job_Transports.Claim_Busy,
+            "lease claims distinguish a live owner from invalid identity input: live owner busy");
+         Assert
+           (Files.Job_Transports.Claim_Abandoned (To_String (Active_Path), "wrong identity", Claim) =
+              Files.Job_Transports.Claim_Refused,
+            "lease claims distinguish a live owner from invalid identity input: wrong identity refused");
       end;
       if Hostkit.Host.Current = Hostkit.Host.Linux then
          declare

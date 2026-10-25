@@ -20,9 +20,16 @@ separate (Files_Suite.Operations)
            (if Forward then Files.Operations.Redo_Last (Model, Settings)
             else Files.Operations.Undo_Last (Model, Settings)));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Failed and then Metadata_Mode_Of (Source) = 8#640#
-                 and then File_Has_Bytes (Source, "unrelated replacement"),
-                 "metadata history refuses a replacement without changing its access bits");
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Failed,
+            "metadata history refuses a replacement without changing its access bits: status");
+         Files_Suite.Support.Assert_Equal
+           (Metadata_Mode_Of (Source),
+            8#640#,
+            "metadata history refuses a replacement without changing its access bits: access bits");
+         Assert (File_Has_Bytes (Source, "unrelated replacement"),
+                 "metadata history refuses a replacement without changing its access bits: content");
          Assert ((if Forward then Files.Model.Redo_Available (Model) else Files.Model.Undo_Available (Model)),
                  "refused metadata history remains retryable");
          Mutation := Files.File_System.Delete_Permanently (Source);

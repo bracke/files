@@ -1,8 +1,6 @@
 separate (Files_Suite.Operations)
    procedure Test_Detected_Terminal_Helper (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Had_Terminal : constant Boolean := Ada.Environment_Variables.Exists ("TERMINAL");
-      Old_Terminal : Unbounded_String;
       Shell_Path   : constant String := "/bin/sh";
       Missing_Path : constant String := Join (Root, "no-such-terminal-binary");
       --  Restores what the test changes, on failure too.
@@ -10,9 +8,6 @@ separate (Files_Suite.Operations)
    begin
       Files_Suite.Support.Save (Environment, "TERMINAL");
       Reset_Root;
-      if Had_Terminal then
-         Old_Terminal := To_Unbounded_String (Ada.Environment_Variables.Value ("TERMINAL"));
-      end if;
 
       if Ada.Directories.Exists (Shell_Path) then
          Ada.Environment_Variables.Set ("TERMINAL", Shell_Path);
@@ -35,11 +30,5 @@ separate (Files_Suite.Operations)
          Assert
            (Files.Operations.Detected_Terminal /= "",
             "this host always has a terminal to open, and one is found");
-      end if;
-
-      if Had_Terminal then
-         Ada.Environment_Variables.Set ("TERMINAL", To_String (Old_Terminal));
-      else
-         Ada.Environment_Variables.Clear ("TERMINAL");
       end if;
    end Test_Detected_Terminal_Helper;

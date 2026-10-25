@@ -2,8 +2,8 @@ separate (Files_Suite.Operations)
    procedure Test_Folder_Size_Helper_Cancellation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Marker : constant String := Join (Root, "size-started");
-      Had_Flag : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TEST_STALL_FOLDER_SIZES");
-      Old_Flag : constant String := Ada.Environment_Variables.Value ("FILES_TEST_STALL_FOLDER_SIZES", "");
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
       Started, Previous, Path : Unbounded_String;
       Result : Files.File_System.Directory_Size_Result;
       Available, Finished, Cancelled : Boolean;
@@ -11,15 +11,10 @@ separate (Files_Suite.Operations)
       Before : Instant;
       Targets : Files.Folder_Size.Path_Vectors.Vector;
 
-      procedure Restore is
+      procedure Cancel_Sizes is
       begin
          Files.Folder_Size.Cancel;
-         if Had_Flag then
-            Ada.Environment_Variables.Set ("FILES_TEST_STALL_FOLDER_SIZES", Old_Flag);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TEST_STALL_FOLDER_SIZES");
-         end if;
-      end Restore;
+      end Cancel_Sizes;
 
       procedure Await_Helper is
          File : Ada.Text_IO.File_Type;
@@ -44,6 +39,7 @@ separate (Files_Suite.Operations)
                  "the abandoned size helper is terminated and reaped");
       end Await_Reaped;
    begin
+      Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_FOLDER_SIZES");
       Reset_Root;
       Files.Folder_Size.Cancel;
       loop
@@ -128,11 +124,17 @@ separate (Files_Suite.Operations)
                Files.Folder_Size.Take (Path, Result, Available);
                exit when Available;
             end loop;
-            Assert (Available and then To_String (Path) = Target and then not Result.Available,
-                    "missing and non-directory roots produce unavailable measurements in the helper");
+            Assert (Available,
+                    "missing and non-directory roots produce unavailable measurements in the helper: a result");
+            Files_Suite.Support.Assert_Equal
+              (To_String (Path),
+               Target,
+               "missing and non-directory roots produce unavailable measurements in the helper: its path");
+            Assert (not Result.Available,
+                    "missing and non-directory roots produce unavailable measurements in the helper: unavailable");
          end;
       end loop;
-      Restore;
+      Cancel_Sizes;
    exception
-      when others => Restore; raise;
+      when others => Cancel_Sizes; raise;
    end Test_Folder_Size_Helper_Cancellation;

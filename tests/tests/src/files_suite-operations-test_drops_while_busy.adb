@@ -35,12 +35,20 @@ separate (Files_Suite.Operations)
             Sources.Append (To_Unbounded_String (Join (Join (Root, "inbox"), "incoming.txt")));
             Outcome := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
             Step := Files.Operations.Begin_Paste (Model, Settings, Sources);
-            Assert (Outcome.Status = Files.Controller.Controller_Ignored
-                    and then Step.Status = Files.Operations.Operation_Disabled
-                    and then Files.Model.Revision (Model) = Revision
-                    and then Files.Process_Jobs.Path (Files.Model.Background_Operation (Model), "") =
-                             Files.Process_Jobs.Path (Job, ""),
-                    "controller and direct paste calls preserve the active job and its revision");
+            declare
+               Context : constant String :=
+                 "controller and direct paste calls preserve the active job and its revision";
+            begin
+               Files_Suite.Support.Assert_Equal
+                 (Outcome.Status, Files.Controller.Controller_Ignored, Context & ": controller drop ignored");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status, Files.Operations.Operation_Disabled, Context & ": direct paste disabled");
+               Files_Suite.Support.Assert_Equal (Files.Model.Revision (Model), Revision, Context & ": revision");
+               Files_Suite.Support.Assert_Equal
+                 (Files.Process_Jobs.Path (Files.Model.Background_Operation (Model), ""),
+                  Files.Process_Jobs.Path (Job, ""),
+                  Context & ": active job");
+            end;
          end;
          Step := Complete_Operation (Model, Settings, Step);
          Assert (Files.Model.Undo_Available (Model) and then not Ada.Directories.Exists (Join (Root, "incoming.txt")),
@@ -59,11 +67,20 @@ separate (Files_Suite.Operations)
       begin
          Outcome := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
          Step := Files.Operations.Begin_Paste (Model, Settings, Sources);
-         Assert (Outcome.Status = Files.Controller.Controller_Ignored
-                 and then Step.Status = Files.Operations.Operation_Disabled
-                 and then Files.Model.Revision (Model) = Revision
-                 and then Files.Model.Paste_Conflict_Is_Active (Model),
-                 "a second drop cannot reset an unresolved collision dialog");
+         Files_Suite.Support.Assert_Equal
+           (Outcome.Status,
+            Files.Controller.Controller_Ignored,
+            "a second drop cannot reset an unresolved collision dialog: controller drop ignored");
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Disabled,
+            "a second drop cannot reset an unresolved collision dialog: direct paste disabled");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Revision (Model),
+            Revision,
+            "a second drop cannot reset an unresolved collision dialog: revision");
+         Assert (Files.Model.Paste_Conflict_Is_Active (Model),
+                 "a second drop cannot reset an unresolved collision dialog: dialog still open");
       end;
       Files.Model.Clear_Paste_Conflict (Model);
    exception

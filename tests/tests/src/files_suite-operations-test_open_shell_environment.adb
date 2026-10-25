@@ -3,30 +3,11 @@ separate (Files_Suite.Operations)
       pragma Unreferenced (T);
    begin
       declare
-         Had_Comspec : constant Boolean := Ada.Environment_Variables.Exists ("COMSPEC");
-         Had_Shell   : constant Boolean := Ada.Environment_Variables.Exists ("SHELL");
-         Old_Comspec : constant Unbounded_String :=
-           To_Unbounded_String ((if Had_Comspec then
-              Ada.Environment_Variables.Value ("COMSPEC") else ""));
-         Old_Shell   : constant Unbounded_String :=
-           To_Unbounded_String ((if Had_Shell then
-              Ada.Environment_Variables.Value ("SHELL") else ""));
-
-         procedure Restore_Shell_Environment is
-         begin
-            if Had_Comspec then
-               Ada.Environment_Variables.Set ("COMSPEC", To_String (Old_Comspec));
-            else
-               Ada.Environment_Variables.Clear ("COMSPEC");
-            end if;
-
-            if Had_Shell then
-               Ada.Environment_Variables.Set ("SHELL", To_String (Old_Shell));
-            else
-               Ada.Environment_Variables.Clear ("SHELL");
-            end if;
-         end Restore_Shell_Environment;
+         --  Restores what the test changes, on failure too.
+         Environment : Files_Suite.Support.Environment_Guard;
       begin
+         Files_Suite.Support.Save (Environment, "COMSPEC");
+         Files_Suite.Support.Save (Environment, "SHELL");
          Ada.Environment_Variables.Clear ("COMSPEC");
          Ada.Environment_Variables.Set ("SHELL", "/bin/custom-sh");
          if Hostkit.Host.Current = Hostkit.Host.Windows then
@@ -72,41 +53,17 @@ separate (Files_Suite.Operations)
                "-c",
                "a POSIX host keeps the POSIX command option");
          end if;
-         Restore_Shell_Environment;
-      exception
-         when others =>
-            Restore_Shell_Environment;
-            raise;
       end;
 
       declare
-         Had_Comspec : constant Boolean := Ada.Environment_Variables.Exists ("COMSPEC");
-         Had_Shell   : constant Boolean := Ada.Environment_Variables.Exists ("SHELL");
-         Old_Comspec : constant Unbounded_String :=
-           To_Unbounded_String ((if Had_Comspec then
-              Ada.Environment_Variables.Value ("COMSPEC") else ""));
-         Old_Shell   : constant Unbounded_String :=
-           To_Unbounded_String ((if Had_Shell then
-              Ada.Environment_Variables.Value ("SHELL") else ""));
+         --  Restores what the test changes, on failure too.
+         Environment : Files_Suite.Support.Environment_Guard;
          Missing_Shell_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Missing_Shell_Model    : Files.Model.Window_Model := Sample_Model;
          Missing_Shell_Action   : Files.Operations.Operation_Result;
-
-         procedure Restore_Shell_Environment is
-         begin
-            if Had_Comspec then
-               Ada.Environment_Variables.Set ("COMSPEC", To_String (Old_Comspec));
-            else
-               Ada.Environment_Variables.Clear ("COMSPEC");
-            end if;
-
-            if Had_Shell then
-               Ada.Environment_Variables.Set ("SHELL", To_String (Old_Shell));
-            else
-               Ada.Environment_Variables.Clear ("SHELL");
-            end if;
-         end Restore_Shell_Environment;
       begin
+         Files_Suite.Support.Save (Environment, "COMSPEC");
+         Files_Suite.Support.Save (Environment, "SHELL");
          --  The host decides which variable names the shell: COMSPEC on
          --  Windows, SHELL elsewhere. Point the host's own one at nothing.
          if Hostkit.Host.Current = Hostkit.Host.Windows then
@@ -139,10 +96,5 @@ separate (Files_Suite.Operations)
            (Files.Model.Last_Error_Key (Missing_Shell_Model),
             "error.open_action.executable_missing",
             "missing shell executable records model diagnostic");
-         Restore_Shell_Environment;
-      exception
-         when others =>
-            Restore_Shell_Environment;
-            raise;
       end;
    end Test_Open_Shell_Environment;

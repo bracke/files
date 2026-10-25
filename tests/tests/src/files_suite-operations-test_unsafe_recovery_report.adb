@@ -50,12 +50,15 @@ separate (Files_Suite.Operations)
          Result := Hostkit.Process.Run_Captured
            (Hostkit.Fs.Own_Executable, Arguments,
             Stderr_Path => Errors, Timeout_Ms => 10_000);
+         Assert (Result.Started, "an invalid marker is preserved and reported with its pathname: started");
+         Assert (not Result.Timed_Out, "an invalid marker is preserved and reported with its pathname: not timed out");
+         Files_Suite.Support.Assert_Equal
+           (Result.Exit_Status,
+            0,
+            "an invalid marker is preserved and reported with its pathname: exit status");
          Assert
-           (Result.Started and then not Result.Timed_Out
-            and then Result.Exit_Status = 0
-            and then Ada.Strings.Fixed.Index
-              (Project_Tools.Files.Read_Raw_File (Errors), To_String (Young_Path)) > 0,
-            "an invalid marker is preserved and reported with its pathname");
+           (Ada.Strings.Fixed.Index (Project_Tools.Files.Read_Raw_File (Errors), To_String (Young_Path)) > 0,
+            "an invalid marker is preserved and reported with its pathname: pathname reported");
          Assert
            (Files.Job_Scavenger.Has_Unrecoverable,
             "the desktop can observe unsafe recovery reported by its child");
@@ -76,10 +79,14 @@ separate (Files_Suite.Operations)
                Result := Hostkit.Process.Run_Captured
                  (Hostkit.Fs.Own_Executable, Arguments,
                   Stderr_Path => Second_Errors, Timeout_Ms => 10_000);
+               Assert (Result.Started, "unsafe recovery still completes when its report marker is a hardlink: started");
                Assert
-                 (Result.Started and then not Result.Timed_Out
-                  and then Result.Exit_Status = 0,
-                  "unsafe recovery still completes when its report marker is a hardlink");
+                 (not Result.Timed_Out,
+                  "unsafe recovery still completes when its report marker is a hardlink: not timed out");
+               Files_Suite.Support.Assert_Equal
+                 (Result.Exit_Status,
+                  0,
+                  "unsafe recovery still completes when its report marker is a hardlink: exit status");
                Files_Suite.Support.Assert_Equal
                  (Project_Tools.Files.Read_Raw_File (Victim),
                   "unchanged",
@@ -91,11 +98,17 @@ separate (Files_Suite.Operations)
                Result := Hostkit.Process.Run_Captured
                  (Hostkit.Fs.Own_Executable, Arguments,
                   Stderr_Path => Second_Errors, Timeout_Ms => 10_000);
+               Assert (Result.Started, "recovery creates a validated report marker after a refused hardlink: started");
                Assert
-                 (Result.Started and then not Result.Timed_Out
-                  and then Result.Exit_Status = 0
-                  and then Files.Job_Scavenger.Has_Unrecoverable,
-                  "recovery creates a validated report marker after a refused hardlink");
+                 (not Result.Timed_Out,
+                  "recovery creates a validated report marker after a refused hardlink: not timed out");
+               Files_Suite.Support.Assert_Equal
+                 (Result.Exit_Status,
+                  0,
+                  "recovery creates a validated report marker after a refused hardlink: exit status");
+               Assert
+                 (Files.Job_Scavenger.Has_Unrecoverable,
+                  "recovery creates a validated report marker after a refused hardlink: report marker created");
             end if;
             Ada.Directories.Delete_File (Victim);
          exception

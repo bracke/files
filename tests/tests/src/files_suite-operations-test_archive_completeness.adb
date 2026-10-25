@@ -18,12 +18,18 @@ separate (Files_Suite.Operations)
          Ada.Directories.Delete_File (Join (Root, "b.txt"));
          Step := Complete_Operation
            (Model, Settings, Files.Operations.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
-         Assert (Step.Status = Files.Operations.Operation_Failed
-                 and then To_String (Step.Error_Key) = "error.compress.failed"
-                 and then Files.Model.Last_Error_Key (Model) = "error.compress.failed"
-                 and then not Ada.Directories.Exists (Join (Root, "a.zip"))
-                 and then not Files.Model.Undo_Available (Model),
-                 "a missing selected source cannot produce a successful incomplete archive or Undo entry");
+         declare
+            Context : constant String :=
+              "a missing selected source cannot produce a successful incomplete archive or Undo entry";
+         begin
+            Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Failed, Context & ": status");
+            Files_Suite.Support.Assert_Equal
+              (To_String (Step.Error_Key), "error.compress.failed", Context & ": result error key");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Last_Error_Key (Model), "error.compress.failed", Context & ": model error key");
+            Assert (not Ada.Directories.Exists (Join (Root, "a.zip")), Context & ": no archive");
+            Assert (not Files.Model.Undo_Available (Model), Context & ": no Undo entry");
+         end;
          Await_View (Model, Settings);
       end loop;
       for Background in Boolean loop
@@ -86,12 +92,21 @@ separate (Files_Suite.Operations)
                Select_Name (Model, "bag");
                Step := Complete_Operation
                  (Model, Settings, Files.Operations.Compress_Selected (Model, Settings, Format));
-               Assert (Step.Status = Files.Operations.Operation_Failed
-                       and then To_String (Step.Error_Key) = "error.compress.unportable_name"
-                       and then Files.Model.Last_Error_Key (Model) = "error.compress.unportable_name"
-                       and then not Ada.Directories.Exists (Join (Root, "bag.zip"))
-                       and then not Ada.Directories.Exists (Join (Root, "bag.7z")),
-                       "a name an archive cannot store is reported as such, not as a generic failure");
+               declare
+                  Context : constant String :=
+                    "a name an archive cannot store is reported as such, not as a generic failure";
+               begin
+                  Files_Suite.Support.Assert_Equal
+                    (Step.Status, Files.Operations.Operation_Failed, Context & ": status");
+                  Files_Suite.Support.Assert_Equal
+                    (To_String (Step.Error_Key), "error.compress.unportable_name", Context & ": result error key");
+                  Files_Suite.Support.Assert_Equal
+                    (Files.Model.Last_Error_Key (Model),
+                     "error.compress.unportable_name",
+                     Context & ": model error key");
+                  Assert (not Ada.Directories.Exists (Join (Root, "bag.zip")), Context & ": no zip archive");
+                  Assert (not Ada.Directories.Exists (Join (Root, "bag.7z")), Context & ": no 7z archive");
+               end;
                Await_View (Model, Settings);
             end loop;
          end loop;

@@ -89,14 +89,18 @@ separate (Files_Suite.Operations)
             end if;
             if Created_Right then
                Mutation := Files.File_System.Rename_Item (Left_Name, Right_Name);
-               Assert (not Mutation.Success
-                       and then To_String (Mutation.Error_Key) = "error.rename.invalid_destination"
-                       and then (if Symbolic then Hostkit.Fs.Is_Link (Left_Name)
-                                 and then Hostkit.Fs.Is_Link (Right_Name)
-                                 else Ada.Directories.Exists (Left_Name)
-                                   and then Ada.Directories.Exists (Right_Name))
-                       and then File_Has_Bytes (Shared, "shared bytes"),
-                       "two entries with one target cannot be mistaken for a no-op rename");
+               Assert (not Mutation.Success,
+                       "two entries with one target cannot be mistaken for a no-op rename: refused");
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Mutation.Error_Key),
+                  "error.rename.invalid_destination",
+                  "two entries with one target cannot be mistaken for a no-op rename: error key");
+               Assert ((if Symbolic then Hostkit.Fs.Is_Link (Left_Name) else Ada.Directories.Exists (Left_Name)),
+                       "two entries with one target cannot be mistaken for a no-op rename: source entry kept");
+               Assert ((if Symbolic then Hostkit.Fs.Is_Link (Right_Name) else Ada.Directories.Exists (Right_Name)),
+                       "two entries with one target cannot be mistaken for a no-op rename: destination entry kept");
+               Assert (File_Has_Bytes (Shared, "shared bytes"),
+                       "two entries with one target cannot be mistaken for a no-op rename: target unchanged");
             end if;
          end;
       end loop;
@@ -118,11 +122,18 @@ separate (Files_Suite.Operations)
               and then Hostkit.Fs.Create_Link (Join (Root, "shared"), Case_Link)
             then
                Mutation := Files.File_System.Rename_Item (Source_Link, Case_Link);
-               Assert (not Mutation.Success
-                       and then To_String (Mutation.Error_Key) = "error.rename.invalid_destination"
-                       and then Hostkit.Fs.Is_Link (Source_Link)
-                       and then Hostkit.Fs.Is_Link (Case_Link),
-                       "different links to one target are a collision even when names differ only by case");
+               Assert (not Mutation.Success,
+                       "different links to one target are a collision even when names differ only by case: refused");
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Mutation.Error_Key),
+                  "error.rename.invalid_destination",
+                  "different links to one target are a collision even when names differ only by case: error key");
+               Assert (Hostkit.Fs.Is_Link (Source_Link),
+                       "different links to one target are a collision even when names differ only by case: "
+                       & "source link kept");
+               Assert (Hostkit.Fs.Is_Link (Case_Link),
+                       "different links to one target are a collision even when names differ only by case: "
+                       & "destination link kept");
             end if;
          end if;
       end;

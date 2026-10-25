@@ -31,9 +31,12 @@ separate (Files_Suite.Operations)
                  "replace-all overwrites the first colliding item");
          Assert (not Actions.Element (2).Skip and then Actions.Element (2).Replaced,
                  "replace-all overwrites the second colliding item");
-         Assert (not Actions.Element (3).Skip and then not Actions.Element (3).Replaced
-                   and then To_String (Actions.Element (3).Dest_Path) = "/dest/c.txt",
-                 "replace-all writes the non-colliding item unchanged");
+         Assert (not Actions.Element (3).Skip, "replace-all writes the non-colliding item unchanged: not skipped");
+         Assert (not Actions.Element (3).Replaced, "replace-all writes the non-colliding item unchanged: not replaced");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Actions.Element (3).Dest_Path),
+            "/dest/c.txt",
+            "replace-all writes the non-colliding item unchanged: destination");
       end;
 
       --  Two sources with one leaf name: only the first replaces; the second
@@ -52,9 +55,15 @@ separate (Files_Suite.Operations)
          Assert (Actions.Element (1).Replaced
                    and then To_String (Actions.Element (1).Dest_Path) = "/dest/a.txt",
                  "the first same-named item replaces the existing entry");
-         Assert (not Actions.Element (2).Replaced and then not Actions.Element (2).Skip
-                   and then To_String (Actions.Element (2).Dest_Path) /= "/dest/a.txt",
-                 "a second same-named item is kept under a unique name instead of replacing the first");
+         Assert
+           (not Actions.Element (2).Replaced,
+            "a second same-named item is kept under a unique name instead of replacing the first: not replaced");
+         Assert
+           (not Actions.Element (2).Skip,
+            "a second same-named item is kept under a unique name instead of replacing the first: not skipped");
+         Assert
+           (To_String (Actions.Element (2).Dest_Path) /= "/dest/a.txt",
+            "a second same-named item is kept under a unique name instead of replacing the first: unique destination");
       end;
 
       --  Skip_All: colliding ones are skipped, the free one is written.
@@ -74,12 +83,18 @@ separate (Files_Suite.Operations)
          Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
            Files.Paste.Resolve (Items, Files.Paste.Policy_Rename_All, None, Existing);
       begin
-         Assert (not Actions.Element (1).Skip and then not Actions.Element (1).Replaced
-                   and then To_String (Actions.Element (1).Dest_Path) = "/dest/a 2.txt",
-                 "rename-all uniquifies the first colliding item");
-         Assert (not Actions.Element (2).Skip and then not Actions.Element (2).Replaced
-                   and then To_String (Actions.Element (2).Dest_Path) = "/dest/b 2.txt",
-                 "rename-all uniquifies the second colliding item");
+         Assert (not Actions.Element (1).Skip, "rename-all uniquifies the first colliding item: not skipped");
+         Assert (not Actions.Element (1).Replaced, "rename-all uniquifies the first colliding item: not replaced");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Actions.Element (1).Dest_Path),
+            "/dest/a 2.txt",
+            "rename-all uniquifies the first colliding item: destination");
+         Assert (not Actions.Element (2).Skip, "rename-all uniquifies the second colliding item: not skipped");
+         Assert (not Actions.Element (2).Replaced, "rename-all uniquifies the second colliding item: not replaced");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Actions.Element (2).Dest_Path),
+            "/dest/b 2.txt",
+            "rename-all uniquifies the second colliding item: destination");
          Files_Suite.Support.Assert_Equal
            (To_String (Actions.Element (3).Dest_Path),
             "/dest/c.txt",

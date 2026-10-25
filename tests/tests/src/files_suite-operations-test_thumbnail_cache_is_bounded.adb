@@ -33,10 +33,15 @@ separate (Files_Suite.Operations)
            Long_Long_Integer
              (Ada.Calendar."-" (Ada.Calendar.Clock, Ada.Calendar.Formatting.Time_Of (1970, 1, 1, 0.0, Time_Zone => 0)));
       begin
-         Assert (Hostkit.Metadata.Set_File_Times (Old_One, Now - 300, Now - 300)
-                 and then Hostkit.Metadata.Set_File_Times (Old_Two, Now - 200, Now - 200)
-                 and then Hostkit.Metadata.Set_File_Times (Newest, Now - 100, Now - 100),
-                 "set the cache files' times oldest first");
+         Assert
+           (Hostkit.Metadata.Set_File_Times (Old_One, Now - 300, Now - 300),
+            "set the cache files' times oldest first: oldest");
+         Assert
+           (Hostkit.Metadata.Set_File_Times (Old_Two, Now - 200, Now - 200),
+            "set the cache files' times oldest first: middle");
+         Assert
+           (Hostkit.Metadata.Set_File_Times (Newest, Now - 100, Now - 100),
+            "set the cache files' times oldest first: newest");
       end;
 
       Files.File_Identities.Testing.Set_Unavailable (True);
@@ -48,16 +53,15 @@ separate (Files_Suite.Operations)
             Files.File_Identities.Testing.Set_Unavailable (False);
             raise;
       end;
-      Assert
-        (Path_Exists (Old_One) and then Path_Exists (Old_Two)
-         and then Path_Exists (Newest),
-         "cache pruning refuses identity-free deletion candidates");
+      Assert (Path_Exists (Old_One), "cache pruning refuses identity-free deletion candidates: oldest kept");
+      Assert (Path_Exists (Old_Two), "cache pruning refuses identity-free deletion candidates: middle kept");
+      Assert (Path_Exists (Newest), "cache pruning refuses identity-free deletion candidates: newest kept");
 
       --  Comfortably above the total: nothing is touched.
       Files.File_System.Prune_Thumbnail_Cache (Cache, 1_000_000);
-      Assert
-        (Path_Exists (Old_One) and then Path_Exists (Old_Two) and then Path_Exists (Newest),
-         "a cache inside its budget is left alone");
+      Assert (Path_Exists (Old_One), "a cache inside its budget is left alone: oldest kept");
+      Assert (Path_Exists (Old_Two), "a cache inside its budget is left alone: middle kept");
+      Assert (Path_Exists (Newest), "a cache inside its budget is left alone: newest kept");
 
       --  Room for roughly one file: the two oldest go, the newest stays.
       Files.File_System.Prune_Thumbnail_Cache (Cache, 5_000);

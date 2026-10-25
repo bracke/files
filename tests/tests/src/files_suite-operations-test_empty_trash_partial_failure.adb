@@ -9,55 +9,24 @@ separate (Files_Suite.Operations)
       Locked_Dir   : constant String := Join (Root, "locked-dir");
       Locked_Child : constant String := Join (Locked_Dir, "inside.txt");
       Trashed_Lock : constant String := Join (Trash_File, "locked-dir");
-      Had_Xdg_Data : constant Boolean := Ada.Environment_Variables.Exists ("XDG_DATA_HOME");
-      Had_Home     : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
-      Had_Backend  : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
-      Old_Xdg_Data : Unbounded_String;
-      Old_Home     : Unbounded_String;
-      Old_Backend  : Unbounded_String;
+      --  Restores what the test changes, on failure too.
+      Environment  : Files_Suite.Support.Environment_Guard;
       Load         : Files.File_System.Directory_Load_Result;
       Model        : Files.Model.Window_Model;
       Result       : Files.Controller.Controller_Result;
 
-      procedure Restore_Environment is
+      --  Re-open the locked payload so the fixture tree can be removed.
+      procedure Unlock_Payload is
+         Unlocked : constant Files.File_System.Mutation_Result :=
+           Files.File_System.Set_Permissions (Trashed_Lock, 8#755#);
+         pragma Unreferenced (Unlocked);
       begin
-         --  Re-open the locked payload so the fixture tree can be removed.
-         declare
-            Unlocked : constant Files.File_System.Mutation_Result :=
-              Files.File_System.Set_Permissions (Trashed_Lock, 8#755#);
-            pragma Unreferenced (Unlocked);
-         begin
-            null;
-         end;
-
-         if Had_Xdg_Data then
-            Ada.Environment_Variables.Set ("XDG_DATA_HOME", To_String (Old_Xdg_Data));
-         else
-            Ada.Environment_Variables.Clear ("XDG_DATA_HOME");
-         end if;
-
-         if Had_Home then
-            Ada.Environment_Variables.Set ("HOME", To_String (Old_Home));
-         else
-            Ada.Environment_Variables.Clear ("HOME");
-         end if;
-
-         if Had_Backend then
-            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", To_String (Old_Backend));
-         else
-            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         end if;
-      end Restore_Environment;
+         null;
+      end Unlock_Payload;
    begin
-      if Had_Xdg_Data then
-         Old_Xdg_Data := To_Unbounded_String (Ada.Environment_Variables.Value ("XDG_DATA_HOME"));
-      end if;
-      if Had_Home then
-         Old_Home := To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
-      end if;
-      if Had_Backend then
-         Old_Backend := To_Unbounded_String (Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND"));
-      end if;
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Save (Environment, "HOME");
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
 
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
@@ -73,7 +42,8 @@ separate (Files_Suite.Operations)
          Trash_Keep : constant Files.File_System.Mutation_Result := Files.File_System.Move_To_Trash (Keep_File);
          Trash_Lock : constant Files.File_System.Mutation_Result := Files.File_System.Move_To_Trash (Locked_Dir);
       begin
-         Assert (Trash_Keep.Success and then Trash_Lock.Success, "partial-empty setup trashes both entries");
+         Assert (Trash_Keep.Success, "partial-empty setup trashes both entries: the file");
+         Assert (Trash_Lock.Success, "partial-empty setup trashes both entries: the directory");
       end;
 
       --  Strip all permissions from the trashed directory so its child cannot be
@@ -115,17 +85,10 @@ separate (Files_Suite.Operations)
       end if;
 
       --  Unlock and remove the fixture tree.
-      declare
-         Unlocked : constant Files.File_System.Mutation_Result :=
-           Files.File_System.Set_Permissions (Trashed_Lock, 8#755#);
-         pragma Unreferenced (Unlocked);
-      begin
-         null;
-      end;
+      Unlock_Payload;
       Project_Tools.Files.Delete_Tree (Trash_Home);
-      Restore_Environment;
    exception
       when others =>
-         Restore_Environment;
+         Unlock_Payload;
          raise;
    end Test_Empty_Trash_Partial_Failure;

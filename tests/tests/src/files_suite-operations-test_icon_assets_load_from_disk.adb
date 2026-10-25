@@ -26,11 +26,16 @@ separate (Files_Suite.Operations)
       Folder := To_Unbounded_String
         (Files.Icon_Assets.Disk_Icon_Asset ("folder", ""));
       Assert
-        (Trusted_Root /= ""
-         and then Files.Resources.Share_Root = Trusted_Root
-         and then Files.Resources.Share_Root /=
+        (Trusted_Root /= "",
+         "bundled resources stay anchored to the executable, not the launch directory: a share root exists");
+      Files_Suite.Support.Assert_Equal
+        (Files.Resources.Share_Root,
+         Trusted_Root,
+         "bundled resources stay anchored to the executable, not the launch directory: unchanged by the cwd");
+      Assert
+        (Files.Resources.Share_Root /=
            Ada.Directories.Full_Name ("share"),
-         "bundled resources stay anchored to the executable, not the launch directory");
+         "bundled resources stay anchored to the executable, not the launch directory: not the cwd's share");
       Restore;
       Assert (Length (Folder) > 0, "the bundled folder.icon is read from disk");
       Assert (Ada.Strings.Fixed.Index (To_String (Folder), "files-icon-v1") > 0,

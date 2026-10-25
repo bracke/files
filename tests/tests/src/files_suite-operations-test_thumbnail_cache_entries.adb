@@ -89,10 +89,16 @@ separate (Files_Suite.Operations)
             if To_String (Item.Name) = "commented-cached.txt" then
                Found_Commented := True;
                Assert
-                 (Item.Thumbnail_Available
-                  and then Item.Thumbnail_Width = 1
-                  and then Item.Thumbnail_Height = 1,
-                  "a binary cached PPM accepts comments between header fields");
+                 (Item.Thumbnail_Available,
+                  "a binary cached PPM accepts comments between header fields: available");
+               Files_Suite.Support.Assert_Equal
+                 (Item.Thumbnail_Width,
+                  1,
+                  "a binary cached PPM accepts comments between header fields: width");
+               Files_Suite.Support.Assert_Equal
+                 (Item.Thumbnail_Height,
+                  1,
+                  "a binary cached PPM accepts comments between header fields: height");
             elsif To_String (Item.Name) = "trailing-cached.txt" then
                Found_Trailing := True;
                Assert

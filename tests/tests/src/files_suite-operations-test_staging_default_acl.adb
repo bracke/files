@@ -12,17 +12,6 @@ separate (Files_Suite.Operations)
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
-      Had_Tmp : constant Boolean := Ada.Environment_Variables.Exists ("TMPDIR");
-      Old_Tmp : constant String := Ada.Environment_Variables.Value ("TMPDIR", "");
-
-      procedure Restore_Tmp is
-      begin
-         if Had_Tmp then
-            Ada.Environment_Variables.Set ("TMPDIR", Old_Tmp);
-         else
-            Ada.Environment_Variables.Clear ("TMPDIR");
-         end if;
-      end Restore_Tmp;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
          Files_Suite.Support.Skip ("Test_Staging_Default_ACL", "Hostkit.Host.Current /= Hostkit.Host.Linux");
@@ -42,7 +31,10 @@ separate (Files_Suite.Operations)
                declare
                   Job       : Files.Process_Jobs.Session;
                   Transport : Files.Types.UString;
+                  --  TMPDIR comes back when this block ends, on failure too.
+                  Environment : Files_Suite.Support.Environment_Guard;
                begin
+                  Files_Suite.Support.Save (Environment, "TMPDIR");
                   Ada.Environment_Variables.Set ("TMPDIR", Parent);
                   begin
                      Files.Process_Jobs.Reserve (Job);
@@ -62,10 +54,8 @@ separate (Files_Suite.Operations)
                   exception
                      when others =>
                         Files.Process_Jobs.Reset (Job);
-                        Restore_Tmp;
                         raise;
                   end;
-                  Restore_Tmp;
                end;
                Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Parent));
                Files_Suite.Support.Assert_Equal
@@ -99,9 +89,4 @@ separate (Files_Suite.Operations)
                     "copying succeeds without changing the source or the destination's ACL policy");
          end loop;
       end loop;
-      Restore_Tmp;
-   exception
-      when others =>
-         Restore_Tmp;
-         raise;
    end Test_Staging_Default_ACL;

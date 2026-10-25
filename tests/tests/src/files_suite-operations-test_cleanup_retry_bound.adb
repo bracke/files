@@ -2,8 +2,6 @@ separate (Files_Suite.Operations)
    procedure Test_Cleanup_Retry_Bound (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Variable  : constant String := "FILES_TEST_FAIL_CLEANUP_WORKER";
-      Had_Value : constant Boolean := Ada.Environment_Variables.Exists (Variable);
-      Old_Value : constant String := Ada.Environment_Variables.Value (Variable, "");
       Marker    : constant String := Join (Root, "cleanup-worker-failures");
       Job       : Files.Process_Jobs.Session;
       Transport : Files.Types.UString;
@@ -29,13 +27,8 @@ separate (Files_Suite.Operations)
          return Count;
       end Failure_Count;
 
-      procedure Restore is
+      procedure Clean_Up is
       begin
-         if Had_Value then
-            Ada.Environment_Variables.Set (Variable, Old_Value);
-         else
-            Ada.Environment_Variables.Clear (Variable);
-         end if;
          if Length (Transport) > 0 then
             if Hostkit.Fs.Is_Link (To_String (Transport)) then
                Ada.Directories.Delete_File (To_String (Transport));
@@ -46,70 +39,89 @@ separate (Files_Suite.Operations)
          if Ada.Directories.Exists (Marker) then
             Ada.Directories.Delete_File (Marker);
          end if;
-      end Restore;
+      end Clean_Up;
    begin
       Reset_Root;
-      Ada.Environment_Variables.Set (Variable, Marker);
-      Files.Process_Jobs.Reserve (Job);
-      Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
-      Ada.Directories.Create_Directory (Join (To_String (Transport), "stages"));
-      Files.Process_Jobs.Reset (Job);
-
-      for Attempt in Files_Suite.Support.Polling loop
-         exit when Failure_Count >= 1;
-      end loop;
-      Assert (Failure_Count >= 1, "the parent launches a cleanup worker");
       declare
-         First_Failure : constant Instant := Now;
-         Relaunch      : Duration;
+         --  Restores the variable before the cleanup, on failure too.
+         Failing : Files_Suite.Support.Environment_Guard;
       begin
-         for Attempt in Files_Suite.Support.Polling loop
-            exit when Failure_Count >= 2;
-         end loop;
-         Files_Suite.Support.Assert_Equal (Failure_Count, 2, "the parent makes its one bounded cleanup relaunch");
-         Relaunch := Seconds (Elapsed (First_Failure));
-
-         --  Nothing in the parent reports that it gave up (Process_Jobs keeps
-         --  its failure count and orphan queue in its body), so the proof is
-         --  that no third worker appears within a window a relaunch would have
-         --  used. A relaunch waits out the parent's 2 s retry delay, then a
-         --  spawn: wait the larger of the fixed floor and half again the
-         --  relaunch this runner just took (so a slow runner waits longer by
-         --  itself), and stop early if a third worker does report.
-         for Attempt in Files_Suite.Support.Polling
-           (Limit    => Duration'Max (Quiet_Seconds, Relaunch * 3 / 2),
-            Interval => 0.01)
-         loop
-            exit when Failure_Count > 2;
-         end loop;
-      end;
-      Assert
-        (Failure_Count = 2 and then Ada.Directories.Exists (To_String (Transport)),
-         "persistent cleanup refusal stops worker churn and leaves durable recovery state");
-      Restore;
-
-      if Hostkit.Host.Current = Hostkit.Host.Linux then
-         Reset_Root;
+         Files_Suite.Support.Save (Failing, Variable);
          Ada.Environment_Variables.Set (Variable, Marker);
          Files.Process_Jobs.Reserve (Job);
          Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
-         Files.Process_Jobs.Testing.Release_Owner (Job);
-         Project_Tools.Files.Delete_Tree (To_String (Transport));
-         Assert
-           (Hostkit.Fs.Create_Link (Join (Root, "missing-transport-target"),
-                                   To_String (Transport)),
-            "replace a released transport with a dangling link");
+         Ada.Directories.Create_Directory (Join (To_String (Transport), "stages"));
          Files.Process_Jobs.Reset (Job);
+
          for Attempt in Files_Suite.Support.Polling loop
             exit when Failure_Count >= 1;
          end loop;
+         Assert (Failure_Count >= 1, "the parent launches a cleanup worker");
+         declare
+            First_Failure : constant Instant := Now;
+            Relaunch      : Duration;
+         begin
+            for Attempt in Files_Suite.Support.Polling loop
+               exit when Failure_Count >= 2;
+            end loop;
+            Files_Suite.Support.Assert_Equal (Failure_Count, 2, "the parent makes its one bounded cleanup relaunch");
+            Relaunch := Seconds (Elapsed (First_Failure));
+
+            --  Nothing in the parent reports that it gave up (Process_Jobs keeps
+            --  its failure count and orphan queue in its body), so the proof is
+            --  that no third worker appears within a window a relaunch would have
+            --  used. A relaunch waits out the parent's 2 s retry delay, then a
+            --  spawn: wait the larger of the fixed floor and half again the
+            --  relaunch this runner just took (so a slow runner waits longer by
+            --  itself), and stop early if a third worker does report.
+            for Attempt in Files_Suite.Support.Polling
+              (Limit    => Duration'Max (Quiet_Seconds, Relaunch * 3 / 2),
+               Interval => 0.01)
+            loop
+               exit when Failure_Count > 2;
+            end loop;
+         end;
+         Files_Suite.Support.Assert_Equal
+           (Failure_Count,
+            2,
+            "persistent cleanup refusal stops worker churn and leaves durable recovery state: no third worker");
          Assert
-           (Failure_Count >= 1 and then Hostkit.Fs.Is_Link (To_String (Transport)),
-            "idle cleanup retains a dangling transport link for guarded retry");
-         Restore;
+           (Ada.Directories.Exists (To_String (Transport)),
+            "persistent cleanup refusal stops worker churn and leaves durable recovery state: transport kept");
+      end;
+      Clean_Up;
+
+      if Hostkit.Host.Current = Hostkit.Host.Linux then
+         Reset_Root;
+         declare
+            --  Restores the variable before the cleanup, on failure too.
+            Failing : Files_Suite.Support.Environment_Guard;
+         begin
+            Files_Suite.Support.Save (Failing, Variable);
+            Ada.Environment_Variables.Set (Variable, Marker);
+            Files.Process_Jobs.Reserve (Job);
+            Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
+            Files.Process_Jobs.Testing.Release_Owner (Job);
+            Project_Tools.Files.Delete_Tree (To_String (Transport));
+            Assert
+              (Hostkit.Fs.Create_Link (Join (Root, "missing-transport-target"),
+                                      To_String (Transport)),
+               "replace a released transport with a dangling link");
+            Files.Process_Jobs.Reset (Job);
+            for Attempt in Files_Suite.Support.Polling loop
+               exit when Failure_Count >= 1;
+            end loop;
+            Assert
+              (Failure_Count >= 1,
+               "idle cleanup retains a dangling transport link for guarded retry: a cleanup worker ran");
+            Assert
+              (Hostkit.Fs.Is_Link (To_String (Transport)),
+               "idle cleanup retains a dangling transport link for guarded retry: the link is kept");
+         end;
+         Clean_Up;
       end if;
    exception
       when others =>
-         Restore;
+         Clean_Up;
          raise;
    end Test_Cleanup_Retry_Bound;

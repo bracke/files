@@ -2,8 +2,6 @@ separate (Files_Suite.Operations)
    procedure Test_Preserve_Puts_Original_Back (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Dest     : constant String := Join (Root, "original.txt");
-      Had_Back : constant Boolean := Ada.Environment_Variables.Exists ("FILES_TRASH_BACKEND");
-      Old_Back : constant String := Ada.Environment_Variables.Value ("FILES_TRASH_BACKEND", "");
       Backup   : Files.Types.UString;
       Result   : Files.File_System.Mutation_Result;
 
@@ -22,20 +20,15 @@ separate (Files_Suite.Operations)
          return Count;
       end Stages_Left;
 
-      procedure Restore_Environment is
-      begin
-         Ada.Environment_Variables.Clear ("FILES_TEST_STAGE_SYNC_FAULT");
-         if Had_Back then
-            Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", Old_Back);
-         else
-            Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         end if;
-      end Restore_Environment;
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
          Files_Suite.Support.Skip ("Test_Preserve_Puts_Original_Back", "Hostkit.Host.Current /= Hostkit.Host.Linux");
          return;
       end if;
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
+      Files_Suite.Support.Save (Environment, "FILES_TEST_STAGE_SYNC_FAULT");
       Reset_Root;
       Write_Binary_File (Dest, "the original");
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
@@ -49,9 +42,4 @@ separate (Files_Suite.Operations)
          "the original",
          "the original is back at its own path");
       Files_Suite.Support.Assert_Equal (Stages_Left, 0, "no hidden recovery folder is left behind");
-      Restore_Environment;
-   exception
-      when others =>
-         Restore_Environment;
-         raise;
    end Test_Preserve_Puts_Original_Back;
