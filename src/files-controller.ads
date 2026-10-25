@@ -105,16 +105,8 @@ package Files.Controller is
       return Controller_Result;
 
    --  Persist the settings model to the central settings file. A no-op when the
-   --  path is empty; write failures are intentionally ignored.
-   --
-   --  @param Settings Settings model to serialize.
-   --  @param Settings_Path Central settings file path (empty disables persistence).
-   procedure Persist_Settings
-     (Settings      : Files.Settings.Settings_Model;
-      Settings_Path : String);
-
-   --  Persist_Settings for a window: a write that fails, or is not durable,
-   --  is reported in the window's error line rather than dropped.
+   --  path is empty; a write that fails, or is not durable, is reported in the
+   --  window's error line rather than dropped.
    --
    --  @param Model Window whose error line reports a failed write.
    --  @param Settings Settings model to serialize.

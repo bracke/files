@@ -455,16 +455,6 @@ package body Files.Controller is
    end Write_Settings;
 
    procedure Persist_Settings
-     (Settings      : Files.Settings.Settings_Model;
-      Settings_Path : String)
-   is
-      Saved : constant Files.Settings.Settings_Write_Result := Write_Settings (Settings_Path, Settings);
-      pragma Unreferenced (Saved);
-   begin
-      null;
-   end Persist_Settings;
-
-   procedure Persist_Settings
      (Model         : in out Files.Model.Window_Model;
       Settings      : Files.Settings.Settings_Model;
       Settings_Path : String)
@@ -706,8 +696,17 @@ package body Files.Controller is
       Node_Index : Positive;
       Node_Path  : String)
    is
+      --  The tree shows folders only: skip files before their metadata is
+      --  built, and never decode thumbnails, since this runs on the UI thread.
+      function Is_Directory (Name : String; Kind : Files.Types.Item_Kind) return Boolean is
+         pragma Unreferenced (Name);
+      begin
+         return Kind = Files.Types.Directory_Item;
+      end Is_Directory;
+
       Load     : constant Files.File_System.Directory_Load_Result :=
-        Files.File_System.Load_Directory (Node_Path, Settings);
+        Files.File_System.Load_Directory_Filtered
+          (Node_Path, Settings, Is_Directory'Access, Generate_Thumbnails => False);
       Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
    begin
       if Load.Success then

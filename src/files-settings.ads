@@ -239,6 +239,12 @@ package Files.Settings is
    Max_Font_Pixel_Size     : constant Positive := 32;
    Default_Font_Pixel_Size : constant Positive := 16;
 
+   --  Bounds a persisted window_width / window_height is clamped into on load,
+   --  so a hand-edited settings file cannot ask the platform for a degenerate
+   --  or absurdly large surface. Zero stays "use the platform default".
+   Min_Window_Dimension : constant Positive := 200;
+   Max_Window_Dimension : constant Positive := 16_384;
+
    --  Clamp a requested font pixel size into the supported range.
    --
    --  @param Size Requested pixel size (may be out of range or non-positive).

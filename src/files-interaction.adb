@@ -117,11 +117,6 @@ package body Files.Interaction is
    end Observe_Settings_Command;
 
    procedure Persist_Settings
-     (Settings      : Files.Settings.Settings_Model;
-      Settings_Path : String)
-      renames Files.Controller.Persist_Settings;
-
-   procedure Persist_Settings
      (Model         : in out Files.Model.Window_Model;
       Settings      : Files.Settings.Settings_Model;
       Settings_Path : String)
@@ -215,7 +210,7 @@ package body Files.Interaction is
    --  record and persist it. Called whenever a runtime command flips one of the
    --  persisted toggles. Returns True when a change was written.
    function Sync_Global_UI_State
-     (Model         : Files.Model.Window_Model;
+     (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String)
       return Boolean
@@ -245,7 +240,7 @@ package body Files.Interaction is
       Settings.Sort_Field_Value := New_Sort;
       Settings.Sort_Ascending := New_Asc;
       Settings.Info_Pane_Open := New_Info;
-      Persist_Settings (Settings, Settings_Path);
+      Persist_Settings (Model, Settings, Settings_Path);
       return True;
    end Sync_Global_UI_State;
 
@@ -941,13 +936,12 @@ package body Files.Interaction is
    end Apply_Right_Click;
 
    procedure Apply_Column_Resize
-     (Settings      : in out Files.Settings.Settings_Model;
-      Settings_Path : String;
-      Column        : Files.Types.Detail_Column;
-      Origin_X      : Integer;
-      Origin_Width  : Natural;
-      Current_X     : Integer;
-      Result        : out Interaction_Result)
+     (Settings     : in out Files.Settings.Settings_Model;
+      Column       : Files.Types.Detail_Column;
+      Origin_X     : Integer;
+      Origin_Width : Natural;
+      Current_X    : Integer;
+      Result       : out Interaction_Result)
    is
       --  The name column is the flexible remainder on the left, so a wider fixed
       --  column pushes its own left edge left: dragging the separator left grows
@@ -970,13 +964,24 @@ package body Files.Interaction is
       Result := (others => <>);
       if Updated.Column_Widths (Column) /= Settings.Column_Widths (Column) then
          Settings := Updated;
-         Persist_Settings (Settings, Settings_Path);
          Result.Settings_Changed := True;
       end if;
    end Apply_Column_Resize;
 
+   procedure End_Column_Resize
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Changed       : Boolean) is
+   begin
+      if Changed then
+         Persist_Settings (Model, Settings, Settings_Path);
+      end if;
+   end End_Column_Resize;
+
    procedure Apply_Column_Reorder
-     (Settings      : in out Files.Settings.Settings_Model;
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String;
       Column        : Files.Types.Detail_Column;
       To_Index      : Files.Types.Detail_Column_Index;
@@ -989,7 +994,7 @@ package body Files.Interaction is
       Result := (others => <>);
       if Updated.Column_Order /= Settings.Column_Order then
          Settings := Updated;
-         Persist_Settings (Settings, Settings_Path);
+         Persist_Settings (Model, Settings, Settings_Path);
          Result.Settings_Changed := True;
       end if;
    end Apply_Column_Reorder;

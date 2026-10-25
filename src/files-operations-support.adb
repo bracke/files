@@ -158,7 +158,7 @@ package body Files.Operations.Support is
 
       declare
          Load : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory (Files.Model.Current_Path (Model), Settings);
+           Files.File_System.Load_Directory_Deferring_Thumbnails (Files.Model.Current_Path (Model), Settings);
       begin
          if not Load.Success then
             Files.Model.Set_Error (Model, To_String (Load.Error_Key));
@@ -183,6 +183,13 @@ package body Files.Operations.Support is
          end if;
          Files.Model.Set_Error (Model, "");
          Files.Model.Ensure_Selected_Item_Extra (Model);
+         --  A reload runs after every operation, so it must not decode each
+         --  new image in the folder while the UI waits: as on navigation, the
+         --  missing thumbnails are left to a background listing, which the
+         --  window's next poll launches.
+         if Files.File_System.Thumbnails_Missing (Load.Items) then
+            Files.Model.Note_Owed_Refresh (Model, Force => True, Select_Name => "");
+         end if;
          return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
       end;
    end Reload_Current_Directory;

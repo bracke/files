@@ -18,7 +18,7 @@ separate (Files_Suite.Operations)
             Byte (0) & Byte (0) & Byte (0) & Byte (255) & Byte (255) & Byte (255) & Byte (255)));
 
       Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Cache_Home);
-      Load := Files.File_System.Load_Directory (Root, Settings);
+      Load := Files.File_System.Load_Directory_Generating_Thumbnails (Root, Settings);
       declare
          Found_Auto_Thumbnail : Boolean := False;
          Extension_Settings    : Files.Settings.Settings_Model := Settings;
@@ -47,7 +47,7 @@ separate (Files_Suite.Operations)
 
          Files.Settings.Add_Extension_Mapping (Extension_Settings, "webp", "application/octet-stream");
          Write_File (Join (Root, "extension-only.webp"), "not a decoded image");
-         Extension_Load := Files.File_System.Load_Directory (Root, Extension_Settings);
+         Extension_Load := Files.File_System.Load_Directory_Generating_Thumbnails (Root, Extension_Settings);
          Found_Auto_Thumbnail := False;
          for Item of Extension_Load.Items loop
             if To_String (Item.Name) = "extension-only.webp" then

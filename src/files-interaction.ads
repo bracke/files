@@ -158,44 +158,60 @@ package Files.Interaction is
       In_Details_Header : Boolean := False);
 
    --  Apply one step of a details-header column-resize drag. Sets Column's
-   --  persisted width to its width at drag start adjusted by how far the pointer
-   --  has moved from the separator's origin, then clamps and persists it through
-   --  With_Column_Width. Because the flexible name column absorbs the slack on
-   --  the left, dragging a separator left widens its column and dragging right
-   --  narrows it, so the applied delta is Origin_X minus Current_X. The details
-   --  layout reflows the name column to honour its minimum on the next frame.
+   --  width to its width at drag start adjusted by how far the pointer has moved
+   --  from the separator's origin, clamped through With_Column_Width. The step
+   --  changes the settings in memory only: a drag moves many times a second, so
+   --  End_Column_Resize writes the settings file once when the drag ends.
+   --  Because the flexible name column absorbs the slack on the left, dragging
+   --  a separator left widens its column and dragging right narrows it, so the
+   --  applied delta is Origin_X minus Current_X. The details layout reflows the
+   --  name column to honour its minimum on the next frame.
    --  Result.Settings_Changed is set when the width actually changed.
    --
    --  @param Settings Live settings model, updated in place when the width changes.
-   --  @param Settings_Path Central settings file path (empty disables persistence).
    --  @param Column Optional detail column being resized.
    --  @param Origin_X Separator x edge captured when the drag began.
    --  @param Origin_Width Column's effective width when the drag began.
    --  @param Current_X Current pointer x coordinate in window pixels.
    --  @param Result Follow-up flags; Settings_Changed reports a width change.
    procedure Apply_Column_Resize
-     (Settings      : in out Files.Settings.Settings_Model;
+     (Settings     : in out Files.Settings.Settings_Model;
+      Column       : Files.Types.Detail_Column;
+      Origin_X     : Integer;
+      Origin_Width : Natural;
+      Current_X    : Integer;
+      Result       : out Interaction_Result);
+
+   --  End a details-header column-resize drag: when any of its steps changed a
+   --  width, write the settings once. A failed write is reported in the
+   --  window's error line.
+   --
+   --  @param Model Window whose error line reports a failed write.
+   --  @param Settings Live settings model holding the drag's final width.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Changed Whether any step of the drag reported Settings_Changed.
+   procedure End_Column_Resize
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : Files.Settings.Settings_Model;
       Settings_Path : String;
-      Column        : Files.Types.Detail_Column;
-      Origin_X      : Integer;
-      Origin_Width  : Natural;
-      Current_X     : Integer;
-      Result        : out Interaction_Result);
+      Changed       : Boolean);
 
    --  Apply a details-header column-reorder drop. Moves Column so it occupies
    --  slot To_Index in the persisted column order (through With_Column_Order,
    --  which pins the name column first and treats a no-op move as a no-op), then
    --  persists the settings. Per-column widths and visibility follow their
    --  column, not its position. Result.Settings_Changed is set when the order
-   --  actually changed.
+   --  actually changed. A failed write is reported in the window's error line.
    --
+   --  @param Model Window whose error line reports a failed write.
    --  @param Settings Live settings model, updated in place when the order changes.
    --  @param Settings_Path Central settings file path (empty disables persistence).
    --  @param Column Detail column being moved.
    --  @param To_Index Target one-based slot for Column.
    --  @param Result Follow-up flags; Settings_Changed reports an order change.
    procedure Apply_Column_Reorder
-     (Settings      : in out Files.Settings.Settings_Model;
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String;
       Column        : Files.Types.Detail_Column;
       To_Index      : Files.Types.Detail_Column_Index;
@@ -215,12 +231,15 @@ package Files.Interaction is
       return Boolean;
 
    --  Persist the settings model to the central settings file. A no-op when the
-   --  path is empty; write failures are intentionally ignored.
+   --  path is empty; a write that fails, or is not durable, is reported in the
+   --  window's error line.
    --
+   --  @param Model Window whose error line reports a failed write.
    --  @param Settings Settings model to serialize.
    --  @param Settings_Path Central settings file path (empty disables persistence).
    procedure Persist_Settings
-     (Settings      : Files.Settings.Settings_Model;
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : Files.Settings.Settings_Model;
       Settings_Path : String);
 
    --  Snapshot the currently selected visible items as an ascending set of

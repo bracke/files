@@ -284,15 +284,27 @@ package body Files.Job_Scavenger is
          end if;
       end Start_Coordinator;
 
+      --  Kill the child and collect it, polling every Reap_Poll_Interval.
+      --  Wait answering False means the handle is invalid or the host refused
+      --  the question; it will not start answering, and killing by the stale
+      --  handle's id could hit a recycled PID, so that ends the reap like an
+      --  exit does. The loop is also bounded: this task is library level, so
+      --  an unkillable child must not keep it (and with it program exit)
+      --  running forever. A child still running after Reap_Poll_Limit polls
+      --  is left unreleased, since it has not been collected.
       procedure Stop_And_Reap is
+         Reap_Poll_Interval : constant Duration := 0.05;
+         Reap_Poll_Limit    : constant := 100;
          Status : Hostkit.Spawn.Status;
          Found  : Boolean;
          Sent   : Boolean;
       begin
-         while Active loop
+         for Poll in 1 .. Reap_Poll_Limit loop
+            exit when not Active;
             Found := Hostkit.Spawn.Wait (Monitored_Child, Hostkit.Spawn.Wait_Poll, Status);
-            if Found and then Status.State in Hostkit.Spawn.Wait_Exited
-              | Hostkit.Spawn.Wait_Signalled | Hostkit.Spawn.Wait_Lost
+            if not Found
+              or else Status.State in Hostkit.Spawn.Wait_Exited
+                | Hostkit.Spawn.Wait_Signalled | Hostkit.Spawn.Wait_Lost
             then
                Hostkit.Spawn.Release (Monitored_Child);
                Active := False;
@@ -303,9 +315,10 @@ package body Files.Job_Scavenger is
                   Sent := Hostkit.Process.Request_Stop
                     (Hostkit.Spawn.Process_Id (Monitored_Child));
                end if;
-               delay 0.05;
+               delay Reap_Poll_Interval;
             end if;
          end loop;
+         Active := False;
       end Stop_And_Reap;
    begin
       Main_Loop : loop
@@ -357,6 +370,17 @@ package body Files.Job_Scavenger is
                         Retry_Seconds := 1;
                      end if;
                   end;
+               elsif not Found then
+                  --  The handle is invalid or the host refused the question,
+                  --  and it will not start answering. Staying Active would
+                  --  poll it forever and never take another scan request, so
+                  --  drop the handle as Stop_And_Reap does and go back to
+                  --  accepting requests. Whether the scan finished is
+                  --  unknown, so count it as failed: a scan is safe to
+                  --  repeat, and the retry backs off.
+                  Hostkit.Spawn.Release (Monitored_Child);
+                  Active := False;
+                  Schedule_Retry (Monitored_Program);
                end if;
             end;
          end if;
@@ -370,6 +394,12 @@ package body Files.Job_Scavenger is
          end if;
       end loop Main_Loop;
       Monitor_Result.Mark_Complete;
+   exception
+      --  Without this an exception would end recovery scans silently and leave
+      --  Monitor_Result incomplete, so Shutdown would never clean the report.
+      when E : others =>
+         Files.Diagnostics.Note (E, "Files.Job_Scavenger.Coordinator_Monitor");
+         Monitor_Result.Mark_Complete;
    end Coordinator_Monitor;
 
    procedure Scavenge (Coordinator : String := "") is

@@ -1,3 +1,5 @@
+with Ada.Calendar;
+
 separate (Files.Application.Windows)
    function Headless_Render_Quality_Report
      (Startup : Startup_Result;

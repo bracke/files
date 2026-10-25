@@ -1312,6 +1312,8 @@ package body Transfer is
    --  entry only by case as existing too, so the normal conflict flow applies
    --  and a Replace writes through the filesystem's own case rules. A
    --  case-sensitive macOS volume at worst asks about a harmless near-match.
+   --  Names fold with Fold_Case, which covers every script: To_Lower knows
+   --  only ASCII and Latin-1, so ПРИВЕТ.txt slipped past привет.txt.
    function With_Case_Aliases
      (Work      : Files.Paste.Work_Item_Vectors.Vector;
       Existing  : Files.Types.String_Vectors.Vector;
@@ -1330,7 +1332,7 @@ package body Transfer is
       end if;
       for Path of Existing loop
          Exact.Include (To_String (Path));
-         Folded.Include (Files.Types.To_Lower (To_String (Path)));
+         Folded.Include (Files.Types.Fold_Case (To_String (Path)));
       end loop;
       for Item of Work loop
          declare
@@ -1338,7 +1340,7 @@ package body Transfer is
               Files.Paste.Desired_Path (To_String (Item.Dest_Dir), To_String (Item.Dest_Name));
          begin
             if not Exact.Contains (Desired)
-              and then Folded.Contains (Files.Types.To_Lower (Desired))
+              and then Folded.Contains (Files.Types.Fold_Case (Desired))
             then
                Result.Append (To_Unbounded_String (Desired));
                Exact.Include (Desired);

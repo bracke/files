@@ -368,7 +368,10 @@ package Files.File_System is
      (Path : String)
       return String;
 
-   --  Load the direct children of a directory.
+   --  Load the direct children of a directory. Thumbnails come from the cache
+   --  only: no image is decoded and no cache file written, so a caller that
+   --  discards the items (a search walk, emptying the Trash) pays nothing for
+   --  them. Load_Directory_Generating_Thumbnails is the variant that makes them.
    --
    --  @param Path Directory path to load.
    --  @param Settings Settings used for filetype and icon classification.
@@ -376,6 +379,38 @@ package Files.File_System is
    function Load_Directory
      (Path     : String;
       Settings : Files.Settings.Settings_Model)
+      return Directory_Load_Result;
+
+   --  Load_Directory that also decodes each image lacking a cached thumbnail
+   --  and writes its cache file. Slow on a folder of new photos, so it is for
+   --  the background listing (Files.Refresh_Jobs), not a read the UI waits on.
+   --
+   --  @param Path Directory path to load.
+   --  @param Settings Settings used for filetype and icon classification.
+   --  @return Loaded directory model or a recoverable error result.
+   function Load_Directory_Generating_Thumbnails
+     (Path     : String;
+      Settings : Files.Settings.Settings_Model)
+      return Directory_Load_Result;
+
+   --  Load only the entries Include accepts (null accepts all); the others
+   --  are skipped after a cheap kind check, so a caller that wants one kind,
+   --  such as the folder tree's subdirectories, does not stat, classify and
+   --  thumbnail every file it passes.
+   --
+   --  @param Path Directory path to load.
+   --  @param Settings Settings used for filetype and icon classification.
+   --  @param Include Entry filter, or null for every entry.
+   --  @param Name Entry name Include is asked about.
+   --  @param Kind Entry kind Include is asked about.
+   --  @param Generate_Thumbnails Whether to decode images lacking a cached thumbnail.
+   --  @return Loaded directory model or a recoverable error result.
+   function Load_Directory_Filtered
+     (Path     : String;
+      Settings : Files.Settings.Settings_Model;
+      Include  : access function
+        (Name : String; Kind : Files.Types.Item_Kind) return Boolean;
+      Generate_Thumbnails : Boolean := False)
       return Directory_Load_Result;
 
    --  Load_Directory for a listing the UI waits on: thumbnails come from the

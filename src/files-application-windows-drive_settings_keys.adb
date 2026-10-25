@@ -287,10 +287,10 @@ separate (Files.Application.Windows)
                --  A frame between the clicks can take longer than a double
                --  click allows on a slow host: the step is about matching the
                --  clicks, not the host's speed.
-               Runtime.Last_Click_Time := Ada.Calendar.Clock;
+               Runtime.Last_Click_Time := Ada.Real_Time.Clock;
                Click (1);
                Expect (Files.Model.Current_Path (Runtime.Model) = Ada.Directories.Full_Name (Inner));
-               Runtime.Last_Click_Time := Ada.Calendar.Clock;
+               Runtime.Last_Click_Time := Ada.Real_Time.Clock;
                Click (1);
                Expect (Files.Model.Current_Path (Runtime.Model) = Ada.Directories.Full_Name (Inner));
                Runtime.Last_Click_Item := 0;

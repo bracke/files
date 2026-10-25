@@ -242,6 +242,9 @@ separate (Files.Controller)
                Files.Model.Close_Root_Selector (Model);
             elsif Files.Model.Sort_Menu_Is_Open (Model) then
                Files.Model.Close_Sort_Menu (Model);
+            elsif Files.Model.Settings_Pane_Is_Open (Model) then
+               --  Closed the way Escape in the pane closes it; reopening starts a fresh draft.
+               Files.Model.Toggle_Settings_Pane (Model);
             else
                Files.Model.Cancel_Focus_Or_Edit (Model);
             end if;

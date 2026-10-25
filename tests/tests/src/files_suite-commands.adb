@@ -105,6 +105,7 @@ package body Files_Suite.Commands is
    procedure Test_Commands_Disabled_Without_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Pure_Command_Execution (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Pane_Toggle_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Close_Command_Closes_Settings_Pane (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Field_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Pane_Modal_Blocking (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recent_View_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -154,6 +155,8 @@ package body Files_Suite.Commands is
         (T, Test_Pure_Command_Execution'Access, "pure command execution touches neither filesystem nor history");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Pane_Toggle_Commands'Access, "the settings pane toggles, seeds a draft, and resets");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Close_Command_Closes_Settings_Pane'Access, "the close command closes an open settings pane");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Field_Keys'Access, "settings fields keep the caret at the end and validate on Return");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -565,6 +568,25 @@ package body Files_Suite.Commands is
          Files.Operations.Operation_Disabled,
          "pure save settings command keeps runtime path-resolution sentinel");
    end Test_Settings_Pane_Toggle_Commands;
+
+   procedure Test_Close_Command_Closes_Settings_Pane (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Assert (Files.Model.Settings_Pane_Is_Open (Model), "controller opens the settings pane");
+      Result := Files.Controller.Execute_Command (Files.Commands.Close_Command_Palette_Command, Model, Settings);
+      Assert
+        (not Files.Model.Settings_Pane_Is_Open (Model),
+         "the close command closes the settings pane rather than only dropping focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "closing the settings pane releases its keyboard focus");
+      pragma Unreferenced (Result);
+   end Test_Close_Command_Closes_Settings_Pane;
 
    procedure Test_Settings_Field_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

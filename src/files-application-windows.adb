@@ -1,5 +1,5 @@
 with Files.Diagnostics;
-with Ada.Calendar;
+with Ada.Real_Time;
 with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Environment_Variables;
@@ -46,7 +46,7 @@ with Files.Types;
 
 package body Files.Application.Windows is
    use Ada.Strings.Unbounded;
-   use type Ada.Calendar.Time;
+   use type Ada.Real_Time.Time;
    use type Glfw.Input.Button_State;
    use type Glfw.Input.Mouse.Button;
    use type Glfw.Input.Mouse.Coordinate;
@@ -163,7 +163,7 @@ package body Files.Application.Windows is
       --  second press within a few ms of the real one, which double-fires the
       --  click -- for a toggle toolbar icon that cancels out and looks like the
       --  click "did nothing". See Left_Press_Debounce.
-      Last_Left_Press_Time : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+      Last_Left_Press_Time : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
       Drop_Source : Files.Drop_Events.Drop_Event_Source;
    end record;
 
@@ -222,13 +222,18 @@ package body Files.Application.Windows is
    with Convention => C;
 
    type Pressed_Key_Map is array (Tracked_Key) of Boolean;
-   type Key_Time_Map    is array (Tracked_Key) of Ada.Calendar.Time;
+   type Key_Time_Map    is array (Tracked_Key) of Ada.Real_Time.Time;
    type Physical_Key_Map is array (Tracked_Key) of Glfw.Input.Keys.Key;
 
-   Key_Epoch : constant Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+   --  Input timers run on the monotonic clock: the wall clock can step back
+   --  (NTP, VM resume), which would make every press look like a bounce or a
+   --  double click and stall repeat and polling. Never is the "no event yet"
+   --  stamp; a timer is due once Now >= Stamp + Span, which a Never stamp
+   --  always is (subtracting Never instead would overflow the Time_Span).
+   Never : constant Ada.Real_Time.Time := Ada.Real_Time.Time_First;
 
-   Key_Repeat_Initial_Delay : constant Duration := 0.4;
-   Key_Repeat_Interval      : constant Duration := 0.04;
+   Key_Repeat_Initial_Delay : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (400);
+   Key_Repeat_Interval      : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (40);
 
    function Key_Repeats (Key : Tracked_Key) return Boolean is
      (Key in Tracked_Left | Tracked_Right | Tracked_Up | Tracked_Down
@@ -260,8 +265,8 @@ package body Files.Application.Windows is
       Synced_Settings : Files.Settings.Settings_Model;
       Settings_Path   : Unbounded_String;
       Pressed_Keys    : Pressed_Key_Map := [others => False];
-      Key_Pressed_At  : Key_Time_Map := [others => Key_Epoch];
-      Key_Last_Fired  : Key_Time_Map := [others => Key_Epoch];
+      Key_Pressed_At  : Key_Time_Map := [others => Never];
+      Key_Last_Fired  : Key_Time_Map := [others => Never];
       --  The physical key held for each tracked key, which differs from the
       --  tracked key's own position when the layout moved its letter.
       Held_Physical   : Physical_Key_Map := [others => Glfw.Input.Keys.Unknown];
@@ -273,7 +278,10 @@ package body Files.Application.Windows is
       --  the scrollbar drag above. Active gates a live resize; Target names the
       --  column, Origin_X the separator edge, and Origin_Width the column's width
       --  when the drag began, so each move sets width = origin +/- pointer delta.
+      --  Changed records that a move resized the column in memory, so the drag's
+      --  end writes the settings once.
       Column_Resize_Active  : Boolean := False;
+      Column_Resize_Changed : Boolean := False;
       Column_Resize_Target  : Files.Types.Detail_Column := Files.Types.Modified_Column;
       Column_Resize_Origin_X : Integer := 0;
       Column_Resize_Origin_W : Natural := 0;
@@ -306,16 +314,16 @@ package body Files.Application.Windows is
       Marquee_Rect_H   : Natural := 0;
       Last_Click_Item : Natural := 0;
       Last_Click_Path : Unbounded_String;
-      Last_Click_Time : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+      Last_Click_Time : Ada.Real_Time.Time := Never;
       --  A press on part of a selection, held back until its release shows
       --  whether it began a drag of the whole selection.
       Deferred_Click_Pending : Boolean := False;
       Deferred_Click         : Files.Events.Input_Action;
       Deferred_Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      --  Wall-clock of the last grid type-ahead keystroke; the event loop clears
+      --  Monotonic time of the last grid type-ahead keystroke; the event loop clears
       --  the pending prefix once this is older than Type_Ahead_Timeout so a fresh
       --  keystroke after a pause starts a new prefix.
-      Type_Ahead_Input_At : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+      Type_Ahead_Input_At : Ada.Real_Time.Time := Never;
       Text            : Files.Rendering.Text_Renderer;
       Text_Ready      : Boolean := False;
       Font_Pixel_Size : Positive := 16;
@@ -378,7 +386,7 @@ package body Files.Application.Windows is
       Last_Missing_Glyph_Count : Natural := 0;
       Last_Present_Status : Guikit.Vulkan.Vulkan_Status :=
         Guikit.Vulkan.Vulkan_Not_Initialized;
-      Last_Watch_Poll : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+      Last_Watch_Poll : Ada.Real_Time.Time := Never;
       Watch : Files.Refresh_Jobs.Watch_Session;
    end record;
 
@@ -405,8 +413,8 @@ package body Files.Application.Windows is
    Process_Text_Font_Ready : Boolean := False;
    Process_Text_Font_Path  : Unbounded_String;
    Process_Text_Font_Size  : Natural := 0;
-   File_Watch_Poll_Interval : constant Duration := 1.0;
-   Type_Ahead_Timeout : constant Duration := 1.0;
+   File_Watch_Poll_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
+   Type_Ahead_Timeout : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
    --  The event loop always waits this long: input, window refresh, and posted
    --  events wake it immediately, and this bounds how long a background file
    --  change (native watch / interval poll) or an animation frame waits. Present
@@ -432,7 +440,9 @@ package body Files.Application.Windows is
    --  any deliberate click or double-click (the double-click threshold is 0.5s),
    --  so it never rejects a real one, but it absorbs the microsecond-apart phantom
    --  presses a failing switch produces.
-   Left_Press_Debounce : constant Duration := 0.040;
+   Left_Press_Debounce : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (40);
+   --  Two clicks on the same item at most this far apart activate it.
+   Double_Click_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (500);
    --  Write UTF-8 text to the system text clipboard. The GLFWwindow* argument is
    --  retained for the historic signature; modern GLFW ignores it.
    procedure Set_Raw_Clipboard_String
@@ -453,7 +463,7 @@ package body Files.Application.Windows is
    procedure Persist_Settings (Runtime : in out Runtime_Window) is
    begin
       Files.Interaction.Persist_Settings
-        (Runtime.Settings, To_String (Runtime.Settings_Path));
+        (Runtime.Model, Runtime.Settings, To_String (Runtime.Settings_Path));
    end Persist_Settings;
 
    --  Write any pending system-clipboard request the model recorded (for
@@ -766,11 +776,11 @@ package body Files.Application.Windows is
 
       if State = Glfw.Input.Pressed then
          declare
-            Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+            Now : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
          begin
             --  Drop a press that follows the previous accepted one too closely to
             --  be a real click -- a switch bounce that would otherwise double-fire.
-            if Now - Object.Last_Left_Press_Time < Left_Press_Debounce then
+            if Now < Object.Last_Left_Press_Time + Left_Press_Debounce then
                --  The bounce's release came first and was counted. The button
                --  is physically down again, so withdraw that phantom release:
                --  left in place it ends a drag that is still being held.
@@ -910,7 +920,7 @@ package body Files.Application.Windows is
       --  activity time so the inactivity timeout below measures from the last
       --  keystroke rather than from the previous field edit.
       if Files.Model.Focus (Runtime.Model) = Files.Types.Focus_None then
-         Runtime.Type_Ahead_Input_At := Ada.Calendar.Clock;
+         Runtime.Type_Ahead_Input_At := Ada.Real_Time.Clock;
       end if;
 
       Result := Files.Controller.Append_Focused_Text (Runtime.Model, Text);
@@ -951,7 +961,7 @@ package body Files.Application.Windows is
       Events   : Input_Event_Vectors.Vector;
       Fired    : Pressed_Key_Map := [others => False];
       Consumed : Boolean := False;
-      Now      : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+      Now      : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
       Selected_Before : constant Natural := Files.Model.Selected_Index (Runtime.Model);
       Path_Before     : constant String := Files.Model.Current_Path (Runtime.Model);
    begin
@@ -986,8 +996,8 @@ package body Files.Application.Windows is
                Runtime.Pressed_Keys (Key) := False;
             elsif not Fired (Key)
               and then Key_Repeats (Key)
-              and then Now - Runtime.Key_Pressed_At (Key) >= Key_Repeat_Initial_Delay
-              and then Now - Runtime.Key_Last_Fired (Key) >= Key_Repeat_Interval
+              and then Now >= Runtime.Key_Pressed_At (Key) + Key_Repeat_Initial_Delay
+              and then Now >= Runtime.Key_Last_Fired (Key) + Key_Repeat_Interval
             then
                Runtime.Key_Last_Fired (Key) := Now;
                Fire_Key (Runtime, Key, To_Modifiers (As_Window (Runtime.Handle)), Consumed);
@@ -1074,13 +1084,13 @@ package body Files.Application.Windows is
    end Handle_All_Keyboard;
 
    --  Clear a stale grid type-ahead prefix once the user has paused. Driven from
-   --  the event loop using the same Ada.Calendar clock as the key-repeat and
+   --  the event loop using the same monotonic clock as the key-repeat and
    --  file-watch timers, so a keystroke after the pause begins a fresh prefix.
    procedure Handle_Type_Ahead_Timeout
      (Runtime : in out Runtime_Window) is
    begin
       if Files.Model.Type_Ahead_Buffer (Runtime.Model) /= ""
-        and then Ada.Calendar.Clock - Runtime.Type_Ahead_Input_At > Type_Ahead_Timeout
+        and then Ada.Real_Time.Clock > Runtime.Type_Ahead_Input_At + Type_Ahead_Timeout
       then
          Files.Model.Reset_Type_Ahead (Runtime.Model);
       end if;
@@ -1145,7 +1155,7 @@ package body Files.Application.Windows is
    procedure Handle_File_Watch_Poll
      (Runtime : in out Runtime_Window)
    is
-      Now    : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+      Now    : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
       Result : Files.Operations.Operation_Result;
       Refreshed : Boolean;
       pragma Unreferenced (Refreshed);
@@ -1179,7 +1189,7 @@ package body Files.Application.Windows is
          return;
       end if;
 
-      if Now - Runtime.Last_Watch_Poll < File_Watch_Poll_Interval then
+      if Now < Runtime.Last_Watch_Poll + File_Watch_Poll_Interval then
          return;
       end if;
 
@@ -1311,6 +1321,7 @@ package body Files.Application.Windows is
             return;
          end if;
          Runtime.Column_Resize_Active := True;
+         Runtime.Column_Resize_Changed := False;
          Runtime.Column_Resize_Target := Files.Types.Detail_Column'Val (Action.Item_Index);
          Runtime.Column_Resize_Origin_X := Action.Cursor_Position;
          Runtime.Column_Resize_Origin_W := Action.Scroll_Drag_Anchor;
@@ -1673,14 +1684,15 @@ package body Files.Application.Windows is
             Synced_Settings => Settings,
             Settings_Path   => Settings_Path,
             Pressed_Keys    => [others => False],
-            Key_Pressed_At  => [others => Key_Epoch],
-            Key_Last_Fired  => [others => Key_Epoch],
+            Key_Pressed_At  => [others => Never],
+            Key_Last_Fired  => [others => Never],
             Held_Physical   => [others => Glfw.Input.Keys.Unknown],
             Left_Mouse_Down => False,
             Drag_Source_Index => 0,
             Scrollbar_Drag_Target => Files.Events.Scroll_Auto,
             Scrollbar_Drag_Anchor => 0,
             Column_Resize_Active => False,
+            Column_Resize_Changed => False,
             Column_Resize_Target => Files.Types.Modified_Column,
             Column_Resize_Origin_X => 0,
             Column_Resize_Origin_W => 0,
@@ -1701,11 +1713,11 @@ package body Files.Application.Windows is
             Marquee_Rect_H   => 0,
             Last_Click_Item => 0,
             Last_Click_Path => Null_Unbounded_String,
-            Last_Click_Time => Ada.Calendar.Time_Of (1901, 1, 1),
+            Last_Click_Time => Never,
             Deferred_Click_Pending => False,
             Deferred_Click  => <>,
             Deferred_Modifiers => Guikit.Input.No_Modifiers,
-            Type_Ahead_Input_At => Ada.Calendar.Time_Of (1901, 1, 1),
+            Type_Ahead_Input_At => Never,
             Text            => <>,
             Text_Ready      => False,
             Font_Pixel_Size => Settings.Font_Pixel_Size,
@@ -1744,7 +1756,7 @@ package body Files.Application.Windows is
             Last_Glyph_Count => 0,
             Last_Missing_Glyph_Count => 0,
             Last_Present_Status => Guikit.Vulkan.Vulkan_Not_Initialized,
-            Last_Watch_Poll => Ada.Calendar.Time_Of (1901, 1, 1),
+            Last_Watch_Poll => Never,
             Watch => <>));
       Files.Model.Set_Background_Transfers
         (Runtime_Windows.Reference (Runtime_Windows.Last_Index).Model, True);
@@ -1777,6 +1789,21 @@ package body Files.Application.Windows is
       Mouse_Down : Boolean)
  is separate;
 
+   --  End a column-resize drag. Its moves resized the column in memory only;
+   --  the settings file is written once, here.
+   procedure End_Column_Resize_Drag (Runtime : in out Runtime_Window) is
+   begin
+      if Runtime.Column_Resize_Active then
+         Files.Interaction.End_Column_Resize
+           (Model         => Runtime.Model,
+            Settings      => Runtime.Settings,
+            Settings_Path => To_String (Runtime.Settings_Path),
+            Changed       => Runtime.Column_Resize_Changed);
+      end if;
+      Runtime.Column_Resize_Active := False;
+      Runtime.Column_Resize_Changed := False;
+   end End_Column_Resize_Drag;
+
    procedure Update_Column_Resize_Drag
      (Runtime    : in out Runtime_Window;
       Cursor_X   : Glfw.Input.Mouse.Coordinate;
@@ -1789,19 +1816,20 @@ package body Files.Application.Windows is
       if not Runtime.Column_Resize_Active then
          return;
       elsif not Mouse_Down or else Window_W = 0 or else Frame_W = 0 then
-         Runtime.Column_Resize_Active := False;
+         End_Column_Resize_Drag (Runtime);
          return;
       end if;
 
       Files.Interaction.Apply_Column_Resize
-        (Settings      => Runtime.Settings,
-         Settings_Path => To_String (Runtime.Settings_Path),
-         Column        => Runtime.Column_Resize_Target,
-         Origin_X      => Runtime.Column_Resize_Origin_X,
-         Origin_Width  => Runtime.Column_Resize_Origin_W,
-         Current_X     => Scale_Coordinate (Cursor_X, Window_W, Frame_W),
-         Result        => Result);
-      pragma Unreferenced (Result);
+        (Settings     => Runtime.Settings,
+         Column       => Runtime.Column_Resize_Target,
+         Origin_X     => Runtime.Column_Resize_Origin_X,
+         Origin_Width => Runtime.Column_Resize_Origin_W,
+         Current_X    => Scale_Coordinate (Cursor_X, Window_W, Frame_W),
+         Result       => Result);
+      if Result.Settings_Changed then
+         Runtime.Column_Resize_Changed := True;
+      end if;
    end Update_Column_Resize_Drag;
 
    --  Minimum pointer travel, in frame pixels, before an armed header press
@@ -1867,7 +1895,8 @@ package body Files.Application.Windows is
          begin
             if Drop in Files.Types.Detail_Column_Index then
                Files.Interaction.Apply_Column_Reorder
-                 (Settings      => Runtime.Settings,
+                 (Model         => Runtime.Model,
+                  Settings      => Runtime.Settings,
                   Settings_Path => To_String (Runtime.Settings_Path),
                   Column        => Runtime.Column_Reorder_Target,
                   To_Index      => Drop,
@@ -1957,7 +1986,7 @@ package body Files.Application.Windows is
          Runtime.Scrollbar_Drag_Target := Files.Events.Scroll_Auto;
          Runtime.Scrollbar_Drag_Anchor := 0;
       end if;
-      Runtime.Column_Resize_Active := False;
+      End_Column_Resize_Drag (Runtime);
       Runtime.Column_Reorder_Active := False;
       Runtime.Column_Reorder_Started := False;
       Runtime.Column_Reorder_Sort := Files.Commands.No_Command;

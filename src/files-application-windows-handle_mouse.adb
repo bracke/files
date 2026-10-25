@@ -107,7 +107,7 @@ separate (Files.Application.Windows)
          end if;
 
          declare
-            Now       : constant Ada.Calendar.Time := Ada.Calendar.Clock;
+            Now       : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
             Modifiers : constant Guikit.Input.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
             --  Hit-test where the button went down, not where the cursor is
             --  by the time a slow frame gets to the press.
@@ -129,7 +129,7 @@ separate (Files.Application.Windows)
               Is_Item
               and then Action.Item_Index = Runtime.Last_Click_Item
               and then Path = To_String (Runtime.Last_Click_Path)
-              and then Now - Runtime.Last_Click_Time <= 0.5;
+              and then Now <= Runtime.Last_Click_Time + Double_Click_Interval;
          begin
             Runtime.Deferred_Click_Pending := False;
             if Is_Item and then not Activate then

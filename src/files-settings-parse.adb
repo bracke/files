@@ -17,6 +17,43 @@ separate (Files.Settings)
       Legacy_Light   : Boolean := False;
       Entry_Count    : Natural := 0;
 
+      --  Parse Text as a plain decimal number: one or more ASCII digits and
+      --  nothing else. Unlike Natural'Value this rejects Ada literal syntax
+      --  (16#400#, 1_024, 1E3) and surrounding blanks, and it reports a value
+      --  beyond Natural'Last as invalid instead of raising.
+      function Parse_Decimal (Text : String; Number : out Natural) return Boolean is
+         Digit : Natural;
+      begin
+         Number := 0;
+         if Text'Length = 0 then
+            return False;
+         end if;
+         for Ch of Text loop
+            if Ch not in '0' .. '9' then
+               Number := 0;
+               return False;
+            end if;
+            Digit := Character'Pos (Ch) - Character'Pos ('0');
+            if Number > (Natural'Last - Digit) / 10 then
+               Number := 0;
+               return False;
+            end if;
+            Number := Number * 10 + Digit;
+         end loop;
+         return True;
+      end Parse_Decimal;
+
+      --  A persisted window dimension: zero (or an invalid value) keeps the
+      --  platform default, anything else is clamped into the supported range.
+      function Parse_Window_Dimension (Text : String) return Natural is
+         N : Natural;
+      begin
+         if not Parse_Decimal (Text, N) or else N = 0 then
+            return 0;
+         end if;
+         return Natural'Min (Natural'Max (N, Min_Window_Dimension), Max_Window_Dimension);
+      end Parse_Window_Dimension;
+
       --  Per-section key=value handlers. Each mutates the enclosing Settings (and,
       --  for [settings], the legacy-theme flags) and reports a rejected value by
       --  setting Err to the error key; the main loop then returns it. A null Err
@@ -304,32 +341,21 @@ separate (Files.Settings)
             end if;
          elsif Setting_Key = "font_pixel_size" then
             declare
-               N : Integer;
+               N : Natural;
             begin
-               N := Integer'Value (Value);
-               if N < Min_Font_Pixel_Size or else N > Max_Font_Pixel_Size then
+               if not Parse_Decimal (Value, N)
+                 or else N < Min_Font_Pixel_Size
+                 or else N > Max_Font_Pixel_Size
+               then
                   Err := To_Unbounded_String ("error.settings.invalid_font_pixel_size");
                else
                   Settings.Font_Pixel_Size := Positive (N);
                end if;
-            exception
-               when Constraint_Error =>
-                  Err := To_Unbounded_String ("error.settings.invalid_font_pixel_size");
             end;
          elsif Setting_Key = "window_width" then
-            begin
-               Settings.Window_Width := Natural'Value (Value);
-            exception
-               when Constraint_Error =>
-                  Settings.Window_Width := 0;
-            end;
+            Settings.Window_Width := Parse_Window_Dimension (Value);
          elsif Setting_Key = "window_height" then
-            begin
-               Settings.Window_Height := Natural'Value (Value);
-            exception
-               when Constraint_Error =>
-                  Settings.Window_Height := 0;
-            end;
+            Settings.Window_Height := Parse_Window_Dimension (Value);
          elsif Setting_Key = "info_pane_open" then
             declare
                OK : Boolean;
@@ -386,14 +412,16 @@ separate (Files.Settings)
                Suffix : constant String :=
                  Setting_Key (Setting_Key'First + 20 .. Setting_Key'Last);
                Column : Files.Types.Optional_Detail_Column;
+               Width  : Natural;
             begin
                if Detail_Column_For_Key (Suffix, Column) then
-                  begin
-                     Settings.Column_Widths (Column) := Natural'Value (Value);
-                  exception
-                     when Constraint_Error =>
-                        Settings.Column_Widths (Column) := 0;
-                  end;
+                  --  An invalid width resets to the proportional default (0);
+                  --  a valid one goes through With_Column_Width so it gets the
+                  --  same minimum clamp as an interactive resize.
+                  if not Parse_Decimal (Value, Width) then
+                     Width := 0;
+                  end if;
+                  Settings := With_Column_Width (Settings, Column, Width);
                else
                   Err := To_Unbounded_String ("error.settings.unknown_key");
                end if;

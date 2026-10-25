@@ -501,7 +501,7 @@ package body Files.Refresh_Jobs is
                if Work.Force or else Change.Changed then
                   declare
                      Loaded : constant Files.File_System.Directory_Load_Result :=
-                       Files.File_System.Load_Directory (To_String (Work.Root), Work.Settings);
+                       Files.File_System.Load_Directory_Generating_Thumbnails (To_String (Work.Root), Work.Settings);
                   begin
                      Done.Success := Loaded.Success;
                      Done.Reloaded := Loaded.Success;

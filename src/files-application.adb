@@ -430,7 +430,7 @@ package body Files.Application is
                   elsif not Already_Has_Window (Directory_Path) then
                      declare
                         Load   : constant Files.File_System.Directory_Load_Result :=
-                          Files.File_System.Load_Directory (Directory_Path, Settings);
+                          Files.File_System.Load_Directory_Deferring_Thumbnails (Directory_Path, Settings);
                         Window : Startup_Window;
                      begin
                         if Load.Success then
@@ -441,6 +441,11 @@ package body Files.Application is
                               Home_Path         => Home,
                               Default_View_Mode => Settings.Default_View);
                            Apply_Persisted_UI_State (Window.Model, Settings);
+                           --  As on navigation, missing thumbnails are made by a
+                           --  background listing, which the window's first poll launches.
+                           if Files.File_System.Thumbnails_Missing (Load.Items) then
+                              Files.Model.Note_Owed_Refresh (Window.Model, Force => True, Select_Name => "");
+                           end if;
                            Window.Path := Load.Path;
                            Window.Title := Load.Path;
                            Result.Windows.Append (Window);

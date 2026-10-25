@@ -28,6 +28,7 @@ with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Text_IO;
 with System;
 
@@ -191,6 +192,7 @@ package body Files_Suite.Operations is
    procedure Test_Paste_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Refresh_Keeps_Place (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Navigation_Defers_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Plain_Listing_Makes_No_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Access_Bits (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Entry_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_Entry_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -378,6 +380,7 @@ package body Files_Suite.Operations is
    procedure Test_Host_Hidden_Flag_Hides (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Conflict_Resolution_Core (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Case_Only_Paste_Conflicts (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Execution_Batches (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Execution_Cancel (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Execution_Small_Op (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -667,7 +670,7 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Png_Thumbnail_Decoding'Access, "PNG thumbnails decode, bound inflate and composite transparency");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Directory_Load_Thumbnails'Access, "directory loading auto-generates image thumbnails");
+        (T, Test_Directory_Load_Thumbnails'Access, "the generating listing auto-generates image thumbnails");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Thumbnail_Cache_Entries'Access, "thumbnail cache entries are validated when loaded");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -876,6 +879,9 @@ package body Files_Suite.Operations is
         (T, Test_Paste_Conflict_Flow'Access,
          "paste into a colliding directory prompts and resolves replace/skip/rename/apply-all/cancel/undo");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Case_Only_Paste_Conflicts'Access,
+         "on a case-insensitive destination a name differing only by case conflicts, in any script");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Paste_Execution_Batches'Access,
          "the resumable paste executor advances in batches and records one undo over the whole set");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -960,6 +966,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Navigation_Defers_Thumbnails'Access,
          "opening a folder never waits on new thumbnails: a background listing makes them");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Plain_Listing_Makes_No_Thumbnails'Access,
+         "a plain directory listing decodes no image and writes no thumbnail cache file");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Copy_Access_Bits'Access, "copies retain executable and ordinary access bits");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1265,6 +1274,7 @@ package body Files_Suite.Operations is
    end Await_View;
 
    procedure Test_Navigation_Defers_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Plain_Listing_Makes_No_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Refresh_Keeps_Place (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -1870,6 +1880,7 @@ package body Files_Suite.Operations is
    procedure Test_Paste_Conflict_Resolution_Core (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Paste_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Case_Only_Paste_Conflicts (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Paste_Execution_Batches (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

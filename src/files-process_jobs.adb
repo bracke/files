@@ -102,7 +102,7 @@ package body Files.Process_Jobs is
 
    protected Orphan_Queue is
       procedure Register (Accepted : out Boolean);
-      procedure Unregister;
+      procedure Unregister (Underflowed : out Boolean);
       procedure Add (Item : State_Access; Accepted : out Boolean);
       procedure Take_All (Items : out State_Access);
       procedure Close_If_Drained (Closed_Now : out Boolean);
@@ -122,9 +122,14 @@ package body Files.Process_Jobs is
          end if;
       end Register;
 
-      procedure Unregister is
+      --  Underflowed reports an Unregister without a matching Register; the
+      --  count stays at zero rather than raising inside a hand-off.
+      procedure Unregister (Underflowed : out Boolean) is
       begin
-         Live_States := Live_States - 1;
+         Underflowed := Live_States = 0;
+         if not Underflowed then
+            Live_States := Live_States - 1;
+         end if;
       end Unregister;
 
       procedure Add (Item : State_Access; Accepted : out Boolean) is
@@ -171,16 +176,43 @@ package body Files.Process_Jobs is
 
    procedure Ensure_Reaper;
 
+   --  Ownership hand-off contract shared by Destroy, Submit_Or_Abandon and
+   --  Dispose. An in out access parameter is passed by copy, so the caller's
+   --  variable is only updated on a normal return. Each of them therefore
+   --  either propagates while the caller still owns a live, unqueued Item, or
+   --  takes ownership (frees or queues it) and then returns normally with
+   --  Item = null: nothing that can raise runs after ownership has moved.
+   --  The callers' handlers rely on this to retry with their own pointer.
+
    procedure Destroy (Item : in out State_Access) is
+      Doomed      : State_Access := Item;
+      Underflowed : Boolean := False;
    begin
-      Free (Item);
-      Orphan_Queue.Unregister;
+      Item := null;
+      begin
+         Free (Doomed);
+      exception
+         when Swallowed : others =>
+            --  Finalizing a component failed; the state is gone either way.
+            Files.Diagnostics.Note (Swallowed, "Files.Process_Jobs.Destroy");
+      end;
+      begin
+         Orphan_Queue.Unregister (Underflowed);
+         if Underflowed then
+            --  Raised only so the trace records it; the count stays at zero.
+            raise Program_Error;
+         end if;
+      exception
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Process_Jobs.Destroy.Unregister_Underflow");
+      end;
    end Destroy;
 
    procedure Submit_Or_Abandon (Item : in out State_Access) is
       Accepted : Boolean;
       Sent : Boolean;
    begin
+      --  Add raises only before it links Item, which the caller then still owns.
       Orphan_Queue.Add (Item, Accepted);
       if Accepted then
          Item := null;
@@ -188,20 +220,32 @@ package body Files.Process_Jobs is
       end if;
       --  Shutdown sealed the queue. Preserve the marker for the next startup
       --  instead of adding work to a reaper that has already terminated.
-      if Item.Started and then not Item.Finished then
-         Stop (Item);
-      end if;
-      if Item.Cleanup_Started then
-         Sent := Hostkit.Signals.Send_To_Process
-           (Hostkit.Spawn.Process_Id (Item.Cleanup_Process), Hostkit.Signals.Signal_Kill);
-         if not Sent then
-            Sent := Hostkit.Process.Request_Stop
-              (Hostkit.Spawn.Process_Id (Item.Cleanup_Process));
+      --  Abandoning is the last resort, so a failure to stop the processes
+      --  or release the lease must not keep the state alive (or propagate
+      --  into a caller that would retry with it): note it and carry on.
+      begin
+         if Item.Started and then not Item.Finished then
+            Stop (Item);
          end if;
-      end if;
-      Files.Job_Transports.Release (Item.Owner);
+         if Item.Cleanup_Started then
+            Sent := Hostkit.Signals.Send_To_Process
+              (Hostkit.Spawn.Process_Id (Item.Cleanup_Process), Hostkit.Signals.Signal_Kill);
+            if not Sent then
+               Sent := Hostkit.Process.Request_Stop
+                 (Hostkit.Spawn.Process_Id (Item.Cleanup_Process));
+            end if;
+         end if;
+      exception
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Process_Jobs.Submit_Or_Abandon");
+      end;
+      begin
+         Files.Job_Transports.Release (Item.Owner);
+      exception
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Process_Jobs.Submit_Or_Abandon");
+      end;
       Destroy (Item);
-      Item := null;
    end Submit_Or_Abandon;
 
    procedure Dispose (Item : in out State_Access) is
@@ -390,11 +434,31 @@ package body Files.Process_Jobs is
                   Submit_Or_Abandon (Current);
                end if;
             exception
-               when others =>
+               when Swallowed : others =>
                   --  One damaged state must not terminate cleanup for every
-                  --  later orphan. Retain it for another bounded poll.
+                  --  later orphan. Retain it for another bounded poll. By the
+                  --  hand-off contract an exception means Current is still
+                  --  owned here, live and unqueued. Next was read before any
+                  --  hand-off, so a re-queued Current cannot redirect the walk.
+                  Files.Diagnostics.Note (Swallowed, "Files.Process_Jobs.Orphan_Reaper_Task");
                   if Current /= null then
-                     Submit_Or_Abandon (Current);
+                     begin
+                        Submit_Or_Abandon (Current);
+                     exception
+                        when Requeue_Failure : others =>
+                           --  Add itself failed, so Current is still ours. As in
+                           --  Finalize's last resort, drop the in-memory lease and
+                           --  state: the durable marker suffices for startup
+                           --  recovery, and this task stays alive for the others.
+                           Files.Diagnostics.Note (Requeue_Failure, "Files.Process_Jobs.Orphan_Reaper_Task");
+                           begin
+                              Files.Job_Transports.Release (Current.Owner);
+                           exception
+                              when Release_Failure : others =>
+                                 Files.Diagnostics.Note (Release_Failure, "Files.Process_Jobs.Orphan_Reaper_Task");
+                           end;
+                           Destroy (Current);
+                     end;
                   end if;
             end;
             Current := Next;

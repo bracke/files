@@ -131,6 +131,7 @@ package body Files_Suite.Interaction is
    procedure Test_Text_Input_Click_Focuses (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scrollbar_Drag_Begin (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Column_Resize_Drag (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Column_Resize_Persists_On_Release (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Column_Reorder_Drag (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Marquee_Selection_Drag (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Open_And_Edit (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -277,6 +278,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Column_Resize_Drag'Access,
          "a header separator press begins a resize (not a sort) and drag persists the new width");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Column_Resize_Persists_On_Release'Access,
+         "a column-resize drag writes the settings once, when it ends, not on every move");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Column_Reorder_Drag'Access,
          "a header cell press begins a reorder that drops+persists, while a plain click still sorts");
@@ -3033,12 +3037,12 @@ package body Files_Suite.Interaction is
 
          --  Dragging the separator left by 40 px widens the size column by ~40.
          Files.Interaction.Apply_Column_Resize
-           (Settings, "", Files.Types.Size_Column,
+           (Settings, Files.Types.Size_Column,
             Origin_X     => Action.Cursor_Position,
             Origin_Width => Action.Scroll_Drag_Anchor,
             Current_X    => Sep_X - 40,
             Result       => Result);
-         Assert (Result.Settings_Changed, "the resize step reports a persisted change");
+         Assert (Result.Settings_Changed, "the resize step reports a width change");
          Files_Suite.Support.Assert_Equal
            (Settings.Column_Widths (Files.Types.Size_Column),
             Base_W + 40,
@@ -3066,7 +3070,7 @@ package body Files_Suite.Interaction is
 
          --  A far rightward drag (raw width below the minimum) clamps up to it.
          Files.Interaction.Apply_Column_Resize
-           (Settings, "", Files.Types.Size_Column,
+           (Settings, Files.Types.Size_Column,
             Origin_X     => Action.Cursor_Position,
             Origin_Width => Action.Scroll_Drag_Anchor,
             Current_X    => Sep_X + (Base_W - 10),
@@ -3079,7 +3083,7 @@ package body Files_Suite.Interaction is
          --  The public reducer must clamp extreme synthetic coordinates rather
          --  than overflowing before the ordinary width rules can run.
          Files.Interaction.Apply_Column_Resize
-           (Settings, "", Files.Types.Size_Column,
+           (Settings, Files.Types.Size_Column,
             Origin_X     => Integer'Last,
             Origin_Width => Natural'Last,
             Current_X    => Integer'First,
@@ -3089,7 +3093,7 @@ package body Files_Suite.Interaction is
             Natural'Last,
             "an overflowing positive resize delta saturates at Natural'Last");
          Files.Interaction.Apply_Column_Resize
-           (Settings, "", Files.Types.Size_Column,
+           (Settings, Files.Types.Size_Column,
             Origin_X     => Integer'First,
             Origin_Width => 0,
             Current_X    => Integer'Last,
@@ -3100,6 +3104,59 @@ package body Files_Suite.Interaction is
             "an overflowing negative resize delta clamps to the default width");
       end;
    end Test_Column_Resize_Drag;
+
+   procedure Test_Column_Resize_Persists_On_Release (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Path     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "column-resize.conf");
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model;
+      Result   : Files.Interaction.Interaction_Result;
+      Changed  : Boolean := False;
+      Origin_X : constant := 600;
+      Origin_W : constant := 120;
+   begin
+      if Ada.Directories.Exists (Path) then
+         Ada.Directories.Delete_File (Path);
+      end if;
+      Files.Model.Initialize
+        (Model, Files_Suite.Support.Root, Files.File_System.Item_Vectors.Empty_Vector, Files_Suite.Support.Root,
+         Default_View_Mode => Files.Types.Details);
+
+      --  Several pointer moves of one drag change the width in memory only.
+      for Step in 1 .. 5 loop
+         Files.Interaction.Apply_Column_Resize
+           (Settings, Files.Types.Size_Column,
+            Origin_X     => Origin_X,
+            Origin_Width => Origin_W,
+            Current_X    => Origin_X - 10 * Step,
+            Result       => Result);
+         Changed := Changed or else Result.Settings_Changed;
+         Assert (not Ada.Directories.Exists (Path), "a resize move does not write the settings file");
+      end loop;
+      Assert (Changed, "the drag's moves report a width change");
+      Files_Suite.Support.Assert_Equal
+        (Settings.Column_Widths (Files.Types.Size_Column),
+         Origin_W + 50,
+         "the last move's width is live in memory");
+
+      --  Releasing the button writes the final width once.
+      Files.Interaction.End_Column_Resize (Model, Settings, Path, Changed);
+      Assert (Ada.Directories.Exists (Path), "the drag's end writes the settings file");
+      declare
+         Reloaded : constant Files.Settings.Settings_Parse_Result := Files.Settings.Load_File (Path);
+      begin
+         Assert (Reloaded.Success, "the persisted settings file reloads cleanly");
+         Files_Suite.Support.Assert_Equal
+           (Reloaded.Settings.Column_Widths (Files.Types.Size_Column),
+            Origin_W + 50,
+            "the settings file holds the drag's final width");
+      end;
+      Ada.Directories.Delete_File (Path);
+
+      --  A drag that never changed a width writes nothing.
+      Files.Interaction.End_Column_Resize (Model, Settings, Path, Changed => False);
+      Assert (not Ada.Directories.Exists (Path), "a drag without a width change writes nothing");
+   end Test_Column_Resize_Persists_On_Release;
 
    procedure Test_Column_Reorder_Drag (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -3178,7 +3235,7 @@ package body Files_Suite.Interaction is
          Assert (Drop in Files.Types.Detail_Column_Index,
                  "the drop coordinate resolves to a valid target slot");
          Files.Interaction.Apply_Column_Reorder
-           (Settings, "", Files.Types.Size_Column, Drop, Result);
+           (Model, Settings, "", Files.Types.Size_Column, Drop, Result);
          Assert (Result.Settings_Changed, "the reorder drop reports a persisted change");
          Files_Suite.Support.Assert_Equal
            (Settings.Column_Order (2),

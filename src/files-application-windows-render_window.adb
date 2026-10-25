@@ -1,3 +1,5 @@
+with Ada.Calendar;
+
 separate (Files.Application.Windows)
    procedure Render_Window
      (Runtime : in out Runtime_Window)
