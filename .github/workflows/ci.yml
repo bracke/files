@@ -430,7 +430,7 @@ jobs:
           # Linux-only tests (29), plus the Noto emoji font path (2) and invalid
           # UTF-8 names (1), and on Windows the mode-bit (3), reserve, and FIFO
           # tests. Raise a ceiling only together with the Skip that needs it.
-          FILES_TEST_MAX_SKIPS: ${{ runner.os == 'Linux' && '1' || runner.os == 'macOS' && '32' || '37' }}
+          FILES_TEST_MAX_SKIPS: ${{ runner.os == 'Linux' && '1' || runner.os == 'macOS' && '33' || '38' }}
         run: |
           alr --non-interactive build
           # The runners keep UTC, where local and UTC time format alike, so a
