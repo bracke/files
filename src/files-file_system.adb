@@ -31,6 +31,17 @@ with Files.UTF8;
 with Files.File_System.Support;
 with Files.File_System.Recovery;
 with Files.File_Identities;
+with Files.Private_Directories;
+with Ada.Characters;
+with Ada.Containers.Ordered_Sets;
+with Ada.Unchecked_Deallocation;
+with CryptoLib.Hashes;
+with GNAT.CRC32;
+with Files.Job_Context;
+with Files.Io_Errors;
+with Files.Platform;
+with Hostkit.Trash;
+with Files.Bounded_Text_IO;
 
 package body Files.File_System is
 
@@ -50,85 +61,185 @@ package body Files.File_System is
    use type Files.Settings.Sort_Field;
    use type Files.Types.Item_Kind;
 
-   package Thumbnails is
-      function Default_Thumbnail_Cache_Directory
-        (Fallback_Directory : String)
-         return String;
+   Max_Source_Side   : constant := 4096;
 
-      function Thumbnail_Path_For
-        (Source_Path      : String;
-         Cache_Directory : String;
-         Size            : Positive := 64)
-         return String;
+   Max_Source_Pixels : constant := 4_194_304;
 
-      function Generate_Thumbnail
-        (Source_Path      : String;
-         Cache_Directory : String;
-         Size            : Positive := 64)
-         return Thumbnail_Result;
+   package Stream_IO renames Ada.Streams.Stream_IO;
 
-      function Decode_Image_To_Pixels
-        (Path     : String;
-         Max_Size : Positive)
-         return Decoded_Image;
+   Max_Thumbnail_Dimension : constant Positive := 2_048;
 
-      function Is_Image_Item
-        (Kind     : Files.Types.Item_Kind;
-         Filetype : String;
-         Name     : String;
-         Icon_Id  : String)
-         return Boolean;
+   Max_Decode_Source_Bytes : constant Natural := 128 * 1024 * 1024;
 
-      function Read_Preview_Text
-        (Path      : String;
-         Max_Bytes : Natural)
-         return String;
+   function Loader_New return System.Address
+     with Import, Convention => C, External_Name => "gdk_pixbuf_loader_new";
 
-      function Read_Preview_Text
-        (Path : String; Max_Bytes : Natural; Success : out Boolean) return String;
+   function Loader_Write
+     (Loader : System.Address;
+      Buffer : System.Address;
+      Count  : Interfaces.C.size_t;
+      Error  : System.Address)
+      return Interfaces.C.int
+     with Import, Convention => C, External_Name => "gdk_pixbuf_loader_write";
 
-      function Image_Bytes_Extent
-        (Data   : Ada.Streams.Stream_Element_Array;
-         Width  : out Natural;
-         Height : out Natural)
-         return Boolean;
+   function Loader_Close
+     (Loader : System.Address;
+      Error  : System.Address)
+      return Interfaces.C.int
+     with Import, Convention => C, External_Name => "gdk_pixbuf_loader_close";
 
-      function Decode_Image_Bytes
-        (Data : Ada.Streams.Stream_Element_Array)
-         return Decoded_Image;
+   function Loader_Get_Pixbuf (Loader : System.Address) return System.Address
+     with Import, Convention => C, External_Name => "gdk_pixbuf_loader_get_pixbuf";
 
-      procedure Prune_Thumbnail_Cache
-        (Cache_Directory : String;
-         Budget_Bytes    : Long_Long_Integer);
-   end Thumbnails;
-   package body Thumbnails is separate;
+   procedure Loader_Set_Size
+     (Loader : System.Address; Width, Height : C_Int)
+     with Import, Convention => C, External_Name => "gdk_pixbuf_loader_set_size";
 
-   --  The thumbnails operations now live in the
-   --  Files.File_System.Thumbnails child; these renamings keep them on the public API.
+   function Signal_Connect_Data
+     (Instance        : System.Address;
+      Detailed_Signal : Interfaces.C.Strings.chars_ptr;
+      Handler         : System.Address;
+      Data            : System.Address;
+      Destroy_Data    : System.Address;
+      Flags           : Interfaces.C.int) return Interfaces.C.unsigned_long
+     with Import, Convention => C, External_Name => "g_signal_connect_data";
+
+   function Gdk_Pixbuf_Get_Width
+     (Pixbuf : System.Address)
+      return C_Int
+   with Import, Convention => C, External_Name => "gdk_pixbuf_get_width";
+
+   function Gdk_Pixbuf_Get_Height
+     (Pixbuf : System.Address)
+      return C_Int
+   with Import, Convention => C, External_Name => "gdk_pixbuf_get_height";
+
+   function Gdk_Pixbuf_Get_N_Channels
+     (Pixbuf : System.Address)
+      return C_Int
+   with Import, Convention => C, External_Name => "gdk_pixbuf_get_n_channels";
+
+   function Gdk_Pixbuf_Get_Rowstride
+     (Pixbuf : System.Address)
+      return C_Int
+   with Import, Convention => C, External_Name => "gdk_pixbuf_get_rowstride";
+
+   function Gdk_Pixbuf_Get_Pixels
+     (Pixbuf : System.Address)
+      return System.Address
+   with Import, Convention => C, External_Name => "gdk_pixbuf_get_pixels";
+
+   procedure G_Object_Unref
+     (Object : System.Address)
+   with Import, Convention => C, External_Name => "g_object_unref";
+
+   package C_Int_Pointers is new System.Address_To_Access_Conversions (C_Int);
+
+   use type C_Int_Pointers.Object_Pointer;
+
+   procedure Loader_Size_Prepared
+     (Loader : System.Address;
+      Width, Height : C_Int;
+      Data : System.Address)
+     with Convention => C;
+
+   procedure Loader_Size_Prepared
+     (Loader : System.Address;
+      Width, Height : C_Int;
+      Data : System.Address)
+   is separate;
+
+   procedure Safe_Free
+     (Pointer : in out Interfaces.C.Strings.chars_ptr);
+
+   function Thumbnail_Extension
+     (Source_Path : String)
+      return String;
+
+   function Sanitized_Thumbnail_Extension
+     (Source_Path : String)
+      return String;
+
+   function Thumbnail_Path_Checksum
+     (Source_Path : String)
+      return Natural;
+
+   function Thumbnail_Cache_Key
+     (Source_Path : String)
+      return String;
+
+   procedure Safe_Free
+     (Pointer : in out Interfaces.C.Strings.chars_ptr) is separate;
+
+   function Thumbnail_Extension
+     (Source_Path : String)
+      return String
+   is separate;
+
+   function Sanitized_Thumbnail_Extension
+     (Source_Path : String)
+      return String
+   is separate;
+
+   function Thumbnail_Path_Checksum
+     (Source_Path : String)
+      return Natural
+   is separate;
+
+   function Thumbnail_Cache_Key
+     (Source_Path : String)
+      return String
+   is separate;
+
+   Cache_Byte_Budget : constant Long_Long_Integer := 64 * 1024 * 1024;
+
+   Max_Cache_Prune_Entries : constant Natural := 100_000;
+
+   package Cache_Path_Sets is new Ada.Containers.Ordered_Sets
+     (Element_Type => Unbounded_String);
+
+   Max_Remembered_Cache_Paths : constant Natural := 256;
+
+   protected Cache_Prune_Registry is
+      procedure Claim (Path : String; Prune : out Boolean);
+   private
+      Seen : Cache_Path_Sets.Set;
+   end Cache_Prune_Registry;
+
+   protected body Cache_Prune_Registry is
+      procedure Claim (Path : String; Prune : out Boolean) is
+         Key : constant Unbounded_String := To_Unbounded_String (Path);
+      begin
+         if Seen.Contains (Key) then
+            Prune := False;
+         else
+            Prune := True;
+            --  Keep the registry itself bounded. Beyond the cap, pruning again
+            --  is safer than retaining one attacker-controlled path forever.
+            if Natural (Seen.Length) < Max_Remembered_Cache_Paths then
+               Seen.Insert (Key);
+            end if;
+         end if;
+      end Claim;
+   end Cache_Prune_Registry;
+
+   procedure Prune_Thumbnail_Cache
+     (Cache_Directory : String;
+      Budget_Bytes    : Long_Long_Integer)
+   is separate;
+
+   procedure Prune_Cache_Once (Cache_Directory : String) is separate;
+
    function Default_Thumbnail_Cache_Directory
      (Fallback_Directory : String)
       return String
-     renames Thumbnails.Default_Thumbnail_Cache_Directory;
+   is separate;
 
    function Thumbnail_Path_For
      (Source_Path      : String;
       Cache_Directory : String;
       Size            : Positive := 64)
-      return String
-     renames Thumbnails.Thumbnail_Path_For;
-
-   function Generate_Thumbnail
-     (Source_Path      : String;
-      Cache_Directory : String;
-      Size            : Positive := 64)
-      return Thumbnail_Result
-     renames Thumbnails.Generate_Thumbnail;
-
-   function Decode_Image_To_Pixels
-     (Path     : String;
-      Max_Size : Positive)
-      return Decoded_Image
-     renames Thumbnails.Decode_Image_To_Pixels;
+      return String is separate;
 
    function Is_Image_Item
      (Kind     : Files.Types.Item_Kind;
@@ -136,131 +247,462 @@ package body Files.File_System is
       Name     : String;
       Icon_Id  : String)
       return Boolean
-     renames Thumbnails.Is_Image_Item;
+   is separate;
+
+   function Read_Bounded_Regular_File
+     (Path : String; Max_Bytes : Natural;
+      Success, Complete : out Boolean) return String
+   is separate;
 
    function Read_Preview_Text
      (Path      : String;
       Max_Bytes : Natural)
       return String
-     renames Thumbnails.Read_Preview_Text;
+   is
+      Success : Boolean;
+   begin
+      return Read_Preview_Text (Path, Max_Bytes, Success);
+   end Read_Preview_Text;
 
    function Read_Preview_Text
      (Path : String; Max_Bytes : Natural; Success : out Boolean) return String
-     renames Thumbnails.Read_Preview_Text;
+   is separate;
 
    function Image_Bytes_Extent
      (Data   : Ada.Streams.Stream_Element_Array;
       Width  : out Natural;
       Height : out Natural)
       return Boolean
-     renames Thumbnails.Image_Bytes_Extent;
+   is separate;
 
    function Decode_Image_Bytes
      (Data : Ada.Streams.Stream_Element_Array)
       return Decoded_Image
-     renames Thumbnails.Decode_Image_Bytes;
+   is separate;
 
-   procedure Prune_Thumbnail_Cache
-     (Cache_Directory : String;
-      Budget_Bytes    : Long_Long_Integer)
-     renames Thumbnails.Prune_Thumbnail_Cache;
-
-   package Directory is
-      function Load_Directory
-        (Path     : String;
-         Settings : Files.Settings.Settings_Model)
-         return Directory_Load_Result;
-
-      --  Load_Directory building full items (metadata, thumbnails) only for
-      --  entries Include accepts (null accepts all); the others are skipped after a cheap kind
-      --  check. Recursive search uses it so a walk does not stat, hash and
-      --  thumbnail every non-matching file it passes.
-      function Load_Directory_Filtered
-        (Path     : String;
-         Settings : Files.Settings.Settings_Model;
-         Include  : access function
-           (Name : String; Kind : Files.Types.Item_Kind) return Boolean;
-         Generate_Thumbnails : Boolean := False)
-         return Directory_Load_Result;
-
-      function Load_Directory_Deferring_Thumbnails
-        (Path     : String;
-         Settings : Files.Settings.Settings_Model)
-         return Directory_Load_Result;
-
-      function Load_Directory_Generating_Thumbnails
-        (Path     : String;
-         Settings : Files.Settings.Settings_Model)
-         return Directory_Load_Result;
-
-      function Thumbnails_Missing (Items : Item_Vectors.Vector) return Boolean;
-
-      function Load_Item
-        (Full_Path : String;
-         Settings  : Files.Settings.Settings_Model)
-         return Item_Load_Result;
-
-      function Extra_Info_Token
-        (Path     : String;
-         Kind     : Files.Types.Item_Kind;
-         Filetype : String)
-         return String;
-
-      procedure Sort_Items
-        (Items     : in out Item_Vectors.Vector;
-         Field     : Files.Settings.Sort_Field;
-         Ascending : Boolean);
-
-      function Directory_State
-        (Path : String)
-         return Directory_Signature;
-
-      function Detect_Directory_Change
-        (Before_State : Directory_Signature;
-         Path         : String)
-         return Directory_Change_Result;
-
-      function Directory_Size
-        (Path        : String;
-         Max_Entries : Natural := 50_000;
-         Max_Depth   : Natural := 64)
-         return Directory_Size_Result;
-
-      function Make_Item
-        (Parent_Path : String;
-         Name        : String;
-         Kind        : Files.Types.Item_Kind;
-         Filetype    : String := "")
-         return Directory_Item;
-
-      function Make_Item
-        (Parent_Path : String;
-         Name        : String;
-         Kind        : Files.Types.Item_Kind;
-         Settings    : Files.Settings.Settings_Model)
-         return Directory_Item;
-   end Directory;
-   package body Directory is separate;
-
-   --  The directory operations now live in the
-   --  Files.File_System.Directory child; these renamings keep them on the public API.
-   function Load_Directory
+   function Decode_Image_To_Pixels
      (Path     : String;
-      Settings : Files.Settings.Settings_Model)
-      return Directory_Load_Result
-     renames Directory.Load_Directory;
+      Max_Size : Positive)
+      return Decoded_Image
+   is separate;
 
-   function Load_Directory_Deferring_Thumbnails
-     (Path     : String;
-      Settings : Files.Settings.Settings_Model)
-      return Directory_Load_Result
-     renames Directory.Load_Directory_Deferring_Thumbnails;
+   function Clamp_Channel (Value : Natural) return Natural is separate;
 
-   function Load_Directory_Generating_Thumbnails
+   function File_Size_Signal (Source_Path : String) return Natural is separate;
+
+   Max_Fast_Decode_Source_Bytes : constant Natural := 33_554_432;
+
+   function Source_Fits_Fast_Decode (Source_Path : String) return Boolean is separate;
+
+   type Rgba_Pixel is record
+      Red   : Natural := 0;
+      Green : Natural := 0;
+      Blue  : Natural := 0;
+      Alpha : Natural := 255;
+   end record;
+
+   package Pixel_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Natural,
+      Element_Type => Rgba_Pixel);
+
+   package Thumbnail_Byte_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Natural,
+      Element_Type => Ada.Streams.Stream_Element);
+
+   type Stream_Element_Array_Access is
+     access Ada.Streams.Stream_Element_Array;
+
+   procedure Free_Stream_Element_Array is new Ada.Unchecked_Deallocation
+     (Object => Ada.Streams.Stream_Element_Array,
+      Name   => Stream_Element_Array_Access);
+
+   type Gdk_Pixel_Array is array (Natural range 0 .. 67_108_863) of aliased Interfaces.Unsigned_8;
+
+   pragma Convention (C, Gdk_Pixel_Array);
+
+   package Gdk_Pixel_Pointers is new System.Address_To_Access_Conversions (Gdk_Pixel_Array);
+
+   use type Gdk_Pixel_Pointers.Object_Pointer;
+
+   function Byte_At
+     (Data  : Thumbnail_Byte_Vectors.Vector;
+      Index : Natural)
+      return Natural is separate;
+
+   function U32_BE_From
+     (Data  : Thumbnail_Byte_Vectors.Vector;
+      Index : Natural)
+      return Natural
+   is separate;
+
+   function Bytes_To_Stream_Array
+     (Data : Thumbnail_Byte_Vectors.Vector)
+      return Stream_Element_Array_Access
+   is separate;
+
+   procedure Write_Pixels_As_Ppm
+     (Target_Path   : String;
+      Size          : Positive;
+      Pixels        : Pixel_Vectors.Vector;
+      Source_Width  : Natural;
+      Source_Height : Natural)
+   is separate;
+
+   function Try_Write_Decoded_P3_Thumbnail
+     (Source_Path : String;
+      Size        : Positive;
+      Target_Path : String)
+      return Boolean
+   is separate;
+
+   function Try_Write_Decoded_Png_Thumbnail
+     (Source_Path : String;
+      Size        : Positive;
+      Target_Path : String)
+      return Boolean
+   is separate;
+
+   function Try_Write_Gdk_Pixbuf_Thumbnail
+     (Source_Path : String;
+      Size        : Positive;
+      Target_Path : String)
+      return Boolean
+   is separate;
+
+   Checksum  : Natural := 0;
+
+   Size_Bias : Natural := 0;
+
+   Target    : Unbounded_String;
+
+   function Generate_Thumbnail
+     (Source_Path      : String;
+      Cache_Directory : String;
+      Size            : Positive := 64)
+      return Thumbnail_Result
+   is separate;
+
+   use type Ada.Streams.Stream_Element_Array;
+
+   use type Ada.Streams.Stream_IO.Count;
+
+   use type GNAT.OS_Lib.File_Descriptor;
+
+   function Stream_Byte (Value : Ada.Streams.Stream_Element) return Natural;
+
+   function Stream_Byte (Value : Ada.Streams.Stream_Element) return Natural is separate;
+
+   Extra_Line_Limit : constant Natural := 20_000;
+
+   Extra_Scan_Byte_Limit : constant Long_Long_Integer := 8_388_608;
+
+   Max_Directory_Count_Entries : constant Natural := 10_000;
+
+   Max_Cached_Thumbnail_Bytes  : constant Natural := 16 * 1024 * 1024;
+
+   Max_Legacy_Thumbnail_Bytes  : constant Natural := 1 * 1024 * 1024;
+
+   Max_Cached_Thumbnail_Pixels : constant Natural := 2_048 * 2_048;
+
+   Max_Thumbnail_Cache_Entries : constant Natural := 100_000;
+
+   type Cached_Thumbnail is record
+      Loaded : Boolean := False;
+      Width  : Natural := 0;
+      Height : Natural := 0;
+      Pixels : Files.Types.Byte_Vectors.Vector;
+   end record;
+
+   ELF_Magic    : constant Ada.Streams.Stream_Element_Array (1 .. 4) :=
+     [16#7F#, 16#45#, 16#4C#, 16#46#];   --  7F 'E' 'L' 'F'
+
+   PE_Magic     : constant Ada.Streams.Stream_Element_Array (1 .. 2) :=
+     [16#4D#, 16#5A#];                   --  'M' 'Z'
+
+   Script_Magic : constant Ada.Streams.Stream_Element_Array (1 .. 2) :=
+     [16#23#, 16#21#];                   --  '#' '!'
+
+   PNG_Magic    : constant Ada.Streams.Stream_Element_Array (1 .. 8) :=
+     --  89 'P' 'N' 'G' CR LF 1A LF
+     [16#89#, 16#50#, 16#4E#, 16#47#, 16#0D#, 16#0A#, 16#1A#, 16#0A#];
+
+   function Load_Cached_Thumbnail
+     (Path : String)
+      return Cached_Thumbnail;
+
+   function Should_Auto_Generate_Thumbnail
+     (Kind     : Files.Types.Item_Kind;
+      Filetype : String;
+      Name     : String;
+      Icon_Id  : String)
+      return Boolean;
+
+   package Thumbnail_Name_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+     (Element_Type        => String,
+      Hash                => Ada.Strings.Hash,
+      Equivalent_Elements => "=");
+
+   type Cache_Index is record
+      Listed : Boolean := False;
+      Names  : Thumbnail_Name_Sets.Set;
+      --  False for a listing the UI waits on: a missing thumbnail is then
+      --  left for a background listing to make.
+      Generate : Boolean := True;
+      --  True when Names is empty and the remembered listing answers
+      --  instead (Cache_Index_Memo), so it is never copied per directory.
+      Shared   : Boolean := False;
+   end record;
+
+   --  Whether the cache holds Name, by the index or the listing it shares.
+   function Cache_Holds (Index : Cache_Index; Name : String) return Boolean;
+
+   --  Read the cache directory once. A cache that does not exist yet yields an
+   --  empty listing. An unreadable or oversized cache falls back to per-item
+   --  checks rather than losing cached results or retaining unbounded names.
+   function Index_Thumbnail_Cache (Cache_Directory : String) return Cache_Index;
+
+   function Thumbnail_For_Item
+     (Full_Path       : String;
+      Kind            : Files.Types.Item_Kind;
+      Filetype        : String;
+      Name            : String;
+      Icon_Id         : String;
+      Cache_Directory : String;
+      Thumbnail_Path  : String;
+      Cached          : Cache_Index)
+      return Cached_Thumbnail;
+
+   --  @param Path The item's full path.
+   --  @param Kind How the item was already classified, which for most kinds
+   --              settles executability without asking the host again.
+   --  @param Mode_Bits POSIX mode already read for this item, when Mode_Known.
+   --  @param Mode_Known True when Mode_Bits are the host's own bits.
+   function Permission_String
+     (Path       : String;
+      Kind       : Files.Types.Item_Kind;
+      Mode_Bits  : Natural;
+      Mode_Known : Boolean)
+      return String;
+
+   function Count_Text_Lines (Path : String) return Natural;
+
+   function Text_Encoding_Name (Path : String) return String;
+
+   function Text_Metadata_Token
+     (Prefix : String;
+      Path   : String)
+      return String;
+
+   function Pdf_Page_Count_Token (Path : String) return String;
+
+   function Zip_Entry_Count_Token
+     (Path   : String;
+      Prefix : String)
+      return String;
+
+   function Matches_Signature
+     (Buffer  : Ada.Streams.Stream_Element_Array;
+      Last    : Ada.Streams.Stream_Element_Offset;
+      Pattern : Ada.Streams.Stream_Element_Array)
+      return Boolean;
+
+   function Executable_Format_Token (Path : String) return String;
+
+   function Directory_Count_Token (Path : String) return String;
+
+   --  The detail line's symlink entry. The "symlink.target|" prefix is this
+   --  application's own token format, not a host fact, so it is written here
+   --  over Hostkit's reader rather than asked of the host.
+   function Symlink_Target_Token (Path : String) return String;
+
+   function U16_BE
+     (Buffer : Ada.Streams.Stream_Element_Array;
+      Start  : Ada.Streams.Stream_Element_Offset)
+      return Natural;
+
+   function U32_BE
+     (Buffer : Ada.Streams.Stream_Element_Array;
+      Start  : Ada.Streams.Stream_Element_Offset)
+      return Natural;
+
+   function Dimensions_Text
+     (Width  : Natural;
+      Height : Natural)
+      return String;
+
+   function Image_Dimensions_Token
      (Path     : String;
-      Settings : Files.Settings.Settings_Model)
-      return Directory_Load_Result
-     renames Directory.Load_Directory_Generating_Thumbnails;
+      Filetype : String)
+      return String;
+
+   function Kind_From_Path
+     (Full : String)
+      return Files.Types.Item_Kind;
+
+   function Item_For_Path
+     (Full        : String;
+      Name        : String;
+      Parent_Path : String;
+      Kind        : Files.Types.Item_Kind;
+      Settings    : Files.Settings.Settings_Model;
+      Cached      : Cache_Index)
+      return Directory_Item;
+
+   function Load_Cached_Thumbnail
+     (Path : String)
+      return Cached_Thumbnail
+   is separate;
+
+   function Should_Auto_Generate_Thumbnail
+     (Kind     : Files.Types.Item_Kind;
+      Filetype : String;
+      Name     : String;
+      Icon_Id  : String)
+      return Boolean is separate;
+
+   function List_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is separate;
+
+   protected Cache_Index_Memo is
+      function Holds (Directory : String; Stamp : Ada.Calendar.Time) return Boolean;
+      function Contains (Name : String) return Boolean;
+      procedure Keep (Directory : String; Stamp : Ada.Calendar.Time; Index : Cache_Index);
+   private
+      Kept_Directory : Unbounded_String;
+      Kept_Stamp     : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+      Kept_Index     : Cache_Index;
+      Valid          : Boolean := False;
+   end Cache_Index_Memo;
+
+   protected body Cache_Index_Memo is
+      function Holds (Directory : String; Stamp : Ada.Calendar.Time) return Boolean is
+      begin
+         return Valid and then To_String (Kept_Directory) = Directory and then Kept_Stamp = Stamp;
+      end Holds;
+
+      function Contains (Name : String) return Boolean is
+        (Valid and then Kept_Index.Names.Contains (Name));
+
+      procedure Keep (Directory : String; Stamp : Ada.Calendar.Time; Index : Cache_Index) is
+      begin
+         Kept_Directory := To_Unbounded_String (Directory);
+         Kept_Stamp := Stamp;
+         Kept_Index := Index;
+         Valid := True;
+      end Keep;
+   end Cache_Index_Memo;
+
+   function Index_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is separate;
+
+   function Cache_Holds (Index : Cache_Index; Name : String) return Boolean is
+     (if Index.Shared then Cache_Index_Memo.Contains (Name) else Index.Names.Contains (Name));
+
+   function Thumbnail_For_Item
+     (Full_Path       : String;
+      Kind            : Files.Types.Item_Kind;
+      Filetype        : String;
+      Name            : String;
+      Icon_Id         : String;
+      Cache_Directory : String;
+      Thumbnail_Path  : String;
+      Cached          : Cache_Index)
+      return Cached_Thumbnail
+   is separate;
+
+   procedure Sort_Items
+     (Items     : in out Item_Vectors.Vector;
+      Field     : Files.Settings.Sort_Field;
+      Ascending : Boolean)
+   is separate;
+
+   function Permission_String
+     (Path       : String;
+      Kind       : Files.Types.Item_Kind;
+      Mode_Bits  : Natural;
+      Mode_Known : Boolean)
+      return String
+   is separate;
+
+   procedure Close_Read_Descriptor
+     (File : in out GNAT.OS_Lib.File_Descriptor)
+   is separate;
+
+   procedure Read_Descriptor
+     (File   : GNAT.OS_Lib.File_Descriptor;
+      Buffer : out Ada.Streams.Stream_Element_Array;
+      Last   : out Ada.Streams.Stream_Element_Offset)
+   is separate;
+
+   function Count_Text_Lines (Path : String) return Natural is separate;
+
+   function Text_Encoding_Name (Path : String) return String is separate;
+
+   function Text_Metadata_Token
+     (Prefix : String;
+      Path   : String)
+      return String is separate;
+
+   function Pdf_Page_Count_Token (Path : String) return String is separate;
+
+   function Zip_Entry_Count_Token
+     (Path   : String;
+      Prefix : String)
+      return String
+   is separate;
+
+   function Matches_Signature
+     (Buffer  : Ada.Streams.Stream_Element_Array;
+      Last    : Ada.Streams.Stream_Element_Offset;
+      Pattern : Ada.Streams.Stream_Element_Array)
+      return Boolean
+   is separate;
+
+   function Executable_Format_Token (Path : String) return String is separate;
+
+   function Symlink_Target_Token (Path : String) return String is separate;
+
+   function Directory_Count_Token (Path : String) return String is separate;
+
+   function U16_BE
+     (Buffer : Ada.Streams.Stream_Element_Array;
+      Start  : Ada.Streams.Stream_Element_Offset)
+      return Natural is separate;
+
+   function U32_BE
+     (Buffer : Ada.Streams.Stream_Element_Array;
+      Start  : Ada.Streams.Stream_Element_Offset)
+      return Natural is separate;
+
+   function Dimensions_Text
+     (Width  : Natural;
+      Height : Natural)
+      return String is separate;
+
+   function Image_Dimensions_Token
+     (Path     : String;
+      Filetype : String)
+      return String
+   is separate;
+
+   function Extra_Info_Token
+     (Path     : String;
+      Kind     : Files.Types.Item_Kind;
+      Filetype : String)
+      return String is separate;
+
+   function Kind_From_Path
+     (Full : String)
+      return Files.Types.Item_Kind
+   is separate;
+
+   function Item_For_Path
+     (Full        : String;
+      Name        : String;
+      Parent_Path : String;
+      Kind        : Files.Types.Item_Kind;
+      Settings    : Files.Settings.Settings_Model;
+      Cached      : Cache_Index)
+      return Directory_Item
+   is separate;
 
    function Load_Directory_Filtered
      (Path     : String;
@@ -269,47 +711,41 @@ package body Files.File_System is
         (Name : String; Kind : Files.Types.Item_Kind) return Boolean;
       Generate_Thumbnails : Boolean := False)
       return Directory_Load_Result
-     renames Directory.Load_Directory_Filtered;
+   is separate;
 
-   function Thumbnails_Missing (Items : Item_Vectors.Vector) return Boolean
-     renames Directory.Thumbnails_Missing;
+   function Load_Directory
+     (Path     : String;
+      Settings : Files.Settings.Settings_Model)
+      return Directory_Load_Result is separate;
+
+   function Load_Directory_Deferring_Thumbnails
+     (Path     : String;
+      Settings : Files.Settings.Settings_Model)
+      return Directory_Load_Result is separate;
+
+   function Load_Directory_Generating_Thumbnails
+     (Path     : String;
+      Settings : Files.Settings.Settings_Model)
+      return Directory_Load_Result is separate;
+
+   function Thumbnails_Missing (Items : Item_Vectors.Vector) return Boolean is separate;
 
    function Load_Item
      (Full_Path : String;
       Settings  : Files.Settings.Settings_Model)
       return Item_Load_Result
-     renames Directory.Load_Item;
-
-   function Extra_Info_Token
-     (Path     : String;
-      Kind     : Files.Types.Item_Kind;
-      Filetype : String)
-      return String
-     renames Directory.Extra_Info_Token;
-
-   procedure Sort_Items
-     (Items     : in out Item_Vectors.Vector;
-      Field     : Files.Settings.Sort_Field;
-      Ascending : Boolean)
-     renames Directory.Sort_Items;
+   is separate;
 
    function Directory_State
      (Path : String)
       return Directory_Signature
-     renames Directory.Directory_State;
+   is separate;
 
    function Detect_Directory_Change
      (Before_State : Directory_Signature;
       Path         : String)
       return Directory_Change_Result
-     renames Directory.Detect_Directory_Change;
-
-   function Directory_Size
-     (Path        : String;
-      Max_Entries : Natural := 50_000;
-      Max_Depth   : Natural := 64)
-      return Directory_Size_Result
-     renames Directory.Directory_Size;
+   is separate;
 
    function Make_Item
      (Parent_Path : String;
@@ -317,7 +753,7 @@ package body Files.File_System is
       Kind        : Files.Types.Item_Kind;
       Filetype    : String := "")
       return Directory_Item
-     renames Directory.Make_Item;
+   is separate;
 
    function Make_Item
      (Parent_Path : String;
@@ -325,101 +761,147 @@ package body Files.File_System is
       Kind        : Files.Types.Item_Kind;
       Settings    : Files.Settings.Settings_Model)
       return Directory_Item
-     renames Directory.Make_Item;
+   is
+      Filetype : constant String := Files.File_Types.Detect_Filetype (Settings, Kind, Name);
+   begin
+      return
+        (Name               => To_Unbounded_String (Name),
+         Full_Path          => To_Unbounded_String (Join_Path (Parent_Path, Name)),
+         Parent_Path        => To_Unbounded_String (Parent_Path),
+         Hidden             => Name'Length > 0 and then Name (Name'First) = '.',
+         Kind               => Kind,
+         Filetype           => To_Unbounded_String (Filetype),
+         Icon_Id            => To_Unbounded_String (Files.File_Types.Icon_Id_For (Settings, Kind, Filetype)),
+         Size_Available     => False,
+         Size               => 0,
+         Creation_Available => False,
+         Creation_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
+         Modified_Available => False,
+         Modified_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
+         Permissions        => Null_Unbounded_String,
+         Mode_Available     => False,
+         Mode_Bits          => 0,
+         Ownership_Available => False,
+         Owner_Id           => 0,
+         Group_Id           => 0,
+         Filetype_Extra     => Null_Unbounded_String,
+         Filetype_Extra_Loaded => False,
+         Thumbnail_Available => False,
+         Thumbnail_Path      => Null_Unbounded_String,
+         Thumbnail_Width     => 0,
+         Thumbnail_Height    => 0,
+         Thumbnail_Pixels    => Files.Shared_Bytes.Empty,
+         Metadata_Error     => False,
+         Error_Key          => Null_Unbounded_String);
+   end Make_Item;
+
+   function Directory_Size
+     (Path        : String;
+      Max_Entries : Natural := 50_000;
+      Max_Depth   : Natural := 64)
+      return Directory_Size_Result
+   is separate;
 
    function Is_Directory (Item : Directory_Item) return Boolean is
    begin
       return Item.Kind = Files.Types.Directory_Item;
    end Is_Directory;
 
-   package Trash is
-      function Trash_Is_Available return Boolean;
+   function Original_Path (Trashed_Path : String) return String;
 
-      function Trash_Backend_Of_Current_Environment return Trash_Backend;
+   function Restore_From_Trash_Backend
+     (Trashed_Path : String; Expected_Identity : String := ""; Expected_Original : String := "")
+      return Mutation_Result;
 
-      function Trash_Capabilities_Of_Current_Environment return Trash_Capabilities;
+   function Delete_From_Trash_Backend
+     (Trashed_Path : String)
+      return Mutation_Result;
 
-      function Native_Trash_Request_For
-        (Path : String)
-         return Native_Trash_Request;
+   function Trash_Base_Path return String;
 
-      function Evaluate_Native_Trash
-        (Request : Native_Trash_Request)
-         return Native_Trash_Result;
+   function Trash_Backend_For_Base return Trash_Backend;
 
-      function Execute_Native_Trash
-        (Request : Native_Trash_Request)
-         return Native_Trash_Result;
+   function Path_Can_Be_Directory (Path : String) return Boolean;
 
-      function Move_To_Trash_Preflight
-        (Path : String)
-         return Mutation_Result;
+   function Two_Digit_Text (Value : Natural) return String;
 
-      function Trash_Deletion_Date
-        (Value : Ada.Calendar.Time)
-         return String;
+   type Trash_Location is record
+      Backend : Trash_Backend := Trash_Unavailable;
+      Base    : Unbounded_String := Null_Unbounded_String;
+   end record;
 
-      function Trash_Files_Directory return String;
+   function Trash_Location_For_Environment return Trash_Location is separate;
 
-      function Original_Path (Trashed_Path : String) return String;
+   function Trash_Base_Path return String is separate;
 
-      function Restore_From_Trash
-        (Trashed_Path : String; Expected_Identity : String := ""; Expected_Original : String := "")
-         return Mutation_Result;
+   function Trash_Backend_For_Base return Trash_Backend is separate;
 
-      function Move_To_Trash
-        (Path : String)
-         return Mutation_Result;
+   function Trash_Files_Directory return String is separate;
 
-      function Move_To_Trash
-        (Path         : String;
-         Trashed_Path : out Files.Types.UString)
-         return Mutation_Result;
+   function Valid_Original_Path (Path : String) return Boolean is separate;
 
-      function Delete_Trashed_Item
-        (Trashed_Path : String)
-         return Mutation_Result;
-   end Trash;
-   package body Trash is separate;
+   function Is_Trash_Payload (Path, Payload_Directory : String) return Boolean is separate;
 
-   --  The trash operations now live in the
-   --  Files.File_System.Trash child; these renamings keep them on the public API.
-   function Trash_Is_Available return Boolean
-     renames Trash.Trash_Is_Available;
+   function Path_Can_Be_Directory (Path : String) return Boolean is separate;
 
-   function Trash_Backend_Of_Current_Environment return Trash_Backend
-     renames Trash.Trash_Backend_Of_Current_Environment;
-
-   function Trash_Capabilities_Of_Current_Environment return Trash_Capabilities
-     renames Trash.Trash_Capabilities_Of_Current_Environment;
-
-   function Native_Trash_Request_For
-     (Path : String)
-      return Native_Trash_Request
-     renames Trash.Native_Trash_Request_For;
-
-   function Evaluate_Native_Trash
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result
-     renames Trash.Evaluate_Native_Trash;
-
-   function Execute_Native_Trash
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result
-     renames Trash.Execute_Native_Trash;
-
-   function Move_To_Trash_Preflight
-     (Path : String)
-      return Mutation_Result
-     renames Trash.Move_To_Trash_Preflight;
+   function Two_Digit_Text (Value : Natural) return String is separate;
 
    function Trash_Deletion_Date
      (Value : Ada.Calendar.Time)
       return String
-     renames Trash.Trash_Deletion_Date;
+   is separate;
 
-   function Trash_Files_Directory return String
-     renames Trash.Trash_Files_Directory;
+   function Trash_Is_Available return Boolean is separate;
+
+   function Trash_Backend_Of_Current_Environment return Trash_Backend is separate;
+
+   function Trash_Capabilities_Of_Current_Environment return Trash_Capabilities is separate;
+
+   function Native_Trash_Request_For
+     (Path : String)
+      return Native_Trash_Request
+   is separate;
+
+   function Evaluate_Native_Trash
+     (Request : Native_Trash_Request)
+      return Native_Trash_Result is separate;
+
+   function Execute_Native_Trash
+     (Request : Native_Trash_Request)
+      return Native_Trash_Result
+   is separate;
+
+   function Move_To_Trash_Preflight
+     (Path : String)
+      return Mutation_Result
+   is separate;
+
+   function Move_To_Trash
+     (Path         : String;
+      Trashed_Path : out Files.Types.UString)
+      return Mutation_Result
+   is separate;
+
+   function Move_To_Trash
+     (Path : String)
+      return Mutation_Result
+   is
+      Ignored : Files.Types.UString;
+   begin
+      return Move_To_Trash (Path, Ignored);
+   end Move_To_Trash;
+
+   function Delete_From_Trash_Backend
+     (Trashed_Path : String)
+      return Mutation_Result
+   is separate;
+
+   function Original_Path (Trashed_Path : String) return String is separate;
+
+   function Restore_From_Trash_Backend
+     (Trashed_Path : String; Expected_Identity : String := ""; Expected_Original : String := "")
+      return Mutation_Result
+   is separate;
 
    function Is_Trash_Files_Directory (Path : String) return Boolean is
       Trash_Dir : constant String := Trash_Files_Directory;
@@ -439,7 +921,7 @@ package body Files.File_System is
       if Recovery.Recognizes (Trashed_Path) then
          return Recovery.Original_Path (Trashed_Path);
       end if;
-      return Trash.Original_Path (Trashed_Path);
+      return Original_Path (Trashed_Path);
    end Trash_Original_Path;
 
    function Is_Recovery_Payload (Path : String) return Boolean
@@ -447,7 +929,7 @@ package body Files.File_System is
 
    function Release_Recovery_Payload (Path : String) return Mutation_Result is
       function To_Trash (Entry_Path : String) return Mutation_Result is
-        (Trash.Move_To_Trash (Entry_Path));
+        (Move_To_Trash (Entry_Path));
    begin
       return Recovery.Release (Path, To_Trash'Access);
    end Release_Recovery_Payload;
@@ -463,7 +945,7 @@ package body Files.File_System is
       if Recovery.Recognizes (Trashed_Path) then
          return Recovery.Restore (Trashed_Path, Expected_Identity, Expected_Original);
       end if;
-      return Trash.Restore_From_Trash (Trashed_Path, Expected_Identity, Expected_Original);
+      return Restore_From_Trash_Backend (Trashed_Path, Expected_Identity, Expected_Original);
    end Restore_From_Trash;
 
    function Preserve_For_Replace
@@ -480,8 +962,8 @@ package body Files.File_System is
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.trash.failed"));
       end if;
-      if Trash.Trash_Backend_Of_Current_Environment in Trash_Xdg_Data_Home | Trash_Home_Data then
-         Result := Trash.Move_To_Trash (Path, Recovery_Path);
+      if Trash_Backend_Of_Current_Environment in Trash_Xdg_Data_Home | Trash_Home_Data then
+         Result := Move_To_Trash (Path, Recovery_Path);
       else
          Result := Recovery.Preserve (Path, Recovery_Path);
       end if;
@@ -514,17 +996,6 @@ package body Files.File_System is
             Error_Key => To_Unbounded_String ("error.trash.failed"));
    end Preserve_For_Replace;
 
-   function Move_To_Trash
-     (Path : String)
-      return Mutation_Result
-     renames Trash.Move_To_Trash;
-
-   function Move_To_Trash
-     (Path         : String;
-      Trashed_Path : out Files.Types.UString)
-      return Mutation_Result
-     renames Trash.Move_To_Trash;
-
    function Delete_Trashed_Item
      (Trashed_Path : String)
       return Mutation_Result
@@ -533,308 +1004,258 @@ package body Files.File_System is
       if Recovery.Recognizes (Trashed_Path) then
          return Recovery.Discard (Trashed_Path);
       end if;
-      return Trash.Delete_Trashed_Item (Trashed_Path);
+      return Delete_From_Trash_Backend (Trashed_Path);
    end Delete_Trashed_Item;
 
-   package Path is
-      function Normalize_Path
-        (Path : String)
-         return Path_Result;
+   use type Hostkit.Host.Kind;
 
-      function Expand_User_Path (Path : String) return String;
+   function Parent_Directory (Path : String) return String is separate;
 
-      function Parent_Directory
-        (Path : String)
-         return String;
+   function Expand_User_Path (Path : String) return String is separate;
 
-      function Join_Path
-        (Parent_Path : String;
-         Name        : String)
-         return String;
-
-      function Valid_Leaf_Name
-        (Name  : String;
-         Rules : Name_Rules := Host_Rules)
-         return Boolean;
-
-      function Valid_Leaf_Name_At
-        (Name      : String;
-         Directory : String)
-         return Boolean;
-
-      function Storable_Leaf_Name_At
-        (Name      : String;
-         Directory : String)
-         return Boolean;
-
-      function Next_Untitled_Name
-        (Directory_Path : String)
-         return String;
-   end Path;
-   package body Path is separate;
-
-   --  The path operations now live in the
-   --  Files.File_System.Path child; these renamings keep them on the public API.
    function Normalize_Path
      (Path : String)
       return Path_Result
-     renames Path.Normalize_Path;
-
-   function Expand_User_Path (Path : String) return String
-     renames Path.Expand_User_Path;
-
-   function Parent_Directory
-     (Path : String)
-      return String
-     renames Path.Parent_Directory;
+   is separate;
 
    function Join_Path
      (Parent_Path : String;
       Name        : String)
-      return String
-     renames Path.Join_Path;
+      return String is separate;
+
+   function Windows_Device_Basename (Name : String) return String is separate;
+
+   function Is_Windows_Device_Name (Name : String) return Boolean is separate;
+
+   function Is_All_Whitespace (Name : String) return Boolean is separate;
+
+   function Ends_With_Whitespace (Name : String) return Boolean is separate;
 
    function Valid_Leaf_Name
      (Name  : String;
       Rules : Name_Rules := Host_Rules)
       return Boolean
-     renames Path.Valid_Leaf_Name;
+   is separate;
 
    function Valid_Leaf_Name_At
      (Name      : String;
       Directory : String)
       return Boolean
-     renames Path.Valid_Leaf_Name_At;
+   is
+     (Valid_Leaf_Name
+        (Name,
+         (if Hostkit.Fs.Uses_Dos_Filename_Rules (Directory)
+          then Windows_Rules
+          else Posix_Rules)));
 
    function Storable_Leaf_Name_At
      (Name      : String;
       Directory : String)
       return Boolean
-     renames Path.Storable_Leaf_Name_At;
+   is separate;
 
    function Next_Untitled_Name
      (Directory_Path : String)
       return String
-     renames Path.Next_Untitled_Name;
+   is separate;
 
-   package Search is
-      function Search_Recursive
-        (Root_Path : String;
-         Query     : String;
-         Settings  : Files.Settings.Settings_Model;
-         Max_Items : Natural := 1_000)
-         return Recursive_Search_Result;
-   end Search;
-   package body Search is separate;
-
-   --  The search operations now live in the
-   --  Files.File_System.Search child; these renamings keep them on the public API.
    function Search_Recursive
      (Root_Path : String;
       Query     : String;
       Settings  : Files.Settings.Settings_Model;
       Max_Items : Natural := 1_000)
       return Recursive_Search_Result
-     renames Search.Search_Recursive;
+   is separate;
 
-   package Roots is
-      function Available_Roots return Files.Types.String_Vectors.Vector;
+   Max_Mount_Record_Length : constant Positive := 64 * 1024;
 
-      function Available_Root_Entries return Root_Entry_Vectors.Vector;
+   type Volume_Size_Info is record
+      Capacity_Bytes   : Long_Long_Integer := 0;
+      Free_Bytes       : Long_Long_Integer := 0;
+      Inode_Count      : Long_Long_Integer := 0;
+      Free_Inode_Count : Long_Long_Integer := 0;
+      Name_Max         : Natural := 0;
+      Read_Only        : Boolean := False;
+      Known            : Boolean := False;
+      Inodes_Known     : Boolean := False;
+      Name_Max_Known   : Boolean := False;
+      Read_Only_Known  : Boolean := False;
+   end record;
 
-      function Root_Label (Path : String; Kind : Root_Kind) return String;
+   type Mount_Metadata is record
+      Source_Device   : Unbounded_String;
+      Filesystem_Type : Unbounded_String;
+      Mount_Options   : Unbounded_String;
+      Removable       : Boolean := False;
+      Removable_Known : Boolean := False;
+      Found           : Boolean := False;
+   end record;
 
-      function Root_Discovery_Status return Root_Discovery_Diagnostics;
+   procedure Volume_Size_For
+     (Path : String;
+      Info : out Volume_Size_Info);
 
-      function Root_Volume_Capabilities_Of_Current_Environment
-         return Root_Volume_Capabilities;
+   function Mount_Field
+     (Line  : String;
+      Index : Positive)
+      return String;
 
-      function Filesystem_Edge_Case_Profile_Of_Current_Environment
-         return Filesystem_Edge_Case_Profile;
+   function Simple_Device_Name (Source : String) return String;
 
-      function Native_Platform_API_Profile_For
-        (Adapter : Native_Platform_Adapter)
-         return Native_Platform_API_Profile;
+   function Parent_Block_Device_Name (Device : String) return String;
 
-      function Root_Volume_Details_For
-        (Root : Root_Entry)
-         return Root_Volume_Details;
+   function Read_First_Line (Path : String) return String;
 
-      function Filetype_Metadata_Policy_Of_Current_Implementation
-         return Filetype_Metadata_Policy;
-   end Roots;
-   package body Roots is separate;
+   function Removable_Status_For
+     (Source : String;
+      Known  : out Boolean)
+      return Boolean;
 
-   --  The roots operations now live in the
-   --  Files.File_System.Roots child; these renamings keep them on the public API.
-   function Available_Roots return Files.Types.String_Vectors.Vector
-     renames Roots.Available_Roots;
+   function Mount_Metadata_For_Root (Path : String) return Mount_Metadata;
 
-   function Available_Root_Entries return Root_Entry_Vectors.Vector
-     renames Roots.Available_Root_Entries;
+   function Root_Label (Path : String; Kind : Root_Kind) return String is separate;
 
-   function Root_Label (Path : String; Kind : Root_Kind) return String
-     renames Roots.Root_Label;
+   function Available_Root_Entries return Root_Entry_Vectors.Vector is separate;
 
-   function Root_Discovery_Status return Root_Discovery_Diagnostics
-     renames Roots.Root_Discovery_Status;
+   function Available_Roots return Files.Types.String_Vectors.Vector is separate;
+
+   function Root_Discovery_Status return Root_Discovery_Diagnostics is separate;
 
    function Root_Volume_Capabilities_Of_Current_Environment
-      return Root_Volume_Capabilities
-     renames Roots.Root_Volume_Capabilities_Of_Current_Environment;
+      return Root_Volume_Capabilities is separate;
 
    function Filesystem_Edge_Case_Profile_Of_Current_Environment
-      return Filesystem_Edge_Case_Profile
-     renames Roots.Filesystem_Edge_Case_Profile_Of_Current_Environment;
+      return Filesystem_Edge_Case_Profile is separate;
 
    function Native_Platform_API_Profile_For
      (Adapter : Native_Platform_Adapter)
       return Native_Platform_API_Profile
-     renames Roots.Native_Platform_API_Profile_For;
+   is separate;
+
+   procedure Volume_Size_For
+     (Path : String;
+      Info : out Volume_Size_Info)
+   is separate;
+
+   function Mount_Field
+     (Line  : String;
+      Index : Positive)
+      return String
+   is separate;
+
+   function Simple_Device_Name (Source : String) return String is separate;
+
+   function Parent_Block_Device_Name (Device : String) return String is separate;
+
+   function Read_First_Line (Path : String) return String is separate;
+
+   function Removable_Status_For
+     (Source : String;
+      Known  : out Boolean)
+      return Boolean
+   is separate;
+
+   function Mount_Metadata_For_Root (Path : String) return Mount_Metadata is separate;
 
    function Root_Volume_Details_For
      (Root : Root_Entry)
       return Root_Volume_Details
-     renames Roots.Root_Volume_Details_For;
+   is separate;
 
    function Filetype_Metadata_Policy_Of_Current_Implementation
-      return Filetype_Metadata_Policy
-     renames Roots.Filetype_Metadata_Policy_Of_Current_Implementation;
+      return Filetype_Metadata_Policy is separate;
 
-   package Create is
-      function Create_Empty_File
-        (Path : String)
-         return Mutation_Result;
+   function Mutation_Leaf_Name (Path : String) return String;
 
-      function Create_Directory
-        (Path : String)
-         return Mutation_Result;
+   function Validate_Link_Destination
+     (Link_Path : String)
+      return Mutation_Result;
 
-      function Rename_Item
-        (From_Path : String;
-         To_Path   : String;
-         Expected_Identity : String := "")
-         return Mutation_Result;
+   function Mutation_Leaf_Name (Path : String) return String is separate;
 
-      function Create_Symbolic_Link
-        (Source_Path : String;
-         Link_Path   : String)
-         return Mutation_Result;
-
-      function Create_Hard_Link
-        (Source_Path : String;
-         Link_Path   : String)
-         return Mutation_Result;
-   end Create;
-   package body Create is separate;
-
-   --  The create operations now live in the
-   --  Files.File_System.Create child; these renamings keep them on the public API.
    function Create_Empty_File
      (Path : String)
       return Mutation_Result
-     renames Create.Create_Empty_File;
+   is separate;
 
    function Create_Directory
      (Path : String)
       return Mutation_Result
-     renames Create.Create_Directory;
+   is separate;
 
    function Rename_Item
      (From_Path : String;
       To_Path   : String;
       Expected_Identity : String := "")
       return Mutation_Result
-     renames Create.Rename_Item;
+   is separate;
+
+   function Validate_Link_Destination
+     (Link_Path : String)
+      return Mutation_Result
+   is separate;
 
    function Create_Symbolic_Link
      (Source_Path : String;
       Link_Path   : String)
       return Mutation_Result
-     renames Create.Create_Symbolic_Link;
+   is separate;
 
    function Create_Hard_Link
      (Source_Path : String;
       Link_Path   : String)
       return Mutation_Result
-     renames Create.Create_Hard_Link;
+   is separate;
 
-   package Permissions is
-      function Supports_Permissions return Boolean;
+   package Id_Name_Maps is new Ada.Containers.Ordered_Maps
+     (Key_Type     => Natural,
+      Element_Type => Unbounded_String);
 
-      function Permission_Bits_Of
-        (Path      : String;
-         Available : out Boolean)
-         return Natural;
+   User_Name_Cache  : Id_Name_Maps.Map;
 
-      function Set_Permissions
-        (Path : String;
-         Mode : Natural)
-         return Mutation_Result;
+   Group_Name_Cache : Id_Name_Maps.Map;
 
-      function Supports_Ownership return Boolean;
-
-      procedure Ownership_Of
-        (Path      : String;
-         User_Id   : out Natural;
-         Group_Id  : out Natural;
-         Available : out Boolean);
-
-      function Set_Ownership
-        (Path     : String;
-         User_Id  : Natural;
-         Group_Id : Natural)
-         return Mutation_Result;
-
-      function User_Id_For_Name
-        (Name  : String;
-         Found : out Boolean)
-         return Natural;
-
-      function Group_Id_For_Name
-        (Name  : String;
-         Found : out Boolean)
-         return Natural;
-
-      function User_Name_For_Id (Id : Natural) return String;
-
-      function Group_Name_For_Id (Id : Natural) return String;
-   end Permissions;
-   package body Permissions is separate;
-
-   --  The permissions operations now live in the
-   --  Files.File_System.Permissions child; these renamings keep them on the public API.
-   function Supports_Permissions return Boolean
-     renames Permissions.Supports_Permissions;
+   function Supports_Permissions return Boolean is separate;
 
    function Permission_Bits_Of
      (Path      : String;
       Available : out Boolean)
-      return Natural
-     renames Permissions.Permission_Bits_Of;
+      return Natural is separate;
 
    function Set_Permissions
      (Path : String;
       Mode : Natural)
       return Mutation_Result
-     renames Permissions.Set_Permissions;
+   is separate;
 
-   function Supports_Ownership return Boolean
-     renames Permissions.Supports_Ownership;
+   function Supports_Ownership return Boolean is separate;
 
    procedure Ownership_Of
      (Path      : String;
       User_Id   : out Natural;
       Group_Id  : out Natural;
-      Available : out Boolean)
-     renames Permissions.Ownership_Of;
+      Available : out Boolean) is separate;
 
    function Set_Ownership
      (Path     : String;
       User_Id  : Natural;
       Group_Id : Natural)
       return Mutation_Result
-     renames Permissions.Set_Ownership;
+   is separate;
+
+   function User_Id_For_Name
+     (Name  : String;
+      Found : out Boolean)
+      return Natural is separate;
+
+   function Group_Id_For_Name
+     (Name  : String;
+      Found : out Boolean)
+      return Natural is separate;
+
+   function User_Name_For_Id (Id : Natural) return String is separate;
+
+   function Group_Name_For_Id (Id : Natural) return String is separate;
 
    function Change_Metadata
      (Path, Expected_Identity : String; Ownership : Boolean; Value, Group : Natural;
@@ -914,11 +1335,11 @@ package body Files.File_System is
          Owner_Name     =>
            (if not Ownership then ""
             elsif Owner_Name /= "" then Owner_Name
-            else Permissions.User_Name_For_Id (Value)),
+            else User_Name_For_Id (Value)),
          Group_Name     =>
            (if not Ownership then ""
             elsif Group_Name /= "" then Group_Name
-            else Permissions.Group_Name_For_Id (Group)));
+            else Group_Name_For_Id (Group)));
       if not Updated.Success
         or else Updated.Previous > U64 (Natural'Last)
         or else Updated.Previous_Group > U64 (Natural'Last)
@@ -937,82 +1358,58 @@ package body Files.File_System is
       when others => return Failed;
    end Change_Metadata;
 
-   function User_Id_For_Name
-     (Name  : String;
-      Found : out Boolean)
-      return Natural
-     renames Permissions.User_Id_For_Name;
-
-   function Group_Id_For_Name
-     (Name  : String;
-      Found : out Boolean)
-      return Natural
-     renames Permissions.Group_Id_For_Name;
-
-   function User_Name_For_Id (Id : Natural) return String
-     renames Permissions.User_Name_For_Id;
-
-   function Group_Name_For_Id (Id : Natural) return String
-     renames Permissions.Group_Name_For_Id;
-
-   package Copy_Move is
-      function Copy_Tree
-        (Source_Path      : String;
-         Destination_Path : String;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
-         return Mutation_Result;
-
-      function Copy_Tree
-        (Source_Path, Destination_Path : String;
-         Identity, Tree_Revision_Value : out Files.Types.UString;
-         Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
-         return Mutation_Result;
-
-      function Delete_Permanently
-        (Path : String)
-         return Mutation_Result;
-
-      function Plan_Drop_Import
-        (Source_Paths          : Files.Types.String_Vectors.Vector;
-         Destination_Directory : String;
-         Mode                  : Drop_Import_Mode := Drop_Copy)
-         return Drop_Import_Result;
-
-      function Execute_Drop_Import
-        (Plans  : Drop_Import_Plan_Vectors.Vector;
-         Cancel : Cancellation_Check := null;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
-         return Mutation_Result;
-
-      function Execute_Drop_Import
-        (Plans  : Drop_Import_Plan_Vectors.Vector;
-         Created_Identities, Created_Tree_Revisions : out Files.Types.String_Vectors.Vector;
-         Cancel : Cancellation_Check := null;
-         Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
-         return Mutation_Result;
-   end Copy_Move;
-   package body Copy_Move is separate;
-
-   --  The copy move operations now live in the
-   --  Files.File_System.Copy_Move child; these renamings keep them on the public API.
    function Copy_Tree
      (Source_Path      : String;
       Destination_Path : String;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
-      return Mutation_Result
-     renames Copy_Move.Copy_Tree;
+      return Mutation_Result is
+   begin
+      Files.Io_Errors.Reset;
+      Support.Copy_To_New_Path (Source_Path, Destination_Path, Batch => Batch);
+      return (Success => True, Error_Key => Null_Unbounded_String);
+   exception
+      when others =>
+         return
+           (Success   => False,
+            Error_Key => Files.Io_Errors.Error_Key ("error.copy.failed"));
+   end Copy_Tree;
 
    function Copy_Tree
      (Source_Path, Destination_Path : String;
       Identity, Tree_Revision_Value : out Files.Types.UString;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
-      return Mutation_Result
-     renames Copy_Move.Copy_Tree;
+      return Mutation_Result is separate;
 
    function Delete_Permanently
      (Path : String)
       return Mutation_Result
-     renames Copy_Move.Delete_Permanently;
+   is separate;
+
+   function Plan_Drop_Import
+     (Source_Paths          : Files.Types.String_Vectors.Vector;
+      Destination_Directory : String;
+      Mode                  : Drop_Import_Mode := Drop_Copy)
+      return Drop_Import_Result
+   is separate;
+
+   function Execute_Drop_Import
+     (Plans  : Drop_Import_Plan_Vectors.Vector;
+      Cancel : Cancellation_Check := null;
+      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      return Mutation_Result
+   is
+      Identities, Tree_Revisions : Files.Types.String_Vectors.Vector;
+   begin
+      return Execute_Drop_Import (Plans, Identities, Tree_Revisions, Cancel, Batch);
+   end Execute_Drop_Import;
+
+   function Execute_Drop_Import
+     (Plans  : Drop_Import_Plan_Vectors.Vector;
+      Created_Identities, Created_Tree_Revisions : out Files.Types.String_Vectors.Vector;
+      Cancel : Cancellation_Check := null;
+      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      return Mutation_Result
+   is separate;
 
    function Delete_Verified_Entry
      (Path : String;
@@ -1109,28 +1506,6 @@ package body Files.File_System is
    exception
       when others => return "";
    end Tree_Revision;
-
-   function Plan_Drop_Import
-     (Source_Paths          : Files.Types.String_Vectors.Vector;
-      Destination_Directory : String;
-      Mode                  : Drop_Import_Mode := Drop_Copy)
-      return Drop_Import_Result
-     renames Copy_Move.Plan_Drop_Import;
-
-   function Execute_Drop_Import
-     (Plans  : Drop_Import_Plan_Vectors.Vector;
-      Cancel : Cancellation_Check := null;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
-      return Mutation_Result
-     renames Copy_Move.Execute_Drop_Import;
-
-   function Execute_Drop_Import
-     (Plans  : Drop_Import_Plan_Vectors.Vector;
-      Created_Identities, Created_Tree_Revisions : out Files.Types.String_Vectors.Vector;
-      Cancel : Cancellation_Check := null;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
-      return Mutation_Result
-     renames Copy_Move.Execute_Drop_Import;
 
    function Entry_Identity_Matches (Path, Expected : String) return Boolean is
    begin

@@ -1,8 +1,7 @@
 with Files.Model;
 with Files.Settings;
 
---  Internal helpers shared across the Files.Operations group children (built as
---  Files.Operations splits its former monolith into cohesive child packages).
+--  Internal helpers shared by the Files.Operations subunits (one per operation).
 --  A private child so only the Files.Operations hierarchy can see it; the public
 --  Operation_Result/Operation_Status types come from the parent spec.
 private package Files.Operations.Support is
