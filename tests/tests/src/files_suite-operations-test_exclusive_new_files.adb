@@ -28,7 +28,8 @@ separate (Files_Suite.Operations)
       if Hostkit.Host.Current = Hostkit.Host.Linux then
          declare
             Parent : constant String := Join (Root, "read-only-parent");
-            User_Id, Group_Id : Natural;
+            use type Files.Types.Account_Id;
+            User_Id, Group_Id : Files.Types.Account_Id;
             Available : Boolean;
          begin
             Ada.Directories.Create_Directory (Parent);

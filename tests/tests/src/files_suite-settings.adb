@@ -140,6 +140,7 @@ package body Files_Suite.Settings is
    procedure Test_Shortcut_Editing (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Form_Mapping_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Numeric_Values (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Scalar_Settings_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
    overriding function Name (T : Settings_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
    begin
@@ -241,6 +242,9 @@ package body Files_Suite.Settings is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Numeric_Values'Access,
          "numeric settings accept plain decimals only; window sizes and column widths are clamped");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Scalar_Settings_Round_Trip'Access,
+         "every scalar setting round-trips through the settings text and, if the pane edits it, the draft");
    end Register_Tests;
 
    --  A settings text exercising every section the parsing and open-action
@@ -414,4 +418,6 @@ package body Files_Suite.Settings is
    procedure Test_Column_Order_Reorder (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Settings_Numeric_Values (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Scalar_Settings_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 end Files_Suite.Settings;

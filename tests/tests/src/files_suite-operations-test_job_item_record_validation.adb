@@ -40,8 +40,9 @@ separate (Files_Suite.Operations)
          Boolean'Output (Stream, Value.Mode_Available);
          Natural'Output (Stream, Value.Mode_Bits);
          Boolean'Output (Stream, Value.Ownership_Available);
-         Natural'Output (Stream, Value.Owner_Id);
-         Natural'Output (Stream, Value.Group_Id);
+         --  Written as before ids were Account_Id: four bytes either way.
+         Natural'Output (Stream, Natural (Value.Owner_Id));
+         Natural'Output (Stream, Natural (Value.Group_Id));
          Files.Job_Records.Write_String
            (Stream, To_String (Value.Filetype_Extra), Files.Job_Records.Max_Text_Length);
          Boolean'Output (Stream, Value.Filetype_Extra_Loaded);

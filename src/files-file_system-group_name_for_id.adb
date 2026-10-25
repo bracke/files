@@ -1,5 +1,5 @@
 separate (Files.File_System)
-function Group_Name_For_Id (Id : Natural) return String is
+function Group_Name_For_Id (Id : Files.Types.Account_Id) return String is
    Position : constant Id_Name_Maps.Cursor := Group_Name_Cache.Find (Id);
 begin
    if Id_Name_Maps.Has_Element (Position) then

@@ -2983,7 +2983,7 @@ package Files.Model is
    procedure Set_Account_Name
      (Model : in out Window_Model;
       Kind  : Account_Kind;
-      Id    : Natural;
+      Id    : Files.Types.Account_Id;
       Name  : String);
 
    --  @param Model Model to inspect.
@@ -2993,7 +2993,7 @@ package Files.Model is
    function Account_Name_Known
      (Model : Window_Model;
       Kind  : Account_Kind;
-      Id    : Natural)
+      Id    : Files.Types.Account_Id)
       return Boolean;
 
    --  @param Model Model to inspect.
@@ -3003,7 +3003,7 @@ package Files.Model is
    function Account_Name
      (Model : Window_Model;
       Kind  : Account_Kind;
-      Id    : Natural)
+      Id    : Files.Types.Account_Id)
       return String;
 
    --  Note that the account names the info pane needs were sampled at the
@@ -3116,9 +3116,11 @@ private
       Element_Type => Files.File_System.Directory_Size_Result,
       "<"          => Ada.Strings.Unbounded."<");
 
+   use type Files.Types.Account_Id;
+
    --  Resolved account names keyed by numeric id (Set_Account_Name).
    package Account_Name_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Natural,
+     (Key_Type     => Files.Types.Account_Id,
       Element_Type => UString,
       "="          => Ada.Strings.Unbounded."=");
 

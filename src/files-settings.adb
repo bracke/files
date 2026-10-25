@@ -94,6 +94,139 @@ package body Files.Settings is
       Shortcuts_Section,
       Settings_Section_Name);
 
+   --  The descriptor table for the scalar settings (see Scalar_Setting).
+   --  Keys are file-format tokens, not user-visible text.
+   type Key_Text is access constant String;
+
+   function "+" (Text : String) return Key_Text is (new String'(Text));
+
+   --  How the settings pane holds a scalar setting. Pane_Required slots are
+   --  always written into the draft validation text, so an empty value is
+   --  rejected; Pane_Optional slots are written only when non-empty, so an
+   --  empty value keeps the default.
+   type Pane_Slot is (Not_In_Pane, Pane_Required, Pane_Optional);
+
+   type Scalar_Descriptor is record
+      --  The settings-file key.
+      Key          : Key_Text;
+      --  The diagnostic for a rejected value; empty when every value is
+      --  accepted (out-of-range numbers are clamped or reset instead).
+      Error_Key    : Key_Text;
+      --  Whether the value is written through Action_Token_Text (quoted when
+      --  it holds blanks or quotes, or is empty).
+      Quoted       : Boolean := False;
+      Pane         : Pane_Slot := Not_In_Pane;
+      --  Whether To_Text omits the line while the value equals the record
+      --  default, keeping untouched files minimal.
+      Omit_Default : Boolean := False;
+      --  The detail column a per-column setting refers to; unused otherwise.
+      Column       : Files.Types.Optional_Detail_Column := Files.Types.Modified_Column;
+   end record;
+
+   Scalar_Table : constant array (Scalar_Setting) of Scalar_Descriptor :=
+     [Default_View_Mode_Setting =>
+        (Key => +"default_view_mode", Error_Key => +"error.settings.invalid_view_mode",
+         Pane => Pane_Required, others => <>),
+      Show_Hidden_Files_Setting =>
+        (Key => +"show_hidden_files", Error_Key => +"error.settings.invalid_boolean",
+         Pane => Pane_Required, others => <>),
+      Show_File_Extensions_Setting =>
+        (Key => +"show_file_extensions", Error_Key => +"error.settings.invalid_boolean",
+         Pane => Pane_Required, others => <>),
+      Show_Used_Space_Setting =>
+        (Key => +"show_used_space", Error_Key => +"error.settings.invalid_boolean",
+         Pane => Pane_Required, others => <>),
+      Show_Space_Bar_Setting =>
+        (Key => +"show_space_bar", Error_Key => +"error.settings.invalid_boolean",
+         Pane => Pane_Required, others => <>),
+      Sort_Field_Setting =>
+        (Key => +"sort_field", Error_Key => +"error.settings.invalid_sort_field",
+         Pane => Pane_Required, others => <>),
+      Sort_Ascending_Setting =>
+        (Key => +"sort_ascending", Error_Key => +"error.settings.invalid_boolean",
+         Pane => Pane_Required, others => <>),
+      Theme_Setting =>
+        (Key => +"theme", Error_Key => +"error.settings.invalid_theme",
+         Pane => Pane_Required, others => <>),
+      Icon_Theme_Setting =>
+        (Key => +"icon_theme", Error_Key => +"error.settings.invalid_icon_theme",
+         Quoted => True, Pane => Pane_Required, others => <>),
+      Font_Pixel_Size_Setting =>
+        (Key => +"font_pixel_size", Error_Key => +"error.settings.invalid_font_pixel_size",
+         Pane => Pane_Required, others => <>),
+      Info_Pane_Open_Setting =>
+        (Key => +"info_pane_open", Error_Key => +"error.settings.invalid_boolean",
+         others => <>),
+      Use_System_Default_Opener_Setting =>
+        (Key => +"use_system_default_opener", Error_Key => +"error.settings.invalid_boolean",
+         Pane => Pane_Optional, others => <>),
+      Group_By_Setting =>
+        (Key => +"group_by", Error_Key => +"error.settings.invalid_group",
+         Pane => Pane_Optional, others => <>),
+      Detail_Column_Order_Setting =>
+        (Key => +"detail_column_order", Error_Key => +"error.settings.invalid_column_order",
+         Omit_Default => True, others => <>),
+      Detail_Column_Modified_Setting =>
+        (Key => +"detail_column_modified", Error_Key => +"error.settings.invalid_boolean",
+         Pane => Pane_Optional, Column => Files.Types.Modified_Column, others => <>),
+      Detail_Column_Width_Modified_Setting =>
+        (Key => +"detail_column_width_modified", Error_Key => +"",
+         Omit_Default => True, Column => Files.Types.Modified_Column, others => <>),
+      Detail_Column_Size_Setting =>
+        (Key => +"detail_column_size", Error_Key => +"error.settings.invalid_boolean",
+         Pane => Pane_Optional, Column => Files.Types.Size_Column, others => <>),
+      Detail_Column_Width_Size_Setting =>
+        (Key => +"detail_column_width_size", Error_Key => +"",
+         Omit_Default => True, Column => Files.Types.Size_Column, others => <>),
+      Detail_Column_Filetype_Setting =>
+        (Key => +"detail_column_filetype", Error_Key => +"error.settings.invalid_boolean",
+         Pane => Pane_Optional, Column => Files.Types.Filetype_Column, others => <>),
+      Detail_Column_Width_Filetype_Setting =>
+        (Key => +"detail_column_width_filetype", Error_Key => +"",
+         Omit_Default => True, Column => Files.Types.Filetype_Column, others => <>),
+      Detail_Column_Created_Setting =>
+        (Key => +"detail_column_created", Error_Key => +"error.settings.invalid_boolean",
+         Pane => Pane_Optional, Column => Files.Types.Created_Column, others => <>),
+      Detail_Column_Width_Created_Setting =>
+        (Key => +"detail_column_width_created", Error_Key => +"",
+         Omit_Default => True, Column => Files.Types.Created_Column, others => <>),
+      Detail_Column_Permissions_Setting =>
+        (Key => +"detail_column_permissions", Error_Key => +"error.settings.invalid_boolean",
+         Pane => Pane_Optional, Column => Files.Types.Permissions_Column, others => <>),
+      Detail_Column_Width_Permissions_Setting =>
+        (Key => +"detail_column_width_permissions", Error_Key => +"",
+         Omit_Default => True, Column => Files.Types.Permissions_Column, others => <>),
+      Window_Width_Setting =>
+        (Key => +"window_width", Error_Key => +"", Omit_Default => True, others => <>),
+      Window_Height_Setting =>
+        (Key => +"window_height", Error_Key => +"", Omit_Default => True, others => <>)];
+
+   function Scalar_Key (Setting : Scalar_Setting) return String is
+     (Scalar_Table (Setting).Key.all);
+
+   function Is_Pane_Setting (Setting : Scalar_Setting) return Boolean is
+     (Scalar_Table (Setting).Pane /= Not_In_Pane);
+
+   --  The diagnostic key Set_Scalar reports for a rejected value of Setting.
+   function Scalar_Error_Key (Setting : Scalar_Setting) return String is
+     (Scalar_Table (Setting).Error_Key.all);
+
+   --  Find the scalar setting whose key is Key (already lower-cased).
+   function Scalar_For_Key
+     (Key     : String;
+      Setting : out Scalar_Setting)
+      return Boolean is
+   begin
+      for Candidate in Scalar_Setting loop
+         if Scalar_Table (Candidate).Key.all = Key then
+            Setting := Candidate;
+            return True;
+         end if;
+      end loop;
+      Setting := Scalar_Setting'First;
+      return False;
+   end Scalar_For_Key;
+
    --  Return the stable on-disk token for a color label.
    function Color_Label_Name (Value : Files.Types.Color_Label) return String is
    begin
@@ -907,6 +1040,24 @@ package body Files.Settings is
 
    function Action_Token_Text (Value : String) return String is separate;
 
+   function Scalar_Text
+     (Settings : Settings_Model;
+      Setting  : Scalar_Setting)
+      return String
+ is separate;
+
+   procedure Set_Scalar
+     (Settings  : in out Settings_Model;
+      Setting   : Scalar_Setting;
+      Text      : String;
+      Error_Key : out UString)
+ is separate;
+
+   --  One [settings] line for Setting holding the unquoted value Value.
+   function Scalar_Line (Setting : Scalar_Setting; Value : String) return String is
+     (Scalar_Key (Setting) & " = "
+      & (if Scalar_Table (Setting).Quoted then Action_Token_Text (Value) else Value));
+
    function Action_Text (Action : Open_Action) return String is
       Result : Unbounded_String := Null_Unbounded_String;
    begin
@@ -979,6 +1130,57 @@ package body Files.Settings is
             return Normalize_Action_Token (To_String (Key));
       end case;
    end Draft_Mapping_Key_Text;
+
+   --  Return Draft with each mapping editor's pending key/value edit merged
+   --  into its row vectors: replacing the row whose normalized key matches,
+   --  or appended as a new row. An edit with an empty key and value is not a
+   --  row. Draft_Settings_Text and Apply_Draft both read the merged rows.
+   function With_Pending_Rows
+     (Draft : Settings_Draft)
+      return Settings_Draft
+   is
+      Result : Settings_Draft := Draft;
+
+      procedure Upsert
+        (Keys   : in out String_Vectors.Vector;
+         Values : in out String_Vectors.Vector;
+         Kind   : Draft_Mapping_Kind;
+         Key    : UString;
+         Value  : UString)
+      is
+         Key_Text : constant String := Draft_Mapping_Key_Text (Kind, Key);
+      begin
+         if Length (Key) = 0 and then Length (Value) = 0 then
+            return;
+         end if;
+
+         for Index in 1 .. Natural (Keys.Length) loop
+            if Draft_Mapping_Key_Text (Kind, Keys.Element (Index)) = Key_Text then
+               Keys.Replace_Element (Index, To_Unbounded_String (Key_Text));
+               Values.Replace_Element (Index, Value);
+               return;
+            end if;
+         end loop;
+
+         Keys.Append (To_Unbounded_String (Key_Text));
+         Values.Append (Value);
+      end Upsert;
+   begin
+      Upsert
+        (Result.Filetype_Keys,
+         Result.Filetype_Values,
+         Draft_Filetype_Mapping,
+         Draft.Filetype_Extension,
+         Draft.Filetype_Value);
+      Upsert (Result.Icon_Keys, Result.Icon_Values, Draft_Icon_Mapping, Draft.Icon_Filetype, Draft.Icon_Value);
+      Upsert
+        (Result.Open_Action_Keys,
+         Result.Open_Action_Commands,
+         Draft_Open_Action_Mapping,
+         Draft.Open_Action_Token,
+         Draft.Open_Action_Command);
+      return Result;
+   end With_Pending_Rows;
 
    function Draft_Settings_Text
      (Draft : Settings_Draft)

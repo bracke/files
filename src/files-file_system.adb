@@ -1208,8 +1208,9 @@ package body Files.File_System is
    is separate;
 
    package Id_Name_Maps is new Ada.Containers.Ordered_Maps
-     (Key_Type     => Natural,
-      Element_Type => Unbounded_String);
+     (Key_Type     => Files.Types.Account_Id,
+      Element_Type => Unbounded_String,
+      "<"          => Hostkit.Metadata."<");
 
    User_Name_Cache  : Id_Name_Maps.Map;
 
@@ -1232,36 +1233,39 @@ package body Files.File_System is
 
    procedure Ownership_Of
      (Path      : String;
-      User_Id   : out Natural;
-      Group_Id  : out Natural;
+      User_Id   : out Files.Types.Account_Id;
+      Group_Id  : out Files.Types.Account_Id;
       Available : out Boolean) is separate;
 
    function User_Id_For_Name
      (Name  : String;
       Found : out Boolean)
-      return Natural is separate;
+      return Files.Types.Account_Id is separate;
 
    function Group_Id_For_Name
      (Name  : String;
       Found : out Boolean)
-      return Natural is separate;
+      return Files.Types.Account_Id is separate;
 
-   function User_Name_For_Id (Id : Natural) return String is separate;
+   function User_Name_For_Id (Id : Files.Types.Account_Id) return String is separate;
 
-   function Group_Name_For_Id (Id : Natural) return String is separate;
+   function Group_Name_For_Id (Id : Files.Types.Account_Id) return String is separate;
 
-   function Change_Metadata
-     (Path, Expected_Identity : String; Ownership : Boolean; Value, Group : Natural;
-      Previous, Previous_Group : out Natural; Identity : out Files.Types.UString;
-      Owner_Name : String := ""; Group_Name : String := "") return Mutation_Result
+   subtype Update_Field is Hostkit.Metadata.Identity_Field;
+
+   --  The one mutation behind Change_Mode and Change_Ownership: verify the
+   --  recorded identity (when there is one), update through the held entry,
+   --  and report the value it had and the identity actually changed. A
+   --  previous value above Max_Previous is refused rather than truncated.
+   function Update_Verified_Entry
+     (Path, Expected_Identity : String; Kind : Hostkit.Metadata.Metadata_Update_Kind;
+      Value, Group, Max_Previous : Update_Field; Owner_Name, Group_Name : String;
+      Previous, Previous_Group : out Update_Field; Identity : out Files.Types.UString) return Boolean
    is
-      subtype U64 is Hostkit.Metadata.Identity_Field;
+      subtype U64 is Update_Field;
       use type U64;
       Expected : Hostkit.Metadata.Entry_Identity;
       Updated  : Hostkit.Metadata.Metadata_Update_Result;
-      Failed : constant Mutation_Result :=
-        (Success => False, Error_Key => To_Unbounded_String
-          (if Ownership then "error.ownership.denied" else "error.permissions.failed"));
 
       function Parse_Identity
         (Text : String; Item : out Hostkit.Metadata.Entry_Identity) return Boolean
@@ -1308,48 +1312,94 @@ package body Files.File_System is
       Previous := 0;
       Previous_Group := 0;
       Identity := Null_Unbounded_String;
-      if not Ownership and then Value > 8#7777# then
-         return Failed;
-      end if;
       if Expected_Identity /= ""
         and then not Parse_Identity (Expected_Identity, Expected)
       then
-         return Failed;
+         return False;
       end if;
       Updated := Hostkit.Metadata.Update_Entry_Metadata
         (Path           => Path,
          Expected       => Expected,
          Check_Expected => Expected_Identity /= "",
-         Kind           => (if Ownership then Hostkit.Metadata.Update_Ownership
-                            else Hostkit.Metadata.Update_Permissions),
-         Value          => U64 (Value),
-         Group          => U64 (Group),
-         Max_Previous   => U64 (Natural'Last),
-         Owner_Name     =>
-           (if not Ownership then ""
-            elsif Owner_Name /= "" then Owner_Name
-            else User_Name_For_Id (Value)),
-         Group_Name     =>
-           (if not Ownership then ""
-            elsif Group_Name /= "" then Group_Name
-            else Group_Name_For_Id (Group)));
+         Kind           => Kind,
+         Value          => Value,
+         Group          => Group,
+         Max_Previous   => Max_Previous,
+         Owner_Name     => Owner_Name,
+         Group_Name     => Group_Name);
       if not Updated.Success
-        or else Updated.Previous > U64 (Natural'Last)
-        or else Updated.Previous_Group > U64 (Natural'Last)
+        or else Updated.Previous > Max_Previous
+        or else Updated.Previous_Group > Max_Previous
       then
-         return Failed;
+         return False;
       end if;
-      Previous := Natural (Updated.Previous);
-      Previous_Group := Natural (Updated.Previous_Group);
+      Previous := Updated.Previous;
+      Previous_Group := Updated.Previous_Group;
       Identity := To_Unbounded_String
         (U64'Image (Updated.Identity.Volume)
          & U64'Image (Updated.Identity.File_Number)
          & U64'Image (Updated.Identity.Generation_High)
          & U64'Image (Updated.Identity.Generation_Low));
+      return True;
+   exception
+      when others => return False;
+   end Update_Verified_Entry;
+
+   function Change_Mode
+     (Path, Expected_Identity : String; Mode : Natural;
+      Previous : out Natural; Identity : out Files.Types.UString) return Mutation_Result
+   is
+      Failed : constant Mutation_Result :=
+        (Success => False, Error_Key => To_Unbounded_String ("error.permissions.failed"));
+      Old_Mode, Unused_Group : Update_Field;
+   begin
+      Previous := 0;
+      Identity := Null_Unbounded_String;
+      if Mode > 8#7777# then
+         return Failed;
+      end if;
+      if not Update_Verified_Entry
+        (Path, Expected_Identity, Hostkit.Metadata.Update_Permissions,
+         Value => Update_Field (Mode), Group => 0, Max_Previous => Update_Field (Natural'Last),
+         Owner_Name => "", Group_Name => "",
+         Previous => Old_Mode, Previous_Group => Unused_Group, Identity => Identity)
+      then
+         return Failed;
+      end if;
+      Previous := Natural (Old_Mode);
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when others => return Failed;
-   end Change_Metadata;
+   end Change_Mode;
+
+   function Change_Ownership
+     (Path, Expected_Identity : String; User_Id, Group_Id : Files.Types.Account_Id;
+      Previous_User, Previous_Group : out Files.Types.Account_Id; Identity : out Files.Types.UString;
+      Owner_Name : String := ""; Group_Name : String := "") return Mutation_Result
+   is
+      Failed : constant Mutation_Result :=
+        (Success => False, Error_Key => To_Unbounded_String ("error.ownership.denied"));
+      Old_User, Old_Group : Update_Field;
+   begin
+      Previous_User := 0;
+      Previous_Group := 0;
+      Identity := Null_Unbounded_String;
+      if not Update_Verified_Entry
+        (Path, Expected_Identity, Hostkit.Metadata.Update_Ownership,
+         Value => Update_Field (User_Id), Group => Update_Field (Group_Id),
+         Max_Previous => Update_Field (Files.Types.Account_Id'Last),
+         Owner_Name => (if Owner_Name /= "" then Owner_Name else User_Name_For_Id (User_Id)),
+         Group_Name => (if Group_Name /= "" then Group_Name else Group_Name_For_Id (Group_Id)),
+         Previous => Old_User, Previous_Group => Old_Group, Identity => Identity)
+      then
+         return Failed;
+      end if;
+      Previous_User := Files.Types.Account_Id (Old_User);
+      Previous_Group := Files.Types.Account_Id (Old_Group);
+      return (Success => True, Error_Key => Null_Unbounded_String);
+   exception
+      when others => return Failed;
+   end Change_Ownership;
 
    function Copy_Tree
      (Source_Path      : String;

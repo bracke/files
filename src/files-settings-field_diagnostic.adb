@@ -5,19 +5,32 @@ separate (Files.Settings)
       return String
    is
       Clean : constant String := Trim (Text);
+
+      --  The settings editor's scalar field indices, in its historical order.
+      Scalar_Fields : constant array (Positive range 1 .. 6) of Scalar_Setting :=
+        [Default_View_Mode_Setting,
+         Show_Hidden_Files_Setting,
+         Sort_Field_Setting,
+         Sort_Ascending_Setting,
+         Theme_Setting,
+         Icon_Theme_Setting];
    begin
+      if Field in Scalar_Fields'Range then
+         if Contains_Nul (Text) or else Contains_Line_Break (Text) then
+            return Scalar_Error_Key (Scalar_Fields (Field));
+         end if;
+
+         declare
+            Scratch : Settings_Model;
+            Error   : Unbounded_String;
+         begin
+            Set_Scalar (Scratch, Scalar_Fields (Field), Clean, Error);
+            return To_String (Error);
+         end;
+      end if;
+
       if Contains_Nul (Text) or else Contains_Line_Break (Text) then
          case Field is
-            when 1 =>
-               return "error.settings.invalid_view_mode";
-            when 2 | 4 =>
-               return "error.settings.invalid_boolean";
-            when 5 =>
-               return "error.settings.invalid_theme";
-            when 3 =>
-               return "error.settings.invalid_sort_field";
-            when 6 =>
-               return "error.settings.invalid_icon_theme";
             when 7 .. 10 =>
                return "error.settings.invalid_mapping";
             when 11 | 12 =>
@@ -28,51 +41,6 @@ separate (Files.Settings)
       end if;
 
       case Field is
-         when 1 =>
-            declare
-               Mode : constant String := Files.Types.To_Lower (Clean);
-            begin
-               if Mode = "small"
-                 or else Mode = "small_icons"
-                 or else Mode = "large"
-                 or else Mode = "large_icons"
-                 or else Mode = "details"
-               then
-                  return "";
-               end if;
-               return "error.settings.invalid_view_mode";
-            end;
-         when 2 | 4 =>
-            declare
-               Value : constant String := Files.Types.To_Lower (Clean);
-            begin
-               if Value = "true" or else Value = "false" then
-                  return "";
-               end if;
-               return "error.settings.invalid_boolean";
-            end;
-         when 5 =>
-            declare
-               Value : constant String := Files.Types.To_Lower (Clean);
-            begin
-               if Value = "dark" or else Value = "light" or else Value = "high_contrast" then
-                  return "";
-               end if;
-               return "error.settings.invalid_theme";
-            end;
-         when 3 =>
-            declare
-               Value : constant String := Files.Types.To_Lower (Clean);
-            begin
-               if Value = "name" or else Value = "filetype" or else Value = "size"
-                 or else Value = "created" or else Value = "modified"
-               then
-                  return "";
-               end if;
-               return "error.settings.invalid_sort_field";
-            end;
-         when 6 =>
-            return (if Icon_Theme_Name_Is_Valid (Clean) then "" else "error.settings.invalid_icon_theme");
          when 7 =>
             declare
                Key : constant String := Normalize_Extension (Clean);

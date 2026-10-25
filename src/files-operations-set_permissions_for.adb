@@ -14,10 +14,10 @@ begin
       Item      : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
       Path      : constant String :=
         GNAT.OS_Lib.Normalize_Pathname (To_String (Item.Full_Path), Resolve_Links => True);
-      Old_Mode, Old_Group : Natural;
+      Old_Mode : Natural;
       Identity : Files.Types.UString;
       Mutation  : constant Files.File_System.Mutation_Result :=
-        Files.File_System.Change_Metadata (Path, "", False, New_Mode, 0, Old_Mode, Old_Group, Identity);
+        Files.File_System.Change_Mode (Path, "", New_Mode, Old_Mode, Identity);
    begin
       if not Mutation.Success then
          Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));

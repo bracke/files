@@ -1,8 +1,8 @@
 separate (Files.Operations)
 function Set_Ownership_For
   (Model    : in out Files.Model.Window_Model;
-   User_Id  : Natural;
-   Group_Id : Natural;
+   User_Id  : Files.Types.Account_Id;
+   Group_Id : Files.Types.Account_Id;
    Settings : Files.Settings.Settings_Model)
    return Operation_Result
 is
@@ -19,11 +19,11 @@ begin
         Files.File_System.User_Name_For_Id (User_Id);
       New_Group_Name : constant String :=
         Files.File_System.Group_Name_For_Id (Group_Id);
-      Old_Uid, Old_Gid : Natural;
+      Old_Uid, Old_Gid : Files.Types.Account_Id;
       Identity : Files.Types.UString;
       Mutation  : constant Files.File_System.Mutation_Result :=
-        Files.File_System.Change_Metadata
-          (Path, "", True, User_Id, Group_Id, Old_Uid, Old_Gid,
+        Files.File_System.Change_Ownership
+          (Path, "", User_Id, Group_Id, Old_Uid, Old_Gid,
            Identity, New_User_Name, New_Group_Name);
    begin
       if not Mutation.Success then

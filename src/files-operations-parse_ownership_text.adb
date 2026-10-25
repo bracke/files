@@ -1,6 +1,6 @@
 separate (Files.Operations)
 function Parse_Ownership_Text
-  (Text : String; User_Id, Group_Id : out Natural;
+  (Text : String; User_Id, Group_Id : out Files.Types.Account_Id;
    User_Name, Group_Name : out Files.Types.UString) return Boolean
 is
    First_Nul  : Natural := 0;
@@ -28,8 +28,18 @@ begin
       if Space = 0 then
          return False;
       end if;
-      User_Id := Natural'Value (Text (Text'First .. Space - 1));
-      Group_Id := Natural'Value (Text (Space + 1 .. Numeric_Last));
+      declare
+         User  : constant Files.Types.Parsed_Account_Id :=
+           Files.Types.Parse_Account_Id (Text (Text'First .. Space - 1));
+         Group : constant Files.Types.Parsed_Account_Id :=
+           Files.Types.Parse_Account_Id (Text (Space + 1 .. Numeric_Last));
+      begin
+         if not User.Valid or else not Group.Valid then
+            return False;
+         end if;
+         User_Id := User.Id;
+         Group_Id := Group.Id;
+      end;
    end;
    if First_Nul = 0 then
       return True;

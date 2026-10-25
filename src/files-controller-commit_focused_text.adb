@@ -55,29 +55,19 @@ separate (Files.Controller)
                  Ada.Strings.Fixed.Trim (Files.Model.Ownership_Input_Text (Model), Ada.Strings.Both);
                Group : constant Boolean := Files.Model.Ownership_Editing_Group (Model);
                Item  : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
-               Resolved : Natural := 0;
+               Resolved : Files.Types.Account_Id := 0;
                Found    : Boolean := False;
 
+               --  All digits: an id, taken as typed (up to 4294967295), not a name.
                function Is_Numeric (Text : String) return Boolean is
-               begin
-                  if Text'Length = 0 then
-                     return False;
-                  end if;
-                  for Ch of Text loop
-                     if Ch not in '0' .. '9' then
-                        return False;
-                     end if;
-                  end loop;
-                  return True;
-               end Is_Numeric;
+                 (Text'Length > 0 and then (for all Ch of Text => Ch in '0' .. '9'));
             begin
                if Is_Numeric (Raw) then
+                  declare
+                     Typed : constant Files.Types.Parsed_Account_Id := Files.Types.Parse_Account_Id (Raw);
                   begin
-                     Resolved := Natural'Value (Raw);
-                     Found := True;
-                  exception
-                     when others =>
-                        Found := False;
+                     Found := Typed.Valid;
+                     Resolved := Typed.Id;
                   end;
                elsif Group then
                   Resolved := Files.File_System.Group_Id_For_Name (Raw, Found);

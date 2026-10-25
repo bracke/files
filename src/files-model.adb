@@ -2167,7 +2167,7 @@ package body Files.Model is
    procedure Set_Account_Name
      (Model : in out Window_Model;
       Kind  : Account_Kind;
-      Id    : Natural;
+      Id    : Files.Types.Account_Id;
       Name  : String)
    is
       --  Ids on one host are few, but bound the table so a long session over
@@ -2193,14 +2193,14 @@ package body Files.Model is
    function Account_Name_Known
      (Model : Window_Model;
       Kind  : Account_Kind;
-      Id    : Natural)
+      Id    : Files.Types.Account_Id)
       return Boolean is
      (Model.Account_Names (Kind).Contains (Id));
 
    function Account_Name
      (Model : Window_Model;
       Kind  : Account_Kind;
-      Id    : Natural)
+      Id    : Files.Types.Account_Id)
       return String
    is
       Found : constant Account_Name_Maps.Cursor := Model.Account_Names (Kind).Find (Id);

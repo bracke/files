@@ -110,6 +110,7 @@ package Files_Suite.Support is
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Commands.Command_Placement);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Events.Input_Action_Kind);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Color_Label);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Account_Id);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.View_Mode);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Detail_Column);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Model.Sort_Field);

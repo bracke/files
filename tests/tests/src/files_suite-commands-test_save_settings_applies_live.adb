@@ -26,9 +26,11 @@ separate (Files_Suite.Commands)
       declare
          Draft : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
       begin
-         Draft.Default_View_Mode := Ada.Strings.Unbounded.To_Unbounded_String ("details");
-         Draft.Sort_Field_Value  := Ada.Strings.Unbounded.To_Unbounded_String ("size");
-         Draft.Sort_Ascending    := Ada.Strings.Unbounded.To_Unbounded_String ("false");
+         Draft.Scalars (Files.Settings.Default_View_Mode_Setting) :=
+           Ada.Strings.Unbounded.To_Unbounded_String ("details");
+         Draft.Scalars (Files.Settings.Sort_Field_Setting) := Ada.Strings.Unbounded.To_Unbounded_String ("size");
+         Draft.Scalars (Files.Settings.Sort_Ascending_Setting) :=
+           Ada.Strings.Unbounded.To_Unbounded_String ("false");
          Files.Model.Set_Settings_Draft (Model, Draft);
       end;
 

@@ -830,7 +830,7 @@ package body Files.File_System.Recovery is
          declare
             Input : aliased Files.Lease_Streams.Input_Stream;
             Record_Path : constant String := Join_Path (Parent, "mode");
-            Mode, Previous, Previous_Group : Natural;
+            Mode, Previous : Natural;
             Expected, Identity : UString;
             Result : Mutation_Result;
          begin
@@ -859,8 +859,8 @@ package body Files.File_System.Recovery is
             if Length (Expected) = 0 then
                raise Ada.Directories.Use_Error;
             end if;
-            Result := Change_Metadata
-              (Path, To_String (Expected), False, Mode, 0, Previous, Previous_Group, Identity);
+            Result := Change_Mode
+              (Path, To_String (Expected), Mode, Previous, Identity);
             if not Result.Success then
                raise Ada.Directories.Use_Error;
             end if;

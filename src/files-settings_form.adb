@@ -13,6 +13,7 @@ package body Files.Settings_Form is
    subtype UString is Ada.Strings.Unbounded.Unbounded_String;
    package SP renames Guikit.Settings_Panel;
    use type SP.Change_Kind;
+   use all type Files.Settings.Scalar_Setting;
    use type Files.Commands.Command_Id;
    use type Files.Commands.Shortcut;
 
@@ -209,46 +210,47 @@ package body Files.Settings_Form is
       Action_Buttons;
       Section ("settings.section.view");
       --  Use the same short labels as the bottom bar's view-mode selector.
-      Choice ("settings.view", D.Default_View_Mode,
+      Choice ("settings.view", D.Scalars (Default_View_Mode_Setting),
               V3 ("small_icons", "large_icons", "details"),
               LV3 ("command.view.small.short", "command.view.large.short", "command.view.details.short"),
               "settings.help.default_view");
-      Toggle ("settings.hidden_files", D.Show_Hidden_Files, "settings.help.boolean");
-      Toggle ("settings.show_extensions", D.Show_File_Extensions, "settings.help.boolean");
+      Toggle ("settings.hidden_files", D.Scalars (Show_Hidden_Files_Setting), "settings.help.boolean");
+      Toggle ("settings.show_extensions", D.Scalars (Show_File_Extensions_Setting), "settings.help.boolean");
 
       Section ("settings.section.sorting");
-      Choice ("settings.sort", D.Sort_Field_Value,
+      Choice ("settings.sort", D.Scalars (Sort_Field_Setting),
               V5 ("name", "filetype", "size", "created", "modified"),
               LV5 ("settings.sort.name", "settings.sort.filetype", "settings.sort.size",
                    "settings.sort.created", "settings.sort.modified"),
               "settings.help.sort");
-      Toggle ("settings.sort_ascending", D.Sort_Ascending, "settings.help.boolean");
+      Toggle ("settings.sort_ascending", D.Scalars (Sort_Ascending_Setting), "settings.help.boolean");
 
       Section ("settings.section.appearance");
-      Choice ("settings.theme", D.Theme,
+      Choice ("settings.theme", D.Scalars (Theme_Setting),
               V3 ("dark", "light", "high_contrast"),
               LV3 ("settings.theme.dark", "settings.theme.light", "settings.theme.high_contrast"),
               "settings.help.theme");
-      Choice ("settings.icon_theme", D.Icon_Theme_Name,
+      Choice ("settings.icon_theme", D.Scalars (Icon_Theme_Setting),
               V2 ("files-basic", "files-high-contrast"),
               LV2 ("settings.icon_theme.basic", "settings.icon_theme.high_contrast"),
               "settings.help.icon_theme");
-      Number_Field ("settings.font_pixel_size", D.Font_Pixel_Size, 10, 32, "settings.help.font_pixel_size");
+      Number_Field
+        ("settings.font_pixel_size", D.Scalars (Font_Pixel_Size_Setting), 10, 32, "settings.help.font_pixel_size");
 
       Section ("settings.section.behavior");
-      Toggle ("settings.system_opener", D.Use_System_Default_Opener, "settings.help.system_opener");
+      Toggle ("settings.system_opener", D.Scalars (Use_System_Default_Opener_Setting), "settings.help.system_opener");
 
       Section ("settings.section.details");
-      Choice ("settings.grouping", D.Group_By,
+      Choice ("settings.grouping", D.Scalars (Group_By_Setting),
               V5 ("none", "type", "modified", "size", "label"),
               LV5 ("settings.group.none", "settings.group.type", "settings.group.modified",
                    "settings.group.size", "settings.group.label"),
               "settings.help.grouping");
-      Toggle ("settings.column.modified", D.Column_Modified, "settings.help.column");
-      Toggle ("settings.column.size", D.Column_Size, "settings.help.column");
-      Toggle ("settings.column.type", D.Column_Filetype, "settings.help.column");
-      Toggle ("settings.column.created", D.Column_Created, "settings.help.column");
-      Toggle ("settings.column.permissions", D.Column_Permissions, "settings.help.column");
+      Toggle ("settings.column.modified", D.Scalars (Detail_Column_Modified_Setting), "settings.help.column");
+      Toggle ("settings.column.size", D.Scalars (Detail_Column_Size_Setting), "settings.help.column");
+      Toggle ("settings.column.type", D.Scalars (Detail_Column_Filetype_Setting), "settings.help.column");
+      Toggle ("settings.column.created", D.Scalars (Detail_Column_Created_Setting), "settings.help.column");
+      Toggle ("settings.column.permissions", D.Scalars (Detail_Column_Permissions_Setting), "settings.help.column");
 
       Section ("settings.section.file_types");
       Mapping_Group ("form.filetype.buttons",
@@ -445,49 +447,49 @@ package body Files.Settings_Form is
 
          when SP.Value_Changed =>
             if Key = "settings.view" then
-               D.Default_View_Mode := Val;
+               D.Scalars (Default_View_Mode_Setting) := Val;
                Save := True;
             elsif Key = "settings.hidden_files" then
-               D.Show_Hidden_Files := Val;
+               D.Scalars (Show_Hidden_Files_Setting) := Val;
                Save := True;
             elsif Key = "settings.show_extensions" then
-               D.Show_File_Extensions := Val;
+               D.Scalars (Show_File_Extensions_Setting) := Val;
                Save := True;
             elsif Key = "settings.sort" then
-               D.Sort_Field_Value := Val;
+               D.Scalars (Sort_Field_Setting) := Val;
                Save := True;
             elsif Key = "settings.sort_ascending" then
-               D.Sort_Ascending := Val;
+               D.Scalars (Sort_Ascending_Setting) := Val;
                Save := True;
             elsif Key = "settings.theme" then
-               D.Theme := Val;
+               D.Scalars (Theme_Setting) := Val;
                Save := True;
             elsif Key = "settings.icon_theme" then
-               D.Icon_Theme_Name := Val;
+               D.Scalars (Icon_Theme_Setting) := Val;
                Save := True;
             elsif Key = "settings.font_pixel_size" then
-               D.Font_Pixel_Size := Val;
+               D.Scalars (Font_Pixel_Size_Setting) := Val;
                Save := True;
             elsif Key = "settings.system_opener" then
-               D.Use_System_Default_Opener := Val;
+               D.Scalars (Use_System_Default_Opener_Setting) := Val;
                Save := True;
             elsif Key = "settings.grouping" then
-               D.Group_By := Val;
+               D.Scalars (Group_By_Setting) := Val;
                Save := True;
             elsif Key = "settings.column.modified" then
-               D.Column_Modified := Val;
+               D.Scalars (Detail_Column_Modified_Setting) := Val;
                Save := True;
             elsif Key = "settings.column.size" then
-               D.Column_Size := Val;
+               D.Scalars (Detail_Column_Size_Setting) := Val;
                Save := True;
             elsif Key = "settings.column.type" then
-               D.Column_Filetype := Val;
+               D.Scalars (Detail_Column_Filetype_Setting) := Val;
                Save := True;
             elsif Key = "settings.column.created" then
-               D.Column_Created := Val;
+               D.Scalars (Detail_Column_Created_Setting) := Val;
                Save := True;
             elsif Key = "settings.column.permissions" then
-               D.Column_Permissions := Val;
+               D.Scalars (Detail_Column_Permissions_Setting) := Val;
                Save := True;
             elsif Key = "settings.filetype_extension" then
                Set_Entry (D.Filetype_Keys, D.Filetype_Values, D.Filetype_Index,

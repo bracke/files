@@ -17,43 +17,6 @@ separate (Files.Settings)
       Legacy_Light   : Boolean := False;
       Entry_Count    : Natural := 0;
 
-      --  Parse Text as a plain decimal number: one or more ASCII digits and
-      --  nothing else. Unlike Natural'Value this rejects Ada literal syntax
-      --  (16#400#, 1_024, 1E3) and surrounding blanks, and it reports a value
-      --  beyond Natural'Last as invalid instead of raising.
-      function Parse_Decimal (Text : String; Number : out Natural) return Boolean is
-         Digit : Natural;
-      begin
-         Number := 0;
-         if Text'Length = 0 then
-            return False;
-         end if;
-         for Ch of Text loop
-            if Ch not in '0' .. '9' then
-               Number := 0;
-               return False;
-            end if;
-            Digit := Character'Pos (Ch) - Character'Pos ('0');
-            if Number > (Natural'Last - Digit) / 10 then
-               Number := 0;
-               return False;
-            end if;
-            Number := Number * 10 + Digit;
-         end loop;
-         return True;
-      end Parse_Decimal;
-
-      --  A persisted window dimension: zero (or an invalid value) keeps the
-      --  platform default, anything else is clamped into the supported range.
-      function Parse_Window_Dimension (Text : String) return Natural is
-         N : Natural;
-      begin
-         if not Parse_Decimal (Text, N) or else N = 0 then
-            return 0;
-         end if;
-         return Natural'Min (Natural'Max (N, Min_Window_Dimension), Max_Window_Dimension);
-      end Parse_Window_Dimension;
-
       --  Per-section key=value handlers. Each mutates the enclosing Settings (and,
       --  for [settings], the legacy-theme flags) and reports a rejected value by
       --  setting Err to the error key; the main loop then returns it. A null Err
@@ -216,236 +179,29 @@ separate (Files.Settings)
       end Parse_Shortcuts_Line;
 
       procedure Parse_Settings_Line
-        (Setting_Key, Value : String; Err : out Unbounded_String) is
+        (Setting_Key, Value : String; Err : out Unbounded_String)
+      is
+         Setting : Scalar_Setting;
+         OK      : Boolean;
       begin
          Err := Null_Unbounded_String;
-         if Setting_Key = "default_view_mode" then
-            declare
-               Mode : constant String := Files.Types.To_Lower (Value);
-            begin
-               if Mode = "small" or else Mode = "small_icons" then
-                  Settings.Default_View := Files.Types.Small_Icons;
-               elsif Mode = "large" or else Mode = "large_icons" then
-                  Settings.Default_View := Files.Types.Large_Icons;
-               elsif Mode = "details" then
-                  Settings.Default_View := Files.Types.Details;
-               else
-                  Err := To_Unbounded_String ("error.settings.invalid_view_mode");
-               end if;
-            end;
-         elsif Setting_Key = "show_hidden_files" then
-            declare
-               OK : Boolean;
-            begin
-               Parse_Boolean (Files.Types.To_Lower (Value), Settings.Show_Hidden_Files, OK);
-               if not OK then
-                  Err := To_Unbounded_String ("error.settings.invalid_boolean");
-               end if;
-            end;
-         elsif Setting_Key = "show_file_extensions" then
-            declare
-               OK : Boolean;
-            begin
-               Parse_Boolean (Files.Types.To_Lower (Value), Settings.Show_File_Extensions, OK);
-               if not OK then
-                  Err := To_Unbounded_String ("error.settings.invalid_boolean");
-               end if;
-            end;
-         elsif Setting_Key = "show_used_space" then
-            declare
-               OK : Boolean;
-            begin
-               Parse_Boolean (Files.Types.To_Lower (Value), Settings.Show_Used_Space, OK);
-               if not OK then
-                  Err := To_Unbounded_String ("error.settings.invalid_boolean");
-               end if;
-            end;
-         elsif Setting_Key = "show_space_bar" then
-            declare
-               OK : Boolean;
-            begin
-               Parse_Boolean (Files.Types.To_Lower (Value), Settings.Show_Space_Bar, OK);
-               if not OK then
-                  Err := To_Unbounded_String ("error.settings.invalid_boolean");
-               end if;
-            end;
-         elsif Setting_Key = "sort_field" then
-            declare
-               Field : constant String := Files.Types.To_Lower (Value);
-            begin
-               if Field = "name" then
-                  Settings.Sort_Field_Value := Sort_By_Name;
-               elsif Field = "filetype" then
-                  Settings.Sort_Field_Value := Sort_By_Filetype;
-               elsif Field = "size" then
-                  Settings.Sort_Field_Value := Sort_By_Size;
-               elsif Field = "created" then
-                  Settings.Sort_Field_Value := Sort_By_Created;
-               elsif Field = "modified" then
-                  Settings.Sort_Field_Value := Sort_By_Modified;
-               else
-                  Err := To_Unbounded_String ("error.settings.invalid_sort_field");
-               end if;
-            end;
-         elsif Setting_Key = "sort_ascending" then
-            declare
-               OK : Boolean;
-            begin
-               Parse_Boolean (Files.Types.To_Lower (Value), Settings.Sort_Ascending, OK);
-               if not OK then
-                  Err := To_Unbounded_String ("error.settings.invalid_boolean");
-               end if;
-            end;
-         elsif Setting_Key = "theme" then
-            declare
-               Theme_Value : constant String := Files.Types.To_Lower (Value);
-            begin
-               if Theme_Value = "dark" then
-                  Settings.Theme := Theme_Dark;
-               elsif Theme_Value = "light" then
-                  Settings.Theme := Theme_Light;
-               elsif Theme_Value = "high_contrast" then
-                  Settings.Theme := Theme_High_Contrast;
-               else
-                  Err := To_Unbounded_String ("error.settings.invalid_theme");
-               end if;
-               if Length (Err) = 0 then
-                  Theme_Explicit := True;
-               end if;
-            end;
-         elsif Setting_Key = "high_contrast_theme" then
+         if Setting_Key = "high_contrast_theme" then
             --  Legacy key: resolved into Settings.Theme after the loop.
-            declare
-               OK : Boolean;
-            begin
-               Parse_Boolean (Files.Types.To_Lower (Value), Legacy_High, OK);
-               if not OK then
-                  Err := To_Unbounded_String ("error.settings.invalid_boolean");
-               end if;
-            end;
+            Parse_Boolean (Files.Types.To_Lower (Value), Legacy_High, OK);
+            if not OK then
+               Err := To_Unbounded_String ("error.settings.invalid_boolean");
+            end if;
          elsif Setting_Key = "light_theme" then
             --  Legacy key: resolved into Settings.Theme after the loop.
-            declare
-               OK : Boolean;
-            begin
-               Parse_Boolean (Files.Types.To_Lower (Value), Legacy_Light, OK);
-               if not OK then
-                  Err := To_Unbounded_String ("error.settings.invalid_boolean");
-               end if;
-            end;
-         elsif Setting_Key = "icon_theme" then
-            if Icon_Theme_Name_Is_Valid (Value) then
-               Settings.Icon_Theme_Name := To_Unbounded_String (Files.Types.To_Lower (Value));
-            else
-               Err := To_Unbounded_String ("error.settings.invalid_icon_theme");
+            Parse_Boolean (Files.Types.To_Lower (Value), Legacy_Light, OK);
+            if not OK then
+               Err := To_Unbounded_String ("error.settings.invalid_boolean");
             end if;
-         elsif Setting_Key = "font_pixel_size" then
-            declare
-               N : Natural;
-            begin
-               if not Parse_Decimal (Value, N)
-                 or else N < Min_Font_Pixel_Size
-                 or else N > Max_Font_Pixel_Size
-               then
-                  Err := To_Unbounded_String ("error.settings.invalid_font_pixel_size");
-               else
-                  Settings.Font_Pixel_Size := Positive (N);
-               end if;
-            end;
-         elsif Setting_Key = "window_width" then
-            Settings.Window_Width := Parse_Window_Dimension (Value);
-         elsif Setting_Key = "window_height" then
-            Settings.Window_Height := Parse_Window_Dimension (Value);
-         elsif Setting_Key = "info_pane_open" then
-            declare
-               OK : Boolean;
-            begin
-               Parse_Boolean (Value, Settings.Info_Pane_Open, OK);
-               if not OK then
-                  Err := To_Unbounded_String ("error.settings.invalid_boolean");
-               end if;
-            end;
-         elsif Setting_Key = "use_system_default_opener" then
-            declare
-               OK : Boolean;
-            begin
-               Parse_Boolean (Value, Settings.Use_System_Default_Opener, OK);
-               if not OK then
-                  Err := To_Unbounded_String ("error.settings.invalid_boolean");
-               end if;
-            end;
-         elsif Setting_Key = "group_by" then
-            declare
-               Mode : constant String := Files.Types.To_Lower (Value);
-            begin
-               if Mode = "none" then
-                  Settings.Group_By := Files.Types.No_Grouping;
-               elsif Mode = "type" then
-                  Settings.Group_By := Files.Types.Group_By_Type;
-               elsif Mode = "modified" then
-                  Settings.Group_By := Files.Types.Group_By_Modified;
-               elsif Mode = "size" then
-                  Settings.Group_By := Files.Types.Group_By_Size;
-               elsif Mode = "label" then
-                  Settings.Group_By := Files.Types.Group_By_Label;
-               else
-                  Err := To_Unbounded_String ("error.settings.invalid_group");
-               end if;
-            end;
-         elsif Setting_Key = "detail_column_order" then
-            declare
-               Order : Files.Types.Detail_Column_Order;
-            begin
-               if Parse_Detail_Column_Order (Value, Order) then
-                  Settings.Column_Order := Order;
-               else
-                  Settings.Column_Order :=
-                    Files.Types.Default_Detail_Column_Order;
-                  Err := To_Unbounded_String ("error.settings.invalid_column_order");
-               end if;
-            end;
-         elsif Setting_Key'Length >= 20
-           and then Setting_Key
-             (Setting_Key'First .. Setting_Key'First + 19) = "detail_column_width_"
-         then
-            declare
-               Suffix : constant String :=
-                 Setting_Key (Setting_Key'First + 20 .. Setting_Key'Last);
-               Column : Files.Types.Optional_Detail_Column;
-               Width  : Natural;
-            begin
-               if Detail_Column_For_Key (Suffix, Column) then
-                  --  An invalid width resets to the proportional default (0);
-                  --  a valid one goes through With_Column_Width so it gets the
-                  --  same minimum clamp as an interactive resize.
-                  if not Parse_Decimal (Value, Width) then
-                     Width := 0;
-                  end if;
-                  Settings := With_Column_Width (Settings, Column, Width);
-               else
-                  Err := To_Unbounded_String ("error.settings.unknown_key");
-               end if;
-            end;
-         elsif Setting_Key'Length >= 14
-           and then Setting_Key
-             (Setting_Key'First .. Setting_Key'First + 13) = "detail_column_"
-         then
-            declare
-               Suffix : constant String :=
-                 Setting_Key (Setting_Key'First + 14 .. Setting_Key'Last);
-               Column : Files.Types.Optional_Detail_Column;
-               OK     : Boolean;
-            begin
-               if Detail_Column_For_Key (Suffix, Column) then
-                  Parse_Boolean
-                    (Files.Types.To_Lower (Value), Settings.Column_Visible (Column), OK);
-                  if not OK then
-                     Err := To_Unbounded_String ("error.settings.invalid_boolean");
-                  end if;
-               else
-                  Err := To_Unbounded_String ("error.settings.unknown_key");
-               end if;
-            end;
+         elsif Scalar_For_Key (Setting_Key, Setting) then
+            Set_Scalar (Settings, Setting, Value, Err);
+            if Setting = Theme_Setting and then Length (Err) = 0 then
+               Theme_Explicit := True;
+            end if;
          else
             Err := To_Unbounded_String ("error.settings.unknown_key");
          end if;

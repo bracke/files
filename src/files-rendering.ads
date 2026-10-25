@@ -101,8 +101,8 @@ package Files.Rendering is
       Mode_Available     : Boolean := False;
       Mode_Bits          : Natural := 0;
       Ownership_Available : Boolean := False;
-      Owner_Id           : Natural := 0;
-      Group_Id           : Natural := 0;
+      Owner_Id           : Files.Types.Account_Id := 0;
+      Group_Id           : Files.Types.Account_Id := 0;
       Owner_Name         : UString;
       Group_Name         : UString;
       Owner_Editing      : Boolean := False;

@@ -58,7 +58,7 @@ separate (Files_Suite.Settings)
          declare
             Bad : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Draft_Model);
          begin
-            Bad.Default_View_Mode := To_Unbounded_String ("bad-view");
+            Bad.Scalars (Files.Settings.Default_View_Mode_Setting) := To_Unbounded_String ("bad-view");
             Files.Model.Set_Settings_Draft (Draft_Model, Bad);
          end;
          Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
@@ -77,10 +77,10 @@ separate (Files_Suite.Settings)
          declare
             Good : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Draft_Model);
          begin
-            Good.Default_View_Mode := To_Unbounded_String ("details");
-            Good.Theme := To_Unbounded_String ("high_contrast");
-            Good.Icon_Theme_Name := To_Unbounded_String ("files-high-contrast");
-            Good.Show_Hidden_Files := To_Unbounded_String ("true");
+            Good.Scalars (Files.Settings.Default_View_Mode_Setting) := To_Unbounded_String ("details");
+            Good.Scalars (Files.Settings.Theme_Setting) := To_Unbounded_String ("high_contrast");
+            Good.Scalars (Files.Settings.Icon_Theme_Setting) := To_Unbounded_String ("files-high-contrast");
+            Good.Scalars (Files.Settings.Show_Hidden_Files_Setting) := To_Unbounded_String ("true");
             Good.Filetype_Keys.Clear;
             Good.Filetype_Values.Clear;
             Good.Filetype_Keys.Append (To_Unbounded_String ("cfg"));

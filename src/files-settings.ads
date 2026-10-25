@@ -191,30 +191,57 @@ package Files.Settings is
       System_Fallback  : Boolean := False;
    end record;
 
+   --  The scalar (single key = value) settings of the [settings] section, in
+   --  the order To_Text writes them. Each literal has one row in the descriptor
+   --  table in the package body (its file key, the error key for a rejected
+   --  value, whether the value is quoted, whether the settings pane edits it,
+   --  and whether it is written only when it differs from the default) and one
+   --  arm in each of the Scalar_Text and Set_Scalar case statements. Parse,
+   --  To_Text, Make_Draft, Apply_Draft, the draft validation text and
+   --  Field_Diagnostic all iterate this type, so adding a scalar setting means
+   --  adding a literal, a table row and the two arms -- the compiler insists on
+   --  the arms.
+   type Scalar_Setting is
+     (Default_View_Mode_Setting,
+      Show_Hidden_Files_Setting,
+      Show_File_Extensions_Setting,
+      Show_Used_Space_Setting,
+      Show_Space_Bar_Setting,
+      Sort_Field_Setting,
+      Sort_Ascending_Setting,
+      Theme_Setting,
+      Icon_Theme_Setting,
+      Font_Pixel_Size_Setting,
+      Info_Pane_Open_Setting,
+      Use_System_Default_Opener_Setting,
+      Group_By_Setting,
+      Detail_Column_Order_Setting,
+      Detail_Column_Modified_Setting,
+      Detail_Column_Width_Modified_Setting,
+      Detail_Column_Size_Setting,
+      Detail_Column_Width_Size_Setting,
+      Detail_Column_Filetype_Setting,
+      Detail_Column_Width_Filetype_Setting,
+      Detail_Column_Created_Setting,
+      Detail_Column_Width_Created_Setting,
+      Detail_Column_Permissions_Setting,
+      Detail_Column_Width_Permissions_Setting,
+      Window_Width_Setting,
+      Window_Height_Setting);
+
+   --  Editable text for each scalar setting, as the settings file spells it
+   --  (the icon theme unquoted). Only the slots for which Is_Pane_Setting holds
+   --  are used: Make_Draft leaves the others empty and Apply_Draft keeps the
+   --  base model's values for them.
+   type Scalar_Texts is array (Scalar_Setting) of UString;
+
+   --  The settings pane's editable copy of the settings: the pane-edited
+   --  scalar settings as text, plus the three mapping editors (each a key and
+   --  value vector, the selected row index, and that row's pending key/value
+   --  edit). Valid and Error_Key carry the last validation outcome.
    type Settings_Draft is record
-      Default_View_Mode      : UString;
-      Show_Hidden_Files      : UString;
-      Show_File_Extensions   : UString;
-      Show_Used_Space        : UString;
-      Show_Space_Bar         : UString;
-      Sort_Field_Value       : UString;
-      Sort_Ascending         : UString;
-      Theme                  : UString;
-      Icon_Theme_Name        : UString;
-      Font_Pixel_Size        : UString;
-      --  Whether unmatched files fall back to the host's default opener.
-      --  Holds the canonical boolean text "true"/"false".
-      Use_System_Default_Opener : UString;
-      --  Detail-view row grouping mode, holding a Group_Mode token
-      --  ("none"/"type"/"modified"/"size"/"label").
-      Group_By               : UString;
-      --  Per-optional-column visibility, each holding boolean text
-      --  "true"/"false". The mandatory name column is never toggleable.
-      Column_Modified        : UString;
-      Column_Size            : UString;
-      Column_Filetype        : UString;
-      Column_Created         : UString;
-      Column_Permissions     : UString;
+      --  The pane-edited scalar settings, indexed by setting.
+      Scalars                : Scalar_Texts;
       Filetype_Extension     : UString;
       Filetype_Value         : UString;
       Filetype_Keys          : String_Vectors.Vector;
@@ -233,6 +260,44 @@ package Files.Settings is
       Error_Key              : UString;
       Valid                  : Boolean := True;
    end record;
+
+   --  Return the settings-file key of a scalar setting.
+   --
+   --  @param Setting Scalar setting to name.
+   --  @return The key written before " = " in the [settings] section.
+   function Scalar_Key (Setting : Scalar_Setting) return String;
+
+   --  Whether the settings pane edits Setting, so that it has a draft slot.
+   --
+   --  @param Setting Scalar setting to test.
+   --  @return True when Make_Draft fills and Apply_Draft applies Setting.
+   function Is_Pane_Setting (Setting : Scalar_Setting) return Boolean;
+
+   --  Return the value of one scalar setting as settings-file text, before any
+   --  quoting (the icon theme is returned bare).
+   --
+   --  @param Settings Settings model to read.
+   --  @param Setting Scalar setting to read.
+   --  @return The canonical value text, which Set_Scalar accepts.
+   function Scalar_Text
+     (Settings : Settings_Model;
+      Setting  : Scalar_Setting)
+      return String;
+
+   --  Parse Text as the value of one scalar setting and store it in Settings,
+   --  applying that setting's validation and clamping exactly as Parse does.
+   --  A rejected value leaves the setting unchanged (a rejected column order
+   --  resets it to the default order).
+   --
+   --  @param Settings Settings model updated in place.
+   --  @param Setting Scalar setting to set.
+   --  @param Text Unquoted value text.
+   --  @param Error_Key Empty when Text was accepted, otherwise the diagnostic key.
+   procedure Set_Scalar
+     (Settings  : in out Settings_Model;
+      Setting   : Scalar_Setting;
+      Text      : String;
+      Error_Key : out UString);
 
    --  Font pixel-size bounds and default shared by every font-size adjustment
    --  path (keyboard zoom, Ctrl + scroll zoom, and the settings-pane stepper).

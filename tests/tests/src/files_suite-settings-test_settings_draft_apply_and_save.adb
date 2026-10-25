@@ -8,7 +8,7 @@ separate (Files_Suite.Settings)
          Reset_Draft : constant Files.Settings.Settings_Draft := Files.Settings.Reset_Draft_To_Defaults;
       begin
          Files_Suite.Support.Assert_Equal
-           (To_String (Reset_Draft.Default_View_Mode),
+           (To_String (Reset_Draft.Scalars (Files.Settings.Default_View_Mode_Setting)),
             "small_icons",
             "reset settings draft restores default view mode");
       end;
@@ -34,12 +34,12 @@ separate (Files_Suite.Settings)
            (To_String (Controller_Result.Operation.Path),
             Draft_Path,
             "closed settings save reports settings path");
-         Draft.Default_View_Mode := To_Unbounded_String ("details");
-         Draft.Show_Hidden_Files := To_Unbounded_String ("true");
-         Draft.Sort_Field_Value := To_Unbounded_String ("size");
-         Draft.Sort_Ascending := To_Unbounded_String ("false");
-         Draft.Theme := To_Unbounded_String ("high_contrast");
-         Draft.Icon_Theme_Name := To_Unbounded_String ("files-high-contrast");
+         Draft.Scalars (Files.Settings.Default_View_Mode_Setting) := To_Unbounded_String ("details");
+         Draft.Scalars (Files.Settings.Show_Hidden_Files_Setting) := To_Unbounded_String ("true");
+         Draft.Scalars (Files.Settings.Sort_Field_Setting) := To_Unbounded_String ("size");
+         Draft.Scalars (Files.Settings.Sort_Ascending_Setting) := To_Unbounded_String ("false");
+         Draft.Scalars (Files.Settings.Theme_Setting) := To_Unbounded_String ("high_contrast");
+         Draft.Scalars (Files.Settings.Icon_Theme_Setting) := To_Unbounded_String ("files-high-contrast");
          Draft.Filetype_Extension := To_Unbounded_String ("log");
          Draft.Filetype_Value := To_Unbounded_String ("text/x-log");
          Draft.Icon_Filetype := To_Unbounded_String ("text/x-log");
@@ -109,7 +109,7 @@ separate (Files_Suite.Settings)
            (To_String (Lookup.Action.Executable),
             "json-editor",
             "saved draft persists structured-suffix open action executable");
-         Draft.Default_View_Mode := To_Unbounded_String ("bad-view");
+         Draft.Scalars (Files.Settings.Default_View_Mode_Setting) := To_Unbounded_String ("bad-view");
          Saved := Files.Settings.Save_Draft (Draft_Path, Loaded.Settings, Draft);
          Assert (not Saved.Success, "invalid settings draft is not saved");
          Files_Suite.Support.Assert_Equal

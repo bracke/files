@@ -42,8 +42,8 @@ package Files.File_System is
       Mode_Available     : Boolean := False;
       Mode_Bits          : Natural := 0;
       Ownership_Available : Boolean := False;
-      Owner_Id           : Natural := 0;
-      Group_Id           : Natural := 0;
+      Owner_Id           : Files.Types.Account_Id := 0;
+      Group_Id           : Files.Types.Account_Id := 0;
       Filetype_Extra     : UString;
       Filetype_Extra_Loaded : Boolean := False;
       Thumbnail_Available : Boolean := False;
@@ -846,24 +846,39 @@ package Files.File_System is
    --  @param Available Set True when the ownership ids were obtained.
    procedure Ownership_Of
      (Path      : String;
-      User_Id   : out Natural;
-      Group_Id  : out Natural;
+      User_Id   : out Files.Types.Account_Id;
+      Group_Id  : out Files.Types.Account_Id;
       Available : out Boolean);
 
+   --  Change the permission bits of one verified entry through a handle that
+   --  pins it, capturing the bits it had.
+   --
    --  @param Path Existing entry; symbolic links must be resolved by the caller.
    --  @param Expected_Identity History identity to verify, or empty for a new live change.
-   --  @param Ownership True changes ownership; False changes permission bits.
-   --  @param Value New mode or user id.
-   --  @param Group New group id for an ownership change.
-   --  @param Previous Live previous mode or user id captured before mutation.
-   --  @param Previous_Group Live previous group id for ownership changes.
+   --  @param Mode New permission bits, 0 .. 8#7777#.
+   --  @param Previous Live previous permission bits captured before mutation.
    --  @param Identity Identity of the entry actually changed.
-   --  @param Owner_Name Native account name paired with Value when required.
-   --  @param Group_Name Native account name paired with Group when required.
-   --  @return Result of applying metadata to the verified entry.
-   function Change_Metadata
-     (Path, Expected_Identity : String; Ownership : Boolean; Value, Group : Natural;
-      Previous, Previous_Group : out Natural; Identity : out Files.Types.UString;
+   --  @return Result of applying the mode to the verified entry.
+   function Change_Mode
+     (Path, Expected_Identity : String; Mode : Natural;
+      Previous : out Natural; Identity : out Files.Types.UString) return Mutation_Result;
+
+   --  Change the owner and group of one verified entry through a handle that
+   --  pins it, capturing the ids it had.
+   --
+   --  @param Path Existing entry; symbolic links must be resolved by the caller.
+   --  @param Expected_Identity History identity to verify, or empty for a new live change.
+   --  @param User_Id New owning user id.
+   --  @param Group_Id New owning group id.
+   --  @param Previous_User Live previous user id captured before mutation.
+   --  @param Previous_Group Live previous group id captured before mutation.
+   --  @param Identity Identity of the entry actually changed.
+   --  @param Owner_Name Native account name paired with User_Id when required.
+   --  @param Group_Name Native account name paired with Group_Id when required.
+   --  @return Result of applying the ownership to the verified entry.
+   function Change_Ownership
+     (Path, Expected_Identity : String; User_Id, Group_Id : Files.Types.Account_Id;
+      Previous_User, Previous_Group : out Files.Types.Account_Id; Identity : out Files.Types.UString;
       Owner_Name : String := ""; Group_Name : String := "") return Mutation_Result;
 
    --  Resolve a user name to its numeric id (getpwnam).
@@ -874,7 +889,7 @@ package Files.File_System is
    function User_Id_For_Name
      (Name  : String;
       Found : out Boolean)
-      return Natural;
+      return Files.Types.Account_Id;
 
    --  Resolve a group name to its numeric id (getgrnam).
    --
@@ -884,19 +899,19 @@ package Files.File_System is
    function Group_Id_For_Name
      (Name  : String;
       Found : out Boolean)
-      return Natural;
+      return Files.Types.Account_Id;
 
    --  Resolve a numeric user id to its name (getpwuid), memoized for the session.
    --
    --  @param Id User id to resolve.
    --  @return The user name, or the empty string when it cannot be resolved.
-   function User_Name_For_Id (Id : Natural) return String;
+   function User_Name_For_Id (Id : Files.Types.Account_Id) return String;
 
    --  Resolve a numeric group id to its name (getgrgid), memoized for the session.
    --
    --  @param Id Group id to resolve.
    --  @return The group name, or the empty string when it cannot be resolved.
-   function Group_Name_For_Id (Id : Natural) return String;
+   function Group_Name_For_Id (Id : Files.Types.Account_Id) return String;
 
    --  Sum the sizes of every descendant regular file under a directory.
    --

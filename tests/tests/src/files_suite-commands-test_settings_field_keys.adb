@@ -22,7 +22,7 @@ separate (Files_Suite.Commands)
       declare
          Draft : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
       begin
-         Draft.Icon_Theme_Name := To_Unbounded_String ("files-basic");
+         Draft.Scalars (Files.Settings.Icon_Theme_Setting) := To_Unbounded_String ("files-basic");
          Files.Model.Set_Settings_Draft (Model, Draft);
       end;
       Files_Suite.Support.Assert_Equal
@@ -64,7 +64,7 @@ separate (Files_Suite.Commands)
       declare
          Bad : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
       begin
-         Bad.Show_Hidden_Files := To_Unbounded_String ("maybe");
+         Bad.Scalars (Files.Settings.Show_Hidden_Files_Setting) := To_Unbounded_String ("maybe");
          Files.Model.Set_Settings_Draft (Model, Bad);
       end;
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
@@ -79,7 +79,7 @@ separate (Files_Suite.Commands)
       declare
          Good : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
       begin
-         Good.Show_Hidden_Files := To_Unbounded_String ("true");
+         Good.Scalars (Files.Settings.Show_Hidden_Files_Setting) := To_Unbounded_String ("true");
          Files.Model.Set_Settings_Draft (Model, Good);
       end;
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);

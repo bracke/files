@@ -2,6 +2,7 @@ with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 
 with Guikit.Draw;
+with Hostkit.Metadata;
 
 --  Shared value types used across the files model, commands, and rendering.
 package Files.Types is
@@ -16,6 +17,28 @@ package Files.Types is
    --  from Guikit.Draw so the draw model stays domain-free while application
    --  code keeps using Files.Types.Byte_Vectors unchanged.
    package Byte_Vectors renames Guikit.Draw.Byte_Vectors;
+
+   --  A numeric user or group id. Re-exported from Hostkit.Metadata, which
+   --  reads and sets them: uid_t and gid_t are unsigned 32-bit, and ids from
+   --  2**31 up are real ones (an idmapped mount, NFS's nobody at 4294967294),
+   --  so a Natural cannot hold them. `use type Files.Types.Account_Id` makes
+   --  its operators visible.
+   subtype Account_Id is Hostkit.Metadata.Account_Id;
+   subtype Parsed_Account_Id is Hostkit.Metadata.Parsed_Account_Id;
+
+   --  The id in decimal, without a leading blank: "4294967294".
+   --
+   --  @param Id Account id to print.
+   --  @return Its decimal digits.
+   function Account_Image (Id : Account_Id) return String
+     renames Hostkit.Metadata.Account_Image;
+
+   --  Read a decimal id: ASCII digits only, at most 4294967295. Never raises.
+   --
+   --  @param Text Candidate decimal id.
+   --  @return Whether Text is a valid id, and the id when it is.
+   function Parse_Account_Id (Text : String) return Parsed_Account_Id
+     renames Hostkit.Metadata.Parse_Account_Id;
 
    type View_Mode is
      (Small_Icons,

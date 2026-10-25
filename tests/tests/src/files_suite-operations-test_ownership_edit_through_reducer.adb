@@ -8,7 +8,7 @@ separate (Files_Suite.Operations)
       Height       : constant Natural := 1000;
       Load         : Files.File_System.Directory_Load_Result;
       Model        : Files.Model.Window_Model;
-      Uid, Gid     : Natural := 0;
+      Uid, Gid     : Files.Types.Account_Id := 0;
       Avail        : Boolean := False;
       Found_Owner  : Boolean := False;
       Owner_X      : Natural := 0;
@@ -115,7 +115,7 @@ separate (Files_Suite.Operations)
          --  Type the file's own numeric uid (a bare number is accepted as an
          --  id) and commit with Enter through the controller.
          Files.Controller.Replace_Focused_Text
-           (Model, Ada.Strings.Fixed.Trim (Natural'Image (Uid), Ada.Strings.Both));
+           (Model, Files.Types.Account_Image (Uid));
          Routed := Files.Controller.Handle_Key (Model, Settings_Var, Guikit.Input.Key_Return);
 
          Files_Suite.Support.Assert_Equal

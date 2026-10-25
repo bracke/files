@@ -94,7 +94,7 @@ begin
                   end;
 
                   if Old_Mode > 0 or else Old_Text = "0" then
-                     if not Change_Recorded_Metadata (Action, Index, False, Old_Mode) then
+                     if not Change_Recorded_Mode (Action, Index, Old_Mode) then
                         Succeeded := False;
                      end if;
                   end if;
@@ -116,16 +116,16 @@ begin
 
                   Old_Text : constant String :=
                     Ada.Strings.Fixed.Trim (To_String (Action.To.Element (Index)), Ada.Strings.Both);
-                  Old_Uid  : Natural := 0;
-                  Old_Gid  : Natural := 0;
+                  Old_Uid  : Files.Types.Account_Id := 0;
+                  Old_Gid  : Files.Types.Account_Id := 0;
                   Old_User_Name, Old_Group_Name : Files.Types.UString;
                begin
                   if Parse_Ownership_Text
                     (Old_Text, Old_Uid, Old_Gid,
                      Old_User_Name, Old_Group_Name)
                   then
-                     if not Change_Recorded_Metadata
-                       (Action, Index, True, Old_Uid, Old_Gid,
+                     if not Change_Recorded_Ownership
+                       (Action, Index, Old_Uid, Old_Gid,
                         To_String (Old_User_Name),
                         To_String (Old_Group_Name))
                      then

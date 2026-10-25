@@ -451,6 +451,7 @@ package body Files_Suite.Operations is
    procedure Test_Copy_Journal_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Job_Request_Path_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Job_Item_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Job_Item_Large_Account_Ids (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Operation_Result_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transfer_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Replacement_Checkpoint_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -564,6 +565,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Job_Item_Record_Validation'Access,
          "directory signatures and job items reject invalid paths and thumbnails");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Job_Item_Large_Account_Ids'Access,
+         "job items carry user and group ids from 2**31 up, in the format Natural ids had");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Operation_Result_Record_Validation'Access, "operation results reject inconsistent action metadata");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -2221,6 +2225,8 @@ package body Files_Suite.Operations is
    procedure Test_Job_Request_Path_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Job_Item_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Job_Item_Large_Account_Ids (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Operation_Result_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

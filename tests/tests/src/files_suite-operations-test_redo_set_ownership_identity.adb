@@ -1,12 +1,13 @@
 separate (Files_Suite.Operations)
    procedure Test_Redo_Set_Ownership_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      use type Files.Types.Account_Id;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Target   : constant String := Join (Root, "redo-owner.txt");
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
       Result   : Files.Operations.Operation_Result;
-      Uid, Gid : Natural := 0;
+      Uid, Gid : Files.Types.Account_Id := 0;
       Avail    : Boolean := False;
    begin
       if not Files.File_System.Supports_Ownership then
@@ -40,7 +41,7 @@ separate (Files_Suite.Operations)
       Assert (not Files.Model.Redo_Available (Model), "the redo stack empties after re-applying chown");
 
       declare
-         New_Uid, New_Gid : Natural := 0;
+         New_Uid, New_Gid : Files.Types.Account_Id := 0;
          Now_Avail        : Boolean := False;
       begin
          Files.File_System.Ownership_Of (Target, New_Uid, New_Gid, Now_Avail);

@@ -652,8 +652,8 @@ package Files.Operations is
    --  @return Structured operation result.
    function Set_Ownership_For
      (Model    : in out Files.Model.Window_Model;
-      User_Id  : Natural;
-      Group_Id : Natural;
+      User_Id  : Files.Types.Account_Id;
+      Group_Id : Files.Types.Account_Id;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 

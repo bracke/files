@@ -7,7 +7,8 @@ separate (Files_Suite.Operations)
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
-      Uid, Gid : Natural;
+      use type Files.Types.Account_Id;
+      Uid, Gid : Files.Types.Account_Id;
       Available : Boolean;
    begin
       if not Files.File_System.Supports_Permissions then
@@ -65,8 +66,8 @@ separate (Files_Suite.Operations)
             Assert
               (Ada.Strings.Fixed.Index
                  (To_String (Files.Model.Undo_To_Paths (Model).First_Element),
-                  Ada.Strings.Fixed.Trim (Natural'Image (Uid), Ada.Strings.Both) & " "
-                  & Ada.Strings.Fixed.Trim (Natural'Image (Gid), Ada.Strings.Both)
+                  Files.Types.Account_Image (Uid) & " "
+                  & Files.Types.Account_Image (Gid)
                   & String'(1 => Ada.Characters.Latin_1.NUL)) = 1,
                     "ownership history records the live ids rather than the stale item");
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
@@ -76,8 +77,8 @@ separate (Files_Suite.Operations)
                Files.Operations.Operation_Success,
                "Undo applies the live ownership snapshot: status="
                & Files.Operations.Operation_Status'Image (Step.Status)
-               & " uid=" & Natural'Image (Uid)
-               & " gid=" & Natural'Image (Gid)
+               & " uid=" & Files.Types.Account_Image (Uid)
+               & " gid=" & Files.Types.Account_Image (Gid)
                & " background=" & Boolean'Image (Background));
          end if;
       end loop;

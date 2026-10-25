@@ -14,7 +14,14 @@ separate (Files.Settings)
       Icon_Values   : String_Vectors.Vector;
       Action_Keys   : String_Vectors.Vector;
       Action_Values : String_Vectors.Vector;
+      Scalars       : Scalar_Texts;
    begin
+      for Setting in Scalar_Setting loop
+         if Is_Pane_Setting (Setting) then
+            Scalars (Setting) := To_Unbounded_String (Scalar_Text (Settings, Setting));
+         end if;
+      end loop;
+
       if not Settings.Extension_Filetypes.Is_Empty then
          declare
             Keys : String_Vectors.Vector;
@@ -68,29 +75,7 @@ separate (Files.Settings)
       end if;
 
       return
-        (Default_View_Mode      => To_Unbounded_String (View_Mode_Name (Settings.Default_View)),
-         Show_Hidden_Files      => To_Unbounded_String (Boolean_Name (Settings.Show_Hidden_Files)),
-         Show_File_Extensions   => To_Unbounded_String (Boolean_Name (Settings.Show_File_Extensions)),
-         Show_Used_Space        => To_Unbounded_String (Boolean_Name (Settings.Show_Used_Space)),
-         Show_Space_Bar         => To_Unbounded_String (Boolean_Name (Settings.Show_Space_Bar)),
-         Sort_Field_Value       => To_Unbounded_String (Sort_Field_Name (Settings.Sort_Field_Value)),
-         Sort_Ascending         => To_Unbounded_String (Boolean_Name (Settings.Sort_Ascending)),
-         Theme                  => To_Unbounded_String (Theme_Name (Settings.Theme)),
-         Icon_Theme_Name        => Settings.Icon_Theme_Name,
-         Font_Pixel_Size        => To_Unbounded_String (Trim (Positive'Image (Settings.Font_Pixel_Size))),
-         Use_System_Default_Opener =>
-           To_Unbounded_String (Boolean_Name (Settings.Use_System_Default_Opener)),
-         Group_By               => To_Unbounded_String (Group_Mode_Name (Settings.Group_By)),
-         Column_Modified        =>
-           To_Unbounded_String (Boolean_Name (Settings.Column_Visible (Files.Types.Modified_Column))),
-         Column_Size            =>
-           To_Unbounded_String (Boolean_Name (Settings.Column_Visible (Files.Types.Size_Column))),
-         Column_Filetype        =>
-           To_Unbounded_String (Boolean_Name (Settings.Column_Visible (Files.Types.Filetype_Column))),
-         Column_Created         =>
-           To_Unbounded_String (Boolean_Name (Settings.Column_Visible (Files.Types.Created_Column))),
-         Column_Permissions     =>
-           To_Unbounded_String (Boolean_Name (Settings.Column_Visible (Files.Types.Permissions_Column))),
+        (Scalars                => Scalars,
          Filetype_Extension     => Extension,
          Filetype_Value         => Filetype,
          Filetype_Keys          => Filetype_Keys,

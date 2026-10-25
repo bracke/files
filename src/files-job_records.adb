@@ -229,8 +229,8 @@ package body Files.Job_Records is
       Boolean'Output (Stream, Value.Mode_Available);
       Natural'Output (Stream, Value.Mode_Bits);
       Boolean'Output (Stream, Value.Ownership_Available);
-      Natural'Output (Stream, Value.Owner_Id);
-      Natural'Output (Stream, Value.Group_Id);
+      Files.Types.Account_Id'Output (Stream, Value.Owner_Id);
+      Files.Types.Account_Id'Output (Stream, Value.Group_Id);
       Write_String (Stream, To_String (Value.Filetype_Extra), Max_Text_Length);
       Boolean'Output (Stream, Value.Filetype_Extra_Loaded);
       Boolean'Output (Stream, Value.Thumbnail_Available);
@@ -265,8 +265,8 @@ package body Files.Job_Records is
       Result.Mode_Available := Boolean'Input (Stream);
       Result.Mode_Bits := Natural'Input (Stream);
       Result.Ownership_Available := Boolean'Input (Stream);
-      Result.Owner_Id := Natural'Input (Stream);
-      Result.Group_Id := Natural'Input (Stream);
+      Result.Owner_Id := Files.Types.Account_Id'Input (Stream);
+      Result.Group_Id := Files.Types.Account_Id'Input (Stream);
       Result.Filetype_Extra := To_Unbounded_String (Read_String (Stream, Max_Text_Length));
       Result.Filetype_Extra_Loaded := Boolean'Input (Stream);
       Result.Thumbnail_Available := Boolean'Input (Stream);

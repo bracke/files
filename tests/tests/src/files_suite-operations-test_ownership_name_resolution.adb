@@ -1,8 +1,9 @@
 separate (Files_Suite.Operations)
    procedure Test_Ownership_Name_Resolution (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      use type Files.Types.Account_Id;
       Found : Boolean := False;
-      Id    : Natural := 0;
+      Id    : Files.Types.Account_Id := 0;
    begin
       if not Files.File_System.Supports_Ownership then
          Files_Suite.Support.Skip ("Test_Ownership_Name_Resolution", "not Files.File_System.Supports_Ownership");
@@ -18,9 +19,9 @@ separate (Files_Suite.Operations)
          --  we just made round-trips through a name and back.
          declare
             Owned : constant String := Join (Root, "owned.txt");
-            Uid, Gid : Natural := 0;
+            Uid, Gid : Files.Types.Account_Id := 0;
             Avail    : Boolean := False;
-            Round    : Natural := 0;
+            Round    : Files.Types.Account_Id := 0;
          begin
             Reset_Root;
             Write_File (Owned, "owned");

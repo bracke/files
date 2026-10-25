@@ -6,37 +6,13 @@ separate (Files.Settings)
    is
       Parsed : constant Settings_Parse_Result := Validate_Draft (Draft);
       Result : Settings_Model := Settings;
-      Filetype_Keys : String_Vectors.Vector := Draft.Filetype_Keys;
-      Filetype_Values : String_Vectors.Vector := Draft.Filetype_Values;
-      Icon_Keys     : String_Vectors.Vector := Draft.Icon_Keys;
-      Icon_Values   : String_Vectors.Vector := Draft.Icon_Values;
-      Action_Keys   : String_Vectors.Vector := Draft.Open_Action_Keys;
-      Action_Values : String_Vectors.Vector := Draft.Open_Action_Commands;
-
-      procedure Upsert
-        (Keys   : in out String_Vectors.Vector;
-         Values : in out String_Vectors.Vector;
-         Kind   : Draft_Mapping_Kind;
-         Key    : UString;
-         Value  : UString)
-      is
-         Key_Text : constant String := Draft_Mapping_Key_Text (Kind, Key);
-      begin
-         if Length (Key) = 0 and then Length (Value) = 0 then
-            return;
-         end if;
-
-         for Index in 1 .. Natural (Keys.Length) loop
-            if Draft_Mapping_Key_Text (Kind, Keys.Element (Index)) = Key_Text then
-               Keys.Replace_Element (Index, To_Unbounded_String (Key_Text));
-               Values.Replace_Element (Index, Value);
-               return;
-            end if;
-         end loop;
-
-         Keys.Append (To_Unbounded_String (Key_Text));
-         Values.Append (Value);
-      end Upsert;
+      Rows            : constant Settings_Draft := With_Pending_Rows (Draft);
+      Filetype_Keys   : String_Vectors.Vector renames Rows.Filetype_Keys;
+      Filetype_Values : String_Vectors.Vector renames Rows.Filetype_Values;
+      Icon_Keys       : String_Vectors.Vector renames Rows.Icon_Keys;
+      Icon_Values     : String_Vectors.Vector renames Rows.Icon_Values;
+      Action_Keys     : String_Vectors.Vector renames Rows.Open_Action_Keys;
+      Action_Values   : String_Vectors.Vector renames Rows.Open_Action_Commands;
    begin
       if not Parsed.Success then
          return
@@ -45,41 +21,26 @@ separate (Files.Settings)
             Error_Key => Parsed.Error_Key);
       end if;
 
-      Result.Default_View := Parsed.Settings.Default_View;
-      Result.Show_Hidden_Files := Parsed.Settings.Show_Hidden_Files;
-      Result.Show_File_Extensions := Parsed.Settings.Show_File_Extensions;
-      Result.Show_Used_Space := Parsed.Settings.Show_Used_Space;
-      Result.Show_Space_Bar := Parsed.Settings.Show_Space_Bar;
-      Result.Sort_Field_Value := Parsed.Settings.Sort_Field_Value;
-      Result.Sort_Ascending := Parsed.Settings.Sort_Ascending;
-      Result.Theme := Parsed.Settings.Theme;
-      Result.Icon_Theme_Name := Parsed.Settings.Icon_Theme_Name;
-      Result.Font_Pixel_Size := Parsed.Settings.Font_Pixel_Size;
-      Result.Window_Width := Settings.Window_Width;
-      Result.Window_Height := Settings.Window_Height;
-      Result.Info_Pane_Open := Settings.Info_Pane_Open;
-      Result.Favorite_Paths := Settings.Favorite_Paths;
-      Result.Recent_Paths_Value := Settings.Recent_Paths_Value;
-      Result.Labels := Settings.Labels;
-      --  The pane now edits these directly, so take them from the parsed draft.
-      --  Column order and per-column widths are not pane-editable, so they keep
-      --  their existing values (Result starts as a copy of Settings).
-      Result.Use_System_Default_Opener := Parsed.Settings.Use_System_Default_Opener;
-      Result.Group_By := Parsed.Settings.Group_By;
-      Result.Column_Visible := Parsed.Settings.Column_Visible;
-      Upsert
-        (Filetype_Keys,
-         Filetype_Values,
-         Draft_Filetype_Mapping,
-         Draft.Filetype_Extension,
-         Draft.Filetype_Value);
-      Upsert (Icon_Keys, Icon_Values, Draft_Icon_Mapping, Draft.Icon_Filetype, Draft.Icon_Value);
-      Upsert
-        (Action_Keys,
-         Action_Values,
-         Draft_Open_Action_Mapping,
-         Draft.Open_Action_Token,
-         Draft.Open_Action_Command);
+      --  The pane-edited scalar settings come from the parsed draft; every other
+      --  scalar (window size, info pane, column order and widths) and the
+      --  favorites, recent items and labels keep their live values, since
+      --  Result starts as a copy of Settings. Each value travels as its
+      --  canonical text, which Set_Scalar always accepts.
+      for Setting in Scalar_Setting loop
+         if Is_Pane_Setting (Setting) then
+            declare
+               Error : Unbounded_String;
+            begin
+               Set_Scalar (Result, Setting, Scalar_Text (Parsed.Settings, Setting), Error);
+               if Length (Error) > 0 then
+                  return
+                    (Success   => False,
+                     Settings  => Settings,
+                     Error_Key => Error);
+               end if;
+            end;
+         end if;
+      end loop;
 
       Result.Extension_Filetypes.Clear;
       for Index in 1 .. Natural (Filetype_Keys.Length) loop

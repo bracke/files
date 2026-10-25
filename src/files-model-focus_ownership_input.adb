@@ -1,4 +1,3 @@
-with Ada.Strings.Fixed;
 separate (Files.Model)
 procedure Focus_Ownership_Input
   (Model         : in out Window_Model;
@@ -21,7 +20,7 @@ begin
    Model.Focus_Value := Files.Types.Focus_Ownership_Input;
    Model.Ownership_Editing_Group_Value := Editing_Group;
    declare
-      Id   : constant Natural := (if Editing_Group then Item.Group_Id else Item.Owner_Id);
+      Id   : constant Files.Types.Account_Id := (if Editing_Group then Item.Group_Id else Item.Owner_Id);
       --  Seed with the resolved name so the field matches its display; the
       --  commit path accepts a name or a number. Fall back to the number.
       Name : constant String :=
@@ -32,7 +31,7 @@ begin
       Model.Ownership_Input_Value :=
         To_Unbounded_String
           (if Name /= "" then Name
-           else Ada.Strings.Fixed.Trim (Natural'Image (Id), Ada.Strings.Both));
+           else Files.Types.Account_Image (Id));
    end;
    Model.Ownership_Input_Cursor := Length (Model.Ownership_Input_Value);
    Clear_Root_Selector_State (Model);

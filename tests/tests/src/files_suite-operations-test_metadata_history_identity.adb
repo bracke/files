@@ -8,7 +8,7 @@ separate (Files_Suite.Operations)
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
-      Uid, Gid : Natural;
+      Uid, Gid : Files.Types.Account_Id;
       Available : Boolean;
       procedure Replace_And_Refuse (Forward : Boolean) is
       begin

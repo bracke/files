@@ -484,12 +484,12 @@ package body Files.Operations is
    end Generate_Selected_Thumbnails;
 
    function Ownership_Text
-     (User_Id, Group_Id : Natural; User_Name, Group_Name : String)
+     (User_Id, Group_Id : Files.Types.Account_Id; User_Name, Group_Name : String)
       return String
    is
-     (Ada.Strings.Fixed.Trim (Natural'Image (User_Id), Ada.Strings.Both)
+     (Files.Types.Account_Image (User_Id)
       & " "
-      & Ada.Strings.Fixed.Trim (Natural'Image (Group_Id), Ada.Strings.Both)
+      & Files.Types.Account_Image (Group_Id)
       & ASCII.NUL & User_Name & ASCII.NUL & Group_Name);
 
    function Permissions_Editable_Selection
@@ -518,8 +518,8 @@ package body Files.Operations is
 
    function Set_Ownership_For
      (Model    : in out Files.Model.Window_Model;
-      User_Id  : Natural;
-      Group_Id : Natural;
+      User_Id  : Files.Types.Account_Id;
+      Group_Id : Files.Types.Account_Id;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
    is separate;
@@ -585,14 +585,18 @@ package body Files.Operations is
       Forward : Boolean) return Boolean
    is separate;
 
-   function Change_Recorded_Metadata
-     (Action : Files.Model.Undo_Entry; Index : Positive; Ownership : Boolean;
-      Value : Natural; Group : Natural := 0;
-      Owner_Name : String := ""; Group_Name : String := "") return Boolean
+   function Change_Recorded_Mode
+     (Action : Files.Model.Undo_Entry; Index : Positive; Mode : Natural) return Boolean
+   is separate;
+
+   function Change_Recorded_Ownership
+     (Action : Files.Model.Undo_Entry; Index : Positive;
+      User_Id, Group_Id : Files.Types.Account_Id;
+      Owner_Name, Group_Name : String) return Boolean
    is separate;
 
    function Parse_Ownership_Text
-     (Text : String; User_Id, Group_Id : out Natural;
+     (Text : String; User_Id, Group_Id : out Files.Types.Account_Id;
       User_Name, Group_Name : out Files.Types.UString) return Boolean
    is separate;
 
