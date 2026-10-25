@@ -1357,6 +1357,11 @@ private
 
    type Text_Renderer is record
       Loaded       : Boolean := False;
+      --  The pooled renderer it draws with, and the configuration that
+      --  renderer must have (another window may have taken the slot since).
+      Slot         : Natural := 0;
+      Key          : UString;
+      Pixel_Size   : Positive := 16;
       Font_Path    : UString;
       Cell_Width   : Positive := 10;
       Cell_Height  : Positive := 20;

@@ -162,7 +162,9 @@ separate (Files.Application.Windows)
             Runtime.Cached_Marquee_W := Runtime.Marquee_Rect_W;
             Runtime.Cached_Marquee_H := Runtime.Marquee_Rect_H;
             Runtime.Cached_Minute := Current_Minute;
-            Runtime.Cached_Frame_Text_Key := Frame_Text_Key (Runtime.Cached_Frame);
+            Runtime.Cached_Main_Text_Key := Text_Commands_Key (Runtime.Cached_Frame.Text);
+            Runtime.Cached_Frame_Text_Key :=
+              Runtime.Cached_Main_Text_Key & ASCII.FS & Text_Commands_Key (Runtime.Cached_Frame.Overlay_Text);
             Runtime.Frame_Cache_Valid := True;
          end Rebuild_Frame;
       begin
@@ -259,39 +261,34 @@ separate (Files.Application.Windows)
                --  What the glyph cache is keyed on. A change in it re-lays the
                --  glyphs out; the fonts and atlas stay loaded.
                Current_Text_Key : constant Unbounded_String :=
-                 (if Overlay_Merged then Frame_Text_Key (Frame) else Runtime.Cached_Frame_Text_Key);
-               Frame_Font_Path  : constant Unbounded_String :=
-                 To_Unbounded_String (Files.Rendering.Font_Path_For_Frame (Frame));
+                 (if Overlay_Merged
+                  --  The main text is the cached frame's; only the overlay
+                  --  layer, merged in now, is keyed again.
+                  then Runtime.Cached_Main_Text_Key & ASCII.FS & Text_Commands_Key (Frame.Overlay_Text)
+                  else Runtime.Cached_Frame_Text_Key);
+               use type Ada.Real_Time.Time;
+               use type Ada.Real_Time.Time_Span;
             begin
-               if Runtime.Text_Ready
-                 and then
-                   (Runtime.Text_Font_Path /= Frame_Font_Path
-                    or else not Process_Text_Font_Ready
-                    or else Process_Text_Font_Path /= Frame_Font_Path)
+               --  Loaded once per window (a pooled renderer per size, so this is
+               --  cheap when another window already has the size); a failure
+               --  is retried after a pause, not every frame.
+               if not Runtime.Text_Ready
+                 and then (Runtime.Text_Failed_Size /= Runtime.Font_Pixel_Size
+                           or else Ada.Real_Time.Clock - Runtime.Text_Failed_At >= Text_Retry_Interval)
                then
-                  Runtime.Text_Ready := False;
-                  Runtime.Text_Glyph_Key := Null_Unbounded_String;
-               end if;
-
-               if not Runtime.Text_Ready and then Runtime.Text_Failed_Size /= Runtime.Font_Pixel_Size then
                   declare
                      Status : constant Files.Rendering.Text_Render_Status :=
                        Files.Rendering.Initialize_Text
                          (Renderer    => Runtime.Text,
-                          Font_Path   => To_String (Frame_Font_Path),
+                          Font_Path   => Files.Rendering.Default_Font_Path,
                           Pixel_Size  => Runtime.Font_Pixel_Size,
                           Cell_Width  => Cell_Width_For (Runtime.Font_Pixel_Size),
                           Cell_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
                   begin
                      Runtime.Text_Ready := Status = Files.Rendering.Text_Render_Success;
-                     Runtime.Text_Font_Path :=
-                       (if Runtime.Text_Ready then Frame_Font_Path else Null_Unbounded_String);
                      Runtime.Text_Glyph_Key := Null_Unbounded_String;
-                     Process_Text_Font_Ready := Runtime.Text_Ready;
-                     Process_Text_Font_Path :=
-                       (if Runtime.Text_Ready then Frame_Font_Path else Null_Unbounded_String);
-                     Process_Text_Font_Size := (if Runtime.Text_Ready then Runtime.Font_Pixel_Size else 0);
                      Runtime.Text_Failed_Size := (if Runtime.Text_Ready then 0 else Runtime.Font_Pixel_Size);
+                     Runtime.Text_Failed_At := Ada.Real_Time.Clock;
                   end;
                end if;
 
@@ -299,35 +296,14 @@ separate (Files.Application.Windows)
                   declare
                      Glyphs : Files.Rendering.Text_Render_Result;
                   begin
+                     --  Unchanged text reuses its glyphs; the renderer uploads
+                     --  the atlas only when its version moved (or an earlier
+                     --  present failed).
                      if Runtime.Text_Glyph_Key = Current_Text_Key
                        and then Runtime.Text_Glyphs.Status = Files.Rendering.Text_Render_Success
                      then
                         Glyphs := Runtime.Text_Glyphs;
-                        Glyphs.Atlas_Dirty := False;
                      else
-                        --  Another window may have re-initialized the shared
-                        --  renderer at its own size since; rasterizing now would
-                        --  put that size's glyphs into this window's cells.
-                        if Process_Text_Font_Size /= Runtime.Font_Pixel_Size
-                          or else not Process_Text_Font_Ready
-                          or else Process_Text_Font_Path /= Frame_Font_Path
-                        then
-                           declare
-                              Status : constant Files.Rendering.Text_Render_Status :=
-                                Files.Rendering.Initialize_Text
-                                  (Renderer    => Runtime.Text,
-                                   Font_Path   => To_String (Frame_Font_Path),
-                                   Pixel_Size  => Runtime.Font_Pixel_Size,
-                                   Cell_Width  => Cell_Width_For (Runtime.Font_Pixel_Size),
-                                   Cell_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
-                              Ready : constant Boolean := Status = Files.Rendering.Text_Render_Success;
-                           begin
-                              Process_Text_Font_Ready := Ready;
-                              Process_Text_Font_Path :=
-                                (if Ready then Frame_Font_Path else Null_Unbounded_String);
-                              Process_Text_Font_Size := (if Ready then Runtime.Font_Pixel_Size else 0);
-                           end;
-                        end if;
                         Glyphs := Files.Rendering.Build_Text_Glyphs (Runtime.Text, Frame);
                         Runtime.Text_Glyphs := Glyphs;
                         Runtime.Text_Glyph_Key := Current_Text_Key;

@@ -400,16 +400,19 @@ private
       Text            : Files.Rendering.Text_Renderer;
       Text_Ready      : Boolean := False;
       Font_Pixel_Size : Positive := 16;
-      Text_Font_Path  : Ada.Strings.Unbounded.Unbounded_String;
-      --  Frame_Text_Key of Cached_Frame, worked out once per rebuild, so a
+      --  The glyph-cache key of Cached_Frame, worked out once per rebuild, so a
       --  frame presented with no overlay merged in does not rebuild it.
       Cached_Frame_Text_Key : Ada.Strings.Unbounded.Unbounded_String;
+      --  The same for its main text layer alone.
+      Cached_Main_Text_Key : Ada.Strings.Unbounded.Unbounded_String;
       --  The window title last set.
       Shown_Title : Ada.Strings.Unbounded.Unbounded_String;
       --  The font pixel size text initialization last failed at, or 0. It is
       --  not retried at that size every frame (nor does the failure keep the
       --  window presenting); a size change tries again.
       Text_Failed_Size : Natural := 0;
+      --  When it last failed; it is tried again after Text_Retry_Interval.
+      Text_Failed_At   : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
       Text_Glyph_Key  : Ada.Strings.Unbounded.Unbounded_String;
       Text_Glyphs     : Files.Rendering.Text_Render_Result;
       Vulkan          : Guikit.Vulkan.Vulkan_Renderer;

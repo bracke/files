@@ -51,8 +51,8 @@ package body Files.Extension_Labels is
    function To_Byte (Channel : Float) return Interfaces.Unsigned_8 is
      (Interfaces.Unsigned_8 (Natural'Min (255, Natural (Float'Max (0.0, Channel) * 255.0))));
 
-   --  (Re)load the small renderer at Height. The cached bitmaps were rendered at
-   --  the previous height, so drop them when the height changes.
+   --  (Re)load the small renderer at Height. The cache is keyed by height, so
+   --  labels made at another (another window's zoom) stay cached.
    procedure Ensure_Renderer (Height : Positive) is
       Fallbacks : Guikit.Text.Font_Path_Vectors.Vector;
       Status    : Guikit.Draw.Text_Render_Status;
@@ -76,7 +76,6 @@ package body Files.Extension_Labels is
            Cell_Height    => Height);
       R_Pixel_Height := Height;
       Failed_Height := (if Guikit.Text.Loaded (R) then 0 else Height);
-      Cache.Clear;
    end Ensure_Renderer;
 
    function Rasterize
@@ -255,16 +254,17 @@ package body Files.Extension_Labels is
       Theme  : Guikit.Draw.Theme_Kind)
       return Label
    is
-      Key : constant String := Theme_Tag (Theme) & ":" & Ext;
+      Key : constant String := Theme_Tag (Theme) & ":" & Natural'Image (Height) & ":" & Ext;
    begin
       if Ext = "" or else Height < 1 then
          return (Width => 0, Height => 0, Pixels => Files.Shared_Bytes.Empty);
       end if;
-      Ensure_Renderer (Height);
-      if not Guikit.Text.Loaded (R) then
-         return (Width => 0, Height => 0, Pixels => Files.Shared_Bytes.Empty);
-      end if;
+      --  The renderer is (re)loaded only for a label not cached yet.
       if not Cache.Contains (Key) then
+         Ensure_Renderer (Height);
+         if not Guikit.Text.Loaded (R) then
+            return (Width => 0, Height => 0, Pixels => Files.Shared_Bytes.Empty);
+         end if;
          if Natural (Cache.Length) >= Max_Cached_Labels then
             Cache.Clear;
          end if;

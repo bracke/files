@@ -89,12 +89,8 @@ package body Files.Application.Windows is
    function Cell_Width_For  (Size : Positive) return Positive is
      (Guikit.Layout.Caret_Advance_Width (Cell_Height_For (Size)));
 
-   --  The text renderer is process-wide; these record what it was last
-   --  initialized for. Windows zoom independently, so the pixel size is part
-   --  of the key: a window may only build glyphs once it matches its own size.
-   Process_Text_Font_Ready : Boolean := False;
-   Process_Text_Font_Path  : Unbounded_String;
-   Process_Text_Font_Size  : Natural := 0;
+   --  How long a window whose text failed to load waits before trying again.
+   Text_Retry_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (5);
    File_Watch_Poll_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
    Type_Ahead_Timeout : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
    --  The event loop always waits this long: input, window refresh, and posted
@@ -1299,16 +1295,13 @@ package body Files.Application.Windows is
       For_Each_Window (Runtime_Windows, Handle_Mouse'Access);
    end Handle_All_Mouse;
 
-   function Frame_Text_Key
-     (Frame : Files.Rendering.Frame_Commands)
+   function Text_Commands_Key
+     (Commands : Guikit.Draw.Text_Command_Vectors.Vector)
       return Unbounded_String
    is
       Result : Unbounded_String;
-
-      procedure Append_Text_Key
-        (Command : Guikit.Draw.Text_Command)
-      is
-      begin
+   begin
+      for Command of Commands loop
          Append (Result, Natural'Image (Command.X));
          Append (Result, ":");
          Append (Result, Natural'Image (Command.Y));
@@ -1320,21 +1313,13 @@ package body Files.Application.Windows is
          Append (Result, Guikit.Draw.Render_Color'Image (Command.Color));
          Append (Result, ":");
          Append (Result, (if Command.Italic then "i" else "r"));
+         Append (Result, (if Command.Scale_To_Box then "s" else "f"));
          Append (Result, ":");
          Append (Result, Command.Text);
          Append (Result, ASCII.LF);
-      end Append_Text_Key;
-   begin
-      for Command of Frame.Text loop
-         Append_Text_Key (Command);
       end loop;
-
-      for Command of Frame.Overlay_Text loop
-         Append_Text_Key (Command);
-      end loop;
-
       return Result;
-   end Frame_Text_Key;
+   end Text_Commands_Key;
 
    procedure Release_Window (Runtime : in out Runtime_Window) is
    begin
@@ -1391,9 +1376,6 @@ package body Files.Application.Windows is
          Release_Window (Runtime);
       end loop;
       Runtime_Windows.Clear;
-      Process_Text_Font_Ready := False;
-      Process_Text_Font_Path := Null_Unbounded_String;
-      Process_Text_Font_Size := 0;
    end Release_All;
 
    function Any_Window_Open
@@ -1484,10 +1466,11 @@ package body Files.Application.Windows is
             Text            => <>,
             Text_Ready      => False,
             Font_Pixel_Size => Settings.Font_Pixel_Size,
-            Text_Font_Path  => Null_Unbounded_String,
             Cached_Frame_Text_Key => Null_Unbounded_String,
+            Cached_Main_Text_Key => Null_Unbounded_String,
             Shown_Title => Null_Unbounded_String,
             Text_Failed_Size => 0,
+            Text_Failed_At   => Ada.Real_Time.Time_First,
             Text_Glyph_Key => Null_Unbounded_String,
             Text_Glyphs => <>,
             Vulkan          => <>,
@@ -1673,11 +1656,10 @@ package body Files.Application.Windows is
             end if;
          end;
       elsif Runtime.Column_Reorder_Sort /= Files.Commands.No_Command then
-         Refresh_Snapshot (Runtime);
          declare
             Y_Frame  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
             Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-            Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Current_Slot);
+            Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Hit_Slot (Runtime));
             Layout   : constant Files.Rendering.Layout_Metrics :=
               Files.Rendering.Calculate_Layout
                 (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);

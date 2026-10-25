@@ -38,9 +38,19 @@ package body Files.Rendering is
       return True;
    end "=";
 
-   --  Text rendering is provided by the guikit toolkit; this process-wide
-   --  renderer holds the shared font/atlas the whole app draws through.
-   The_Renderer : Guikit.Text.Renderer;
+   --  Text rendering is provided by the guikit toolkit. One renderer (fonts
+   --  and atlas) per text configuration, shared by the windows that use it:
+   --  windows at different zoom levels each keep theirs, instead of loading
+   --  the fonts again every time the other one draws. The least recently
+   --  used is reloaded when a fifth configuration is needed.
+   Max_Pooled_Renderers : constant := 4;
+   type Pooled_Renderer is limited record
+      Key  : UString;
+      Used : Natural := 0;
+      R    : Guikit.Text.Renderer;
+   end record;
+   Pool       : array (1 .. Max_Pooled_Renderers) of Pooled_Renderer;
+   Pool_Clock : Natural := 0;
 
    --  Parsed icon assets by their text: every icon drawn was parsed again on
    --  every frame rebuild. Keyed by the text itself, so a theme switch or
@@ -1803,14 +1813,45 @@ package body Files.Rendering is
    is
       Fallbacks : Guikit.Text.Font_Path_Vectors.Vector;
       Status    : Text_Render_Status;
+      Key       : constant UString :=
+        To_Unbounded_String
+          (Font_Path & Positive'Image (Pixel_Size) & Positive'Image (Cell_Width) & Positive'Image (Cell_Height)
+           & Positive'Image (Atlas_Width) & Positive'Image (Atlas_Height));
+      Slot      : Positive := 1;
    begin
+      Pool_Clock := (if Pool_Clock = Natural'Last then 1 else Pool_Clock + 1);
+      Renderer.Pixel_Size := Pixel_Size;
+      Renderer.Key := Key;
+      --  Already loaded for this configuration: nothing to load.
+      for Index in Pool'Range loop
+         if Pool (Index).Key = Key then
+            Pool (Index).Used := Pool_Clock;
+            Renderer.Slot := Index;
+            Renderer.Loaded := True;
+            Renderer.Font_Path    := To_Unbounded_String (Font_Path);
+            Renderer.Cell_Width   := Cell_Width;
+            Renderer.Cell_Height  := Cell_Height;
+            Renderer.Atlas_Width  := Atlas_Width;
+            Renderer.Atlas_Height := Atlas_Height;
+            return Text_Render_Success;
+         end if;
+      end loop;
+      for Index in Pool'Range loop
+         if Pool (Index).Used < Pool (Slot).Used then
+            Slot := Index;
+         end if;
+      end loop;
+      Pool (Slot).Key := Null_Unbounded_String;
+      Pool (Slot).Used := Pool_Clock;
+      Renderer.Slot := Slot;
+
       --  Delegate to the guikit text layer; the app owns the font paths.
       for Path of Files.Fonts.Fallback_Font_Paths loop
          Fallbacks.Append (To_String (Path));
       end loop;
       Status :=
         Guikit.Text.Initialize
-          (R              => The_Renderer,
+          (R              => Pool (Slot).R,
            Font_Path      => Font_Path,
            Fallback_Paths => Fallbacks,
            Pixel_Size     => Pixel_Size,
@@ -1823,8 +1864,9 @@ package body Files.Rendering is
       --  With this installed the emoji font in the fallback chain can be drawn
       --  in colour; without it those codepoints fall back as they always did.
       if Renderer.Loaded then
+         Pool (Slot).Key := Key;
          Guikit.Text.Set_Image_Decoder
-           (The_Renderer,
+           (Pool (Slot).R,
             Files.Fonts.Colour_Glyph_Image_Extent'Access,
             Files.Fonts.Decode_Colour_Glyph_Image'Access);
       end if;
@@ -1847,7 +1889,21 @@ package body Files.Rendering is
       if not Renderer.Loaded then
          return Empty;
       end if;
-      return Guikit.Text.Build_Glyphs (The_Renderer, Frame.Text, Frame.Overlay_Text);
+      --  Its pooled renderer went to another configuration meanwhile.
+      if Renderer.Slot not in Pool'Range or else Pool (Renderer.Slot).Key /= Renderer.Key then
+         declare
+            Status : constant Text_Render_Status :=
+              Initialize_Text
+                (Renderer, To_String (Renderer.Font_Path), Renderer.Pixel_Size, Renderer.Cell_Width,
+                 Renderer.Cell_Height, Renderer.Atlas_Width, Renderer.Atlas_Height);
+         begin
+            if Status /= Text_Render_Success then
+               return Empty;
+            end if;
+         end;
+      end if;
+      Pool (Renderer.Slot).Used := Pool_Clock;
+      return Guikit.Text.Build_Glyphs (Pool (Renderer.Slot).R, Frame.Text, Frame.Overlay_Text);
    end Build_Text_Glyphs;
 
 end Files.Rendering;
