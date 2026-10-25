@@ -13,7 +13,7 @@ separate (Files_Suite.Operations)
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Select_All_Visible (Model);                       --  folder + file
-      Assert (Files.Model.Selected_Count (Model) = 2, "the folder and file are selected");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 2, "the folder and file are selected");
 
       --  Publish a measured folder size (as the background scan would), then the
       --  combined total must count it (folder 500 + file 10). Info pane stays closed.
@@ -21,8 +21,10 @@ separate (Files_Suite.Operations)
         (Model, Dir_Path, (Available => True, Total_Bytes => 500, others => <>));
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Assert (not Snapshot.Info_Pane_Open, "the info pane is closed");
-      Assert (Snapshot.Selection_Total_Bytes = 510,
-              "the selection total counts the folder's recursive size plus the file");
+      Files_Suite.Support.Assert_Equal
+        (Snapshot.Selection_Total_Bytes,
+         510,
+         "the selection total counts the folder's recursive size plus the file");
       Assert (not Snapshot.Selection_Total_Pending,
               "the total is not pending once every selected folder is measured");
    end Test_Selection_Total_Counts_Folders;

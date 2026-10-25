@@ -80,8 +80,10 @@ separate (Files_Suite.Operations)
          Assert (not Actions.Element (2).Skip and then not Actions.Element (2).Replaced
                    and then To_String (Actions.Element (2).Dest_Path) = "/dest/b 2.txt",
                  "rename-all uniquifies the second colliding item");
-         Assert (To_String (Actions.Element (3).Dest_Path) = "/dest/c.txt",
-                 "rename-all leaves the non-colliding name alone");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Actions.Element (3).Dest_Path),
+            "/dest/c.txt",
+            "rename-all leaves the non-colliding name alone");
       end;
 
       --  No conflicts: every policy writes each item to its desired path.

@@ -29,8 +29,10 @@ separate (Files_Suite.Operations)
       --  Info pane closed: the child count is not computed (no subfolder opened),
       --  so the snapshot shows the cheap generic fallback rather than a count.
       Files.Model.Ensure_Selected_Item_Extra (Model);
-      Assert (Folder_Extra = Fallback,
-              "folder shows the generic fallback, not a child count, while the info pane is closed");
+      Files_Suite.Support.Assert_Equal
+        (Folder_Extra,
+         Fallback,
+         "folder shows the generic fallback, not a child count, while the info pane is closed");
 
       --  Info pane open: the selected folder's child count is computed lazily,
       --  replacing the fallback with the actual count detail.

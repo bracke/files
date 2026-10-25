@@ -48,8 +48,10 @@ separate (Files_Suite.Operations)
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Assert (Listed (".dotted") and then Listed ("flagged.txt"), "Show Hidden Files lists both");
-      Assert (Files.Model.Hidden_Item_Count (Model) = (if Marked then 2 else 1),
-              "the hidden count includes what the host hides");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Hidden_Item_Count (Model),
+         (if Marked then 2 else 1),
+         "the hidden count includes what the host hides");
       for Item of Load.Items loop
          if To_String (Item.Name) = ".dotted" or else (Marked and then To_String (Item.Name) = "flagged.txt") then
             Assert (Item.Hidden, To_String (Item.Name) & " is marked hidden");

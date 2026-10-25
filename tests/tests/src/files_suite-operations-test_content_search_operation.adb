@@ -50,23 +50,31 @@ separate (Files_Suite.Operations)
 
       Routed :=
         Files.Controller.Execute_Command (Files.Commands.Search_Contents_Command, Model, Settings);
-      Assert
-        (Routed.Command = Files.Commands.Search_Contents_Command,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Command,
+         Files.Commands.Search_Contents_Command,
          "content search routes through the command registry");
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
          "content search command succeeds");
       Assert
         (Files.Model.Search_Scope_Of (Model) = Files.Types.Search_Contents,
          "running content search sets the Search_Contents scope");
       Assert (Files.Model.Search_Results_Are_Active (Model), "content search shows search results");
-      Assert
-        (Files.Model.Item_Count (Model) = 2,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         2,
          "content search returns only the two textual files whose contents match, "
          & "skipping binary and non-matching files");
 
-      Assert (Files.Model.Visible_Count (Model) = 2,
-              "content-search matches stay visible even when the filenames do not match the query");
+      Files_Suite.Support.Assert_Equal
+
+        (Files.Model.Visible_Count (Model),
+
+         2,
+
+         "content-search matches stay visible even when the filenames do not match the query");
 
       --  Search_Recursive_Command uses the Names scope on the same query.
       Routed :=
@@ -96,7 +104,8 @@ separate (Files_Suite.Operations)
       Files.Model.Set_Filter (Model, "");
       Routed :=
         Files.Controller.Execute_Command (Files.Commands.Search_Contents_Command, Model, Settings);
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Disabled,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Disabled,
          "an empty query performs no content search");
    end Test_Content_Search_Operation;

@@ -35,8 +35,10 @@ separate (Files_Suite.Operations)
            (Victim, Files.File_Identities.Token (Victim), Files.File_System.Tree_Revision (Victim)).Success,
          "a verified delete of a created entry succeeds");
       Assert (not Ada.Directories.Exists (Victim), "the created entry is gone");
-      Assert (Record_Count = Before,
-              "a verified delete unregisters the backup it preserved instead of leaking a record");
+      Files_Suite.Support.Assert_Equal
+        (Record_Count,
+         Before,
+         "a verified delete unregisters the backup it preserved instead of leaking a record");
 
       --  A rollback deletes against the revision captured when the copy was
       --  published: a file added to it since keeps the whole tree.
@@ -114,6 +116,6 @@ separate (Files_Suite.Operations)
                Left := Left + 1;
             end if;
          end loop;
-         Assert (Left = 1, "duplicate records for one payload collapse to a single record");
+         Files_Suite.Support.Assert_Equal (Left, 1, "duplicate records for one payload collapse to a single record");
       end;
    end Test_Recovery_Registry_Bounded;

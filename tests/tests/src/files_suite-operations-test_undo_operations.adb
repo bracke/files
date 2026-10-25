@@ -18,14 +18,18 @@ separate (Files_Suite.Operations)
       Files.Model.Toggle_Rename (Model);
       Files.Model.Set_Rename_Text (Model, "renamed.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Success, "rename commits before undo");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
+         "rename commits before undo");
       Assert (Ada.Directories.Exists (Renamed), "rename produced the new name");
       Assert (not Ada.Directories.Exists (Original), "rename removed the old name");
       Assert (Files.Model.Undo_Available (Model), "undo is available after a rename");
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Undo_Command, Model, Settings);
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
          "undo of a rename succeeds");
       Assert (Ada.Directories.Exists (Original), "undo restored the original name");
       Assert (not Ada.Directories.Exists (Renamed), "undo removed the renamed file");

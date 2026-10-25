@@ -62,16 +62,18 @@ separate (Files_Suite.Operations)
 
       Search := Files.File_System.Search_Recursive (Join (Root, "search"), "MATCH", Settings);
       Assert (Search.Success, "recursive search succeeds");
-      Assert (Natural (Search.Items.Length) = 2, "recursive search finds nested matches");
-      Assert
-        (To_String (Search.Items.Element (1).Name) = "alpha-match.txt",
+      Files_Suite.Support.Assert_Equal (Natural (Search.Items.Length), 2, "recursive search finds nested matches");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Search.Items.Element (1).Name),
+         "alpha-match.txt",
          "recursive search preserves deterministic parent order");
-      Assert
-        (To_String (Search.Items.Element (2).Name) = "beta-match.txt",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Search.Items.Element (2).Name),
+         "beta-match.txt",
          "recursive search descends into child directories");
 
       Search := Files.File_System.Search_Recursive (Join (Root, "search"), "match", Settings, Max_Items => 1);
-      Assert (Natural (Search.Items.Length) = 1, "recursive search respects result limits");
+      Files_Suite.Support.Assert_Equal (Natural (Search.Items.Length), 1, "recursive search respects result limits");
 
       Load := Files.File_System.Load_Directory (Join (Root, "search"), Settings);
       Files.Model.Initialize (Model, Join (Root, "search"), Load.Items, Root);
@@ -84,26 +86,39 @@ separate (Files_Suite.Operations)
          "recursive search command is enabled with filter text");
       Routed :=
         Files.Controller.Execute_Command (Files.Commands.Search_Recursive_Command, Model, Settings);
-      Assert
-        (Routed.Command = Files.Commands.Search_Recursive_Command,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Command,
+         Files.Commands.Search_Recursive_Command,
          "recursive search routes through command registry");
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
          "recursive search command succeeds");
-      Assert (Files.Model.Item_Count (Model) = 2, "recursive search command loads nested result items");
-      Assert
-        (To_String (Files.Model.Visible_Item (Model, 2).Name) = "beta-match.txt",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         2,
+         "recursive search command loads nested result items");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Files.Model.Visible_Item (Model, 2).Name),
+         "beta-match.txt",
          "recursive search command exposes nested matches in the model");
       Routed := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
-      Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "refresh restores direct listing");
-      Assert (Files.Model.Item_Count (Model) = 3, "refresh after recursive search reloads direct children");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
+         "refresh restores direct listing");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         3,
+         "refresh after recursive search reloads direct children");
 
       Before := Files.File_System.Directory_State (Join (Root, "search"));
       Write_File (Join (Join (Root, "search"), "new-file.txt"), "new");
       Change := Files.File_System.Detect_Directory_Change (Before, Join (Root, "search"));
       Assert (Change.Changed, "polling directory watcher detects added entries");
-      Assert
-        (Change.After_State.Entry_Count = Before.Entry_Count + 1,
+      Files_Suite.Support.Assert_Equal
+        (Change.After_State.Entry_Count,
+         Before.Entry_Count + 1,
          "directory watcher reports updated entry count");
 
       Load := Files.File_System.Load_Directory (Join (Root, "search"), Settings);
@@ -112,34 +127,45 @@ separate (Files_Suite.Operations)
         (Model,
          Files.File_System.Directory_State (Join (Root, "search")));
       Routed.Operation := Files.Operations.Refresh_If_Changed (Model, Settings);
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
          "unchanged directory watcher refresh succeeds");
-      Assert (Files.Model.Item_Count (Model) = 4, "unchanged watcher refresh keeps loaded item count");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         4,
+         "unchanged watcher refresh keeps loaded item count");
       Write_File (Join (Join (Root, "search"), "watched-add.txt"), "watch");
       Routed.Operation := Files.Operations.Refresh_If_Changed (Model, Settings);
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
          "changed directory watcher refresh succeeds");
-      Assert (Files.Model.Item_Count (Model) = 5, "changed watcher refresh reloads new directory items");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         5,
+         "changed watcher refresh reloads new directory items");
       Before := Files.File_System.Directory_State (Join (Root, "search"));
       Ada.Directories.Delete_File (Join (Join (Root, "search"), "skip.txt"));
       Write_File (Join (Join (Root, "search"), "same-count-replacement.txt"), "replacement");
       Change := Files.File_System.Detect_Directory_Change (Before, Join (Root, "search"));
       Assert (Change.Changed, "directory watcher detects same-count replacement");
-      Assert
-        (Change.After_State.Entry_Count = Before.Entry_Count,
+      Files_Suite.Support.Assert_Equal
+        (Change.After_State.Entry_Count,
+         Before.Entry_Count,
          "same-count replacement keeps directory entry count stable");
       Assert
         (Change.After_State.Entry_State_Checksum /= Before.Entry_State_Checksum,
          "same-count replacement changes directory entry checksum");
       Files.Model.Set_Directory_Signature (Model, Before);
       Routed.Operation := Files.Operations.Refresh_If_Changed (Model, Settings);
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
          "same-count watcher refresh succeeds");
-      Assert
-        (Files.Model.Item_Count (Model) = 5,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         5,
          "same-count watcher refresh keeps replacement entry count");
 
       Ada.Directories.Create_Path (Drop_Target);
@@ -150,7 +176,7 @@ separate (Files_Suite.Operations)
       Sources.Append (To_Unbounded_String (Source_Dir));
       Plans := Files.File_System.Plan_Drop_Import (Sources, Drop_Target);
       Assert (Plans.Success, "drop import planning accepts valid dropped paths");
-      Assert (Natural (Plans.Plans.Length) = 2, "drop import plans every source path");
+      Files_Suite.Support.Assert_Equal (Natural (Plans.Plans.Length), 2, "drop import plans every source path");
       Mutation := Files.File_System.Execute_Drop_Import (Plans.Plans);
       Assert (Mutation.Success, "drop import copy executes");
       Assert (Ada.Directories.Exists (Join (Drop_Target, "drop-source.txt")), "drop import copies files");
@@ -166,12 +192,16 @@ separate (Files_Suite.Operations)
       --  Dropping onto a name that already exists now arms the paste conflict
       --  dialog (routed through the engine) instead of silently auto-renaming.
       Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
-      Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "controller drop import succeeds");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
+         "controller drop import succeeds");
       Assert
         (Files.Model.Paste_Conflict_Is_Active (Model),
          "a colliding drop arms the conflict dialog instead of auto-renaming");
-      Assert
-        (Files.Model.Paste_Conflict_Name (Model) = "drop-source.txt",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Paste_Conflict_Name (Model),
+         "drop-source.txt",
          "the drop conflict dialog names the colliding item");
       Routed.Operation :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Rename, False);
@@ -179,7 +209,10 @@ separate (Files_Suite.Operations)
       Assert
         (Ada.Directories.Exists (Join (Drop_Target, "drop-source 2.txt")),
          "renaming the drop conflict writes a collision-safe destination");
-      Assert (Files.Model.Item_Count (Model) = 3, "resolved drop import refreshes destination model");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         3,
+         "resolved drop import refreshes destination model");
 
       Ada.Directories.Create_Path (Join (Drop_Target, "nested-target"));
       Write_File (Join (Drop_Target, "drag-source.txt"), "drag");
@@ -197,8 +230,9 @@ separate (Files_Suite.Operations)
            Destination    => Join (Drop_Target, "nested-target"),
            Mode           => Files.File_System.Drop_Move,
            From_Clipboard => False);
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
          "item drag import can target a specific directory");
       Assert
         (not Files.Model.Paste_Conflict_Is_Active (Model),
@@ -209,7 +243,10 @@ separate (Files_Suite.Operations)
       Assert
         (not Ada.Directories.Exists (Join (Drop_Target, "drag-source.txt")),
          "item drag move removes the source from the current directory");
-      Assert (Files.Model.Item_Count (Model) = 4, "item drag import refreshes the source window model");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         4,
+         "item drag import refreshes the source window model");
 
       Sources.Clear;
       Write_File (Join (Root, "move-source.txt"), "move");
@@ -253,8 +290,9 @@ separate (Files_Suite.Operations)
       Assert (not Plans.Success,
               "moving a directory into its own subtree is rejected; error was "
               & To_String (Plans.Error_Key));
-      Assert
-        (To_String (Plans.Error_Key) = "error.drop.into_self",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Plans.Error_Key),
+         "error.drop.into_self",
          "into-self drop reports a deterministic diagnostic");
       Plans :=
         Files.File_System.Plan_Drop_Import
@@ -291,7 +329,7 @@ separate (Files_Suite.Operations)
         Files.File_System.Plan_Drop_Import
           (Sources, Join (Root, "dup-dest"), Files.File_System.Drop_Copy);
       Assert (Plans.Success, "same-name batch drop plans successfully");
-      Assert (Natural (Plans.Plans.Length) = 2, "batch drop plans both sources");
+      Files_Suite.Support.Assert_Equal (Natural (Plans.Plans.Length), 2, "batch drop plans both sources");
       Assert
         (To_String (Plans.Plans.Element (1).Destination_Path)
            /= To_String (Plans.Plans.Element (2).Destination_Path),
@@ -314,8 +352,9 @@ separate (Files_Suite.Operations)
       Assert (not Ada.Directories.Exists (Delete_Dir), "permanent delete removes the target directory");
       Mutation := Files.File_System.Delete_Permanently ("/");
       Assert (not Mutation.Success, "permanent delete refuses root paths");
-      Assert
-        (To_String (Mutation.Error_Key) = "error.permanent_delete.refused",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Mutation.Error_Key),
+         "error.permanent_delete.refused",
          "permanent delete reports unsafe target diagnostic");
 
       --  A child/.. spelling names the parent directory. Recursive deletion
@@ -666,10 +705,17 @@ separate (Files_Suite.Operations)
             if To_String (Item.Name) = "decoded-picture.png" then
                Found_Auto_Thumbnail := True;
                Assert (Item.Thumbnail_Available, "directory loading auto-generates image thumbnails");
-               Assert (Item.Thumbnail_Width = 64, "auto-generated thumbnail records default width");
-               Assert (Item.Thumbnail_Height = 64, "auto-generated thumbnail records default height");
-               Assert
-                 (Files.Shared_Bytes.Length (Item.Thumbnail_Pixels) = 64 * 64 * 4,
+               Files_Suite.Support.Assert_Equal
+                 (Item.Thumbnail_Width,
+                  64,
+                  "auto-generated thumbnail records default width");
+               Files_Suite.Support.Assert_Equal
+                 (Item.Thumbnail_Height,
+                  64,
+                  "auto-generated thumbnail records default height");
+               Files_Suite.Support.Assert_Equal
+                 (Files.Shared_Bytes.Length (Item.Thumbnail_Pixels),
+                  64 * 64 * 4,
                   "auto-generated thumbnail loads renderable pixels");
             end if;
          end loop;
@@ -686,8 +732,9 @@ separate (Files_Suite.Operations)
                Assert
                  (Item.Thumbnail_Available,
                   "directory loading auto-generates thumbnails for image extensions");
-               Assert
-                 (Files.Shared_Bytes.Length (Item.Thumbnail_Pixels) = 64 * 64 * 4,
+               Files_Suite.Support.Assert_Equal
+                 (Files.Shared_Bytes.Length (Item.Thumbnail_Pixels),
+                  64 * 64 * 4,
                   "image-extension thumbnail loads renderable pixels");
             end if;
          end loop;
@@ -728,8 +775,9 @@ separate (Files_Suite.Operations)
                   Assert
                     (Item.Thumbnail_Width = 2 and then Item.Thumbnail_Height = 2,
                      "and reports the dimensions its own header declares");
-                  Assert
-                    (Files.Shared_Bytes.Length (Item.Thumbnail_Pixels) = 2 * 2 * 4,
+                  Files_Suite.Support.Assert_Equal
+                    (Files.Shared_Bytes.Length (Item.Thumbnail_Pixels),
+                     2 * 2 * 4,
                      "and yields renderable pixels");
                end if;
             end loop;
@@ -901,8 +949,9 @@ separate (Files_Suite.Operations)
       Assert
         (Thumbnail.Status = Files.File_System.Thumbnail_Source_Missing,
          "thumbnail generation reports missing sources");
-      Assert
-        (To_String (Thumbnail.Error_Key) = "error.thumbnail.source_missing",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Thumbnail.Error_Key),
+         "error.thumbnail.source_missing",
          "missing thumbnail source reports localized diagnostic");
 
       Write_File (Join (Root, "command-delete.txt"), "delete");
@@ -915,11 +964,13 @@ separate (Files_Suite.Operations)
       Routed :=
         Files.Controller.Execute_Command
           (Files.Commands.Delete_Selected_Permanently_Command, Model, Settings);
-      Assert
-        (Routed.Command = Files.Commands.Delete_Selected_Permanently_Command,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Command,
+         Files.Commands.Delete_Selected_Permanently_Command,
          "permanent delete routes through command registry");
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
          "permanent delete command succeeds");
       Assert
         (not Ada.Directories.Exists (Join (Root, "command-delete.txt")),
@@ -937,11 +988,13 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "command-thumbnail.ppm");
       Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Cache_Home);
       Routed := Files.Controller.Execute_Command (Files.Commands.Generate_Thumbnails_Command, Model, Settings);
-      Assert
-        (Routed.Command = Files.Commands.Generate_Thumbnails_Command,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Command,
+         Files.Commands.Generate_Thumbnails_Command,
          "thumbnail generation routes through command registry");
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
          "thumbnail command succeeds");
       Assert
         (Ada.Directories.Exists (To_String (Routed.Operation.Path)),
@@ -952,8 +1005,9 @@ separate (Files_Suite.Operations)
       Assert
         (Files.Model.Selected_Item (Model).Thumbnail_Available,
          "thumbnail command refresh exposes generated thumbnail in the model");
-      Assert
-        (To_String (Files.Model.Selected_Item (Model).Thumbnail_Path) = To_String (Routed.Operation.Path),
+      Files_Suite.Support.Assert_Equal
+        (To_String (Files.Model.Selected_Item (Model).Thumbnail_Path),
+         To_String (Routed.Operation.Path),
          "thumbnail command refresh records the generated thumbnail path");
       Files.Model.Set_View_Mode (Model, Files.Types.Large_Icons);
       declare

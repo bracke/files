@@ -47,8 +47,9 @@ separate (Files_Suite.Operations)
                   begin
                      Files.Process_Jobs.Reserve (Job);
                      Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
-                     Assert
-                       (Metadata_Mode_Of (To_String (Transport)) = 8#700#,
+                     Files_Suite.Support.Assert_Equal
+                       (Metadata_Mode_Of (To_String (Transport)),
+                        8#700#,
                         "job transport is owner-only from creation despite the inherited default ACL");
                      Write_Binary_File (Files.Process_Jobs.Path (Job, "request"), "private request");
                      Assert
@@ -67,8 +68,10 @@ separate (Files_Suite.Operations)
                   Restore_Tmp;
                end;
                Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Parent));
-               Assert (Metadata_Mode_Of (To_String (Stage)) = 8#700#,
-                       "private staging restores owner access without granting peer access");
+               Files_Suite.Support.Assert_Equal
+                 (Metadata_Mode_Of (To_String (Stage)),
+                  8#700#,
+                  "private staging restores owner access without granting peer access");
                Mutation := Files.File_System.Delete_Permanently (To_String (Stage));
                Assert (Mutation.Success, "remove the private staging probe");
             end;
@@ -84,8 +87,10 @@ separate (Files_Suite.Operations)
                Step := Complete_Operation
                  (Model, Settings, Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
                Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Success,
-                       "background copy through a restrictive default ACL");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Success,
+                  "background copy through a restrictive default ACL");
             else
                Mutation := Files.File_System.Copy_Tree (Source, Dest);
                Assert (Mutation.Success, "foreground copy through a restrictive default ACL");

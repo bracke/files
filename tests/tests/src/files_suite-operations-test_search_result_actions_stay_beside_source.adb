@@ -43,19 +43,25 @@ separate (Files_Suite.Operations)
       Files.Model.Toggle_Rename (Model);
       Files.Model.Set_Rename_Text (Model, "summary.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Success, "the search result renames");
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "the search result renames");
       Assert (Path_Exists (Join (Deep, "summary.txt")) and then not Path_Exists (Join (Root, "summary.txt")),
               "the renamed result stays in its own folder, not the search root");
 
       Search ("summary");
       Result := Files.Operations.Duplicate_Selected (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Success, "the search result duplicates");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
+         "the search result duplicates");
       Assert (Entries (Deep) = 2 and then Entries (Root) = 1,
               "the duplicate is made beside its source, not in the search root");
 
       Search ("summary.txt");
       Result := Files.Operations.Create_Symlink_Selected (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Success, "a link to the search result is made");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
+         "a link to the search result is made");
       Assert (Hostkit.Fs.Is_Link (Join (Deep, "summary (link).txt"))
               and then not Path_Exists (Join (Root, "summary (link).txt")),
               "the link is made beside its source");

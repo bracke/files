@@ -55,7 +55,7 @@ separate (Files_Suite.Operations)
       for Attempt in Files_Suite.Support.Polling loop
          exit when Failure_Count >= 2;
       end loop;
-      Assert (Failure_Count = 2, "the parent makes its one bounded cleanup relaunch");
+      Files_Suite.Support.Assert_Equal (Failure_Count, 2, "the parent makes its one bounded cleanup relaunch");
 
       delay 3.0;
       Assert

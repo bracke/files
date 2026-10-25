@@ -29,7 +29,10 @@ separate (Files_Suite.Operations)
       --  A single-item paste finishes within the first advance and leaves no
       --  lingering execution state (so no progress overlay is ever shown).
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 8);
-      Assert (Step.Status = Files.Operations.Operation_Success, "the one-item paste reports success");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "the one-item paste reports success");
       Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the one-item paste clears its execution state");
       Assert (Ada.Directories.Exists (Dest), "the one item is copied to the destination");
    end Test_Paste_Execution_Small_Op;

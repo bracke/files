@@ -26,17 +26,17 @@ separate (Files_Suite.Operations)
       --  An identity chown to the file's own uid/gid is permitted without root
       --  and exercises the undo/redo ownership plumbing.
       Result := Files.Operations.Set_Ownership_For (Model, Uid, Gid, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Success, "identity chown succeeds");
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "identity chown succeeds");
       Assert
         (Files.Model.Undo_Kind_Of (Model) = Files.Model.Undo_Set_Ownership,
          "set-ownership records an ownership undo");
 
       Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Result.Status = Files.Operations.Operation_Success, "undo of chown succeeds");
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "undo of chown succeeds");
       Assert (Files.Model.Redo_Available (Model), "chown is redoable");
 
       Result := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-      Assert (Result.Status = Files.Operations.Operation_Success, "redo of chown succeeds");
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "redo of chown succeeds");
       Assert (not Files.Model.Redo_Available (Model), "the redo stack empties after re-applying chown");
 
       declare

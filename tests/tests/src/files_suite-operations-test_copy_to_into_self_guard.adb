@@ -20,14 +20,21 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "box");
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);
-      Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "copy-to command starts the picker");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
+         "copy-to command starts the picker");
 
       --  Target the selected directory itself: copying it into itself must fail.
       Files.Model.Set_Tree_Pick_Target (Model, Box_Dir);
       Confirm_Pick (Model, Settings);
 
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "error.drop.into_self",
+      Files_Suite.Support.Assert_Equal
+
+        (Files.Model.Last_Error_Key (Model),
+
+         "error.drop.into_self",
+
          "targeting inside the selection reports the into-self error");
       Assert (not Ada.Directories.Exists (Join (Box_Dir, "box")), "nothing is copied into the selected folder");
       Assert (Ada.Directories.Exists (Inside), "the selected folder is unchanged");

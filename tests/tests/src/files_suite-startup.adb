@@ -200,16 +200,26 @@ package body Files_Suite.Startup is
       Empty := Files.File_System.Normalize_Path ("");
 
       Assert (Direct.Status = Files.File_System.Path_Valid, "directory path is valid");
-      Assert (To_String (Direct.Directory_Path) = Ada.Directories.Full_Name (Dir), "directory is normalized");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Direct.Directory_Path),
+         Ada.Directories.Full_Name (Dir),
+         "directory is normalized");
       Assert (File.Status = Files.File_System.Path_Valid, "file path is valid");
-      Assert (To_String (File.Directory_Path) = Ada.Directories.Full_Name (Dir), "file maps to parent");
+      Files_Suite.Support.Assert_Equal
+        (To_String (File.Directory_Path),
+         Ada.Directories.Full_Name (Dir),
+         "file maps to parent");
       Assert (Current.Status = Files.File_System.Path_Valid, "current-directory path is valid");
-      Assert
-        (To_String (Current.Directory_Path) = Ada.Directories.Full_Name (Ada.Directories.Current_Directory),
+      Files_Suite.Support.Assert_Equal
+        (To_String (Current.Directory_Path),
+         Ada.Directories.Full_Name (Ada.Directories.Current_Directory),
          "current-directory path normalizes to absolute directory");
       Assert (Missing.Status = Files.File_System.Path_Missing, "missing path reports an error");
       Assert (Empty.Status = Files.File_System.Path_Missing, "empty path reports missing");
-      Assert (To_String (Empty.Error_Key) = "error.path.missing", "empty path reports missing-path error");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Empty.Error_Key),
+         "error.path.missing",
+         "empty path reports missing-path error");
       declare
          Special_Path : constant String := "/dev/null";
       begin
@@ -220,20 +230,26 @@ package body Files_Suite.Startup is
                Special : constant Files.File_System.Path_Result := Files.File_System.Normalize_Path (Special_Path);
             begin
                Assert (Special.Status = Files.File_System.Path_Inaccessible, "special path reports inaccessible");
-               Assert
-                 (To_String (Special.Error_Key) = "error.path.inaccessible",
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Special.Error_Key),
+                  "error.path.inaccessible",
                   "special path reports inaccessible error key");
 
                Args.Clear;
                Args.Append (To_Unbounded_String (Special_Path));
                Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
                Assert (Startup.Windows.Is_Empty, "special startup path opens no window");
-               Assert (Natural (Startup.Errors.Length) = 1, "special startup path is reported as diagnostic");
-               Assert
-                 (To_String (Startup.Errors.Element (1).Input_Path) = Special_Path,
+               Files_Suite.Support.Assert_Equal
+                 (Natural (Startup.Errors.Length),
+                  1,
+                  "special startup path is reported as diagnostic");
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Startup.Errors.Element (1).Input_Path),
+                  Special_Path,
                   "special startup diagnostic records original path");
-               Assert
-                 (To_String (Startup.Errors.Element (1).Error_Key) = "error.path.inaccessible",
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Startup.Errors.Element (1).Error_Key),
+                  "error.path.inaccessible",
                   "special startup diagnostic records inaccessible error key");
             end;
          end if;
@@ -249,34 +265,49 @@ package body Files_Suite.Startup is
       Args.Append (To_Unbounded_String (Second_Dir));
       Args.Append (To_Unbounded_String (Join (Root, "missing")));
       Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
-      Assert (Natural (Startup.Windows.Length) = 2, "distinct normalized paths produce one window each");
-      Assert (Natural (Startup.Errors.Length) = 1, "missing path is reported without a window");
-      Assert
-        (To_String (Startup.Windows.Element (1).Title) = To_String (Startup.Windows.Element (1).Path),
+      Files_Suite.Support.Assert_Equal
+        (Natural (Startup.Windows.Length),
+         2,
+         "distinct normalized paths produce one window each");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Startup.Errors.Length),
+         1,
+         "missing path is reported without a window");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Windows.Element (1).Title),
+         To_String (Startup.Windows.Element (1).Path),
          "window title is the normalized current directory path");
-      Assert
-        (To_String (Startup.Windows.Element (1).Path) = To_String (Full_Dir),
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Windows.Element (1).Path),
+         To_String (Full_Dir),
          "startup window records the normalized directory path");
-      Assert
-        (Files.Model.Current_Path (Startup.Windows.Element (1).Model) = To_String (Full_Dir),
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Startup.Windows.Element (1).Model),
+         To_String (Full_Dir),
          "startup window model uses the normalized directory path");
-      Assert
-        (Files.Model.Item_Count (Startup.Windows.Element (1).Model) = 2,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Startup.Windows.Element (1).Model),
+         2,
          "startup window model loads direct directory entries");
-      Assert
-        (To_String (Startup.Windows.Element (2).Path) = Ada.Directories.Full_Name (Second_Dir),
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Windows.Element (2).Path),
+         Ada.Directories.Full_Name (Second_Dir),
          "startup opens a separate window for a distinct normalized directory");
-      Assert
-        (Files.Model.Item_Count (Startup.Windows.Element (2).Model) = 1,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Startup.Windows.Element (2).Model),
+         1,
          "second startup window model loads its directory entries");
-      Assert
-        (To_String (Startup.Settings_Path) = "",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Settings_Path),
+         "",
          "path-only startup resolution has no central settings path");
-      Assert
-        (To_String (Startup.Errors.Element (1).Input_Path) = Join (Root, "missing"),
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Errors.Element (1).Input_Path),
+         Join (Root, "missing"),
          "startup path diagnostic records the original invalid argument");
-      Assert
-        (To_String (Startup.Errors.Element (1).Error_Key) = "error.path.missing",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Errors.Element (1).Error_Key),
+         "error.path.missing",
          "startup path diagnostic records the missing-path error key");
    end Test_Startup_Path_Normalization;
 
@@ -365,10 +396,9 @@ package body Files_Suite.Startup is
          Host  : constant String := Hostkit.Fs.Config_Directory;
       begin
          if Host /= "" then
-            Assert
-              (Fresh =
-                 Files.File_System.Join_Path
-                   (Files.File_System.Join_Path (Host, "files"), "settings.conf"),
+            Files_Suite.Support.Assert_Equal
+              (Fresh,
+               Files.File_System.Join_Path (Files.File_System.Join_Path (Host, "files"), "settings.conf"),
                "a fresh install puts settings where the host keeps configuration, got " & Fresh);
          end if;
       end;
@@ -376,11 +406,13 @@ package body Files_Suite.Startup is
       --  Now one already exists at the location every host used to get.
       Ada.Directories.Create_Path (Legacy_Dir);
       Write_File (Legacy_File, "[settings]" & ASCII.LF);
-      Assert
-        (Files.Application.Default_Settings_Path (Scratch_Home) = Legacy_File,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Default_Settings_Path (Scratch_Home),
+         Legacy_File,
          "a settings file already on disk keeps being used rather than orphaned");
-      Assert
-        (Files.Application.Configured_Settings_Path (Scratch_Home) = Legacy_File,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Configured_Settings_Path (Scratch_Home),
+         Legacy_File,
          "and the configured path agrees with it");
 
       --  Whether the two assertions above can fail depends on the host, and it is
@@ -530,8 +562,9 @@ package body Files_Suite.Startup is
       --  the password file is the real record, which is what Hostkit consults
       --  and what this used to have no equivalent of.
       if Hostkit.Host.Current = Hostkit.Host.Windows then
-         Assert
-           (Files.Application.Home_Directory = Join (Root, "profile-home"),
+         Files_Suite.Support.Assert_Equal
+           (Files.Application.Home_Directory,
+            Join (Root, "profile-home"),
             "USERPROFILE is the home on the host whose profile folder it names");
       else
          Assert
@@ -543,7 +576,7 @@ package body Files_Suite.Startup is
       end if;
 
       Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
-      Assert (Natural (Startup.Windows.Length) = 1, "no args resolves one path");
+      Files_Suite.Support.Assert_Equal (Natural (Startup.Windows.Length), 1, "no args resolves one path");
       Assert (Startup.Errors.Is_Empty, "valid default home path reports no startup error");
 
       --  A home that is set but is not there falls past it. Hostkit answers with
@@ -556,59 +589,76 @@ package body Files_Suite.Startup is
       --  between them has to be the one this host writes.
       Ada.Environment_Variables.Set
         ("HOMEPATH", GNAT.OS_Lib.Directory_Separator & "drive-profile");
-      Assert
-        (Files.Application.Home_Directory = Join (Root, "drive-profile"),
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Home_Directory,
+         Join (Root, "drive-profile"),
          "a home that does not exist falls through to the drive profile");
       Ada.Environment_Variables.Set ("HOMEPATH", "/missing-drive-profile");
       Ada.Environment_Variables.Set ("HOMESHARE", Join (Root, "share-profile"));
-      Assert
-        (Files.Application.Home_Directory = Join (Root, "share-profile"),
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Home_Directory,
+         Join (Root, "share-profile"),
          "HOMESHARE is used when the drive profile is not there either");
       Ada.Environment_Variables.Set ("HOMESHARE", Join (Root, "missing-share-profile"));
 
-      Assert
-        (Files.Application.Home_Directory = Ada.Directories.Current_Directory,
+      Files_Suite.Support.Assert_Equal
+
+        (Files.Application.Home_Directory,
+
+         Ada.Directories.Current_Directory,
+
          "invalid home environment falls back to current directory");
       Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
-      Assert (Natural (Startup.Windows.Length) = 1, "no args resolves one path with invalid home environment");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Startup.Windows.Length),
+         1,
+         "no args resolves one path with invalid home environment");
       Assert (Startup.Errors.Is_Empty, "current-directory home fallback reports no startup error");
-      Assert
-        (To_String (Startup.Windows.Element (1).Path) = Ada.Directories.Full_Name (Ada.Directories.Current_Directory),
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Windows.Element (1).Path),
+         Ada.Directories.Full_Name (Ada.Directories.Current_Directory),
          "no args opens current directory after invalid home environment");
 
       Ada.Environment_Variables.Clear ("FILES_SETTINGS");
       Ada.Environment_Variables.Clear ("XDG_CONFIG_HOME");
-      Assert
-        (Files.Application.Default_Settings_Path (Home_Path) = Expected_Default,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Default_Settings_Path (Home_Path),
+         Expected_Default,
          "default settings path is under home config directory");
-      Assert
-        (Files.Application.Configured_Settings_Path (Home_Path) = Expected_Default,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Configured_Settings_Path (Home_Path),
+         Expected_Default,
          "configured settings path falls back to home config directory");
 
       Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", Xdg_Path);
-      Assert
-        (Files.Application.Configured_Settings_Path (Home_Path) = Expected_Xdg,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Configured_Settings_Path (Home_Path),
+         Expected_Xdg,
          "XDG_CONFIG_HOME selects the XDG settings path");
 
       Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", "relative-config-home");
-      Assert
-        (Files.Application.Configured_Settings_Path (Home_Path) = Expected_Default,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Configured_Settings_Path (Home_Path),
+         Expected_Default,
          "a relative XDG_CONFIG_HOME cannot redirect settings into the process directory");
       Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", Xdg_Path);
 
       Ada.Environment_Variables.Set ("FILES_SETTINGS", Override_Path);
-      Assert
-        (Files.Application.Configured_Settings_Path (Home_Path) = Override_Path,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Configured_Settings_Path (Home_Path),
+         Override_Path,
          "FILES_SETTINGS overrides the XDG settings path");
 
       Ada.Environment_Variables.Set ("FILES_SETTINGS", "");
-      Assert
-        (Files.Application.Configured_Settings_Path (Home_Path) = Expected_Xdg,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Configured_Settings_Path (Home_Path),
+         Expected_Xdg,
          "empty FILES_SETTINGS is ignored");
 
       Ada.Environment_Variables.Set ("XDG_CONFIG_HOME", "");
-      Assert
-        (Files.Application.Configured_Settings_Path (Home_Path) = Expected_Default,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Configured_Settings_Path (Home_Path),
+         Expected_Default,
          "empty XDG_CONFIG_HOME is ignored");
       Restore_Environment;
    exception
@@ -650,23 +700,39 @@ package body Files_Suite.Startup is
 
       Args.Append (To_Unbounded_String (Dir));
       Startup := Files.Application.Resolve_Startup (Args, Settings_Path);
-      Assert (Natural (Startup.Errors.Length) = 0, "valid settings do not add startup diagnostics");
-      Assert (Natural (Startup.Windows.Length) = 1, "valid startup path opens one window");
-      Assert (To_String (Startup.Settings_Path) = Settings_Path, "startup result records loaded settings path");
-      Assert (Startup.Settings.Default_View = Files.Types.Details, "startup result exposes loaded default view");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Startup.Errors.Length),
+         0,
+         "valid settings do not add startup diagnostics");
+      Files_Suite.Support.Assert_Equal (Natural (Startup.Windows.Length), 1, "valid startup path opens one window");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Settings_Path),
+         Settings_Path,
+         "startup result records loaded settings path");
+      Files_Suite.Support.Assert_Equal
+        (Startup.Settings.Default_View,
+         Files.Types.Details,
+         "startup result exposes loaded default view");
       Assert (Startup.Settings.Show_Hidden_Files, "startup result exposes loaded hidden-file setting");
-      Assert
-        (To_String (Startup.Windows.Element (1).Path) = To_String (Full_Dir),
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Windows.Element (1).Path),
+         To_String (Full_Dir),
          "settings startup window records normalized path");
-      Assert
-        (To_String (Startup.Windows.Element (1).Title) = To_String (Full_Dir),
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Windows.Element (1).Title),
+         To_String (Full_Dir),
          "settings startup window title records normalized path");
-      Assert
-        (Files.Model.Current_Path (Startup.Windows.Element (1).Model) = To_String (Full_Dir),
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Startup.Windows.Element (1).Model),
+         To_String (Full_Dir),
          "settings startup model uses normalized path");
-      Assert (Files.Model.View_Mode_Of (Startup.Windows.Element (1).Model) = Files.Types.Details, "view setting loads");
-      Assert
-        (Files.Model.Item_Count (Startup.Windows.Element (1).Model) = 4,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.View_Mode_Of (Startup.Windows.Element (1).Model),
+         Files.Types.Details,
+         "view setting loads");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Startup.Windows.Element (1).Model),
+         4,
          "hidden-file setting affects startup load");
       Assert
         (Files.Application.Windows.Headless_Smoke_Test (Startup),
@@ -675,12 +741,22 @@ package body Files_Suite.Startup is
       Args.Clear;
       Args.Append (To_Unbounded_String (Dir));
       Startup := Files.Application.Resolve_Startup (Args, Created_Path);
-      Assert (Natural (Startup.Errors.Length) = 0, "missing startup settings are created without diagnostics");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Startup.Errors.Length),
+         0,
+         "missing startup settings are created without diagnostics");
       Assert (Ada.Directories.Exists (Created_Path), "startup creates missing default settings file");
-      Assert (To_String (Startup.Settings_Path) = Created_Path, "startup result records created settings path");
-      Assert (Natural (Startup.Windows.Length) = 1, "startup still opens path after creating settings file");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Startup.Settings, "txt") = "text/plain",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Settings_Path),
+         Created_Path,
+         "startup result records created settings path");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Startup.Windows.Length),
+         1,
+         "startup still opens path after creating settings file");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Startup.Settings, "txt"),
+         "text/plain",
          "startup result exposes created default settings");
    end Test_Startup_Loads_Settings_File;
 
@@ -704,31 +780,44 @@ package body Files_Suite.Startup is
 
       Args.Append (To_Unbounded_String (Dir));
       Startup := Files.Application.Resolve_Startup (Args, Settings_Path);
-      Assert (Natural (Startup.Windows.Length) = 1, "invalid settings do not block valid paths");
-      Assert (Natural (Startup.Errors.Length) = 1, "invalid settings add one startup diagnostic");
-      Assert
-        (To_String (Startup.Windows.Element (1).Path) = To_String (Full_Dir),
+      Files_Suite.Support.Assert_Equal
+        (Natural (Startup.Windows.Length),
+         1,
+         "invalid settings do not block valid paths");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Startup.Errors.Length),
+         1,
+         "invalid settings add one startup diagnostic");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Windows.Element (1).Path),
+         To_String (Full_Dir),
          "invalid settings still open the normalized requested path");
-      Assert
-        (Files.Model.Current_Path (Startup.Windows.Element (1).Model) = To_String (Full_Dir),
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Startup.Windows.Element (1).Model),
+         To_String (Full_Dir),
          "invalid settings startup model still uses normalized path");
-      Assert
-        (To_String (Startup.Errors.Element (1).Input_Path) = Settings_Path,
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Errors.Element (1).Input_Path),
+         Settings_Path,
          "settings diagnostic records the settings path");
-      Assert
-        (To_String (Startup.Errors.Element (1).Error_Key) = "error.settings.invalid_boolean",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Errors.Element (1).Error_Key),
+         "error.settings.invalid_boolean",
          "settings diagnostic records the parse error");
-      Assert
-        (To_String (Startup.Settings_Path) = "",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Settings_Path),
+         "",
          "an unreadable settings file makes the session read-only so defaults never overwrite it");
-      Assert
-        (Startup.Settings.Default_View = Files.Settings.Default_Settings.Default_View,
+      Files_Suite.Support.Assert_Equal
+        (Startup.Settings.Default_View,
+         Files.Settings.Default_Settings.Default_View,
          "invalid settings leave startup result on default settings");
       Assert
         (not Startup.Settings.Show_Hidden_Files,
          "invalid settings do not leak partially parsed hidden-file setting");
-      Assert
-        (Files.Model.Item_Count (Startup.Windows.Element (1).Model) = 1,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Startup.Windows.Element (1).Model),
+         1,
          "default settings are used after failure");
    end Test_Startup_Invalid_Settings_Diagnostic;
 
@@ -750,25 +839,37 @@ package body Files_Suite.Startup is
 
       Args.Append (To_Unbounded_String (Dir));
       Startup := Files.Application.Resolve_Startup (Args, Settings_Path);
-      Assert (Natural (Startup.Windows.Length) = 1, "settings directory does not block valid paths");
-      Assert (Natural (Startup.Errors.Length) = 1, "settings directory adds one startup diagnostic");
-      Assert
-        (To_String (Startup.Windows.Element (1).Path) = To_String (Full_Dir),
+      Files_Suite.Support.Assert_Equal
+        (Natural (Startup.Windows.Length),
+         1,
+         "settings directory does not block valid paths");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Startup.Errors.Length),
+         1,
+         "settings directory adds one startup diagnostic");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Windows.Element (1).Path),
+         To_String (Full_Dir),
          "settings directory startup window records normalized path");
-      Assert
-        (Files.Model.Current_Path (Startup.Windows.Element (1).Model) = To_String (Full_Dir),
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Startup.Windows.Element (1).Model),
+         To_String (Full_Dir),
          "settings directory startup model uses normalized path");
-      Assert
-        (To_String (Startup.Errors.Element (1).Input_Path) = Settings_Path,
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Errors.Element (1).Input_Path),
+         Settings_Path,
          "settings directory diagnostic records the settings path");
-      Assert
-        (To_String (Startup.Errors.Element (1).Error_Key) = "error.settings.not_file",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Startup.Errors.Element (1).Error_Key),
+         "error.settings.not_file",
          "settings directory diagnostic records the not-file error");
-      Assert
-        (Startup.Settings.Default_View = Files.Settings.Default_Settings.Default_View,
+      Files_Suite.Support.Assert_Equal
+        (Startup.Settings.Default_View,
+         Files.Settings.Default_Settings.Default_View,
          "settings directory leaves startup result on default settings");
-      Assert
-        (Files.Model.Item_Count (Startup.Windows.Element (1).Model) = 1,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Startup.Windows.Element (1).Model),
+         1,
          "default settings are used when startup settings path is a directory");
 
       Report := To_Unbounded_String (Files.Application.Startup_Report (Startup));
@@ -866,19 +967,38 @@ package body Files_Suite.Startup is
          Quality : constant Files.Application.Windows.Headless_Render_Quality_Result :=
            Files.Application.Windows.Headless_Render_Quality_Report (Startup, Width => 1000, Height => 800);
       begin
-         Assert (Quality.Window_Count = 1, "headless render quality report counts windows");
-         Assert (Quality.Nonblank_Frames = 1, "headless render quality report catches blank frames");
-         Assert (Quality.Text_Glyph_Frames = 1, "headless render quality report catches missing text output");
-         Assert (Quality.Icon_Frames = 1, "headless render quality report catches missing icon output");
-         Assert (Quality.Toolbar_Icon_Frames = 1, "headless render quality report catches missing toolbar icons");
-         Assert (Quality.Drag_Preview_Frames = 1, "headless render quality report catches invisible drag previews");
-         Assert (Quality.Missing_Glyph_Count = 0, "headless render quality report catches missing glyphs");
+         Files_Suite.Support.Assert_Equal (Quality.Window_Count, 1, "headless render quality report counts windows");
+         Files_Suite.Support.Assert_Equal
+           (Quality.Nonblank_Frames,
+            1,
+            "headless render quality report catches blank frames");
+         Files_Suite.Support.Assert_Equal
+           (Quality.Text_Glyph_Frames,
+            1,
+            "headless render quality report catches missing text output");
+         Files_Suite.Support.Assert_Equal
+           (Quality.Icon_Frames,
+            1,
+            "headless render quality report catches missing icon output");
+         Files_Suite.Support.Assert_Equal
+           (Quality.Toolbar_Icon_Frames,
+            1,
+            "headless render quality report catches missing toolbar icons");
+         Files_Suite.Support.Assert_Equal
+           (Quality.Drag_Preview_Frames,
+            1,
+            "headless render quality report catches invisible drag previews");
+         Files_Suite.Support.Assert_Equal
+           (Quality.Missing_Glyph_Count,
+            0,
+            "headless render quality report catches missing glyphs");
          Assert (Quality.Passed, "headless render quality report passes for startup windows");
       end;
       Caps := Files.Application.Windows.Runtime_Capabilities;
       Assert (Caps.Headless_Rendering, "runtime capabilities advertise headless rendering");
-      Assert
-        (Caps.Live_Window_Smoke_Ready = (Caps.Display_Available and then Caps.Vulkan_Available),
+      Files_Suite.Support.Assert_Equal
+        (Caps.Live_Window_Smoke_Ready,
+         (Caps.Display_Available and then Caps.Vulkan_Available),
          "runtime capabilities gate live window smoke on display and Vulkan");
       Assert (Caps.Event_Translation_Model, "runtime capabilities expose event translation model");
       Assert (Caps.Focus_Runtime_Model, "runtime capabilities expose focus model");
@@ -906,23 +1026,29 @@ package body Files_Suite.Startup is
          Assert
            (not Drop_Profile.Requires_OS_Event_Source,
             "drag automation profile no longer blocks on OS event-source backends");
-         Assert
-           (Drop_Profile.Max_Paths = Event_Profile.Max_Paths,
+         Files_Suite.Support.Assert_Equal
+           (Drop_Profile.Max_Paths,
+            Event_Profile.Max_Paths,
             "drag automation profile uses the drop event backend path limit");
-         Assert
-           (To_String (Drop_Profile.Binding_Unit) = "Files.Drop_Events",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Drop_Profile.Binding_Unit),
+            "Files.Drop_Events",
             "drag automation profile records owning backend unit");
          Assert (Event_Profile.Event_Source_Backend, "drop event backend profile exposes event-source support");
          Paths.Append (To_Unbounded_String (""));
          Paths.Append (To_Unbounded_String ("  " & Dir & "  "));
          Files.Drop_Events.Queue (Source, Paths, Files.File_System.Drop_Move);
          Assert (Files.Drop_Events.Has_Pending (Source), "drop event source queues non-empty paths");
-         Assert (Files.Drop_Events.Pending_Count (Source) = 1, "drop event source filters empty paths");
+         Files_Suite.Support.Assert_Equal
+           (Files.Drop_Events.Pending_Count (Source),
+            1,
+            "drop event source filters empty paths");
          Files.Drop_Events.Take (Source, Drained, Mode);
          Assert (Mode = Files.File_System.Drop_Move, "drop event source preserves queued import mode");
-         Assert (Natural (Drained.Length) = 1, "drop event source drains one filtered path");
-         Assert
-           (To_String (Drained.Element (1)) = "  " & Dir & "  ",
+         Files_Suite.Support.Assert_Equal (Natural (Drained.Length), 1, "drop event source drains one filtered path");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Drained.Element (1)),
+            "  " & Dir & "  ",
             "drop event source preserves native path whitespace");
          Assert (not Files.Drop_Events.Has_Pending (Source), "drop event source clears after drain");
          declare
@@ -941,68 +1067,85 @@ package body Files_Suite.Startup is
       Assert (Caps.Directory_Watch_Polling, "runtime capabilities expose directory watch polling");
       Assert (Caps.Native_File_Watching, "runtime capabilities expose native file watching");
       Scroll_Lines := Files.Application.Windows.Accumulate_Scroll_Offset (Scroll_Remainder, 0.40);
-      Assert (Scroll_Lines = 0, "fractional scroll starts below one line");
+      Files_Suite.Support.Assert_Equal (Scroll_Lines, 0, "fractional scroll starts below one line");
       Assert (abs (Scroll_Remainder - 0.40) < 0.000_001, "fractional scroll remainder is retained");
       Scroll_Lines := Files.Application.Windows.Accumulate_Scroll_Offset (Scroll_Remainder, 0.35);
-      Assert (Scroll_Lines = 0, "second fractional scroll can still be below one line");
+      Files_Suite.Support.Assert_Equal (Scroll_Lines, 0, "second fractional scroll can still be below one line");
       Assert (abs (Scroll_Remainder - 0.75) < 0.000_001, "second fractional scroll accumulates");
       Scroll_Lines := Files.Application.Windows.Accumulate_Scroll_Offset (Scroll_Remainder, 0.50);
-      Assert (Scroll_Lines = 1, "fractional scroll emits a whole line after accumulation");
+      Files_Suite.Support.Assert_Equal (Scroll_Lines, 1, "fractional scroll emits a whole line after accumulation");
       Assert (abs (Scroll_Remainder - 0.25) < 0.000_001, "fractional scroll keeps positive remainder");
       Scroll_Lines := Files.Application.Windows.Accumulate_Scroll_Offset (Scroll_Remainder, -0.75);
-      Assert (Scroll_Lines = 0, "opposite fractional scroll can cancel without a line");
+      Files_Suite.Support.Assert_Equal (Scroll_Lines, 0, "opposite fractional scroll can cancel without a line");
       Assert (abs (Scroll_Remainder + 0.50) < 0.000_001, "opposite fractional scroll keeps negative remainder");
       Scroll_Lines := Files.Application.Windows.Accumulate_Scroll_Offset (Scroll_Remainder, -0.75);
-      Assert (Scroll_Lines = -1, "negative fractional scroll emits a whole line after accumulation");
+      Files_Suite.Support.Assert_Equal
+        (Scroll_Lines,
+         -1,
+         "negative fractional scroll emits a whole line after accumulation");
       Assert (abs (Scroll_Remainder + 0.25) < 0.000_001, "fractional scroll keeps negative remainder");
       Scroll_Remainder := 0.0;
       Scroll_Lines := Files.Application.Windows.Accumulate_Scroll_Offset (Scroll_Remainder, Long_Float (Integer'Last));
-      Assert (Scroll_Lines = Integer'Last, "scroll accumulation saturates large positive offsets");
+      Files_Suite.Support.Assert_Equal
+        (Scroll_Lines,
+         Integer'Last,
+         "scroll accumulation saturates large positive offsets");
       Assert (Scroll_Remainder = 0.0, "saturated scroll clears remainder");
-      Assert
-        (Files.Application.Windows.Add_Pending_Scroll (Integer'Last - 1, 2) = Integer'Last,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Windows.Add_Pending_Scroll (Integer'Last - 1, 2),
+         Integer'Last,
          "pending scroll addition saturates positive overflow");
-      Assert
-        (Files.Application.Windows.Add_Pending_Scroll (Integer'First + 1, -2) = Integer'First,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Windows.Add_Pending_Scroll (Integer'First + 1, -2),
+         Integer'First,
          "pending scroll addition saturates negative overflow");
-      Assert
-        (Files.Application.Windows.Add_Pending_Scroll (4, -6) = -2,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Windows.Add_Pending_Scroll (4, -6),
+         -2,
          "pending scroll addition preserves normal mixed-sign sums");
-      Assert
-        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (Character'Pos ('A'))) = "A",
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (Character'Pos ('A'))),
+         "A",
          "desktop text input preserves printable ASCII");
-      Assert
-        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00E9#)) =
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00E9#)),
          Byte (16#C3#) & Byte (16#A9#),
          "desktop text input encodes two-byte UTF-8");
-      Assert
-        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#20AC#)) =
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#20AC#)),
          Byte (16#E2#) & Byte (16#82#) & Byte (16#AC#),
          "desktop text input encodes three-byte UTF-8");
-      Assert
-        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#1F4C1#)) =
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#1F4C1#)),
          Byte (16#F0#) & Byte (16#9F#) & Byte (16#93#) & Byte (16#81#),
          "desktop text input encodes four-byte UTF-8");
-      Assert
-        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (9)) = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (9)),
+         "",
          "desktop text input ignores control characters");
-      Assert
-        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#D800#)) = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#D800#)),
+         "",
          "desktop text input ignores surrogate code points");
-      Assert
-        (Files.Application.Windows.Scale_Coordinate (50.0, Glfw.Size (100), Glfw.Size (200)) = 100,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Windows.Scale_Coordinate (50.0, Glfw.Size (100), Glfw.Size (200)),
+         100,
          "runtime coordinate scaling maps proportional positions");
-      Assert
-        (Files.Application.Windows.Scale_Coordinate (-1.0, Glfw.Size (100), Glfw.Size (200)) = 0,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Windows.Scale_Coordinate (-1.0, Glfw.Size (100), Glfw.Size (200)),
+         0,
          "runtime coordinate scaling clamps negative cursor positions");
-      Assert
-        (Files.Application.Windows.Scale_Coordinate (150.0, Glfw.Size (100), Glfw.Size (200)) = 200,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Windows.Scale_Coordinate (150.0, Glfw.Size (100), Glfw.Size (200)),
+         200,
          "runtime coordinate scaling clamps beyond framebuffer size");
-      Assert
-        (Files.Application.Windows.Scale_Coordinate (50.0, Glfw.Size (0), Glfw.Size (200)) = 0,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Windows.Scale_Coordinate (50.0, Glfw.Size (0), Glfw.Size (200)),
+         0,
          "runtime coordinate scaling rejects zero source dimensions");
-      Assert
-        (Files.Application.Windows.Scale_Coordinate (50.0, Glfw.Size (100), Glfw.Size (0)) = 0,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Windows.Scale_Coordinate (50.0, Glfw.Size (100), Glfw.Size (0)),
+         0,
          "runtime coordinate scaling rejects zero target dimensions");
       Assert
         (Files.Application.Windows.Scrollbar_Drag_Offset
@@ -1049,23 +1192,32 @@ package body Files_Suite.Startup is
            (20.0, 80.0, Glfw.Size (100), Glfw.Size (80)),
          "the bottom window extent is outside");
       Plan := Files.Application.Windows.Live_Window_Smoke_Plan (Width => 640, Height => 360);
-      Assert (Plan.Width = 640, "live smoke plan records requested width");
-      Assert (Plan.Height = 360, "live smoke plan records requested height");
-      Assert (Plan.Frame_Count = 2, "live smoke plan records two frames for readback validation");
-      Assert (Plan.Input_Poll_Count = 1, "live smoke plan records deterministic input poll count");
-      Assert
-        (Plan.Can_Run = Caps.Live_Window_Smoke_Ready,
+      Files_Suite.Support.Assert_Equal (Plan.Width, 640, "live smoke plan records requested width");
+      Files_Suite.Support.Assert_Equal (Plan.Height, 360, "live smoke plan records requested height");
+      Files_Suite.Support.Assert_Equal
+        (Plan.Frame_Count,
+         2,
+         "live smoke plan records two frames for readback validation");
+      Files_Suite.Support.Assert_Equal
+        (Plan.Input_Poll_Count,
+         1,
+         "live smoke plan records deterministic input poll count");
+      Files_Suite.Support.Assert_Equal
+        (Plan.Can_Run,
+         Caps.Live_Window_Smoke_Ready,
          "live smoke plan readiness matches runtime capabilities");
       Assert (To_String (Plan.Reason_Key) /= "", "live smoke plan exposes localized reason key");
       Live_Result := Files.Application.Windows.Evaluate_Live_Window_Smoke (Plan);
       Assert
         (Live_Result.Skipped_By_Plan = not Plan.Can_Run,
          "live smoke result records whether the plan skipped execution");
-      Assert
-        (Live_Result.Frames_Attempted = 0,
+      Files_Suite.Support.Assert_Equal
+        (Live_Result.Frames_Attempted,
+         0,
          "live smoke preflight reports zero attempted frames");
-      Assert
-        (Live_Result.Frames_Presented = 0,
+      Files_Suite.Support.Assert_Equal
+        (Live_Result.Frames_Presented,
+         0,
          "live smoke preflight reports zero presented frames");
       Assert (not Live_Result.Window_Created, "headless live smoke evaluation does not create a window");
       Assert
@@ -1074,25 +1226,29 @@ package body Files_Suite.Startup is
       Assert (To_String (Live_Result.Error_Key) /= "", "live smoke result exposes status key");
       Live_Result := Files.Application.Windows.Run_Live_Window_Smoke ((others => <>), Plan);
       Assert (not Live_Result.Window_Created, "live smoke runner does not create windows for empty startup");
-      Assert
-        (Live_Result.Frames_Attempted = 0,
+      Files_Suite.Support.Assert_Equal
+        (Live_Result.Frames_Attempted,
+         0,
          "empty live smoke startup reports zero attempted frames");
-      Assert
-        (Live_Result.Frames_Presented = 0,
+      Files_Suite.Support.Assert_Equal
+        (Live_Result.Frames_Presented,
+         0,
          "empty live smoke startup reports zero presented frames");
       Assert
         (not Live_Result.Framebuffer_Readback_Ready,
          "empty live smoke runner does not fake framebuffer readback");
-      Assert
-        (To_String (Live_Result.Error_Key) = "runtime.smoke.no_windows",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Live_Result.Error_Key),
+         "runtime.smoke.no_windows",
          "live smoke runner reports empty startup");
       Plan.Can_Run := False;
       Plan.Reason_Key := To_Unbounded_String ("runtime.smoke.no_display");
       Live_Result := Files.Application.Windows.Run_Live_Window_Smoke (Startup, Plan);
       Assert (Live_Result.Skipped_By_Plan, "live smoke runner skips when plan cannot run");
       Assert (not Live_Result.Attempted, "live smoke runner does not attempt skipped plan");
-      Assert
-        (Live_Result.Frames_Attempted = 0,
+      Files_Suite.Support.Assert_Equal
+        (Live_Result.Frames_Attempted,
+         0,
          "skipped live smoke startup reports zero attempted frames");
       Assert
         (not Live_Result.Framebuffer_Readback_Ready,
@@ -1104,15 +1260,17 @@ package body Files_Suite.Startup is
       Expected : constant String :=
         Files.Localization.Text ("startup.error") & ": " & Files.Localization.Text ("error.window.create");
    begin
-      Assert
-        (Files.Application.Desktop_Error_Report ("error.window.create")
-         = Expected,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Desktop_Error_Report ("error.window.create"),
+         Expected,
          "desktop error report localizes the provided key");
-      Assert
-        (Files.Application.Desktop_Error_Report ("") = Expected,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Desktop_Error_Report (""),
+         Expected,
          "desktop error report falls back when the key is empty");
-      Assert
-        (Files.Application.Desktop_Error_Report ("error.window.unknown") = Expected,
+      Files_Suite.Support.Assert_Equal
+        (Files.Application.Desktop_Error_Report ("error.window.unknown"),
+         Expected,
          "desktop error report falls back when the key is not localized");
    end Test_Desktop_Error_Report;
 
@@ -1159,17 +1317,24 @@ package body Files_Suite.Startup is
       Args.Append (To_Unbounded_String ("/tmp"));
       Config := Files.Application.Parse_Run_Configuration (Args);
       Assert (Config.Mode = Files.Application.Headless_Smoke_Run, "runtime smoke flag selects headless smoke mode");
-      Assert (Natural (Config.Paths.Length) = 1, "runtime smoke flag is consumed");
-      Assert (To_String (Config.Paths.Element (1)) = "/tmp", "runtime smoke preserves following path");
-      Assert (To_String (Config.Settings_Path) = "/tmp/files.conf", "settings flag consumes following path");
+      Files_Suite.Support.Assert_Equal (Natural (Config.Paths.Length), 1, "runtime smoke flag is consumed");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Config.Paths.Element (1)),
+         "/tmp",
+         "runtime smoke preserves following path");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Config.Settings_Path),
+         "/tmp/files.conf",
+         "settings flag consumes following path");
 
       Args.Clear;
       Args.Append (To_Unbounded_String ("--settings"));
       Args.Append (To_Unbounded_String ("--dash-start.conf"));
       Args.Append (To_Unbounded_String ("--runtime-smoke"));
       Config := Files.Application.Parse_Run_Configuration (Args);
-      Assert
-        (To_String (Config.Settings_Path) = "--dash-start.conf",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Config.Settings_Path),
+         "--dash-start.conf",
          "settings flag consumes dash-prefixed following path");
       Assert
         (Config.Mode = Files.Application.Headless_Smoke_Run,
@@ -1184,7 +1349,10 @@ package body Files_Suite.Startup is
       Config := Files.Application.Parse_Run_Configuration (Args);
       Assert (Config.Mode = Files.Application.Help_Run, "later run mode flag wins deterministically");
       Assert (Config.Paths.Is_Empty, "smoke flags do not become startup paths");
-      Assert (To_String (Config.Settings_Path) = "/tmp/inline.conf", "settings equals form selects settings path");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Config.Settings_Path),
+         "/tmp/inline.conf",
+         "settings equals form selects settings path");
 
       Args.Clear;
       Args.Append (To_Unbounded_String ("-h"));
@@ -1203,8 +1371,9 @@ package body Files_Suite.Startup is
       Config := Files.Application.Parse_Run_Configuration (Args);
       Assert (not Config.Valid, "unknown dash-prefixed options are rejected");
       Assert (Config.Paths.Is_Empty, "an unknown option is not reinterpreted as a path");
-      Assert
-        (To_String (Config.Error_Key) = "cli.error.unknown_option",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Config.Error_Key),
+         "cli.error.unknown_option",
          "unknown options retain a command-line diagnostic");
 
       Args.Clear;
@@ -1216,14 +1385,22 @@ package body Files_Suite.Startup is
       Args.Append (To_Unbounded_String ("--settings"));
       Config := Files.Application.Parse_Run_Configuration (Args);
       Assert (Config.Mode = Files.Application.Headless_Smoke_Run, "terminator stops smoke flag parsing");
-      Assert (Natural (Config.Paths.Length) = 4, "terminated flags are preserved as paths");
-      Assert (To_String (Config.Paths.Element (1)) = "--live-smoke", "terminator keeps dash-prefixed path text");
-      Assert (To_String (Config.Paths.Element (2)) = "--help", "terminator keeps help-looking path text");
-      Assert
-        (To_String (Config.Paths.Element (3)) = "--settings=/tmp/after-terminator.conf",
+      Files_Suite.Support.Assert_Equal (Natural (Config.Paths.Length), 4, "terminated flags are preserved as paths");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Config.Paths.Element (1)),
+         "--live-smoke",
+         "terminator keeps dash-prefixed path text");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Config.Paths.Element (2)),
+         "--help",
+         "terminator keeps help-looking path text");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Config.Paths.Element (3)),
+         "--settings=/tmp/after-terminator.conf",
          "terminator keeps settings-looking path text");
-      Assert
-        (To_String (Config.Paths.Element (4)) = "--settings",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Config.Paths.Element (4)),
+         "--settings",
          "terminator keeps bare settings flag as path text");
 
       Args.Clear;
@@ -1231,7 +1408,10 @@ package body Files_Suite.Startup is
       Args.Append (To_Unbounded_String ("--"));
       Args.Append (To_Unbounded_String ("--runtime-smoke"));
       Config := Files.Application.Parse_Run_Configuration (Args);
-      Assert (To_String (Config.Settings_Path) = "--", "settings flag can consume terminator as a path");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Config.Settings_Path),
+         "--",
+         "settings flag can consume terminator as a path");
       Assert (Config.Mode = Files.Application.Headless_Smoke_Run, "flag parsing resumes after terminator setting path");
       Assert (Config.Paths.Is_Empty, "consumed terminator setting path does not become a startup path");
 
@@ -1267,14 +1447,17 @@ package body Files_Suite.Startup is
          Args.Append (To_Unbounded_String (Dir));
          Config := Files.Application.Parse_Run_Configuration (Args);
          Startup := Files.Application.Resolve_Startup (Config.Paths, To_String (Config.Settings_Path));
-         Assert
-           (To_String (Startup.Settings_Path) = Settings_Path,
+         Files_Suite.Support.Assert_Equal
+           (To_String (Startup.Settings_Path),
+            Settings_Path,
             "split settings flag drives startup settings path");
-         Assert
-           (Startup.Settings.Default_View = Files.Types.Details,
+         Files_Suite.Support.Assert_Equal
+           (Startup.Settings.Default_View,
+            Files.Types.Details,
             "split settings flag loads startup default view");
-         Assert
-           (Files.Model.Item_Count (Startup.Windows.Element (1).Model) = 2,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Item_Count (Startup.Windows.Element (1).Model),
+            2,
             "split settings flag affects startup directory loading");
       end;
 
@@ -1297,8 +1480,9 @@ package body Files_Suite.Startup is
          Assert
            (Ada.Strings.Fixed.Index (Help, "--help, -h") > 0,
             "help text documents long and short help flags");
-         Assert
-           (Files.Application.Version_Text = "files 0.1.0-dev",
+         Files_Suite.Support.Assert_Equal
+           (Files.Application.Version_Text,
+            "files 0.1.0-dev",
             "version text uses generated crate metadata");
       end;
    end Test_Run_Configuration_Parsing;
@@ -1365,77 +1549,105 @@ package body Files_Suite.Startup is
             Locale & " status label resolves from catalog");
       end Assert_Western_Translation;
    begin
-      Assert
-        (Files.Localization.Text ("command.view.small") = "Small Icons",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("command.view.small"),
+         "Small Icons",
          "known command label is loaded from catalog");
-      Assert (Files.Localization.Text ("startup.window.ready") = "Window", "startup window label is localized");
-      Assert (Files.Localization.Text ("startup.error") = "Error", "startup error label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.window") = "Runtime smoke window",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("startup.window.ready"),
+         "Window",
+         "startup window label is localized");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("startup.error"),
+         "Error",
+         "startup error label is localized");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.window"),
+         "Runtime smoke window",
          "runtime smoke window label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.rectangles") = "rectangles",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.rectangles"),
+         "rectangles",
          "runtime smoke rectangle label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.glyphs") = "glyphs",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.glyphs"),
+         "glyphs",
          "runtime smoke glyph label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.missing_glyphs") = "missing glyphs",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.missing_glyphs"),
+         "missing glyphs",
          "runtime smoke missing-glyph label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.font") = "font",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.font"),
+         "font",
          "runtime smoke font label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.vertices") = "vertices",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.vertices"),
+         "vertices",
          "runtime smoke vertex label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.vulkan_status") = "Vulkan status",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.vulkan_status"),
+         "Vulkan status",
          "runtime smoke Vulkan status label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.vulkan_result") = "Vulkan result",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.vulkan_result"),
+         "Vulkan result",
          "runtime smoke Vulkan result label is localized");
-      Assert
-        (Files.Localization.Text ("command.selection.select_all") = "Select All",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("command.selection.select_all"),
+         "Select All",
          "select-all command label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.framebuffer_readback") = "framebuffer readback",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.framebuffer_readback"),
+         "framebuffer readback",
          "runtime smoke framebuffer readback label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.frames_attempted") = "frames attempted",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.frames_attempted"),
+         "frames attempted",
          "runtime smoke attempted-frame label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.frames_presented") = "frames presented",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.frames_presented"),
+         "frames presented",
          "runtime smoke presented-frame label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.framebuffer_hash") = "framebuffer hash",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.framebuffer_hash"),
+         "framebuffer hash",
          "runtime smoke framebuffer hash label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.framebuffer_bytes") = "framebuffer bytes",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.framebuffer_bytes"),
+         "framebuffer bytes",
          "runtime smoke framebuffer byte-count label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.text_failed") = "Runtime smoke text rendering failed.",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.text_failed"),
+         "Runtime smoke text rendering failed.",
          "runtime smoke text-failure label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.no_windows") = "Runtime smoke has no windows.",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.no_windows"),
+         "Runtime smoke has no windows.",
          "runtime smoke no-window label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.no_display") = "Runtime smoke needs a live display.",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.no_display"),
+         "Runtime smoke needs a live display.",
          "runtime smoke no-display label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.no_vulkan") = "Runtime smoke needs Vulkan support.",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.no_vulkan"),
+         "Runtime smoke needs Vulkan support.",
          "runtime smoke no-Vulkan label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.ready") = "Runtime smoke is ready.",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.ready"),
+         "Runtime smoke is ready.",
          "runtime smoke ready label is localized");
-      Assert
-        (Files.Localization.Text ("runtime.smoke.requires_live_harness") = "Runtime smoke requires a live harness.",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("runtime.smoke.requires_live_harness"),
+         "Runtime smoke requires a live harness.",
          "runtime smoke live-harness label is localized");
-      Assert
-        (Files.Localization.Text ("cli.help.usage") =
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("cli.help.usage"),
          "Usage: files [OPTION]... [PATH...]",
          "CLI help usage is localized");
-      Assert
-        (Files.Localization.Text ("cli.help.path") = "PATH opens a directory, or the parent directory of a file.",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("cli.help.path"),
+         "PATH opens a directory, or the parent directory of a file.",
          "CLI help path description is localized");
       Assert
         (Ada.Strings.Fixed.Index (Files.Localization.Text ("cli.help.option.runtime_smoke"), "--runtime-smoke") > 0,
@@ -1462,37 +1674,61 @@ package body Files_Suite.Startup is
       Assert_Western_Translation ("sv-SE");
       Assert_Western_Translation ("nb-NO");
       Assert_Western_Translation ("fi-FI");
-      Assert
-        (Files.Localization.Text ("missing.test.key") = "missing.test.key",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("missing.test.key"),
+         "missing.test.key",
          "unknown localization key falls back to key text");
-      Assert (Files.Localization.Text ("info.name") = "Name", "info pane name label is localized");
-      Assert
-        (Files.Localization.Text ("info.folder_size") = "Contents",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("info.name"),
+         "Name",
+         "info pane name label is localized");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("info.folder_size"),
+         "Contents",
          "info pane folder-size label is localized");
-      Assert
-        (Files.Localization.Text ("info.contents.items") = "items",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("info.contents.items"),
+         "items",
          "info pane folder-size item label is localized");
-      Assert
-        (Files.Localization.Text ("info.contents.total") = "total",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("info.contents.total"),
+         "total",
          "info pane folder-size total label is localized");
-      Assert (Files.Localization.Text ("status.items") = "Items", "item-count label is localized");
-      Assert (Files.Localization.Text ("status.visible") = "visible", "visible-count label is localized");
-      Assert (Files.Localization.Text ("status.selected") = "selected", "selected-count label is localized");
-      Assert
-        (Files.Localization.Text ("status.missing_metadata") = "Unavailable",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("status.items"),
+         "Items",
+         "item-count label is localized");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("status.visible"),
+         "visible",
+         "visible-count label is localized");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("status.selected"),
+         "selected",
+         "selected-count label is localized");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("status.missing_metadata"),
+         "Unavailable",
          "missing metadata fallback is localized");
-      Assert (Files.Localization.Text ("accessibility.toolbar") = "Toolbar", "toolbar landmark is localized");
-      Assert
-        (Files.Localization.Text ("accessibility.main_view") = "Directory contents",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("accessibility.toolbar"),
+         "Toolbar",
+         "toolbar landmark is localized");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("accessibility.main_view"),
+         "Directory contents",
          "main-view landmark is localized");
-      Assert
-        (Files.Localization.Text ("accessibility.info_pane") = "Information pane",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("accessibility.info_pane"),
+         "Information pane",
          "info-pane landmark is localized");
-      Assert
-        (Files.Localization.Text ("accessibility.command_palette_search") = "Command search",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("accessibility.command_palette_search"),
+         "Command search",
          "command-palette search label is localized");
-      Assert
-        (Files.Localization.Text ("accessibility.quick_look") = "Quick Look preview",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("accessibility.quick_look"),
+         "Quick Look preview",
          "Quick Look landmark is localized");
       Assert
         (Files.Localization.Text ("quick_look.empty") /= "quick_look.empty",
@@ -1500,8 +1736,9 @@ package body Files_Suite.Startup is
       Assert
         (Files.Localization.Text ("quick_look.truncated") /= "quick_look.truncated",
          "Quick Look truncated-preview message is localized");
-      Assert
-        (Files.Localization.Text ("accessibility.root_selector") = "Root locations",
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("accessibility.root_selector"),
+         "Root locations",
          "root-selector landmark is localized");
       Assert
         (Files.Localization.Text ("accessibility.favorite_toggle.on")
@@ -1723,34 +1960,48 @@ package body Files_Suite.Startup is
       end if;
 
       begin
-         Assert
-           (Files.Localization.Normalize_Locale ("da_DK.UTF-8") = "da-DK",
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Normalize_Locale ("da_DK.UTF-8"),
+            "da-DK",
             "locale normalization removes encoding and converts separator");
-         Assert
-           (Files.Localization.Normalize_Locale ("en_us") = "en-US",
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Normalize_Locale ("en_us"),
+            "en-US",
             "locale normalization canonicalizes language and region case");
-         Assert
-           (Files.Localization.Normalize_Locale ("zh_hant_tw.UTF-8") = "zh-Hant-TW",
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Normalize_Locale ("zh_hant_tw.UTF-8"),
+            "zh-Hant-TW",
             "locale normalization preserves script catalog casing");
-         Assert
-           (Files.Localization.Normalize_Locale ("es_419.UTF-8") = "es-419",
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Normalize_Locale ("es_419.UTF-8"),
+            "es-419",
             "locale normalization preserves numeric region subtags");
-         Assert
-           (Files.Localization.Normalize_Locale ("sr_RS.UTF-8@latin") = "sr-RS",
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Normalize_Locale ("sr_RS.UTF-8@latin"),
+            "sr-RS",
             "locale normalization removes locale modifiers");
-         Assert (Files.Localization.Normalize_Locale ("C") = "en", "C locale falls back to English");
-         Assert (Files.Localization.Normalize_Locale ("POSIX") = "en", "POSIX locale falls back to English");
-         Assert
-           (Files.Localization.Normalize_Locale ("../../tmp/hostile") = "en",
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Normalize_Locale ("C"),
+            "en",
+            "C locale falls back to English");
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Normalize_Locale ("POSIX"),
+            "en",
+            "POSIX locale falls back to English");
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Normalize_Locale ("../../tmp/hostile"),
+            "en",
             "path-bearing locale text falls back to English");
-         Assert
-           (Files.Localization.Normalize_Locale ("da" & Character'Val (0) & "DK") = "en",
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Normalize_Locale ("da" & Character'Val (0) & "DK"),
+            "en",
             "a locale containing NUL falls back to English");
          Assert
            (Files.Localization.Normalize_Locale (String'(1 .. 65 => 'a')) = "en",
             "an oversized locale falls back to English");
-         Assert
-           (Files.Localization.Normalize_Locale ("en--US") = "en",
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Normalize_Locale ("en--US"),
+            "en",
             "an empty locale component falls back to English");
 
          Ada.Environment_Variables.Set ("LC_ALL", "da_DK.UTF-8");
@@ -1758,31 +2009,58 @@ package body Files_Suite.Startup is
          Ada.Environment_Variables.Set ("LC_TIME", "sv_SE.UTF-8");
          Ada.Environment_Variables.Set ("LC_NUMERIC", "fr_FR.UTF-8");
          Ada.Environment_Variables.Set ("LANG", "de_DE.UTF-8");
-         Assert (Files.Localization.System_Locale = "da-DK", "LC_ALL has locale detection precedence");
-         Assert (Files.Localization.System_Time_Locale = "da-DK", "LC_ALL has time-locale detection precedence");
-         Assert
-           (Files.Localization.System_Number_Locale = "da-DK",
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.System_Locale,
+            "da-DK",
+            "LC_ALL has locale detection precedence");
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.System_Time_Locale,
+            "da-DK",
+            "LC_ALL has time-locale detection precedence");
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.System_Number_Locale,
+            "da-DK",
             "LC_ALL has numeric-locale detection precedence");
 
          Ada.Environment_Variables.Clear ("LC_ALL");
-         Assert (Files.Localization.System_Locale = "en-US", "LC_MESSAGES is used after LC_ALL");
-         Assert (Files.Localization.System_Time_Locale = "sv-SE", "LC_TIME is used for date/time after LC_ALL");
-         Assert
-           (Files.Localization.System_Number_Locale = "fr-FR",
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.System_Locale,
+            "en-US",
+            "LC_MESSAGES is used after LC_ALL");
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.System_Time_Locale,
+            "sv-SE",
+            "LC_TIME is used for date/time after LC_ALL");
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.System_Number_Locale,
+            "fr-FR",
             "LC_NUMERIC is used for numbers after LC_ALL");
 
          Ada.Environment_Variables.Clear ("LC_MESSAGES");
-         Assert (Files.Localization.System_Locale = "de-DE", "LANG is used after LC_MESSAGES");
+         Files_Suite.Support.Assert_Equal (Files.Localization.System_Locale, "de-DE", "LANG is used after LC_MESSAGES");
          Ada.Environment_Variables.Clear ("LC_TIME");
-         Assert (Files.Localization.System_Time_Locale = "de-DE", "LANG is used for date/time after LC_TIME");
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.System_Time_Locale,
+            "de-DE",
+            "LANG is used for date/time after LC_TIME");
          Ada.Environment_Variables.Clear ("LC_NUMERIC");
-         Assert (Files.Localization.System_Number_Locale = "de-DE", "LANG is used for numbers after LC_NUMERIC");
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.System_Number_Locale,
+            "de-DE",
+            "LANG is used for numbers after LC_NUMERIC");
 
          Ada.Environment_Variables.Set ("LC_ALL", "C");
-         Assert (Files.Localization.System_Locale = "en", "C in LC_ALL overrides lower-precedence locale variables");
-         Assert (Files.Localization.System_Time_Locale = "en", "C in LC_ALL overrides lower-precedence time locale");
-         Assert
-           (Files.Localization.System_Number_Locale = "en",
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.System_Locale,
+            "en",
+            "C in LC_ALL overrides lower-precedence locale variables");
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.System_Time_Locale,
+            "en",
+            "C in LC_ALL overrides lower-precedence time locale");
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.System_Number_Locale,
+            "en",
             "C in LC_ALL overrides lower-precedence numeric locale");
 
          Ada.Environment_Variables.Set ("LC_ALL", "da_DK.UTF-8");
@@ -1790,20 +2068,30 @@ package body Files_Suite.Startup is
            (Files.Localization.Text ("command.view.small") /= "Small Icons"
             and then Files.Localization.Text ("command.view.small") /= "command.view.small",
             "detected Danish locale loads translated app catalog resources");
-         Assert
-           (Files.Localization.Text ("time.relative.today", Files.Localization.System_Time_Locale) = "I dag",
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Text ("time.relative.today", Files.Localization.System_Time_Locale),
+            "I dag",
             "detected Danish time locale uses date/time catalog resources");
-         Assert
-           (Files.Localization.Text ("time.format.locale_date", "da-DK") = "%x",
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Text ("time.format.locale_date", "da-DK"),
+            "%x",
             "Danish catalog includes named utilada date format patterns");
-         Assert
-           (Files.Localization.Text ("time.month1.long", "sv-SE") = "januari",
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Text ("time.month1.long", "sv-SE"),
+            "januari",
             "regional locales fall back to generated base-language date resources");
-         Assert
-           (Files.Localization.Text ("time.relative.today", "de-DE") = "Heute",
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Text ("time.relative.today", "de-DE"),
+            "Heute",
             "German catalog includes date/time resources");
-         Assert (Files.Localization.Text ("number.decimal", "de-DE") = ",", "German catalog has decimal symbol");
-         Assert (Files.Localization.Text ("number.group", "de-DE") = ".", "German catalog has group symbol");
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Text ("number.decimal", "de-DE"),
+            ",",
+            "German catalog has decimal symbol");
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.Text ("number.group", "de-DE"),
+            ".",
+            "German catalog has group symbol");
          Assert
            (Files.Localization.Text ("details.size.unit.mib", "de-DE") /= "details.size.unit.mib",
             "German catalog has generated digital unit labels");
@@ -1832,11 +2120,13 @@ package body Files_Suite.Startup is
             Ada.Environment_Variables.Clear ("LC_NUMERIC");
             Ada.Environment_Variables.Set ("LANG", "C.UTF-8");
             Ada.Environment_Variables.Set ("HOME", Fake_Home);
-            Assert
-              (Files.Localization.System_Time_Locale = "de-DE",
+            Files_Suite.Support.Assert_Equal
+              (Files.Localization.System_Time_Locale,
+               "de-DE",
                "portable process LANG falls back to KDE formats locale");
-            Assert
-              (Files.Localization.System_Number_Locale = "da-DK",
+            Files_Suite.Support.Assert_Equal
+              (Files.Localization.System_Number_Locale,
+               "da-DK",
                "portable process LANG falls back to KDE numeric formats locale");
 
             Ada.Environment_Variables.Set
@@ -2052,8 +2342,9 @@ package body Files_Suite.Startup is
       Assert
         (Files.Features.Included_In_First_Implementation (Files.Features.Gpu_Screenshot_Tests),
          "GPU screenshot comparison tests belong to the implementation");
-      Assert
-        (Forbidden_Helper_Script_Count (Repository_Root) = 0,
+      Files_Suite.Support.Assert_Equal
+        (Forbidden_Helper_Script_Count (Repository_Root),
+         0,
          "all project helper tooling remains implemented in Ada");
       Assert
         (Files.Features.Included_In_First_Implementation (Files.Features.Platform_Trash),
@@ -2217,11 +2508,13 @@ package body Files_Suite.Startup is
          Assert
            (Vulkan_Available or else not Vulkan_Available,
             "Vulkan capability query returns deterministic boolean");
-         Assert
-           (Capabilities.Display_Available = Display_Available,
+         Files_Suite.Support.Assert_Equal
+           (Capabilities.Display_Available,
+            Display_Available,
             "desktop capability report includes display state");
-         Assert
-           (Capabilities.Vulkan_Available = Vulkan_Available,
+         Files_Suite.Support.Assert_Equal
+           (Capabilities.Vulkan_Available,
+            Vulkan_Available,
             "desktop capability report includes Vulkan state");
          Assert
            (Capabilities.Native_Drop_Callbacks,

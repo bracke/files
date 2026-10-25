@@ -14,7 +14,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Select_All_Visible (Model);
       Files.Model.Toggle_Info_Pane (Model);
-      Assert (Files.Model.Selected_Count (Model) = 2, "two items are selected");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 2, "two items are selected");
 
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       --  Wide enough that a short permissions line ("readable, writable") does
@@ -84,13 +84,13 @@ separate (Files_Suite.Operations)
             return False;
          end Row_Has_Both;
       begin
-         Assert (Label_Rows ("info.name") = 0, "there is no dedicated Name section");
+         Files_Suite.Support.Assert_Equal (Label_Rows ("info.name"), 0, "there is no dedicated Name section");
          Assert (not Value_Present ("alpha.txt") and then not Value_Present ("beta.txt"),
                  "item names appear only as postfixes, not as bare Name rows");
-         Assert (Label_Rows ("info.size") = 1, "Size label appears once");
-         Assert (Label_Rows ("info.filetype") = 1, "Filetype label appears once");
-         Assert (Label_Rows ("info.modified") = 1, "Modified label appears once");
-         Assert (Label_Rows ("info.kind") = 0, "the redundant Kind section is removed");
+         Files_Suite.Support.Assert_Equal (Label_Rows ("info.size"), 1, "Size label appears once");
+         Files_Suite.Support.Assert_Equal (Label_Rows ("info.filetype"), 1, "Filetype label appears once");
+         Files_Suite.Support.Assert_Equal (Label_Rows ("info.modified"), 1, "Modified label appears once");
+         Files_Suite.Support.Assert_Equal (Label_Rows ("info.kind"), 0, "the redundant Kind section is removed");
          Assert (Row_Has_Both (Files.Localization.Text ("info.permissions.readable"),
                                Files.Localization.Text ("info.permissions.writable")),
                  "an item's readable and writable permissions share one coalesced row");
@@ -110,8 +110,10 @@ separate (Files_Suite.Operations)
                   Top_Y := Integer (Text.Y);
                end if;
             end loop;
-            Assert (Top_Y = Info_Layout.Y + 10,
-                    "the first info-pane section starts at the pane top with no reserved header gap");
+            Files_Suite.Support.Assert_Equal
+              (Top_Y,
+               Info_Layout.Y + 10,
+               "the first info-pane section starts at the pane top with no reserved header gap");
          end;
       end;
    end Test_Info_Pane_Coalesced_Multi;

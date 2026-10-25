@@ -23,8 +23,9 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "vanishing.txt");
 
       Result := Files.Operations.Set_Permissions_For (Model, 8#600#, Settings);
-      Assert
-        (Result.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
          "set-permissions operation succeeds");
       Assert (Files.Model.Undo_Available (Model), "chmod records an undo entry");
 
@@ -34,8 +35,9 @@ separate (Files_Suite.Operations)
       Ada.Directories.Delete_File (Target);
 
       Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert
-        (Result.Status = Files.Operations.Operation_Failed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Failed,
          "undo reports failure when the reverse cannot be applied");
       Assert
         (Files.Model.Undo_Available (Model),

@@ -39,12 +39,14 @@ separate (Files_Suite.Operations)
            [others => 'x'];
       begin
          Files.Refresh_Jobs.Watch_Path (Watch, "relative-watch");
-         Assert
-           (Files.Refresh_Jobs.Testing.Watch_Target (Watch) = "",
+         Files_Suite.Support.Assert_Equal
+           (Files.Refresh_Jobs.Testing.Watch_Target (Watch),
+            "",
             "a relative watch path is rejected before launching a helper");
          Files.Refresh_Jobs.Watch_Path (Watch, Oversized);
-         Assert
-           (Files.Refresh_Jobs.Testing.Watch_Target (Watch) = "",
+         Files_Suite.Support.Assert_Equal
+           (Files.Refresh_Jobs.Testing.Watch_Target (Watch),
+            "",
             "an oversized watch path falls back without launching a doomed helper");
       end;
       declare

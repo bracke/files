@@ -37,7 +37,10 @@ separate (Files_Suite.Operations)
       Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
 
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
-      Assert (Files.Model.Paste_Execution_Done (Model) = 2, "two writes complete before cancelling");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Paste_Execution_Done (Model),
+         2,
+         "two writes complete before cancelling");
 
       Files.Operations.Cancel_Paste_Execution (Model);
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
@@ -52,8 +55,9 @@ separate (Files_Suite.Operations)
       end loop;
 
       Assert (Files.Model.Undo_Available (Model), "a cancelled paste still records an undo for completed items");
-      Assert
-        (Natural (Files.Model.Undo_From_Paths (Model).Length) = 2,
+      Files_Suite.Support.Assert_Equal
+        (Natural (Files.Model.Undo_From_Paths (Model).Length),
+         2,
          "the undo covers only the two completed writes");
 
       Step := Complete_Operation

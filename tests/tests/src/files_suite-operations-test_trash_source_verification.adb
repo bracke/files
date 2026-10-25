@@ -76,8 +76,10 @@ separate (Files_Suite.Operations)
             Files.Model.Select_All_Visible (Model);
             Step := Complete_Operation (Model, Settings, Files.Operations.Delete_Selected (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Failed,
-                    "trash refuses removal when its source changes after copying");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Failed,
+               "trash refuses removal when its source changes after copying");
             Assert (File_Has_Bytes ((if Fault = 3 then Join (Source, "child") else Source), "new edits"),
                     "trash retains concurrent source edits or replacements");
             if Fault = 2 then

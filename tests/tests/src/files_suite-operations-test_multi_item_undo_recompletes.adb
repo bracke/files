@@ -31,8 +31,9 @@ separate (Files_Suite.Operations)
       Write_File (Orig_B, "occupied");
 
       Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert
-        (Result.Status = Files.Operations.Operation_Failed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Failed,
          "a partially-blocked multi-item undo reports failure");
       Assert
         (Ada.Directories.Exists (Orig_A) and then not Ada.Directories.Exists (Moved_A),
@@ -47,8 +48,9 @@ separate (Files_Suite.Operations)
       --  so the entry could never re-complete; it now counts as already-undone.
       Ada.Directories.Delete_File (Orig_B);
       Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert
-        (Result.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
          "re-running the undo completes the previously-blocked item");
       Assert
         (Ada.Directories.Exists (Orig_B) and then not Ada.Directories.Exists (Moved_B),
@@ -58,8 +60,10 @@ separate (Files_Suite.Operations)
         (not Files.Model.Undo_Available (Model),
          "the fully-applied entry finally leaves the undo stack");
       Result := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-      Assert (Result.Status = Files.Operations.Operation_Success,
-              "a retried Undo retains the full action for Redo");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
+         "a retried Undo retains the full action for Redo");
       Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
       Assert (Result.Status = Files.Operations.Operation_Success
               and then Ada.Directories.Exists (Orig_A) and then Ada.Directories.Exists (Orig_B)

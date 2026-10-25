@@ -32,7 +32,7 @@ separate (Files_Suite.Operations)
       Step := Files.Refresh_Jobs.Start (Model, Settings, Force => True);
       Await_View (Model, Settings);
       Assert (Listed ("arrived"), "the refresh picks up the new file");
-      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 15, "the refresh keeps the scroll");
+      Files_Suite.Support.Assert_Equal (Files.Model.Main_View_Scroll_Lines (Model), 15, "the refresh keeps the scroll");
       Assert (Files.Model.Quick_Look_Is_Open (Model)
               and then Files.Model.Quick_Look_Path (Model) = Join (Root, "item 20"),
               "the refresh keeps Quick Look on its item");

@@ -22,20 +22,24 @@ separate (Files_Suite.Operations)
          "navigate-parent is enabled in a nested directory");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Parent_Command, Model, Settings);
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Navigated,
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Navigated,
          "navigate-parent navigates to the parent");
-      Assert
-        (Files.Model.Current_Path (Model) = Full_Parent,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Full_Parent,
          "navigate-parent moves to the parent directory");
       Assert (Files.Model.Can_Go_Back (Model), "navigate-parent records history for back");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
          "back returns after navigate-parent");
-      Assert
-        (Files.Model.Current_Path (Model) = Full_Child,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Full_Child,
          "back restores the origin child directory");
 
       --  At a filesystem root the command is disabled and navigating up is a
@@ -50,11 +54,13 @@ separate (Files_Suite.Operations)
            (not Files.Commands.Is_Enabled (Files.Commands.Navigate_Parent_Command, Root_Model),
             "navigate-parent is disabled at the filesystem root");
          Root_Op := Files.Operations.Navigate_Parent (Root_Model, Settings);
-         Assert
-           (Root_Op.Status = Files.Operations.Operation_Disabled,
+         Files_Suite.Support.Assert_Equal
+           (Root_Op.Status,
+            Files.Operations.Operation_Disabled,
             "navigate-parent at the root is a safe no-op");
-         Assert
-           (Files.Model.Current_Path (Root_Model) = "/",
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Current_Path (Root_Model),
+            "/",
             "root navigate-parent keeps the current path");
       end;
 
@@ -90,8 +96,9 @@ separate (Files_Suite.Operations)
                   and then Files.Model.Current_Path (Trash_Model) = To_String (Trash_Load.Path),
                   "direct parent navigation cannot expose trash metadata beside the payload directory");
                Trash_Result := Files.Operations.Open_Terminal (Trash_Model, Settings);
-               Assert
-                 (Trash_Result.Status = Files.Operations.Operation_Disabled,
+               Files_Suite.Support.Assert_Equal
+                 (Trash_Result.Status,
+                  Files.Operations.Operation_Disabled,
                   "direct terminal launch is rejected in the trash payload directory");
                Trash_Sources.Append (To_Unbounded_String (Join (Full_Child, "leaf.txt")));
                Files.Model.Set_Clipboard
@@ -136,14 +143,16 @@ separate (Files_Suite.Operations)
                     (Files.Model.Background_Operation (Trash_Model)),
                   "direct extraction cannot create an orphaned trash payload");
                Trash_Result := Files.Operations.Create_Symlink_Selected (Trash_Model, Settings);
-               Assert
-                 (Trash_Result.Status = Files.Operations.Operation_Disabled,
+               Files_Suite.Support.Assert_Equal
+                 (Trash_Result.Status,
+                  Files.Operations.Operation_Disabled,
                   "direct link creation cannot create an orphaned trash payload");
                Files.Model.Toggle_Rename (Trash_Model);
                Files.Model.Set_Rename_Text (Trash_Model, "renamed-payload");
                Trash_Result := Files.Operations.Commit_Rename (Trash_Model, Settings);
-               Assert
-                 (Trash_Result.Status = Files.Operations.Operation_Disabled,
+               Files_Suite.Support.Assert_Equal
+                 (Trash_Result.Status,
+                  Files.Operations.Operation_Disabled,
                   "direct rename cannot desynchronize a trash payload from its metadata");
                Trash_Result :=
                  Files.Operations.Begin_Paste_To

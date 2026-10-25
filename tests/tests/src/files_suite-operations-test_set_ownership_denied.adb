@@ -28,13 +28,18 @@ separate (Files_Suite.Operations)
       --  Either way there must be no crash.
       Result := Files.Operations.Set_Ownership_For (Model, 0, 0, Settings);
       if Result.Status = Files.Operations.Operation_Success then
-         Assert (Uid = 0, "unexpected chown-to-root success only permitted when running as root");
+         Files_Suite.Support.Assert_Equal
+           (Uid,
+            0,
+            "unexpected chown-to-root success only permitted when running as root");
       else
-         Assert
-           (Result.Status = Files.Operations.Operation_Failed,
+         Files_Suite.Support.Assert_Equal
+           (Result.Status,
+            Files.Operations.Operation_Failed,
             "chown to a different owner reports a failure");
-         Assert
-           (To_String (Result.Error_Key) = "error.ownership.denied",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Result.Error_Key),
+            "error.ownership.denied",
             "chown denial surfaces error.ownership.denied");
          declare
             Now_Uid, Now_Gid : Natural := 0;

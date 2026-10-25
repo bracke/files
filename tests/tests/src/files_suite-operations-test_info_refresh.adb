@@ -36,7 +36,10 @@ separate (Files_Suite.Operations)
          for Attempt in 1 .. 20 loop
             Files.Model.Ensure_Selected_Item_Extra (Model);
          end loop;
-         Assert (Files.Model.Revision (Model) = Revision, "cached metadata does not repeatedly change the revision");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Revision (Model),
+            Revision,
+            "cached metadata does not repeatedly change the revision");
       end loop;
    exception
       when others => Files.Refresh_Jobs.Cancel (Model); raise;

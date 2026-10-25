@@ -106,12 +106,18 @@ separate (Files_Suite.Operations)
             Check_Backups (Root);
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success, "Undo a read-only directory move");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "Undo a read-only directory move");
             Check (Source);
             Check_Backups (To_String (Remote));
             Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success, "Redo a read-only directory move");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "Redo a read-only directory move");
          end loop;
          Remove (Join (To_String (Remote), "source"));
       end loop;

@@ -85,8 +85,9 @@ separate (Files_Suite.Operations)
                and then not Files.Process_Jobs.Cancellation_Requested
                  (Files.Process_Jobs.Path (Job, "")),
                "a planted hardlink is not accepted as a cancellation marker");
-            Assert
-              (Project_Tools.Files.Read_Raw_File (Victim) = "unchanged",
+            Files_Suite.Support.Assert_Equal
+              (Project_Tools.Files.Read_Raw_File (Victim),
+               "unchanged",
                "cancellation never truncates through a planted marker hardlink");
             Ada.Directories.Delete_File (Marker);
          end if;

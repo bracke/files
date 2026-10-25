@@ -59,8 +59,9 @@ separate (Files_Suite.Operations)
       Write_File (Other, "distinct");
       Mutation := Files.File_System.Rename_Item (Other, Lower);
       Assert (not Mutation.Success, "renaming onto a distinct existing file is still refused");
-      Assert
-        (To_String (Mutation.Error_Key) = "error.rename.invalid_destination",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Mutation.Error_Key),
+         "error.rename.invalid_destination",
          "the distinct-destination collision reports invalid destination");
       Assert (Ada.Directories.Exists (Other), "the refused collision leaves the source in place");
 

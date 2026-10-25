@@ -28,7 +28,10 @@ separate (Files_Suite.Operations)
          end loop;
          Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
                  "the background read finishes without synchronous enumeration");
-         Assert (Applied = Expected, "only a matching changed snapshot replaces the visible listing");
+         Files_Suite.Support.Assert_Equal
+           (Applied,
+            Expected,
+            "only a matching changed snapshot replaces the visible listing");
       end Await_Refresh;
 
       procedure Await_Ready is
@@ -63,8 +66,10 @@ separate (Files_Suite.Operations)
       Await_Ready;
       Select_Name (Model, "beta");
       Await_Refresh (True);
-      Assert (Files.Model.Selected_Name (Model) = "beta",
-              "selection changes neither stale a directory read nor get overwritten by its old selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Name (Model),
+         "beta",
+         "selection changes neither stale a directory read nor get overwritten by its old selection");
       Step := Files.Operations.Refresh (Model, Settings);
       Await_Ready;
       Files.Model.Toggle_Visible_Selection (Model, 1);
@@ -105,7 +110,10 @@ separate (Files_Suite.Operations)
       Files.Model.Set_Filter (Model, "");
       Step := Files.Operations.Refresh_If_Changed (Model, Settings);
       Await_Refresh (True);
-      Assert (Files.Model.Item_Count (Model) = 3, "the next matching read includes the new file");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         3,
+         "the next matching read includes the new file");
 
       Write_Binary_File (Join (Root, ".hidden"), "hidden");
       Step := Files.Operations.Refresh (Model, Settings);
@@ -114,12 +122,17 @@ separate (Files_Suite.Operations)
       Await_Refresh (False);
       Step := Files.Operations.Refresh (Model, Settings);
       Await_Refresh (True);
-      Assert (Files.Model.Item_Count (Model) = 4, "settings changes reject old snapshots and apply a fresh read");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         4,
+         "settings changes reject old snapshots and apply a fresh read");
       Files.Model.Set_Error (Model, "error.trash.restore_exists");
       Step := Files.Operations.Refresh (Model, Settings);
       Await_Refresh (True);
-      Assert (Files.Model.Last_Error_Key (Model) = "error.trash.restore_exists",
-              "a successful refresh preserves a mutation recovery error");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.trash.restore_exists",
+         "a successful refresh preserves a mutation recovery error");
 
       Ada.Directories.Create_Directory (Join (Root, "other"));
       Step := Files.Operations.Refresh (Model, Settings);

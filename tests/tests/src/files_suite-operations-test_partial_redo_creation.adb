@@ -42,7 +42,10 @@ separate (Files_Suite.Operations)
                   Files.Types.String_Vectors.Empty_Vector, Forward => Sources, Create_Kind => Kind);
                Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-               Assert (Step.Status = Files.Operations.Operation_Success, "Undo removes both creations before Redo");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Success,
+                  "Undo removes both creations before Redo");
                if Missing_Source then
                   Ada.Directories.Rename (Source_B, Held_B);
                else
@@ -133,8 +136,10 @@ separate (Files_Suite.Operations)
                        "a new Redo cycle re-creates both items instead of reusing stale progress");
                Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-               Assert (Step.Status = Files.Operations.Operation_Success,
-                       "the second full Redo also records a usable Undo action");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Success,
+                  "the second full Redo also records a usable Undo action");
             end;
          end loop;
       end loop;

@@ -52,8 +52,14 @@ separate (Files_Suite.Operations)
             exit when not Files.Model.Paste_Execution_Is_Active (Model);
          end loop;
          Assert (not Files.Model.Paste_Execution_Is_Active (Model), "a failed Replace finishes its execution");
-         Assert (Step.Status = Files.Operations.Operation_Failed, "a trash failure aborts Replace");
-         Assert (Project_Tools.Files.Read_Raw_File (Dest) = "original", "Replace keeps the original on trash failure");
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Failed,
+            "a trash failure aborts Replace");
+         Files_Suite.Support.Assert_Equal
+           (Project_Tools.Files.Read_Raw_File (Dest),
+            "original",
+            "Replace keeps the original on trash failure");
       end loop;
       Restore_Environment;
 

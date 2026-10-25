@@ -45,9 +45,14 @@ separate (Files_Suite.Operations)
                         Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
                                 "headless history actions still reload synchronously");
                      end if;
-                     Assert (Files.Model.Last_Error_Key (Model) = Error_Key,
-                             "refresh preserves the history action's final success or failure state");
-                     Assert (Files.Model.In_Recent_View (Model) = Recent, "history refresh preserves the active view");
+                     Files_Suite.Support.Assert_Equal
+                       (Files.Model.Last_Error_Key (Model),
+                        Error_Key,
+                        "refresh preserves the history action's final success or failure state");
+                     Files_Suite.Support.Assert_Equal
+                       (Files.Model.In_Recent_View (Model),
+                        Recent,
+                        "history refresh preserves the active view");
                   end Check_Refresh;
                begin
                   Ada.Directories.Create_Path (Source_Dir);
@@ -73,8 +78,10 @@ separate (Files_Suite.Operations)
                   Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                   if Blocked then
-                     Assert (Step.Status = Files.Operations.Operation_Failed,
-                             "the blocked Undo reports partial failure");
+                     Files_Suite.Support.Assert_Equal
+                       (Step.Status,
+                        Files.Operations.Operation_Failed,
+                        "the blocked Undo reports partial failure");
                      Check_Refresh ("error.undo.failed");
                      Assert ((if Recent then Listed (Source_A) and then Listed (Source_B)
                               else not Listed (Dest_A) and then Listed (Dest_B)),
@@ -85,7 +92,10 @@ separate (Files_Suite.Operations)
                      Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                   end if;
-                  Assert (Step.Status = Files.Operations.Operation_Success, "the full Undo succeeds");
+                  Files_Suite.Support.Assert_Equal
+                    (Step.Status,
+                     Files.Operations.Operation_Success,
+                     "the full Undo succeeds");
                   Check_Refresh ("");
                   Assert ((if Recent then Listed (Source_A) and then Listed (Source_B)
                            else Files.Model.Item_Count (Model) = 0),
@@ -96,8 +106,10 @@ separate (Files_Suite.Operations)
                   Step := Complete_Operation
                        (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
                   if Blocked then
-                     Assert (Step.Status = Files.Operations.Operation_Failed,
-                             "the blocked Redo reports partial failure");
+                     Files_Suite.Support.Assert_Equal
+                       (Step.Status,
+                        Files.Operations.Operation_Failed,
+                        "the blocked Redo reports partial failure");
                      Check_Refresh ("error.undo.failed");
                      Assert ((if Recent then not Listed (Source_A) and then Listed (Source_B)
                               else Listed (Dest_A) and then Listed (Dest_B)),
@@ -108,15 +120,20 @@ separate (Files_Suite.Operations)
                      Step := Complete_Operation
                        (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
                   end if;
-                  Assert (Step.Status = Files.Operations.Operation_Success, "the full Redo succeeds");
+                  Files_Suite.Support.Assert_Equal
+                    (Step.Status,
+                     Files.Operations.Operation_Success,
+                     "the full Redo succeeds");
                   Check_Refresh ("");
                   Assert ((if Recent then Files.Model.Item_Count (Model) = 0
                            else Listed (Dest_A) and then Listed (Dest_B)),
                           "Redo removes moved Recent paths or relists the full destination directory");
                   Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-                  Assert (Step.Status = Files.Operations.Operation_Success,
-                          "Undo works again after the refreshed Redo");
+                  Files_Suite.Support.Assert_Equal
+                    (Step.Status,
+                     Files.Operations.Operation_Success,
+                     "Undo works again after the refreshed Redo");
                   Check_Refresh ("");
                   Assert (File_Has_Bytes (Source_A, "original a") and then File_Has_Bytes (Source_B, "original b"),
                           "the refreshed history cycle preserves the original bytes");

@@ -71,12 +71,13 @@ separate (Files_Suite.Operations)
         (not Files.Model.Current_Is_Trash (Files_Suite.Support.Sample_Model),
          "an ordinary directory is not the trash");
       Select_Name (Model, "restore-me.txt");
-      Assert (Files.Model.Selected_Count (Model) = 1, "restore selects the trashed item");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 1, "restore selects the trashed item");
 
       Result :=
         Files.Controller.Execute_Command (Files.Commands.Restore_From_Trash_Command, Model, Settings);
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
          "restore command returns success");
       Assert (Ada.Directories.Exists (Source_Path), "restore returns the file to its original path");
       Assert
@@ -101,8 +102,9 @@ separate (Files_Suite.Operations)
       Result :=
         Files.Controller.Execute_Command
           (Files.Commands.Delete_Selected_Permanently_Command, Model, Settings);
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
          "permanent delete succeeds for a selected trash entry");
       Assert
         (not Ada.Directories.Exists (Join (Trash_File, "restore-me.txt"))

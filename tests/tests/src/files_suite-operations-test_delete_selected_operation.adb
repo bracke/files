@@ -52,16 +52,16 @@ separate (Files_Suite.Operations)
 
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
-      Assert
-        (Files.File_System.Trash_Deletion_Date (Ada.Calendar.Time_Of (2024, 2, 3, 0.0)) =
+      Files_Suite.Support.Assert_Equal
+        (Files.File_System.Trash_Deletion_Date (Ada.Calendar.Time_Of (2024, 2, 3, 0.0)),
          "2024-02-03T00:00:00",
          "trash deletion date formats midnight");
-      Assert
-        (Files.File_System.Trash_Deletion_Date (Ada.Calendar.Time_Of (2024, 2, 3, 60.9)) =
+      Files_Suite.Support.Assert_Equal
+        (Files.File_System.Trash_Deletion_Date (Ada.Calendar.Time_Of (2024, 2, 3, 60.9)),
          "2024-02-03T00:01:00",
          "trash deletion date floors fractional seconds");
-      Assert
-        (Files.File_System.Trash_Deletion_Date (Ada.Calendar.Time_Of (2024, 2, 3, 86_399.9)) =
+      Files_Suite.Support.Assert_Equal
+        (Files.File_System.Trash_Deletion_Date (Ada.Calendar.Time_Of (2024, 2, 3, 86_399.9)),
          "2024-02-03T23:59:59",
          "trash deletion date does not round up near midnight");
       --  On Windows the desktop trash is the Recycle Bin, which is always there:
@@ -113,21 +113,24 @@ separate (Files_Suite.Operations)
         (not Files.File_System.Trash_Is_Available,
          "trash availability rejects a regular file in the trash parent chain");
       Mutation := Files.File_System.Move_To_Trash_Preflight (Join (Root, "missing-for-blocked-trash.txt"));
-      Assert
-        (To_String (Mutation.Error_Key) = "error.trash.failed",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Mutation.Error_Key),
+         "error.trash.failed",
          "missing trash target still reports failed trash mutation");
       Mutation :=
         Files.File_System.Move_To_Trash_Preflight
           (Root & "/bad" & Character'Val (0) & "trash-target.txt");
       Assert (not Mutation.Success, "malformed trash target reports failed trash mutation");
-      Assert
-        (To_String (Mutation.Error_Key) = "error.trash.failed",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Mutation.Error_Key),
+         "error.trash.failed",
          "malformed trash target reports failed trash diagnostic");
       Write_File (Join (Root, "blocked-trash-target.txt"));
       Mutation := Files.File_System.Move_To_Trash_Preflight (Join (Root, "blocked-trash-target.txt"));
       Assert (not Mutation.Success, "trash preflight rejects blocked trash parent chain");
-      Assert
-        (To_String (Mutation.Error_Key) = "error.trash.unavailable",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Mutation.Error_Key),
+         "error.trash.unavailable",
          "blocked trash parent chain reports unavailable trash");
       Ada.Directories.Delete_File (Join (Root, "blocked-trash-parent"));
       Ada.Directories.Delete_File (Join (Root, "blocked-trash-target.txt"));
@@ -149,8 +152,9 @@ separate (Files_Suite.Operations)
       --  "/" is not a root on Windows; the drive is.
       Mutation := Files.File_System.Move_To_Trash_Preflight (Filesystem_Root);
       Assert (not Mutation.Success, "trash preflight rejects filesystem root");
-      Assert
-        (To_String (Mutation.Error_Key) = "error.trash.failed",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Mutation.Error_Key),
+         "error.trash.failed",
          "filesystem root trash preflight reports failed trash mutation");
       declare
          Prefix_Source : constant String := Join (Root, "trash-prefix-source");
@@ -161,8 +165,9 @@ separate (Files_Suite.Operations)
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
          Mutation := Files.File_System.Move_To_Trash_Preflight (Prefix_Source);
          Assert (Mutation.Success, "trash preflight accepts sibling paths sharing a prefix");
-         Assert
-           (To_String (Mutation.Error_Key) = "",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Mutation.Error_Key),
+            "",
             "trash prefix-sibling preflight has no diagnostic");
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
@@ -237,19 +242,23 @@ separate (Files_Suite.Operations)
          --  Evaluation never mutates, on any host.
          Assert (not Native_Result.Attempted, "native trash evaluation does not attempt mutation");
          Assert (not Native_Result.Completed, "native trash evaluation does not complete mutation");
-         Assert
-           (To_String (Native_Result.Binding_Unit) = "Hostkit.Trash",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Native_Result.Binding_Unit),
+            "Hostkit.Trash",
             "Windows native trash result records the unit that owns the binding");
          Assert (not Native_Result.Desktop_Standard, "Windows native trash is not a desktop-standard fallback");
          Assert (Native_Result.Uses_Recycle_Bin, "Windows native trash result records recycle-bin target");
-         Assert
-           (To_String (Native_Result.Adapter_Name) = "windows.recycle_bin",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Native_Result.Adapter_Name),
+            "windows.recycle_bin",
             "Windows native trash result records adapter name");
-         Assert
-           (To_String (Native_Result.Native_Api_Name) = "SHFileOperationW",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Native_Result.Native_Api_Name),
+            "SHFileOperationW",
             "Windows native trash result records the API it actually calls");
-         Assert
-           (To_String (Native_Result.Operation_Name) = "move_to_trash",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Native_Result.Operation_Name),
+            "move_to_trash",
             "native trash result records operation name");
          Assert (Native_Result.Preserves_Metadata, "native trash result records metadata-preservation intent");
          Assert
@@ -261,8 +270,9 @@ separate (Files_Suite.Operations)
          if Files.Platform.Current_API_Profile.Adapter
               = Files.File_System.Native_Adapter_Windows
          then
-            Assert
-              (To_String (Native_Result.Error_Key) = "",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Native_Result.Error_Key),
+               "",
                "on Windows a supported adapter evaluates without a diagnostic; key was "
                & To_String (Native_Result.Error_Key));
 
@@ -283,13 +293,15 @@ separate (Files_Suite.Operations)
               (Native_Execution.Native_Binding_Status
                  = Files.File_System.Native_API_Binding_Available,
                "on Windows execution preserves binding status");
-            Assert
-              (To_String (Native_Execution.Error_Key) = "error.trash.failed",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Native_Execution.Error_Key),
+               "error.trash.failed",
                "a refused move is reported as a failure, not as an absent adapter; key was "
                & To_String (Native_Execution.Error_Key));
          else
-            Assert
-              (To_String (Native_Result.Error_Key) = "error.trash.native_unavailable",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Native_Result.Error_Key),
+               "error.trash.native_unavailable",
                "off Windows the evaluation reports native-unavailable");
             Assert (not Native_Execution.Supported, "native trash execution reports unsupported adapter");
             Assert (not Native_Execution.Attempted, "native trash execution does not attempt unsupported adapter");
@@ -299,8 +311,9 @@ separate (Files_Suite.Operations)
             Assert
               (Native_Execution.Native_Binding_Status = Files.File_System.Native_API_Not_Target,
                "native trash execution preserves binding status");
-            Assert
-              (To_String (Native_Execution.Error_Key) = "error.trash.native_unavailable",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Native_Execution.Error_Key),
+               "error.trash.native_unavailable",
                "off Windows, native trash execution reports native-unavailable");
          end if;
       end;
@@ -326,8 +339,9 @@ separate (Files_Suite.Operations)
          else
             Assert (not Mutation.Success,
                     "off Windows the recycle-bin adapter cannot do it");
-            Assert
-              (To_String (Mutation.Error_Key) = "error.trash.native_unavailable",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Mutation.Error_Key),
+               "error.trash.native_unavailable",
                "and it fails as recoverable data, not an exception; key was "
                & To_String (Mutation.Error_Key));
          end if;
@@ -367,17 +381,20 @@ separate (Files_Suite.Operations)
          Assert
            (Native_Execution.Native_Binding_Status = Files.File_System.Native_API_Binding_Missing,
             "XDG trash execution reports no OS-specific native binding");
-         Assert
-           (To_String (Native_Execution.Binding_Unit) = "Files.File_System.Move_To_Trash",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Native_Execution.Binding_Unit),
+            "Files.File_System.Move_To_Trash",
             "XDG trash execution records binding unit");
          Assert
            (not Ada.Directories.Exists (Join (Root, "native-execute.txt")),
             "XDG trash execution moves source entry");
-         Assert
-           (To_String (Native_Execution.Adapter_Name) = "xdg.trash",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Native_Execution.Adapter_Name),
+            "xdg.trash",
             "XDG trash execution records adapter name");
-         Assert
-           (To_String (Native_Execution.Error_Key) = "",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Native_Execution.Error_Key),
+            "",
             "XDG trash execution has no error key");
       end;
       Write_File (Join (Root, "doomed.txt"));
@@ -385,11 +402,26 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "doomed.txt");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
-      Assert (Result.Command = Files.Commands.Delete_Selected_Items_Command, "Delete routes through command registry");
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "available trash moves selected item");
-      Assert (To_String (Result.Operation.Path) = Join (Root, "doomed.txt"), "delete operation reports target path");
-      Assert (To_String (Result.Operation.Error_Key) = "", "successful trash move has no error key");
-      Assert (Files.Model.Last_Error_Key (Model) = "", "successful trash move clears model error");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Delete_Selected_Items_Command,
+         "Delete routes through command registry");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "available trash moves selected item");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Operation.Path),
+         Join (Root, "doomed.txt"),
+         "delete operation reports target path");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Operation.Error_Key),
+         "",
+         "successful trash move has no error key");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
+         "successful trash move clears model error");
       Assert (not Ada.Directories.Exists (Join (Root, "doomed.txt")), "trash move removes file from source");
       Assert (Ada.Directories.Exists (Join (Trash_File, "doomed.txt")), "trash move stores file under XDG trash");
       Assert
@@ -418,11 +450,15 @@ separate (Files_Suite.Operations)
                "trash metadata sidecar is owner-only");
          end;
       end if;
-      Assert (Files.Model.Selected_Count (Model) = 0, "successful delete reconciles selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         0,
+         "successful delete reconciles selection");
       Mutation := Files.File_System.Move_To_Trash (Join (Trash_File, "doomed.txt"));
       Assert (not Mutation.Success, "trash preflight rejects items already inside trash");
-      Assert
-        (To_String (Mutation.Error_Key) = "error.trash.failed",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Mutation.Error_Key),
+         "error.trash.failed",
          "already-trashed item reports trash failure");
       Assert
         (Ada.Directories.Exists (Join (Trash_File, "doomed.txt")),
@@ -430,10 +466,16 @@ separate (Files_Suite.Operations)
 
       Write_File (Join (Root, "doomed.txt"), "again");
       Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "refresh loads collision target");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "refresh loads collision target");
       Select_Name (Model, "doomed.txt");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "second same-name delete succeeds");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "second same-name delete succeeds");
       Assert (Ada.Directories.Exists (Join (Trash_File, "doomed.txt.2")), "trash collision chooses suffix");
       Assert
         (Ada.Directories.Exists (Join (Trash_Info, "doomed.txt.2.trashinfo")),
@@ -455,21 +497,34 @@ separate (Files_Suite.Operations)
 
       Write_File (Join (Root, "doomed2.txt"));
       Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "refresh loads second delete target");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "refresh loads second delete target");
       Select_Name (Model, "doomed2.txt");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
-      Assert
-        (Result.Command = Files.Commands.Delete_Selected_Items_Command,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Delete_Selected_Items_Command,
          "Backspace routes through same delete command");
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "Backspace delete uses trash operation");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "Backspace delete uses trash operation");
       Assert (Ada.Directories.Exists (Join (Trash_File, "doomed2.txt")), "Backspace moves file to trash");
 
       Write_File (Special_Path);
       Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "refresh loads encoded trash target");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "refresh loads encoded trash target");
       Select_Name (Model, "space % file.txt");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "encoded trash target moves to trash");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "encoded trash target moves to trash");
       --  What this is about is the encoding of the awkward characters, and that is
       --  host-independent. The absolute path in front of them is not: it was spelled
       --  out here as Full_Name (Root) & "/...", which is only ever true on POSIX. A
@@ -489,12 +544,18 @@ separate (Files_Suite.Operations)
       Write_File (Join (Root, "multi-a.txt"));
       Write_File (Join (Root, "multi-b.txt"));
       Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "refresh loads multi-delete targets");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "refresh loads multi-delete targets");
       Files.Model.Set_Filter (Model, "multi-");
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "multi-selection delete succeeds");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "multi-selection delete succeeds");
       Assert (Ada.Directories.Exists (Join (Trash_File, "multi-a.txt")), "multi-delete moves first file");
       Assert (Ada.Directories.Exists (Join (Trash_File, "multi-b.txt")), "multi-delete moves second file");
       Assert (not Ada.Directories.Exists (Join (Root, "multi-a.txt")), "multi-delete removes first source file");
@@ -503,15 +564,22 @@ separate (Files_Suite.Operations)
       Write_File (Join (Root, "partial-a.txt"));
       Write_File (Join (Root, "partial-b.txt"));
       Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "refresh loads partial-delete targets");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "refresh loads partial-delete targets");
       Files.Model.Set_Filter (Model, "partial-");
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Ada.Directories.Delete_File (Join (Root, "partial-b.txt"));
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
-      Assert (Result.Operation.Status = Files.Operations.Operation_Failed, "partial multi-delete reports failure");
-      Assert
-        (To_String (Result.Operation.Error_Key) = "error.trash.failed",
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Failed,
+         "partial multi-delete reports failure");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Operation.Error_Key),
+         "error.trash.failed",
          "partial multi-delete reports trash failure");
       Assert
         (not Ada.Directories.Exists (Join (Trash_File, "partial-a.txt")),
@@ -519,15 +587,22 @@ separate (Files_Suite.Operations)
       Assert
         (Ada.Directories.Exists (Join (Root, "partial-a.txt")),
          "partial multi-delete leaves earlier source files in place");
-      Assert (Files.Model.Item_Count (Model) = 1, "partial multi-delete reloads stale directory model");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.trash.failed", "partial multi-delete keeps error state");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         1,
+         "partial multi-delete reloads stale directory model");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.trash.failed",
+         "partial multi-delete keeps error state");
 
       Ada.Directories.Create_Path (Nested_Trash_Source);
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Nested_Trash_Source, "xdg-data"));
       Mutation := Files.File_System.Move_To_Trash (Nested_Trash_Source);
       Assert (not Mutation.Success, "trash move into a source subdirectory fails");
-      Assert
-        (To_String (Mutation.Error_Key) = "error.trash.failed",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Mutation.Error_Key),
+         "error.trash.failed",
          "nested trash move reports trash failure");
       Assert (Ada.Directories.Exists (Nested_Trash_Source), "failed nested trash keeps source directory");
       Assert
@@ -556,11 +631,13 @@ separate (Files_Suite.Operations)
          Files.Model.Toggle_Visible_Selection (Guard_Model, 2);
 
          Guard_Result := Files.Controller.Handle_Key (Guard_Model, Guard_Settings, Guikit.Input.Key_Delete);
-         Assert
-           (Guard_Result.Operation.Status = Files.Operations.Operation_Failed,
+         Files_Suite.Support.Assert_Equal
+           (Guard_Result.Operation.Status,
+            Files.Operations.Operation_Failed,
             "multi-delete preflights nested trash targets");
-         Assert
-           (To_String (Guard_Result.Operation.Error_Key) = "error.trash.failed",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Guard_Result.Operation.Error_Key),
+            "error.trash.failed",
             "multi-delete nested trash preflight reports trash failure");
          Assert
            (Ada.Directories.Exists (First_File),
@@ -569,8 +646,9 @@ separate (Files_Suite.Operations)
          Assert
            (not Ada.Directories.Exists (Join (Join (Guard_Trash, "files"), "guard-preflight-a.txt")),
             "multi-delete nested trash preflight does not create a trash target for earlier files");
-         Assert
-           (Files.Model.Last_Error_Key (Guard_Model) = "error.trash.failed",
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Last_Error_Key (Guard_Model),
+            "error.trash.failed",
             "multi-delete nested trash preflight preserves model error");
       end;
 

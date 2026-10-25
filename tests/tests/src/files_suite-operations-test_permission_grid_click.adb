@@ -59,10 +59,14 @@ separate (Files_Suite.Operations)
            Files_Suite.Support.Click_Action (Snapshot, Cell_X, Cell_Y, Width, Height);
          Result : Files.Interaction.Interaction_Result;
       begin
-         Assert
-           (Action.Kind = Files.Events.Permission_Toggle_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.Permission_Toggle_Input_Action,
             "clicking a permission cell yields a permission-toggle action");
-         Assert (Action.Item_Index = Target_Bit, "the toggle action carries the clicked cell bit");
+         Files_Suite.Support.Assert_Equal
+           (Action.Item_Index,
+            Target_Bit,
+            "the toggle action carries the clicked cell bit");
 
          --  A delayed click from a pane that has since closed must not chmod
          --  whichever item happens to be selected when it is reduced.
@@ -75,8 +79,9 @@ separate (Files_Suite.Operations)
             Current_Font_Size => 16,
             Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Result);
-         Assert
-           (Mode_Of (Sub) = Before,
+         Files_Suite.Support.Assert_Equal
+           (Mode_Of (Sub),
+            Before,
             "a stale permission action is inert after the info pane closes");
 
          Files.Model.Toggle_Info_Pane (Model);
@@ -91,8 +96,9 @@ separate (Files_Suite.Operations)
             Current_Font_Size => 16,
             Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Result);
-         Assert
-           (Mode_Of (Sub) = Before,
+         Files_Suite.Support.Assert_Equal
+           (Mode_Of (Sub),
+            Before,
             "an invalid permission-bit payload does not change the mode");
 
          Files.Interaction.Apply_Input_Action

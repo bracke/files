@@ -58,7 +58,10 @@ separate (Files_Suite.Operations)
             Files.Model.Set_Background_Transfers (Model, Background);
             Select_Name (Model, "live-source");
             Step := Files.Operations.Set_Ownership_For (Model, Uid, Gid, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success, "change ownership with a stale cached owner");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "change ownership with a stale cached owner");
             Assert
               (Ada.Strings.Fixed.Index
                  (To_String (Files.Model.Undo_To_Paths (Model).First_Element),
@@ -68,8 +71,9 @@ separate (Files_Suite.Operations)
                     "ownership history records the live ids rather than the stale item");
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert
-              (Step.Status = Files.Operations.Operation_Success,
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
                "Undo applies the live ownership snapshot: status="
                & Files.Operations.Operation_Status'Image (Step.Status)
                & " uid=" & Natural'Image (Uid)

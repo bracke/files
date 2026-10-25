@@ -78,36 +78,89 @@ separate (Files_Suite.Operations)
       Files.Model.Set_Error (Model, "error.open_action.missing");
 
       Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
-      Assert (Result.Status = Files.Operations.Operation_Success, "file open action can be prepared without spawn");
-      Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "prepared action reports selected file path");
-      Assert (Files.Model.Last_Error_Key (Model) = "", "prepared action clears stale error state");
-      Assert (To_String (Result.Action.Executable) = No_Op_Executable, "prepared action uses configured executable");
-      Assert (To_String (Result.Action_Executable) = No_Op_Executable, "prepared result exposes executable text");
-      Assert (Result.Action_Arguments = 3, "prepared result exposes argument count");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
+         "file open action can be prepared without spawn");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Path),
+         Join (Root, "Alpha.txt"),
+         "prepared action reports selected file path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
+         "prepared action clears stale error state");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Action.Executable),
+         No_Op_Executable,
+         "prepared action uses configured executable");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Action_Executable),
+         No_Op_Executable,
+         "prepared result exposes executable text");
+      Files_Suite.Support.Assert_Equal (Result.Action_Arguments, 3, "prepared result exposes argument count");
       Assert (not Result.Execution_Attempted, "prepared action does not execute");
       Assert (not Result.Action.Use_Shell, "prepared action preserves non-shell execution");
-      Assert (Natural (Result.Action.Arguments.Length) = 3, "prepared action preserves argument vector");
-      Assert (To_String (Result.Action.Arguments.Element (1)) = "--readonly", "literal argument is preserved");
-      Assert (To_String (Result.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"), "path placeholder expands");
-      Assert (To_String (Result.Action.Arguments.Element (3)) = "Alpha.txt", "name placeholder expands");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Result.Action.Arguments.Length),
+         3,
+         "prepared action preserves argument vector");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Action.Arguments.Element (1)),
+         "--readonly",
+         "literal argument is preserved");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Action.Arguments.Element (2)),
+         Join (Root, "Alpha.txt"),
+         "path placeholder expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Action.Arguments.Element (3)),
+         "Alpha.txt",
+         "name placeholder expands");
 
       Result := Files.Operations.Open_Selected (Model, Settings, Modifiers);
-      Assert (Result.Status = Files.Operations.Operation_Action_Executed,
-              "file open executes an action; got "
-              & Files.Operations.Operation_Status'Image (Result.Status)
-              & " with executable " & To_String (Result.Action_Executable));
-      Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "file open returns selected file path");
-      Assert (Files.Model.Last_Error_Key (Model) = "", "executed open action clears stale error state");
-      Assert (To_String (Result.Action.Executable) = No_Op_Executable, "executed action uses configured executable");
-      Assert (To_String (Result.Action_Executable) = No_Op_Executable, "executed result exposes executable text");
-      Assert (Result.Action_Arguments = 3, "executed result exposes argument count");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Action_Executed,
+         "file open executes an action; got "
+         & Files.Operations.Operation_Status'Image (Result.Status)
+         & " with executable " & To_String (Result.Action_Executable));
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Path),
+         Join (Root, "Alpha.txt"),
+         "file open returns selected file path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
+         "executed open action clears stale error state");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Action.Executable),
+         No_Op_Executable,
+         "executed action uses configured executable");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Action_Executable),
+         No_Op_Executable,
+         "executed result exposes executable text");
+      Files_Suite.Support.Assert_Equal (Result.Action_Arguments, 3, "executed result exposes argument count");
       Assert (Result.Execution_Attempted, "executed result records process attempt");
       Assert (Result.Executable_Found, "executed result records executable discovery");
       Assert (not Result.Action.Use_Shell, "executed non-shell action does not request shell execution");
-      Assert (Natural (Result.Action.Arguments.Length) = 3, "executed action preserves argument vector");
-      Assert (To_String (Result.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"), "path placeholder expands");
-      Assert (To_String (Result.Action.Arguments.Element (3)) = "Alpha.txt", "name placeholder expands");
-      Assert (Files.Model.Current_Path (Model) = Root, "opening a non-directory does not navigate");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Result.Action.Arguments.Length),
+         3,
+         "executed action preserves argument vector");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Action.Arguments.Element (2)),
+         Join (Root, "Alpha.txt"),
+         "path placeholder expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Action.Arguments.Element (3)),
+         "Alpha.txt",
+         "name placeholder expands");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
+         "opening a non-directory does not navigate");
       declare
          Lifecycle : constant Files.Operations.Open_Action_Lifecycle :=
            Files.Operations.Open_Action_Lifecycle_Of (Result);
@@ -117,8 +170,11 @@ separate (Files_Suite.Operations)
          Assert
            (Lifecycle.State = Files.Operations.Open_Action_Spawned,
             "open-action lifecycle records a spawned action");
-         Assert (To_String (Lifecycle.Executable) = No_Op_Executable, "lifecycle records executable");
-         Assert (Lifecycle.Argument_Count = 3, "lifecycle records argument count");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lifecycle.Executable),
+            No_Op_Executable,
+            "lifecycle records executable");
+         Files_Suite.Support.Assert_Equal (Lifecycle.Argument_Count, 3, "lifecycle records argument count");
          Assert (not Lifecycle.Exit_Status_Known, "lifecycle records no exit status for a detached launch");
       end;
 
@@ -127,9 +183,18 @@ separate (Files_Suite.Operations)
          "text/plain",
          Files.Settings.Make_Action (No_Op_Executable, Files.Settings.String_Vectors.Empty_Vector));
       Result := Files.Operations.Open_Selected (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Action_Executed, "zero-argument open action executes");
-      Assert (To_String (Result.Action_Executable) = No_Op_Executable, "zero-argument action exposes executable");
-      Assert (Result.Action_Arguments = 0, "zero-argument action exposes empty argument vector");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Action_Executed,
+         "zero-argument open action executes");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Action_Executable),
+         No_Op_Executable,
+         "zero-argument action exposes executable");
+      Files_Suite.Support.Assert_Equal
+        (Result.Action_Arguments,
+         0,
+         "zero-argument action exposes empty argument vector");
       Assert (Result.Execution_Attempted, "zero-argument action records process attempt");
       Assert (Result.Executable_Found, "zero-argument action records executable discovery");
       Assert (not Result.Exit_Status_Known, "zero-argument detached action records no exit status");
@@ -138,32 +203,54 @@ separate (Files_Suite.Operations)
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Files.Model.Set_Error (Model, "error.open_action.execution");
       Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
-      Assert (Result.Status = Files.Operations.Operation_Success, "multi-file open action can be prepared");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
+         "multi-file open action can be prepared");
       Assert (not Result.Execution_Attempted, "multi-file open preparation does not execute actions");
-      Assert
-        (To_String (Result.Path) = Join (Root, "Alpha.txt"),
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Path),
+         Join (Root, "Alpha.txt"),
          "multi-file open preparation reports first selected path");
-      Assert
-        (To_String (Result.Action_Executable) = No_Op_Executable,
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Action_Executable),
+         No_Op_Executable,
          "multi-file open preparation exposes first executable");
-      Assert (Files.Model.Last_Error_Key (Model) = "", "multi-file open preparation clears stale error state");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
+         "multi-file open preparation clears stale error state");
       Result := Files.Operations.Open_Selected (Model, Settings, Modifiers);
-      Assert (Result.Status = Files.Operations.Operation_Action_Executed, "multi-file open executes actions");
-      Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "multi-file open reports first selected path");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Action_Executed,
+         "multi-file open executes actions");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Path),
+         Join (Root, "Alpha.txt"),
+         "multi-file open reports first selected path");
       Assert (Result.Execution_Attempted, "multi-file open records process attempts");
       Assert (Result.Executable_Found, "multi-file open records executable discovery");
-      Assert
-           (To_String (Result.Action_Executable) = No_Op_Executable,
-            "multi-file open exposes first action executable");
-      Assert (Result.Action_Arguments = 3, "multi-file open exposes first action argument count");
-      Assert
-        (To_String (Result.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"),
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Action_Executable),
+         No_Op_Executable,
+         "multi-file open exposes first action executable");
+      Files_Suite.Support.Assert_Equal
+        (Result.Action_Arguments,
+         3,
+         "multi-file open exposes first action argument count");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Action.Arguments.Element (2)),
+         Join (Root, "Alpha.txt"),
          "multi-file open exposes first expanded action path");
       Assert
         (Files.Operations.Open_Action_Lifecycle_Of (Result).State =
          Files.Operations.Open_Action_Spawned,
          "multi-file open lifecycle records a spawned action");
-      Assert (Files.Model.Last_Error_Key (Model) = "", "multi-file open clears stale error state");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
+         "multi-file open clears stale error state");
       Files.Model.Select_Visible (Model, 1);
 
       declare
@@ -195,18 +282,21 @@ separate (Files_Suite.Operations)
          Files.Model.Toggle_Visible_Selection (Preflight_Model, 3);
          Preflight_Result :=
            Files.Operations.Prepare_Open_Selected_Action (Preflight_Model, Preflight_Settings);
-         Assert
-           (Preflight_Result.Status = Files.Operations.Operation_Missing_Open_Action,
+         Files_Suite.Support.Assert_Equal
+           (Preflight_Result.Status,
+            Files.Operations.Operation_Missing_Open_Action,
             "multi-file open preparation preflights all actions");
          Assert
            (not Preflight_Result.Execution_Attempted,
             "multi-file open preparation failure records no process attempt");
-         Assert
-           (To_String (Preflight_Result.Path) = Join (Root, "Gamma.md"),
+         Files_Suite.Support.Assert_Equal
+           (To_String (Preflight_Result.Path),
+            Join (Root, "Gamma.md"),
             "multi-file open preparation failure reports missing-action path");
          Preflight_Result := Files.Operations.Open_Selected (Preflight_Model, Preflight_Settings);
-         Assert
-           (Preflight_Result.Status = Files.Operations.Operation_Missing_Open_Action,
+         Files_Suite.Support.Assert_Equal
+           (Preflight_Result.Status,
+            Files.Operations.Operation_Missing_Open_Action,
             "multi-file open preflights all actions before spawning");
          Assert
            (not Ada.Directories.Exists (Marker_Path),
@@ -243,11 +333,13 @@ separate (Files_Suite.Operations)
          Files.Model.Select_Visible (Preflight_Model, 1);
          Files.Model.Toggle_Visible_Selection (Preflight_Model, 3);
          Preflight_Result := Files.Operations.Open_Selected (Preflight_Model, Preflight_Settings);
-         Assert
-           (Preflight_Result.Status = Files.Operations.Operation_Failed,
+         Files_Suite.Support.Assert_Equal
+           (Preflight_Result.Status,
+            Files.Operations.Operation_Failed,
             "multi-file open preflights missing executables before spawning");
-         Assert
-           (To_String (Preflight_Result.Error_Key) = "error.open_action.executable_missing",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Preflight_Result.Error_Key),
+            "error.open_action.executable_missing",
             "multi-file executable preflight reports executable diagnostic");
          Assert
            (not Preflight_Result.Execution_Attempted,
@@ -277,14 +369,17 @@ separate (Files_Suite.Operations)
          Files.Model.Select_Visible (Detached_Model, 1);
          Files.Model.Toggle_Visible_Selection (Detached_Model, 3);
          Detached_Result := Files.Operations.Open_Selected (Detached_Model, Detached_Settings);
-         Assert
-           (Detached_Result.Status = Files.Operations.Operation_Action_Executed,
+         Files_Suite.Support.Assert_Equal
+           (Detached_Result.Status,
+            Files.Operations.Operation_Action_Executed,
             "multi-file detached open succeeds without surfacing app exit codes");
-         Assert
-           (To_String (Detached_Result.Path) = Join (Root, "Alpha.txt"),
+         Files_Suite.Support.Assert_Equal
+           (To_String (Detached_Result.Path),
+            Join (Root, "Alpha.txt"),
             "multi-file detached open reports first selected path");
-         Assert
-           (To_String (Detached_Result.Action_Executable) = No_Op_Executable,
+         Files_Suite.Support.Assert_Equal
+           (To_String (Detached_Result.Action_Executable),
+            No_Op_Executable,
             "multi-file detached open exposes first action executable");
          Assert
            (Detached_Result.Execution_Attempted,
@@ -298,8 +393,9 @@ separate (Files_Suite.Operations)
          Assert
            (not Detached_Result.Exit_Status_Known,
             "a detached open has no exit status to report");
-         Assert
-           (Files.Model.Last_Error_Key (Detached_Model) = "",
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Last_Error_Key (Detached_Model),
+            "",
             "multi-file detached open clears stale error state");
       end;
 
@@ -333,25 +429,45 @@ separate (Files_Suite.Operations)
          if Hostkit.Host.Current = Hostkit.Host.Windows then
             --  The shell family follows the host, so a SHELL left over from
             --  MSYS2 or Cygwin does not switch Windows away from cmd.
-            Assert (Files.Operations.Shell_Executable = "cmd.exe", "Windows without COMSPEC falls back to cmd");
-            Assert (Files.Operations.Shell_Command_Option = "/C", "the cmd fallback uses the Windows command option");
+            Files_Suite.Support.Assert_Equal
+              (Files.Operations.Shell_Executable,
+               "cmd.exe",
+               "Windows without COMSPEC falls back to cmd");
+            Files_Suite.Support.Assert_Equal
+              (Files.Operations.Shell_Command_Option,
+               "/C",
+               "the cmd fallback uses the Windows command option");
          else
-            Assert (Files.Operations.Shell_Executable = "/bin/custom-sh", "explicit shell uses SHELL fallback");
-            Assert (Files.Operations.Shell_Command_Option = "-c", "SHELL fallback uses POSIX command option");
+            Files_Suite.Support.Assert_Equal
+              (Files.Operations.Shell_Executable,
+               "/bin/custom-sh",
+               "explicit shell uses SHELL fallback");
+            Files_Suite.Support.Assert_Equal
+              (Files.Operations.Shell_Command_Option,
+               "-c",
+               "SHELL fallback uses POSIX command option");
          end if;
          Ada.Environment_Variables.Set ("COMSPEC", "C:\Windows\System32\cmd.exe");
          if Hostkit.Host.Current = Hostkit.Host.Windows then
-            Assert
-              (Files.Operations.Shell_Executable = "C:\Windows\System32\cmd.exe",
+            Files_Suite.Support.Assert_Equal
+              (Files.Operations.Shell_Executable,
+               "C:\Windows\System32\cmd.exe",
                "explicit shell uses COMSPEC on Windows");
-            Assert (Files.Operations.Shell_Command_Option = "/C", "COMSPEC shell uses Windows command option");
+            Files_Suite.Support.Assert_Equal
+              (Files.Operations.Shell_Command_Option,
+               "/C",
+               "COMSPEC shell uses Windows command option");
          else
             --  COMSPEC is set on Linux machines that run Wine; it must not
             --  switch a POSIX host to cmd and its quoting.
-            Assert
-              (Files.Operations.Shell_Executable = "/bin/custom-sh",
+            Files_Suite.Support.Assert_Equal
+              (Files.Operations.Shell_Executable,
+               "/bin/custom-sh",
                "a COMSPEC in a POSIX environment does not replace the POSIX shell");
-            Assert (Files.Operations.Shell_Command_Option = "-c", "a POSIX host keeps the POSIX command option");
+            Files_Suite.Support.Assert_Equal
+              (Files.Operations.Shell_Command_Option,
+               "-c",
+               "a POSIX host keeps the POSIX command option");
          end if;
          Restore_Shell_Environment;
       exception
@@ -402,8 +518,9 @@ separate (Files_Suite.Operations)
             Files.Settings.Make_Action ("cd", Files.Settings.String_Vectors.Empty_Vector, Use_Shell => True));
          Files.Model.Select_Visible (Missing_Shell_Model, 1);
          Missing_Shell_Action := Files.Operations.Open_Selected (Missing_Shell_Model, Missing_Shell_Settings);
-         Assert
-           (Missing_Shell_Action.Status = Files.Operations.Operation_Failed,
+         Files_Suite.Support.Assert_Equal
+           (Missing_Shell_Action.Status,
+            Files.Operations.Operation_Failed,
             "explicit shell action fails preflight when shell executable is missing");
          Assert
            (not Missing_Shell_Action.Execution_Attempted,
@@ -411,11 +528,13 @@ separate (Files_Suite.Operations)
          Assert
            (not Missing_Shell_Action.Executable_Found,
             "missing shell executable records failed executable lookup");
-         Assert
-           (To_String (Missing_Shell_Action.Error_Key) = "error.open_action.executable_missing",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Missing_Shell_Action.Error_Key),
+            "error.open_action.executable_missing",
             "missing shell executable reports executable diagnostic");
-         Assert
-           (Files.Model.Last_Error_Key (Missing_Shell_Model) = "error.open_action.executable_missing",
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Last_Error_Key (Missing_Shell_Model),
+            "error.open_action.executable_missing",
             "missing shell executable records model diagnostic");
          Restore_Shell_Environment;
       exception
@@ -427,20 +546,50 @@ separate (Files_Suite.Operations)
       Files.Model.Select_Visible (Model, 2);
       Files.Model.Focus_Filter_Input (Model);
       Routed := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 1);
-      Assert (Routed.Status = Files.Controller.Controller_Selection_Moved, "click selects item without opening");
-      Assert (Routed.Command = Files.Commands.No_Command, "selection click does not execute a command");
-      Assert (Files.Model.Selected_Index (Model) = 1, "click selection updates selected visible index");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "item click clears text input focus");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "click selects item without opening");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Command,
+         Files.Commands.No_Command,
+         "selection click does not execute a command");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         1,
+         "click selection updates selected visible index");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "item click clears text input focus");
       Routed := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Assert (Routed.Status = Files.Controller.Controller_Selection_Moved, "arrow key moves after item click");
-      Assert (Files.Model.Selected_Index (Model) = 2, "arrow key uses main view after item click");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "arrow key moves after item click");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         2,
+         "arrow key uses main view after item click");
       Files.Model.Focus_Path_Input (Model);
       Files.Controller.Replace_Focused_Text (Model, "/tmp/typed-path");
       Routed := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 0);
-      Assert (Routed.Status = Files.Controller.Controller_Ignored, "outside item click is ignored");
-      Assert (Files.Model.Selected_Index (Model) = 2, "outside item click preserves selection");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "outside item click preserves focus");
-      Assert (Files.Model.Path_Input_Text (Model) = "/tmp/typed-path", "outside item click preserves edited text");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Status,
+         Files.Controller.Controller_Ignored,
+         "outside item click is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         2,
+         "outside item click preserves selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Path_Input,
+         "outside item click preserves focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Path_Input_Text (Model),
+         "/tmp/typed-path",
+         "outside item click preserves edited text");
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Files.Model.Select_Visible (Model, 1);
 
@@ -459,15 +608,20 @@ separate (Files_Suite.Operations)
          "text/plain",
          Files.Settings.Make_Action (No_Op_Executable, Shell_Arguments, True));
       Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Success, "unmodified action fallback can be prepared");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
+         "unmodified action fallback can be prepared");
       Assert (Result.Action.Use_Shell, "prepared fallback action preserves explicit shell execution");
       Assert (Result.Action_Uses_Shell, "prepared result exposes explicit shell flag");
-      Assert
-        (To_String (Result.Action.Arguments.Element (1)) = To_String (Injected_Argument),
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Action.Arguments.Element (1)),
+         To_String (Injected_Argument),
          "explicit shell action keeps the separator argument as one vector value");
       Result := Files.Operations.Open_Selected (Model, Settings);
-      Assert
-        (Result.Status = Files.Operations.Operation_Action_Executed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Action_Executed,
          "file open quotes explicit shell arguments before execution");
       Assert (Result.Action.Use_Shell, "explicit shell action remains explicit after execution");
       Assert (Result.Action_Uses_Shell, "executed shell result exposes explicit shell flag");
@@ -483,8 +637,9 @@ separate (Files_Suite.Operations)
            Files.Operations.Execute_Open_Action (Result.Action, Exit_Status);
       begin
          Assert (Ran, "the quoted shell action runs to completion when awaited");
-         Assert
-           (Exit_Status = 0,
+         Files_Suite.Support.Assert_Equal
+           (Exit_Status,
+            0,
             "the separator stays inside one argument rather than running as a command; exit was "
             & Exit_Status'Image);
       end;
@@ -494,8 +649,9 @@ separate (Files_Suite.Operations)
          "text/plain",
          Files.Settings.Make_Action ("cd", Files.Settings.String_Vectors.Empty_Vector, True));
       Result := Files.Operations.Open_Selected (Model, Settings);
-      Assert
-        (Result.Status = Files.Operations.Operation_Action_Executed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Action_Executed,
          "explicit shell action can execute shell builtins");
       Assert (Result.Action.Use_Shell, "shell builtin action preserves explicit shell execution");
       Assert (Result.Execution_Attempted, "shell builtin action records shell execution attempt");
@@ -515,8 +671,9 @@ separate (Files_Suite.Operations)
       --  That was true before as well, but for a worse reason: the backgrounding
       --  wrapper shell exited zero and we reported *that*. Now nothing is reported.
       Result := Files.Operations.Open_Selected (Model, Settings);
-      Assert
-        (Result.Status = Files.Operations.Operation_Action_Executed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Action_Executed,
          "detached explicit shell builtin launches fire-and-forget");
       Assert
         (Result.Execution_Attempted,
@@ -527,8 +684,9 @@ separate (Files_Suite.Operations)
       Assert
         (not Result.Exit_Status_Known,
          "a detached launch does not surface the command's own exit code");
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
          "detached explicit shell builtin clears stale error state");
 
       Files.Settings.Add_Open_Action
@@ -536,8 +694,9 @@ separate (Files_Suite.Operations)
             "text/plain",
             Files.Settings.Make_Action (Failing_Executable, Arguments));
       Result := Files.Operations.Open_Selected (Model, Settings);
-      Assert
-        (Result.Status = Files.Operations.Operation_Action_Executed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Action_Executed,
          "detached open action launches without surfacing app exit codes");
       Assert (Result.Execution_Attempted, "detached process result records execution attempt");
       Assert (Result.Executable_Found, "detached process result records executable discovery");
@@ -553,8 +712,9 @@ separate (Files_Suite.Operations)
       Assert
         (not Files.Operations.Open_Action_Lifecycle_Of (Result).Exit_Status_Known,
          "detached process lifecycle exposes no exit status");
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
          "detached open action clears localized error key");
 
       Files.Settings.Add_Open_Action
@@ -562,18 +722,23 @@ separate (Files_Suite.Operations)
          "text/plain",
          Files.Settings.Make_Action ("/tmp/files_missing_open_action_executable", Arguments));
       Result := Files.Operations.Open_Selected (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Failed, "missing open executable is represented");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Failed,
+         "missing open executable is represented");
       Assert (not Result.Execution_Attempted, "missing executable result does not attempt execution");
       Assert (not Result.Executable_Found, "missing executable result records failed lookup");
       Assert
         (Files.Operations.Open_Action_Lifecycle_Of (Result).State =
          Files.Operations.Open_Action_Preflight_Failed,
          "missing executable lifecycle records preflight failure");
-      Assert
-        (To_String (Result.Error_Key) = "error.open_action.executable_missing",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Error_Key),
+         "error.open_action.executable_missing",
          "missing open executable returns a specific diagnostic key");
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "error.open_action.executable_missing",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.open_action.executable_missing",
          "missing open executable stores specific diagnostic key");
 
       Files.Settings.Add_Open_Action
@@ -581,14 +746,19 @@ separate (Files_Suite.Operations)
          "text/plain",
          Files.Settings.Make_Action (Root, Arguments));
       Result := Files.Operations.Open_Selected (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Failed, "directory open executable is represented");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Failed,
+         "directory open executable is represented");
       Assert (not Result.Execution_Attempted, "directory executable result does not attempt execution");
       Assert (not Result.Executable_Found, "directory executable result records failed lookup");
-      Assert
-        (To_String (Result.Error_Key) = "error.open_action.executable_missing",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Error_Key),
+         "error.open_action.executable_missing",
          "directory executable returns the missing executable diagnostic key");
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "error.open_action.executable_missing",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.open_action.executable_missing",
          "directory executable stores the missing executable diagnostic key");
 
       declare
@@ -603,10 +773,14 @@ separate (Files_Suite.Operations)
          Assert
            (not Lookup.Found,
             "settings helper rejects embedded placeholders before operation preparation");
-         Assert
-           (To_String (Lookup.Error_Key) = "error.open_action.missing",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Error_Key),
+            "error.open_action.missing",
             "rejected embedded-placeholder action is absent from lookup");
-         Assert (Files.Model.Current_Path (Model) = Root, "unsafe open action does not navigate");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Current_Path (Model),
+            Root,
+            "unsafe open action does not navigate");
 
          Files.Settings.Add_Open_Action
            (Settings,
@@ -616,8 +790,9 @@ separate (Files_Suite.Operations)
          Assert
            (not Lookup.Found,
             "settings helper rejects executable placeholders before operation preparation");
-         Assert
-           (To_String (Lookup.Error_Key) = "error.open_action.missing",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Error_Key),
+            "error.open_action.missing",
             "rejected executable-placeholder action is absent from lookup");
       end;
 
@@ -627,27 +802,40 @@ separate (Files_Suite.Operations)
          "text/plain+control",
          Files.Settings.Make_Action (No_Op_Executable, Arguments));
       Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
-      Assert (Result.Status = Files.Operations.Operation_Success, "modifier-specific action can be prepared");
-      Assert
-        (To_String (Result.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"),
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
+         "modifier-specific action can be prepared");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Action.Arguments.Element (2)),
+         Join (Root, "Alpha.txt"),
          "prepared modifier-specific action expands path");
       Routed := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return, Modifiers);
-      Assert (Routed.Command = Files.Commands.Open_Selected_Items_Command, "Return routes file open command");
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Action_Executed,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Command,
+         Files.Commands.Open_Selected_Items_Command,
+         "Return routes file open command");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Action_Executed,
          "Return executes configured open action");
-      Assert
-        (To_String (Routed.Operation.Action.Arguments.Element (2)) = Join (Root, "Alpha.txt"),
+      Files_Suite.Support.Assert_Equal
+        (To_String (Routed.Operation.Action.Arguments.Element (2)),
+         Join (Root, "Alpha.txt"),
          "Return open preserves modifier-specific action lookup");
-      Assert (Files.Model.Last_Error_Key (Model) = "", "Return open clears stale error state");
+      Files_Suite.Support.Assert_Equal (Files.Model.Last_Error_Key (Model), "", "Return open clears stale error state");
 
       Files.Model.Select_Visible (Model, 2);
       Routed :=
         Files.Controller.Handle_Item_Click
           (Model, Settings, Visible_Index => 1, Activate => True, Modifiers => Modifiers);
-      Assert (Routed.Command = Files.Commands.Open_Selected_Items_Command, "double-click file routes open command");
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Action_Executed,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Command,
+         Files.Commands.Open_Selected_Items_Command,
+         "double-click file routes open command");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Action_Executed,
          "double-click file executes configured action");
-      Assert (Files.Model.Selected_Index (Model) = 1, "double-click selects activated file");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 1, "double-click selects activated file");
    end Test_Open_Selected_File_Prepares_Action;

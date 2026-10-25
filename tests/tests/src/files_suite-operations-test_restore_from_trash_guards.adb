@@ -50,8 +50,9 @@ separate (Files_Suite.Operations)
          Write_File (Source_Path, "a different file now lives here");
          Mutation := Files.File_System.Restore_From_Trash (Trashed_Path);
          Assert (not Mutation.Success, "restore refuses when the original path is occupied");
-         Assert
-           (To_String (Mutation.Error_Key) = "error.trash.restore_exists",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Mutation.Error_Key),
+            "error.trash.restore_exists",
             "restore-exists refusal reports the localized diagnostic");
          Assert
            (Project_Tools.Files.File_Contains (Source_Path, "a different file now lives here"),
@@ -75,8 +76,9 @@ separate (Files_Suite.Operations)
          Project_Tools.Files.Delete_Tree (Sub_Dir);
          Mutation := Files.File_System.Restore_From_Trash (Trashed_Path);
          Assert (not Mutation.Success, "restore refuses when the original parent is gone");
-         Assert
-           (To_String (Mutation.Error_Key) = "error.trash.restore_parent_missing",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Mutation.Error_Key),
+            "error.trash.restore_parent_missing",
             "restore-parent-missing refusal reports the localized diagnostic");
          Assert
            (Ada.Directories.Exists (Trashed_Path),
@@ -96,8 +98,9 @@ separate (Files_Suite.Operations)
            (File, Ada.Streams.Stream_IO.Count (1024 * 1024 + 1));
          Character'Write (Ada.Streams.Stream_IO.Stream (File), 'x');
          Ada.Streams.Stream_IO.Close (File);
-         Assert
-           (Files.File_System.Trash_Original_Path (Trashed_Path) = "",
+         Files_Suite.Support.Assert_Equal
+           (Files.File_System.Trash_Original_Path (Trashed_Path),
+            "",
             "oversized trash metadata is rejected before parsing");
       end;
 
@@ -110,8 +113,9 @@ separate (Files_Suite.Operations)
            (Sidecar,
             "[Trash Info]" & ASCII.LF
             & "Path=relative-restore-target.txt" & ASCII.LF);
-         Assert
-           (Files.File_System.Trash_Original_Path (Trashed_Path) = "",
+         Files_Suite.Support.Assert_Equal
+           (Files.File_System.Trash_Original_Path (Trashed_Path),
+            "",
             "trash metadata refuses a relative original path");
          Mutation := Files.File_System.Restore_From_Trash (Trashed_Path);
          Assert
@@ -128,8 +132,9 @@ separate (Files_Suite.Operations)
            (Sidecar,
             "[Trash Info]" & ASCII.LF
             & "Path=/tmp/files-invalid%00path" & ASCII.LF);
-         Assert
-           (Files.File_System.Trash_Original_Path (Trashed_Path) = "",
+         Files_Suite.Support.Assert_Equal
+           (Files.File_System.Trash_Original_Path (Trashed_Path),
+            "",
             "trash metadata refuses a decoded NUL in the original path");
       end;
 

@@ -53,7 +53,10 @@ separate (Files_Suite.Operations)
                   Assert (Available, "read the current owner");
                   Step := Files.Operations.Set_Ownership_For (Model, Uid, Gid, Settings);
                end if;
-               Assert (Step.Status = Files.Operations.Operation_Success, "the live metadata change succeeds");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Success,
+                  "the live metadata change succeeds");
                Replace_And_Refuse (False);
                Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
@@ -63,7 +66,10 @@ separate (Files_Suite.Operations)
                Replace_And_Refuse (True);
                Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
                Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Success, "metadata Redo can retry the restored inode");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Success,
+                  "metadata Redo can retry the restored inode");
             end if;
          end loop;
       end loop;

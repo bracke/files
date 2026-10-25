@@ -56,8 +56,10 @@ separate (Files_Suite.Operations)
                              "paste still records Undo when the publication journal is unavailable");
                   end if;
                   Assert (File_Has_Bytes (Dest, "source bytes"), "the completed destination retains all source bytes");
-                  Assert (Ada.Directories.Exists (Source) = (Mode = Files.File_System.Drop_Copy),
-                          "a committed move removes its source while a copy preserves it");
+                  Files_Suite.Support.Assert_Equal
+                    (Ada.Directories.Exists (Source),
+                     (Mode = Files.File_System.Drop_Copy),
+                     "a committed move removes its source while a copy preserves it");
                   if Mode = Files.File_System.Drop_Copy then
                      Assert (not Ada.Directories.Exists (Join (Root, ".files-work-1")),
                              "a journal failure does not retain copy staging or remove the published output");

@@ -59,20 +59,27 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
       Select_Name (Model, "empty-undo.txt");
       Result := Files.Controller.Execute_Command (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "undo-safe setup trashes the item");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "undo-safe setup trashes the item");
       Assert (Files.Model.Undo_Available (Model), "trashing records an undo entry");
 
       --  Navigate into the trash and empty it: the pending restore's source path
       --  is now permanently gone.
       Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Trash_Command, Model, Settings);
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Navigated,
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Navigated,
          "undo-safe setup opens the trash view");
       Assert
         (Files.Commands.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
          "the trashed item is visible in the trash view");
       Result := Files.Controller.Execute_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "empty trash succeeds");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "empty trash succeeds");
       Assert (Files.Model.Undo_Available (Model), "the dangling restore undo entry is still present");
 
       --  Undoing the restore whose source was emptied must fail safely, not crash.

@@ -42,10 +42,10 @@ separate (Files_Suite.Operations)
          Step := Complete_Operation
            (Model, Settings, Files.Operations.Begin_Paste_To (Model, Settings, Paths, Parent));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Success, "make the original copy");
+         Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "make the original copy");
          Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Success, "Undo the copy");
+         Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "Undo the copy");
          Ada.Directories.Delete_Directory (Parent);
          Assert (Hostkit.Fs.Create_Link (Child, Parent), "redirect the destination parent into the source");
          Paths.Clear;

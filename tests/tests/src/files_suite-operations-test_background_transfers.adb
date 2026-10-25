@@ -29,8 +29,9 @@ separate (Files_Suite.Operations)
          end loop;
          Assert (Finished and then Outcome.Mutation.Success, "a copied session keeps its worker alive");
       end;
-      Assert
-        (Project_Tools.Files.Read_Raw_File (Dest) = Project_Tools.Files.Read_Raw_File (Source),
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (Dest),
+         Project_Tools.Files.Read_Raw_File (Source),
          "the worker copies every byte");
 
       Ada.Directories.Delete_File (Dest);
@@ -44,7 +45,10 @@ separate (Files_Suite.Operations)
          exit when not Files.Model.Paste_Execution_Is_Active (Model);
       end loop;
       Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the UI collects a completed background action");
-      Assert (Step.Status = Files.Operations.Operation_Success, "background completion reports success");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "background completion reports success");
       Assert (Files.Model.Undo_Available (Model), "background writes record undo on the UI thread");
       Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));

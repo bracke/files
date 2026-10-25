@@ -60,10 +60,11 @@ separate (Files_Suite.Operations)
          Reduce : Files.Interaction.Interaction_Result;
          Routed : Files.Controller.Controller_Result;
       begin
-         Assert
-           (Action.Kind = Files.Events.Ownership_Edit_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.Ownership_Edit_Input_Action,
             "clicking the owner value yields an ownership-edit action");
-         Assert (Action.Item_Index = 0, "the owner action targets the owner (not group)");
+         Files_Suite.Support.Assert_Equal (Action.Item_Index, 0, "the owner action targets the owner (not group)");
 
          Files.Model.Toggle_Info_Pane (Model);
          Files.Interaction.Apply_Input_Action
@@ -103,8 +104,12 @@ separate (Files_Suite.Operations)
             Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Reduce);
 
-         Assert
-           (Files.Model.Focus (Model) = Files.Types.Focus_Ownership_Input,
+         Files_Suite.Support.Assert_Equal
+
+           (Files.Model.Focus (Model),
+
+            Files.Types.Focus_Ownership_Input,
+
             "the reducer focuses the ownership editor");
 
          --  Type the file's own numeric uid (a bare number is accepted as an
@@ -113,11 +118,16 @@ separate (Files_Suite.Operations)
            (Model, Ada.Strings.Fixed.Trim (Natural'Image (Uid), Ada.Strings.Both));
          Routed := Files.Controller.Handle_Key (Model, Settings_Var, Guikit.Input.Key_Return);
 
-         Assert
-           (Routed.Operation.Status = Files.Operations.Operation_Success,
+         Files_Suite.Support.Assert_Equal
+
+           (Routed.Operation.Status,
+
+            Files.Operations.Operation_Success,
+
             "committing the identity ownership edit through the reducer seam succeeds");
-         Assert
-           (Files.Model.Focus (Model) = Files.Types.Focus_None,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Focus (Model),
+            Files.Types.Focus_None,
             "committing the ownership edit clears the editor focus");
       end;
    end Test_Ownership_Edit_Through_Reducer;

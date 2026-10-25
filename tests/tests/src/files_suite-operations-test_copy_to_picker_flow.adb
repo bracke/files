@@ -28,14 +28,18 @@ separate (Files_Suite.Operations)
          "copy-to is enabled with a real selection");
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);
-      Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "copy-to command starts the picker");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
+         "copy-to command starts the picker");
       Assert (Files.Model.Tree_Panel_Is_Open (Model), "copy-to opens the folder tree");
       Assert (Files.Model.Tree_Pick_Is_Active (Model), "the destination picker is active");
       Assert
         (Files.Model.Tree_Pick_Mode_Of (Model) = Files.Model.Pick_Copy,
          "the picker records copy intent");
-      Assert
-        (Natural (Files.Model.Tree_Pick_Sources (Model).Length) = 2,
+      Files_Suite.Support.Assert_Equal
+        (Natural (Files.Model.Tree_Pick_Sources (Model).Length),
+         2,
          "the picker captured both selected sources");
 
       Files.Model.Set_Tree_Pick_Target (Model, Dest_Dir);
@@ -49,7 +53,7 @@ separate (Files_Suite.Operations)
       Assert (not Files.Model.Tree_Panel_Is_Open (Model), "confirming closes the folder tree");
 
       Undone := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Undone.Status = Files.Operations.Operation_Success, "the copy is undoable");
+      Files_Suite.Support.Assert_Equal (Undone.Status, Files.Operations.Operation_Success, "the copy is undoable");
       Assert (not Ada.Directories.Exists (A_Dest), "undo removes the a.txt copy");
       Assert (not Ada.Directories.Exists (B_Dest), "undo removes the b.txt copy");
       Assert (Ada.Directories.Exists (A_Src), "undo keeps the a.txt original");

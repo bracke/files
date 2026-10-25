@@ -31,7 +31,7 @@ separate (Files_Suite.Operations)
               "completed refresh repopulates the selected item's details");
       Revision := Files.Model.Revision (Model);
       Files.Model.Ensure_Selected_Item_Extra (Model);
-      Assert (Revision = Files.Model.Revision (Model), "completed details remain cached");
+      Files_Suite.Support.Assert_Equal (Revision, Files.Model.Revision (Model), "completed details remain cached");
    exception
       when others => Files.Refresh_Jobs.Cancel (Model); raise;
    end Test_Info_Selection_Completion;

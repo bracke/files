@@ -86,18 +86,28 @@ separate (Files_Suite.Operations)
                Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
                exit when not Files.Model.Paste_Execution_Is_Active (Model);
             end loop;
-            Assert (Step.Status = Files.Operations.Operation_Success,
-                    "Replace succeeds with a restorable native-backend backup");
-            Assert (Project_Tools.Files.Read_Raw_File (Dest) = "new", "Replace publishes the new copy");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "Replace succeeds with a restorable native-backend backup");
+            Files_Suite.Support.Assert_Equal
+              (Project_Tools.Files.Read_Raw_File (Dest),
+               "new",
+               "Replace publishes the new copy");
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             --  Failed once on CI (2026-10-22) with no publish error beside it:
             --  name the status and key, so the next failure says which.
-            Assert (Step.Status = Files.Operations.Operation_Success,
-                    "native-backend Replace is undoable (" & To_String (Backend)
-                    & (if Background then ", background" else ", foreground") & "): "
-                    & Files.Operations.Operation_Status'Image (Step.Status) & " " & To_String (Step.Error_Key));
-            Assert (Project_Tools.Files.Read_Raw_File (Dest) = "original", "Undo restores the overwritten original");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "native-backend Replace is undoable (" & To_String (Backend)
+               & (if Background then ", background" else ", foreground") & "): "
+               & Files.Operations.Operation_Status'Image (Step.Status) & " " & To_String (Step.Error_Key));
+            Files_Suite.Support.Assert_Equal
+              (Project_Tools.Files.Read_Raw_File (Dest),
+               "original",
+               "Undo restores the overwritten original");
             Assert (not Files.Model.Redo_Available (Model), "Replace with a backup remains undo-only");
          end loop;
       end loop;
@@ -140,8 +150,9 @@ separate (Files_Suite.Operations)
          Assert (Found, "native recovery is discoverable without knowing its parent directory");
          Ada.Directories.Delete_File
            (Join (Ada.Directories.Containing_Directory (To_String (Backup)), "original"));
-         Assert
-           (Files.File_System.Trash_Original_Path (To_String (Backup)) = Dest,
+         Files_Suite.Support.Assert_Equal
+           (Files.File_System.Trash_Original_Path (To_String (Backup)),
+            Dest,
             "the ownership record retains the original path when the legacy sidecar is lost");
          Write_Binary_File (Intruder, "must survive");
          Result := Files.File_System.Delete_Trashed_Item (To_String (Backup));
@@ -167,15 +178,24 @@ separate (Files_Suite.Operations)
       Result := Files.File_System.Restore_From_Trash (To_String (Backup));
       Assert (not Result.Success and then Ada.Directories.Exists (To_String (Backup)),
               "a failed rollback preserves its backup for retry");
-      Assert (Project_Tools.Files.Read_Raw_File (Dest) = "unrelated", "rollback never overwrites a collision");
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (Dest),
+         "unrelated",
+         "rollback never overwrites a collision");
       Paths.Append (Backup);
       Files.Model.Record_Undo
         (Model, Files.Model.Undo_Restore_Trash, Paths, Files.Types.String_Vectors.Empty_Vector, Redoable => False);
       Ada.Directories.Delete_File (Dest);
       Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Step.Status = Files.Operations.Operation_Success, "recovery Undo can retry after a rollback collision");
-      Assert (Project_Tools.Files.Read_Raw_File (Dest) = "original", "recovery retry restores the original bytes");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "recovery Undo can retry after a rollback collision");
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (Dest),
+         "original",
+         "recovery retry restores the original bytes");
       Restore_Environment;
    exception
       when others => Files.Model.Clear_Paste_Execution (Model); Restore_Environment; raise;

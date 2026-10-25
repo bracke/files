@@ -97,11 +97,17 @@ separate (Files_Suite.Operations)
          for Cycle in 1 .. 2 loop
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success, "cross-device Undo refreshes the moved identity");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "cross-device Undo refreshes the moved identity");
             Assert_Times (Source);
             Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success, "cross-device Redo refreshes the moved identity");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "cross-device Redo refreshes the moved identity");
             Assert_Times (Join (To_String (Remote), "source"));
          end loop;
          Project_Tools.Files.Delete_Tree (Join (To_String (Remote), "source"));

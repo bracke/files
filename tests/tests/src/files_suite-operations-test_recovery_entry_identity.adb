@@ -33,9 +33,12 @@ separate (Files_Suite.Operations)
          Select_Name (Model, "original");
          if Redo_Recovery then
             Step := Files.Operations.Duplicate_Selected (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success, "prepare redoable creation");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "prepare redoable creation");
             Step := Files.Operations.Undo_Last (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success, "prepare Redo recovery");
+            Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "prepare Redo recovery");
          end if;
          Files.Model.Set_Background_Transfers (Model, True);
          Ada.Environment_Variables.Set ("FILES_TEST_LOST_CREATION_METADATA", "1");
@@ -58,7 +61,10 @@ separate (Files_Suite.Operations)
             Restore;
             Step := Complete_Operation (Model, Settings, Step);
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Failed, "lost final metadata reports failure");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Failed,
+               "lost final metadata reports failure");
             if Redo_Recovery then
                Assert (Files.Model.Redo_Available (Model), "the interrupted Redo is retryable");
                Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
@@ -72,8 +78,10 @@ separate (Files_Suite.Operations)
                        "restore the helper's completed publication for retry");
                Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
                Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Success,
-                       "retry accepts the restored verified publication");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Success,
+                  "retry accepts the restored verified publication");
                Assert (Hostkit.Fs.Move_No_Replace (Dest, Saved),
                        "retain the verified publication for the Undo replacement check");
                Write_Binary_File (Dest, "unrelated replacement");
@@ -101,7 +109,10 @@ separate (Files_Suite.Operations)
          Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Saved, Dest), "restore the owned output");
          Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Success, "recovery remains undoable for its owned output");
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Success,
+            "recovery remains undoable for its owned output");
       end loop;
       declare
          Journal_Directory : constant String := Join (Root, "linked-created-journal");

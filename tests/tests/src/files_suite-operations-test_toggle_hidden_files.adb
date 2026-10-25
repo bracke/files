@@ -16,19 +16,22 @@ separate (Files_Suite.Operations)
       Settings.Show_Hidden_Files := False;
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Dir);
-      Assert
-        (Files.Model.Item_Count (Model) = 1,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         1,
          "dotfile is hidden while show-hidden is disabled");
 
       Result := Files.Controller.Toggle_Hidden_Files (Model, Settings, Settings_Path);
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
          "toggle hidden files reports success");
       Assert
         (Settings.Show_Hidden_Files,
          "toggle hidden files flips the live setting to enabled");
-      Assert
-        (Files.Model.Item_Count (Model) = 2,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         2,
          "reloaded model includes the previously hidden dotfile");
       Assert
         (Ada.Directories.Exists (Settings_Path),

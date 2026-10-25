@@ -104,8 +104,9 @@ separate (Files_Suite.Operations)
          Files.Model.Select_Visible (Model, 1);
          Files.Model.Toggle_Info_Pane (Model);
          Snapshot := Files.Rendering.Build_Snapshot (Model);
-         Assert
-           (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra) = Expected,
+         Files_Suite.Support.Assert_Equal
+           (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra),
+            Expected,
             Message);
       end Assert_Localized_Extra;
    begin
@@ -138,20 +139,17 @@ separate (Files_Suite.Operations)
          Byte (13) & "NOPE" & Byte (0) & Byte (0) & Byte (0) & Byte (32) &
          Byte (0) & Byte (0) & Byte (0) & Byte (16));
       Write_Late_JPEG (Join (Root, "zlate.jpg"));
-      Assert
-        (Files.File_System.Extra_Info_Token
-           (Join (Root, "zheader.png"), Files.Types.Regular_File_Item,
-            "image/png") = "image.dimensions|32x16",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_System.Extra_Info_Token (Join (Root, "zheader.png"), Files.Types.Regular_File_Item, "image/png"),
+         "image.dimensions|32x16",
          "PNG metadata reads dimensions only from a valid leading IHDR");
-      Assert
-        (Files.File_System.Extra_Info_Token
-           (Join (Root, "zbad.png"), Files.Types.Regular_File_Item,
-            "image/png") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_System.Extra_Info_Token (Join (Root, "zbad.png"), Files.Types.Regular_File_Item, "image/png"),
+         "",
          "PNG metadata rejects dimensions outside a leading IHDR");
-      Assert
-        (Files.File_System.Extra_Info_Token
-           (Join (Root, "zlate.jpg"), Files.Types.Regular_File_Item,
-            "image/jpeg") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_System.Extra_Info_Token (Join (Root, "zlate.jpg"), Files.Types.Regular_File_Item, "image/jpeg"),
+         "",
          "JPEG metadata stops before a dimensions marker beyond the scan budget");
       Assert
         (Files.File_System.Extra_Info_Token
@@ -166,11 +164,15 @@ separate (Files_Suite.Operations)
       --  is open (the interaction reducer does this after each input).
       Files.Model.Ensure_Selected_Item_Extra (Model);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
-      Assert (Natural (Snapshot.Selected_Info.Length) = 1, "snapshot contains selected item info");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Snapshot.Selected_Info.Length),
+         1,
+         "snapshot contains selected item info");
       Assert (Snapshot.Selected_Info.Element (1).Name = To_Unbounded_String ("meta.txt"), "info name is captured");
       Assert (Snapshot.Items.Element (1).Size_Available, "item snapshot captures size availability");
-      Assert
-        (Snapshot.Items.Element (1).Size = Long_Long_Integer (Ada.Directories.Size (Join (Root, "meta.txt"))),
+      Files_Suite.Support.Assert_Equal
+        (Snapshot.Items.Element (1).Size,
+         Long_Long_Integer (Ada.Directories.Size (Join (Root, "meta.txt"))),
          "item snapshot captures size value");
       Assert (Snapshot.Items.Element (1).Modified_Available, "item snapshot captures modified availability");
       Assert
@@ -186,9 +188,9 @@ separate (Files_Suite.Operations)
          "item snapshot captures filesystem-backed filetype extra metadata");
       Assert (not Snapshot.Items.Element (1).Metadata_Error, "item snapshot captures metadata error state");
       Assert (Snapshot.Selected_Info.Element (1).Size_Available, "info size availability is captured");
-      Assert
-        (Snapshot.Selected_Info.Element (1).Size =
-           Long_Long_Integer (Ada.Directories.Size (Join (Root, "meta.txt"))),
+      Files_Suite.Support.Assert_Equal
+        (Snapshot.Selected_Info.Element (1).Size,
+         Long_Long_Integer (Ada.Directories.Size (Join (Root, "meta.txt"))),
          "info size value is captured");
       Assert (Snapshot.Selected_Info.Element (1).Modified_Available, "info modified availability is captured");
       Assert
@@ -198,8 +200,8 @@ separate (Files_Suite.Operations)
       Assert
         (To_String (Snapshot.Selected_Info.Element (1).Permissions)'Length = 3,
          "info permissions are captured");
-      Assert
-        (To_String (Snapshot.Selected_Info.Element (1).Filetype_Detail) =
+      Files_Suite.Support.Assert_Equal
+        (To_String (Snapshot.Selected_Info.Element (1).Filetype_Detail),
          Files.Localization.Text ("info.kind.text"),
          "info pane captures filetype-specific detail");
       Assert
@@ -707,19 +709,24 @@ separate (Files_Suite.Operations)
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Files.Model.Toggle_Info_Pane (Model);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
-      Assert (Natural (Snapshot.Selected_Info.Length) = 2, "info snapshot includes all selected items");
-      Assert
-        (To_String (Snapshot.Selected_Info.Element (1).Name) = "meta.txt",
+      Files_Suite.Support.Assert_Equal
+        (Natural (Snapshot.Selected_Info.Length),
+         2,
+         "info snapshot includes all selected items");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Snapshot.Selected_Info.Element (1).Name),
+         "meta.txt",
          "multi-selection info preserves first selected item order");
-      Assert
-        (To_String (Snapshot.Selected_Info.Element (2).Name) = "more.txt",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Snapshot.Selected_Info.Element (2).Name),
+         "more.txt",
          "multi-selection info preserves second selected item order");
-      Assert
-        (To_String (Snapshot.Selected_Info.Element (1).Filetype_Detail) =
+      Files_Suite.Support.Assert_Equal
+        (To_String (Snapshot.Selected_Info.Element (1).Filetype_Detail),
          Files.Localization.Text ("info.kind.text"),
          "multi-selection info localizes first filetype detail");
-      Assert
-        (To_String (Snapshot.Selected_Info.Element (2).Filetype_Detail) =
+      Files_Suite.Support.Assert_Equal
+        (To_String (Snapshot.Selected_Info.Element (2).Filetype_Detail),
          Files.Localization.Text ("info.kind.text"),
          "multi-selection info localizes second filetype detail");
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
@@ -754,8 +761,12 @@ separate (Files_Suite.Operations)
             end if;
          end loop;
 
-         Assert
-           (Name_Label_Count = 0,
+         Files_Suite.Support.Assert_Equal
+
+           (Name_Label_Count,
+
+            0,
+
             "coalesced info pane has no dedicated Name section");
          Assert
            (Meta_Postfixed and then More_Postfixed,

@@ -35,9 +35,15 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Root, Items, Root);
 
       Result := Files.Operations.Navigate_Recent (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Navigated, "entering the recent view navigates");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Navigated,
+         "entering the recent view navigates");
       Assert (Files.Model.In_Recent_View (Model), "the recent view is active after Navigate_Recent");
-      Assert (Files.Model.Item_Count (Model) = 2, "the missing recent path is skipped from the listing");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         2,
+         "the missing recent path is skipped from the listing");
       Assert (Find_Visible ("recent-file.txt") > 0, "the recent file is listed");
       Assert (Find_Visible ("recent-dir") > 0, "the recent folder is listed");
       Assert (Files.Model.Can_Go_Back (Model), "entering the recent view records back history");
@@ -49,18 +55,25 @@ separate (Files_Suite.Operations)
            Files.Controller.Handle_Item_Click
              (Model, Settings, Visible_Index => Dir_Index, Activate => True);
       begin
-         Assert (Routed.Operation.Status = Files.Operations.Operation_Navigated,
-                 "double-clicking a recent folder opens it");
+         Files_Suite.Support.Assert_Equal
+           (Routed.Operation.Status,
+            Files.Operations.Operation_Navigated,
+            "double-clicking a recent folder opens it");
          Assert (not Files.Model.In_Recent_View (Model), "opening a folder leaves the recent view");
-         Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Dir),
-                 "opening a recent folder navigates into it");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Current_Path (Model),
+            Ada.Directories.Full_Name (Dir),
+            "opening a recent folder navigates into it");
       end;
 
       --  Re-enter, then clear: the view rebuilds empty.
       Result := Files.Operations.Navigate_Recent (Model, Settings);
-      Assert (Files.Model.Item_Count (Model) = 2, "re-entering the recent view relists the items");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         2,
+         "re-entering the recent view relists the items");
       Files.Settings.Clear_Recent (Settings);
       Result := Files.Operations.Navigate_Recent (Model, Settings);
       Assert (Files.Model.In_Recent_View (Model), "the view stays active after clearing");
-      Assert (Files.Model.Item_Count (Model) = 0, "clearing empties the recent listing");
+      Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 0, "clearing empties the recent listing");
    end Test_Recent_View_Operation;

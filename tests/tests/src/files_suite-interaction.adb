@@ -461,8 +461,9 @@ package body Files_Suite.Interaction is
       Assert (Found, "a layout cell exists for the target item");
       Click (Model, Settings, X, Y, Guikit.Input.No_Modifiers, Result);
       Assert (Files.Model.Is_Selected (Model, 2), "the clicked item becomes selected");
-      Assert
-        (Selected_Item_Nodes (Model) = 1,
+      Files_Suite.Support.Assert_Equal
+        (Selected_Item_Nodes (Model),
+         1,
          "exactly one item accessibility node reports Selected after a single click");
    end Test_Left_Click_Selects;
 
@@ -481,18 +482,24 @@ package body Files_Suite.Interaction is
       Assert (Found1 and then Found2, "layout cells exist for both target items");
 
       Click (Model, Settings, X1, Y1, Guikit.Input.No_Modifiers, Result);
-      Assert (Selected_Item_Nodes (Model) = 1, "a plain click starts a single-item selection");
+      Files_Suite.Support.Assert_Equal (Selected_Item_Nodes (Model), 1, "a plain click starts a single-item selection");
 
       Click (Model, Settings, X2, Y2, Ctrl, Result);
       Assert
         (Files.Model.Is_Selected (Model, 1) and then Files.Model.Is_Selected (Model, 3),
          "ctrl-click adds the second item to the selection");
-      Assert (Selected_Item_Nodes (Model) = 2, "two item nodes report Selected after ctrl-click");
+      Files_Suite.Support.Assert_Equal
+        (Selected_Item_Nodes (Model),
+         2,
+         "two item nodes report Selected after ctrl-click");
 
       Click (Model, Settings, X1, Y1, Ctrl, Result);
       Assert (not Files.Model.Is_Selected (Model, 1), "ctrl-click toggles the first item back off");
       Assert (Files.Model.Is_Selected (Model, 3), "the other item stays selected");
-      Assert (Selected_Item_Nodes (Model) = 1, "the toggled-off item is no longer reported Selected");
+      Files_Suite.Support.Assert_Equal
+        (Selected_Item_Nodes (Model),
+         1,
+         "the toggled-off item is no longer reported Selected");
    end Test_Ctrl_Click_Multi_Selection;
 
    procedure Test_Shift_Click_Range_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -510,7 +517,10 @@ package body Files_Suite.Interaction is
       Assert (Found1 and then Found3, "layout cells exist for the range endpoints");
 
       Click (Model, Settings, X1, Y1, Guikit.Input.No_Modifiers, Result);
-      Assert (Selected_Item_Nodes (Model) = 1, "a plain click anchors a single-item selection");
+      Files_Suite.Support.Assert_Equal
+        (Selected_Item_Nodes (Model),
+         1,
+         "a plain click anchors a single-item selection");
 
       Click (Model, Settings, X3, Y3, Shift, Result);
       Assert
@@ -518,8 +528,9 @@ package body Files_Suite.Interaction is
            and then Files.Model.Is_Selected (Model, 2)
            and then Files.Model.Is_Selected (Model, 3),
          "shift-click selects the inclusive range from the anchor to the clicked item");
-      Assert
-        (Selected_Item_Nodes (Model) = 3,
+      Files_Suite.Support.Assert_Equal
+        (Selected_Item_Nodes (Model),
+         3,
          "three item nodes report Selected after the shift-range click");
    end Test_Shift_Click_Range_Selection;
 
@@ -540,7 +551,10 @@ package body Files_Suite.Interaction is
       begin
          null;
       end;
-      Assert (Files.Model.Filter_Text (Model) = "rep", "typed text lands in the focused filter input");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Filter_Text (Model),
+         "rep",
+         "typed text lands in the focused filter input");
 
       Files.Model.Open_Command_Palette (Model);
       Files.Model.Focus_Command_Palette_Input (Model);
@@ -551,7 +565,10 @@ package body Files_Suite.Interaction is
       begin
          null;
       end;
-      Assert (Files.Model.Palette_Query (Model) = "view", "typed text lands in the command-palette input");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Palette_Query (Model),
+         "view",
+         "typed text lands in the command-palette input");
 
       --  The root selector is allowed to remain beneath the command palette.
       --  Its modal key guard must not intercept editing keys owned by the
@@ -565,23 +582,27 @@ package body Files_Suite.Interaction is
          Outcome : constant Files.Controller.Controller_Result :=
            Files.Controller.Append_Focused_Text (Model, "find");
       begin
-         Assert
-           (Outcome.Status = Files.Controller.Controller_Text_Updated,
+         Files_Suite.Support.Assert_Equal
+           (Outcome.Status,
+            Files.Controller.Controller_Text_Updated,
             "printable text edits the palette stacked above the root selector");
       end;
-      Assert
-        (Files.Model.Palette_Query (Model) = "find",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Palette_Query (Model),
+         "find",
          "the stacked palette receives native character input");
       declare
          Outcome : constant Files.Controller.Controller_Result :=
            Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
       begin
-         Assert
-           (Outcome.Status = Files.Controller.Controller_Text_Updated,
+         Files_Suite.Support.Assert_Equal
+           (Outcome.Status,
+            Files.Controller.Controller_Text_Updated,
             "Backspace edits the palette stacked above the root selector");
       end;
-      Assert
-        (Files.Model.Palette_Query (Model) = "fin",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Palette_Query (Model),
+         "fin",
          "the stacked palette query loses its final character");
       Assert
         (Files.Model.Root_Selector_Is_Open (Model)
@@ -619,12 +640,22 @@ package body Files_Suite.Interaction is
          Scope_Before : constant Files.Types.Search_Scope :=
            Files.Model.Search_Scope_Of (Model);
       begin
-         Assert
-           (Text_Outcome.Status = Files.Controller.Controller_Ignored,
+         Files_Suite.Support.Assert_Equal
+           (Text_Outcome.Status,
+            Files.Controller.Controller_Ignored,
             Name & " ignores native character input");
-         Assert (Files.Model.Filter_Text (Model) = "", Name & " leaves a hidden focused field unchanged");
-         Assert (Files.Model.Type_Ahead_Buffer (Model) = "", Name & " leaves grid type-ahead unchanged");
-         Assert (Files.Model.Selected_Name (Model) = "Alpha.txt", Name & " leaves the grid selection unchanged");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Filter_Text (Model),
+            "",
+            Name & " leaves a hidden focused field unchanged");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Type_Ahead_Buffer (Model),
+            "",
+            Name & " leaves grid type-ahead unchanged");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selected_Name (Model),
+            "Alpha.txt",
+            Name & " leaves the grid selection unchanged");
 
          Click_Outcome :=
            Files.Controller.Handle_Text_Click
@@ -677,8 +708,9 @@ package body Files_Suite.Interaction is
       Prepare_Background;
       Files.Model.Toggle_Settings_Pane (Model);
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Assert
-        (Files.Model.Focus (Model) = Files.Types.Focus_None,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
          "the settings pane can remain open after focus is cancelled");
       Assert_Contained ("an unfocused settings pane");
       Files.Model.Toggle_Settings_Pane (Model);
@@ -686,23 +718,27 @@ package body Files_Suite.Interaction is
       Prepare_Background;
       Files.Model.Open_Command_Palette (Model);
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Assert
-        (Files.Model.Focus (Model) = Files.Types.Focus_None,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
          "the command palette can remain open after focus is cancelled");
       Assert_Contained ("an unfocused command palette");
       Files.Model.Close_Command_Palette (Model);
 
       Files.Model.Toggle_Settings_Pane (Model);
-      Assert
-        (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Settings_Input,
          "opening settings focuses its input surface");
       Files.Model.Open_Command_Palette (Model);
-      Assert
-        (Files.Model.Focus (Model) = Files.Types.Focus_Command_Palette,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Command_Palette,
          "the command palette takes focus above settings");
       Files.Model.Close_Command_Palette (Model);
-      Assert
-        (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Settings_Input,
          "closing the command palette restores settings focus");
       Files.Model.Toggle_Settings_Pane (Model);
 
@@ -765,13 +801,18 @@ package body Files_Suite.Interaction is
          Assert
            (Files.Model.Input_Owning_Overlay_Is_Open (Model),
             Name & " is covered by the shared input-overlay policy");
-         Assert
-           (Files.Model.Type_Ahead_Buffer (Model) = "",
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Type_Ahead_Buffer (Model),
+            "",
             Name & " ends the previous grid type-ahead session when it opens");
-         Assert
-           (Outcome.Status = Files.Controller.Controller_Ignored,
+         Files_Suite.Support.Assert_Equal
+           (Outcome.Status,
+            Files.Controller.Controller_Ignored,
             Name & " rejects a native file drop");
-         Assert (Files.Model.Revision (Model) = Revision, Name & " leaves the model unchanged");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Revision (Model),
+            Revision,
+            Name & " leaves the model unchanged");
          Assert
            (not Files.Model.Paste_Conflict_Is_Active (Model)
             and then not Files.Model.Paste_Execution_Is_Active (Model),
@@ -877,8 +918,9 @@ package body Files_Suite.Interaction is
          and then Files.Model.Info_Pane_Is_Open (Model)
          and then Files.Model.Command_Palette_Is_Open (Model),
          "a stale background command cannot mutate behind the command palette");
-      Assert
-        (Result.Status = Files.Controller.Controller_Ignored,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
          "a contained stale command reports no execution");
    end Test_Metadata_Clicks_Contained_By_Overlays;
 
@@ -1039,8 +1081,9 @@ package body Files_Suite.Interaction is
          Row_X := Menu.X + Menu.Width / 2;
          Row_Y :=
            Files.Rendering.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
-         Assert
-           (Files.Rendering.Context_Menu_Row_At (Menu, Row_X, Row_Y) = Target_Row,
+         Files_Suite.Support.Assert_Equal
+           (Files.Rendering.Context_Menu_Row_At (Menu, Row_X, Row_Y),
+            Target_Row,
             "the derived coordinate hit-tests back to the copy row");
 
          Files.Interaction.Apply_Context_Menu_Command
@@ -1053,8 +1096,12 @@ package body Files_Suite.Interaction is
             Result            => Result);
       end;
 
-      Assert
-        (Result.Command = Files.Commands.Copy_Selected_Items_Command,
+      Files_Suite.Support.Assert_Equal
+
+        (Result.Command,
+
+         Files.Commands.Copy_Selected_Items_Command,
+
          "the result echoes the dispatched command id");
       Assert (Result.Context_Menu_Changed, "the result reports the menu closing");
       Assert (not Files.Model.Context_Menu_Is_Open (Model), "dispatching a menu row closes the menu");
@@ -1149,11 +1196,13 @@ package body Files_Suite.Interaction is
       Action   : constant Files.Events.Input_Action :=
         Files.Events.Translate_Key (Guikit.Input.Key_3, Ctrl);
    begin
-      Assert
-        (Action.Kind = Files.Events.Command_Input_Action,
+      Files_Suite.Support.Assert_Equal
+        (Action.Kind,
+         Files.Events.Command_Input_Action,
          "a known shortcut translates to a command input action");
-      Assert
-        (Action.Command = Files.Commands.Select_Details_Command,
+      Files_Suite.Support.Assert_Equal
+        (Action.Command,
+         Files.Commands.Select_Details_Command,
          "Ctrl+3 selects the details-view command");
 
       Files.Interaction.Apply_Input_Action
@@ -1165,11 +1214,16 @@ package body Files_Suite.Interaction is
          Modifiers         => Ctrl,
          Result            => Result);
 
-      Assert
-        (Result.Command = Files.Commands.Select_Details_Command,
+      Files_Suite.Support.Assert_Equal
+
+        (Result.Command,
+
+         Files.Commands.Select_Details_Command,
+
          "the result echoes the dispatched command id");
-      Assert
-        (Files.Model.View_Mode_Of (Model) = Files.Types.Details,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.View_Mode_Of (Model),
+         Files.Types.Details,
          "dispatching the shortcut switches the model to the details view");
    end Test_Keyboard_Shortcut_Command;
 
@@ -1182,16 +1236,19 @@ package body Files_Suite.Interaction is
         Files.Events.Translate_Key (Guikit.Input.Key_Up, Guikit.Input.No_Modifiers);
    begin
       --  Alt+Up is a modifier-specific shortcut, so it routes to the command.
-      Assert
-        (Parent_Action.Kind = Files.Events.Command_Input_Action,
+      Files_Suite.Support.Assert_Equal
+        (Parent_Action.Kind,
+         Files.Events.Command_Input_Action,
          "alt+up translates to a command input action");
-      Assert
-        (Parent_Action.Command = Files.Commands.Navigate_Parent_Command,
+      Files_Suite.Support.Assert_Equal
+        (Parent_Action.Command,
+         Files.Commands.Navigate_Parent_Command,
          "alt+up dispatches the navigate-parent command");
 
       --  Plain Up is left for grid navigation so the selection still moves.
-      Assert
-        (Plain_Action.Kind = Files.Events.Selection_Input_Action,
+      Files_Suite.Support.Assert_Equal
+        (Plain_Action.Kind,
+         Files.Events.Selection_Input_Action,
          "plain up stays a selection movement action");
       Assert
         (Plain_Action.Direction = Guikit.Input.Move_Up,
@@ -1226,11 +1283,13 @@ package body Files_Suite.Interaction is
             Modifiers         => Ctrl,
             Current_Font_Size => Base_Font,
             Result            => Result);
-         Assert
-           (Result.Command = Files.Commands.Select_Details_Command,
+         Files_Suite.Support.Assert_Equal
+           (Result.Command,
+            Files.Commands.Select_Details_Command,
             "Ctrl+3 dispatched through Handle_Key reports the details-view command");
-         Assert
-           (Files.Model.View_Mode_Of (Model) = Files.Types.Details,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.View_Mode_Of (Model),
+            Files.Types.Details,
             "the key seam switches the model to the details view");
       end;
 
@@ -1266,8 +1325,9 @@ package body Files_Suite.Interaction is
             Modifiers         => Ctrl,
             Current_Font_Size => Base_Font,
             Result            => Result);
-         Assert
-           (Result.Command = Files.Commands.Save_Settings_Command,
+         Files_Suite.Support.Assert_Equal
+           (Result.Command,
+            Files.Commands.Save_Settings_Command,
             "Ctrl+S dispatched through Handle_Key reports the save-settings command");
          Assert
            (Result.Settings_Changed,
@@ -1300,8 +1360,9 @@ package body Files_Suite.Interaction is
             Modifiers         => Ctrl,
             Current_Font_Size => Base_Font,
             Result            => Result);
-         Assert
-           (Result.Command = Files.Commands.Toggle_Info_Pane_Command,
+         Files_Suite.Support.Assert_Equal
+           (Result.Command,
+            Files.Commands.Toggle_Info_Pane_Command,
             "Ctrl+4 dispatched through Handle_Key reports the toggle-info-pane command");
          Assert
            (Files.Model.Info_Pane_Is_Open (Model),
@@ -1334,8 +1395,9 @@ package body Files_Suite.Interaction is
             Modifiers         => Alt,
             Current_Font_Size => Base_Font,
             Result            => Result);
-         Assert
-           (Files.Model.Current_Path (Model) = Files_Suite.Support.Root,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Current_Path (Model),
+            Files_Suite.Support.Root,
             "Alt+Up through the key seam navigates to the parent directory");
          Assert
            (Result.Directory_Reloaded,
@@ -1401,8 +1463,10 @@ package body Files_Suite.Interaction is
          Files.Commands.Reset_Shortcut_Overrides;
          Open_And_Arm (Model, Settings);
          Assert (Files.Model.Settings_Is_Capturing (Model), "the first shortcut row is armed");
-         Assert (Files.Model.Settings_Capturing_Key (Model) = "shortcut.view.small",
-                 "the armed row is the first command's shortcut field");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Settings_Capturing_Key (Model),
+            "shortcut.view.small",
+            "the armed row is the first command's shortcut field");
          Press (Model, Settings, Guikit.Input.Key_5, Ctrl_Shift);
          Assert (not Files.Model.Settings_Is_Capturing (Model), "capturing a chord disarms the row");
          declare
@@ -1501,8 +1565,9 @@ package body Files_Suite.Interaction is
         (Model => Model, Region_X => 0, Region_Y => 0, Region_Width => 600, Region_Height => 500,
          Clip_Width => 600, Clip_Height => 500, Line_Height => 20, Focused => True,
          Rectangles => Rects, Text => Text, Accessibility => Nodes);
-      Assert
-        (Files.Model.Revision (Model) = Revision_Before,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Revision (Model),
+         Revision_Before,
          "building a settings frame does not manufacture a semantic model revision");
 
       --  Resolve a genuine settings control from the component's accessibility
@@ -1556,23 +1621,36 @@ package body Files_Suite.Interaction is
          Count : constant Natural := Files.Model.Settings_Section_Count (Model);
       begin
          Assert (Count > 1, "the settings form has multiple section tabs");
-         Assert (Files.Model.Settings_Active_Section (Model) = 1, "the first section is active initially");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Settings_Active_Section (Model),
+            1,
+            "the first section is active initially");
 
          Tab (Ctrl);
-         Assert (Files.Model.Settings_Active_Section (Model) = 2, "Ctrl+Tab advances to the next section");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Settings_Active_Section (Model),
+            2,
+            "Ctrl+Tab advances to the next section");
 
          Tab (Ctrl_Shift);
-         Assert (Files.Model.Settings_Active_Section (Model) = 1, "Ctrl+Shift+Tab returns to the previous section");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Settings_Active_Section (Model),
+            1,
+            "Ctrl+Shift+Tab returns to the previous section");
 
          --  Wrap backward from the first section to the last.
          Tab (Ctrl_Shift);
-         Assert (Files.Model.Settings_Active_Section (Model) = Count,
-                 "Ctrl+Shift+Tab wraps from the first section to the last");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Settings_Active_Section (Model),
+            Count,
+            "Ctrl+Shift+Tab wraps from the first section to the last");
 
          --  Wrap forward from the last section back to the first.
          Tab (Ctrl);
-         Assert (Files.Model.Settings_Active_Section (Model) = 1,
-                 "Ctrl+Tab wraps from the last section to the first");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Settings_Active_Section (Model),
+            1,
+            "Ctrl+Tab wraps from the last section to the first");
       end;
 
       --  Plain Tab / Shift+Tab walk the fields like Down / Up.
@@ -1582,7 +1660,10 @@ package body Files_Suite.Interaction is
          Tab (Guikit.Input.No_Modifiers);
          Assert (Files.Model.Settings_Focused_Key (Model) /= First, "Tab moves focus to the next field");
          Tab (Shift);
-         Assert (Files.Model.Settings_Focused_Key (Model) = First, "Shift+Tab moves focus back");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Settings_Focused_Key (Model),
+            First,
+            "Shift+Tab moves focus back");
       end;
 
       --  Space flips a focused toggle and drops its own character.
@@ -1622,9 +1703,12 @@ package body Files_Suite.Interaction is
          Key               => Guikit.Input.Key_End,
          Current_Font_Size => Base_Font,
          Result            => Result);
-      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "End moves the grid selection");
-      Assert (Files.Model.Selected_Index (Model) = Last, "End selects the last visible item");
-      Assert (Files.Model.Current_Path (Model) = Home_Dir, "End does not navigate");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "End moves the grid selection");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), Last, "End selects the last visible item");
+      Files_Suite.Support.Assert_Equal (Files.Model.Current_Path (Model), Home_Dir, "End does not navigate");
 
       Files.Interaction.Handle_Key
         (Model             => Model,
@@ -1633,9 +1717,15 @@ package body Files_Suite.Interaction is
          Key               => Guikit.Input.Key_Home,
          Current_Font_Size => Base_Font,
          Result            => Result);
-      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "Home moves the grid selection");
-      Assert (Files.Model.Selected_Index (Model) = 1, "Home selects the first visible item");
-      Assert (Files.Model.Current_Path (Model) = Home_Dir, "plain Home does not navigate home (that stays Alt+Home)");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "Home moves the grid selection");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 1, "Home selects the first visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Home_Dir,
+         "plain Home does not navigate home (that stays Alt+Home)");
 
       Files.Interaction.Handle_Key
         (Model             => Model,
@@ -1644,7 +1734,10 @@ package body Files_Suite.Interaction is
          Key               => Guikit.Input.Key_Page_Down,
          Current_Font_Size => Base_Font,
          Result            => Result);
-      Assert (Files.Model.Selected_Index (Model) = Last, "PageDown pages the selection down to the last item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         Last,
+         "PageDown pages the selection down to the last item");
 
       Files.Interaction.Handle_Key
         (Model             => Model,
@@ -1653,7 +1746,10 @@ package body Files_Suite.Interaction is
          Key               => Guikit.Input.Key_Page_Up,
          Current_Font_Size => Base_Font,
          Result            => Result);
-      Assert (Files.Model.Selected_Index (Model) = 1, "PageUp pages the selection back to the first item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         1,
+         "PageUp pages the selection back to the first item");
    end Test_Grid_Nav_Keys;
 
    --  Ctrl+'=' / Ctrl+'+' grow, Ctrl+'-' shrinks, and Ctrl+0 resets the live
@@ -1676,37 +1772,45 @@ package body Files_Suite.Interaction is
             Result            => Result);
       end Zoom;
    begin
-      Assert (Settings.Font_Pixel_Size = 16, "the default font size is the starting point");
+      Files_Suite.Support.Assert_Equal (Settings.Font_Pixel_Size, 16, "the default font size is the starting point");
 
       Zoom (Guikit.Input.Key_Equal, Ctrl);
-      Assert (Settings.Font_Pixel_Size = 17, "Ctrl+Equal grows the font size by one");
+      Files_Suite.Support.Assert_Equal (Settings.Font_Pixel_Size, 17, "Ctrl+Equal grows the font size by one");
       Assert (Result.Font_Size_Changed, "the growing zoom reports a font-size change");
       Assert (Result.Settings_Changed, "the growing zoom reports a settings change");
 
       Zoom (Guikit.Input.Key_Equal, Ctrl_Shift);
-      Assert (Settings.Font_Pixel_Size = 18, "Ctrl+Plus (Shift+Ctrl+Equal) also grows the font size");
+      Files_Suite.Support.Assert_Equal
+        (Settings.Font_Pixel_Size,
+         18,
+         "Ctrl+Plus (Shift+Ctrl+Equal) also grows the font size");
 
       Zoom (Guikit.Input.Key_Minus, Ctrl);
-      Assert (Settings.Font_Pixel_Size = 17, "Ctrl+Minus shrinks the font size by one");
+      Files_Suite.Support.Assert_Equal (Settings.Font_Pixel_Size, 17, "Ctrl+Minus shrinks the font size by one");
 
       Settings.Font_Pixel_Size := 24;
       Zoom (Guikit.Input.Key_0, Ctrl);
-      Assert (Settings.Font_Pixel_Size = Files.Settings.Default_Font_Pixel_Size, "Ctrl+0 resets to the default size");
+      Files_Suite.Support.Assert_Equal
+        (Settings.Font_Pixel_Size,
+         Files.Settings.Default_Font_Pixel_Size,
+         "Ctrl+0 resets to the default size");
       Assert (Result.Font_Size_Changed, "the reset reports a font-size change");
 
       --  Clamp at the maximum: growing past the ceiling makes no change.
       Settings.Font_Pixel_Size := Files.Settings.Max_Font_Pixel_Size;
       Zoom (Guikit.Input.Key_Equal, Ctrl);
-      Assert
-        (Settings.Font_Pixel_Size = Files.Settings.Max_Font_Pixel_Size,
+      Files_Suite.Support.Assert_Equal
+        (Settings.Font_Pixel_Size,
+         Files.Settings.Max_Font_Pixel_Size,
          "Ctrl+Equal clamps at the maximum font size");
       Assert (not Result.Font_Size_Changed, "a no-op zoom at the ceiling reports no font-size change");
 
       --  Clamp at the minimum: shrinking past the floor makes no change.
       Settings.Font_Pixel_Size := Files.Settings.Min_Font_Pixel_Size;
       Zoom (Guikit.Input.Key_Minus, Ctrl);
-      Assert
-        (Settings.Font_Pixel_Size = Files.Settings.Min_Font_Pixel_Size,
+      Files_Suite.Support.Assert_Equal
+        (Settings.Font_Pixel_Size,
+         Files.Settings.Min_Font_Pixel_Size,
          "Ctrl+Minus clamps at the minimum font size");
       Assert (not Result.Font_Size_Changed, "a no-op zoom at the floor reports no font-size change");
 
@@ -1715,8 +1819,9 @@ package body Files_Suite.Interaction is
       Settings.Font_Pixel_Size := Files.Settings.Default_Font_Pixel_Size;
       Files.Model.Toggle_Sort_Menu (Model);
       Zoom (Guikit.Input.Key_Equal, Ctrl);
-      Assert
-        (Settings.Font_Pixel_Size = Files.Settings.Default_Font_Pixel_Size,
+      Files_Suite.Support.Assert_Equal
+        (Settings.Font_Pixel_Size,
+         Files.Settings.Default_Font_Pixel_Size,
          "an input-owning overlay blocks keyboard zoom behind it");
       Assert
         (not Result.Settings_Changed
@@ -1767,8 +1872,9 @@ package body Files_Suite.Interaction is
              (Snapshot, Target_W - 1, Main_Y, Target_W, Target_H,
               Y_Offset => -1, Line_Height => Line);
       begin
-         Assert
-           (Action.Kind = Files.Events.No_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.No_Input_Action,
             Name & " swallows wheel input instead of scrolling the view behind it");
       end Assert_Overlay_Swallows_Scroll;
 
@@ -1826,8 +1932,9 @@ package body Files_Suite.Interaction is
       Assert
         (Files.Model.Info_Pane_Scroll_Lines (Model) > 0,
          "scrolling over the info pane moves the info-pane offset");
-      Assert
-        (Files.Model.Main_View_Scroll_Lines (Model) = 0,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Main_View_Scroll_Lines (Model),
+         0,
          "scrolling over the info pane leaves the main view untouched");
 
       declare
@@ -1837,8 +1944,9 @@ package body Files_Suite.Interaction is
          Assert
            (Files.Model.Main_View_Scroll_Lines (Model) > 0,
             "scrolling over the main view moves the main-view offset");
-         Assert
-           (Files.Model.Info_Pane_Scroll_Lines (Model) = Info_Before,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Info_Pane_Scroll_Lines (Model),
+            Info_Before,
             "scrolling over the main view leaves the info-pane offset unchanged");
       end;
 
@@ -1855,8 +1963,9 @@ package body Files_Suite.Interaction is
               Wide.Main_Y + Wide.Main_Height / 2,
               Window_W, Window_H, Y_Offset => -1, Line_Height => Line);
       begin
-         Assert
-           (Action.Kind = Files.Events.No_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.No_Input_Action,
             "wheel input is inert when the entire main view already fits");
       end;
 
@@ -1995,8 +2104,9 @@ package body Files_Suite.Interaction is
                     Tree.Y + Tree.Height / 2,
                     Target_W, Target_H, Y_Offset => -1, Line_Height => Line);
             begin
-               Assert
-                 (End_Action.Kind = Files.Events.No_Input_Action,
+               Files_Suite.Support.Assert_Equal
+                 (End_Action.Kind,
+                  Files.Events.No_Input_Action,
                   "wheel input at the final full tree page does not accumulate an invisible offset");
             end;
             Overlay.Tree_Panel_Scroll_Rows := 0;
@@ -2106,10 +2216,16 @@ package body Files_Suite.Interaction is
 
       --  The model query reports the two dot-files, and the snapshot carries it
       --  to the renderer.
-      Assert (Files.Model.Hidden_Item_Count (Model) = 2, "the model counts both hidden dot-files");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Hidden_Item_Count (Model),
+         2,
+         "the model counts both hidden dot-files");
 
       Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);
-      Assert (Snapshot.Hidden_Count = 2, "the snapshot surfaces the hidden count for the bottom bar");
+      Files_Suite.Support.Assert_Equal
+        (Snapshot.Hidden_Count,
+         2,
+         "the snapshot surfaces the hidden count for the bottom bar");
 
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Window_W, Window_H, Line);
 
@@ -2192,10 +2308,19 @@ package body Files_Suite.Interaction is
 
       --  Default sort is by name, ascending. Selecting size from the bottom bar
       --  must apply live and persist the field to the settings file.
-      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Name, "the model starts sorted by name");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Sort_Field_Of (Model),
+         Files.Model.Sort_Name,
+         "the model starts sorted by name");
       Dispatch (Files.Commands.Sort_By_Size_Command);
-      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Size, "the sort command applies live");
-      Assert (Settings.Sort_Field_Value = Files.Settings.Sort_By_Size, "the sort field is written to settings");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Sort_Field_Of (Model),
+         Files.Model.Sort_Size,
+         "the sort command applies live");
+      Files_Suite.Support.Assert_Equal
+        (Settings.Sort_Field_Value,
+         Files.Settings.Sort_By_Size,
+         "the sort field is written to settings");
       Assert (Result.Settings_Changed, "the sort command reports a settings change");
       Assert (Ada.Directories.Exists (Path), "the sort command persists the settings file");
 
@@ -2211,8 +2336,10 @@ package body Files_Suite.Interaction is
          Reloaded : constant Files.Settings.Settings_Parse_Result := Files.Settings.Load_File (Path);
       begin
          Assert (Reloaded.Success, "the persisted settings file reloads cleanly");
-         Assert (Reloaded.Settings.Sort_Field_Value = Files.Settings.Sort_By_Size,
-                 "the reloaded settings keep the chosen sort field");
+         Files_Suite.Support.Assert_Equal
+           (Reloaded.Settings.Sort_Field_Value,
+            Files.Settings.Sort_By_Size,
+            "the reloaded settings keep the chosen sort field");
          Assert (not Reloaded.Settings.Sort_Ascending,
                  "the reloaded settings keep the descending direction");
       end;
@@ -2333,8 +2460,9 @@ package body Files_Suite.Interaction is
       Row_X := Menu.X + Menu.Width / 2;
       Row_Y :=
         Files.Rendering.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
-      Assert
-        (Files.Rendering.Context_Menu_Row_At (Menu, Row_X, Row_Y) = Target_Row,
+      Files_Suite.Support.Assert_Equal
+        (Files.Rendering.Context_Menu_Row_At (Menu, Row_X, Row_Y),
+         Target_Row,
          "the derived coordinate hit-tests back to the resolved menu row");
       Found := True;
       Files.Interaction.Apply_Context_Menu_Command
@@ -2437,16 +2565,18 @@ package body Files_Suite.Interaction is
                Y := Row.Y + Row.Height / 2;
             end if;
          end loop;
-         Assert
-           (Files.Rendering.Root_Path_At (Rows, X, Y) = 2,
+         Files_Suite.Support.Assert_Equal
+           (Files.Rendering.Root_Path_At (Rows, X, Y),
+            2,
             "the derived coordinate hit-tests back to the second root row");
          Action :=
            Files.Events.Translate_Click
              (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
-         Assert
-           (Action.Kind = Files.Events.Root_Click_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.Root_Click_Input_Action,
             "a root-row coordinate translates to a root click");
-         Assert (Action.Root_Index = 2, "the root click carries the second root index");
+         Files_Suite.Support.Assert_Equal (Action.Root_Index, 2, "the root click carries the second root index");
 
          --  The command palette may be stacked above the root selector. A root
          --  row action translated before that transition must not navigate
@@ -2471,7 +2601,13 @@ package body Files_Suite.Interaction is
            (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
 
-      Assert (Files.Model.Current_Path (Model) = Root_B, "the root click navigates to the chosen root");
+      Files_Suite.Support.Assert_Equal
+
+        (Files.Model.Current_Path (Model),
+
+         Root_B,
+
+         "the root click navigates to the chosen root");
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "selecting a root closes the root selector");
    end Test_Root_Selector_Click_Navigates;
    --  Open the command palette, derive its close (X) button from the real
@@ -2523,8 +2659,9 @@ package body Files_Suite.Interaction is
             Text          => P_Text,
             Icons         => P_Icons,
             Accessibility => P_Nodes);
-         Assert
-           (Files.Model.Revision (Model) = Revision,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Revision (Model),
+            Revision,
             "building a palette frame does not manufacture a semantic model revision");
          Assert (Close.Visible, "the open command palette exposes a close (X) button");
          Click
@@ -2592,21 +2729,28 @@ package body Files_Suite.Interaction is
            Files.Events.Translate_Click
              (Snapshot, Frame, Left_X, Center_Y, Window_W, Window_H, Line_Height => Line);
       begin
-         Assert
-           (Action.Kind = Files.Events.Text_Click_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.Text_Click_Input_Action,
             "the path-input region translates to a text click");
-         Assert
-           (Action.Focus_Target = Files.Types.Focus_Path_Input,
+         Files_Suite.Support.Assert_Equal
+           (Action.Focus_Target,
+            Files.Types.Focus_Path_Input,
             "the text click targets the path input");
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       end;
 
-      Assert
-        (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input,
+      Files_Suite.Support.Assert_Equal
+
+        (Files.Model.Focus (Model),
+
+         Files.Types.Focus_Path_Input,
+
          "applying the text click moves focus to the path input");
-      Assert
-        (Files.Model.Text_Cursor_Position (Model) = 0,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         0,
          "clicking the field's left edge places the cursor at the start of the text");
 
       declare
@@ -2668,8 +2812,9 @@ package body Files_Suite.Interaction is
          Action :=
            Files.Events.Translate_Click
              (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
-         Assert
-           (Action.Kind = Files.Events.Scrollbar_Drag_Begin_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.Scrollbar_Drag_Begin_Input_Action,
             "a click on the scrollbar thumb translates to a drag-begin action");
          Assert
            (Action.Scroll_Area = Files.Events.Scroll_Main_View,
@@ -2711,8 +2856,9 @@ package body Files_Suite.Interaction is
                  (Page_Action.Kind = Files.Events.Scroll_Input_Action
                   and then Page_Action.Scroll_Area = Files.Events.Scroll_Main_View,
                   "a click below the thumb translates to main-view paging");
-               Assert
-                 (Page_Action.Scroll_Lines = 5,
+               Files_Suite.Support.Assert_Equal
+                 (Page_Action.Scroll_Lines,
+                  5,
                   "a near-end track click is bounded to the five remaining lines");
             end;
          end;
@@ -2723,8 +2869,9 @@ package body Files_Suite.Interaction is
          Before := Files.Model.Main_View_Scroll_Lines (Model);
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
-         Assert
-           (Files.Model.Main_View_Scroll_Lines (Model) = Before,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Main_View_Scroll_Lines (Model),
+            Before,
             "applying drag-begin leaves the main-view scroll offset to the shell");
          Assert
            (Result.Command = Files.Commands.No_Command and then not Result.Context_Menu_Changed,
@@ -2788,10 +2935,14 @@ package body Files_Suite.Interaction is
          Action :=
            Files.Events.Translate_Click
              (Snapshot, Frame, Sep_X, Header_Y, Window_W, Window_H, Line_Height => Line);
-         Assert (Action.Kind = Files.Events.Column_Resize_Begin_Input_Action,
-                 "a press on a header separator begins a column resize");
-         Assert (Files.Types.Detail_Column'Val (Action.Item_Index) = Files.Types.Size_Column,
-                 "the resize targets the column whose left edge was pressed");
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.Column_Resize_Begin_Input_Action,
+            "a press on a header separator begins a column resize");
+         Files_Suite.Support.Assert_Equal
+           (Files.Types.Detail_Column'Val (Action.Item_Index),
+            Files.Types.Size_Column,
+            "the resize targets the column whose left edge was pressed");
          Assert (Action.Cursor_Position = Sep_X and then Action.Scroll_Drag_Anchor = Base_W,
                  "the drag-begin action carries the separator origin and column width");
 
@@ -2800,8 +2951,10 @@ package body Files_Suite.Interaction is
          Sort_Before := Files.Model.Sort_Field_Of (Model);
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
-         Assert (Files.Model.Sort_Field_Of (Model) = Sort_Before,
-                 "pressing a separator does not change the sort field");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Sort_Field_Of (Model),
+            Sort_Before,
+            "pressing a separator does not change the sort field");
 
          --  Dragging the separator left by 40 px widens the size column by ~40.
          Files.Interaction.Apply_Column_Resize
@@ -2811,8 +2964,10 @@ package body Files_Suite.Interaction is
             Current_X    => Sep_X - 40,
             Result       => Result);
          Assert (Result.Settings_Changed, "the resize step reports a persisted change");
-         Assert (Settings.Column_Widths (Files.Types.Size_Column) = Base_W + 40,
-                 "dragging the separator left widens the persisted column width by the drag distance");
+         Files_Suite.Support.Assert_Equal
+           (Settings.Column_Widths (Files.Types.Size_Column),
+            Base_W + 40,
+            "dragging the separator left widens the persisted column width by the drag distance");
 
          --  The details layout reflects the new width on the next snapshot.
          declare
@@ -2825,8 +2980,10 @@ package body Files_Suite.Interaction is
          begin
             for Cell of After_Rows loop
                if Cell.Visible_Index = 1 then
-                  Assert (Cell.Size_Width = Base_W + 40,
-                          "the details layout reflects the resized column width");
+                  Files_Suite.Support.Assert_Equal
+                    (Cell.Size_Width,
+                     Base_W + 40,
+                     "the details layout reflects the resized column width");
                   exit;
                end if;
             end loop;
@@ -2839,9 +2996,10 @@ package body Files_Suite.Interaction is
             Origin_Width => Action.Scroll_Drag_Anchor,
             Current_X    => Sep_X + (Base_W - 10),
             Result       => Result);
-         Assert (Settings.Column_Widths (Files.Types.Size_Column) =
-                   Files.Types.Minimum_Detail_Column_Width,
-                 "a drag that shrinks the column past the minimum clamps up to it");
+         Files_Suite.Support.Assert_Equal
+           (Settings.Column_Widths (Files.Types.Size_Column),
+            Files.Types.Minimum_Detail_Column_Width,
+            "a drag that shrinks the column past the minimum clamps up to it");
 
          --  The public reducer must clamp extreme synthetic coordinates rather
          --  than overflowing before the ordinary width rules can run.
@@ -2851,8 +3009,9 @@ package body Files_Suite.Interaction is
             Origin_Width => Natural'Last,
             Current_X    => Integer'First,
             Result       => Result);
-         Assert
-           (Settings.Column_Widths (Files.Types.Size_Column) = Natural'Last,
+         Files_Suite.Support.Assert_Equal
+           (Settings.Column_Widths (Files.Types.Size_Column),
+            Natural'Last,
             "an overflowing positive resize delta saturates at Natural'Last");
          Files.Interaction.Apply_Column_Resize
            (Settings, "", Files.Types.Size_Column,
@@ -2860,8 +3019,9 @@ package body Files_Suite.Interaction is
             Origin_Width => 0,
             Current_X    => Integer'Last,
             Result       => Result);
-         Assert
-           (Settings.Column_Widths (Files.Types.Size_Column) = 0,
+         Files_Suite.Support.Assert_Equal
+           (Settings.Column_Widths (Files.Types.Size_Column),
+            0,
             "an overflowing negative resize delta clamps to the default width");
       end;
    end Test_Column_Resize_Drag;
@@ -2922,12 +3082,18 @@ package body Files_Suite.Interaction is
          Action :=
            Files.Events.Translate_Click
              (Snapshot, Frame, Cell_X, Header_Y, Window_W, Window_H, Line_Height => Line);
-         Assert (Action.Kind = Files.Events.Column_Reorder_Begin_Input_Action,
-                 "a press on a header cell body begins a column reorder");
-         Assert (Files.Types.Detail_Column'Val (Action.Item_Index) = Files.Types.Size_Column,
-                 "the reorder targets the column whose cell body was pressed");
-         Assert (Action.Command = Files.Commands.Sort_By_Size_Command,
-                 "the reorder-begin action carries the column's sort command for the click fallback");
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.Column_Reorder_Begin_Input_Action,
+            "a press on a header cell body begins a column reorder");
+         Files_Suite.Support.Assert_Equal
+           (Files.Types.Detail_Column'Val (Action.Item_Index),
+            Files.Types.Size_Column,
+            "the reorder targets the column whose cell body was pressed");
+         Files_Suite.Support.Assert_Equal
+           (Action.Command,
+            Files.Commands.Sort_By_Size_Command,
+            "the reorder-begin action carries the column's sort command for the click fallback");
 
          --  Dropping the dragged column over the modified column moves it there
          --  and persists the new order.
@@ -2939,8 +3105,10 @@ package body Files_Suite.Interaction is
          Files.Interaction.Apply_Column_Reorder
            (Settings, "", Files.Types.Size_Column, Drop, Result);
          Assert (Result.Settings_Changed, "the reorder drop reports a persisted change");
-         Assert (Settings.Column_Order (2) = Files.Types.Size_Column,
-                 "the dropped column takes the target slot in the persisted order");
+         Files_Suite.Support.Assert_Equal
+           (Settings.Column_Order (2),
+            Files.Types.Size_Column,
+            "the dropped column takes the target slot in the persisted order");
       end;
 
       --  A press/release with no movement still sorts: applying the sort command
@@ -2989,8 +3157,10 @@ package body Files_Suite.Interaction is
            Files.Events.Translate_Click
              (Snapshot, Frame, Row.Size_X, (Layout.Main_Y + Row.Y) / 2,
               Window_W, Window_H, Line_Height => Line);
-         Assert (Action.Kind = Files.Events.Column_Resize_Begin_Input_Action,
-                 "a separator press still begins a resize, not a reorder");
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.Column_Resize_Begin_Input_Action,
+            "a separator press still begins a resize, not a reorder");
       end;
    end Test_Column_Reorder_Drag;
 
@@ -3064,8 +3234,10 @@ package body Files_Suite.Interaction is
                 (Snapshot, Frame, Empty_X, Bottom_Y, Window_W, Window_H,
                  Modifiers => Ctrl, Line_Height => Line);
          begin
-            Assert (Action.Kind = Files.Events.Marquee_Begin_Input_Action,
-                    "an empty-space press begins a marquee");
+            Files_Suite.Support.Assert_Equal
+              (Action.Kind,
+               Files.Events.Marquee_Begin_Input_Action,
+               "an empty-space press begins a marquee");
             Assert (not Action.Toggle_Selection,
                     "a plain empty-space marquee is not additive");
             Assert (Additive.Kind = Files.Events.Marquee_Begin_Input_Action
@@ -3082,8 +3254,10 @@ package body Files_Suite.Interaction is
               Files.Events.Translate_Click
                 (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
          begin
-            Assert (Action.Kind = Files.Events.Item_Click_Input_Action,
-                    "a press on an item stays a normal item click, not a marquee");
+            Files_Suite.Support.Assert_Equal
+              (Action.Kind,
+               Files.Events.Item_Click_Input_Action,
+               "a press on an item stays a normal item click, not a marquee");
          end;
          declare
             Header_X : constant Natural := Layout.Main_X + Layout.Main_Width / 2;
@@ -3132,7 +3306,7 @@ package body Files_Suite.Interaction is
          declare
             Before : constant Natural := Files.Model.Selected_Count (Model);
          begin
-            Assert (Before = 2, "the marquee selection holds after the drag");
+            Files_Suite.Support.Assert_Equal (Before, 2, "the marquee selection holds after the drag");
          end;
 
          --  An additive marquee unions the touched items with the base snapshot.
@@ -3145,8 +3319,10 @@ package body Files_Suite.Interaction is
                  and then Files.Model.Is_Selected (Model, 2)
                  and then Files.Model.Is_Selected (Model, 4),
                  "an additive marquee unions the touched items with the prior selection");
-         Assert (Files.Model.Selected_Count (Model) = 3,
-                 "the additive marquee selects exactly the union");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selected_Count (Model),
+            3,
+            "the additive marquee selects exactly the union");
 
          --  A zero-area marquee (a press that never dragged) selects nothing new.
          Empty := Files.Rendering.Items_In_Rect (Cells, Rect_X, Rect_Y, 0, 0);
@@ -3179,7 +3355,10 @@ package body Files_Suite.Interaction is
          Dispatch_Menu_Command
            (Model, Settings, "", Files.Commands.Open_Selected_Items_Command, Result, Found);
          Assert (Found, "the item menu offers the open command");
-         Assert (Files.Model.Current_Path (Model) = Dir, "opening a directory navigates into it");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Current_Path (Model),
+            Dir,
+            "opening a directory navigates into it");
          Assert (not Files.Model.Context_Menu_Is_Open (Model), "dispatching a menu row closes the menu");
       end;
 
@@ -3208,7 +3387,10 @@ package body Files_Suite.Interaction is
          Dispatch_Menu_Command
            (Model, Settings, "", Files.Commands.Cut_Selected_Items_Command, Result, Found);
          Assert (Found, "the item menu offers the cut command");
-         Assert (Result.Command = Files.Commands.Cut_Selected_Items_Command, "the result echoes the cut command");
+         Files_Suite.Support.Assert_Equal
+           (Result.Command,
+            Files.Commands.Cut_Selected_Items_Command,
+            "the result echoes the cut command");
          Assert
            (Files.Model.Clipboard_Mode_Of (Model) = Files.Model.Clipboard_Cut,
             "cut records a cut clipboard intent");
@@ -3247,7 +3429,10 @@ package body Files_Suite.Interaction is
       Open_Item_Context_Menu (Model, Settings, Result);
       Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Compress_Zip_Command, Result, Found);
       Assert (Found, "the item menu offers the compress-zip command");
-      Assert (Result.Command = Files.Commands.Compress_Zip_Command, "the result echoes the compress-zip command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Compress_Zip_Command,
+         "the result echoes the compress-zip command");
       Assert (Ada.Directories.Exists (Zip_Path), "compress-zip writes a zip archive next to the item");
 
       Model := Loaded_Model (Dir);
@@ -3977,12 +4162,16 @@ package body Files_Suite.Interaction is
               "Extract is disabled for the plain-file selection");
       Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Extract_Archive_Command, Result, Found);
       Assert (Found, "the disabled command is still offered by the menu");
-      Assert (Result.Command = Files.Commands.Extract_Archive_Command,
-              "the result echoes the dispatched command id");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Extract_Archive_Command,
+         "the result echoes the dispatched command id");
       Assert (not Result.Command_Executed,
               "the disabled command does not report execution");
-      Assert (Result.Status = Files.Controller.Controller_Ignored,
-              "the gated dispatch returns an ignored controller status");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "the gated dispatch returns an ignored controller status");
       Assert (not Ada.Directories.Exists (Extract),
               "the disabled extract command creates no folder");
    end Test_Disabled_Command_Does_Not_Act;
@@ -4049,11 +4238,13 @@ package body Files_Suite.Interaction is
          Action : constant Files.Events.Input_Action :=
            Files.Events.Translate_Key (Guikit.Input.Key_Z, Ctrl);
       begin
-         Assert
-           (Action.Kind = Files.Events.Command_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.Command_Input_Action,
             "Ctrl+Z translates to a command input action");
-         Assert
-           (Action.Command = Files.Commands.Undo_Command,
+         Files_Suite.Support.Assert_Equal
+           (Action.Command,
+            Files.Commands.Undo_Command,
             "Ctrl+Z is bound to the undo command");
       end;
 
@@ -4077,8 +4268,9 @@ package body Files_Suite.Interaction is
          Modifiers         => Ctrl,
          Current_Font_Size => Base_Font,
          Result            => Result);
-      Assert
-        (Result.Command = Files.Commands.Undo_Command,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Undo_Command,
          "Ctrl+Z dispatched through Handle_Key reports the undo command");
       Assert (Ada.Directories.Exists (Source), "Ctrl+Z restores the original name");
       Assert (not Ada.Directories.Exists (Renamed), "Ctrl+Z removes the renamed file");
@@ -4106,11 +4298,13 @@ package body Files_Suite.Interaction is
          Action : constant Files.Events.Input_Action :=
            Files.Events.Translate_Key (Guikit.Input.Key_Z, Ctrl_Shift);
       begin
-         Assert
-           (Action.Kind = Files.Events.Command_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.Command_Input_Action,
             "Ctrl+Shift+Z translates to a command input action");
-         Assert
-           (Action.Command = Files.Commands.Redo_Command,
+         Files_Suite.Support.Assert_Equal
+           (Action.Command,
+            Files.Commands.Redo_Command,
             "Ctrl+Shift+Z is bound to the redo command");
       end;
 
@@ -4145,8 +4339,9 @@ package body Files_Suite.Interaction is
          Modifiers         => Ctrl_Shift,
          Current_Font_Size => Base_Font,
          Result            => Result);
-      Assert
-        (Result.Command = Files.Commands.Redo_Command,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Redo_Command,
          "Ctrl+Shift+Z dispatched through Handle_Key reports the redo command");
       Assert (Ada.Directories.Exists (Renamed), "Ctrl+Shift+Z re-applies the rename");
       Assert (not Ada.Directories.Exists (Source), "Ctrl+Shift+Z removes the reverted name");
@@ -4390,15 +4585,17 @@ package body Files_Suite.Interaction is
          --  Down must advance to the NEXT displayed item, never the previous one.
          Files.Interaction.Handle_Key
            (Model, Settings, "", Guikit.Input.Key_Down, Guikit.Input.No_Modifiers, Base_Font, Result);
-         Assert
-           (Display_Position_Of (Files.Model.Selected_Name (Model)) = Start_Pos + 1,
+         Files_Suite.Support.Assert_Equal
+           (Display_Position_Of (Files.Model.Selected_Name (Model)),
+            Start_Pos + 1,
             "Down moves to the next displayed item under descending sort");
 
          --  Up must return to the anchor (the previous displayed item).
          Files.Interaction.Handle_Key
            (Model, Settings, "", Guikit.Input.Key_Up, Guikit.Input.No_Modifiers, Base_Font, Result);
-         Assert
-           (Display_Position_Of (Files.Model.Selected_Name (Model)) = Start_Pos,
+         Files_Suite.Support.Assert_Equal
+           (Display_Position_Of (Files.Model.Selected_Name (Model)),
+            Start_Pos,
             "Up moves to the previous displayed item under descending sort");
       end;
    end Test_Descending_Sort_Arrows_Follow_Display;
@@ -4462,13 +4659,15 @@ package body Files_Suite.Interaction is
       begin
          Files.Interaction.Handle_Key
            (Model, Settings, "", Guikit.Input.Key_Down, Guikit.Input.No_Modifiers, Base_Font, Result);
-         Assert
-           (Display_Position_Of (Files.Model.Selected_Name (Model)) = Start_Pos + 2,
+         Files_Suite.Support.Assert_Equal
+           (Display_Position_Of (Files.Model.Selected_Name (Model)),
+            Start_Pos + 2,
             "grid Down moves down a row (not up) under descending sort");
          Files.Interaction.Handle_Key
            (Model, Settings, "", Guikit.Input.Key_Up, Guikit.Input.No_Modifiers, Base_Font, Result);
-         Assert
-           (Display_Position_Of (Files.Model.Selected_Name (Model)) = Start_Pos,
+         Files_Suite.Support.Assert_Equal
+           (Display_Position_Of (Files.Model.Selected_Name (Model)),
+            Start_Pos,
             "grid Up returns to the previous row under descending sort");
       end;
    end Test_Descending_Grid_Arrows_Follow_Display;
@@ -4509,10 +4708,14 @@ package body Files_Suite.Interaction is
            Files.Controller.Execute_Command
              (Files.Commands.Toggle_Column_Permissions_Command, Model, Settings, Settings_Path => "");
       begin
-         Assert (Outcome.Status = Files.Controller.Controller_Command_Executed,
-                 "the controller executes a settings command");
-         Assert (Settings.Column_Visible (Files.Types.Permissions_Column) = Before,
-                 "the controller applies the settings command to the settings it is given");
+         Files_Suite.Support.Assert_Equal
+           (Outcome.Status,
+            Files.Controller.Controller_Command_Executed,
+            "the controller executes a settings command");
+         Files_Suite.Support.Assert_Equal
+           (Settings.Column_Visible (Files.Types.Permissions_Column),
+            Before,
+            "the controller applies the settings command to the settings it is given");
       end;
 
       --  The group command advances the persisted grouping mode.
@@ -4528,8 +4731,10 @@ package body Files_Suite.Interaction is
          Command           => Files.Commands.Cycle_Group_By_Command,
          Current_Font_Size => Base_Font,
          Result            => Result);
-      Assert (Settings.Group_By = Files.Types.Group_By_Type,
-              "the group-by command advances the grouping mode");
+      Files_Suite.Support.Assert_Equal
+        (Settings.Group_By,
+         Files.Types.Group_By_Type,
+         "the group-by command advances the grouping mode");
       Assert
         (not Result.Font_Size_Changed
          and then not Result.Needs_Glyph_Rebuild
@@ -4550,14 +4755,14 @@ package body Files_Suite.Interaction is
          for Item of Snapshot.Items loop
             if Item.Is_Group_Header then
                Header_Rows := Header_Rows + 1;
-               Assert (Item.Visible_Index = 0, "a group header carries no visible index");
+               Files_Suite.Support.Assert_Equal (Item.Visible_Index, 0, "a group header carries no visible index");
             else
                Item_Rows := Item_Rows + 1;
                Assert (Item.Visible_Index > 0, "a real row keeps its visible index");
             end if;
          end loop;
          Assert (Header_Rows >= 1, "grouping inserts at least one header row");
-         Assert (Item_Rows = 3, "every sample item survives grouping");
+         Files_Suite.Support.Assert_Equal (Item_Rows, 3, "every sample item survives grouping");
       end;
    end Test_Column_And_Group_Commands;
 
@@ -4575,15 +4780,33 @@ package body Files_Suite.Interaction is
          Segs : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
            Files.Breadcrumbs.Segments ("/home/user/files");
       begin
-         Assert (Natural (Segs.Length) = 3, "an absolute path yields one segment per named component (no root)");
-         Assert (To_String (Segs.Element (1).Label) = "home", "the first segment is the first component");
-         Assert (To_String (Segs.Element (1).Ancestor_Path) = "/home", "the first segment navigates to /home");
-         Assert (To_String (Segs.Element (2).Label) = "user", "the second segment is the next component");
-         Assert (To_String (Segs.Element (2).Ancestor_Path) = "/home/user",
-                 "the second segment navigates to /home/user");
-         Assert (To_String (Segs.Element (3).Label) = "files", "the last segment is the leaf component");
-         Assert
-           (To_String (Segs.Element (3).Ancestor_Path) = "/home/user/files",
+         Files_Suite.Support.Assert_Equal
+           (Natural (Segs.Length),
+            3,
+            "an absolute path yields one segment per named component (no root)");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Segs.Element (1).Label),
+            "home",
+            "the first segment is the first component");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Segs.Element (1).Ancestor_Path),
+            "/home",
+            "the first segment navigates to /home");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Segs.Element (2).Label),
+            "user",
+            "the second segment is the next component");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Segs.Element (2).Ancestor_Path),
+            "/home/user",
+            "the second segment navigates to /home/user");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Segs.Element (3).Label),
+            "files",
+            "the last segment is the leaf component");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Segs.Element (3).Ancestor_Path),
+            "/home/user/files",
             "the leaf segment navigates to the full path");
       end;
 
@@ -4628,10 +4851,16 @@ package body Files_Suite.Interaction is
            Files.Breadcrumbs.Elide (Long, 4);
          Has_Ellipsis : Boolean := False;
       begin
-         Assert (Natural (Long.Length) = 7, "the long path has seven segments");
-         Assert (Natural (Elided.Length) = 4, "eliding to four keeps four segments");
-         Assert (To_String (Elided.First_Element.Label) = "a", "elision keeps the first component");
-         Assert (To_String (Elided.Last_Element.Label) = "g", "elision keeps the trailing component");
+         Files_Suite.Support.Assert_Equal (Natural (Long.Length), 7, "the long path has seven segments");
+         Files_Suite.Support.Assert_Equal (Natural (Elided.Length), 4, "eliding to four keeps four segments");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Elided.First_Element.Label),
+            "a",
+            "elision keeps the first component");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Elided.Last_Element.Label),
+            "g",
+            "elision keeps the trailing component");
          for S of Elided loop
             if Files.Breadcrumbs.Is_Ellipsis (S) then
                Has_Ellipsis := True;
@@ -4692,8 +4921,9 @@ package body Files_Suite.Interaction is
          Action :=
            Files.Events.Translate_Click
              (Snapshot, Frame, X, Y, Breadcrumb_Width, Window_H, Line_Height => Line);
-         Assert
-           (Action.Kind = Files.Events.Breadcrumb_Click_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.Breadcrumb_Click_Input_Action,
             "a breadcrumb coordinate translates to a breadcrumb click");
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
@@ -4702,8 +4932,9 @@ package body Files_Suite.Interaction is
       declare
          Expected : constant Files.File_System.Path_Result := Files.File_System.Normalize_Path (Deep);
       begin
-         Assert
-           (Files.Model.Current_Path (Model) = To_String (Expected.Directory_Path),
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Current_Path (Model),
+            To_String (Expected.Directory_Path),
             "clicking the parent breadcrumb navigates to the parent directory");
       end;
       Assert
@@ -4752,12 +4983,12 @@ package body Files_Suite.Interaction is
       Files.Model.Open_Tree_Panel (Model);
 
       Rows := Files.Model.Tree_Visible_Rows (Model);
-      Assert (Natural (Rows.Length) = 1, "an unexpanded tree shows only its root node");
+      Files_Suite.Support.Assert_Equal (Natural (Rows.Length), 1, "an unexpanded tree shows only its root node");
 
       Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
       Rows := Files.Model.Tree_Visible_Rows (Model);
-      Assert (Natural (Rows.Length) = 3, "expanding the root reveals its two subdirectories");
-      Assert (Rows.Element (1).Depth = 0, "the root sits at depth zero");
+      Files_Suite.Support.Assert_Equal (Natural (Rows.Length), 3, "expanding the root reveals its two subdirectories");
+      Files_Suite.Support.Assert_Equal (Rows.Element (1).Depth, 0, "the root sits at depth zero");
       Assert
         (Rows.Element (2).Depth = 1 and then Rows.Element (3).Depth = 1,
          "the loaded children sit at depth one");
@@ -4772,8 +5003,9 @@ package body Files_Suite.Interaction is
       Ignored :=
         Files.Controller.Handle_Targeted_Scroll
           (Model, Files.Events.Scroll_Tree_Panel, -1);
-      Assert
-        (Files.Model.Tree_Panel_Scroll_Rows (Model) = 0,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Tree_Panel_Scroll_Rows (Model),
+         0,
          "folder-tree scrolling saturates back at the first row");
       declare
          Before : constant Natural := Files.Model.Revision (Model);
@@ -4787,8 +5019,14 @@ package body Files_Suite.Interaction is
             "ignored tree scrolling at the first row leaves the model unchanged");
       end;
 
-      Assert (Row_Named (Rows, ".secret") = 0, "hidden directories are excluded when Show_Hidden_Files is off");
-      Assert (Row_Named (Rows, "file.txt") = 0, "regular files are excluded from the tree");
+      Files_Suite.Support.Assert_Equal
+
+        (Row_Named (Rows, ".secret"),
+
+         0,
+
+         "hidden directories are excluded when Show_Hidden_Files is off");
+      Files_Suite.Support.Assert_Equal (Row_Named (Rows, "file.txt"), 0, "regular files are excluded from the tree");
 
       declare
          Alpha_Index : constant Natural := Row_Named (Rows, "alpha");
@@ -4809,19 +5047,22 @@ package body Files_Suite.Interaction is
       end;
 
       Files.Model.Set_Tree_Panel_Scroll_Rows (Model, 3);
-      Assert
-        (Files.Model.Tree_Panel_Scroll_Rows (Model) = 3,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Tree_Panel_Scroll_Rows (Model),
+         3,
          "the expanded tree can scroll to its final visible row");
       Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
       Rows := Files.Model.Tree_Visible_Rows (Model);
-      Assert (Natural (Rows.Length) = 1, "collapsing the root hides all its descendants");
-      Assert
-        (Files.Model.Tree_Panel_Scroll_Rows (Model) = 0,
+      Files_Suite.Support.Assert_Equal (Natural (Rows.Length), 1, "collapsing the root hides all its descendants");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Tree_Panel_Scroll_Rows (Model),
+         0,
          "collapsing a branch clamps its now-hidden tree scroll offset");
 
       Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
-      Assert
-        (Files.Model.Tree_Panel_Scroll_Rows (Model) = 0,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Tree_Panel_Scroll_Rows (Model),
+         0,
          "re-expanding a branch does not resurrect its obsolete scroll offset");
       Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
 
@@ -4871,8 +5112,9 @@ package body Files_Suite.Interaction is
       Files.Model.Open_Tree_Panel (Model);
       --  Expand the root so alpha and beta are visible rows.
       CResult := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
-      Assert
-        (CResult.Status = Files.Controller.Controller_Command_Executed,
+      Files_Suite.Support.Assert_Equal
+        (CResult.Status,
+         Files.Controller.Controller_Command_Executed,
          "expanding the destination tree reports an executed command");
 
       Sources.Append (To_Unbounded_String (Src_File));
@@ -4915,8 +5157,9 @@ package body Files_Suite.Interaction is
          --  disclosure-triangle path. The now-hidden child must not remain the
          --  destination that Choose would silently use.
          CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
-         Assert
-           (Files.Model.Tree_Pick_Target (Model) = A1,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Tree_Pick_Target (Model),
+            A1,
             "Right on an expanded destination enters its first child");
          declare
             Expanded_Rows : constant Files.Folder_Tree.Visible_Row_Vectors.Vector :=
@@ -5014,14 +5257,19 @@ package body Files_Suite.Interaction is
               and then Files.Model.Tree_Has_Keyboard (Model),
               "Right expands the highlighted folder and the tree keeps the keyboard");
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
-      Assert (Files.Model.Tree_Cursor (Model) = A1, "Right on an expanded folder steps into it");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Tree_Cursor (Model),
+         A1,
+         "Right on an expanded folder steps into it");
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
-      Assert (Files.Model.Tree_Cursor (Model) = Alpha, "Left steps out to the parent folder");
+      Files_Suite.Support.Assert_Equal (Files.Model.Tree_Cursor (Model), Alpha, "Left steps out to the parent folder");
 
       --  Enter opens the highlighted folder in the main view.
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
-      Assert (Files.Model.Current_Path (Model) = Alpha,
-              "Enter opens the highlighted folder in the main view");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Alpha,
+         "Enter opens the highlighted folder in the main view");
 
       --  Escape gives the keyboard back to the grid; Shift+Tab from the grid
       --  comes back to the tree, and from the tree goes on to the filter.
@@ -5081,8 +5329,9 @@ package body Files_Suite.Interaction is
          Action :=
            Files.Events.Translate_Click
              (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
-         Assert
-           (Action.Kind = Files.Events.Tree_Click_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.Tree_Click_Input_Action,
             "a tree label coordinate translates to a tree click");
          Assert (not Action.Toggle_Selection, "clicking the label navigates rather than toggles");
 
@@ -5233,7 +5482,10 @@ package body Files_Suite.Interaction is
 
       --  Selected file: favoriting stores the item's full path, not the folder.
       Files_Suite.Support.Select_Name (Model, "Alpha.txt");
-      Assert (Files.Model.Selected_Count (Model) = 1, "the sample file is selected before favoriting");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         1,
+         "the sample file is selected before favoriting");
       Files.Interaction.Apply_Input_Action
         (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (Has_Favorite (Settings, Item), "favoriting a selected file stores its path");
@@ -5266,7 +5518,10 @@ package body Files_Suite.Interaction is
 
       --  No selection: the toggle falls back to the current directory.
       Files.Model.Deselect_All (Model);
-      Assert (Files.Model.Selected_Count (Model) = 0, "the selection is cleared for the fallback path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         0,
+         "the selection is cleared for the fallback path");
       Files.Interaction.Apply_Input_Action
         (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert
@@ -5322,7 +5577,10 @@ package body Files_Suite.Interaction is
       --  All three selected, none favorited: one invocation stars every item.
       Model := Loaded_Model (Dir);
       Files.Model.Select_All_Visible (Model);
-      Assert (Files.Model.Selected_Count (Model) = 3, "all three files are selected before the group toggle");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         3,
+         "all three files are selected before the group toggle");
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (Has_Favorite (Settings, One), "the group toggle stars the first item");
@@ -5379,7 +5637,10 @@ package body Files_Suite.Interaction is
       --  Open the picker on a multi-selection via the command seam.
       Model := Loaded_Model (Dir);
       Files.Model.Select_All_Visible (Model);
-      Assert (Files.Model.Selected_Count (Model) = 3, "all three files are selected before labeling");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         3,
+         "all three files are selected before labeling");
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Open_Cmd, Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (Files.Model.Label_Picker_Is_Open (Model), "the set-label command opens the picker");
@@ -5388,9 +5649,18 @@ package body Files_Suite.Interaction is
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Choose (Files.Types.Green), Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (not Files.Model.Label_Picker_Is_Open (Model), "choosing a swatch closes the picker");
-      Assert (Files.Settings.Label_Of (Settings, One) = Files.Types.Green, "the first item is labeled green");
-      Assert (Files.Settings.Label_Of (Settings, Two) = Files.Types.Green, "the second item is labeled green");
-      Assert (Files.Settings.Label_Of (Settings, Three) = Files.Types.Green, "the third item is labeled green");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Settings, One),
+         Files.Types.Green,
+         "the first item is labeled green");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Settings, Two),
+         Files.Types.Green,
+         "the second item is labeled green");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Settings, Three),
+         Files.Types.Green,
+         "the third item is labeled green");
       Assert (Result.Settings_Changed, "labeling reports a settings change");
 
       --  A delayed choice from the closed picker is inert. In particular, it
@@ -5400,8 +5670,10 @@ package body Files_Suite.Interaction is
          Guikit.Input.No_Modifiers, Result);
       Assert (not Files.Model.Label_Picker_Is_Open (Model),
               "a stale choice does not reopen the picker");
-      Assert (Files.Settings.Label_Of (Settings, One) = Files.Types.Green,
-              "a stale choice does not relabel the selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Settings, One),
+         Files.Types.Green,
+         "a stale choice does not relabel the selection");
 
       --  Public input actions carry a numeric payload. Reject a malformed
       --  value without raising or dismissing the active picker.
@@ -5414,15 +5686,26 @@ package body Files_Suite.Interaction is
          Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (Files.Model.Label_Picker_Is_Open (Model),
               "an invalid choice leaves the picker available");
-      Assert (Files.Settings.Label_Of (Settings, One) = Files.Types.Green,
-              "an invalid choice does not change labels");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Settings, One),
+         Files.Types.Green,
+         "an invalid choice does not change labels");
 
       --  Choosing None clears every selected item's label.
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Choose (Files.Types.No_Label), Base_Font, Guikit.Input.No_Modifiers, Result);
-      Assert (Files.Settings.Label_Of (Settings, One) = Files.Types.No_Label, "None clears the first label");
-      Assert (Files.Settings.Label_Of (Settings, Two) = Files.Types.No_Label, "None clears the second label");
-      Assert (Files.Settings.Label_Of (Settings, Three) = Files.Types.No_Label, "None clears the third label");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Settings, One),
+         Files.Types.No_Label,
+         "None clears the first label");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Settings, Two),
+         Files.Types.No_Label,
+         "None clears the second label");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Settings, Three),
+         Files.Types.No_Label,
+         "None clears the third label");
 
       --  A mixed selection (one already labeled differently) all takes the
       --  chosen color.
@@ -5430,10 +5713,18 @@ package body Files_Suite.Interaction is
       Files.Model.Open_Label_Picker (Model);
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Choose (Files.Types.Blue), Base_Font, Guikit.Input.No_Modifiers, Result);
-      Assert (Files.Settings.Label_Of (Settings, One) = Files.Types.Blue, "the first item becomes blue");
-      Assert (Files.Settings.Label_Of (Settings, Two) = Files.Types.Blue,
-              "the previously red item is overwritten to blue");
-      Assert (Files.Settings.Label_Of (Settings, Three) = Files.Types.Blue, "the third item becomes blue");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Settings, One),
+         Files.Types.Blue,
+         "the first item becomes blue");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Settings, Two),
+         Files.Types.Blue,
+         "the previously red item is overwritten to blue");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Settings, Three),
+         Files.Types.Blue,
+         "the third item becomes blue");
    end Test_Color_Label_Picker_Applies_To_Selection;
 
    procedure Test_Settings_Writes_Report_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -5481,7 +5772,10 @@ package body Files_Suite.Interaction is
          Files.Model.Toggle_Rename (Model);
          Files.Model.Set_Rename_Text (Model, New_Name);
          Op := Files.Operations.Commit_Rename (Model, Settings);
-         Assert (Op.Status = Files.Operations.Operation_Success, "rename " & Name & " to " & New_Name);
+         Files_Suite.Support.Assert_Equal
+           (Op.Status,
+            Files.Operations.Operation_Success,
+            "rename " & Name & " to " & New_Name);
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
       end Rename;
    begin
@@ -5502,12 +5796,16 @@ package body Files_Suite.Interaction is
               "the label follows the renamed file and leaves the old path");
 
       Rename ("sub", "sub2");
-      Assert (Files.Settings.Label_Of (Settings, Files_Suite.Support.Join (Sub_Two, "inner.txt")) = Files.Types.Blue,
-              "a label inside a renamed folder follows it");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Settings, Files_Suite.Support.Join (Sub_Two, "inner.txt")),
+         Files.Types.Blue,
+         "a label inside a renamed folder follows it");
       Assert (Files.Settings.Is_Favorite (Settings, Sub_Two) and then not Files.Settings.Is_Favorite (Settings, Sub),
               "a favorite folder follows its rename");
-      Assert (Files.Settings.Label_Of (Settings, Sibling) = Files.Types.Red,
-              "a path that only shares the folder's name as a prefix is left alone");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Settings, Sibling),
+         Files.Types.Red,
+         "a path that only shares the folder's name as a prefix is left alone");
 
       Op := Files.Operations.Undo_Last (Model, Settings);
       Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
@@ -5551,7 +5849,10 @@ package body Files_Suite.Interaction is
                 = Files.Types.No_Label
               and then Files.Settings.Loadable (Settings),
               "an edit past the bound is refused and the settings stay loadable");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.settings.full", "the refusal says why");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.settings.full",
+         "the refusal says why");
    end Test_Labels_Follow_Moves_And_Stay_Loadable;
 
    procedure Test_Color_Label_Picker_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -5569,27 +5870,35 @@ package body Files_Suite.Interaction is
       Files.Model.Select_All_Visible (Model);
 
       Files.Model.Open_Label_Picker (Model);
-      Assert (Files.Model.Label_Picker_Highlight (Model) = 8, "the picker opens on the clear swatch");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Label_Picker_Highlight (Model),
+         8,
+         "the picker opens on the clear swatch");
 
       --  Arrows move the highlight, clamped to the 1 .. 8 swatch range.
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_Right, Guikit.Input.No_Modifiers, Base_Font, Result);
-      Assert (Files.Model.Label_Picker_Highlight (Model) = 8, "Right stays clamped at the last swatch");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Label_Picker_Highlight (Model),
+         8,
+         "Right stays clamped at the last swatch");
       for Step in 1 .. 4 loop
          Files.Interaction.Handle_Key
            (Model, Settings, "", Guikit.Input.Key_Left, Guikit.Input.No_Modifiers, Base_Font, Result);
       end loop;
-      Assert (Files.Model.Label_Picker_Highlight (Model) = 4, "four Lefts land on swatch 4");
-      Assert
-        (Files.Model.Label_Picker_Highlight_Color (Model) = Files.Types.Green,
+      Files_Suite.Support.Assert_Equal (Files.Model.Label_Picker_Highlight (Model), 4, "four Lefts land on swatch 4");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Label_Picker_Highlight_Color (Model),
+         Files.Types.Green,
          "swatch 4 chooses Green");
 
       --  Enter applies the highlighted color to the whole selection and closes.
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_Return, Guikit.Input.No_Modifiers, Base_Font, Result);
       Assert (not Files.Model.Label_Picker_Is_Open (Model), "Enter closes the picker");
-      Assert
-        (Files.Settings.Label_Of (Settings, One) = Files.Types.Green,
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Settings, One),
+         Files.Types.Green,
          "Enter applies the highlighted color to the selection");
    end Test_Color_Label_Picker_Keyboard;
 
@@ -5634,15 +5943,19 @@ package body Files_Suite.Interaction is
       --  Clicking the folder favorite navigates into it.
       Click_Root_Row (Model, Settings, Fav_Folder, Found, Result);
       Assert (Found, "the folder favorite row is laid out");
-      Assert (Files.Model.Current_Path (Model) = Fav_Folder, "a folder favorite navigates into the folder");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Fav_Folder,
+         "a folder favorite navigates into the folder");
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "a folder favorite click closes the selector");
 
       --  Clicking the file favorite opens its parent with the file selected.
       Open_Favorites_Selector (Model, Settings);
       Click_Root_Row (Model, Settings, Fav_File, Found, Result);
       Assert (Found, "the file favorite row is laid out");
-      Assert
-        (Files.Model.Current_Path (Model) = Files_Suite.Support.Root,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Files_Suite.Support.Root,
          "a file favorite navigates to the file's parent directory");
       declare
          Selected  : constant Files.File_System.Item_Vectors.Vector :=
@@ -5693,8 +6006,9 @@ package body Files_Suite.Interaction is
       declare
          Action : constant Files.Events.Input_Action := Star_Action;
       begin
-         Assert
-           (Action.Kind = Files.Events.Path_Favorite_Toggle_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.Path_Favorite_Toggle_Input_Action,
             "a click on the empty path star translates to the favorite-toggle action");
          Files.Interaction.Apply_Input_Action
            (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
@@ -5705,8 +6019,9 @@ package body Files_Suite.Interaction is
       Assert
         (Files.Model.Focus (Model) /= Files.Types.Focus_Path_Input,
          "toggling the path star does not focus the path input");
-      Assert
-        (Files.Model.Current_Path (Model) = Current,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Current,
          "toggling the path star does not navigate away from the current directory");
 
       --  The snapshot now reports the favorited state (filled star); clicking
@@ -5714,8 +6029,9 @@ package body Files_Suite.Interaction is
       declare
          Action : constant Files.Events.Input_Action := Star_Action;
       begin
-         Assert
-           (Action.Kind = Files.Events.Path_Favorite_Toggle_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.Path_Favorite_Toggle_Input_Action,
             "a second click on the now-filled path star is still the favorite-toggle action");
          Files.Interaction.Apply_Input_Action
            (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
@@ -5741,8 +6057,14 @@ package body Files_Suite.Interaction is
       --  Clicking the stale favorite must not raise and must not navigate.
       Click_Root_Row (Model, Settings, Stale, Found, Result);
       Assert (Found, "the stale favorite row is still laid out");
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "a stale favorite click is skipped");
-      Assert (Files.Model.Current_Path (Model) = Before, "a stale favorite click does not navigate");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "a stale favorite click is skipped");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Before,
+         "a stale favorite click does not navigate");
       Assert (Files.Model.Root_Selector_Is_Open (Model), "a skipped stale click leaves the selector open");
    end Test_Favorite_Stale_Entry_Is_Skipped;
 
@@ -5842,8 +6164,9 @@ package body Files_Suite.Interaction is
               Files.Controller.Append_Focused_Text (Model, " ");
             pragma Unreferenced (Typed);
          begin
-            Assert
-              (Files.Model.Filter_Text (Model) = " ",
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Filter_Text (Model),
+               " ",
                "the space character types into the focused filter input");
          end;
       end;
@@ -5887,8 +6210,10 @@ package body Files_Suite.Interaction is
            Files.Settings.Recent_Paths (Settings);
       begin
          Assert (not Recent.Is_Empty, "opening an item records it in the recent list");
-         Assert (To_String (Recent.First_Element) = Ada.Directories.Full_Name (Dir),
-                 "the opened folder lands at the front of the recent list");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Recent.First_Element),
+            Ada.Directories.Full_Name (Dir),
+            "the opened folder lands at the front of the recent list");
       end;
       Assert (Result.Settings_Changed, "recording an open reports a settings change");
       Assert (Ada.Directories.Exists (Path), "recording an open persists the settings file");
@@ -5924,15 +6249,19 @@ package body Files_Suite.Interaction is
                  "Shift+Delete in a focused text field does not delete the selection");
          Files.Interaction.Handle_Key
            (Model, Settings, "", Guikit.Input.Key_A, Ctrl, Base_Font, Result);
-         Assert (Files.Model.Selected_Count (Model) = 1,
-                 "Ctrl+A in a focused text field does not select every file");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selected_Count (Model),
+            1,
+            "Ctrl+A in a focused text field does not select every file");
          Files.Model.Cancel_Focus_Or_Edit (Model);
       end loop;
 
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_A, Ctrl, Base_Font, Result);
-      Assert (Files.Model.Selected_Count (Model) = 2,
-              "with the grid focused the same shortcut still works");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         2,
+         "with the grid focused the same shortcut still works");
 
       --  A settings-writing shortcut (Ctrl+B) is applied, not reported and dropped.
       Files_Suite.Support.Select_Name (Model, "keep.txt");
@@ -5966,9 +6295,10 @@ package body Files_Suite.Interaction is
          begin
             null;
          end;
-         Assert (Files.Model.Palette_Selected_Id (Model)
-                   = Files.Commands.Command_Id'Pos (Files.Commands.Toggle_Hidden_Files_Command),
-                 "the palette query selects the hidden-files command");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Palette_Selected_Id (Model),
+            Files.Commands.Command_Id'Pos (Files.Commands.Toggle_Hidden_Files_Command),
+            "the palette query selects the hidden-files command");
          --  Toggle_Hidden_Files saves before it applies, so it needs a real file.
          Files.Interaction.Handle_Key
            (Model, Settings, Files_Suite.Support.Join (Files_Suite.Support.Root, "palette-settings.conf"),
@@ -6142,8 +6472,9 @@ package body Files_Suite.Interaction is
       declare
          Action : constant Files.Events.Input_Action := Chip_Action (Model);
       begin
-         Assert
-           (Action.Kind = Files.Events.Search_Scope_Toggle_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.Search_Scope_Toggle_Input_Action,
             "clicking the chip yields the scope-toggle action, not a text click");
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
@@ -6154,8 +6485,9 @@ package body Files_Suite.Interaction is
       Assert
         (Files.Model.Focus (Model) /= Files.Types.Focus_Filter_Input,
          "the chip click does not focus the filter input");
-      Assert
-        (Files.Model.Item_Count (Model) = 1,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         1,
          "cycling to Search_Names re-runs the query as a recursive name search");
 
       --  Second chip click: cycle to Search_Contents and re-run as a grep.
@@ -6169,8 +6501,9 @@ package body Files_Suite.Interaction is
         (Files.Model.Search_Scope_Of (Model) = Files.Types.Search_Contents,
          "the second chip click cycles to the Search_Contents scope");
       Assert (Files.Model.Search_Results_Are_Active (Model), "content results are shown");
-      Assert
-        (Files.Model.Item_Count (Model) = 1,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         1,
          "cycling to Search_Contents re-runs the query as a recursive content search");
 
       --  Third chip click: cycle back to Filter_Here and restore the directory.
@@ -6186,8 +6519,9 @@ package body Files_Suite.Interaction is
       Assert
         (not Files.Model.Search_Results_Are_Active (Model),
          "returning to Filter_Here drops the search-results state");
-      Assert
-        (Files.Model.Item_Count (Model) = Full_Count,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         Full_Count,
          "returning to Filter_Here restores the plain directory listing");
    end Test_Search_Scope_Chip_Cycles;
 

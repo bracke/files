@@ -207,15 +207,19 @@ package body Files_Suite.Settings is
       --  host opener fallback would otherwise resolve unmapped lookups.
       Manual.Use_System_Default_Opener := False;
       Assert (Parsed.Success, "settings text parses");
-      Assert (Parsed.Settings.Default_View = Files.Types.Details, "default view mode parses");
+      Files_Suite.Support.Assert_Equal (Parsed.Settings.Default_View, Files.Types.Details, "default view mode parses");
       Assert (Parsed.Settings.Show_Hidden_Files, "setting keys parse case-insensitively");
-      Assert (Parsed.Settings.Sort_Field_Value = Files.Settings.Sort_By_Size, "sort field setting parses");
+      Files_Suite.Support.Assert_Equal
+        (Parsed.Settings.Sort_Field_Value,
+         Files.Settings.Sort_By_Size,
+         "sort field setting parses");
       Assert (not Parsed.Settings.Sort_Ascending, "sort direction setting parses");
       Assert
         (Parsed.Settings.Theme = Files.Settings.Theme_High_Contrast,
          "legacy high_contrast_theme key maps to the high-contrast theme");
-      Assert
-        (To_String (Parsed.Settings.Icon_Theme_Name) = "files-high-contrast",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Parsed.Settings.Icon_Theme_Name),
+         "files-high-contrast",
          "icon theme setting parses");
       declare
          Duplicate_Settings : constant Files.Settings.Settings_Parse_Result :=
@@ -229,185 +233,282 @@ package body Files_Suite.Settings is
               "sort_field = modified" & ASCII.LF);
       begin
          Assert (Duplicate_Settings.Success, "duplicate scalar settings parse deterministically");
-         Assert
-           (Duplicate_Settings.Settings.Default_View = Files.Types.Details,
+         Files_Suite.Support.Assert_Equal
+           (Duplicate_Settings.Settings.Default_View,
+            Files.Types.Details,
             "duplicate default view setting uses the last value");
          Assert
            (Duplicate_Settings.Settings.Show_Hidden_Files,
             "duplicate hidden-file setting uses the last value");
-         Assert
-           (Duplicate_Settings.Settings.Sort_Field_Value = Files.Settings.Sort_By_Modified,
+         Files_Suite.Support.Assert_Equal
+           (Duplicate_Settings.Settings.Sort_Field_Value,
+            Files.Settings.Sort_By_Modified,
             "duplicate sort field setting uses the last value");
       end;
-      Assert
-        (Files.Settings.Filetype_For_Extension (Parsed.Settings, ".ada") = "text/x-ada",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Parsed.Settings, ".ada"),
+         "text/x-ada",
          "extension mapping parses");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Parsed.Settings, " ADA ") = "text/x-ada",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Parsed.Settings, " ADA "),
+         "text/x-ada",
          "extension lookup normalizes whitespace and case");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "log") = "text/x-log",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "log"),
+         "text/x-log",
          "quoted filetype mapping value parses");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "quote") = "text/""quoted",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "quote"),
+         "text/""quoted",
          "quote-containing filetype mapping value parses");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "eq") = "text/with=equals",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "eq"),
+         "text/with=equals",
          "equals-containing filetype mapping value parses");
-      Assert (Files.Settings.Normalize_Extension (".") = "", "single-dot extension normalizes to empty");
-      Assert
-        (Files.Settings.Normalize_Extension (". TXT ") = "txt",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Normalize_Extension ("."),
+         "",
+         "single-dot extension normalizes to empty");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Normalize_Extension (". TXT "),
+         "txt",
          "extension normalization trims after a leading dot");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Parsed.Settings, ".") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "."),
+         "",
          "empty normalized extension has no filetype mapping");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "unknown") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Parsed.Settings, "unknown"),
+         "",
          "unknown extension has no filetype mapping");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "pdf") = "application/pdf",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "pdf"),
+         "application/pdf",
          "default settings map PDF files");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "adb") = "text/x-ada",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "adb"),
+         "text/x-ada",
          "default settings map Ada body files");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "json") = "application/json",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "json"),
+         "application/json",
          "default settings map JSON files");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "xml") = "application/xml",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "xml"),
+         "application/xml",
          "default settings map XML files");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "zip") = "application/zip",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "zip"),
+         "application/zip",
          "default settings map ZIP archives");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "tar.gz") = "application/gzip-tar",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "tar.gz"),
+         "application/gzip-tar",
          "default settings map compressed tar archives");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "docx") =
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "docx"),
          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
          "default settings map Word documents");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "xlsx") =
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "xlsx"),
          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
          "default settings map spreadsheet documents");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "mp3") = "audio/mpeg",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "mp3"),
+         "audio/mpeg",
          "default settings map MP3 audio");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "mp4") = "video/mp4",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "mp4"),
+         "video/mp4",
          "default settings map MP4 video");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "inode/directory") = "folder",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "inode/directory"),
+         "folder",
          "default settings map directory icons");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "inode/symlink") = "link",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "inode/symlink"),
+         "link",
          "default settings map symlink icons");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "application/x-executable") = "executable",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "application/x-executable"),
+         "executable",
          "default settings map executable icons");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "text/plain") = "text",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "text/plain"),
+         "text",
          "default settings map text icons");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "text/x-ada") = "ada",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "text/x-ada"),
+         "ada",
          "default settings map Ada icons");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "image/png") = "image",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "image/png"),
+         "image",
          "default settings map PNG icons");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "application/x-tar") = "unknown",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "application/x-tar"),
+         "unknown",
          "default settings map tar icons");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "audio/mpeg") = "unknown",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "audio/mpeg"),
+         "unknown",
          "default settings map audio icons");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-ada") = "text",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-ada"),
+         "text",
          "icon mapping parses");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Parsed.Settings, " text/x-ada ") = "text",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Parsed.Settings, " text/x-ada "),
+         "text",
          "icon lookup normalizes whitespace");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-log") = "log-icon",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-log"),
+         "log-icon",
          "quoted icon mapping value parses");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-quote") = "quote""icon",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-quote"),
+         "quote""icon",
          "quoted icon mapping unescapes doubled quotes");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-equals") = "icon=equals",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "text/x-equals"),
+         "icon=equals",
          "equals-containing icon mapping value parses");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "application/x-missing") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "application/x-missing"),
+         "",
          "unknown filetype has no icon mapping");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "   ") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Parsed.Settings, "   "),
+         "",
          "blank filetype has no icon mapping");
 
       Modifiers (Guikit.Input.Control_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Modifiers);
       Assert (Lookup.Found, "modifier-specific open action is found");
-      Assert (To_String (Lookup.Token) = "text/x-ada+control", "modifier token is normalized");
-      Assert (To_String (Lookup.Action.Executable) = "editor", "action executable parses");
-      Assert (Natural (Lookup.Action.Arguments.Length) = 2, "action arguments parse");
+      Files_Suite.Support.Assert_Equal (To_String (Lookup.Token), "text/x-ada+control", "modifier token is normalized");
+      Files_Suite.Support.Assert_Equal (To_String (Lookup.Action.Executable), "editor", "action executable parses");
+      Files_Suite.Support.Assert_Equal (Natural (Lookup.Action.Arguments.Length), 2, "action arguments parse");
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, " text/x-ada ", Modifiers);
       Assert (Lookup.Found, "open action lookup normalizes filetype whitespace");
-      Assert
-        (To_String (Lookup.Token) = "text/x-ada+control",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Token),
+         "text/x-ada+control",
          "whitespace-normalized lookup preserves modifier token");
 
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/main.ada");
-      Assert
-        (To_String (Expanded.Arguments.Element (2)) = "/tmp/example/main.ada",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (2)),
+         "/tmp/example/main.ada",
          "path placeholder expands as one argument");
 
       Modifiers := Guikit.Input.No_Modifiers;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "application/ld+json", Modifiers);
       Assert (Lookup.Found, "structured-suffix open action is found");
-      Assert
-        (To_String (Lookup.Token) = "application/ld+json",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Token),
+         "application/ld+json",
          "structured-suffix filetype token keeps plus suffix");
-      Assert
-        (To_String (Lookup.Action.Executable) = "json-viewer",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Executable),
+         "json-viewer",
          "structured-suffix open action executable parses");
       Modifiers (Guikit.Input.Control_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "application/ld+json", Modifiers);
       Assert (Lookup.Found, "structured-suffix modifier-specific open action is found");
-      Assert
-        (To_String (Lookup.Token) = "application/ld+json+control",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Token),
+         "application/ld+json+control",
          "structured-suffix modifier token appends after filetype suffix");
-      Assert
-        (To_String (Lookup.Action.Executable) = "json-editor",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Executable),
+         "json-editor",
          "structured-suffix modifier-specific executable parses");
 
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/full", Guikit.Input.No_Modifiers);
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/archive.tar.gz");
       Assert (Lookup.Found, "full placeholder action is found");
-      Assert (To_String (Expanded.Arguments.Element (1)) = "/tmp/example", "parent placeholder expands");
-      Assert (To_String (Expanded.Arguments.Element (2)) = "archive.tar.gz", "name placeholder expands");
-      Assert (To_String (Expanded.Arguments.Element (3)) = "archive.tar", "stem placeholder expands");
-      Assert (To_String (Expanded.Arguments.Element (4)) = "gz", "extension placeholder expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (1)),
+         "/tmp/example",
+         "parent placeholder expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (2)),
+         "archive.tar.gz",
+         "name placeholder expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (3)),
+         "archive.tar",
+         "stem placeholder expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (4)),
+         "gz",
+         "extension placeholder expands");
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/.profile");
-      Assert (To_String (Expanded.Arguments.Element (2)) = ".profile", "dotfile name placeholder expands");
-      Assert (To_String (Expanded.Arguments.Element (3)) = ".profile", "dotfile stem keeps leading-dot name");
-      Assert (To_String (Expanded.Arguments.Element (4)) = "", "dotfile extension expands to empty");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (2)),
+         ".profile",
+         "dotfile name placeholder expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (3)),
+         ".profile",
+         "dotfile stem keeps leading-dot name");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (4)),
+         "",
+         "dotfile extension expands to empty");
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/name.");
-      Assert (To_String (Expanded.Arguments.Element (2)) = "name.", "trailing-dot name placeholder expands");
-      Assert (To_String (Expanded.Arguments.Element (3)) = "name.", "trailing-dot stem keeps final separator");
-      Assert (To_String (Expanded.Arguments.Element (4)) = "", "trailing-dot extension expands to empty");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (2)),
+         "name.",
+         "trailing-dot name placeholder expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (3)),
+         "name.",
+         "trailing-dot stem keeps final separator");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (4)),
+         "",
+         "trailing-dot extension expands to empty");
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "");
-      Assert (To_String (Expanded.Arguments.Element (1)) = "", "empty path parent expands to empty");
-      Assert (To_String (Expanded.Arguments.Element (2)) = "", "empty path name expands to empty");
-      Assert (To_String (Expanded.Arguments.Element (3)) = "", "empty path stem expands to empty");
-      Assert (To_String (Expanded.Arguments.Element (4)) = "", "empty path extension expands to empty");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (1)),
+         "",
+         "empty path parent expands to empty");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (2)),
+         "",
+         "empty path name expands to empty");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (3)),
+         "",
+         "empty path stem expands to empty");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (4)),
+         "",
+         "empty path extension expands to empty");
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "relative.txt");
-      Assert (To_String (Expanded.Arguments.Element (1)) = ".", "relative path parent expands to current directory");
-      Assert (To_String (Expanded.Arguments.Element (2)) = "relative.txt", "relative path name expands");
-      Assert (To_String (Expanded.Arguments.Element (3)) = "relative", "relative path stem expands");
-      Assert (To_String (Expanded.Arguments.Element (4)) = "txt", "relative path extension expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (1)),
+         ".",
+         "relative path parent expands to current directory");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (2)),
+         "relative.txt",
+         "relative path name expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (3)),
+         "relative",
+         "relative path stem expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (4)),
+         "txt",
+         "relative path extension expands");
       if Hostkit.Host.Current /= Hostkit.Host.Windows then
          Expanded := Files.Settings.Expand_Placeholders
            (Lookup.Action, "/tmp/example/a\b.txt");
-         Assert
-           (To_String (Expanded.Arguments.Element (1)) = "/tmp/example",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Expanded.Arguments.Element (1)),
+            "/tmp/example",
             "a POSIX backslash filename keeps its real parent");
          Assert
            (To_String (Expanded.Arguments.Element (2)) = "a\b.txt"
@@ -416,53 +517,78 @@ package body Files_Suite.Settings is
             "a POSIX backslash remains part of name and stem placeholders");
       end if;
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "C:\tmp\dir.with.dots\main.adb");
-      Assert (To_String (Expanded.Arguments.Element (1)) = "C:\tmp\dir.with.dots", "Windows path parent expands");
-      Assert (To_String (Expanded.Arguments.Element (2)) = "main.adb", "Windows path name expands");
-      Assert (To_String (Expanded.Arguments.Element (3)) = "main", "Windows path stem expands");
-      Assert (To_String (Expanded.Arguments.Element (4)) = "adb", "Windows path extension expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (1)),
+         "C:\tmp\dir.with.dots",
+         "Windows path parent expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (2)),
+         "main.adb",
+         "Windows path name expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (3)),
+         "main",
+         "Windows path stem expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (4)),
+         "adb",
+         "Windows path extension expands");
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "C:\main.adb");
-      Assert
-        (To_String (Expanded.Arguments.Element (1)) = "C:\",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (1)),
+         "C:\",
          "Windows drive-root path parent keeps root separator");
-      Assert
-        (To_String (Expanded.Arguments.Element (2)) = "main.adb",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (2)),
+         "main.adb",
          "Windows drive-root path name expands");
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "C:\tmp\dir.with.dots\file");
-      Assert
-        (To_String (Expanded.Arguments.Element (4)) = "",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (4)),
+         "",
          "Windows placeholder extension ignores dotted directory names");
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "\\server\share\folder\main.adb");
-      Assert
-        (To_String (Expanded.Arguments.Element (1)) = "\\server\share\folder",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (1)),
+         "\\server\share\folder",
          "UNC placeholder parent expands without losing the share root");
-      Assert
-        (To_String (Expanded.Arguments.Element (2)) = "main.adb",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (2)),
+         "main.adb",
          "UNC placeholder name expands from the leaf");
-      Assert
-        (To_String (Expanded.Arguments.Element (3)) = "main",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (3)),
+         "main",
          "UNC placeholder stem expands from the leaf");
-      Assert
-        (To_String (Expanded.Arguments.Element (4)) = "adb",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (4)),
+         "adb",
          "UNC placeholder extension expands from the leaf");
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "\\server\share\");
-      Assert
-        (To_String (Expanded.Arguments.Element (1)) = "\\server\share\",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (1)),
+         "\\server\share\",
          "UNC share-root parent preserves the share root");
-      Assert
-        (To_String (Expanded.Arguments.Element (2)) = "",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (2)),
+         "",
          "UNC share-root name expands to empty");
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/trailing/");
-      Assert
-        (To_String (Expanded.Arguments.Element (1)) = "/tmp/example",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (1)),
+         "/tmp/example",
          "trailing separator parent expands from trimmed path");
-      Assert
-        (To_String (Expanded.Arguments.Element (2)) = "trailing",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (2)),
+         "trailing",
          "trailing separator name expands from trimmed path");
-      Assert
-        (To_String (Expanded.Arguments.Element (3)) = "trailing",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (3)),
+         "trailing",
          "trailing separator stem expands from trimmed path");
-      Assert
-        (To_String (Expanded.Arguments.Element (4)) = "",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (4)),
+         "",
          "trailing separator extension expands to empty");
 
       declare
@@ -473,11 +599,13 @@ package body Files_Suite.Settings is
          Embedded_Args.Append (To_Unbounded_String ("{stem}.suffix"));
          Embedded_Action := Files.Settings.Make_Action ("inspect", Embedded_Args);
          Expanded := Files.Settings.Expand_Placeholders (Embedded_Action, "/tmp/example/main.ada");
-         Assert
-           (To_String (Expanded.Arguments.Element (1)) = "prefix-{path}",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Expanded.Arguments.Element (1)),
+            "prefix-{path}",
             "embedded path placeholder remains literal");
-         Assert
-           (To_String (Expanded.Arguments.Element (2)) = "{stem}.suffix",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Expanded.Arguments.Element (2)),
+            "{stem}.suffix",
             "embedded stem placeholder remains literal");
          Assert
            (Files.Settings.Has_Embedded_Placeholder (Embedded_Action),
@@ -508,36 +636,52 @@ package body Files_Suite.Settings is
         (not Files.Settings.Has_Unsafe_Placeholder_Usage (Lookup.Action),
          "unknown placeholder open action is not unsafe");
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/main.ada");
-      Assert
-        (To_String (Expanded.Arguments.Element (1)) = "{unknown}",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (1)),
+         "{unknown}",
          "unknown placeholder remains literal after expansion");
 
       Modifiers := Guikit.Input.No_Modifiers;
       Modifiers (Guikit.Input.Shift_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Modifiers);
       Assert (Lookup.Found, "missing modifier action falls back to unmodified filetype");
-      Assert (To_String (Lookup.Token) = "text/x-ada", "fallback token is unmodified filetype");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Token),
+         "text/x-ada",
+         "fallback token is unmodified filetype");
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, " text/x-ada ", Modifiers);
       Assert (Lookup.Found, "fallback open action lookup trims filetype");
-      Assert (To_String (Lookup.Token) = "text/x-ada", "trimmed fallback token is unmodified filetype");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Token),
+         "text/x-ada",
+         "trimmed fallback token is unmodified filetype");
 
       Lookup := Files.Settings.Lookup_Open_Action
         (Parsed.Settings,
          "text/quoted",
          Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "quoted open action is found");
-      Assert (To_String (Lookup.Action.Executable) = "quoted editor", "quoted executable parses");
-      Assert (Natural (Lookup.Action.Arguments.Length) = 2, "quoted arguments parse as separate values");
-      Assert
-        (To_String (Lookup.Action.Arguments.Element (1)) = "--project file",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Executable),
+         "quoted editor",
+         "quoted executable parses");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Lookup.Action.Arguments.Length),
+         2,
+         "quoted arguments parse as separate values");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Arguments.Element (1)),
+         "--project file",
          "quoted argument preserves spaces");
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/main.ada");
-      Assert
-        (To_String (Expanded.Arguments.Element (2)) = "/tmp/example/main.ada",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (2)),
+         "/tmp/example/main.ada",
          "quoted placeholder expands as one argument");
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/main.ada/");
-      Assert
-        (To_String (Expanded.Arguments.Element (2)) = "/tmp/example/main.ada/",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (2)),
+         "/tmp/example/main.ada/",
          "path placeholder preserves trailing separator verbatim");
 
       Lookup := Files.Settings.Lookup_Open_Action
@@ -545,11 +689,13 @@ package body Files_Suite.Settings is
          "text/quote-char",
          Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "quote-containing open action is found");
-      Assert
-        (To_String (Lookup.Action.Executable) = "quote""runner",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Executable),
+         "quote""runner",
          "quoted executable preserves doubled quote");
-      Assert
-        (To_String (Lookup.Action.Arguments.Element (1)) = "arg "" inner",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Arguments.Element (1)),
+         "arg "" inner",
          "quoted argument preserves doubled quote");
 
       Lookup := Files.Settings.Lookup_Open_Action
@@ -557,11 +703,13 @@ package body Files_Suite.Settings is
          "text/equals",
          Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "equals-containing open action is found");
-      Assert
-        (To_String (Lookup.Action.Arguments.Element (1)) = "--flag=value",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Arguments.Element (1)),
+         "--flag=value",
          "equals-containing action argument parses");
-      Assert
-        (To_String (Lookup.Action.Arguments.Element (2)) = "arg=two words",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Arguments.Element (2)),
+         "arg=two words",
          "quoted equals-containing action argument parses");
 
       Lookup := Files.Settings.Lookup_Open_Action
@@ -569,10 +717,17 @@ package body Files_Suite.Settings is
          "text/empty-arg",
          Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "empty quoted argument open action is found");
-      Assert (Natural (Lookup.Action.Arguments.Length) = 2, "empty quoted argument does not end parsing");
-      Assert (To_String (Lookup.Action.Arguments.Element (1)) = "", "empty quoted argument is preserved");
-      Assert
-        (To_String (Lookup.Action.Arguments.Element (2)) = "after-empty",
+      Files_Suite.Support.Assert_Equal
+        (Natural (Lookup.Action.Arguments.Length),
+         2,
+         "empty quoted argument does not end parsing");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Arguments.Element (1)),
+         "",
+         "empty quoted argument is preserved");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Arguments.Element (2)),
+         "after-empty",
          "argument after empty quoted argument is preserved");
 
       Lookup := Files.Settings.Lookup_Open_Action
@@ -581,21 +736,34 @@ package body Files_Suite.Settings is
          Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "explicit shell open action is found");
       Assert (Lookup.Action.Use_Shell, "explicit shell prefix is preserved");
-      Assert (To_String (Lookup.Action.Executable) = "shell runner", "shell executable can be quoted");
-      Assert
-        (To_String (Lookup.Action.Arguments.Element (1)) = "{name}",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Executable),
+         "shell runner",
+         "shell executable can be quoted");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Arguments.Element (1)),
+         "{name}",
          "shell action arguments are still parsed as a vector");
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/shell.txt");
       Assert (Expanded.Use_Shell, "placeholder expansion preserves explicit shell flag");
-      Assert (To_String (Expanded.Executable) = "shell runner", "placeholder expansion preserves executable");
-      Assert (To_String (Expanded.Arguments.Element (1)) = "shell.txt", "shell action placeholder expands");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Executable),
+         "shell runner",
+         "placeholder expansion preserves executable");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (1)),
+         "shell.txt",
+         "shell action placeholder expands");
       Lookup := Files.Settings.Lookup_Open_Action
         (Parsed.Settings,
          "text/shell-upper",
          Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "uppercase shell open action is found");
       Assert (Lookup.Action.Use_Shell, "uppercase shell prefix is normalized");
-      Assert (To_String (Lookup.Action.Executable) = "upper-runner", "uppercase shell executable parses");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Executable),
+         "upper-runner",
+         "uppercase shell executable parses");
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "unmodified non-shell open action is found");
       Assert (not Lookup.Action.Use_Shell, "shell execution is opt-in through explicit prefix");
@@ -606,56 +774,69 @@ package body Files_Suite.Settings is
          Assert (Reloaded.Success, "serialized settings text parses");
          Lookup := Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/quoted", Guikit.Input.No_Modifiers);
          Assert (Lookup.Found, "serialized quoted action reloads");
-         Assert
-           (To_String (Lookup.Action.Executable) = "quoted editor",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Action.Executable),
+            "quoted editor",
             "serialized quoted action preserves executable spaces");
-         Assert
-           (To_String (Lookup.Action.Arguments.Element (1)) = "--project file",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Action.Arguments.Element (1)),
+            "--project file",
             "serialized quoted action preserves spaced argument");
-         Assert
-           (To_String (Lookup.Action.Arguments.Element (2)) = "{path}",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Action.Arguments.Element (2)),
+            "{path}",
             "serialized quoted action preserves placeholder argument");
          Lookup := Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/equals", Guikit.Input.No_Modifiers);
          Assert (Lookup.Found, "serialized equals-containing action reloads");
-         Assert
-           (To_String (Lookup.Action.Arguments.Element (1)) = "--flag=value",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Action.Arguments.Element (1)),
+            "--flag=value",
             "serialized open action preserves equals argument");
-         Assert
-           (To_String (Lookup.Action.Arguments.Element (2)) = "arg=two words",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Action.Arguments.Element (2)),
+            "arg=two words",
             "serialized open action preserves quoted equals argument");
          Lookup :=
            Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/quote-char", Guikit.Input.No_Modifiers);
          Assert (Lookup.Found, "serialized quote-containing action reloads");
-         Assert
-           (To_String (Lookup.Action.Executable) = "quote""runner",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Action.Executable),
+            "quote""runner",
             "serialized open action preserves executable quote");
-         Assert
-           (To_String (Lookup.Action.Arguments.Element (1)) = "arg "" inner",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Action.Arguments.Element (1)),
+            "arg "" inner",
             "serialized open action preserves argument quote");
          Lookup :=
            Files.Settings.Lookup_Open_Action
              (Reloaded.Settings, "text/empty-arg", Guikit.Input.No_Modifiers);
          Assert (Lookup.Found, "serialized empty-argument action reloads");
-         Assert
-           (To_String (Lookup.Action.Arguments.Element (1)) = "",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Action.Arguments.Element (1)),
+            "",
             "serialized open action preserves empty argument");
          Lookup := Files.Settings.Lookup_Open_Action (Reloaded.Settings, "text/shell", Guikit.Input.No_Modifiers);
          Assert (Lookup.Found, "serialized shell action reloads");
          Assert (Lookup.Action.Use_Shell, "serialized shell action preserves shell opt-in");
-         Assert
-           (To_String (Lookup.Action.Executable) = "shell runner",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Action.Executable),
+            "shell runner",
             "serialized shell action preserves quoted executable");
-         Assert
-           (Files.Settings.Filetype_For_Extension (Reloaded.Settings, "quote") = "text/""quoted",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Filetype_For_Extension (Reloaded.Settings, "quote"),
+            "text/""quoted",
             "serialized filetype mapping preserves quote");
-         Assert
-           (Files.Settings.Filetype_For_Extension (Reloaded.Settings, "eq") = "text/with=equals",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Filetype_For_Extension (Reloaded.Settings, "eq"),
+            "text/with=equals",
             "serialized filetype mapping preserves equals");
-         Assert
-           (Files.Settings.Icon_For_Filetype (Reloaded.Settings, "text/x-quote") = "quote""icon",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Icon_For_Filetype (Reloaded.Settings, "text/x-quote"),
+            "quote""icon",
             "serialized icon mapping preserves quote");
-         Assert
-           (Files.Settings.Icon_For_Filetype (Reloaded.Settings, "text/x-equals") = "icon=equals",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Icon_For_Filetype (Reloaded.Settings, "text/x-equals"),
+            "icon=equals",
             "serialized icon mapping preserves equals");
       end;
       declare
@@ -676,22 +857,34 @@ package body Files_Suite.Settings is
       Modifiers (Guikit.Input.Alt_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/mixed", Modifiers);
       Assert (Lookup.Found, "settings modifier token is normalized on insertion");
-      Assert
-        (To_String (Lookup.Token) = "text/mixed+control+alt",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Token),
+         "text/mixed+control+alt",
          "lookup token uses normalized modifier order");
-      Assert (To_String (Lookup.Action.Executable) = "mixed", "normalized settings action is returned");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Executable),
+         "mixed",
+         "normalized settings action is returned");
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/spaced", Modifiers);
       Assert (Lookup.Found, "settings modifier token trims spaces around separators");
-      Assert
-        (To_String (Lookup.Token) = "text/spaced+control+alt",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Token),
+         "text/spaced+control+alt",
          "spaced modifier token is normalized on lookup");
-      Assert (To_String (Lookup.Action.Executable) = "spaced", "spaced modifier action is returned");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Executable),
+         "spaced",
+         "spaced modifier action is returned");
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/duplicate", Modifiers);
       Assert (Lookup.Found, "duplicate settings modifiers are normalized on insertion");
-      Assert
-        (To_String (Lookup.Token) = "text/duplicate+control+alt",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Token),
+         "text/duplicate+control+alt",
          "duplicate modifier token is deduplicated and ordered");
-      Assert (To_String (Lookup.Action.Executable) = "duplicate", "deduplicated settings action is returned");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Executable),
+         "duplicate",
+         "deduplicated settings action is returned");
 
       declare
          Normalized_Draft_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -713,11 +906,13 @@ package body Files_Suite.Settings is
          Normalized_Draft.Open_Action_Command := To_Unbounded_String ("editor {path}");
          Normalized_Load := Files.Settings.Apply_Draft (Normalized_Draft_Settings, Normalized_Draft);
          Assert (Normalized_Load.Success, "normalized draft mapping replacement applies");
-         Assert
-           (Files.Settings.Filetype_For_Extension (Normalized_Load.Settings, "txt") = "text/x-overridden",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Filetype_For_Extension (Normalized_Load.Settings, "txt"),
+            "text/x-overridden",
             "normalized draft extension replaces existing row");
-         Assert
-           (Files.Settings.Icon_For_Filetype (Normalized_Load.Settings, "text/plain") = "text-updated",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Icon_For_Filetype (Normalized_Load.Settings, "text/plain"),
+            "text-updated",
             "trimmed draft icon key replaces existing row");
          Lookup :=
            Files.Settings.Lookup_Open_Action
@@ -725,26 +920,28 @@ package body Files_Suite.Settings is
               "text/plain",
               [Guikit.Input.Control_Key | Guikit.Input.Alt_Key => True, others => False]);
          Assert (Lookup.Found, "normalized draft action lookup succeeds");
-         Assert
-           (To_String (Lookup.Action.Executable) = "editor",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Action.Executable),
+            "editor",
             "normalized draft action replaces existing row");
-         Assert
-           (Natural (Normalized_Load.Settings.Extension_Filetypes.Length) =
+         Files_Suite.Support.Assert_Equal
+           (Natural (Normalized_Load.Settings.Extension_Filetypes.Length),
             Natural (Normalized_Draft_Settings.Extension_Filetypes.Length),
             "normalized draft extension replacement does not add a duplicate row");
-         Assert
-           (Natural (Normalized_Load.Settings.Icon_Mappings.Length) =
+         Files_Suite.Support.Assert_Equal
+           (Natural (Normalized_Load.Settings.Icon_Mappings.Length),
             Natural (Normalized_Draft_Settings.Icon_Mappings.Length),
             "normalized draft icon replacement does not add a duplicate row");
-         Assert
-           (Natural (Normalized_Load.Settings.Open_Actions.Length) =
+         Files_Suite.Support.Assert_Equal
+           (Natural (Normalized_Load.Settings.Open_Actions.Length),
             Natural (Normalized_Draft_Settings.Open_Actions.Length),
             "normalized draft action replacement does not add a duplicate row");
 
          Normalized_Draft.Open_Action_Token := To_Unbounded_String (" application/ld+json + control ");
          Normalized_Draft.Open_Action_Command := To_Unbounded_String ("json-editor {path}");
-         Assert
-           (Files.Settings.Field_Diagnostic (12, "application/ld+json+control") = "",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Field_Diagnostic (12, "application/ld+json+control"),
+            "",
             "settings field accepts structured-suffix modifier tokens");
          Assert
            (Files.Settings.Validate_Draft (Normalized_Draft).Success,
@@ -757,11 +954,13 @@ package body Files_Suite.Settings is
               "application/ld+json",
               [Guikit.Input.Control_Key => True, others => False]);
          Assert (Lookup.Found, "draft structured-suffix modifier action lookup succeeds");
-         Assert
-           (To_String (Lookup.Token) = "application/ld+json+control",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Token),
+            "application/ld+json+control",
             "draft structured-suffix modifier action token is normalized");
-         Assert
-           (To_String (Lookup.Action.Executable) = "json-editor",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Action.Executable),
+            "json-editor",
             "draft structured-suffix modifier action executable parses");
       end;
 
@@ -770,30 +969,38 @@ package body Files_Suite.Settings is
       Modifiers (Guikit.Input.Shift_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/missing", Modifiers);
       Assert (not Lookup.Found, "missing open action is represented as lookup data");
-      Assert
-        (To_String (Lookup.Token) = "text/missing+shift+meta",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Token),
+         "text/missing+shift+meta",
          "missing open action records normalized attempted token");
-      Assert
-        (To_String (Lookup.Error_Key) = "error.open_action.missing",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Error_Key),
+         "error.open_action.missing",
          "missing open action reports deterministic diagnostic key");
       Modifiers (Guikit.Input.Control_Key) := True;
       Modifiers (Guikit.Input.Alt_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/missing", Modifiers);
       Assert (not Lookup.Found, "missing full-modifier open action is represented as lookup data");
-      Assert
-        (To_String (Lookup.Token) = "text/missing+shift+control+alt+meta",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Token),
+         "text/missing+shift+control+alt+meta",
          "missing open action records full normalized modifier order");
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "   ", Modifiers);
       Assert (not Lookup.Found, "empty filetype open action lookup is missing");
-      Assert (To_String (Lookup.Token) = "", "empty filetype lookup reports no modifier-only token");
-      Assert
-        (To_String (Lookup.Error_Key) = "error.open_action.missing",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Token),
+         "",
+         "empty filetype lookup reports no modifier-only token");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Error_Key),
+         "error.open_action.missing",
          "empty filetype lookup reports deterministic diagnostic key");
 
       Files.Settings.Add_Extension_Mapping (Manual, ".TXT", "text/first");
       Files.Settings.Add_Extension_Mapping (Manual, " txt ", " text/second ");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "TXT") = "text/second",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "TXT"),
+         "text/second",
          "direct extension mapping trims values and replaces existing entries");
       Files.Settings.Add_Extension_Mapping (Manual, ".", "text/blank");
       Files.Settings.Add_Extension_Mapping (Manual, "blank", "   ");
@@ -812,43 +1019,55 @@ package body Files_Suite.Settings is
         (Manual,
          "unicodebreak",
          "text/plain" & Line_Separator & "bad");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, ".") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "."),
+         "",
          "direct extension mapping ignores empty normalized extension");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "blank") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "blank"),
+         "",
          "direct extension mapping ignores empty filetype value");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "bad=extension") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "bad=extension"),
+         "",
          "direct extension mapping ignores unrepresentable extension keys");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "bad" & ASCII.LF & "extension") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "bad" & ASCII.LF & "extension"),
+         "",
          "direct extension mapping ignores line-break extension keys");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "bad" & ASCII.VT & "extension") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "bad" & ASCII.VT & "extension"),
+         "",
          "direct extension mapping ignores vertical-tab extension keys");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "bad" & C1_Break & "extension") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "bad" & C1_Break & "extension"),
+         "",
          "direct extension mapping ignores C1 line-break extension keys");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "bad" & Line_Separator & "extension") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "bad" & Line_Separator & "extension"),
+         "",
          "direct extension mapping ignores Unicode line-separator extension keys");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "linebreak") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "linebreak"),
+         "",
          "direct extension mapping ignores unrepresentable values");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "formfeed") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "formfeed"),
+         "",
          "direct extension mapping ignores form-feed values");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "c1break") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "c1break"),
+         "",
          "direct extension mapping ignores C1 line-break values");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Manual, "unicodebreak") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Manual, "unicodebreak"),
+         "",
          "direct extension mapping ignores Unicode line-separator values");
       Files.Settings.Add_Icon_Mapping (Manual, " text/second ", " first-icon ");
       Files.Settings.Add_Icon_Mapping (Manual, "text/second", " second-icon ");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "text/second") = "second-icon",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "text/second"),
+         "second-icon",
          "direct icon mapping trims values and replaces existing entries");
       Files.Settings.Add_Icon_Mapping (Manual, "   ", "blank-icon");
       Files.Settings.Add_Icon_Mapping (Manual, "text/blank-icon", "   ");
@@ -867,38 +1086,49 @@ package body Files_Suite.Settings is
         (Manual,
          "text/unicodebreak-icon",
          "icon" & Line_Separator & "bad");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, ""),
+         "",
          "direct icon mapping ignores empty filetype key");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "text/blank-icon") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "text/blank-icon"),
+         "",
          "direct icon mapping ignores empty icon value");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "text/bad=icon") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "text/bad=icon"),
+         "",
          "direct icon mapping ignores unrepresentable filetype keys");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "text/bad" & ASCII.LF & "icon") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "text/bad" & ASCII.LF & "icon"),
+         "",
          "direct icon mapping ignores line-break filetype keys");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "text/bad" & ASCII.VT & "icon") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "text/bad" & ASCII.VT & "icon"),
+         "",
          "direct icon mapping ignores vertical-tab filetype keys");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "text/bad" & C1_Break & "icon") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "text/bad" & C1_Break & "icon"),
+         "",
          "direct icon mapping ignores C1 line-break filetype keys");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "text/bad" & Line_Separator & "icon") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "text/bad" & Line_Separator & "icon"),
+         "",
          "direct icon mapping ignores Unicode line-separator filetype keys");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "text/linebreak-icon") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "text/linebreak-icon"),
+         "",
          "direct icon mapping ignores unrepresentable values");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "text/formfeed-icon") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "text/formfeed-icon"),
+         "",
          "direct icon mapping ignores form-feed values");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "text/c1break-icon") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "text/c1break-icon"),
+         "",
          "direct icon mapping ignores C1 line-break values");
-      Assert
-        (Files.Settings.Icon_For_Filetype (Manual, "text/unicodebreak-icon") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Icon_For_Filetype (Manual, "text/unicodebreak-icon"),
+         "",
          "direct icon mapping ignores Unicode line-separator values");
 
       Args.Append (To_Unbounded_String ("{path}"));
@@ -919,30 +1149,36 @@ package body Files_Suite.Settings is
       Modifiers (Guikit.Input.Shift_Key) := True;
       Modifiers (Guikit.Input.Alt_Key) := True;
       Modifiers (Guikit.Input.Control_Key) := True;
-      Assert
-        (Files.Settings.Modifier_Token (Modifiers) = "+shift+control+alt+meta",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Modifier_Token (Modifiers),
+         "+shift+control+alt+meta",
          "modifier tokens are emitted in stable lookup order");
       Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/manual", Modifiers);
       Assert (Lookup.Found, "direct open-action insertion normalizes modifiers");
-      Assert
-        (To_String (Lookup.Token) = "text/manual+shift+control+alt+meta",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Token),
+         "text/manual+shift+control+alt+meta",
          "direct open-action lookup reports normalized modifier token");
-      Assert
-        (To_String (Lookup.Action.Executable) = "second",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Executable),
+         "second",
          "direct open-action insertion replaces normalized duplicate token");
       Modifiers := Guikit.Input.No_Modifiers;
       Modifiers (Guikit.Input.Meta_Key) := True;
       Modifiers (Guikit.Input.Shift_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/spaced-manual", Modifiers);
       Assert (Lookup.Found, "direct open-action insertion trims filetype before modifiers");
-      Assert
-        (To_String (Lookup.Token) = "text/spaced-manual+shift+meta",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Token),
+         "text/spaced-manual+shift+meta",
          "direct spaced open-action token is normalized");
-      Assert
-        (To_String (Lookup.Action.Executable) = "spaced-manual",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Executable),
+         "spaced-manual",
          "direct open-action insertion trims executable whitespace");
-      Assert
-        (To_String (Lookup.Action.Arguments.Element (1)) = "{path}",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Action.Arguments.Element (1)),
+         "{path}",
          "direct open-action insertion preserves argument values");
       Files.Settings.Add_Open_Action
         (Manual,
@@ -984,8 +1220,9 @@ package body Files_Suite.Settings is
          Files.Settings.Make_Action ("svg-viewer", Args));
       Lookup := Files.Settings.Lookup_Open_Action (Manual, "image/svg+xml", Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "direct open-action insertion accepts structured filetype suffixes");
-      Assert
-        (To_String (Lookup.Token) = "image/svg+xml",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Lookup.Token),
+         "image/svg+xml",
          "direct structured filetype suffix lookup keeps plus suffix");
       Files.Settings.Add_Open_Action
         (Manual,
@@ -1137,57 +1374,81 @@ package body Files_Suite.Settings is
            (not Lookup.Found,
             "direct open-action insertion ignores argument Unicode line separators");
       end;
-      Assert (Files.Settings.Field_Diagnostic (1, "details") = "", "settings field validates view mode");
-      Assert
-        (Files.Settings.Field_Diagnostic (1, "bad") = "error.settings.invalid_view_mode",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (1, "details"),
+         "",
+         "settings field validates view mode");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (1, "bad"),
+         "error.settings.invalid_view_mode",
          "settings field reports invalid view mode");
-      Assert
-        (Files.Settings.Field_Diagnostic (1, "details" & ASCII.LF & "large") =
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (1, "details" & ASCII.LF & "large"),
          "error.settings.invalid_view_mode",
          "view-mode field rejects line breaks");
-      Assert (Files.Settings.Field_Diagnostic (2, "true") = "", "settings field validates boolean");
-      Assert
-        (Files.Settings.Field_Diagnostic (2, "maybe") = "error.settings.invalid_boolean",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (2, "true"),
+         "",
+         "settings field validates boolean");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (2, "maybe"),
+         "error.settings.invalid_boolean",
          "settings field reports invalid boolean");
-      Assert
-        (Files.Settings.Field_Diagnostic (2, "true" & ASCII.LF & "false") =
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (2, "true" & ASCII.LF & "false"),
          "error.settings.invalid_boolean",
          "boolean field rejects line breaks");
-      Assert (Files.Settings.Field_Diagnostic (5, "light") = "", "settings field validates theme value");
-      Assert
-        (Files.Settings.Field_Diagnostic (5, "sepia") = "error.settings.invalid_theme",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (5, "light"),
+         "",
+         "settings field validates theme value");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (5, "sepia"),
+         "error.settings.invalid_theme",
          "settings field reports invalid theme");
-      Assert (Files.Settings.Field_Diagnostic (6, "files-basic") = "", "settings field validates icon theme");
-      Assert
-        (Files.Settings.Field_Diagnostic (6, "unknown-theme") = "error.settings.invalid_icon_theme",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (6, "files-basic"),
+         "",
+         "settings field validates icon theme");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (6, "unknown-theme"),
+         "error.settings.invalid_icon_theme",
          "settings field reports invalid icon theme");
-      Assert (Files.Settings.Field_Diagnostic (3, "modified") = "", "settings field validates sort field");
-      Assert
-        (Files.Settings.Field_Diagnostic (3, "date") = "error.settings.invalid_sort_field",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (3, "modified"),
+         "",
+         "settings field validates sort field");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (3, "date"),
+         "error.settings.invalid_sort_field",
          "settings field reports invalid sort field");
-      Assert
-        (Files.Settings.Field_Diagnostic (8, "text/""quoted") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (8, "text/""quoted"),
+         "",
          "filetype value field accepts raw quote-containing values");
-      Assert
-        (Files.Settings.Field_Diagnostic (7, "bad=extension") = "error.settings.invalid_mapping",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (7, "bad=extension"),
+         "error.settings.invalid_mapping",
          "filetype extension field rejects unrepresentable keys");
-      Assert
-        (Files.Settings.Field_Diagnostic (8, "text/plain" & ASCII.LF & "bad") =
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (8, "text/plain" & ASCII.LF & "bad"),
          "error.settings.invalid_mapping",
          "mapping value field rejects line breaks");
-      Assert
-        (Files.Settings.Field_Diagnostic (8, "text/plain" & C1_Break & "bad") =
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (8, "text/plain" & C1_Break & "bad"),
          "error.settings.invalid_mapping",
          "mapping value field rejects C1 line breaks");
-      Assert
-        (Files.Settings.Field_Diagnostic (8, "text/plain" & Line_Separator & "bad") =
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (8, "text/plain" & Line_Separator & "bad"),
          "error.settings.invalid_mapping",
          "mapping value field rejects Unicode line separators");
-      Assert
-        (Files.Settings.Field_Diagnostic (10, "quote""icon") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (10, "quote""icon"),
+         "",
          "icon value field accepts raw quote-containing values");
-      Assert
-        (Files.Settings.Field_Diagnostic (9, "text/bad=icon") = "error.settings.invalid_mapping",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (9, "text/bad=icon"),
+         "error.settings.invalid_mapping",
          "icon filetype field rejects unrepresentable keys");
       declare
          Quote_Draft : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Manual);
@@ -1200,11 +1461,13 @@ package body Files_Suite.Settings is
          Assert (Files.Settings.Validate_Draft (Quote_Draft).Success, "quote-containing draft validates");
          Applied := Files.Settings.Apply_Draft (Manual, Quote_Draft);
          Assert (Applied.Success, "quote-containing draft applies");
-         Assert
-           (Files.Settings.Filetype_For_Extension (Applied.Settings, "quote") = "text/""quoted",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Filetype_For_Extension (Applied.Settings, "quote"),
+            "text/""quoted",
             "quote-containing draft preserves filetype mapping");
-         Assert
-           (Files.Settings.Icon_For_Filetype (Applied.Settings, "text/""quoted") = "quote""icon",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Icon_For_Filetype (Applied.Settings, "text/""quoted"),
+            "quote""icon",
             "quote-containing draft preserves icon mapping");
       end;
       declare
@@ -1214,8 +1477,9 @@ package body Files_Suite.Settings is
          Broken_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan"));
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "mismatched draft mapping vectors are rejected");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid",
             "mismatched draft mapping vectors report deterministic diagnostic");
          Broken_Load := Files.Settings.Apply_Draft (Manual, Broken_Draft);
          Assert (not Broken_Load.Success, "mismatched draft mapping vectors are not applied");
@@ -1224,112 +1488,126 @@ package body Files_Suite.Settings is
          Broken_Draft.Filetype_Value := To_Unbounded_String ("text/bad");
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "draft rejects current unrepresentable filetype key");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_mapping",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_mapping",
             "current unrepresentable draft filetype key reports mapping diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Filetype_Keys.Append (To_Unbounded_String ("bad=extension"));
          Broken_Draft.Filetype_Values.Append (To_Unbounded_String ("text/bad"));
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "draft rejects unrepresentable filetype keys");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_mapping",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_mapping",
             "unrepresentable draft filetype key reports mapping diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Icon_Filetype := To_Unbounded_String ("text/bad=icon");
          Broken_Draft.Icon_Value := To_Unbounded_String ("bad");
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "draft rejects current unrepresentable icon key");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_mapping",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_mapping",
             "current unrepresentable draft icon key reports mapping diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Icon_Keys.Append (To_Unbounded_String ("text/bad=icon"));
          Broken_Draft.Icon_Values.Append (To_Unbounded_String ("bad"));
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "draft rejects unrepresentable icon keys");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_mapping",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_mapping",
             "unrepresentable draft icon key reports mapping diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Open_Action_Token := To_Unbounded_String ("text/plain+hyper");
          Broken_Draft.Open_Action_Command := To_Unbounded_String ("viewer {path}");
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "draft rejects current unknown open-action modifier");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_open_action",
             "current unknown open-action modifier reports open-action diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Open_Action_Token := To_Unbounded_String ("+control");
          Broken_Draft.Open_Action_Command := To_Unbounded_String ("viewer {path}");
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "draft rejects current modifier-only open-action token");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_open_action",
             "current modifier-only open-action token reports open-action diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Open_Action_Keys.Append (To_Unbounded_String ("text/bad=action"));
          Broken_Draft.Open_Action_Commands.Append (To_Unbounded_String ("viewer {path}"));
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "draft rejects unrepresentable open-action keys");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_open_action",
             "unrepresentable draft open-action key reports open-action diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Open_Action_Token := To_Unbounded_String ("""text/quoted-action""");
          Broken_Draft.Open_Action_Command := To_Unbounded_String ("viewer {path}");
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "draft rejects quoted open-action keys");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_open_action",
             "quoted draft open-action key reports open-action diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Open_Action_Keys.Append (To_Unbounded_String ("[text/bracketed-action]"));
          Broken_Draft.Open_Action_Commands.Append (To_Unbounded_String ("viewer {path}"));
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "draft rejects bracketed open-action keys");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_open_action",
             "bracketed draft open-action key reports open-action diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Open_Action_Keys.Append (To_Unbounded_String ("+control"));
          Broken_Draft.Open_Action_Commands.Append (To_Unbounded_String ("viewer {path}"));
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "draft rejects stored modifier-only open-action tokens");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_open_action",
             "stored modifier-only draft open-action token reports open-action diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Filetype_Keys.Append (To_Unbounded_String ("linebreak-value"));
          Broken_Draft.Filetype_Values.Append (To_Unbounded_String ("text/plain" & ASCII.LF & "bad"));
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "draft rejects unrepresentable filetype values");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_mapping",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_mapping",
             "unrepresentable draft filetype value reports mapping diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Icon_Keys.Append (To_Unbounded_String ("text/linebreak-value"));
          Broken_Draft.Icon_Values.Append (To_Unbounded_String ("icon" & ASCII.LF & "bad"));
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "draft rejects unrepresentable icon values");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_mapping",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_mapping",
             "unrepresentable draft icon value reports mapping diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Filetype_Keys.Append (To_Unbounded_String ("unicodebreak-value"));
          Broken_Draft.Filetype_Values.Append (To_Unbounded_String ("text/plain" & Line_Separator & "bad"));
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "draft rejects Unicode line-separator filetype values");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_mapping",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_mapping",
             "Unicode line-separator draft filetype value reports mapping diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Open_Action_Keys.Append (To_Unbounded_String ("text/linebreak-action"));
          Broken_Draft.Open_Action_Commands.Append (To_Unbounded_String ("viewer {path}" & ASCII.LF & "bad"));
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "draft rejects unrepresentable open-action commands");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_open_action",
             "unrepresentable draft open-action command reports open-action diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Open_Action_Keys.Append
@@ -1341,9 +1619,9 @@ package body Files_Suite.Settings is
          Assert
            (not Broken_Load.Success,
             "draft rejects NUL-containing open-action commands");
-         Assert
-           (To_String (Broken_Load.Error_Key) =
-              "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_open_action",
             "NUL-containing draft action reports open-action diagnostic");
          Broken_Draft := Files.Settings.Make_Draft (Manual);
          Broken_Draft.Open_Action_Keys.Append (To_Unbounded_String ("text/unicodebreak-action"));
@@ -1351,71 +1629,90 @@ package body Files_Suite.Settings is
            (To_Unbounded_String ("viewer {path}" & Line_Separator & "bad"));
          Broken_Load := Files.Settings.Validate_Draft (Broken_Draft);
          Assert (not Broken_Load.Success, "draft rejects Unicode line-separator open-action commands");
-         Assert
-           (To_String (Broken_Load.Error_Key) = "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken_Load.Error_Key),
+            "error.settings.invalid_open_action",
             "Unicode line-separator draft open-action command reports open-action diagnostic");
       end;
-      Assert (Files.Settings.Field_Diagnostic (11, "text/plain+control") = "", "action token field validates");
-      Assert
-        (Files.Settings.Field_Diagnostic (11, "+control") = "error.settings.invalid_open_action",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (11, "text/plain+control"),
+         "",
+         "action token field validates");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (11, "+control"),
+         "error.settings.invalid_open_action",
          "action token field reports invalid action token");
-      Assert
-        (Files.Settings.Field_Diagnostic (11, "text/bad=action") = "error.settings.invalid_open_action",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (11, "text/bad=action"),
+         "error.settings.invalid_open_action",
          "action token field rejects unrepresentable filetype keys");
-      Assert
-        (Files.Settings.Field_Diagnostic (11, """text/quoted-action""") = "error.settings.invalid_open_action",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (11, """text/quoted-action"""),
+         "error.settings.invalid_open_action",
          "action token field rejects quoted filetype keys");
-      Assert
-        (Files.Settings.Field_Diagnostic (11, "[text/bracketed-action]") = "error.settings.invalid_open_action",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (11, "[text/bracketed-action]"),
+         "error.settings.invalid_open_action",
          "action token field rejects bracketed filetype keys");
-      Assert
-        (Files.Settings.Field_Diagnostic (11, "text/plain+control+") = "error.settings.invalid_open_action",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (11, "text/plain+control+"),
+         "error.settings.invalid_open_action",
          "action token field reports trailing modifier separator");
-      Assert
-        (Files.Settings.Field_Diagnostic (11, "text/plain" & ASCII.LF & "text/html") =
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (11, "text/plain" & ASCII.LF & "text/html"),
          "error.settings.invalid_open_action",
          "action token field rejects line breaks");
-      Assert (Files.Settings.Field_Diagnostic (12, "viewer {path}") = "", "action command field validates");
-      Assert
-        (Files.Settings.Field_Diagnostic (12, """quoted editor"" ""--project file"" ""{path}""") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (12, "viewer {path}"),
+         "",
+         "action command field validates");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (12, """quoted editor"" ""--project file"" ""{path}"""),
+         "",
          "action command field validates quoted tokens");
-      Assert
-        (Files.Settings.Field_Diagnostic (12, """quote""""runner"" ""arg """" inner""") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (12, """quote""""runner"" ""arg """" inner"""),
+         "",
          "action command field validates doubled quotes");
-      Assert
-        (Files.Settings.Field_Diagnostic (12, "runner """" after-empty") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (12, "runner """" after-empty"),
+         "",
          "action command field validates empty quoted argument");
-      Assert
-        (Files.Settings.Field_Diagnostic (12, "viewer prefix-{path}") = "error.settings.invalid_open_action",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (12, "viewer prefix-{path}"),
+         "error.settings.invalid_open_action",
          "action command field reports embedded placeholder");
-      Assert
-        (Files.Settings.Field_Diagnostic (12, "viewer {path}" & ASCII.LF & "other") =
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (12, "viewer {path}" & ASCII.LF & "other"),
          "error.settings.invalid_open_action",
          "action command field rejects line breaks");
-      Assert
-        (Files.Settings.Field_Diagnostic
-           (12, "viewer {path}" & Character'Val (0) & "ignored") =
-             "error.settings.invalid_open_action",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (12, "viewer {path}" & Character'Val (0) & "ignored"),
+         "error.settings.invalid_open_action",
          "action command field rejects embedded NUL bytes");
-      Assert
-        (Files.Settings.Field_Diagnostic (12, "viewer {path}" & C1_Break & "other") =
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (12, "viewer {path}" & C1_Break & "other"),
          "error.settings.invalid_open_action",
          "action command field rejects C1 line breaks");
-      Assert
-        (Files.Settings.Field_Diagnostic (12, "viewer {path}" & Line_Separator & "other") =
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (12, "viewer {path}" & Line_Separator & "other"),
          "error.settings.invalid_open_action",
          "action command field rejects Unicode line separators");
-      Assert
-        (Files.Settings.Field_Diagnostic (12, """unterminated") = "error.settings.invalid_open_action",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (12, """unterminated"),
+         "error.settings.invalid_open_action",
          "action command field reports unterminated quote");
-      Assert
-        (Files.Settings.Field_Diagnostic (12, """editor""junk {path}") = "error.settings.invalid_open_action",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (12, """editor""junk {path}"),
+         "error.settings.invalid_open_action",
          "action command field reports quoted token trailing junk");
-      Assert
-        (Files.Settings.Field_Diagnostic (0, "details") = "error.settings.invalid",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (0, "details"),
+         "error.settings.invalid",
          "unknown settings field reports a deterministic diagnostic");
-      Assert
-        (Files.Settings.Field_Diagnostic (13, "details") = "error.settings.invalid",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Field_Diagnostic (13, "details"),
+         "error.settings.invalid",
          "out-of-range settings field reports a deterministic diagnostic");
       declare
          Command : Unbounded_String := To_Unbounded_String ("viewer");
@@ -1423,9 +1720,9 @@ package body Files_Suite.Settings is
          for Index in 1 .. 257 loop
             Append (Command, " argument" & Natural'Image (Index));
          end loop;
-         Assert
-           (Files.Settings.Field_Diagnostic (12, To_String (Command)) =
-              "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Field_Diagnostic (12, To_String (Command)),
+            "error.settings.invalid_open_action",
             "open actions with an excessive argument vector are rejected");
       end;
       declare
@@ -1446,18 +1743,21 @@ package body Files_Suite.Settings is
       begin
          Broken := Files.Settings.Parse ("[unknown]" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects unknown sections");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.unknown_section",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.unknown_section",
             "unknown section reports deterministic diagnostic");
          Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "default_view_mode details" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects entries without equals");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.expected_equals",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.expected_equals",
             "missing equals reports deterministic diagnostic");
          Broken := Files.Settings.Parse ("default_view_mode = details" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects entries before any section");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.missing_section",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.missing_section",
             "missing section reports deterministic diagnostic");
          Broken := Files.Settings.Parse
            ("[settings]" & ASCII.LF
@@ -1469,77 +1769,90 @@ package body Files_Suite.Settings is
             "settings parser rejects embedded NUL bytes before interpreting fields");
          Broken := Files.Settings.Parse ("[filetypes]" & ASCII.LF & ". = text/plain" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects empty normalized extensions");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.invalid_mapping",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.invalid_mapping",
             "empty extension mapping reports deterministic diagnostic");
          Broken := Files.Settings.Parse ("[filetypes]" & ASCII.LF & "txt = ""text/plain" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects unterminated quoted mappings");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.invalid_mapping",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.invalid_mapping",
             "unterminated mapping quote reports deterministic diagnostic");
          Broken := Files.Settings.Parse ("[icons]" & ASCII.LF & "text/plain =   " & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects empty icon mappings");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.invalid_mapping",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.invalid_mapping",
             "empty icon mapping reports deterministic diagnostic");
          Broken := Files.Settings.Parse ("[open-actions]" & ASCII.LF & "text/plain = viewer prefix-{path}" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects embedded open-action placeholders");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.invalid_open_action",
             "embedded placeholder reports deterministic diagnostic");
          Broken :=
            Files.Settings.Parse
              ("[open-actions]" & ASCII.LF & "text/plain+control+ = viewer {path}" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects trailing open-action modifier separator");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.invalid_open_action",
             "trailing modifier separator reports deterministic diagnostic");
          Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "default_view_mode = compact" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects unknown view mode values");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.invalid_view_mode",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.invalid_view_mode",
             "unknown view mode reports deterministic diagnostic");
          Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "icon_theme = neon" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects unknown icon themes");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.invalid_icon_theme",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.invalid_icon_theme",
             "unknown icon theme reports deterministic diagnostic");
          Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "show_hidden_files = maybe" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects invalid boolean values");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.invalid_boolean",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.invalid_boolean",
             "invalid boolean reports deterministic diagnostic");
          Broken := Files.Settings.Parse ("[filetypes]" & ASCII.LF & "txt = text/plain" & C1_Break & "bad" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects C1 line-break mapping values");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.invalid_mapping",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.invalid_mapping",
             "C1 line-break mapping value reports deterministic diagnostic");
          Broken :=
            Files.Settings.Parse
              ("[filetypes]" & ASCII.LF & "txt = text/plain" & Line_Separator & "bad" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects Unicode line-separator mapping values");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.invalid_mapping",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.invalid_mapping",
             "Unicode line-separator mapping value reports deterministic diagnostic");
          Broken :=
            Files.Settings.Parse
              ("[open-actions]" & ASCII.LF & "text/c1 = viewer {path}" & C1_Break & "bad" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects C1 line-break open actions");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.invalid_open_action",
             "C1 line-break open action reports deterministic diagnostic");
          Broken :=
            Files.Settings.Parse
              ("[open-actions]" & ASCII.LF &
               "text/unicode = viewer {path}" & Line_Separator & "bad" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects Unicode line-separator open actions");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.invalid_open_action",
             "Unicode line-separator open action reports deterministic diagnostic");
          Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "sort_field = bogus" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects invalid sort fields");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.invalid_sort_field",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.invalid_sort_field",
             "invalid sort field reports deterministic diagnostic");
          declare
             Created_Parsed : constant Files.Settings.Settings_Parse_Result :=
@@ -1548,11 +1861,13 @@ package body Files_Suite.Settings is
               Files.Settings.Parse ("[settings]" & ASCII.LF & "sort_field = modified" & ASCII.LF);
          begin
             Assert (Created_Parsed.Success, "settings parser accepts the created sort field");
-            Assert
-              (Created_Parsed.Settings.Sort_Field_Value = Files.Settings.Sort_By_Created,
+            Files_Suite.Support.Assert_Equal
+              (Created_Parsed.Settings.Sort_Field_Value,
+               Files.Settings.Sort_By_Created,
                "created sort field round-trips distinctly from modified");
-            Assert
-              (Modified_Parsed.Settings.Sort_Field_Value = Files.Settings.Sort_By_Modified,
+            Files_Suite.Support.Assert_Equal
+              (Modified_Parsed.Settings.Sort_Field_Value,
+               Files.Settings.Sort_By_Modified,
                "modified sort field still round-trips to modified");
          end;
          declare
@@ -1589,8 +1904,9 @@ package body Files_Suite.Settings is
             Files.Settings.Toggle_Favorite_Path (Favorites, "/tmp/safe");
             Files.Settings.Toggle_Favorite_Path
               (Favorites, "/tmp/bad" & Character'Val (0) & "ignored");
-            Assert
-              (Natural (Favorites.Favorite_Paths.Length) = 1,
+            Files_Suite.Support.Assert_Equal
+              (Natural (Favorites.Favorite_Paths.Length),
+               1,
                "a NUL-containing path cannot be persisted as a favorite");
          end;
          declare
@@ -1603,12 +1919,13 @@ package body Files_Suite.Settings is
                 ("[filetypes]" & ASCII.LF & "custom = application/x-custom" & ASCII.LF);
          begin
             Assert (Authoritative.Success, "settings with an explicit filetypes section parses");
-            Assert
-              (Files.Settings.Filetype_For_Extension (Authoritative.Settings, "custom")
-                 = "application/x-custom",
+            Files_Suite.Support.Assert_Equal
+              (Files.Settings.Filetype_For_Extension (Authoritative.Settings, "custom"),
+               "application/x-custom",
                "an explicit filetype mapping loads from the file");
-            Assert
-              (Files.Settings.Filetype_For_Extension (Authoritative.Settings, "txt") = "",
+            Files_Suite.Support.Assert_Equal
+              (Files.Settings.Filetype_For_Extension (Authoritative.Settings, "txt"),
+               "",
                "a built-in mapping omitted from the file does not reappear");
             Assert
               (Files.Settings.Filetype_For_Extension (Files.Settings.Default_Settings, "txt") /= "",
@@ -1616,18 +1933,21 @@ package body Files_Suite.Settings is
          end;
          Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "unexpected = value" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects unknown setting keys");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.unknown_key",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.unknown_key",
             "unknown setting key reports deterministic diagnostic");
          Broken := Files.Settings.Parse ("[open-actions]" & ASCII.LF & "text/plain+hyper = viewer {path}" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects unknown open-action modifiers");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.invalid_open_action",
             "unknown open-action modifier reports deterministic diagnostic");
          Broken := Files.Settings.Parse ("[open-actions]" & ASCII.LF & "text/plain =   " & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects empty open-action commands");
-         Assert
-           (To_String (Broken.Error_Key) = "error.settings.invalid_open_action",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Broken.Error_Key),
+            "error.settings.invalid_open_action",
             "empty open-action command reports deterministic diagnostic");
       end;
    end Test_Settings_Parsing_And_Open_Actions;
@@ -1654,8 +1974,9 @@ package body Files_Suite.Settings is
       Assert
         (not Lookup.System_Fallback,
          "the seeded text/plain action is a configured action, not the system fallback");
-      Assert
-        (Found_Executable = Expected,
+      Files_Suite.Support.Assert_Equal
+        (Found_Executable,
+         Expected,
          "the seeded text/plain opener names a program this host has: expected "
          & Expected & ", found " & Found_Executable);
       Assert
@@ -1700,14 +2021,16 @@ package body Files_Suite.Settings is
    begin
       Reset_Root;
       Assert (Default_Parse.Success, "default settings text parses");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Default_Parse.Settings, "txt") = "text/plain",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Default_Parse.Settings, "txt"),
+         "text/plain",
          "default settings text includes filetype mappings");
       Assert
         (Default_Parse.Settings.Theme = Files.Settings.Theme_Dark,
          "default settings text keeps the dark theme selected");
-      Assert
-        (To_String (Default_Parse.Settings.Icon_Theme_Name) = "files-basic",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Default_Parse.Settings.Icon_Theme_Name),
+         "files-basic",
          "default settings text keeps basic icon theme selected");
       declare
          --  The theme preference is absent from this text, so it must default to
@@ -1739,13 +2062,15 @@ package body Files_Suite.Settings is
       end;
       Missing := Files.Settings.Load_File (Join (Root, "missing.conf"));
       Assert (Missing.Success, "missing settings file falls back to defaults");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Missing.Settings, "txt") = "text/plain",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Missing.Settings, "txt"),
+         "text/plain",
          "default settings are returned for a missing file");
       Empty_Load := Files.Settings.Load_File ("");
       Assert (not Empty_Load.Success, "empty settings file path is rejected");
-      Assert
-        (To_String (Empty_Load.Error_Key) = "error.settings.load",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Empty_Load.Error_Key),
+         "error.settings.load",
          "empty settings file path reports load diagnostic");
       Loaded := Files.Settings.Load_File
         (Settings_Path & Character'Val (0) & "ignored");
@@ -1756,8 +2081,9 @@ package body Files_Suite.Settings is
       Ada.Directories.Create_Path (Join (Root, "settings-dir"));
       Not_File := Files.Settings.Load_File (Join (Root, "settings-dir"));
       Assert (not Not_File.Success, "directory settings path is rejected");
-      Assert
-        (To_String (Not_File.Error_Key) = "error.settings.not_file",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Not_File.Error_Key),
+         "error.settings.not_file",
          "directory settings path reports not-file diagnostic");
 
       Write_File
@@ -1774,13 +2100,17 @@ package body Files_Suite.Settings is
       Loaded := Files.Settings.Load_File (Settings_Path);
       Assert (Loaded.Success, "settings file parses from disk");
       Assert (Loaded.Settings.Show_Hidden_Files, "show-hidden setting loads from disk");
-      Assert (Loaded.Settings.Sort_Field_Value = Files.Settings.Sort_By_Modified, "sort field loads from disk");
+      Files_Suite.Support.Assert_Equal
+        (Loaded.Settings.Sort_Field_Value,
+         Files.Settings.Sort_By_Modified,
+         "sort field loads from disk");
       Assert (not Loaded.Settings.Sort_Ascending, "sort direction loads from disk");
       Assert
         (Loaded.Settings.Theme = Files.Settings.Theme_High_Contrast,
          "legacy high-contrast key wins over light and loads from disk");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Loaded.Settings, "foo") = "application/x-foo",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Loaded.Settings, "foo"),
+         "application/x-foo",
          "filetype mapping loads from disk");
       declare
          Link_Path : constant String := Join (Root, "linked-settings.conf");
@@ -1806,8 +2136,9 @@ package body Files_Suite.Settings is
          "long = " & Long_Type & ASCII.LF);
       Long_Loaded := Files.Settings.Load_File (Long_Path);
       Assert (Long_Loaded.Success, "settings loader preserves long logical lines");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Long_Loaded.Settings, "long") = Long_Type,
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Long_Loaded.Settings, "long"),
+         Long_Type,
          "long filetype mapping is not split while loading");
 
       Write_Filler_File
@@ -1825,8 +2156,9 @@ package body Files_Suite.Settings is
       Assert (Ada.Directories.Exists (Ensured_Path), "ensure default settings creates parent directories");
       Loaded := Files.Settings.Load_File (Ensured_Path);
       Assert (Loaded.Success, "ensured default settings file loads");
-      Assert
-        (Files.Settings.Filetype_For_Extension (Loaded.Settings, "txt") = "text/plain",
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Filetype_For_Extension (Loaded.Settings, "txt"),
+         "text/plain",
          "ensured settings file contains default mappings");
       Saved := Files.Settings.Save_Text (Saved_Path, "[settings]" & ASCII.LF & "default_view_mode = large" & ASCII.LF);
       Assert (Saved.Success, "settings text can be saved to a new path");
@@ -1840,8 +2172,10 @@ package body Files_Suite.Settings is
               (Linked, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
             Assert (Result.Success and then Hostkit.Fs.Is_Link (Linked),
                     "saving through a symlinked settings file keeps the link");
-            Assert (Files.Settings.Load_File (Saved_Path).Settings.Default_View = Files.Types.Details,
-                    "the save lands in the link's target");
+            Files_Suite.Support.Assert_Equal
+              (Files.Settings.Load_File (Saved_Path).Settings.Default_View,
+               Files.Types.Details,
+               "the save lands in the link's target");
             Saved := Files.Settings.Save_Text
               (Saved_Path, "[settings]" & ASCII.LF & "default_view_mode = large" & ASCII.LF);
             Assert (Hostkit.Fs.Delete_Link (Linked), "remove the test link");
@@ -1859,7 +2193,10 @@ package body Files_Suite.Settings is
       end if;
       Loaded := Files.Settings.Load_File (Saved_Path);
       Assert (Loaded.Success, "saved settings file loads");
-      Assert (Loaded.Settings.Default_View = Files.Types.Large_Icons, "saved settings text is persisted");
+      Files_Suite.Support.Assert_Equal
+        (Loaded.Settings.Default_View,
+         Files.Types.Large_Icons,
+         "saved settings text is persisted");
       --  Saving over an existing file goes through the atomic temp+rename path:
       --  the new content replaces the old and no temporary file is left behind.
       Saved :=
@@ -1871,8 +2208,9 @@ package body Files_Suite.Settings is
          "a successful settings save leaves no temporary file behind");
       Loaded := Files.Settings.Load_File (Saved_Path);
       Assert (Loaded.Success, "resaved settings file loads");
-      Assert
-        (Loaded.Settings.Default_View = Files.Types.Details,
+      Files_Suite.Support.Assert_Equal
+        (Loaded.Settings.Default_View,
+         Files.Types.Details,
          "resaved settings text replaces the previous content");
       Saved := Files.Settings.Save_Text
         (Saved_Path,
@@ -1926,17 +2264,20 @@ package body Files_Suite.Settings is
       Write_File (Blocked_Parent, "not a directory");
       Saved := Files.Settings.Save_Text (Blocked_Path, "[settings]" & ASCII.LF);
       Assert (not Saved.Success, "settings save rejects a file used as parent directory");
-      Assert
-        (To_String (Saved.Path) = Blocked_Path,
+      Files_Suite.Support.Assert_Equal
+        (To_String (Saved.Path),
+         Blocked_Path,
          "settings save parent failure reports requested settings path");
-      Assert
-        (To_String (Saved.Error_Key) = "error.settings.not_file",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Saved.Error_Key),
+         "error.settings.not_file",
          "settings save parent failure reports not-file diagnostic");
       declare
          Reset_Draft : constant Files.Settings.Settings_Draft := Files.Settings.Reset_Draft_To_Defaults;
       begin
-         Assert
-           (To_String (Reset_Draft.Default_View_Mode) = "small_icons",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Reset_Draft.Default_View_Mode),
+            "small_icons",
             "reset settings draft restores default view mode");
       end;
       declare
@@ -1951,14 +2292,17 @@ package body Files_Suite.Settings is
       begin
          Ctrl (Guikit.Input.Control_Key) := True;
          Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
-         Assert
-           (Controller_Result.Operation.Status = Files.Operations.Operation_Disabled,
+         Files_Suite.Support.Assert_Equal
+           (Controller_Result.Operation.Status,
+            Files.Operations.Operation_Disabled,
             "closed settings pane cannot save settings");
-         Assert
-           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.closed",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Controller_Result.Operation.Error_Key),
+            "error.settings.closed",
             "closed settings save reports a localized disabled error");
-         Assert
-           (To_String (Controller_Result.Operation.Path) = Draft_Path,
+         Files_Suite.Support.Assert_Equal
+           (To_String (Controller_Result.Operation.Path),
+            Draft_Path,
             "closed settings save reports settings path");
          Files.Model.Begin_Settings_Edit (Draft_Model, Files.Settings.Make_Draft (Draft_Settings));
          Draft.Default_View_Mode := To_Unbounded_String ("details");
@@ -1976,20 +2320,29 @@ package body Files_Suite.Settings is
          Assert (Files.Settings.Validate_Draft (Draft).Success, "settings draft validates editable values");
          Draft_Load := Files.Settings.Apply_Draft (Loaded.Settings, Draft);
          Assert (Draft_Load.Success, "settings draft applies to a settings model");
-         Assert (Draft_Load.Settings.Default_View = Files.Types.Details, "draft applies default view");
+         Files_Suite.Support.Assert_Equal
+           (Draft_Load.Settings.Default_View,
+            Files.Types.Details,
+            "draft applies default view");
          Assert (Draft_Load.Settings.Show_Hidden_Files, "draft applies hidden-file flag");
-         Assert (Draft_Load.Settings.Sort_Field_Value = Files.Settings.Sort_By_Size, "draft applies sort field");
+         Files_Suite.Support.Assert_Equal
+           (Draft_Load.Settings.Sort_Field_Value,
+            Files.Settings.Sort_By_Size,
+            "draft applies sort field");
          Assert
            (Draft_Load.Settings.Theme = Files.Settings.Theme_High_Contrast,
             "draft applies the high-contrast theme");
-         Assert
-           (To_String (Draft_Load.Settings.Icon_Theme_Name) = "files-high-contrast",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Draft_Load.Settings.Icon_Theme_Name),
+            "files-high-contrast",
             "draft applies icon theme selection");
-         Assert
-           (Files.Settings.Filetype_For_Extension (Draft_Load.Settings, "log") = "text/x-log",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Filetype_For_Extension (Draft_Load.Settings, "log"),
+            "text/x-log",
             "draft applies filetype mapping");
-         Assert
-           (Files.Settings.Icon_For_Filetype (Draft_Load.Settings, "text/x-log") = "text",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Icon_For_Filetype (Draft_Load.Settings, "text/x-log"),
+            "text",
             "draft applies icon mapping");
          Lookup :=
            Files.Settings.Lookup_Open_Action
@@ -1997,17 +2350,25 @@ package body Files_Suite.Settings is
               "application/ld+json",
               [Guikit.Input.Alt_Key => True, others => False]);
          Assert (Lookup.Found, "draft applies modifier-specific open action");
-         Assert (To_String (Lookup.Action.Executable) = "json-editor", "draft action executable is parsed");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Action.Executable),
+            "json-editor",
+            "draft action executable is parsed");
          Saved := Files.Settings.Save_Draft (Draft_Path, Loaded.Settings, Draft);
          Assert (Saved.Success, "settings draft saves to disk");
          Draft_Load := Files.Settings.Load_File (Draft_Path);
          Assert (Draft_Load.Success, "saved draft settings load");
-         Assert (Draft_Load.Settings.Default_View = Files.Types.Details, "saved draft persists default view");
-         Assert
-           (Files.Settings.Filetype_For_Extension (Draft_Load.Settings, "log") = "text/x-log",
+         Files_Suite.Support.Assert_Equal
+           (Draft_Load.Settings.Default_View,
+            Files.Types.Details,
+            "saved draft persists default view");
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Filetype_For_Extension (Draft_Load.Settings, "log"),
+            "text/x-log",
             "saved draft persists filetype mapping");
-         Assert
-           (Files.Settings.Icon_For_Filetype (Draft_Load.Settings, "text/x-log") = "text",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Icon_For_Filetype (Draft_Load.Settings, "text/x-log"),
+            "text",
             "saved draft persists icon mapping");
          Lookup :=
            Files.Settings.Lookup_Open_Action
@@ -2015,14 +2376,16 @@ package body Files_Suite.Settings is
               "application/ld+json",
               [Guikit.Input.Alt_Key => True, others => False]);
          Assert (Lookup.Found, "saved draft persists open action");
-         Assert
-           (To_String (Lookup.Action.Executable) = "json-editor",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Lookup.Action.Executable),
+            "json-editor",
             "saved draft persists structured-suffix open action executable");
          Draft.Default_View_Mode := To_Unbounded_String ("bad-view");
          Saved := Files.Settings.Save_Draft (Draft_Path, Loaded.Settings, Draft);
          Assert (not Saved.Success, "invalid settings draft is not saved");
-         Assert
-           (To_String (Saved.Error_Key) = "error.settings.invalid_view_mode",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Saved.Error_Key),
+            "error.settings.invalid_view_mode",
             "invalid draft save reports validation diagnostic");
          declare
             Empty_Settings : Files.Settings.Settings_Model := Loaded.Settings;
@@ -2040,11 +2403,13 @@ package body Files_Suite.Settings is
 
             Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
             Assert (Empty_Load.Success, "empty mapping draft remains valid after ignored edits");
-            Assert
-              (Files.Settings.Filetype_For_Extension (Empty_Load.Settings, "ghost") = "",
+            Files_Suite.Support.Assert_Equal
+              (Files.Settings.Filetype_For_Extension (Empty_Load.Settings, "ghost"),
+               "",
                "ignored empty-list filetype edit is not saved");
-            Assert
-              (Files.Settings.Icon_For_Filetype (Empty_Load.Settings, "text/x-ghost") = "",
+            Files_Suite.Support.Assert_Equal
+              (Files.Settings.Icon_For_Filetype (Empty_Load.Settings, "text/x-ghost"),
+               "",
                "ignored empty-list icon edit is not saved");
             Lookup :=
               Files.Settings.Lookup_Open_Action
@@ -2059,8 +2424,9 @@ package body Files_Suite.Settings is
             Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
             Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
             Assert (Empty_Load.Success, "repaired misaligned filetype draft validates");
-            Assert
-              (Files.Settings.Filetype_For_Extension (Empty_Load.Settings, "orphan-ext") = "",
+            Files_Suite.Support.Assert_Equal
+              (Files.Settings.Filetype_For_Extension (Empty_Load.Settings, "orphan-ext"),
+               "",
                "repaired misaligned filetype edit is not saved");
 
             Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
@@ -2069,8 +2435,9 @@ package body Files_Suite.Settings is
             Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
             Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
             Assert (Empty_Load.Success, "repaired misaligned icon draft validates");
-            Assert
-              (Files.Settings.Icon_For_Filetype (Empty_Load.Settings, "text/x-orphan") = "",
+            Files_Suite.Support.Assert_Equal
+              (Files.Settings.Icon_For_Filetype (Empty_Load.Settings, "text/x-orphan"),
+               "",
                "repaired misaligned icon edit is not saved");
 
             Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
@@ -2090,8 +2457,9 @@ package body Files_Suite.Settings is
             Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
             Repair_Draft.Filetype_Index := 1;
             Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Assert
-              (Natural (Files.Model.Settings_Draft_Of (Empty_Model).Filetype_Keys.Length) = 0,
+            Files_Suite.Support.Assert_Equal
+              (Natural (Files.Model.Settings_Draft_Of (Empty_Model).Filetype_Keys.Length),
+               0,
                "begin settings edit drops orphan filetype rows");
 
             Files.Settings.Add_Extension_Mapping (Empty_Settings, "ada", "text/x-ada");
@@ -2116,8 +2484,9 @@ package body Files_Suite.Settings is
          Controller_Result :=
            Files.Controller.Execute_Command
              (Files.Commands.Toggle_Settings_Pane_Command, Draft_Model, Draft_Settings);
-         Assert
-           (Files.Model.Focus (Draft_Model) = Files.Types.Focus_Settings_Input,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Focus (Draft_Model),
+            Files.Types.Focus_Settings_Input,
             "controller settings command opens editable settings focus");
          Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_Right);
          Files.Controller.Replace_Focused_Text (Draft_Model, "details");
@@ -2143,14 +2512,17 @@ package body Files_Suite.Settings is
             Files.Model.Set_Settings_Draft (Draft_Model, Bad);
          end;
          Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
-         Assert
-           (Controller_Result.Operation.Status = Files.Operations.Operation_Failed,
+         Files_Suite.Support.Assert_Equal
+           (Controller_Result.Operation.Status,
+            Files.Operations.Operation_Failed,
             "controller rejects invalid settings draft");
-         Assert
-           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.invalid_view_mode",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Controller_Result.Operation.Error_Key),
+            "error.settings.invalid_view_mode",
             "controller invalid settings save reports validation error");
-         Assert
-           (To_String (Controller_Result.Operation.Path) = Draft_Path,
+         Files_Suite.Support.Assert_Equal
+           (To_String (Controller_Result.Operation.Path),
+            Draft_Path,
             "controller invalid settings save reports settings path");
          declare
             Good : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Draft_Model);
@@ -2176,37 +2548,49 @@ package body Files_Suite.Settings is
             Files.Model.Set_Settings_Draft (Draft_Model, Good);
          end;
          Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Join (Root, "settings-dir"));
-         Assert
-           (Controller_Result.Operation.Status = Files.Operations.Operation_Failed,
+         Files_Suite.Support.Assert_Equal
+           (Controller_Result.Operation.Status,
+            Files.Operations.Operation_Failed,
             "controller settings save rejects directory path");
-         Assert
-           (To_String (Controller_Result.Operation.Error_Key) = "error.settings.not_file",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Controller_Result.Operation.Error_Key),
+            "error.settings.not_file",
             "controller settings save directory failure reports not-file diagnostic");
-         Assert
-           (Draft_Settings.Default_View = Loaded.Settings.Default_View,
+         Files_Suite.Support.Assert_Equal
+           (Draft_Settings.Default_View,
+            Loaded.Settings.Default_View,
             "controller settings save failure preserves live settings");
          Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
-         Assert
-           (Controller_Result.Operation.Status = Files.Operations.Operation_Success,
+         Files_Suite.Support.Assert_Equal
+           (Controller_Result.Operation.Status,
+            Files.Operations.Operation_Success,
             "controller saves edited settings draft");
-         Assert (Draft_Settings.Default_View = Files.Types.Details, "controller save updates live settings");
+         Files_Suite.Support.Assert_Equal
+           (Draft_Settings.Default_View,
+            Files.Types.Details,
+            "controller save updates live settings");
          Assert
            (Draft_Settings.Theme = Files.Settings.Theme_High_Contrast,
             "controller save updates the live theme setting");
-         Assert
-           (To_String (Draft_Settings.Icon_Theme_Name) = "files-high-contrast",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Draft_Settings.Icon_Theme_Name),
+            "files-high-contrast",
             "controller save updates live icon theme");
-         Assert
-           (Files.Settings.Filetype_For_Extension (Draft_Settings, "cfg") = "text/x-config",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Filetype_For_Extension (Draft_Settings, "cfg"),
+            "text/x-config",
             "controller save updates live filetype mappings");
-         Assert
-           (Files.Settings.Filetype_For_Extension (Draft_Settings, "txt") = "text/plain",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Filetype_For_Extension (Draft_Settings, "txt"),
+            "text/plain",
             "controller save preserves other filetype mappings");
-         Assert
-           (Files.Settings.Filetype_For_Extension (Draft_Settings, "tmpdel") = "",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Filetype_For_Extension (Draft_Settings, "tmpdel"),
+            "",
             "controller save omits removed filetype mappings");
-         Assert
-           (Files.Settings.Icon_For_Filetype (Draft_Settings, "text/x-config") = "text",
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Icon_For_Filetype (Draft_Settings, "text/x-config"),
+            "text",
             "controller save updates live icon mappings");
          Lookup :=
            Files.Settings.Lookup_Open_Action
@@ -2234,22 +2618,25 @@ package body Files_Suite.Settings is
             Missing_Result :=
               Files.Controller.Execute_Command
                 (Files.Commands.Toggle_Settings_Pane_Command, Missing_Model, Missing_Settings);
-            Assert
-              (Missing_Result.Status = Files.Controller.Controller_Command_Executed,
+            Files_Suite.Support.Assert_Equal
+              (Missing_Result.Status,
+               Files.Controller.Controller_Command_Executed,
                "missing-current save fixture executes settings command");
             Assert
               (Files.Model.Settings_Pane_Is_Open (Missing_Model),
                "missing-current save fixture opens settings pane");
             Ada.Directories.Delete_Directory (Missing_Current_Path);
             Missing_Result := Files.Controller.Save_Settings (Missing_Model, Missing_Settings, Draft_Path);
-            Assert
-              (Missing_Result.Operation.Status = Files.Operations.Operation_Failed,
+            Files_Suite.Support.Assert_Equal
+              (Missing_Result.Operation.Status,
+               Files.Operations.Operation_Failed,
                "controller settings save reports post-save refresh failure");
             Assert
               (To_String (Missing_Result.Operation.Error_Key) /= "",
                "controller settings save keeps refresh failure diagnostic");
-            Assert
-              (Files.Model.Last_Error_Key (Missing_Model) = To_String (Missing_Result.Operation.Error_Key),
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Last_Error_Key (Missing_Model),
+               To_String (Missing_Result.Operation.Error_Key),
                "controller settings save leaves refresh failure visible");
          end;
       end;
@@ -2257,24 +2644,31 @@ package body Files_Suite.Settings is
       Ensured := Files.Settings.Ensure_Default_File (Ensured_Path);
       Assert (Ensured.Success, "ensure default settings accepts existing regular file");
       Loaded := Files.Settings.Load_File (Ensured_Path);
-      Assert (Loaded.Settings.Default_View = Files.Types.Details, "ensure default settings does not overwrite");
+      Files_Suite.Support.Assert_Equal
+        (Loaded.Settings.Default_View,
+         Files.Types.Details,
+         "ensure default settings does not overwrite");
       Ensured := Files.Settings.Ensure_Default_File (Join (Root, "settings-dir"));
       Assert (not Ensured.Success, "ensure default settings rejects directory path");
-      Assert
-        (To_String (Ensured.Error_Key) = "error.settings.not_file",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Ensured.Error_Key),
+         "error.settings.not_file",
          "ensure default settings reports not-file diagnostic");
       Ensured := Files.Settings.Ensure_Default_File (Blocked_Path);
       Assert (not Ensured.Success, "ensure default settings rejects a file used as parent directory");
-      Assert
-        (To_String (Ensured.Path) = Blocked_Path,
+      Files_Suite.Support.Assert_Equal
+        (To_String (Ensured.Path),
+         Blocked_Path,
          "ensure default settings parent failure reports requested settings path");
-      Assert
-        (To_String (Ensured.Error_Key) = "error.settings.not_file",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Ensured.Error_Key),
+         "error.settings.not_file",
          "ensure default settings parent failure reports not-file diagnostic");
       Ensured := Files.Settings.Ensure_Default_File ("");
       Assert (not Ensured.Success, "ensure default settings rejects empty settings path");
-      Assert
-        (To_String (Ensured.Error_Key) = "error.settings.save",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Ensured.Error_Key),
+         "error.settings.save",
          "ensure default settings empty path reports save diagnostic");
    end Test_Settings_Load_File;
 
@@ -2293,9 +2687,7 @@ package body Files_Suite.Settings is
          Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Text);
       begin
          Assert (not Parsed.Success, Message);
-         Assert
-           (To_String (Parsed.Error_Key) = Error_Key,
-            Message & " diagnostic key");
+         Files_Suite.Support.Assert_Equal (To_String (Parsed.Error_Key), Error_Key, Message & " diagnostic key");
       end Assert_Parse_Error;
    begin
       Reset_Root;
@@ -2305,8 +2697,9 @@ package body Files_Suite.Settings is
          "show_hidden_files = maybe" & ASCII.LF);
       Bad := Files.Settings.Load_File (Bad_Path);
       Assert (not Bad.Success, "invalid boolean setting is rejected");
-      Assert
-        (To_String (Bad.Error_Key) = "error.settings.invalid_boolean",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Bad.Error_Key),
+         "error.settings.invalid_boolean",
          "invalid boolean reports a deterministic diagnostic key");
 
       Bad_Open :=
@@ -2314,8 +2707,9 @@ package body Files_Suite.Settings is
           ("[open-actions]" & ASCII.LF &
            "text/plain = ""unterminated" & ASCII.LF);
       Assert (not Bad_Open.Success, "unterminated quoted open action is rejected");
-      Assert
-        (To_String (Bad_Open.Error_Key) = "error.settings.invalid_open_action",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Bad_Open.Error_Key),
+         "error.settings.invalid_open_action",
          "unterminated quoted open action reports deterministic diagnostic key");
 
       Bad_Tail :=
@@ -2323,8 +2717,9 @@ package body Files_Suite.Settings is
           ("[open-actions]" & ASCII.LF &
            "text/plain = ""editor""junk {path}" & ASCII.LF);
       Assert (not Bad_Tail.Success, "quoted open action rejects trailing junk");
-      Assert
-        (To_String (Bad_Tail.Error_Key) = "error.settings.invalid_open_action",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Bad_Tail.Error_Key),
+         "error.settings.invalid_open_action",
          "quoted open action trailing junk reports deterministic diagnostic key");
 
       Assert_Parse_Error
@@ -2505,7 +2900,7 @@ package body Files_Suite.Settings is
       Assert (Base.Column_Visible (Files.Types.Size_Column), "size column shown by default");
       Assert (not Base.Column_Visible (Files.Types.Permissions_Column),
               "permissions column hidden by default");
-      Assert (Base.Group_By = Files.Types.No_Grouping, "grouping is off by default");
+      Files_Suite.Support.Assert_Equal (Base.Group_By, Files.Types.No_Grouping, "grouping is off by default");
 
       --  Toggle helpers: name is never toggleable, others flip.
       declare
@@ -2529,13 +2924,18 @@ package body Files_Suite.Settings is
          Reset  : constant Files.Settings.Settings_Model :=
            Files.Settings.With_Column_Width (Wide, Files.Types.Size_Column, 0);
       begin
-         Assert (Narrow.Column_Widths (Files.Types.Size_Column)
-                   = Files.Types.Minimum_Detail_Column_Width,
-                 "sub-minimum width is clamped up to the minimum");
-         Assert (Wide.Column_Widths (Files.Types.Size_Column) = 200,
-                 "an explicit width is retained");
-         Assert (Reset.Column_Widths (Files.Types.Size_Column) = 0,
-                 "a zero width clears the customization");
+         Files_Suite.Support.Assert_Equal
+           (Narrow.Column_Widths (Files.Types.Size_Column),
+            Files.Types.Minimum_Detail_Column_Width,
+            "sub-minimum width is clamped up to the minimum");
+         Files_Suite.Support.Assert_Equal
+           (Wide.Column_Widths (Files.Types.Size_Column),
+            200,
+            "an explicit width is retained");
+         Files_Suite.Support.Assert_Equal
+           (Reset.Column_Widths (Files.Types.Size_Column),
+            0,
+            "a zero width clears the customization");
       end;
 
       --  Group cycle wraps back to No_Grouping after the last band.
@@ -2546,11 +2946,17 @@ package body Files_Suite.Settings is
          G4 : constant Files.Settings.Settings_Model := Files.Settings.Cycle_Group_By (G3);
          G5 : constant Files.Settings.Settings_Model := Files.Settings.Cycle_Group_By (G4);
       begin
-         Assert (G1.Group_By = Files.Types.Group_By_Type, "first cycle selects type grouping");
-         Assert (G2.Group_By = Files.Types.Group_By_Modified, "second cycle selects date grouping");
-         Assert (G3.Group_By = Files.Types.Group_By_Size, "third cycle selects size grouping");
-         Assert (G4.Group_By = Files.Types.Group_By_Label, "fourth cycle selects label grouping");
-         Assert (G5.Group_By = Files.Types.No_Grouping, "grouping cycles back to none");
+         Files_Suite.Support.Assert_Equal (G1.Group_By, Files.Types.Group_By_Type, "first cycle selects type grouping");
+         Files_Suite.Support.Assert_Equal
+           (G2.Group_By,
+            Files.Types.Group_By_Modified,
+            "second cycle selects date grouping");
+         Files_Suite.Support.Assert_Equal (G3.Group_By, Files.Types.Group_By_Size, "third cycle selects size grouping");
+         Files_Suite.Support.Assert_Equal
+           (G4.Group_By,
+            Files.Types.Group_By_Label,
+            "fourth cycle selects label grouping");
+         Files_Suite.Support.Assert_Equal (G5.Group_By, Files.Types.No_Grouping, "grouping cycles back to none");
       end;
 
       --  Full round-trip through the settings text format.
@@ -2571,10 +2977,14 @@ package body Files_Suite.Settings is
                     "hidden size column round-trips");
             Assert (Reloaded.Settings.Column_Visible (Files.Types.Created_Column),
                     "enabled created column round-trips");
-            Assert (Reloaded.Settings.Column_Widths (Files.Types.Modified_Column) = 175,
-                    "custom modified width round-trips");
-            Assert (Reloaded.Settings.Group_By = Files.Types.Group_By_Modified,
-                    "grouping mode round-trips");
+            Files_Suite.Support.Assert_Equal
+              (Reloaded.Settings.Column_Widths (Files.Types.Modified_Column),
+               175,
+               "custom modified width round-trips");
+            Files_Suite.Support.Assert_Equal
+              (Reloaded.Settings.Group_By,
+               Files.Types.Group_By_Modified,
+               "grouping mode round-trips");
          end;
       end;
 
@@ -2584,8 +2994,10 @@ package body Files_Suite.Settings is
            Files.Settings.Parse ("[settings]" & ASCII.LF & "group_by = weekly" & ASCII.LF);
       begin
          Assert (not Bad.Success, "an unknown grouping mode fails to parse");
-         Assert (To_String (Bad.Error_Key) = "error.settings.invalid_group",
-                 "the grouping diagnostic key is reported");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Bad.Error_Key),
+            "error.settings.invalid_group",
+            "the grouping diagnostic key is reported");
       end;
    end Test_Detail_Columns_And_Grouping;
 
@@ -2598,33 +3010,46 @@ package body Files_Suite.Settings is
       Base        : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
    begin
       --  A fresh model carries no labels.
-      Assert (Files.Settings.Label_Of (Base, File_Path) = Files.Types.No_Label,
-              "an unlabeled path reports No_Label");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Base, File_Path),
+         Files.Types.No_Label,
+         "an unlabeled path reports No_Label");
 
       --  Set and replace a label on a file path.
       Files.Settings.Set_Label (Base, File_Path, Files.Types.Red);
-      Assert (Files.Settings.Label_Of (Base, File_Path) = Files.Types.Red,
-              "a set label is reported back");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Base, File_Path),
+         Files.Types.Red,
+         "a set label is reported back");
       Files.Settings.Set_Label (Base, File_Path, Files.Types.Blue);
-      Assert (Files.Settings.Label_Of (Base, File_Path) = Files.Types.Blue,
-              "re-labeling replaces the previous color");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Base, File_Path),
+         Files.Types.Blue,
+         "re-labeling replaces the previous color");
 
       --  Label a folder path too.
       Files.Settings.Set_Label (Base, Folder_Path, Files.Types.Green);
-      Assert (Files.Settings.Label_Of (Base, Folder_Path) = Files.Types.Green,
-              "a folder path can carry a label");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Base, Folder_Path),
+         Files.Types.Green,
+         "a folder path can carry a label");
       Files.Settings.Set_Label
         (Base, File_Path & Character'Val (0) & "ignored", Files.Types.Red);
-      Assert
-        (Natural (Base.Labels.Length) = 2,
+      Files_Suite.Support.Assert_Equal
+        (Natural (Base.Labels.Length),
+         2,
          "a NUL-containing path cannot create a persisted color label");
 
       --  No_Label clears the entry.
       Files.Settings.Set_Label (Base, File_Path, Files.Types.No_Label);
-      Assert (Files.Settings.Label_Of (Base, File_Path) = Files.Types.No_Label,
-              "No_Label clears a stored label");
-      Assert (Files.Settings.Label_Of (Base, Folder_Path) = Files.Types.Green,
-              "clearing one path leaves the other labeled");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Base, File_Path),
+         Files.Types.No_Label,
+         "No_Label clears a stored label");
+      Files_Suite.Support.Assert_Equal
+        (Files.Settings.Label_Of (Base, Folder_Path),
+         Files.Types.Green,
+         "clearing one path leaves the other labeled");
 
       --  Full round-trip through the settings text format for file and folder.
       declare
@@ -2638,12 +3063,18 @@ package body Files_Suite.Settings is
               Files.Settings.Parse (Files.Settings.To_Text (Source));
          begin
             Assert (Reloaded.Success, "labeled settings text parses");
-            Assert (Files.Settings.Label_Of (Reloaded.Settings, File_Path) = Files.Types.Purple,
-                    "a file path's label round-trips");
-            Assert (Files.Settings.Label_Of (Reloaded.Settings, Folder_Path) = Files.Types.Gray,
-                    "a folder path's label round-trips");
-            Assert (Reloaded.Settings.Group_By = Files.Types.Group_By_Label,
-                    "label grouping mode round-trips");
+            Files_Suite.Support.Assert_Equal
+              (Files.Settings.Label_Of (Reloaded.Settings, File_Path),
+               Files.Types.Purple,
+               "a file path's label round-trips");
+            Files_Suite.Support.Assert_Equal
+              (Files.Settings.Label_Of (Reloaded.Settings, Folder_Path),
+               Files.Types.Gray,
+               "a folder path's label round-trips");
+            Files_Suite.Support.Assert_Equal
+              (Reloaded.Settings.Group_By,
+               Files.Types.Group_By_Label,
+               "label grouping mode round-trips");
          end;
       end;
 
@@ -2657,10 +3088,14 @@ package body Files_Suite.Settings is
            Files.Settings.Parse (Text);
       begin
          Assert (Parsed.Success, "an unknown color does not fail the load");
-         Assert (Files.Settings.Label_Of (Parsed.Settings, "/home/user/bad.txt") = Files.Types.No_Label,
-                 "an entry with an unknown color is skipped");
-         Assert (Files.Settings.Label_Of (Parsed.Settings, "/home/user/good.txt") = Files.Types.Yellow,
-                 "a valid entry alongside an invalid one still loads");
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Label_Of (Parsed.Settings, "/home/user/bad.txt"),
+            Files.Types.No_Label,
+            "an entry with an unknown color is skipped");
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Label_Of (Parsed.Settings, "/home/user/good.txt"),
+            Files.Types.Yellow,
+            "a valid entry alongside an invalid one still loads");
       end;
    end Test_Color_Labels;
 
@@ -2686,36 +3121,35 @@ package body Files_Suite.Settings is
       end Count;
    begin
       --  A fresh model has no recents; the empty path is ignored.
-      Assert (Count (Base) = 0, "a fresh model has no recent items");
+      Files_Suite.Support.Assert_Equal (Count (Base), 0, "a fresh model has no recent items");
       Files.Settings.Note_Recent (Base, "");
-      Assert (Count (Base) = 0, "the empty path is not recorded");
+      Files_Suite.Support.Assert_Equal (Count (Base), 0, "the empty path is not recorded");
       Files.Settings.Note_Recent
         (Base, File_Path & Character'Val (0) & "ignored");
-      Assert
-        (Count (Base) = 0,
-         "a NUL-containing path is not recorded as a recent item");
+      Files_Suite.Support.Assert_Equal (Count (Base), 0, "a NUL-containing path is not recorded as a recent item");
       Files.Settings.Note_Recent (Base, File_Path & ASCII.LF & "b");
       Files.Settings.Note_Recent (Base, File_Path & ASCII.CR);
-      Assert
-        (Count (Base) = 0,
+      Files_Suite.Support.Assert_Equal
+        (Count (Base),
+         0,
          "a path with a line break is not recorded, since it cannot round-trip the line-based file");
 
       --  Note records most-recent-first (a file and a folder both round in).
       Files.Settings.Note_Recent (Base, File_Path);
       Files.Settings.Note_Recent (Base, Folder_Path);
-      Assert (Count (Base) = 2, "two distinct items are recorded");
-      Assert (Nth (Base, 1) = Folder_Path, "the most recent item is at the front");
-      Assert (Nth (Base, 2) = File_Path, "the earlier item follows");
+      Files_Suite.Support.Assert_Equal (Count (Base), 2, "two distinct items are recorded");
+      Files_Suite.Support.Assert_Equal (Nth (Base, 1), Folder_Path, "the most recent item is at the front");
+      Files_Suite.Support.Assert_Equal (Nth (Base, 2), File_Path, "the earlier item follows");
 
       --  Re-noting an existing path moves it to the front and dedups.
       Files.Settings.Note_Recent (Base, File_Path);
-      Assert (Count (Base) = 2, "re-noting an existing path does not grow the list");
-      Assert (Nth (Base, 1) = File_Path, "a re-noted path moves to the front");
-      Assert (Nth (Base, 2) = Folder_Path, "the previously-front path drops back");
+      Files_Suite.Support.Assert_Equal (Count (Base), 2, "re-noting an existing path does not grow the list");
+      Files_Suite.Support.Assert_Equal (Nth (Base, 1), File_Path, "a re-noted path moves to the front");
+      Files_Suite.Support.Assert_Equal (Nth (Base, 2), Folder_Path, "the previously-front path drops back");
 
       --  Clearing empties the list.
       Files.Settings.Clear_Recent (Base);
-      Assert (Count (Base) = 0, "Clear_Recent empties the recent list");
+      Files_Suite.Support.Assert_Equal (Count (Base), 0, "Clear_Recent empties the recent list");
 
       --  The list is capped at Max_Recent_Items, dropping the oldest entries.
       declare
@@ -2725,14 +3159,18 @@ package body Files_Suite.Settings is
             Files.Settings.Note_Recent
               (Capped, "/tmp/item" & Ada.Strings.Fixed.Trim (Integer'Image (I), Ada.Strings.Both));
          end loop;
-         Assert (Count (Capped) = Files.Settings.Max_Recent_Items,
-                 "the recent list is capped at Max_Recent_Items");
+         Files_Suite.Support.Assert_Equal
+           (Count (Capped),
+            Files.Settings.Max_Recent_Items,
+            "the recent list is capped at Max_Recent_Items");
          Assert (Nth (Capped, 1) = "/tmp/item" &
                    Ada.Strings.Fixed.Trim
                      (Integer'Image (Files.Settings.Max_Recent_Items + 10), Ada.Strings.Both),
                  "the newest item is retained at the front");
-         Assert (Nth (Capped, Files.Settings.Max_Recent_Items) = "/tmp/item11",
-                 "the oldest surviving item sits at the cap boundary");
+         Files_Suite.Support.Assert_Equal
+           (Nth (Capped, Files.Settings.Max_Recent_Items),
+            "/tmp/item11",
+            "the oldest surviving item sits at the cap boundary");
       end;
 
       --  Full round-trip through the settings text format preserves order, cap,
@@ -2747,11 +3185,15 @@ package body Files_Suite.Settings is
               Files.Settings.Parse (Files.Settings.To_Text (Source));
          begin
             Assert (Reloaded.Success, "recent settings text parses");
-            Assert (Count (Reloaded.Settings) = 2, "both recent paths round-trip");
-            Assert (Nth (Reloaded.Settings, 1) = Folder_Path,
-                    "recent order is preserved most-recent-first");
-            Assert (Nth (Reloaded.Settings, 2) = File_Path,
-                    "the earlier recent path round-trips in order");
+            Files_Suite.Support.Assert_Equal (Count (Reloaded.Settings), 2, "both recent paths round-trip");
+            Files_Suite.Support.Assert_Equal
+              (Nth (Reloaded.Settings, 1),
+               Folder_Path,
+               "recent order is preserved most-recent-first");
+            Files_Suite.Support.Assert_Equal
+              (Nth (Reloaded.Settings, 2),
+               File_Path,
+               "the earlier recent path round-trips in order");
          end;
       end;
 
@@ -2770,8 +3212,10 @@ package body Files_Suite.Settings is
               Files.Settings.Parse (To_String (Body_Text));
          begin
             Assert (Parsed.Success, "an over-cap recent section still loads");
-            Assert (Count (Parsed.Settings) = Files.Settings.Max_Recent_Items,
-                    "loading enforces the recent cap");
+            Files_Suite.Support.Assert_Equal
+              (Count (Parsed.Settings),
+               Files.Settings.Max_Recent_Items,
+               "loading enforces the recent cap");
          end;
       end;
    end Test_Recent_Items;
@@ -2811,12 +3255,18 @@ package body Files_Suite.Settings is
            Files.Settings.Parse (Files.Settings.To_Text (Source));
       begin
          Assert (Reloaded.Success, "shortcut settings text parses");
-         Assert (Natural (Reloaded.Settings.Shortcut_Overrides.Length) = 2,
-                 "both shortcut overrides round-trip");
-         Assert (Combo_For (Reloaded.Settings, "view.small") = "control+shift+1",
-                 "a modifier-bearing rebind round-trips");
-         Assert (Combo_For (Reloaded.Settings, "navigate.home") = "",
-                 "an explicit unbind round-trips as an empty combo");
+         Files_Suite.Support.Assert_Equal
+           (Natural (Reloaded.Settings.Shortcut_Overrides.Length),
+            2,
+            "both shortcut overrides round-trip");
+         Files_Suite.Support.Assert_Equal
+           (Combo_For (Reloaded.Settings, "view.small"),
+            "control+shift+1",
+            "a modifier-bearing rebind round-trips");
+         Files_Suite.Support.Assert_Equal
+           (Combo_For (Reloaded.Settings, "navigate.home"),
+            "",
+            "an explicit unbind round-trips as an empty combo");
       end;
 
       --  A hand-edited entry without the '|' separator is skipped, not fatal.
@@ -2829,10 +3279,14 @@ package body Files_Suite.Settings is
            Files.Settings.Parse (Text);
       begin
          Assert (Parsed.Success, "a malformed shortcut line does not fail the load");
-         Assert (Natural (Parsed.Settings.Shortcut_Overrides.Length) = 1,
-                 "only the well-formed shortcut entry is kept");
-         Assert (Combo_For (Parsed.Settings, "view.small") = "control+shift+1",
-                 "the well-formed entry survives alongside the skipped one");
+         Files_Suite.Support.Assert_Equal
+           (Natural (Parsed.Settings.Shortcut_Overrides.Length),
+            1,
+            "only the well-formed shortcut entry is kept");
+         Files_Suite.Support.Assert_Equal
+           (Combo_For (Parsed.Settings, "view.small"),
+            "control+shift+1",
+            "the well-formed entry survives alongside the skipped one");
       end;
    end Test_Shortcut_Overrides_Persist;
 
@@ -2882,8 +3336,10 @@ package body Files_Suite.Settings is
 
       --  The form emits a row per command, keyed by "shortcut.<identifier>",
       --  showing the command's current shortcut.
-      Assert (Row_Value ("shortcut.view.small") = Small_Text,
-              "the shortcut row shows the command's current binding");
+      Files_Suite.Support.Assert_Equal
+        (Row_Value ("shortcut.view.small"),
+         Small_Text,
+         "the shortcut row shows the command's current binding");
 
       --  Rebind Small Icons to a fresh chord (a key added by the expansion).
       Saved := Files.Settings_Form.Apply (Model, Change ("shortcut.view.small", New_Chord));
@@ -2901,7 +3357,10 @@ package body Files_Suite.Settings is
                  and then SC.Modifiers (Guikit.Input.Shift_Key),
                  "the live keymap reflects the rebind");
          Assert (Is_Set, "the rebind is recorded as an override");
-         Assert (Row_Value ("shortcut.view.small") = New_Chord, "the row now shows the new chord");
+         Files_Suite.Support.Assert_Equal
+           (Row_Value ("shortcut.view.small"),
+            New_Chord,
+            "the row now shows the new chord");
       end;
 
       --  Binding the same chord to a different command is rejected as a conflict.
@@ -3014,22 +3473,28 @@ package body Files_Suite.Settings is
       Draft.Filetype_Index := 1;
       Files.Model.Begin_Settings_Edit (Model, Draft);
 
-      Assert (Ext = "txt", "the first mapping entry is selected");
+      Files_Suite.Support.Assert_Equal
+
+        (Ext,
+
+         "txt",
+
+         "the first mapping entry is selected");
       Assert (Ada.Strings.Fixed.Index (Ext_Label, "(1/2)") > 0, "the key field label shows the entry counter");
 
       Saved := Files.Settings_Form.Apply (Model, Button ("next"));
       Assert (not Saved, "paging to the next entry does not save");
-      Assert (Ext = "md", "Next selects the second entry");
+      Files_Suite.Support.Assert_Equal (Ext, "md", "Next selects the second entry");
       Assert (Ada.Strings.Fixed.Index (Ext_Label, "(2/2)") > 0, "the counter follows the selection");
 
       Saved := Files.Settings_Form.Apply (Model, Button ("next"));
-      Assert (Ext = "txt", "Next wraps to the first entry");
+      Files_Suite.Support.Assert_Equal (Ext, "txt", "Next wraps to the first entry");
       Saved := Files.Settings_Form.Apply (Model, Button ("prev"));
-      Assert (Ext = "md", "Prev wraps back to the last entry");
+      Files_Suite.Support.Assert_Equal (Ext, "md", "Prev wraps back to the last entry");
 
       Saved := Files.Settings_Form.Apply (Model, Button ("add"));
       Assert (Saved, "adding an entry saves");
-      Assert (Count = 3, "Add appends a mapping entry");
+      Files_Suite.Support.Assert_Equal (Count, 3, "Add appends a mapping entry");
       Assert
         (Files.Settings.Apply_Draft
            (Files.Settings.Default_Settings, Files.Model.Settings_Draft_Of (Model)).Success,
@@ -3037,7 +3502,7 @@ package body Files_Suite.Settings is
 
       Saved := Files.Settings_Form.Apply (Model, Button ("remove"));
       Assert (Saved, "removing an entry saves");
-      Assert (Count = 2, "Remove drops the mapping entry");
+      Files_Suite.Support.Assert_Equal (Count, 2, "Remove drops the mapping entry");
    end Test_Settings_Form_Mapping_Navigation;
 
    procedure Test_Column_Order_Reorder (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -3069,9 +3534,18 @@ package body Files_Suite.Settings is
          Moved : constant Files.Types.Detail_Column_Order :=
            Files.Types.Move_Column (Default, Files.Types.Size_Column, 2);
       begin
-         Assert (Moved (2) = Files.Types.Size_Column, "the moved column lands in the target slot");
-         Assert (Moved (3) = Files.Types.Modified_Column, "the displaced column shifts right by one");
-         Assert (Moved (1) = Files.Types.Name_Column, "the name column stays pinned to the first slot");
+         Files_Suite.Support.Assert_Equal
+           (Moved (2),
+            Files.Types.Size_Column,
+            "the moved column lands in the target slot");
+         Files_Suite.Support.Assert_Equal
+           (Moved (3),
+            Files.Types.Modified_Column,
+            "the displaced column shifts right by one");
+         Files_Suite.Support.Assert_Equal
+           (Moved (1),
+            Files.Types.Name_Column,
+            "the name column stays pinned to the first slot");
          Assert (Is_Permutation (Moved), "a move preserves a valid permutation");
       end;
 
@@ -3088,8 +3562,14 @@ package body Files_Suite.Settings is
          Clamped : constant Files.Types.Detail_Column_Order :=
            Files.Types.Move_Column (Default, Files.Types.Permissions_Column, 1);
       begin
-         Assert (Clamped (1) = Files.Types.Name_Column, "a move into the first slot is clamped after name");
-         Assert (Clamped (2) = Files.Types.Permissions_Column, "the clamped move lands in the second slot");
+         Files_Suite.Support.Assert_Equal
+           (Clamped (1),
+            Files.Types.Name_Column,
+            "a move into the first slot is clamped after name");
+         Files_Suite.Support.Assert_Equal
+           (Clamped (2),
+            Files.Types.Permissions_Column,
+            "the clamped move lands in the second slot");
          Assert (Is_Permutation (Clamped), "a clamped move preserves a valid permutation");
       end;
 
@@ -3099,8 +3579,10 @@ package body Files_Suite.Settings is
          Updated : constant Files.Settings.Settings_Model :=
            Files.Settings.With_Column_Order (Base, Files.Types.Permissions_Column, 2);
       begin
-         Assert (Updated.Column_Order (2) = Files.Types.Permissions_Column,
-                 "With_Column_Order moves the column in the settings model");
+         Files_Suite.Support.Assert_Equal
+           (Updated.Column_Order (2),
+            Files.Types.Permissions_Column,
+            "With_Column_Order moves the column in the settings model");
       end;
 
       --  Full round-trip of a reordered permutation through the text format.
@@ -3126,8 +3608,10 @@ package body Files_Suite.Settings is
              ("[settings]" & ASCII.LF & "detail_column_order = name,size" & ASCII.LF);
       begin
          Assert (not Partial.Success, "a partial column order fails to parse");
-         Assert (To_String (Partial.Error_Key) = "error.settings.invalid_column_order",
-                 "the partial-order diagnostic key is reported");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Partial.Error_Key),
+            "error.settings.invalid_column_order",
+            "the partial-order diagnostic key is reported");
          Assert (Partial.Settings.Column_Order = Default,
                  "a rejected column order falls back to the default order");
       end;
@@ -3141,8 +3625,10 @@ package body Files_Suite.Settings is
               & ASCII.LF);
       begin
          Assert (not Dup.Success, "a duplicated column order fails to parse");
-         Assert (To_String (Dup.Error_Key) = "error.settings.invalid_column_order",
-                 "the duplicate-order diagnostic key is reported");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Dup.Error_Key),
+            "error.settings.invalid_column_order",
+            "the duplicate-order diagnostic key is reported");
       end;
 
       --  A full valid permutation (using the "type" alias) parses successfully.
@@ -3154,8 +3640,10 @@ package body Files_Suite.Settings is
               & ASCII.LF);
       begin
          Assert (Aliased_Order.Success, "a full permutation with the type alias parses");
-         Assert (Aliased_Order.Settings.Column_Order (2) = Files.Types.Filetype_Column,
-                 "the type alias resolves to the filetype column in the parsed order");
+         Files_Suite.Support.Assert_Equal
+           (Aliased_Order.Settings.Column_Order (2),
+            Files.Types.Filetype_Column,
+            "the type alias resolves to the filetype column in the parsed order");
       end;
    end Test_Column_Order_Reorder;
 end Files_Suite.Settings;

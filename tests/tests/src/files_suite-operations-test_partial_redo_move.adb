@@ -28,7 +28,10 @@ separate (Files_Suite.Operations)
                Destinations, Sources);
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-            Assert (Step.Status = Files.Operations.Operation_Success, "prepare a two-item move or rename Redo");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "prepare a two-item move or rename Redo");
             Write_Binary_File (Dest_B, "unrelated collision");
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Redo_Last (Model, Settings));

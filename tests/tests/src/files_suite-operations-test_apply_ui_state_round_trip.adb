@@ -15,9 +15,18 @@ separate (Files_Suite.Operations)
          Settings.Sort_Field_Value := Field;
          Settings.Sort_Ascending   := Ascending;
          Files.Operations.Apply_Ui_State (Model, Settings);
-         Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Details, Label & ": view mode applied");
-         Assert (Files.Model.Sort_Field_Of (Model) = Expect_Model, Label & ": sort field applied");
-         Assert (Files.Model.Sort_Is_Ascending (Model) = Ascending, Label & ": sort direction applied");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.View_Mode_Of (Model),
+            Files.Types.Details,
+            Label & ": view mode applied");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Sort_Field_Of (Model),
+            Expect_Model,
+            Label & ": sort field applied");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Sort_Is_Ascending (Model),
+            Ascending,
+            Label & ": sort direction applied");
       end Check;
    begin
       --  Every field/direction combination applies exactly. The regression case is

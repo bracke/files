@@ -376,33 +376,41 @@ separate (Files_Suite.Operations)
          Localized : constant Files.Applications.Application :=
            Find (Apps, "Dansk Program");
       begin
-         Assert
-           (Natural (Apps.Length) = 13,
+         Files_Suite.Support.Assert_Equal
+           (Natural (Apps.Length),
+            13,
             "valid desktop IDs are returned without collapsing shared display names");
-         Assert
-           (To_String (Apps.First_Element.Name) = "Dansk Program",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Apps.First_Element.Name),
+            "Dansk Program",
             "applications use and sort by the best localized decoded name");
-         Assert
-           (Count_Name (Apps, "Shared Name") = 2,
+         Files_Suite.Support.Assert_Equal
+           (Count_Name (Apps, "Shared Name"),
+            2,
             "distinct desktop IDs may expose the same application name");
          Assert
            (To_String (Find (Apps, "Should Stay Masked").Exec) = ""
             and then To_String (Find (Apps, "System Editor").Exec) = "",
             "higher-priority desktop IDs mask lower-priority system entries");
-         Assert
-           (To_String (Find (Apps, "Try Missing").Exec) = "",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Try Missing").Exec),
+            "",
             "an unavailable TryExec keeps an application out of the picker");
-         Assert
-           (To_String (Find (Apps, "Oversized Entry").Exec) = "",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Oversized Entry").Exec),
+            "",
             "oversized desktop entries are rejected before line allocation");
-         Assert
-           (To_String (Find (Apps, "Linked Application").Exec) = "",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Linked Application").Exec),
+            "",
             "application discovery refuses linked desktop entries");
-         Assert
-           (To_String (Find (Apps, "Excessive Exec").Exec) = "",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "Excessive Exec").Exec),
+            "",
             "desktop entries with excessive Exec vectors are rejected");
-         Assert
-           (To_String (Find (Apps, "ZZ CRLF Application").Exec) = "viewer %F",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Find (Apps, "ZZ CRLF Application").Exec),
+            "viewer %F",
             "desktop entries with CRLF line endings are accepted");
          Assert
            (To_String (Find (Apps, "Invalid Boolean").Exec) = ""
@@ -434,11 +442,13 @@ separate (Files_Suite.Operations)
             and then To_String
               (Find (Apps, "Overlapping Visibility Lists").Exec) = "",
             "visibility lists decode escapes, honor later exclusions, and permit only disjoint coexistence");
-         Assert
-           (To_String (Editor.Exec) = "editor %F",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Editor.Exec),
+            "editor %F",
             "the desktop Exec template is retained for positional expansion");
-         Assert
-           (To_String (Viewer.Exec) = "viewer --open %U",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Viewer.Exec),
+            "viewer --open %U",
             "base arguments and their target field position are retained");
 
          declare
@@ -467,23 +477,28 @@ separate (Files_Suite.Operations)
             Targets.Append (To_Unbounded_String ("/tmp/a.txt"));
             Targets.Append (To_Unbounded_String ("/tmp/b.txt"));
             Action := Files.Applications.Build_Open_Action (Viewer, Targets);
-            Assert
-              (To_String (Action.Executable) = "viewer",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Action.Executable),
+               "viewer",
                "action executable is the first Exec token");
             Assert
               (not Action.Use_Shell,
                "open-with action is not shell-wrapped");
-            Assert
-              (Natural (Action.Arguments.Length) = 3,
+            Files_Suite.Support.Assert_Equal
+              (Natural (Action.Arguments.Length),
+               3,
                "arguments are remaining Exec tokens followed by each target");
-            Assert
-              (To_String (Action.Arguments.Element (1)) = "--open",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Action.Arguments.Element (1)),
+               "--open",
                "base Exec argument is preserved");
-            Assert
-              (To_String (Action.Arguments.Element (2)) = "/tmp/a.txt",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Action.Arguments.Element (2)),
+               "/tmp/a.txt",
                "first target path is appended");
-            Assert
-              (To_String (Action.Arguments.Element (3)) = "/tmp/b.txt",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Action.Arguments.Element (3)),
+               "/tmp/b.txt",
                "second target path is appended");
          end;
 
@@ -494,27 +509,33 @@ separate (Files_Suite.Operations)
             Targets.Append (To_Unbounded_String ("/tmp/a file.txt"));
             Targets.Append (To_Unbounded_String ("/tmp/b.txt"));
             Action := Files.Applications.Build_Open_Action (Quoted, Targets);
-            Assert
-              (To_String (Action.Executable) = "/opt/Quoted Editor/bin/editor",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Action.Executable),
+               "/opt/Quoted Editor/bin/editor",
                "a quoted desktop executable remains one executable token");
-            Assert
-              (Natural (Action.Arguments.Length) = 9,
+            Files_Suite.Support.Assert_Equal
+              (Natural (Action.Arguments.Length),
+               9,
                "quoted arguments and desktop field codes expand to the expected vector");
-            Assert
-              (To_String (Action.Arguments.Element (1)) = "--mode=two words",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Action.Arguments.Element (1)),
+               "--mode=two words",
                "a quoted desktop argument remains one argument");
             Assert
               (To_String (Action.Arguments.Element (2)) = "/tmp/a file.txt"
                and then To_String (Action.Arguments.Element (3)) = "/tmp/b.txt",
                "a list field code expands in place with argument boundaries intact");
-            Assert
-              (To_String (Action.Arguments.Element (4)) = "--after",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Action.Arguments.Element (4)),
+               "--after",
                "arguments after the target field keep their position");
-            Assert
-              (To_String (Action.Arguments.Element (5)) = "%",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Action.Arguments.Element (5)),
+               "%",
                "a doubled percent becomes one literal percent argument");
-            Assert
-              (To_String (Action.Arguments.Element (6)) = "Quoted App",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Action.Arguments.Element (6)),
+               "Quoted App",
                "the application-name field expands as one argument");
             Assert
               (To_String (Action.Arguments.Element (7)) = "--icon"
@@ -626,8 +647,9 @@ separate (Files_Suite.Operations)
             Files.Model.Set_Open_With_Targets (Model, Targets);
             Files.Model.Set_Command_Palette_Mode (Model, Files.Model.Palette_Open_With);
             Files.Model.Palette_Select_Last (Model);
-            Assert
-              (Files.Model.Palette_Selected_Id (Model) = 13,
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Palette_Selected_Id (Model),
+               13,
                "the missing executable fixture is selected from the Open With palette");
 
             Routed := Files.Controller.Activate_Palette_Command

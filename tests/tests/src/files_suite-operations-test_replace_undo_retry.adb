@@ -91,8 +91,10 @@ separate (Files_Suite.Operations)
                   Assert (Hostkit.Fs.Move_No_Replace (Held, To_String (Back_B)), "unblock the remaining restore");
                   Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-                  Assert (Step.Status = Files.Operations.Operation_Success,
-                          "Undo completes after the remaining original becomes available");
+                  Files_Suite.Support.Assert_Equal
+                    (Step.Status,
+                     Files.Operations.Operation_Success,
+                     "Undo completes after the remaining original becomes available");
                   Assert (File_Has_Bytes (Dest_A, "original A") and then File_Has_Bytes (Dest_B, "original B"),
                           "all originals survive the successful retry");
                   Assert (not Files.Model.Undo_Available (Model) and then not Files.Model.Redo_Available (Model),

@@ -412,8 +412,10 @@ package body Files_Suite.Rendering is
       Assert (Header_Field_Top >= 0 and then Header_Text_Y >= 0 and then Bottom_Text_Y >= 0,
               "the header field, header label and a bottom-bar label are all present");
       --  Same offset within their fields: both optically centred alike.
-      Assert (Header_Text_Y - Header_Field_Top = Bottom_Text_Y - Bottom_Top,
-              "the header label sits at the same vertical offset as the bottom-bar text");
+      Files_Suite.Support.Assert_Equal
+        (Header_Text_Y - Header_Field_Top,
+         Bottom_Text_Y - Bottom_Top,
+         "the header label sits at the same vertical offset as the bottom-bar text");
    end Test_Details_Header_Text_Centered;
 
    --  The toolbar input text is optically centred in its field the same way as
@@ -450,8 +452,10 @@ package body Files_Suite.Rendering is
       Assert (Toolbar_Text_Y >= 0 and then Bottom_Text_Y >= 0 and then Icon_Center >= 0,
               "a toolbar text, a bottom-bar text and a toolbar icon are all present");
       --  Text: same optical offset within its field as the bottom-bar text.
-      Assert (Toolbar_Text_Y - Toolbar_Top = Bottom_Text_Y - Bottom_Top,
-              "toolbar text uses the same optical centring as the bottom-bar text");
+      Files_Suite.Support.Assert_Equal
+        (Toolbar_Text_Y - Toolbar_Top,
+         Bottom_Text_Y - Bottom_Top,
+         "toolbar text uses the same optical centring as the bottom-bar text");
       --  Icons: geometrically centred in the toolbar field (within rounding).
       Assert (abs (Icon_Center - Field_Ctr) <= 1,
               "the toolbar icon is centred in the toolbar field");
@@ -498,7 +502,7 @@ package body Files_Suite.Rendering is
             Frame  : constant Frame_Commands :=
               Build_Frame_Commands (Snap, Width, Height, LH);
          begin
-            Assert (Layout.Main_Height = 1, "the compact case has a one-pixel main view");
+            Files_Suite.Support.Assert_Equal (Layout.Main_Height, 1, "the compact case has a one-pixel main view");
             for Command of Frame.Text loop
                if Command.Y >= Layout.Main_Y
                  and then Command.Y < Layout.Main_Y + Layout.Main_Height
@@ -657,8 +661,10 @@ package body Files_Suite.Rendering is
               and then CY >= C.Y and then CY < C.Y + C.Height
             then
                --  First tooltip covering the point wins, as Tooltip_At resolves it.
-               Assert (To_String (C.Text) = Tip,
-                       "the first tooltip over the scope chip describes the scope");
+               Files_Suite.Support.Assert_Equal
+                 (To_String (C.Text),
+                  Tip,
+                  "the first tooltip over the scope chip describes the scope");
                Found := True;
                exit;
             end if;
@@ -672,12 +678,18 @@ package body Files_Suite.Rendering is
    procedure Test_Filetype_Labels_Omit_Document (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
    begin
-      Assert (Files.Localization.Text ("info.kind.markdown") = "Markdown",
-              "the markdown type label omits 'document'");
-      Assert (Files.Localization.Text ("info.kind.document.pdf") = "PDF",
-              "the PDF type label omits 'document'");
-      Assert (Files.Localization.Text ("info.kind.document.word") = "Word",
-              "the Word type label omits 'document'");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("info.kind.markdown"),
+         "Markdown",
+         "the markdown type label omits 'document'");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("info.kind.document.pdf"),
+         "PDF",
+         "the PDF type label omits 'document'");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("info.kind.document.word"),
+         "Word",
+         "the Word type label omits 'document'");
       Assert (Files.Localization.Text ("info.kind.document.spreadsheet")'Length > 0,
               "the spreadsheet type label is present");
    end Test_Filetype_Labels_Omit_Document;
@@ -798,8 +810,10 @@ package body Files_Suite.Rendering is
             Assert (not Shown (Snapshot, Layout, 390), "a far item starts out of view");
             Snapshot.Main_View_Scroll_Lines := Scroll_Lines_Revealing (Snapshot, Layout, 20, 390);
             Assert (Shown (Snapshot, Layout, 390), "revealing scrolls a far item whole into view");
-            Assert (Scroll_Lines_Revealing (Snapshot, Layout, 20, 390) = Snapshot.Main_View_Scroll_Lines,
-                    "an item in view keeps the scroll");
+            Files_Suite.Support.Assert_Equal
+              (Scroll_Lines_Revealing (Snapshot, Layout, 20, 390),
+               Snapshot.Main_View_Scroll_Lines,
+               "an item in view keeps the scroll");
             Snapshot.Main_View_Scroll_Lines := Scroll_Lines_Revealing (Snapshot, Layout, 20, 1);
             Assert (Snapshot.Main_View_Scroll_Lines = 0 and then Shown (Snapshot, Layout, 1),
                     "revealing the first item scrolls back to the top");
@@ -821,7 +835,10 @@ package body Files_Suite.Rendering is
          Files.Model.Select_Visible (Model, 1);
          Files.Model.Set_Selection_Page_Rows (Model, 23);
          Files.Model.Move_Selection_By_Page (Model, Files.Model.Selection_Page_Rows (Model), True);
-         Assert (Files.Model.Selected_Index (Model) = 24, "Page Down moves by the measured rows in view");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selected_Index (Model),
+            24,
+            "Page Down moves by the measured rows in view");
       end;
    end Test_Reveal_Scroll_Shows_Item;
 
@@ -838,7 +855,7 @@ package body Files_Suite.Rendering is
             Items    : constant Item_Layout_Vectors.Vector :=
               Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
          begin
-            Assert (Natural (Items.Length) = 6, "every visible item is laid out");
+            Files_Suite.Support.Assert_Equal (Natural (Items.Length), 6, "every visible item is laid out");
             for Cell of Items loop
                Assert (Cell.Width > 0 and then Cell.Height > 0, "item cell has a positive size");
                Assert
@@ -861,9 +878,9 @@ package body Files_Suite.Rendering is
             declare
                First : constant Item_Layout := Items.Element (Items.First_Index);
             begin
-               Assert
-                 (Item_At (Items, First.X + First.Width / 2, First.Y + First.Height / 2)
-                  = First.Visible_Index,
+               Files_Suite.Support.Assert_Equal
+                 (Item_At (Items, First.X + First.Width / 2, First.Y + First.Height / 2),
+                  First.Visible_Index,
                   "a hit test inside a cell returns that item");
             end;
          end;
@@ -951,12 +968,13 @@ package body Files_Suite.Rendering is
             --  Bug 16: the thumb reaches the exact ends of its track -- top at
             --  no scroll, bottom at max scroll -- so the track and content stay
             --  aligned.
-            Assert
-              (MV_Top.Scrollbar_Thumb_Y = MV_Top.Scrollbar_Y,
+            Files_Suite.Support.Assert_Equal
+              (MV_Top.Scrollbar_Thumb_Y,
+               MV_Top.Scrollbar_Y,
                "at the top the thumb sits exactly at the track top");
-            Assert
-              (MV_Bot.Scrollbar_Thumb_Y + MV_Bot.Scrollbar_Height
-                 = MV_Bot.Scrollbar_Y + MV_Bot.Scrollbar_Track_Height,
+            Files_Suite.Support.Assert_Equal
+              (MV_Bot.Scrollbar_Thumb_Y + MV_Bot.Scrollbar_Height,
+               MV_Bot.Scrollbar_Y + MV_Bot.Scrollbar_Track_Height,
                "at max scroll the thumb reaches exactly the track bottom");
          end;
       end;
@@ -1261,12 +1279,21 @@ package body Files_Suite.Rendering is
            Build_Frame_Commands
              (Snapshot, Width => Natural'Last, Height => Natural'Last, Line_Height => Positive'Last);
       begin
-         Assert (Natural (Items.Length) = 8, "items are still laid out at extreme sizes");
-         Assert (Layout.Toolbar_Height = Natural'Last, "a huge line height saturates the toolbar height");
-         Assert (Main.Content_Height = Natural'Last, "huge content height saturates instead of overflowing");
+         Files_Suite.Support.Assert_Equal (Natural (Items.Length), 8, "items are still laid out at extreme sizes");
+         Files_Suite.Support.Assert_Equal
+           (Layout.Toolbar_Height,
+            Natural'Last,
+            "a huge line height saturates the toolbar height");
+         Files_Suite.Support.Assert_Equal
+           (Main.Content_Height,
+            Natural'Last,
+            "huge content height saturates instead of overflowing");
          Assert (Main.Scroll_Pixels <= Main.Content_Height, "the saturated scroll offset stays bounded");
          Assert (Info.Scroll_Pixels <= Info.Content_Height, "the info-pane scroll offset stays bounded");
-         Assert (Frame.Layout.Toolbar_Height = Natural'Last, "the rendered frame layout also saturates");
+         Files_Suite.Support.Assert_Equal
+           (Frame.Layout.Toolbar_Height,
+            Natural'Last,
+            "the rendered frame layout also saturates");
       end;
 
       declare
@@ -1322,9 +1349,9 @@ package body Files_Suite.Rendering is
          Boundary_Menu.Height := 1;
          Boundary_Menu.Row_Height := 1;
          Boundary_Menu.Row_Count := 1;
-         Assert
-           (Context_Menu_Row_At
-              (Boundary_Menu, Natural'Last, Natural'Last) = 1,
+         Files_Suite.Support.Assert_Equal
+           (Context_Menu_Row_At (Boundary_Menu, Natural'Last, Natural'Last),
+            1,
             "context-menu hit testing accepts the coordinate limit");
       end;
    end Test_Extreme_Size_Saturation;
@@ -1537,12 +1564,18 @@ package body Files_Suite.Rendering is
          end loop;
       end;
 
-      Assert (Carets = 2, "two renaming rows draw exactly two carets");
+      Files_Suite.Support.Assert_Equal
+
+        (Carets,
+
+         2,
+
+         "two renaming rows draw exactly two carets");
       --  The two rows share the same text but differ by three cursor cells, so
       --  their carets sit three advance-widths apart.
-      Assert
-        (Natural'Max (First_X, Second_X) - Natural'Min (First_X, Second_X)
-           = 3 * Guikit.Layout.Caret_Advance_Width (20),
+      Files_Suite.Support.Assert_Equal
+        (Natural'Max (First_X, Second_X) - Natural'Min (First_X, Second_X),
+         3 * Guikit.Layout.Caret_Advance_Width (20),
          "each row's caret tracks that row's own cursor position");
    end Test_Multi_Rename_Fields_And_Carets;
 
@@ -1625,16 +1658,19 @@ package body Files_Suite.Rendering is
                  Width  => 1000,
                  Height => 800);
          begin
-            Assert
-              (Action.Kind = Files.Events.Text_Click_Input_Action,
+            Files_Suite.Support.Assert_Equal
+              (Action.Kind,
+               Files.Events.Text_Click_Input_Action,
                "clicking the rename field produces a text-click action");
-            Assert
-              (Action.Focus_Target = Files.Types.Focus_Rename_Input,
+            Files_Suite.Support.Assert_Equal
+              (Action.Focus_Target,
+               Files.Types.Focus_Rename_Input,
                "the click targets the rename input");
-            Assert
-              (Action.Cursor_Position = 3,
+            Files_Suite.Support.Assert_Equal
+              (Action.Cursor_Position,
+               3,
                "the click at the caret pixel resolves back to the drawn cursor index");
-            Assert (Action.Item_Index = 1, "the click carries the clicked row index");
+            Files_Suite.Support.Assert_Equal (Action.Item_Index, 1, "the click carries the clicked row index");
          end;
       end;
    end Test_Caret_Click_Round_Trip;
@@ -1707,8 +1743,9 @@ package body Files_Suite.Rendering is
       Assert
         (Empty_Y < Layout.Main_Y + Layout.Main_Height,
          "the six-row list leaves empty grid space below its last row");
-      Assert
-        (Off_Item.Kind = Files.Events.Marquee_Begin_Input_Action,
+      Files_Suite.Support.Assert_Equal
+        (Off_Item.Kind,
+         Files.Events.Marquee_Begin_Input_Action,
          "pressing empty grid space begins a rubber-band marquee");
       Assert
         (Outside.Kind /= Files.Events.Marquee_Begin_Input_Action,
@@ -1729,11 +1766,13 @@ package body Files_Suite.Rendering is
                 (Edge_Snapshot, Edge_Frame,
                  X => 500, Y => 800, Width => 1000, Height => 800);
          begin
-            Assert
-              (Right_Edge.Kind = Files.Events.No_Input_Action,
+            Files_Suite.Support.Assert_Equal
+              (Right_Edge.Kind,
+               Files.Events.No_Input_Action,
                "the right framebuffer extent is not an actionable pixel");
-            Assert
-              (Bottom_Edge.Kind = Files.Events.No_Input_Action,
+            Files_Suite.Support.Assert_Equal
+              (Bottom_Edge.Kind,
+               Files.Events.No_Input_Action,
                "the bottom framebuffer extent is not an actionable pixel");
          end;
       end;
@@ -1819,9 +1858,11 @@ package body Files_Suite.Rendering is
       Text := Build_Text_Glyphs (Renderer, Frame);
 
       Assert (Text.Status = Guikit.Draw.Text_Render_Success, "the text builds");
-      Assert (Natural (Text.Colour_Icons.Length) = 2,
-              "both emoji become colour icons, got"
-              & Natural'Image (Natural (Text.Colour_Icons.Length)));
+      Files_Suite.Support.Assert_Equal
+        (Natural (Text.Colour_Icons.Length),
+         2,
+         "both emoji become colour icons, got"
+         & Natural'Image (Natural (Text.Colour_Icons.Length)));
 
       for Icon of Text.Colour_Icons loop
          Assert (Icon.Thumbnail_Width > 0 and then Icon.Thumbnail_Height > 0,
@@ -1829,8 +1870,9 @@ package body Files_Suite.Rendering is
          Assert (Icon.Shared_Tile_Id /= Null_Unbounded_String,
                  "and names an identity so repeats share one atlas tile");
          if not Icon.Thumbnail_Pixels.Is_Empty then
-            Assert
-              (Natural (Icon.Thumbnail_Pixels.Length) = Icon.Thumbnail_Width * Icon.Thumbnail_Height * 4,
+            Files_Suite.Support.Assert_Equal
+              (Natural (Icon.Thumbnail_Pixels.Length),
+               Icon.Thumbnail_Width * Icon.Thumbnail_Height * 4,
                "the carried picture has four bytes per pixel");
             Carried_Pictures := Carried_Pictures + 1;
             Tile_Identity := Icon.Shared_Tile_Id;
@@ -1844,7 +1886,10 @@ package body Files_Suite.Rendering is
             Main_Layer := Main_Layer + 1;
          end if;
       end loop;
-      Assert (Carried_Pictures = 1, "the shared emoji picture is carried once across both layers");
+      Files_Suite.Support.Assert_Equal
+        (Carried_Pictures,
+         1,
+         "the shared emoji picture is carried once across both layers");
 
       --  One from each layer: an emoji in an overlay must stay in the overlay,
       --  or it draws underneath the panel it belongs to.
@@ -1853,7 +1898,7 @@ package body Files_Suite.Rendering is
               & " main and" & Natural'Image (Overlay_Layer) & " overlay");
 
       --  Missing glyphs would mean it fell through to the '?' path instead.
-      Assert (Text.Missing_Glyph_Count = 0, "and nothing was reported missing");
+      Files_Suite.Support.Assert_Equal (Text.Missing_Glyph_Count, 0, "and nothing was reported missing");
    end Test_Emoji_Draws_As_Colour_Icons;
 
    procedure Test_Vulkan_Submission (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1876,10 +1921,14 @@ package body Files_Suite.Rendering is
          Layout             => Frame.Layout,
          Theme              => Frame.Theme_Palette,
          Text               => Text);
-      Assert (Batch.Width = Frame.Layout.Width, "the vulkan batch preserves the frame width");
-      Assert (Batch.Height = Frame.Layout.Height, "the vulkan batch preserves the frame height");
-      Assert
-        (Batch.Rectangle_Vertex_Count = Natural (Frame.Rectangles.Length) * 6,
+      Files_Suite.Support.Assert_Equal (Batch.Width, Frame.Layout.Width, "the vulkan batch preserves the frame width");
+      Files_Suite.Support.Assert_Equal
+        (Batch.Height,
+         Frame.Layout.Height,
+         "the vulkan batch preserves the frame height");
+      Files_Suite.Support.Assert_Equal
+        (Batch.Rectangle_Vertex_Count,
+         Natural (Frame.Rectangles.Length) * 6,
          "each rectangle expands to two triangles (six vertices)");
       Assert (Batch.Glyph_Vertex_Count > 0, "rasterized glyphs reach the vulkan submission batch");
    end Test_Vulkan_Submission;
@@ -2019,8 +2068,9 @@ package body Files_Suite.Rendering is
            (not Build_Snapshot (Model, Settings).Free_Space_Known,
             "building a snapshot does not query the disk: an unsampled model shows no free space");
          Files.Model.Set_Volume_Space (Model, Path, Space, Now);
-         Assert
-           (Build_Snapshot (Model, Settings).Free_Space_Bytes = 100,
+         Files_Suite.Support.Assert_Equal
+           (Build_Snapshot (Model, Settings).Free_Space_Bytes,
+            100,
             "the snapshot shows the sampled free space");
          Assert (Files.Model.Volume_Space_Is_Current (Model, Now), "a fresh sample is current");
          Assert
@@ -2094,9 +2144,7 @@ package body Files_Suite.Rendering is
          end if;
       end loop;
       Assert (Roots >= 1, "the mapped tree has at least one root node");
-      Assert
-        (Focused = 1,
-         "multi-selection exports exactly one primary keyboard-focus node");
+      Files_Suite.Support.Assert_Equal (Focused, 1, "multi-selection exports exactly one primary keyboard-focus node");
       Assert
         (A11ykit.Compatibility.Validate_Tree (Tree).Status =
            A11y.Results.Success,
@@ -2340,8 +2388,12 @@ package body Files_Suite.Rendering is
          Assert (A11y_Count > 1, "the root selector retains its list choices and close button");
       end;
 
-      Assert
-        (Shadow_Count = Shadow_Rectangles,
+      Files_Suite.Support.Assert_Equal
+
+        (Shadow_Count,
+
+         Shadow_Rectangles,
+
          "the root selector emits the shared banded translucent drop shadow");
    end Test_Root_Selector_Uses_Shadow_Color;
 
@@ -2407,8 +2459,9 @@ package body Files_Suite.Rendering is
 
       Assert (Backdrop_Seen, "the paste-conflict dialog emits a full-window modal backdrop");
       Assert (Panel_Seen, "the paste-conflict dialog emits its panel surface");
-      Assert
-        (Shadow_Before_Panel = Shadow_Rectangles,
+      Files_Suite.Support.Assert_Equal
+        (Shadow_Before_Panel,
+         Shadow_Rectangles,
          "the paste-conflict dialog emits the shared shadow before its panel surface");
       Assert
         (Accessibility_Count > 0,
@@ -2427,12 +2480,16 @@ package body Files_Suite.Rendering is
       Scroll      : constant Natural :=
         Files.Rendering.Input_Scroll_Columns (Text, Text'Length, Width, Line_Height);
    begin
-      Assert (Files.Rendering.Input_Scroll_Columns (Text, 5, Width, Line_Height) = 0,
-              "a caret within the field needs no scroll");
+      Files_Suite.Support.Assert_Equal
+        (Files.Rendering.Input_Scroll_Columns (Text, 5, Width, Line_Height),
+         0,
+         "a caret within the field needs no scroll");
       Assert (Scroll > 0 and then Text'Length - Scroll < 20,
               "a caret at the end of overlong text is scrolled into the field");
-      Assert (Files.Rendering.Input_Scroll_Columns ("short", 5, Width, Line_Height) = 0,
-              "text that fits is never scrolled");
+      Files_Suite.Support.Assert_Equal
+        (Files.Rendering.Input_Scroll_Columns ("short", 5, Width, Line_Height),
+         0,
+         "text that fits is never scrolled");
    end Test_Input_Scroll_Keeps_Caret_Visible;
 
    procedure Test_Tooltip_Wraps_When_Narrow (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -2531,8 +2588,10 @@ package body Files_Suite.Rendering is
          begin
             Assert (Tooltip_Rows (Frame, To_String (Tip)) >= 2,
                     "a narrow window wraps the tooltip onto multiple rows");
-            Assert (Squeeze (Rows_Joined (Frame, To_String (Tip))) = Squeeze (To_String (Tip)),
-                    "wrapped rows rejoin to the original text (no mid-word breaks)");
+            Files_Suite.Support.Assert_Equal
+              (Squeeze (Rows_Joined (Frame, To_String (Tip))),
+               Squeeze (To_String (Tip)),
+               "wrapped rows rejoin to the original text (no mid-word breaks)");
          end;
       end;
 
@@ -2545,8 +2604,10 @@ package body Files_Suite.Rendering is
             Frame : constant Frame_Commands :=
               Build_Frame_Commands (Base, 1000, 800, 20, Hover_X => HX, Hover_Y => HY, Has_Hover => True);
          begin
-            Assert (Tooltip_Rows (Frame, To_String (Tip)) = 1,
-                    "a wide window shows the tooltip on a single row");
+            Files_Suite.Support.Assert_Equal
+              (Tooltip_Rows (Frame, To_String (Tip)),
+               1,
+               "a wide window shows the tooltip on a single row");
          end;
       end;
    end Test_Tooltip_Wraps_When_Narrow;
@@ -2607,7 +2668,7 @@ package body Files_Suite.Rendering is
                      Seen := Seen + 1;
                   end if;
                end loop;
-               Assert (Seen = 1, "each grouped command appears exactly once");
+               Files_Suite.Support.Assert_Equal (Seen, 1, "each grouped command appears exactly once");
             end;
          end loop;
 
@@ -2615,16 +2676,18 @@ package body Files_Suite.Rendering is
             if Menu.Row_Kinds (Row) = Separator_Row then
                Separator_Count := Separator_Count + 1;
                --  A separator carries no command and is not selectable.
-               Assert
-                 (Menu.Commands (Row) = Files.Commands.No_Command,
+               Files_Suite.Support.Assert_Equal
+                 (Menu.Commands (Row),
+                  Files.Commands.No_Command,
                   "a separator row carries no command");
                declare
                   Probe_X : constant Natural := Menu.X + Menu.Width / 2;
                   Probe_Y : constant Natural :=
                     Context_Menu_Row_Top (Menu, Row) + Menu.Separator_Height / 2;
                begin
-                  Assert
-                    (Context_Menu_Row_At (Menu, Probe_X, Probe_Y) = 0,
+                  Files_Suite.Support.Assert_Equal
+                    (Context_Menu_Row_At (Menu, Probe_X, Probe_Y),
+                     0,
                      "a hit test on a separator selects no row");
                end;
             else
@@ -2635,15 +2698,22 @@ package body Files_Suite.Rendering is
                   Probe_Y : constant Natural :=
                     Context_Menu_Row_Top (Menu, Row) + Menu.Row_Height / 2;
                begin
-                  Assert
-                    (Context_Menu_Row_At (Menu, Probe_X, Probe_Y) = Row,
+                  Files_Suite.Support.Assert_Equal
+                    (Context_Menu_Row_At (Menu, Probe_X, Probe_Y),
+                     Row,
                      "a hit test on a command row returns that row");
                end;
             end if;
          end loop;
 
-         Assert (Command_Count = Expected'Length, "all real commands are laid out");
-         Assert (Separator_Count = 5, "five separators divide the six command groups");
+         Files_Suite.Support.Assert_Equal
+
+           (Command_Count,
+
+            Expected'Length,
+
+            "all real commands are laid out");
+         Files_Suite.Support.Assert_Equal (Separator_Count, 5, "five separators divide the six command groups");
 
          declare
             Clipped : Context_Menu_Layout := Menu;
@@ -2653,8 +2723,9 @@ package body Files_Suite.Rendering is
             --  Model the renderer clipping the panel before its first row. The
             --  hit test must honor the declared surface, not the latent rows.
             Clipped.Height := Menu.Padding;
-            Assert
-              (Context_Menu_Row_At (Clipped, Probe_X, Probe_Y) = 0,
+            Files_Suite.Support.Assert_Equal
+              (Context_Menu_Row_At (Clipped, Probe_X, Probe_Y),
+               0,
                "a row outside the declared context-menu height is not clickable");
          end;
       end;
@@ -2666,7 +2737,7 @@ package body Files_Suite.Rendering is
          Menu : constant Context_Menu_Layout :=
            Calculate_Context_Menu_Layout (Snapshot, 480, 360, 20);
       begin
-         Assert (Menu.Column_Count = 2, "the compact item menu uses two columns");
+         Files_Suite.Support.Assert_Equal (Menu.Column_Count, 2, "the compact item menu uses two columns");
          Assert (Menu.Height <= 360, "the compact item menu stays within the window height");
          Assert
            (Menu.Column_Break_Row > 0 and then Menu.Column_Break_Row < Menu.Row_Count,
@@ -2680,8 +2751,9 @@ package body Files_Suite.Rendering is
                   Probe_Y : constant Natural :=
                     Context_Menu_Row_Top (Menu, Row) + Menu.Row_Height / 2;
                begin
-                  Assert
-                    (Context_Menu_Row_At (Menu, Probe_X, Probe_Y) = Row,
+                  Files_Suite.Support.Assert_Equal
+                    (Context_Menu_Row_At (Menu, Probe_X, Probe_Y),
+                     Row,
                      "every compact-menu command hit-tests in its displayed column");
                end;
             end if;
@@ -2728,7 +2800,10 @@ package body Files_Suite.Rendering is
                   Surface_Seen := True;
                end if;
             end loop;
-            Assert (Shadow_Count = Shadow_Rectangles, "the context menu uses the shared banded shadow");
+            Files_Suite.Support.Assert_Equal
+              (Shadow_Count,
+               Shadow_Rectangles,
+               "the context menu uses the shared banded shadow");
             Assert (Surface_Seen, "the context menu uses the opaque overlay surface role");
             for Node of Frame.Accessibility loop
                A11y_Count := A11y_Count + 1;
@@ -2761,7 +2836,10 @@ package body Files_Suite.Rendering is
                   Shadow_Count := Shadow_Count + 1;
                end if;
             end loop;
-            Assert (Shadow_Count = Shadow_Rectangles, "the sort menu uses the shared banded shadow");
+            Files_Suite.Support.Assert_Equal
+              (Shadow_Count,
+               Shadow_Rectangles,
+               "the sort menu uses the shared banded shadow");
             Assert
               (Dismiss.Kind = Files.Events.Command_Input_Action
                and then Dismiss.Command = Files.Commands.Close_Command_Palette_Command,
@@ -2772,7 +2850,7 @@ package body Files_Suite.Rendering is
                  (Node.Role = Role_List or else Node.Role = Role_List_Item,
                   "the open sort menu exposes no background accessibility nodes");
             end loop;
-            Assert (A11y_Count = 6, "the sort menu exposes its list and five sort choices");
+            Files_Suite.Support.Assert_Equal (A11y_Count, 6, "the sort menu exposes its list and five sort choices");
          end;
       end;
    end Test_Floating_Menus_Have_Elevation;
@@ -3039,15 +3117,17 @@ package body Files_Suite.Rendering is
               Y      => Panel.Y + 20,
               Width  => Width,
               Height => Height);
-         Assert
-           (Choose_Hit.Kind = Files.Events.Tree_Pick_Confirm_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Choose_Hit.Kind,
+            Files.Events.Tree_Pick_Confirm_Input_Action,
             "clicking Choose confirms the destination pick");
          Assert
            (Cancel_Hit.Kind = Files.Events.Command_Input_Action
               and then Cancel_Hit.Command = Files.Commands.Toggle_Folder_Tree_Command,
             "clicking Cancel closes the picker");
-         Assert
-           (Outside_Hit.Kind = Files.Events.No_Input_Action,
+         Files_Suite.Support.Assert_Equal
+           (Outside_Hit.Kind,
+            Files.Events.No_Input_Action,
             "a destination-picker click outside the tree cannot activate the background");
 
          for Rect of Frame.Overlay_Rectangles loop
@@ -3184,7 +3264,10 @@ package body Files_Suite.Rendering is
             end if;
          end loop;
          Assert (Backdrop_Seen, "blocking paste progress dims the inactive file view");
-         Assert (Shadow_Count = Shadow_Rectangles, "paste progress uses the shared banded panel shadow");
+         Files_Suite.Support.Assert_Equal
+           (Shadow_Count,
+            Shadow_Rectangles,
+            "paste progress uses the shared banded panel shadow");
 
          for Node of Frame.Accessibility loop
             Accessibility_Count := Accessibility_Count + 1;
@@ -3657,7 +3740,7 @@ package body Files_Suite.Rendering is
       begin
          Hidden.Detail_Columns_Visible (Files.Types.Size_Column) := False;
          Items := Calculate_Item_Layout (Hidden, Layout, Line_Height => 20);
-         Assert (Size_Width_Of (Items) = 0, "a hidden column contributes no width");
+         Files_Suite.Support.Assert_Equal (Size_Width_Of (Items), 0, "a hidden column contributes no width");
          Assert (Name_Width_Of (Items) > Base_Name_W,
                  "hiding a column re-flows its width into the remaining columns");
       end;
@@ -3673,9 +3756,14 @@ package body Files_Suite.Rendering is
          Thin.Detail_Column_Widths (Files.Types.Size_Column) := 4;
          Wide_Items := Calculate_Item_Layout (Wide, Layout, Line_Height => 20);
          Thin_Items := Calculate_Item_Layout (Thin, Layout, Line_Height => 20);
-         Assert (Size_Width_Of (Wide_Items) = 220, "a custom column width drives the layout width");
-         Assert (Size_Width_Of (Thin_Items) = Files.Types.Minimum_Detail_Column_Width,
-                 "a sub-minimum custom width is clamped up to the minimum");
+         Files_Suite.Support.Assert_Equal
+           (Size_Width_Of (Wide_Items),
+            220,
+            "a custom column width drives the layout width");
+         Files_Suite.Support.Assert_Equal
+           (Size_Width_Of (Thin_Items),
+            Files.Types.Minimum_Detail_Column_Width,
+            "a sub-minimum custom width is clamped up to the minimum");
       end;
    end Test_Detail_Column_Customization;
 
@@ -3728,8 +3816,10 @@ package body Files_Suite.Rendering is
          Frame    : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
          Bottom   : constant Natural := Max_Divider_Bottom (Frame, Layout);
       begin
-         Assert (Bottom = Last.Y + Last.Height,
-                 "the divider stops exactly at the last visible row's bottom");
+         Files_Suite.Support.Assert_Equal
+           (Bottom,
+            Last.Y + Last.Height,
+            "the divider stops exactly at the last visible row's bottom");
          Assert (Bottom < Layout.Main_Y + Layout.Main_Height,
                  "a short list leaves the dividers well above the content bottom");
       end;
@@ -3752,7 +3842,10 @@ package body Files_Suite.Rendering is
             if Baseline < 0 then
                Baseline := C.Y;
             else
-               Assert (C.Y = Baseline, "all bottom-bar text shares a single vertical baseline");
+               Files_Suite.Support.Assert_Equal
+                 (C.Y,
+                  Baseline,
+                  "all bottom-bar text shares a single vertical baseline");
             end if;
             if To_String (C.Text) = "Small" or else To_String (C.Text) = "Large"
               or else To_String (C.Text) = "Details"
@@ -3821,8 +3914,9 @@ package body Files_Suite.Rendering is
               Files.UI.Sort_Menu_Visible_Width
                 (Compact_W, Files.Model.Sort_Name, 20);
          begin
-            Assert
-              (Bar.Sort_Button_X + Visible_W = Compact_W,
+            Files_Suite.Support.Assert_Equal
+              (Bar.Sort_Button_X + Visible_W,
+               Compact_W,
                "the visible sort menu stops at the right framebuffer edge");
             Assert
               (Visible_W < Menu_W,
@@ -3846,10 +3940,9 @@ package body Files_Suite.Rendering is
            Files.UI.Calculate_Bottom_Bar_Layout
              (1000, Files.Model.Sort_Name, 20);
       begin
-         Assert
-           (Files.UI.Bottom_Bar_Sort_Menu_Command_At
-              (Bar.Sort_Button_X, 0, 1000, Short_H,
-               Files.Model.Sort_Name, 20) = Files.Commands.No_Command,
+         Files_Suite.Support.Assert_Equal
+           (Files.UI.Bottom_Bar_Sort_Menu_Command_At (Bar.Sort_Button_X, 0, 1000, Short_H, Files.Model.Sort_Name, 20),
+            Files.Commands.No_Command,
             "compact sort-menu padding does not select a row");
          Assert
            (Files.UI.Bottom_Bar_Sort_Menu_Contains
@@ -4115,10 +4208,10 @@ package body Files_Suite.Rendering is
 
       --  Room for the free field: carved off on the right, divider one gap left.
       Files.UI.Split_Status_Region (200, 300, 60, TW, DX, FX, FW);
-      Assert (FX = 436, "the free field sits right-aligned within the region");
-      Assert (DX = 428, "the divider sits one gap left of the free field");
-      Assert (TW = 228, "the toggle covers only up to the divider");
-      Assert (FW = 64, "the free field box is the label width plus padding");
+      Files_Suite.Support.Assert_Equal (FX, 436, "the free field sits right-aligned within the region");
+      Files_Suite.Support.Assert_Equal (DX, 428, "the divider sits one gap left of the free field");
+      Files_Suite.Support.Assert_Equal (TW, 228, "the toggle covers only up to the divider");
+      Files_Suite.Support.Assert_Equal (FW, 64, "the free field box is the label width plus padding");
       Assert (200 + TW = DX and then FX + FW = 200 + 300,
               "toggle, divider gap and free field partition the region");
    end Test_Split_Status_Region;
@@ -4142,33 +4235,29 @@ package body Files_Suite.Rendering is
          Free_X   : constant Natural := Bar.Info_X + Bar.Info_Width - 5;
       begin
          Assert (Free_W > 0, "the free-space field is present in a wide window");
-         Assert
-           (Files.UI.Bottom_Bar_Command_At (Counts_X, Y, 1000, 800, Snap.Sort_Field, Free_W, 20)
-              = Files.Commands.Toggle_Hidden_Files_Command,
+         Files_Suite.Support.Assert_Equal
+           (Files.UI.Bottom_Bar_Command_At (Counts_X, Y, 1000, 800, Snap.Sort_Field, Free_W, 20),
+            Files.Commands.Toggle_Hidden_Files_Command,
             "clicking the counts area toggles hidden files");
-         Assert
-           (Files.UI.Bottom_Bar_Command_At (Free_X, Y, 1000, 800, Snap.Sort_Field, Free_W, 20)
-              = Files.Commands.Toggle_Free_Space_Display_Command,
+         Files_Suite.Support.Assert_Equal
+           (Files.UI.Bottom_Bar_Command_At (Free_X, Y, 1000, 800, Snap.Sort_Field, Free_W, 20),
+            Files.Commands.Toggle_Free_Space_Display_Command,
             "clicking the free-space field toggles free/used space");
-         Assert
-           (Files.UI.Bottom_Bar_Command_At
-              (Counts_X, Bottom_Y + 1, 1000, 800, Snap.Sort_Field, Free_W, 20)
-              = Files.Commands.Toggle_Hidden_Files_Command,
+         Files_Suite.Support.Assert_Equal
+           (Files.UI.Bottom_Bar_Command_At (Counts_X, Bottom_Y + 1, 1000, 800, Snap.Sort_Field, Free_W, 20),
+            Files.Commands.Toggle_Hidden_Files_Command,
             "the visible top of the counts area toggles hidden files");
-         Assert
-           (Files.UI.Bottom_Bar_Command_At
-              (Counts_X, 799, 1000, 800, Snap.Sort_Field, Free_W, 20)
-              = Files.Commands.Toggle_Hidden_Files_Command,
+         Files_Suite.Support.Assert_Equal
+           (Files.UI.Bottom_Bar_Command_At (Counts_X, 799, 1000, 800, Snap.Sort_Field, Free_W, 20),
+            Files.Commands.Toggle_Hidden_Files_Command,
             "the visible bottom of the counts area toggles hidden files");
-         Assert
-           (Files.UI.Bottom_Bar_Command_At
-              (Free_X, Bottom_Y + 1, 1000, 800, Snap.Sort_Field, Free_W, 20)
-              = Files.Commands.Toggle_Free_Space_Display_Command,
+         Files_Suite.Support.Assert_Equal
+           (Files.UI.Bottom_Bar_Command_At (Free_X, Bottom_Y + 1, 1000, 800, Snap.Sort_Field, Free_W, 20),
+            Files.Commands.Toggle_Free_Space_Display_Command,
             "the visible top of the free-space field toggles its display");
-         Assert
-           (Files.UI.Bottom_Bar_Command_At
-              (Free_X, 799, 1000, 800, Snap.Sort_Field, Free_W, 20)
-              = Files.Commands.Toggle_Free_Space_Display_Command,
+         Files_Suite.Support.Assert_Equal
+           (Files.UI.Bottom_Bar_Command_At (Free_X, 799, 1000, 800, Snap.Sort_Field, Free_W, 20),
+            Files.Commands.Toggle_Free_Space_Display_Command,
             "the visible bottom of the free-space field toggles its display");
       end;
    end Test_Free_Space_Click_Toggles;
@@ -4372,7 +4461,10 @@ package body Files_Suite.Rendering is
          Locate_Row (Calculate_Item_Layout (Reordered, Layout, Line_Height => 20));
          Assert (Row_Found, "the reordered details list lays out a first data row");
          Assert (Row.Size_X < Row.Modified_X, "the reordered order lays size left of modified");
-         Assert (Row.Size_Width = 150, "the customized width follows its column across the reorder");
+         Files_Suite.Support.Assert_Equal
+           (Row.Size_Width,
+            150,
+            "the customized width follows its column across the reorder");
       end;
 
       --  A hidden column contributes no width, but re-showing it restores it to
@@ -4385,7 +4477,10 @@ package body Files_Suite.Rendering is
          Reordered.Detail_Columns_Visible (Files.Types.Filetype_Column) := False;
          Locate_Row (Calculate_Item_Layout (Reordered, Layout, Line_Height => 20));
          Assert (Row_Found, "the list lays out a first row with a hidden reordered column");
-         Assert (Row.Filetype_Width = 0, "a hidden column contributes no width in its ordered slot");
+         Files_Suite.Support.Assert_Equal
+           (Row.Filetype_Width,
+            0,
+            "a hidden column contributes no width in its ordered slot");
 
          Reordered.Detail_Columns_Visible (Files.Types.Filetype_Column) := True;
          Locate_Row (Calculate_Item_Layout (Reordered, Layout, Line_Height => 20));
@@ -4434,7 +4529,13 @@ package body Files_Suite.Rendering is
       Layout := Calculate_Layout (Snapshot, Width => 1000, Height => 800, Line_Height => 20);
       Items  := Calculate_Item_Layout (Snapshot, Layout, Line_Height => 20);
 
-      Assert (Natural (Items.Length) = 3, "each snapshot row, header included, is laid out");
+      Files_Suite.Support.Assert_Equal
+
+        (Natural (Items.Length),
+
+         3,
+
+         "each snapshot row, header included, is laid out");
       for Cell of Items loop
          if Cell.Visible_Index = 0 then
             Header_Rows := Header_Rows + 1;
@@ -4446,11 +4547,21 @@ package body Files_Suite.Rendering is
          end if;
       end loop;
 
-      Assert (Header_Rows = 1, "the grouping band emits exactly one header row");
-      Assert (Item_At (Items, Header_Center_X, Header_Center_Y) = 0,
-              "clicking a group header row selects nothing");
-      Assert (Item_At (Items, Item_Center_X, Item_Center_Y) = 1,
-              "clicking a real row under a header still resolves to that item");
+      Files_Suite.Support.Assert_Equal
+
+        (Header_Rows,
+
+         1,
+
+         "the grouping band emits exactly one header row");
+      Files_Suite.Support.Assert_Equal
+        (Item_At (Items, Header_Center_X, Header_Center_Y),
+         0,
+         "clicking a group header row selects nothing");
+      Files_Suite.Support.Assert_Equal
+        (Item_At (Items, Item_Center_X, Item_Center_Y),
+         1,
+         "clicking a real row under a header still resolves to that item");
    end Test_Detail_Group_Header_Rows;
 
    procedure Test_Detail_Header_Separator_Hit_Test (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -4561,8 +4672,9 @@ package body Files_Suite.Rendering is
             Frame : constant Frame_Commands :=
               Build_Frame_Commands (Snapshot, 1000, 800, 20);
          begin
-            Assert
-              (Count_Filled_Gold (Frame) = 1,
+            Files_Suite.Support.Assert_Equal
+              (Count_Filled_Gold (Frame),
+               1,
                "one favorited grid item draws exactly one gold filled star");
          end;
       end;
@@ -4572,8 +4684,9 @@ package body Files_Suite.Rendering is
          Frame    : constant Frame_Commands :=
            Build_Frame_Commands (Snapshot, 1000, 800, 20);
       begin
-         Assert
-           (Count_Filled_Gold (Frame) = 0,
+         Files_Suite.Support.Assert_Equal
+           (Count_Filled_Gold (Frame),
+            0,
             "no favorited items means no gold filled grid star in details view");
       end;
 
@@ -4710,7 +4823,7 @@ package body Files_Suite.Rendering is
       Rect_H : Natural;
       Two    : Visible_Index_Vectors.Vector;
    begin
-      Assert (Natural (Items.Length) = 6, "the sample list lays out every item");
+      Files_Suite.Support.Assert_Equal (Natural (Items.Length), 6, "the sample list lays out every item");
 
       Two.Append (1);
       Two.Append (2);
@@ -4769,9 +4882,12 @@ package body Files_Suite.Rendering is
          Y         => Rect_Y,
          Width     => Rect_W,
          Height    => Rect_H);
-      Assert (Rect_X = Cell_1.X + 5, "up-left drag normalizes X to the min corner");
-      Assert (Rect_Y = Cell_1.Y + Cell_1.Height / 2, "up-left drag normalizes Y to the min corner");
-      Assert (Rect_W = 10, "the normalized width is the corner x distance");
+      Files_Suite.Support.Assert_Equal (Rect_X, Cell_1.X + 5, "up-left drag normalizes X to the min corner");
+      Files_Suite.Support.Assert_Equal
+        (Rect_Y,
+         Cell_1.Y + Cell_1.Height / 2,
+         "up-left drag normalizes Y to the min corner");
+      Files_Suite.Support.Assert_Equal (Rect_W, 10, "the normalized width is the corner x distance");
       declare
          Hits : constant Visible_Index_Vectors.Vector :=
            Items_In_Rect (Items, Rect_X, Rect_Y, Rect_W, Rect_H);
@@ -4791,31 +4907,37 @@ package body Files_Suite.Rendering is
         (Marquee_Auto_Scroll_Step (Cursor_Y, Top, Bottom, LH));
    begin
       --  Comfortably inside the region: no scroll.
-      Assert (Step (300) = 0, "a pointer well inside the region does not scroll");
-      Assert (Step (Top + LH) = 0, "the pointer just past the top edge zone does not scroll");
-      Assert (Step (Bottom - LH) = 0, "the pointer just past the bottom edge zone does not scroll");
+      Files_Suite.Support.Assert_Equal (Step (300), 0, "a pointer well inside the region does not scroll");
+      Files_Suite.Support.Assert_Equal (Step (Top + LH), 0, "the pointer just past the top edge zone does not scroll");
+      Files_Suite.Support.Assert_Equal
+        (Step (Bottom - LH),
+         0,
+         "the pointer just past the bottom edge zone does not scroll");
 
       --  Within the edge zone or beyond: scroll toward that edge, accelerating.
-      Assert (Step (Top + LH - 1) = -1, "entering the top edge zone scrolls up by one line");
-      Assert (Step (Top) = -2, "at the top edge the upward step grows");
-      Assert (Step (Bottom - LH + 1) = 1, "entering the bottom edge zone scrolls down by one line");
-      Assert (Step (Bottom) = 2, "at the bottom edge the downward step grows");
+      Files_Suite.Support.Assert_Equal (Step (Top + LH - 1), -1, "entering the top edge zone scrolls up by one line");
+      Files_Suite.Support.Assert_Equal (Step (Top), -2, "at the top edge the upward step grows");
+      Files_Suite.Support.Assert_Equal
+        (Step (Bottom - LH + 1),
+         1,
+         "entering the bottom edge zone scrolls down by one line");
+      Files_Suite.Support.Assert_Equal (Step (Bottom), 2, "at the bottom edge the downward step grows");
 
       --  Far past an edge (pointer dragged outside the window): capped at 4.
-      Assert (Step (-1000) = -4, "far above the region the upward step is capped");
-      Assert (Step (5000) = 4, "far below the region the downward step is capped");
+      Files_Suite.Support.Assert_Equal (Step (-1000), -4, "far above the region the upward step is capped");
+      Files_Suite.Support.Assert_Equal (Step (5000), 4, "far below the region the downward step is capped");
 
       --  Directions are opposite and symmetric about the region.
       Assert (Step (50) < 0 and then Step (600) > 0, "above scrolls up, below scrolls down");
 
       --  Coordinate-limit input is still capped instead of overflowing.
-      Assert
-        (Marquee_Auto_Scroll_Step
-           (Integer'First, Integer'Last, Integer'Last, Positive'Last) = -4,
+      Files_Suite.Support.Assert_Equal
+        (Marquee_Auto_Scroll_Step (Integer'First, Integer'Last, Integer'Last, Positive'Last),
+         -4,
          "extreme top-edge arithmetic remains capped");
-      Assert
-        (Marquee_Auto_Scroll_Step
-           (Integer'Last, Integer'First, Integer'First, Positive'Last) = 4,
+      Files_Suite.Support.Assert_Equal
+        (Marquee_Auto_Scroll_Step (Integer'Last, Integer'First, Integer'First, Positive'Last),
+         4,
          "extreme bottom-edge arithmetic remains capped");
    end Test_Marquee_Auto_Scroll_Step;
 
@@ -4857,8 +4979,9 @@ package body Files_Suite.Rendering is
       Widths  : constant array (Positive range <>) of Natural := [1, 7, 40, 120, 640];
       Heights : constant array (Positive range <>) of Natural := [1, 7, 20, 44, 100];
    begin
-      Assert
-        (Natural (Drag.Rectangles.Length) = Natural (Base.Rectangles.Length),
+      Files_Suite.Support.Assert_Equal
+        (Natural (Drag.Rectangles.Length),
+         Natural (Base.Rectangles.Length),
          "the drag preview adds no panel geometry to the base layer");
       Assert
         (Natural (Drag.Overlay_Rectangles.Length) > Natural (Base.Overlay_Rectangles.Length),
@@ -4959,7 +5082,7 @@ package body Files_Suite.Rendering is
               Build_Frame_Commands (Snapshot, Width => 1200, Height => 800, Line_Height => 20);
             Tree     : constant A11ykit.Tree.Accessibility_Tree := Files.Accessibility.To_A11ykit_Tree (Frame);
          begin
-            Assert (Natural (Snapshot.Items.Length) = 2, "both items reach the snapshot");
+            Files_Suite.Support.Assert_Equal (Natural (Snapshot.Items.Length), 2, "both items reach the snapshot");
             Assert (not Tree.Nodes.Is_Empty, "the accessibility tree builds over a non-UTF-8 name");
          end;
       end;

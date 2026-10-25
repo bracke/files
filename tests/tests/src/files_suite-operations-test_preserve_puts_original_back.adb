@@ -43,9 +43,12 @@ separate (Files_Suite.Operations)
       Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
       Ada.Environment_Variables.Clear ("FILES_TEST_STAGE_SYNC_FAULT");
       Assert (not Result.Success, "the preserve reports the failed sync");
-      Assert (Length (Backup) = 0, "no backup is left to recover from");
-      Assert (Project_Tools.Files.Read_Raw_File (Dest) = "the original", "the original is back at its own path");
-      Assert (Stages_Left = 0, "no hidden recovery folder is left behind");
+      Files_Suite.Support.Assert_Equal (Length (Backup), 0, "no backup is left to recover from");
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (Dest),
+         "the original",
+         "the original is back at its own path");
+      Files_Suite.Support.Assert_Equal (Stages_Left, 0, "no hidden recovery folder is left behind");
       Restore_Environment;
    exception
       when others =>

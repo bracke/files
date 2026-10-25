@@ -21,7 +21,10 @@ separate (Files_Suite.Operations)
          From => [To_Unbounded_String (C), To_Unbounded_String (B)],
          To   => [To_Unbounded_String (B), To_Unbounded_String (A)]);
       Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Step.Status = Files.Operations.Operation_Success, "one Undo reverses the chained batch");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "one Undo reverses the chained batch");
       Assert (Project_Tools.Files.Read_Raw_File (A) = "A" and then Project_Tools.Files.Read_Raw_File (B) = "B"
               and then not Path_Exists (C),
               "both renames are undone");

@@ -184,38 +184,74 @@ package body Files_Suite.Commands is
         (not Files.Commands.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
          "clear filter is disabled without filter text");
       Result := Files.Controller.Execute_Command (Files.Commands.Clear_Filter_Command, Model, Settings);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "disabled clear-filter command is ignored");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "disabled clear-filter command is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Disabled,
          "disabled clear-filter returns operation data");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.filter.empty", "disabled clear-filter records error");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.filter.empty",
+         "disabled clear-filter records error");
       Files.Model.Set_Filter (Model, "alpha");
       Assert
         (Files.Commands.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
          "clear filter is enabled with filter text");
       Result := Files.Controller.Execute_Command (Files.Commands.Clear_Filter_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Clear_Filter_Command, "clear-filter command is reported");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Clear_Filter_Command,
+         "clear-filter command is reported");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
          "enabled clear-filter reports successful state-only operation");
-      Assert (Files.Model.Filter_Text (Model) = "", "clear-filter command clears filter text");
+      Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "", "clear-filter command clears filter text");
       Model := Sample_Model;
       Files.Commands.Execute (Files.Commands.No_Command, Model);
-      Assert (Files.Model.Current_Path (Model) = Root, "direct no-command execution does not change path");
-      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Small_Icons, "direct no-command execution preserves view");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
+         "direct no-command execution does not change path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.View_Mode_Of (Model),
+         Files.Types.Small_Icons,
+         "direct no-command execution preserves view");
 
       Assert (not Files.Commands.Is_Enabled (Files.Commands.Navigate_Back_Command, Model), "back disabled initially");
       Files.Commands.Execute (Files.Commands.Navigate_Back_Command, Model);
-      Assert (Files.Model.Current_Path (Model) = Root, "direct disabled back command does not change path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
+         "direct disabled back command does not change path");
       Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "disabled back command is ignored");
-      Assert (Result.Operation.Status = Files.Operations.Operation_Disabled, "disabled back returns operation data");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.history.back_unavailable", "disabled back records error");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "disabled back command is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Disabled,
+         "disabled back returns operation data");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.history.back_unavailable",
+         "disabled back records error");
       Result := Files.Controller.Handle_Command_Click (Files.Commands.Navigate_Back_Command, Model, Settings);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "disabled back click is ignored");
-      Assert (Result.Command = Files.Commands.Navigate_Back_Command, "disabled back click reports command");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "disabled back click is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Navigate_Back_Command,
+         "disabled back click reports command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Disabled,
          "disabled back click returns operation data");
       Assert
         (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
@@ -249,21 +285,40 @@ package body Files_Suite.Commands is
         (Files.Commands.Is_Enabled (Files.Commands.Toggle_Info_Pane_Command, Model),
          "info toggle enabled with no selection");
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
-      Assert
-        (Result.Status = Files.Controller.Controller_Command_Executed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
          "info toggle executes with no selection");
       Assert (Files.Model.Info_Pane_Is_Open (Model), "info toggle opens the info pane with no selection");
       --  Restore the closed state so later assertions see no transient panes.
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
       Assert (not Files.Model.Info_Pane_Is_Open (Model), "a second info toggle closes the pane again");
       Result := Files.Controller.Execute_Command (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "disabled delete command is ignored");
-      Assert (Result.Operation.Status = Files.Operations.Operation_Disabled, "disabled delete returns operation data");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.selection.empty", "disabled delete records error");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "disabled delete command is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Disabled,
+         "disabled delete returns operation data");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.selection.empty",
+         "disabled delete records error");
       Result := Files.Controller.Execute_Command (Files.Commands.Rename_Selected_Items_Command, Model, Settings);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "disabled rename command is ignored");
-      Assert (Result.Operation.Status = Files.Operations.Operation_Disabled, "disabled rename returns operation data");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.rename.disabled", "disabled rename records error");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "disabled rename command is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Disabled,
+         "disabled rename returns operation data");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.rename.disabled",
+         "disabled rename records error");
       Assert
         (not Files.Commands.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
          "context cancel disabled with no transient state");
@@ -273,11 +328,18 @@ package body Files_Suite.Commands is
          "context cancel enabled while path input has focus");
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Select_Drive_Command, "drive selector command is controller-routed");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Select_Drive_Command,
+         "drive selector command is controller-routed");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
          "drive selector reports successful state-only operation");
-      Assert (Files.Model.Last_Error_Key (Model) = "", "drive selector clears stale error state");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
+         "drive selector clears stale error state");
       Assert
         (Files.Commands.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
          "context cancel enabled while root selector is open");
@@ -293,8 +355,9 @@ package body Files_Suite.Commands is
          "pure create command does not inspect filesystem names");
       Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
       Files.Commands.Execute (Files.Commands.Select_Details_Command, Model);
-      Assert
-        (Files.Model.View_Mode_Of (Model) = Files.Types.Small_Icons,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.View_Mode_Of (Model),
+         Files.Types.Small_Icons,
          "pure command execution respects root-selector modal disablement");
       Files.Commands.Execute (Files.Commands.Close_Command_Palette_Command, Model);
       Assert
@@ -303,12 +366,14 @@ package body Files_Suite.Commands is
       Files.Model.Navigate_To (Model, "/tmp/files_aunit/direct-next", Empty);
       Assert (Files.Commands.Is_Enabled (Files.Commands.Navigate_Back_Command, Model), "direct back can be enabled");
       Files.Commands.Execute (Files.Commands.Navigate_Back_Command, Model);
-      Assert
-        (Files.Model.Current_Path (Model) = "/tmp/files_aunit/direct-next",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         "/tmp/files_aunit/direct-next",
          "pure back command does not reload or navigate history");
       Files.Commands.Execute (Files.Commands.Navigate_Forward_Command, Model);
-      Assert
-        (Files.Model.Current_Path (Model) = "/tmp/files_aunit/direct-next",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         "/tmp/files_aunit/direct-next",
          "pure forward command does not reload or navigate history");
       Model := Sample_Model;
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
@@ -328,8 +393,9 @@ package body Files_Suite.Commands is
         (Files.Commands.Is_Enabled (Files.Commands.Open_Terminal_Command, Model),
          "open-terminal enabled in a real directory");
       Files.Commands.Execute (Files.Commands.Open_Selected_Items_Command, Model);
-      Assert
-        (Files.Model.Current_Path (Model) = Root,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
          "pure open command does not load selected items");
       Assert
         (Files.Commands.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
@@ -354,11 +420,13 @@ package body Files_Suite.Commands is
          "reset settings is disabled without settings pane");
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "controller opens settings pane with editable draft");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
          "settings toggle reports successful state-only operation");
-      Assert
-        (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Settings_Input,
          "settings pane receives editable settings focus");
       Files.Commands.Execute (Files.Commands.Toggle_Settings_Pane_Command, Model);
       Files.Model.Begin_Create_File (Model, "settings-pending.txt");
@@ -373,8 +441,9 @@ package body Files_Suite.Commands is
       Assert
         (not Files.Model.Rename_Is_Active (Model),
          "settings pane opening clears pending rename state");
-      Assert
-        (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Settings_Input,
          "settings pane opening focuses settings after clearing edit state");
       Files.Commands.Execute (Files.Commands.Toggle_Settings_Pane_Command, Model);
       Assert
@@ -386,12 +455,22 @@ package body Files_Suite.Commands is
       Assert (Files.Commands.Is_Enabled (Files.Commands.Reset_Settings_Command, Model), "reset settings is enabled");
       Files.Controller.Replace_Focused_Text (Model, "details");
       Result := Files.Controller.Execute_Command (Files.Commands.Reset_Settings_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Reset_Settings_Command, "reset settings command is reported");
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "reset settings reports success");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Reset_Settings_Command,
+         "reset settings command is reported");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "reset settings reports success");
       Result := Files.Controller.Execute_Command (Files.Commands.Save_Settings_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Save_Settings_Command, "pure save settings command is reported");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Save_Settings_Command,
+         "pure save settings command is reported");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Disabled,
          "pure save settings command keeps runtime path-resolution sentinel");
       --  Opening the pane now focuses the first setting, not the preamble action
       --  buttons. The settings caret is not movable -- it always rests at the end
@@ -407,26 +486,39 @@ package body Files_Suite.Commands is
          Draft.Icon_Theme_Name := To_Unbounded_String ("files-basic");
          Files.Model.Set_Settings_Draft (Model, Draft);
       end;
-      Assert
-        (Files.Model.Settings_Focused_Value (Model) = "files-basic",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Settings_Focused_Value (Model),
+         "files-basic",
          "icon-theme field is focused for the settings caret check");
       Files.Model.Set_Text_Cursor_Position (Model, 1);
-      Assert
-        (Files.Model.Text_Cursor_Position (Model) = Files.Model.Settings_Focused_Value (Model)'Length,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         Files.Model.Settings_Focused_Value (Model)'Length,
          "settings caret rests at the end of the focused value, ignoring a manual cursor");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_S, Ctrl);
-      Assert (Result.Command = Files.Commands.Save_Settings_Command, "control+s routes settings save command");
-      Assert
-        (Result.Status = Files.Controller.Controller_Command_Executed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Save_Settings_Command,
+         "control+s routes settings save command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
          "control+s reports settings save command execution for runtime persistence");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_N, Ctrl);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "scalar settings field ignores add-entry shortcut");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "scalar settings field ignores add-entry shortcut");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
-      Assert
-        (Result.Status = Files.Controller.Controller_Ignored,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
          "scalar settings field ignores remove-entry shortcut");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "scalar settings field ignores entry paging");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "scalar settings field ignores entry paging");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
@@ -437,11 +529,13 @@ package body Files_Suite.Commands is
          Files.Model.Set_Settings_Draft (Model, Bad);
       end;
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Failed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Failed,
          "invalid settings field Return reports validation failure");
-      Assert
-        (To_String (Result.Operation.Error_Key) = "error.settings.invalid_boolean",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Operation.Error_Key),
+         "error.settings.invalid_boolean",
          "invalid settings field Return reports diagnostic key");
       declare
          Good : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
@@ -450,14 +544,21 @@ package body Files_Suite.Commands is
          Files.Model.Set_Settings_Draft (Model, Good);
       end;
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
          "valid settings field Return reports validation success");
-      Assert (Files.Model.Last_Error_Key (Model) = "", "valid settings draft field validates on Return");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
+         "valid settings draft field validates on Return");
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "controller closes settings pane");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Comma, Ctrl);
-      Assert (Result.Command = Files.Commands.Toggle_Settings_Pane_Command, "control+comma routes settings command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Toggle_Settings_Pane_Command,
+         "control+comma routes settings command");
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "control+comma opens settings pane");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Comma, Ctrl);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "control+comma closes open settings pane");
@@ -467,8 +568,14 @@ package body Files_Suite.Commands is
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "Escape closes unfocused settings pane");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Settings_Input, Cursor_Position => 2);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "closed settings text click is ignored");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "closed settings text click does not focus input");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "closed settings text click is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "closed settings text click does not focus input");
       Files.Model.Open_Command_Palette (Model);
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Rename (Model);
@@ -476,8 +583,9 @@ package body Files_Suite.Commands is
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens from palette state");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "settings pane opening closes command palette");
       Assert (not Files.Model.Rename_Is_Active (Model), "settings pane opening clears active rename state");
-      Assert
-        (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Settings_Input,
          "settings pane opening moves focus to settings input");
       Files.Model.Select_Visible (Model, 1);
       Assert
@@ -500,34 +608,60 @@ package body Files_Suite.Commands is
          "settings pane keeps palette command enabled");
       Files.Model.Set_Error (Model, "error.path.missing");
       Result := Files.Controller.Execute_Command (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks background delete command");
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "error.path.missing",
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "settings pane blocks background delete command");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.path.missing",
          "settings modal block preserves existing error");
       Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 1);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks background item click");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input, "blocked item click keeps settings focus");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "settings pane blocks background item click");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Settings_Input,
+         "blocked item click keeps settings focus");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Path_Input, Cursor_Position => 1);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks background path text click");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input, "blocked text click keeps settings focus");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "settings pane blocks background path text click");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Settings_Input,
+         "blocked text click keeps settings focus");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Settings_Input, Cursor_Position => 1);
-      Assert (Result.Status = Files.Controller.Controller_Ignored,
-              "settings clicks route through the panel, not the generic text-click path");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "settings clicks route through the panel, not the generic text-click path");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes after focus Escape");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "settings Escape clears settings focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "settings Escape clears settings focus");
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane reopens after Escape close check");
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Assert (Files.Model.Selected_Item (Model).Name = "Alpha.txt", "settings modal starts with stable selection");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks background selection keys");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "settings pane blocks background selection keys");
       Assert
         (Files.Model.Selected_Item (Model).Name = "Alpha.txt",
          "settings pane keeps background selection unchanged");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Settings_Input, Cursor_Position => 1);
-      Assert (Result.Status = Files.Controller.Controller_Ignored,
-              "settings text-clicks are handled by the panel, not the generic path");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "settings text-clicks are handled by the panel, not the generic path");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
       Assert (Files.Model.Command_Palette_Is_Open (Model), "palette can open over settings pane");
       Files.Model.Close_Command_Palette (Model);
@@ -602,7 +736,7 @@ package body Files_Suite.Commands is
       Shift (Guikit.Input.Shift_Key) := True;
       Ctrl_Shift (Guikit.Input.Control_Key) := True;
       Ctrl_Shift (Guikit.Input.Shift_Key) := True;
-      Assert (Files.Commands.Command_Count = 73, "all expected commands are registered");
+      Files_Suite.Support.Assert_Equal (Files.Commands.Command_Count, 73, "all expected commands are registered");
       Assert (Files.Commands.Contains ("status.free_space_toggle"),
               "free/used-space toggle command identifier is registered");
       Assert (Files.Commands.Contains ("navigate.recent"), "recent-view command identifier is registered");
@@ -618,8 +752,9 @@ package body Files_Suite.Commands is
       Assert
         (not Files.Commands.Contains ("bookmark.toggle"),
          "the renamed bookmark identifier is no longer registered");
-      Assert
-        (Files.Commands.Identifier (Files.Commands.Toggle_Favorite_Command) = "favorite.toggle",
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Identifier (Files.Commands.Toggle_Favorite_Command),
+         "favorite.toggle",
          "the favorite command reports its renamed identifier");
       Assert
         (Files.Commands.Requires_Settings_Path (Files.Commands.Toggle_Favorite_Command),
@@ -658,8 +793,9 @@ package body Files_Suite.Commands is
         (Files.Commands.Contains ("directory.search_recursive"),
          "recursive search command identifier is registered");
       Assert (not Files.Commands.Contains (""), "empty command identifier is not registered");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.No_Command) = Files.Commands.No_Placement,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.No_Command),
+         Files.Commands.No_Placement,
          "no-command has no toolbar or palette placement");
       Assert
         (not Files.Commands.Requires_Settings_Path (Files.Commands.No_Command),
@@ -732,13 +868,18 @@ package body Files_Suite.Commands is
                Assert
                  (Files.Commands.Shortcut_Text (Primary) /= "",
                   "present primary shortcut has searchable text");
-               Assert
-                 (Files.Commands.Find_By_Shortcut (Primary.Key, Primary.Modifiers) = Id,
+               Files_Suite.Support.Assert_Equal
+                 (Files.Commands.Find_By_Shortcut (Primary.Key, Primary.Modifiers),
+                  Id,
                   "present primary shortcut routes back to command");
             else
-               Assert (Primary.Key = Guikit.Input.Key_Unknown, "absent primary shortcut has unknown key");
-               Assert
-                 (Files.Commands.Shortcut_Text (Primary) = "",
+               Files_Suite.Support.Assert_Equal
+                 (Primary.Key,
+                  Guikit.Input.Key_Unknown,
+                  "absent primary shortcut has unknown key");
+               Files_Suite.Support.Assert_Equal
+                 (Files.Commands.Shortcut_Text (Primary),
+                  "",
                   "absent primary shortcut has no searchable text");
             end if;
             if Secondary.Present then
@@ -746,13 +887,18 @@ package body Files_Suite.Commands is
                Assert
                  (Files.Commands.Shortcut_Text (Secondary) /= "",
                   "present secondary shortcut has searchable text");
-               Assert
-                 (Files.Commands.Find_By_Shortcut (Secondary.Key, Secondary.Modifiers) = Id,
+               Files_Suite.Support.Assert_Equal
+                 (Files.Commands.Find_By_Shortcut (Secondary.Key, Secondary.Modifiers),
+                  Id,
                   "present secondary shortcut routes back to command");
             else
-               Assert (Secondary.Key = Guikit.Input.Key_Unknown, "absent secondary shortcut has unknown key");
-               Assert
-                 (Files.Commands.Shortcut_Text (Secondary) = "",
+               Files_Suite.Support.Assert_Equal
+                 (Secondary.Key,
+                  Guikit.Input.Key_Unknown,
+                  "absent secondary shortcut has unknown key");
+               Files_Suite.Support.Assert_Equal
+                 (Files.Commands.Shortcut_Text (Secondary),
+                  "",
                   "absent secondary shortcut has no searchable text");
             end if;
             if Id /= Files.Commands.Registered_Command_Id'First then
@@ -790,26 +936,33 @@ package body Files_Suite.Commands is
       end loop;
       Small_Shortcut := Files.Commands.Shortcut_For (Files.Commands.Select_Small_Icons_Command);
       Assert (Small_Shortcut.Present, "shortcut metadata marks small-icons shortcut present");
-      Assert (Small_Shortcut.Key = Guikit.Input.Key_1, "shortcut metadata stores small-icons key");
+      Files_Suite.Support.Assert_Equal
+        (Small_Shortcut.Key,
+         Guikit.Input.Key_1,
+         "shortcut metadata stores small-icons key");
       Assert (Small_Shortcut.Modifiers = Ctrl, "shortcut metadata stores small-icons modifiers");
       Drive_Shortcut := Files.Commands.Shortcut_For (Files.Commands.Select_Drive_Command);
       Assert (Drive_Shortcut.Present, "drive selector exposes shortcut metadata");
-      Assert (Drive_Shortcut.Key = Guikit.Input.Key_D, "drive selector shortcut uses D");
+      Files_Suite.Support.Assert_Equal (Drive_Shortcut.Key, Guikit.Input.Key_D, "drive selector shortcut uses D");
       Assert (Drive_Shortcut.Modifiers = Ctrl, "drive selector shortcut uses Control");
       Settings_Shortcut := Files.Commands.Shortcut_For (Files.Commands.Toggle_Settings_Pane_Command);
       Assert (Settings_Shortcut.Present, "settings pane exposes shortcut metadata");
-      Assert (Settings_Shortcut.Key = Guikit.Input.Key_Comma, "settings pane shortcut uses comma");
+      Files_Suite.Support.Assert_Equal
+        (Settings_Shortcut.Key,
+         Guikit.Input.Key_Comma,
+         "settings pane shortcut uses comma");
       Assert (Settings_Shortcut.Modifiers = Ctrl, "settings pane shortcut uses Control");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Toggle_Settings_Pane_Command) =
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Toggle_Settings_Pane_Command),
          Files.Commands.Command_Palette_Only,
          "settings command uses command-palette placement");
-      Assert
-        (Files.Commands.Description_Key (Files.Commands.Toggle_Settings_Pane_Command) =
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Description_Key (Files.Commands.Toggle_Settings_Pane_Command),
          "command.settings.toggle.description",
          "settings command description key is stable");
-      Assert
-        (Files.Commands.Shortcut_For (Files.Commands.Save_Settings_Command).Key = Guikit.Input.Key_S,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Shortcut_For (Files.Commands.Save_Settings_Command).Key,
+         Guikit.Input.Key_S,
          "settings save command uses S shortcut metadata");
       Assert
         (not Files.Commands.Shortcut_For (Files.Commands.Reset_Settings_Command).Present,
@@ -840,16 +993,19 @@ package body Files_Suite.Commands is
       Assert (not Empty_Secondary.Present, "no-command exposes absent secondary shortcut metadata");
       Delete_Secondary := Files.Commands.Secondary_Shortcut_For (Files.Commands.Delete_Selected_Items_Command);
       Assert (Delete_Secondary.Present, "delete command exposes secondary shortcut metadata");
-      Assert (Delete_Secondary.Key = Guikit.Input.Key_Backspace, "delete secondary shortcut uses Backspace");
+      Files_Suite.Support.Assert_Equal
+        (Delete_Secondary.Key,
+         Guikit.Input.Key_Backspace,
+         "delete secondary shortcut uses Backspace");
       Assert
         (Delete_Secondary.Modifiers = Guikit.Input.No_Modifiers,
          "delete secondary shortcut has no modifiers");
-      Assert
-        (Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Files.Commands.Open_Command_Palette_Command)) =
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Files.Commands.Open_Command_Palette_Command)),
          "control+p",
          "primary shortcut text is normalized");
-      Assert
-        (Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Files.Commands.Toggle_Settings_Pane_Command)) =
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Files.Commands.Toggle_Settings_Pane_Command)),
          "control+,",
          "settings shortcut text includes comma");
       Assert
@@ -902,188 +1058,229 @@ package body Files_Suite.Commands is
            (Files.Commands.Shortcut_Search_Text (Files.Commands.Open_Selected_Items_Command),
             "enter") > 0,
          "command shortcut search text includes return shortcut alias");
-      Assert
-        (Files.Commands.Shortcut_Search_Text (Files.Commands.No_Command) = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Shortcut_Search_Text (Files.Commands.No_Command),
+         "",
          "no-command has no shortcut search text");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_1, Ctrl) = Files.Commands.Select_Small_Icons_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_1, Ctrl),
+         Files.Commands.Select_Small_Icons_Command,
          "control+1 dispatches through registry");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_2, Ctrl) = Files.Commands.Select_Large_Icons_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_2, Ctrl),
+         Files.Commands.Select_Large_Icons_Command,
          "control+2 dispatches through registry");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_3, Ctrl) = Files.Commands.Select_Details_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_3, Ctrl),
+         Files.Commands.Select_Details_Command,
          "control+3 dispatches through registry");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_4, Ctrl) = Files.Commands.Toggle_Info_Pane_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_4, Ctrl),
+         Files.Commands.Toggle_Info_Pane_Command,
          "control+4 dispatches through registry");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Comma, Ctrl) =
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Comma, Ctrl),
          Files.Commands.Toggle_Settings_Pane_Command,
          "control+comma dispatches settings pane command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_L, Ctrl) = Files.Commands.Focus_Path_Input_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_L, Ctrl),
+         Files.Commands.Focus_Path_Input_Command,
          "control+l dispatches through registry");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Home, Alt) = Files.Commands.Navigate_Home_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Home, Alt),
+         Files.Commands.Navigate_Home_Command,
          "alt+home dispatches home command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Left, Alt) = Files.Commands.Navigate_Back_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Left, Alt),
+         Files.Commands.Navigate_Back_Command,
          "alt+left dispatches back command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Right, Alt) = Files.Commands.Navigate_Forward_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Right, Alt),
+         Files.Commands.Navigate_Forward_Command,
          "alt+right dispatches forward command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Up, Alt) = Files.Commands.Navigate_Parent_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Up, Alt),
+         Files.Commands.Navigate_Parent_Command,
          "alt+up dispatches parent command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Up, Guikit.Input.No_Modifiers) =
-           Files.Commands.No_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Up, Guikit.Input.No_Modifiers),
+         Files.Commands.No_Command,
          "plain up is not a command shortcut so grid navigation keeps it");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_N, Ctrl) = Files.Commands.Create_File_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_N, Ctrl),
+         Files.Commands.Create_File_Command,
          "control+n dispatches create-file command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_A, Ctrl) = Files.Commands.Select_All_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_A, Ctrl),
+         Files.Commands.Select_All_Command,
          "control+a dispatches select-all command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_P, Ctrl) = Files.Commands.Open_Command_Palette_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_P, Ctrl),
+         Files.Commands.Open_Command_Palette_Command,
          "control+p dispatches through registry");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_F, Ctrl) = Files.Commands.Focus_Filter_Input_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_F, Ctrl),
+         Files.Commands.Focus_Filter_Input_Command,
          "control+f dispatches filter focus command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_D, Ctrl) = Files.Commands.Select_Drive_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_D, Ctrl),
+         Files.Commands.Select_Drive_Command,
          "control+d dispatches drive selector command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_F, Ctrl_Shift) = Files.Commands.Clear_Filter_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_F, Ctrl_Shift),
+         Files.Commands.Clear_Filter_Command,
          "control+shift+f dispatches clear-filter command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_R, Ctrl) = Files.Commands.Refresh_Directory_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_R, Ctrl),
+         Files.Commands.Refresh_Directory_Command,
          "control+r dispatches refresh command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_F5, Guikit.Input.No_Modifiers) =
-           Files.Commands.Refresh_Directory_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_F5, Guikit.Input.No_Modifiers),
+         Files.Commands.Refresh_Directory_Command,
          "F5 also dispatches refresh command as a secondary accelerator");
-      Assert
-        (Files.Commands.Shortcut_For (Files.Commands.Refresh_Directory_Command).Key = Guikit.Input.Key_R,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Shortcut_For (Files.Commands.Refresh_Directory_Command).Key,
+         Guikit.Input.Key_R,
          "refresh keeps control+r as its displayed primary shortcut");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_N, Ctrl_Shift) = Files.Commands.New_Folder_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_N, Ctrl_Shift),
+         Files.Commands.New_Folder_Command,
          "control+shift+n dispatches new-folder command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_C, Ctrl_Shift) = Files.Commands.Copy_Path_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_C, Ctrl_Shift),
+         Files.Commands.Copy_Path_Command,
          "control+shift+c dispatches copy-path command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_B, Ctrl) = Files.Commands.Toggle_Favorite_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_B, Ctrl),
+         Files.Commands.Toggle_Favorite_Command,
          "control+b dispatches toggle-favorite command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_S, Ctrl_Shift) = Files.Commands.Search_Recursive_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_S, Ctrl_Shift),
+         Files.Commands.Search_Recursive_Command,
          "control+shift+s dispatches recursive search command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_C, Ctrl) = Files.Commands.Copy_Selected_Items_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_C, Ctrl),
+         Files.Commands.Copy_Selected_Items_Command,
          "plain control+c still dispatches copy, distinct from copy-path");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_S, Ctrl) = Files.Commands.Save_Settings_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_S, Ctrl),
+         Files.Commands.Save_Settings_Command,
          "control+s dispatches settings save command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Delete, Guikit.Input.No_Modifiers) =
-           Files.Commands.Delete_Selected_Items_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Delete, Guikit.Input.No_Modifiers),
+         Files.Commands.Delete_Selected_Items_Command,
          "delete dispatches delete command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Backspace, Guikit.Input.No_Modifiers) =
-           Files.Commands.Delete_Selected_Items_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Backspace, Guikit.Input.No_Modifiers),
+         Files.Commands.Delete_Selected_Items_Command,
          "backspace dispatches delete command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Delete, Shift) =
-           Files.Commands.Delete_Selected_Permanently_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Delete, Shift),
+         Files.Commands.Delete_Selected_Permanently_Command,
          "shift+delete dispatches permanent delete command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_F2, Guikit.Input.No_Modifiers) =
-           Files.Commands.Rename_Selected_Items_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_F2, Guikit.Input.No_Modifiers),
+         Files.Commands.Rename_Selected_Items_Command,
          "F2 dispatches rename command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Escape, Guikit.Input.No_Modifiers) =
-           Files.Commands.Close_Command_Palette_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Escape, Guikit.Input.No_Modifiers),
+         Files.Commands.Close_Command_Palette_Command,
          "escape dispatches context-cancel command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Return, Guikit.Input.No_Modifiers) =
-           Files.Commands.Open_Selected_Items_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Return, Guikit.Input.No_Modifiers),
+         Files.Commands.Open_Selected_Items_Command,
          "return dispatches open-selected command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Z, Ctrl) = Files.Commands.Undo_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Z, Ctrl),
+         Files.Commands.Undo_Command,
          "Ctrl+Z dispatches the undo command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Z, Ctrl_Shift) = Files.Commands.Redo_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Z, Ctrl_Shift),
+         Files.Commands.Redo_Command,
          "Ctrl+Shift+Z dispatches the redo command distinct from undo");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Y, Ctrl) = Files.Commands.Redo_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Y, Ctrl),
+         Files.Commands.Redo_Command,
          "Ctrl+Y is a secondary redo accelerator alongside Ctrl+Shift+Z");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Select_Drive_Command) = Files.Commands.Toolbar_Left,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Select_Drive_Command),
+         Files.Commands.Toolbar_Left,
          "drive selector is placed in left toolbar");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Navigate_Home_Command) = Files.Commands.Toolbar_Left,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Navigate_Home_Command),
+         Files.Commands.Toolbar_Left,
          "home command is placed in left toolbar");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Navigate_Back_Command) = Files.Commands.Toolbar_Left,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Navigate_Back_Command),
+         Files.Commands.Toolbar_Left,
          "back command is placed in left toolbar");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Navigate_Forward_Command) = Files.Commands.Toolbar_Left,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Navigate_Forward_Command),
+         Files.Commands.Toolbar_Left,
          "forward command is placed in left toolbar");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Navigate_Parent_Command) = Files.Commands.Toolbar_Left,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Navigate_Parent_Command),
+         Files.Commands.Toolbar_Left,
          "parent command is placed in left toolbar");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Create_File_Command) = Files.Commands.Toolbar_Left,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Create_File_Command),
+         Files.Commands.Toolbar_Left,
          "create-file command is placed in left toolbar");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Delete_Selected_Items_Command) = Files.Commands.Toolbar_Left,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Delete_Selected_Items_Command),
+         Files.Commands.Toolbar_Left,
          "delete command is placed in left toolbar");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Focus_Path_Input_Command) = Files.Commands.Toolbar_Middle,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Focus_Path_Input_Command),
+         Files.Commands.Toolbar_Middle,
          "path input command is placed in middle toolbar");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Focus_Filter_Input_Command) = Files.Commands.Toolbar_Right,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Focus_Filter_Input_Command),
+         Files.Commands.Toolbar_Right,
          "filter input command is placed in right toolbar");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Clear_Filter_Command) = Files.Commands.Toolbar_Right,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Clear_Filter_Command),
+         Files.Commands.Toolbar_Right,
          "clear-filter command is placed in right toolbar");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Refresh_Directory_Command) =
-           Files.Commands.Command_Palette_Only,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Refresh_Directory_Command),
+         Files.Commands.Command_Palette_Only,
          "refresh command is palette-only metadata");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Select_Small_Icons_Command) = Files.Commands.Bottom_Bar,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Select_Small_Icons_Command),
+         Files.Commands.Bottom_Bar,
          "small view command is placed in bottom bar");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Select_Large_Icons_Command) = Files.Commands.Bottom_Bar,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Select_Large_Icons_Command),
+         Files.Commands.Bottom_Bar,
          "large view command is placed in bottom bar");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Select_Details_Command) = Files.Commands.Bottom_Bar,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Select_Details_Command),
+         Files.Commands.Bottom_Bar,
          "view mode command is placed in bottom bar");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Toggle_Info_Pane_Command) = Files.Commands.Bottom_Bar,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Toggle_Info_Pane_Command),
+         Files.Commands.Bottom_Bar,
          "info-pane command is placed in bottom bar");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Rename_Selected_Items_Command) =
-           Files.Commands.Command_Palette_Only,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Rename_Selected_Items_Command),
+         Files.Commands.Command_Palette_Only,
          "rename command is palette-only metadata");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Open_Selected_Items_Command) =
-           Files.Commands.Command_Palette_Only,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Open_Selected_Items_Command),
+         Files.Commands.Command_Palette_Only,
          "open-selected command is palette-only metadata");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Select_All_Command) =
-           Files.Commands.Command_Palette_Only,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Select_All_Command),
+         Files.Commands.Command_Palette_Only,
          "select-all command is palette-only metadata");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Invert_Selection_Command) =
-           Files.Commands.Placement_For (Files.Commands.Select_All_Command),
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Invert_Selection_Command),
+         Files.Commands.Placement_For (Files.Commands.Select_All_Command),
          "invert-selection placement matches select-all");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Deselect_All_Command) =
-           Files.Commands.Placement_For (Files.Commands.Select_All_Command),
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Deselect_All_Command),
+         Files.Commands.Placement_For (Files.Commands.Select_All_Command),
          "deselect-all placement matches select-all");
       Assert
         (Same_Shortcut
@@ -1095,47 +1292,49 @@ package body Files_Suite.Commands is
            (Files.Commands.Shortcut_For (Files.Commands.Deselect_All_Command),
             (True, Guikit.Input.Key_A, Ctrl_Shift)),
          "deselect-all uses Control+Shift+A");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_I, Ctrl) = Files.Commands.Invert_Selection_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_I, Ctrl),
+         Files.Commands.Invert_Selection_Command,
          "Control+I resolves to invert-selection command");
-      Assert
-        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_A, Ctrl_Shift) = Files.Commands.Deselect_All_Command,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_A, Ctrl_Shift),
+         Files.Commands.Deselect_All_Command,
          "Control+Shift+A resolves to deselect-all command");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Delete_Selected_Permanently_Command) =
-           Files.Commands.Command_Palette_Only,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Delete_Selected_Permanently_Command),
+         Files.Commands.Command_Palette_Only,
          "permanent delete command is palette-only metadata");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Generate_Thumbnails_Command) =
-           Files.Commands.Command_Palette_Only,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Generate_Thumbnails_Command),
+         Files.Commands.Command_Palette_Only,
          "thumbnail generation command is palette-only metadata");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Search_Recursive_Command) =
-           Files.Commands.Command_Palette_Only,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Search_Recursive_Command),
+         Files.Commands.Command_Palette_Only,
          "recursive search command is palette-only metadata");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Close_Command_Palette_Command) =
-           Files.Commands.Command_Palette_Only,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Close_Command_Palette_Command),
+         Files.Commands.Command_Palette_Only,
          "context-close command is palette-only metadata");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Open_Selected_Root_Command) =
-           Files.Commands.Command_Palette_Only,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Open_Selected_Root_Command),
+         Files.Commands.Command_Palette_Only,
          "open-selected-root command is palette-only metadata");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Eject_Selected_Root_Command) =
-           Files.Commands.Command_Palette_Only,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Eject_Selected_Root_Command),
+         Files.Commands.Command_Palette_Only,
          "eject-selected-root command is palette-only metadata");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Open_Command_Palette_Command) =
-           Files.Commands.Command_Palette_Only,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Open_Command_Palette_Command),
+         Files.Commands.Command_Palette_Only,
          "palette toggle is not duplicated in toolbar metadata");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Reset_Settings_Command) =
-           Files.Commands.Command_Palette_Only,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Reset_Settings_Command),
+         Files.Commands.Command_Palette_Only,
          "settings reset command is palette-only metadata");
-      Assert
-        (Files.Commands.Placement_For (Files.Commands.Save_Settings_Command) =
-           Files.Commands.Command_Palette_Only,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Placement_For (Files.Commands.Save_Settings_Command),
+         Files.Commands.Command_Palette_Only,
          "settings save command is palette-only metadata");
    end Test_Command_Registry_And_Shortcuts;
 
@@ -1158,11 +1357,19 @@ package body Files_Suite.Commands is
                  and then not Parsed.Modifiers (Guikit.Input.Shift_Key),
                  "control+1 parses only the control modifier");
       end;
-      Assert (Files.Commands.Text_To_Key ("f5") = Guikit.Input.Key_F5, "text-to-key maps a function key");
-      Assert (Files.Commands.Text_To_Key ("nope") = Guikit.Input.Key_Unknown,
-              "unrecognised text yields Key_Unknown");
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Text_To_Key ("f5"),
+         Guikit.Input.Key_F5,
+         "text-to-key maps a function key");
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Text_To_Key ("nope"),
+         Guikit.Input.Key_Unknown,
+         "unrecognised text yields Key_Unknown");
       --  Keys added by the keycode expansion round-trip too.
-      Assert (Files.Commands.Text_To_Key ("e") = Guikit.Input.Key_E, "a newly-added letter key parses");
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Text_To_Key ("e"),
+         Guikit.Input.Key_E,
+         "a newly-added letter key parses");
       declare
          S : constant Files.Commands.Shortcut := Files.Commands.Parse_Shortcut ("control+shift+f7");
       begin
@@ -1172,47 +1379,61 @@ package body Files_Suite.Commands is
                  "control+shift+f7 parses the expanded function key with both modifiers");
          --  Shown to people with the language's modifier names (the suite runs
          --  in English); the stored form above is unchanged.
-         Assert (Files.Commands.Shortcut_Display_Text (S) = "Ctrl+Shift+F7",
-                 "a shortcut reads as Ctrl+Shift+F7, not control+shift+f7");
-         Assert (Files.Commands.Shortcut_Display_Text (Files.Commands.Parse_Shortcut ("control+pagedown"))
-                 = "Ctrl+Page Down",
-                 "named keys read by their catalog names");
-         Assert (Files.Commands.Shortcut_Text (S) = "shift+control+f7",
-                 "the stored form stays parseable");
+         Files_Suite.Support.Assert_Equal
+           (Files.Commands.Shortcut_Display_Text (S),
+            "Ctrl+Shift+F7",
+            "a shortcut reads as Ctrl+Shift+F7, not control+shift+f7");
+         Files_Suite.Support.Assert_Equal
+           (Files.Commands.Shortcut_Display_Text (Files.Commands.Parse_Shortcut ("control+pagedown")),
+            "Ctrl+Page Down",
+            "named keys read by their catalog names");
+         Files_Suite.Support.Assert_Equal
+           (Files.Commands.Shortcut_Text (S),
+            "shift+control+f7",
+            "the stored form stays parseable");
       end;
 
       --  Defaults still resolve, and an override rebinds a chord to a command.
-      Assert (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_1, Ctrl)
-              = Files.Commands.Select_Small_Icons_Command,
-              "ctrl+1 defaults to small icons");
-      Assert (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_B, Ctrl_Shift)
-              = Files.Commands.No_Command,
-              "ctrl+shift+b is unbound by default");
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_1, Ctrl),
+         Files.Commands.Select_Small_Icons_Command,
+         "ctrl+1 defaults to small icons");
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_B, Ctrl_Shift),
+         Files.Commands.No_Command,
+         "ctrl+shift+b is unbound by default");
       Files.Commands.Set_Shortcut_Override
         (Files.Commands.Toggle_Show_Extensions_Command,
          (Present => True, Key => Guikit.Input.Key_B, Modifiers => Ctrl_Shift));
-      Assert (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_B, Ctrl_Shift)
-              = Files.Commands.Toggle_Show_Extensions_Command,
-              "an override binds the chosen chord to its command");
-      Assert (Files.Commands.Shortcut_For (Files.Commands.Toggle_Show_Extensions_Command).Key
-              = Guikit.Input.Key_B,
-              "Shortcut_For resolves to the override");
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_B, Ctrl_Shift),
+         Files.Commands.Toggle_Show_Extensions_Command,
+         "an override binds the chosen chord to its command");
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Shortcut_For (Files.Commands.Toggle_Show_Extensions_Command).Key,
+         Guikit.Input.Key_B,
+         "Shortcut_For resolves to the override");
 
       --  Clearing reverts to the default (here, no shortcut).
       Files.Commands.Clear_Shortcut_Override (Files.Commands.Toggle_Show_Extensions_Command);
-      Assert (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_B, Ctrl_Shift)
-              = Files.Commands.No_Command,
-              "clearing the override unbinds the chord");
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_B, Ctrl_Shift),
+         Files.Commands.No_Command,
+         "clearing the override unbinds the chord");
       Assert (not Files.Commands.Shortcut_For (Files.Commands.Toggle_Show_Extensions_Command).Present,
               "the command has no default shortcut after clearing");
 
       --  Id_For_Identifier maps a stable identifier back to its command, and
       --  reports No_Command for an unknown identifier (the seam the persisted
       --  [shortcuts] section uses to reapply overrides at startup).
-      Assert (Files.Commands.Id_For_Identifier ("view.small") = Files.Commands.Select_Small_Icons_Command,
-              "Id_For_Identifier resolves a known identifier");
-      Assert (Files.Commands.Id_For_Identifier ("no.such.command") = Files.Commands.No_Command,
-              "Id_For_Identifier reports No_Command for an unknown identifier");
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Id_For_Identifier ("view.small"),
+         Files.Commands.Select_Small_Icons_Command,
+         "Id_For_Identifier resolves a known identifier");
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Id_For_Identifier ("no.such.command"),
+         Files.Commands.No_Command,
+         "Id_For_Identifier reports No_Command for an unknown identifier");
 
       Files.Commands.Reset_Shortcut_Overrides;
    end Test_Shortcut_Overrides;
@@ -1233,72 +1454,143 @@ package body Files_Suite.Commands is
       Files.Model.Set_Error (Model, "error.path.missing");
       Ctrl (Guikit.Input.Control_Key) := True;
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_L, Ctrl);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "Control+L executes focus command");
-      Assert (Result.Command = Files.Commands.Focus_Path_Input_Command, "Control+L focuses path input");
-      Assert (Files.Model.Last_Error_Key (Model) = "", "path focus clears stale error state");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "Control+L executes focus command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Focus_Path_Input_Command,
+         "Control+L focuses path input");
+      Files_Suite.Support.Assert_Equal (Files.Model.Last_Error_Key (Model), "", "path focus clears stale error state");
       Files.Model.Begin_Create_File (Model, "path-pending.txt");
       Files.Model.Focus_Path_Input (Model);
       Files.Controller.Replace_Focused_Text (Model, "");
-      Assert (Files.Model.Text_Cursor_Position (Model) = 0, "path replacement places cursor at text end");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         0,
+         "path replacement places cursor at text end");
       Result := Files.Controller.Append_Focused_Text (Model, Root);
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "path input append updates text");
-      Assert (Files.Model.Path_Input_Text (Model) = Root, "path input append uses focused path field");
-      Assert (Files.Model.Text_Cursor_Position (Model) = Root'Length, "path append advances cursor");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "path input append updates text");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Path_Input_Text (Model),
+         Root,
+         "path input append uses focused path field");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         Root'Length,
+         "path append advances cursor");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
-      Assert
-        (Result.Command = Files.Commands.Open_Command_Palette_Command,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Open_Command_Palette_Command,
          "Control+P routes through command registry from path input");
       Assert (Files.Model.Command_Palette_Is_Open (Model), "Control+P opens palette from path input");
-      Assert (Files.Model.Path_Input_Text (Model) = Root, "palette shortcut preserves edited path input text");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Path_Input_Text (Model),
+         Root,
+         "palette shortcut preserves edited path input text");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert
-        (Result.Command = Files.Commands.Close_Command_Palette_Command,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Close_Command_Palette_Command,
          "Escape closes palette after path shortcut");
       Files.Model.Focus_Path_Input (Model);
       Files.Controller.Replace_Focused_Text (Model, Join (Root, "missing-path-target"));
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
-      Assert
-        (Result.Status = Files.Controller.Controller_Command_Executed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
          "invalid path input Return executes path command");
-      Assert
-        (Result.Command = Files.Commands.Focus_Path_Input_Command,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Focus_Path_Input_Command,
          "invalid path input Return reports path command");
-      Assert (Result.Operation.Status = Files.Operations.Operation_Failed, "invalid path input returns failure");
-      Assert (To_String (Result.Operation.Path) = "", "missing path input has no operation path");
-      Assert
-        (To_String (Result.Operation.Error_Key) = "error.path.missing",
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Failed,
+         "invalid path input returns failure");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Operation.Path),
+         "",
+         "missing path input has no operation path");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Operation.Error_Key),
+         "error.path.missing",
          "invalid path input reports path diagnostic");
-      Assert (Files.Model.Current_Path (Model) = Root, "invalid controller path input does not navigate");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "invalid path input keeps focus");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.path.missing", "invalid path input records error");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
+         "invalid controller path input does not navigate");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Path_Input,
+         "invalid path input keeps focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.path.missing",
+         "invalid path input records error");
       Assert (not Files.Model.Path_Input_Is_Valid (Model), "invalid path input marks validation state");
-      Assert
-        (Files.Model.Path_Input_Error_Key (Model) = "error.path.missing",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Path_Input_Error_Key (Model),
+         "error.path.missing",
          "invalid path input stores validation diagnostic");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "invalid path input preserves temporary create state");
       Assert (Files.Model.Rename_Is_Active (Model), "invalid path input preserves rename state");
 
       Files.Controller.Replace_Focused_Text (Model, Target);
       Assert (Files.Model.Path_Input_Is_Valid (Model), "path input edit clears stale validation state");
-      Assert (Files.Model.Path_Input_Error_Key (Model) = "", "path input edit clears stale validation diagnostic");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Path_Input_Error_Key (Model),
+         "",
+         "path input edit clears stale validation diagnostic");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return, Ctrl);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "modified Return does not commit path input");
-      Assert (Files.Model.Current_Path (Model) = Root, "modified Return in path input does not navigate");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "modified Return keeps path input focus");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "modified Return does not commit path input");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
+         "modified Return in path input does not navigate");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Path_Input,
+         "modified Return keeps path input focus");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
-      Assert
-        (Result.Status = Files.Controller.Controller_Command_Executed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
          "path input Return executes path command");
-      Assert (Result.Command = Files.Commands.Focus_Path_Input_Command, "path input Return reports path command");
-      Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "Return commits path input");
-      Assert
-        (To_String (Result.Operation.Path) = Ada.Directories.Full_Name (Target),
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Focus_Path_Input_Command,
+         "path input Return reports path command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Navigated,
+         "Return commits path input");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Operation.Path),
+         Ada.Directories.Full_Name (Target),
          "path input operation reports normalized target path");
-      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Target), "path input navigates");
-      Assert (Files.Model.Last_Error_Key (Model) = "", "path input success clears stale error state");
-      Assert (Files.Model.Item_Count (Model) = 1, "path input loads destination items");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "path input commit clears focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Ada.Directories.Full_Name (Target),
+         "path input navigates");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
+         "path input success clears stale error state");
+      Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 1, "path input loads destination items");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "path input commit clears focus");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "path input success clears temporary create state");
       Assert (not Files.Model.Rename_Is_Active (Model), "path input success clears rename state");
 
@@ -1306,19 +1598,26 @@ package body Files_Suite.Commands is
       Files.Model.Focus_Path_Input (Model);
       Files.Controller.Replace_Focused_Text (Model, Join (Target, "loaded.txt"));
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
-      Assert
-        (Result.Status = Files.Controller.Controller_Command_Executed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
          "file path input Return executes path command");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Navigated,
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Navigated,
          "file path input navigates to parent directory");
-      Assert
-        (To_String (Result.Operation.Path) = Ada.Directories.Full_Name (Target),
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Operation.Path),
+         Ada.Directories.Full_Name (Target),
          "file path input operation reports normalized parent directory");
-      Assert
-        (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Target),
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Ada.Directories.Full_Name (Target),
          "file path input changes model to parent directory");
-      Assert (Files.Model.Item_Count (Model) = 1, "file path input loads parent directory items");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         1,
+         "file path input loads parent directory items");
    end Test_Controller_Path_Input_Return;
 
    procedure Test_Multi_Rename_Multibyte_Edits (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1343,7 +1642,10 @@ package body Files_Suite.Commands is
       Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
       Files.Model.Select_All_Visible (Model);
       Files.Model.Toggle_Rename (Model);
-      Assert (Files.Model.Rename_Field_Count (Model) = 2, "both selected names are being renamed");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Rename_Field_Count (Model),
+         2,
+         "both selected names are being renamed");
 
       Moved := Files.Model.Rename_Set_All_Carets_Home (Model);
       Moved := Files.Model.Rename_Delete_Forward (Model);
@@ -1406,7 +1708,7 @@ package body Files_Suite.Commands is
               and then Files.Model.Selected_Index (Model) = Files.Model.Visible_Count (Model),
               "Shift+Down grows the range to the last item and stops there");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Assert (Files.Model.Selected_Index (Model) = 1, "a plain arrow still wraps");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 1, "a plain arrow still wraps");
 
       --  Copy To on an already open folder tree leaves it open when the pick
       --  ends; a tree the pick opened closes again.
@@ -1443,89 +1745,207 @@ package body Files_Suite.Commands is
       Files.Model.Set_Error (Model, "error.path.missing");
       Files.Model.Open_Command_Palette (Model);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F, Ctrl);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "filter focus executes command");
-      Assert (Result.Command = Files.Commands.Focus_Filter_Input_Command, "filter command is routed");
-      Assert (Files.Model.Last_Error_Key (Model) = "", "filter focus clears stale error state");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "filter focus executes command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Focus_Filter_Input_Command,
+         "filter command is routed");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
+         "filter focus clears stale error state");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "filter focus closes command palette");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Filter_Input, "filter input receives focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Filter_Input,
+         "filter input receives focus");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
-      Assert
-        (Result.Status = Files.Controller.Controller_Command_Executed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
          "Control+P executes while filter input has focus");
-      Assert
-        (Result.Command = Files.Commands.Open_Command_Palette_Command,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Open_Command_Palette_Command,
          "Control+P routes through command registry from filter input");
       Assert (Files.Model.Command_Palette_Is_Open (Model), "Control+P opens palette from filter input");
-      Assert
-        (Files.Model.Focus (Model) = Files.Types.Focus_Command_Palette,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Command_Palette,
          "Control+P transfers focus from filter input to palette");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert
-        (Result.Command = Files.Commands.Close_Command_Palette_Command,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Close_Command_Palette_Command,
          "Escape closes palette after filter shortcut");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "palette closes before filter editing resumes");
       Files.Model.Focus_Filter_Input (Model);
 
       Files.Model.Select_Visible (Model, 2);
       Result := Files.Controller.Append_Focused_Text (Model, "be");
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "filter append updates text");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "filter append updates text");
       Result := Files.Controller.Append_Focused_Text (Model, "ta");
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "second filter append updates text");
-      Assert (Files.Model.Filter_Text (Model) = "beta", "filter text is updated through controller");
-      Assert (Files.Model.Text_Cursor_Position (Model) = 4, "filter append leaves cursor at text end");
-      Assert (Files.Model.Visible_Count (Model) = 1, "filter input updates visible projection");
-      Assert (Files.Model.Selected_Name (Model) = "Beta.txt", "filter reconciles selection");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "second filter append updates text");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Filter_Text (Model),
+         "beta",
+         "filter text is updated through controller");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         4,
+         "filter append leaves cursor at text end");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Visible_Count (Model),
+         1,
+         "filter input updates visible projection");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Name (Model), "Beta.txt", "filter reconciles selection");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 2);
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "filter click updates text cursor");
-      Assert (Files.Model.Text_Cursor_Position (Model) = 2, "filter click positions cursor");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "filter click updates text cursor");
+      Files_Suite.Support.Assert_Equal (Files.Model.Text_Cursor_Position (Model), 2, "filter click positions cursor");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "filter Escape clears focus before refocus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "filter Escape clears focus before refocus");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F, Ctrl);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Filter_Input, "filter shortcut refocuses filter input");
-      Assert (Files.Model.Text_Cursor_Position (Model) = 4, "filter shortcut refocus places cursor at text end");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Filter_Input,
+         "filter shortcut refocuses filter input");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         4,
+         "filter shortcut refocus places cursor at text end");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 2);
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "filter click can reposition after refocus");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "filter click can reposition after refocus");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 2);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "same filter cursor click is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "same filter cursor click is ignored");
       Result := Files.Controller.Append_Focused_Text (Model, "X");
-      Assert (Files.Model.Filter_Text (Model) = "beXta", "filter insert uses cursor position");
-      Assert (Files.Model.Text_Cursor_Position (Model) = 3, "filter insert advances cursor from insertion point");
+      Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "beXta", "filter insert uses cursor position");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         3,
+         "filter insert advances cursor from insertion point");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "filter Backspace edits text");
-      Assert (Result.Command = Files.Commands.No_Command, "filter Backspace does not route delete command");
-      Assert (Files.Model.Filter_Text (Model) = "beta", "filter Backspace removes character before cursor");
-      Assert (Files.Model.Text_Cursor_Position (Model) = 2, "filter Backspace moves cursor backward");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "filter Backspace edits text");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.No_Command,
+         "filter Backspace does not route delete command");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Filter_Text (Model),
+         "beta",
+         "filter Backspace removes character before cursor");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         2,
+         "filter Backspace moves cursor backward");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "filter Delete edits text");
-      Assert (Result.Command = Files.Commands.No_Command, "filter Delete does not route delete command");
-      Assert (Files.Model.Filter_Text (Model) = "bea", "filter Delete removes character at cursor");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "filter Delete edits text");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.No_Command,
+         "filter Delete does not route delete command");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Filter_Text (Model),
+         "bea",
+         "filter Delete removes character at cursor");
       Result := Files.Controller.Append_Focused_Text (Model, "t");
-      Assert (Files.Model.Filter_Text (Model) = "beta", "filter insert restores text at cursor");
-      Assert (Files.Model.Selected_Name (Model) = "Beta.txt", "text delete preserves selected visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Filter_Text (Model),
+         "beta",
+         "filter insert restores text at cursor");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Name (Model),
+         "Beta.txt",
+         "text delete preserves selected visible item");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "filter Home moves text cursor");
-      Assert (Files.Model.Text_Cursor_Position (Model) = 0, "filter Home moves cursor to start");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "filter Home moves text cursor");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         0,
+         "filter Home moves cursor to start");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "filter Home at start is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "filter Home at start is ignored");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "filter Left at start is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "filter Left at start is ignored");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "filter Backspace at start is ignored");
-      Assert (Files.Model.Filter_Text (Model) = "beta", "filter Backspace at start leaves text unchanged");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "filter Backspace at start is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Filter_Text (Model),
+         "beta",
+         "filter Backspace at start leaves text unchanged");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_End);
-      Assert (Files.Model.Text_Cursor_Position (Model) = 4, "filter End moves cursor to end");
+      Files_Suite.Support.Assert_Equal (Files.Model.Text_Cursor_Position (Model), 4, "filter End moves cursor to end");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_End);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "filter End at end is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "filter End at end is ignored");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "filter Right at end is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "filter Right at end is ignored");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "filter Delete at end is ignored");
-      Assert (Files.Model.Filter_Text (Model) = "beta", "filter Delete at end leaves text unchanged");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "filter Delete at end is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Filter_Text (Model),
+         "beta",
+         "filter Delete at end leaves text unchanged");
       Files.Controller.Replace_Focused_Text (Model, "b");
-      Assert (Files.Model.Text_Cursor_Position (Model) = 1, "short filter replacement clamps cursor to end");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         1,
+         "short filter replacement clamps cursor to end");
       Result := Files.Controller.Append_Focused_Text (Model, "eta");
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "filter append after clamp updates text");
-      Assert (Files.Model.Filter_Text (Model) = "beta", "filter append after short replacement uses clamped cursor");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "filter append after clamp updates text");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Filter_Text (Model),
+         "beta",
+         "filter append after short replacement uses clamped cursor");
       declare
          Utf8_Text : constant String := Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00E9#));
          Combining_Text : constant String :=
@@ -1533,101 +1953,174 @@ package body Files_Suite.Commands is
       begin
          Files.Controller.Replace_Focused_Text (Model, "a" & Utf8_Text & "b");
          Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 2);
-         Assert
-           (Files.Model.Text_Cursor_Position (Model) = 1,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            1,
             "filter click snaps UTF-8 cursor to character boundary");
          Files.Model.Set_Text_Cursor_Position (Model, 2);
-         Assert
-           (Files.Model.Text_Cursor_Position (Model) = 1,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            1,
             "model cursor setter snaps UTF-8 cursor to character boundary");
          Files.Model.Set_Text_Cursor_Position (Model, 4);
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
-         Assert (Files.Model.Text_Cursor_Position (Model) = 3, "filter Left moves before ASCII after UTF-8");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            3,
+            "filter Left moves before ASCII after UTF-8");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
-         Assert (Files.Model.Text_Cursor_Position (Model) = 1, "filter Left moves over whole UTF-8 input");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            1,
+            "filter Left moves over whole UTF-8 input");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
-         Assert (Files.Model.Text_Cursor_Position (Model) = 0, "filter Left reaches start before UTF-8 input");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            0,
+            "filter Left reaches start before UTF-8 input");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
-         Assert (Files.Model.Text_Cursor_Position (Model) = 1, "filter Right moves over ASCII before UTF-8");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            1,
+            "filter Right moves over ASCII before UTF-8");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
-         Assert (Files.Model.Text_Cursor_Position (Model) = 3, "filter Right moves over whole UTF-8 input");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            3,
+            "filter Right moves over whole UTF-8 input");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
-         Assert (Files.Model.Filter_Text (Model) = "ab", "filter Backspace removes whole UTF-8 input");
-         Assert (Files.Model.Text_Cursor_Position (Model) = 1, "filter Backspace lands before removed UTF-8 input");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Filter_Text (Model),
+            "ab",
+            "filter Backspace removes whole UTF-8 input");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            1,
+            "filter Backspace lands before removed UTF-8 input");
          Files.Controller.Replace_Focused_Text (Model, "a" & Utf8_Text & "b");
          Files.Model.Set_Text_Cursor_Position (Model, 1);
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
-         Assert (Files.Model.Filter_Text (Model) = "ab", "filter Delete removes whole UTF-8 input");
-         Assert (Files.Model.Text_Cursor_Position (Model) = 1, "filter Delete keeps cursor before UTF-8 input");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Filter_Text (Model),
+            "ab",
+            "filter Delete removes whole UTF-8 input");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            1,
+            "filter Delete keeps cursor before UTF-8 input");
 
          Files.Controller.Replace_Focused_Text (Model, Combining_Text & "b");
          Files.Model.Set_Text_Cursor_Position (Model, 1);
-         Assert
-           (Files.Model.Text_Cursor_Position (Model) = 0,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            0,
             "model cursor setter snaps combining mark starts to the base boundary");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
-         Assert (Result.Status = Files.Controller.Controller_Ignored, "filter Left at combining base is ignored");
+         Files_Suite.Support.Assert_Equal
+           (Result.Status,
+            Files.Controller.Controller_Ignored,
+            "filter Left at combining base is ignored");
          Files.Model.Set_Text_Cursor_Position (Model, Combining_Text'Length + 1);
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
-         Assert
-           (Files.Model.Text_Cursor_Position (Model) = Combining_Text'Length,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            Combining_Text'Length,
             "filter Left moves before ASCII after combining text");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
-         Assert
-           (Files.Model.Text_Cursor_Position (Model) = 0,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            0,
             "filter Left moves over base and trailing combining marks together");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
-         Assert
-           (Files.Model.Text_Cursor_Position (Model) = Combining_Text'Length,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            Combining_Text'Length,
             "filter Right moves over base and trailing combining marks together");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
-         Assert
-           (Files.Model.Filter_Text (Model) = "b",
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Filter_Text (Model),
+            "b",
             "filter Backspace removes base and trailing combining marks together");
-         Assert
-           (Files.Model.Text_Cursor_Position (Model) = 0,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            0,
             "filter Backspace lands before removed combining sequence");
          Files.Controller.Replace_Focused_Text (Model, Combining_Text & "b");
          Files.Model.Set_Text_Cursor_Position (Model, 0);
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
-         Assert
-           (Files.Model.Filter_Text (Model) = "b",
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Filter_Text (Model),
+            "b",
             "filter Delete removes base and trailing combining marks together");
-         Assert
-           (Files.Model.Text_Cursor_Position (Model) = 0,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            0,
             "filter Delete keeps cursor before removed combining sequence");
          Files.Controller.Replace_Focused_Text (Model, "e");
          Result :=
            Files.Controller.Append_Focused_Text
              (Model, Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#0301#)));
-         Assert
-           (Files.Model.Filter_Text (Model) = Combining_Text,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Filter_Text (Model),
+            Combining_Text,
             "filter append can add a trailing combining mark");
-         Assert
-           (Files.Model.Text_Cursor_Position (Model) = Combining_Text'Length,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            Combining_Text'Length,
             "filter append leaves cursor after appended trailing combining mark");
       end;
       Files.Controller.Replace_Focused_Text (Model, "alpha beta-gamma");
-      Assert (Files.Model.Text_Cursor_Position (Model) = 16, "long filter replacement places cursor at end");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         16,
+         "long filter replacement places cursor at end");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "Control+Left moves by word");
-      Assert (Files.Model.Text_Cursor_Position (Model) = 11, "Control+Left stops before previous word");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "Control+Left moves by word");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         11,
+         "Control+Left stops before previous word");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "Control+Backspace deletes previous word");
-      Assert (Files.Model.Filter_Text (Model) = "alpha gamma", "Control+Backspace removes previous word and separator");
-      Assert (Files.Model.Text_Cursor_Position (Model) = 6, "Control+Backspace leaves cursor at word boundary");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "Control+Backspace deletes previous word");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Filter_Text (Model),
+         "alpha gamma",
+         "Control+Backspace removes previous word and separator");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         6,
+         "Control+Backspace leaves cursor at word boundary");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "Control+Delete deletes next word");
-      Assert (Files.Model.Filter_Text (Model) = "alpha ", "Control+Delete removes next word");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "Control+Delete deletes next word");
+      Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "alpha ", "Control+Delete removes next word");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "Control+Delete at end is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "Control+Delete at end is ignored");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "Control+Left at start is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "Control+Left at start is ignored");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "Control+Backspace at start is ignored");
-      Assert
-        (Files.UTF8.Word_Separator_Length ("x", Natural'Last) = 0,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "Control+Backspace at start is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Files.UTF8.Word_Separator_Length ("x", Natural'Last),
+         0,
          "word-separator lookup rejects an extreme out-of-range offset without raising");
       declare
          Malformed : constant String :=
@@ -1644,63 +2137,100 @@ package body Files_Suite.Commands is
 
       Files.Controller.Replace_Focused_Text (Model, "alpha" & ASCII.LF & "beta");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
-      Assert (Files.Model.Text_Cursor_Position (Model) = 6, "Control+Left treats line feed as word separator");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         6,
+         "Control+Left treats line feed as word separator");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
-      Assert
-        (Files.Model.Filter_Text (Model) = "beta",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Filter_Text (Model),
+         "beta",
          "Control+Backspace removes previous word across line feed");
 
       Files.Controller.Replace_Focused_Text (Model, "alpha" & ASCII.CR & "beta");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
-      Assert (Files.Model.Text_Cursor_Position (Model) = 6, "Control+Left treats carriage return as word separator");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         6,
+         "Control+Left treats carriage return as word separator");
 
       Files.Controller.Replace_Focused_Text (Model, "alpha" & ASCII.VT & "beta");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
-      Assert (Files.Model.Text_Cursor_Position (Model) = 6, "Control+Left treats vertical tab as word separator");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         6,
+         "Control+Left treats vertical tab as word separator");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
-      Assert
-        (Files.Model.Filter_Text (Model) = "beta",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Filter_Text (Model),
+         "beta",
          "Control+Backspace removes previous word across vertical tab");
 
       Files.Controller.Replace_Focused_Text (Model, "alpha" & ASCII.FF & "beta");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 5);
-      Assert (Files.Model.Text_Cursor_Position (Model) = 5, "filter click positions cursor before form feed");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         5,
+         "filter click positions cursor before form feed");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
-      Assert (Files.Model.Filter_Text (Model) = "alpha", "Control+Delete removes next word across form feed");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Filter_Text (Model),
+         "alpha",
+         "Control+Delete removes next word across form feed");
 
       declare
          C1_Break : constant Character := Character'Val (133);
       begin
          Files.Controller.Replace_Focused_Text (Model, "alpha" & C1_Break & "beta");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
-         Assert (Files.Model.Text_Cursor_Position (Model) = 6, "Control+Left treats C1 NEL as word separator");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            6,
+            "Control+Left treats C1 NEL as word separator");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
-         Assert
-           (Files.Model.Filter_Text (Model) = "beta",
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Filter_Text (Model),
+            "beta",
             "Control+Backspace removes previous word across C1 NEL");
 
          Files.Controller.Replace_Focused_Text (Model, "alpha" & C1_Break & "beta");
          Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 5);
-         Assert (Files.Model.Text_Cursor_Position (Model) = 5, "filter click positions cursor before C1 NEL");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            5,
+            "filter click positions cursor before C1 NEL");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
-         Assert (Files.Model.Filter_Text (Model) = "alpha", "Control+Delete removes next word across C1 NEL");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Filter_Text (Model),
+            "alpha",
+            "Control+Delete removes next word across C1 NEL");
       end;
       declare
          NBSP : constant String := Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#));
       begin
          Files.Controller.Replace_Focused_Text (Model, "alpha" & NBSP & "beta");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
-         Assert (Files.Model.Text_Cursor_Position (Model) = 7, "Control+Left treats UTF-8 NBSP as word separator");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            7,
+            "Control+Left treats UTF-8 NBSP as word separator");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
-         Assert
-           (Files.Model.Filter_Text (Model) = "beta",
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Filter_Text (Model),
+            "beta",
             "Control+Backspace removes previous word across UTF-8 NBSP");
 
          Files.Controller.Replace_Focused_Text (Model, "alpha" & NBSP & "beta");
          Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 5);
-         Assert (Files.Model.Text_Cursor_Position (Model) = 5, "filter click positions cursor before UTF-8 NBSP");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            5,
+            "filter click positions cursor before UTF-8 NBSP");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
-         Assert (Files.Model.Filter_Text (Model) = "alpha", "Control+Delete removes next word across UTF-8 NBSP");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Filter_Text (Model),
+            "alpha",
+            "Control+Delete removes next word across UTF-8 NBSP");
       end;
       --  Words of multibyte letters: offsets are bytes, a word is whole letters.
       declare
@@ -1713,9 +2243,15 @@ package body Files_Suite.Commands is
       begin
          Files.Controller.Replace_Focused_Text (Model, Cafe & " " & Uber);
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
-         Assert (Files.Model.Text_Cursor_Position (Model) = 6, "Control+Left stops before a word of multibyte letters");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            6,
+            "Control+Left stops before a word of multibyte letters");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
-         Assert (Files.Model.Filter_Text (Model) = Uber, "Control+Backspace removes a whole multibyte word");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Filter_Text (Model),
+            Uber,
+            "Control+Backspace removes a whole multibyte word");
 
          Files.Controller.Replace_Focused_Text (Model, Cafe & " " & Uber);
          Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 0);
@@ -1723,13 +2259,22 @@ package body Files_Suite.Commands is
          Assert (Files.Model.Text_Cursor_Position (Model) in 5 | 6, "Control+Right ends after the whole first word");
          Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 5);
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete, Ctrl);
-         Assert (Files.Model.Filter_Text (Model) = Cafe, "Control+Delete removes the next multibyte word");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Filter_Text (Model),
+            Cafe,
+            "Control+Delete removes the next multibyte word");
 
          Files.Controller.Replace_Focused_Text (Model, Nihongo & " " & Tesuto);
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
-         Assert (Files.Model.Text_Cursor_Position (Model) = 10, "Control+Left stops before a word of CJK letters");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            10,
+            "Control+Left stops before a word of CJK letters");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace, Ctrl);
-         Assert (Files.Model.Filter_Text (Model) = Tesuto, "Control+Backspace removes a whole CJK word");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Filter_Text (Model),
+            Tesuto,
+            "Control+Backspace removes a whole CJK word");
       end;
       declare
          Line_Separator : constant String :=
@@ -1737,28 +2282,51 @@ package body Files_Suite.Commands is
       begin
          Files.Controller.Replace_Focused_Text (Model, "alpha" & Line_Separator & "beta");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
-         Assert
-           (Files.Model.Text_Cursor_Position (Model) = 8,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Text_Cursor_Position (Model),
+            8,
             "Control+Left treats UTF-8 line separator as word separator");
       end;
       Files.Controller.Replace_Focused_Text (Model, "beta");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "filter Return executes focus command");
-      Assert (Result.Command = Files.Commands.Focus_Filter_Input_Command, "Return commits filter input");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "filter Return executes focus command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Focus_Filter_Input_Command,
+         "Return commits filter input");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
          "filter Return reports successful state-only commit");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "filter Return clears focus");
-      Assert (Files.Model.Filter_Text (Model) = "beta", "filter Return preserves text");
-      Assert (Files.Model.Current_Path (Model) = Root, "filter Return does not navigate");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "filter Return clears focus");
+      Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "beta", "filter Return preserves text");
+      Files_Suite.Support.Assert_Equal (Files.Model.Current_Path (Model), Root, "filter Return does not navigate");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F, Ctrl_Shift);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "clear-filter executes command");
-      Assert (Result.Command = Files.Commands.Clear_Filter_Command, "clear-filter command is routed");
-      Assert (Files.Model.Filter_Text (Model) = "", "clear-filter command clears text");
-      Assert (Files.Model.Visible_Count (Model) = 3, "clear-filter restores visible projection");
-      Assert (Files.Model.Selected_Name (Model) = "Beta.txt", "clear-filter preserves selected visible item");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "clear-filter executes command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Clear_Filter_Command,
+         "clear-filter command is routed");
+      Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "", "clear-filter command clears text");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Visible_Count (Model),
+         3,
+         "clear-filter restores visible projection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Name (Model),
+         "Beta.txt",
+         "clear-filter preserves selected visible item");
       Assert
         (not Files.Commands.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
          "clear-filter disables after clearing");
@@ -1777,42 +2345,93 @@ package body Files_Suite.Commands is
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "old.txt");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "F2 executes rename command");
-      Assert (Result.Command = Files.Commands.Rename_Selected_Items_Command, "F2 reports rename command");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input, "F2 focuses rename input");
-      Assert
-        (Files.Model.Text_Cursor_Position (Model) = 3,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "F2 executes rename command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Rename_Selected_Items_Command,
+         "F2 reports rename command");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Rename_Input,
+         "F2 focuses rename input");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         3,
          "F2 places rename cursor before the file extension");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_End);
-      Assert
-        (Files.Model.Text_Cursor_Position (Model) = Files.Model.Rename_Text (Model)'Length,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         Files.Model.Rename_Text (Model)'Length,
          "End moves the rename cursor to the end of the name");
       Result := Files.Controller.Append_Focused_Text (Model, ".bak");
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "rename append works immediately after F2");
-      Assert
-        (Files.Model.Rename_Text (Model) = "old.txt.bak",
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "rename append works immediately after F2");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Rename_Text (Model),
+         "old.txt.bak",
          "initial rename cursor appends text at the end");
       Files.Controller.Replace_Focused_Text (Model, "new.tx");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "rename Left moves cursor");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "rename Left moves cursor");
       Result := Files.Controller.Append_Focused_Text (Model, "t");
-      Assert (Files.Model.Rename_Text (Model) = "new.ttx", "rename insert uses cursor position");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Rename_Text (Model),
+         "new.ttx",
+         "rename insert uses cursor position");
       Result := Files.Controller.Append_Focused_Text (Model, "t");
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "rename append updates text");
-      Assert (Files.Model.Rename_Text (Model) = "new.tttx", "rename second insert advances cursor");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "rename append updates text");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Rename_Text (Model),
+         "new.tttx",
+         "rename second insert advances cursor");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
-      Assert (Result.Status = Files.Controller.Controller_Text_Updated, "rename Backspace edits text");
-      Assert (Files.Model.Rename_Text (Model) = "new.ttx", "rename Backspace removes character before cursor");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Text_Updated,
+         "rename Backspace edits text");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Rename_Text (Model),
+         "new.ttx",
+         "rename Backspace removes character before cursor");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
-      Assert (Files.Model.Rename_Text (Model) = "new.tt", "rename Delete removes character at cursor");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Rename_Text (Model),
+         "new.tt",
+         "rename Delete removes character at cursor");
       Files.Controller.Replace_Focused_Text (Model, "new.tx");
-      Assert (Files.Model.Text_Cursor_Position (Model) = 6, "rename replacement clamps cursor to text end");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         6,
+         "rename replacement clamps cursor to text end");
       Result := Files.Controller.Append_Focused_Text (Model, "t");
-      Assert (Files.Model.Rename_Text (Model) = "new.txt", "rename append restores commit text");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Rename_Text (Model),
+         "new.txt",
+         "rename append restores commit text");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "rename Return executes rename command");
-      Assert (Result.Command = Files.Commands.Rename_Selected_Items_Command, "rename Return reports rename command");
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "Return commits rename");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "rename Return executes rename command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Rename_Selected_Items_Command,
+         "rename Return reports rename command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "Return commits rename");
       Assert (Ada.Directories.Exists (Join (Root, "new.txt")), "rename file exists after Return");
       Assert (not Files.Model.Rename_Is_Active (Model), "rename Return clears rename mode");
    end Test_Controller_Rename_Return;
@@ -1829,29 +2448,60 @@ package body Files_Suite.Commands is
       Assert (Files.Model.Rename_Is_Active (Model), "F2 enters rename before palette opens");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
-      Assert (Result.Command = Files.Commands.Open_Command_Palette_Command, "Control+P routes from rename input");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Open_Command_Palette_Command,
+         "Control+P routes from rename input");
       Assert (Files.Model.Command_Palette_Is_Open (Model), "Control+P opens palette over rename state");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Command_Palette, "palette takes focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Command_Palette,
+         "palette takes focus");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert (Result.Status = Files.Controller.Controller_Palette_Updated, "Escape first updates palette state");
-      Assert (Result.Command = Files.Commands.Close_Command_Palette_Command, "Escape first closes palette");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Palette_Updated,
+         "Escape first updates palette state");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Close_Command_Palette_Command,
+         "Escape first closes palette");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "Escape closes the open palette");
       Assert (Files.Model.Rename_Is_Active (Model), "Escape does not cancel rename while palette is open");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "closed palette clears palette focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "closed palette clears palette focus");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert (Result.Command = Files.Commands.Close_Command_Palette_Command, "second Escape routes context cancel");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Close_Command_Palette_Command,
+         "second Escape routes context cancel");
       Assert (not Files.Model.Rename_Is_Active (Model), "second Escape cancels pending rename");
-      Assert (Files.Model.Text_Cursor_Position (Model) = 0, "second Escape clears stale rename cursor");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "second Escape leaves focus clear");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Text_Cursor_Position (Model),
+         0,
+         "second Escape clears stale rename cursor");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "second Escape leaves focus clear");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Rename_Input, Cursor_Position => 2);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "inactive rename text click is ignored");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "inactive rename text click does not focus input");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "inactive rename text click is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "inactive rename text click does not focus input");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "idle Escape is ignored");
-      Assert
-        (Result.Command = Files.Commands.Close_Command_Palette_Command,
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Controller.Controller_Ignored, "idle Escape is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Close_Command_Palette_Command,
          "idle Escape still reports context command");
    end Test_Controller_Command_Palette_Escape_Priority;
    procedure Test_Copy_Path_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1870,11 +2520,15 @@ package body Files_Suite.Commands is
       Ctrl_Shift (Guikit.Input.Shift_Key) := True;
 
       --  Pure, filesystem-free join seam.
-      Assert (Files.Commands.Joined_Full_Paths (Empty) = "", "an empty selection joins to empty text");
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Joined_Full_Paths (Empty),
+         "",
+         "an empty selection joins to empty text");
       Pair.Append (Files.File_System.Make_Item (Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
       Pair.Append (Files.File_System.Make_Item (Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
-      Assert
-        (Files.Commands.Joined_Full_Paths (Pair) = Alpha_Path & ASCII.LF & Beta_Path,
+      Files_Suite.Support.Assert_Equal
+        (Files.Commands.Joined_Full_Paths (Pair),
+         Alpha_Path & ASCII.LF & Beta_Path,
          "full paths join one per line in item order");
 
       --  Enablement follows the selection.
@@ -1894,9 +2548,9 @@ package body Files_Suite.Commands is
       Assert
         (Files.Model.System_Clipboard_Request_Pending (Model),
          "copy-path records a pending system-clipboard request");
-      Assert
-        (Files.Model.System_Clipboard_Request_Text (Model) =
-           Alpha_Path & ASCII.LF & Beta_Path & ASCII.LF & Gamma_Path,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.System_Clipboard_Request_Text (Model),
+         Alpha_Path & ASCII.LF & Beta_Path & ASCII.LF & Gamma_Path,
          "copy-path stores the newline-joined selection paths");
       Files.Model.Clear_System_Clipboard_Request (Model);
       Assert
@@ -1905,7 +2559,10 @@ package body Files_Suite.Commands is
 
       --  Control+Shift+C routes to the command through the controller.
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_C, Ctrl_Shift);
-      Assert (Result.Command = Files.Commands.Copy_Path_Command, "Control+Shift+C routes to copy-path");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Copy_Path_Command,
+         "Control+Shift+C routes to copy-path");
    end Test_Copy_Path_Command;
 
    procedure Test_Open_Containing_Folder_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1936,11 +2593,13 @@ package body Files_Suite.Commands is
 
       Result :=
         Files.Controller.Execute_Command (Files.Commands.Open_Containing_Folder_Command, Model, Settings);
-      Assert
-        (Result.Command = Files.Commands.Open_Containing_Folder_Command,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Open_Containing_Folder_Command,
          "reveal reports its command");
-      Assert
-        (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Sub),
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Ada.Directories.Full_Name (Sub),
          "reveal navigates to the item's containing folder");
       Assert
         (Files.Model.Selected_Count (Model) = 1
@@ -1978,19 +2637,28 @@ package body Files_Suite.Commands is
       Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 3);
       Result :=
         Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 6, Modifiers => Shift);
-      Assert (Files.Model.Selected_Count (Model) = 4, "the first shift-click selects the 3..6 range");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         4,
+         "the first shift-click selects the 3..6 range");
       Result :=
         Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 9, Modifiers => Shift);
 
-      Assert
-        (Result.Status = Files.Controller.Controller_Selection_Moved,
+      Files_Suite.Support.Assert_Equal
+
+        (Result.Status,
+
+         Files.Controller.Controller_Selection_Moved,
+
          "a shift-click reports a selection move");
-      Assert
-        (Files.Model.Selected_Count (Model) = 7,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         7,
          "the second shift-click extends the range from the original anchor, not the moved cursor");
       for Index in 1 .. 9 loop
-         Assert
-           (Files.Model.Is_Selected (Model, Index) = (Index in 3 .. 9),
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Is_Selected (Model, Index),
+            (Index in 3 .. 9),
             "exactly items 3..9 are selected after the range extension");
       end loop;
    end Test_Shift_Click_Range_Anchor;
@@ -2019,8 +2687,9 @@ package body Files_Suite.Commands is
          --  Down navigates the menu (see Test_Context_Menu_Keyboard); the point
          --  here is that it does not leak through to move the grid behind it.
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-         Assert
-           (Files.Model.Selected_Index (Model) = Before,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selected_Index (Model),
+            Before,
             "the grid does not move behind the context menu");
          Assert (Files.Model.Context_Menu_Is_Open (Model), "a non-Escape key leaves the menu open");
       end;
@@ -2062,18 +2731,28 @@ package body Files_Suite.Commands is
 
       --  The menu opens with the highlight on the current field (Name, row 1).
       Files.Model.Toggle_Sort_Menu (Model);
-      Assert (Files.Model.Sort_Menu_Highlight (Model) = 1, "the sort menu opens highlighting the current field");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Sort_Menu_Highlight (Model),
+         1,
+         "the sort menu opens highlighting the current field");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Up);
-      Assert (Files.Model.Sort_Menu_Highlight (Model) = 1, "Up at the first row stays clamped");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Sort_Menu_Highlight (Model),
+         1,
+         "Up at the first row stays clamped");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Assert (Files.Model.Sort_Menu_Highlight (Model) = 2, "Down moves the highlight to the next row");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Sort_Menu_Highlight (Model),
+         2,
+         "Down moves the highlight to the next row");
 
       --  Enter applies the highlighted field and closes the menu.
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Assert (not Files.Model.Sort_Menu_Is_Open (Model), "Enter closes the sort menu");
-      Assert
-        (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Size,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Sort_Field_Of (Model),
+         Files.Model.Sort_Size,
          "Enter applies the highlighted sort field");
    end Test_Sort_Menu_Keyboard;
 
@@ -2092,21 +2771,39 @@ package body Files_Suite.Commands is
       Shift (Guikit.Input.Shift_Key) := True;
 
       --  Forward ring: grid -> path input -> filter -> grid.
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "focus starts on the grid");
+      Files_Suite.Support.Assert_Equal (Files.Model.Focus (Model), Files.Types.Focus_None, "focus starts on the grid");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "Tab focuses the path input");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Path_Input,
+         "Tab focuses the path input");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Filter_Input, "Tab focuses the filter input");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Filter_Input,
+         "Tab focuses the filter input");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "Tab returns focus to the grid");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "Tab returns focus to the grid");
 
       --  Backward ring: grid -> filter -> path -> grid.
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab, Shift);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Filter_Input, "Shift+Tab focuses the filter input");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Filter_Input,
+         "Shift+Tab focuses the filter input");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab, Shift);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "Shift+Tab focuses the path input");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Path_Input,
+         "Shift+Tab focuses the path input");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Tab, Shift);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "Shift+Tab returns focus to the grid");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "Shift+Tab returns focus to the grid");
    end Test_Tab_Focus_Ring;
 
    procedure Test_Context_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -2133,7 +2830,10 @@ package body Files_Suite.Commands is
       Shift (Guikit.Input.Shift_Key) := True;
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F10, Shift);
       Assert (Files.Model.Context_Menu_Is_Open (Model), "Shift+F10 opens the context menu");
-      Assert (Files.Model.Context_Menu_Highlight (Model) = 0, "the menu opens with no row highlighted");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Context_Menu_Highlight (Model),
+         0,
+         "the menu opens with no row highlighted");
 
       --  Arrowing down lands only on enabled command rows, skipping separators and
       --  disabled entries, and always moves forward.
@@ -2177,8 +2877,14 @@ package body Files_Suite.Commands is
       Files_Suite.Support.Reset_Root;
 
       --  Sample_Model opens in the small-icons view sorted ascending by name.
-      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Small_Icons, "model starts in small-icons view");
-      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Name, "model starts sorted by name");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.View_Mode_Of (Model),
+         Files.Types.Small_Icons,
+         "model starts in small-icons view");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Sort_Field_Of (Model),
+         Files.Model.Sort_Name,
+         "model starts sorted by name");
       Assert (Files.Model.Sort_Is_Ascending (Model), "model starts sorted ascending");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
@@ -2195,12 +2901,21 @@ package body Files_Suite.Commands is
       end;
 
       Result := Files.Controller.Save_Settings (Model, Settings, Path);
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "saving the settings succeeds");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "saving the settings succeeds");
 
       --  The change takes effect on the live model immediately, not only on the
       --  next launch.
-      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Details, "the saved view mode is applied live");
-      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Size, "the saved sort field is applied live");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.View_Mode_Of (Model),
+         Files.Types.Details,
+         "the saved view mode is applied live");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Sort_Field_Of (Model),
+         Files.Model.Sort_Size,
+         "the saved sort field is applied live");
       Assert (not Files.Model.Sort_Is_Ascending (Model), "the saved sort direction is applied live");
    end Test_Save_Settings_Applies_Live;
 

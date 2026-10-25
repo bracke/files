@@ -85,7 +85,7 @@ separate (Files_Suite.Operations)
       Load := Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
       Assert (Load.Success, "partial-empty setup loads the trash view");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
-      Assert (Files.Model.Item_Count (Model) = 2, "the trash view lists both trashed entries");
+      Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "the trash view lists both trashed entries");
 
       --  Emptying must never crash; the ordinary file is always removed.
       Result := Files.Controller.Execute_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
@@ -100,11 +100,18 @@ separate (Files_Suite.Operations)
       --  When the lock actually held (non-root), the survivor is reported through
       --  the non-fatal partial diagnostic while the overall result stays success.
       if Ada.Directories.Exists (Trashed_Lock) then
-         Assert (Result.Operation.Status = Files.Operations.Operation_Success, "a partial empty still reports success");
-         Assert
-           (Files.Model.Last_Error_Key (Model) = "error.trash.empty_partial",
+         Files_Suite.Support.Assert_Equal
+           (Result.Operation.Status,
+            Files.Operations.Operation_Success,
+            "a partial empty still reports success");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Last_Error_Key (Model),
+            "error.trash.empty_partial",
             "a partial empty records the partial diagnostic");
-         Assert (Files.Model.Item_Count (Model) = 1, "the un-removable entry remains in the reloaded trash view");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Item_Count (Model),
+            1,
+            "the un-removable entry remains in the reloaded trash view");
       end if;
 
       --  Unlock and remove the fixture tree.

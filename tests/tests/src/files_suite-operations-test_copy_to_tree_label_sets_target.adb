@@ -32,14 +32,17 @@ separate (Files_Suite.Operations)
       --  A label click (Toggle => False) while picking sets the target and must
       --  not navigate the main view away from the source directory.
       Routed := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => False);
-      Assert
-        (Routed.Status = Files.Controller.Controller_Command_Executed,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Status,
+         Files.Controller.Controller_Command_Executed,
          "the label click is handled");
-      Assert
-        (Files.Model.Tree_Pick_Target (Model) = Dest_Dir,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Tree_Pick_Target (Model),
+         Dest_Dir,
          "the label click sets the highlighted target");
-      Assert
-        (Files.Model.Current_Path (Model) = Src_Dir,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Src_Dir,
          "the label click does not navigate the main view");
       Assert (Files.Model.Tree_Pick_Is_Active (Model), "the picker stays active after choosing a target");
    end Test_Copy_To_Tree_Label_Sets_Target;

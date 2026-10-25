@@ -26,8 +26,9 @@ separate (Files_Suite.Operations)
       --  Setting ownership to the file's OWN uid/gid is permitted even for a
       --  non-root process, so this exercises the primitive and undo plumbing.
       Result := Files.Operations.Set_Ownership_For (Model, Uid, Gid, Settings);
-      Assert
-        (Result.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
          "identity chown to the file's own owner succeeds");
       Assert
         (Files.Model.Undo_Kind_Of (Model) = Files.Model.Undo_Set_Ownership,
@@ -54,7 +55,7 @@ separate (Files_Suite.Operations)
       end;
 
       Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Result.Status = Files.Operations.Operation_Success, "undo of chown succeeds");
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "undo of chown succeeds");
       Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after chown undo");
 
       declare

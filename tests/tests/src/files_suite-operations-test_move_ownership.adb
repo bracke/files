@@ -81,20 +81,29 @@ separate (Files_Suite.Operations)
          Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move, False);
          Step := Complete_Operation (Model, Settings, Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Success, "move the ownership tree across filesystems");
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Success,
+            "move the ownership tree across filesystems");
          for Cycle in 1 .. 2 loop
             Check (Join (To_String (Remote), "source"));
             Check (Join (To_String (Remote), "source/child"));
             Check (Join (To_String (Remote), "source/link"));
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success, "Undo the ownership-preserving move");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "Undo the ownership-preserving move");
             Check (Source);
             Check (Join (Source, "child"));
             Check (Join (Source, "link"));
             Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success, "Redo the ownership-preserving move");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "Redo the ownership-preserving move");
          end loop;
          Project_Tools.Files.Delete_Tree (Join (To_String (Remote), "source"));
       end loop;

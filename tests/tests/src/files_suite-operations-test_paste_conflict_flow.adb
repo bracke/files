@@ -57,14 +57,22 @@ separate (Files_Suite.Operations)
       Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       pragma Unreferenced (Routed);
       Assert (Files.Model.Paste_Conflict_Is_Active (Model), "a colliding paste arms the conflict dialog");
-      Assert (Files.Model.Paste_Conflict_Name (Model) = "a.txt", "the dialog names the colliding item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Paste_Conflict_Name (Model),
+         "a.txt",
+         "the dialog names the colliding item");
       Resolved :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
-      Assert (Resolved.Status = Files.Operations.Operation_Success, "replace resolves successfully");
+      Files_Suite.Support.Assert_Equal
+        (Resolved.Status,
+         Files.Operations.Operation_Success,
+         "replace resolves successfully");
       Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "resolving clears the dialog");
-      Assert (Read (Join (Dest_Dir, "a.txt")) = "SRC",
-              "replace overwrites the destination with the source; destination holds "
-              & Read (Join (Dest_Dir, "a.txt")));
+      Files_Suite.Support.Assert_Equal
+        (Read (Join (Dest_Dir, "a.txt")),
+         "SRC",
+         "replace overwrites the destination with the source; destination holds "
+         & Read (Join (Dest_Dir, "a.txt")));
 
       --  Skip: the destination is left untouched and the source remains.
       Reset_Root;
@@ -77,7 +85,10 @@ separate (Files_Suite.Operations)
       Resolved :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Skip, False);
       Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "skip clears the dialog");
-      Assert (Read (Join (Dest_Dir, "a.txt")) = "DEST", "skip leaves the destination untouched");
+      Files_Suite.Support.Assert_Equal
+        (Read (Join (Dest_Dir, "a.txt")),
+         "DEST",
+         "skip leaves the destination untouched");
       Assert (Ada.Directories.Exists (Join (Src_Dir, "a.txt")), "skip leaves the source in place");
 
       --  Rename: a uniquely named copy is created and the original is kept.
@@ -91,8 +102,14 @@ separate (Files_Suite.Operations)
       Resolved :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Rename, False);
       Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "rename clears the dialog");
-      Assert (Read (Join (Dest_Dir, "a.txt")) = "DEST", "rename keeps the original destination");
-      Assert (Read (Join (Dest_Dir, "a 2.txt")) = "SRC", "rename writes the source under a unique name");
+      Files_Suite.Support.Assert_Equal
+        (Read (Join (Dest_Dir, "a.txt")),
+         "DEST",
+         "rename keeps the original destination");
+      Files_Suite.Support.Assert_Equal
+        (Read (Join (Dest_Dir, "a 2.txt")),
+         "SRC",
+         "rename writes the source under a unique name");
 
       --  Undo of the completed rename paste removes the created copy.
       Routed := Files.Controller.Execute_Command (Files.Commands.Undo_Command, Model, Settings);
@@ -113,8 +130,14 @@ separate (Files_Suite.Operations)
       Resolved :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, True);
       Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "apply-to-all resolves both without a second prompt");
-      Assert (Read (Join (Dest_Dir, "a.txt")) = "SRCA", "apply-to-all replaces the first item");
-      Assert (Read (Join (Dest_Dir, "b.txt")) = "SRCB", "apply-to-all replaces the second item");
+      Files_Suite.Support.Assert_Equal
+        (Read (Join (Dest_Dir, "a.txt")),
+         "SRCA",
+         "apply-to-all replaces the first item");
+      Files_Suite.Support.Assert_Equal
+        (Read (Join (Dest_Dir, "b.txt")),
+         "SRCB",
+         "apply-to-all replaces the second item");
 
       --  Cancel: the whole paste aborts with no filesystem change.
       Reset_Root;
@@ -127,7 +150,10 @@ separate (Files_Suite.Operations)
       Resolved :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Cancel, False);
       Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "cancel clears the dialog");
-      Assert (Read (Join (Dest_Dir, "a.txt")) = "DEST", "cancel changes nothing at the destination");
+      Files_Suite.Support.Assert_Equal
+        (Read (Join (Dest_Dir, "a.txt")),
+         "DEST",
+         "cancel changes nothing at the destination");
       Assert (not Ada.Directories.Exists (Join (Dest_Dir, "a 2.txt")), "cancel writes no copy");
       Assert (Files.Model.Clipboard_Has_Items (Model), "cancel keeps the clipboard for a retry");
    end Test_Paste_Conflict_Flow;

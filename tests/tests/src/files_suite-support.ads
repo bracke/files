@@ -1,12 +1,17 @@
 with Ada.Finalization;
 with Ada.Iterator_Interfaces;
 with Ada.Real_Time;
+with Files.Commands;
+with Files.Controller;
 with Files.Events;
 with Files.File_System;
 with Files.Model;
+with Files.Operations;
+with Files.Settings;
 with Files.Rendering;
 with Guikit.Input;
 with Files.Types;
+with Files_Suite.Generic_Assert_Equal;
 
 package Files_Suite.Support is
 
@@ -51,6 +56,21 @@ package Files_Suite.Support is
    --  @param Expected Wanted value.
    --  @param Message What the check is about.
    procedure Assert_Equal (Actual, Expected : Boolean; Message : String);
+
+   --  Assert_Equal for the enumerations the suite compares most.
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Operations.Operation_Status);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Commands.Command_Id);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Controller.Controller_Status);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Focus_Target);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Guikit.Input.Key_Code);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Commands.Command_Placement);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Events.Input_Action_Kind);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Color_Label);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.View_Mode);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Detail_Column);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Model.Sort_Field);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Group_Mode);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Settings.Sort_Field);
 
    --  How long a call may take and still count as not waiting for a stalled
    --  helper (which never finishes): long enough for a loaded CI runner to

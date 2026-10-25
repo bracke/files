@@ -226,35 +226,57 @@ package body Files_Suite.Model is
       Load := Files.File_System.Load_Directory (Dir, Settings);
 
       Assert (Load.Success, "directory load succeeds");
-      Assert
-        (Natural (Load.Items.Length) = (if Case_Sensitive then 4 else 3),
+      Files_Suite.Support.Assert_Equal
+        (Natural (Load.Items.Length),
+         (if Case_Sensitive then 4 else 3),
          "all direct children are loaded; count=" & Natural'Image (Natural (Load.Items.Length)));
-      Assert (To_String (Load.Items.Element (1).Name) = "A.txt", "directory items sort by name with files");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (1).Name),
+         "A.txt",
+         "directory items sort by name with files");
       Load := Files.File_System.Load_Directory (Dir & "/.", Settings);
       Assert (Load.Success, "non-normal directory path loads");
-      Assert (To_String (Load.Items.Element (1).Parent_Path) = To_String (Load.Path), "item parent path is normalized");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (1).Parent_Path),
+         To_String (Load.Path),
+         "item parent path is normalized");
 
       if Case_Sensitive then
-         Assert
-           (To_String (Load.Items.Element (2).Name) = "a.txt",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Load.Items.Element (2).Name),
+            "a.txt",
             "case-insensitive equal names use deterministic fallback order");
-         Assert
-           (To_String (Load.Items.Element (3).Name) = "b.txt",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Load.Items.Element (3).Name),
+            "b.txt",
             "fallback name order is deterministic");
-         Assert (To_String (Load.Items.Element (4).Name) = "zdir", "directories remain in normal name order");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Load.Items.Element (4).Name),
+            "zdir",
+            "directories remain in normal name order");
       else
-         Assert
-           (To_String (Load.Items.Element (2).Name) = "b.txt",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Load.Items.Element (2).Name),
+            "b.txt",
             "fallback name order is deterministic");
-         Assert (To_String (Load.Items.Element (3).Name) = "zdir", "directories remain in normal name order");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Load.Items.Element (3).Name),
+            "zdir",
+            "directories remain in normal name order");
       end if;
 
       Load := Files.File_System.Load_Directory (Join (Root, "missing-directory"), Settings);
       Assert (not Load.Success, "missing directory load reports failure");
-      Assert (To_String (Load.Error_Key) = "error.directory.load", "missing directory load reports error key");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Error_Key),
+         "error.directory.load",
+         "missing directory load reports error key");
       Load := Files.File_System.Load_Directory (Join (Root, "not-a-directory.txt"), Settings);
       Assert (not Load.Success, "file path directory load reports failure");
-      Assert (To_String (Load.Error_Key) = "error.directory.load", "file path directory load reports error key");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Error_Key),
+         "error.directory.load",
+         "file path directory load reports error key");
    end Test_Directory_Sorting;
 
    procedure Test_Accent_Folding_Sort (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -274,22 +296,25 @@ package body Files_Suite.Model is
    begin
       --  The accented letter folds to its base, so the key collates with the
       --  base letter rather than after all of a..z (the raw-byte-order bug).
-      Assert (F (A_Umlaut_Name) = "apfel", "an umlaut folds to its base letter");
-      Assert (F (A_Umlaut_Name) = F ("Apfel"), "accented and plain names share a fold key");
+      Files_Suite.Support.Assert_Equal (F (A_Umlaut_Name), "apfel", "an umlaut folds to its base letter");
+      Files_Suite.Support.Assert_Equal (F (A_Umlaut_Name), F ("Apfel"), "accented and plain names share a fold key");
       Assert (F (A_Umlaut_Name) < F ("Bericht"), "the umlaut name sorts before Bericht");
       Assert
         (F (A_Umlaut_Name) < F ("Zebra"),
          "the umlaut name sorts before Zebra, not after every a..z name");
-      Assert (F (Sharp_Name) = "strasse", "sharp-s folds to ss");
-      Assert (F (Sharp_Name) = F ("Strasse"), "strasse and its sharp-s spelling share a fold key");
-      Assert (F (Acute_Name) = "cafe", "an acute accent folds to the base letter");
+      Files_Suite.Support.Assert_Equal (F (Sharp_Name), "strasse", "sharp-s folds to ss");
+      Files_Suite.Support.Assert_Equal
+        (F (Sharp_Name),
+         F ("Strasse"),
+         "strasse and its sharp-s spelling share a fold key");
+      Files_Suite.Support.Assert_Equal (F (Acute_Name), "cafe", "an acute accent folds to the base letter");
 
       --  Plain ASCII is just lower-cased, and a script with no Latin base is
       --  preserved rather than dropped.
-      Assert (F ("HELLO.txt") = "hello.txt", "ASCII is lower-cased");
-      Assert
-        (F (Character'Val (16#CE#) & Character'Val (16#A9#)) =
-           Character'Val (16#CE#) & Character'Val (16#A9#),
+      Files_Suite.Support.Assert_Equal (F ("HELLO.txt"), "hello.txt", "ASCII is lower-cased");
+      Files_Suite.Support.Assert_Equal
+        (F (Character'Val (16#CE#) & Character'Val (16#A9#)),
+         Character'Val (16#CE#) & Character'Val (16#A9#),
          "a non-Latin codepoint keeps its own bytes");
    end Test_Accent_Folding_Sort;
 
@@ -325,7 +350,7 @@ package body Files_Suite.Model is
             exit when not Found;
             Count := Count + 1;
          end loop;
-         Assert (Count = 200, "the undo stack is capped at 200 entries; kept" & Count'Image);
+         Files_Suite.Support.Assert_Equal (Count, 200, "the undo stack is capped at 200 entries; kept" & Count'Image);
       end;
 
       --  Back-navigation history is bounded the same way.
@@ -339,7 +364,10 @@ package body Files_Suite.Model is
             Files.Model.Go_Back (Model);
             Count := Count + 1;
          end loop;
-         Assert (Count = 200, "back-navigation history is capped at 200; went back" & Count'Image);
+         Files_Suite.Support.Assert_Equal
+           (Count,
+            200,
+            "back-navigation history is capped at 200; went back" & Count'Image);
       end;
    end Test_History_Bounds;
 
@@ -486,45 +514,85 @@ package body Files_Suite.Model is
 
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Assert (Load.Success, "directory projection loads");
-      Assert (Natural (Load.Items.Length) = 3, "hidden files are hidden by default");
-      Assert (To_String (Load.Items.Element (1).Name) = "afile.txt", "name ordering can sort files before dirs");
-      Assert (To_String (Load.Items.Element (2).Name) = "c.bin", "name sort keeps files in deterministic order");
-      Assert (To_String (Load.Items.Element (3).Name) = "zdir", "directory follows file when name sort wins");
+      Files_Suite.Support.Assert_Equal (Natural (Load.Items.Length), 3, "hidden files are hidden by default");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (1).Name),
+         "afile.txt",
+         "name ordering can sort files before dirs");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (2).Name),
+         "c.bin",
+         "name sort keeps files in deterministic order");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (3).Name),
+         "zdir",
+         "directory follows file when name sort wins");
 
       Settings.Sort_Field_Value := Files.Settings.Sort_By_Filetype;
       Load := Files.File_System.Load_Directory (Dir, Settings);
-      Assert (To_String (Load.Items.Element (1).Name) = "c.bin", "filetype sort uses configured field");
-      Assert (To_String (Load.Items.Element (2).Name) = "zdir", "filetype ties fall back to name order");
-      Assert (To_String (Load.Items.Element (3).Name) = "afile.txt", "text file sorts after inode/filetype entries");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (1).Name),
+         "c.bin",
+         "filetype sort uses configured field");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (2).Name),
+         "zdir",
+         "filetype ties fall back to name order");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (3).Name),
+         "afile.txt",
+         "text file sorts after inode/filetype entries");
 
       Settings.Sort_Field_Value := Files.Settings.Sort_By_Size;
       Settings.Sort_Ascending := False;
       Load := Files.File_System.Load_Directory (Dir, Settings);
-      Assert (To_String (Load.Items.Element (1).Name) = "c.bin", "descending size sort uses metadata");
-      Assert (To_String (Load.Items.Element (2).Name) = "afile.txt", "smaller file follows larger file");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (1).Name),
+         "c.bin",
+         "descending size sort uses metadata");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (2).Name),
+         "afile.txt",
+         "smaller file follows larger file");
 
       Settings.Show_Hidden_Files := True;
       Settings.Sort_Field_Value := Files.Settings.Sort_By_Name;
       Settings.Sort_Ascending := True;
       Load := Files.File_System.Load_Directory (Dir, Settings);
-      Assert (Natural (Load.Items.Length) = 5, "show-hidden setting exposes dot files");
-      Assert (To_String (Load.Items.Element (1).Name) = ".profile", "hidden file participates in stable sorting");
-      Assert (To_String (Load.Items.Element (2).Name) = ".secret", "leading-dot files sort deterministically");
-      Assert
-        (To_String (Load.Items.Element (1).Filetype) = "application/octet-stream",
+      Files_Suite.Support.Assert_Equal (Natural (Load.Items.Length), 5, "show-hidden setting exposes dot files");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (1).Name),
+         ".profile",
+         "hidden file participates in stable sorting");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (2).Name),
+         ".secret",
+         "leading-dot files sort deterministically");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (1).Filetype),
+         "application/octet-stream",
          "leading-dot file loaded from disk does not use extension mapping");
 
       Ada.Directories.Create_Path (Join (Dir, ".vault"));
       Settings.Show_Hidden_Files := False;
       Load := Files.File_System.Load_Directory (Dir, Settings);
-      Assert (Natural (Load.Items.Length) = 3, "hidden directories are hidden by default");
+      Files_Suite.Support.Assert_Equal (Natural (Load.Items.Length), 3, "hidden directories are hidden by default");
 
       Settings.Show_Hidden_Files := True;
       Load := Files.File_System.Load_Directory (Dir, Settings);
-      Assert (Natural (Load.Items.Length) = 6, "show-hidden setting exposes dot directories");
-      Assert (To_String (Load.Items.Element (1).Name) = ".profile", "hidden files sort by name with other items");
-      Assert (To_String (Load.Items.Element (2).Name) = ".secret", "hidden files remain in deterministic order");
-      Assert (To_String (Load.Items.Element (3).Name) = ".vault", "hidden directories sort by name with files");
+      Files_Suite.Support.Assert_Equal (Natural (Load.Items.Length), 6, "show-hidden setting exposes dot directories");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (1).Name),
+         ".profile",
+         "hidden files sort by name with other items");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (2).Name),
+         ".secret",
+         "hidden files remain in deterministic order");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (3).Name),
+         ".vault",
+         "hidden directories sort by name with files");
 
       Ada.Directories.Create_Path (Tie_Dir);
       Write_File (Join (Tie_Dir, "B_equal.txt"), "same");
@@ -535,18 +603,32 @@ package body Files_Suite.Model is
       Settings.Sort_Field_Value := Files.Settings.Sort_By_Size;
       Settings.Sort_Ascending := True;
       Load := Files.File_System.Load_Directory (Tie_Dir, Settings);
-      Assert (To_String (Load.Items.Element (1).Name) = "a_equal.txt", "ascending size ties use name fallback");
-      Assert (To_String (Load.Items.Element (2).Name) = "B_equal.txt", "ascending size tie fallback is deterministic");
-      Assert (To_String (Load.Items.Element (3).Name) = "later.txt", "ascending size places larger item after ties");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (1).Name),
+         "a_equal.txt",
+         "ascending size ties use name fallback");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (2).Name),
+         "B_equal.txt",
+         "ascending size tie fallback is deterministic");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (3).Name),
+         "later.txt",
+         "ascending size places larger item after ties");
 
       Settings.Sort_Ascending := False;
       Load := Files.File_System.Load_Directory (Tie_Dir, Settings);
-      Assert (To_String (Load.Items.Element (1).Name) = "later.txt", "descending size places larger item first");
-      Assert
-        (To_String (Load.Items.Element (2).Name) = "a_equal.txt",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (1).Name),
+         "later.txt",
+         "descending size places larger item first");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (2).Name),
+         "a_equal.txt",
          "descending size ties keep deterministic name fallback");
-      Assert
-        (To_String (Load.Items.Element (3).Name) = "B_equal.txt",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (3).Name),
+         "B_equal.txt",
          "descending size tie fallback remains stable");
 
       Settings.Sort_Field_Value := Files.Settings.Sort_By_Modified;
@@ -573,15 +655,25 @@ package body Files_Suite.Model is
             Minute => 0,
             Second => 0));
       Load := Files.File_System.Load_Directory (Modified_Dir, Settings);
-      Assert (To_String (Load.Items.Element (1).Name) = "old.txt", "modified sort orders older item first");
-      Assert (To_String (Load.Items.Element (Natural (Load.Items.Length)).Name) = "new.txt",
-              "modified sort orders newer item last");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (1).Name),
+         "old.txt",
+         "modified sort orders older item first");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (Natural (Load.Items.Length)).Name),
+         "new.txt",
+         "modified sort orders newer item last");
 
       Settings.Sort_Ascending := False;
       Load := Files.File_System.Load_Directory (Modified_Dir, Settings);
-      Assert (To_String (Load.Items.Element (1).Name) = "new.txt", "descending modified sort orders newer item first");
-      Assert (To_String (Load.Items.Element (Natural (Load.Items.Length)).Name) = "old.txt",
-              "descending modified sort orders older item last");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (1).Name),
+         "new.txt",
+         "descending modified sort orders newer item first");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Load.Items.Element (Natural (Load.Items.Length)).Name),
+         "old.txt",
+         "descending modified sort orders older item last");
    end Test_Directory_Projection_Settings;
 
    procedure Test_Directory_Metadata_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -771,166 +863,212 @@ package body Files_Suite.Model is
          elsif To_String (Item.Name) = "link-to-plain.adb" then
             Found_Symlink := True;
             Assert (Item.Kind = Files.Types.Symlink_Item, "symlink metadata affects item kind");
-            Assert
-              (To_String (Item.Filetype) = "inode/symlink",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Item.Filetype),
+               "inode/symlink",
                "real symlink directory item ignores extension mappings");
-            Assert (To_String (Item.Icon_Id) = "link", "real symlink directory item uses link icon");
-            Assert
-              (Item_Extra (Item) = "symlink.target|plain.txt",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Item.Icon_Id),
+               "link",
+               "real symlink directory item uses link icon");
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "symlink.target|plain.txt",
                "real symlink directory item records target metadata");
          elsif To_String (Item.Name) = "link-to-run.sh" then
             Found_Executable_Symlink := True;
             Assert
               (Item.Kind = Files.Types.Symlink_Item,
                "executable symlink metadata keeps symlink kind");
-            Assert
-              (To_String (Item.Filetype) = "inode/symlink",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Item.Filetype),
+               "inode/symlink",
                "executable symlink filetype wins before executable metadata");
-            Assert
-              (Item_Extra (Item) = "symlink.target|run.sh",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "symlink.target|run.sh",
                "executable symlink records target metadata");
          elsif To_String (Item.Name) = "long-line.txt" then
             Found_Long_Text := True;
-            Assert
-              (Item_Extra (Item) = "text.lines_encoding|1|ascii",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "text.lines_encoding|1|ascii",
                "long text lines count as one physical line");
          elsif To_String (Item.Name) = "utf8.txt" then
             Found_Utf8 := True;
-            Assert
-              (Item_Extra (Item) = "text.lines_encoding|1|utf8",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "text.lines_encoding|1|utf8",
                "UTF-8 text files expose text encoding metadata");
          elsif To_String (Item.Name) = "binary.txt" then
             Found_Binary_Text := True;
-            Assert
-              (Item_Extra (Item) = "text.lines_encoding|1|binary",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "text.lines_encoding|1|binary",
                "invalid text files expose binary encoding metadata");
          elsif To_String (Item.Name) = "late-binary.txt" then
             Found_Late_Binary_Text := True;
-            Assert
-              (Item_Extra (Item) = "text.lines_encoding|1|binary",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "text.lines_encoding|1|binary",
                "text encoding metadata scans beyond the first read buffer");
          elsif To_String (Item.Name) = "sampled.txt" then
             Found_Sampled_Text := True;
-            Assert
-              (Item_Extra (Item) = "text.lines_encoding|1|ascii",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "text.lines_encoding|1|ascii",
                "text encoding sampling stops at a bounded prefix, not the whole file");
          elsif To_String (Item.Name) = "huge-oneline.txt" then
             Found_Huge_Oneline := True;
-            Assert
-              (Item_Extra (Item) = "text.lines_encoding|1|ascii",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "text.lines_encoding|1|ascii",
                "line counting stops at the byte-scan cap instead of reading a huge file");
          elsif To_String (Item.Name) = "split-utf8.txt" then
             Found_Split_Utf8 := True;
-            Assert
-              (Item_Extra (Item) = "text.lines_encoding|1|utf8",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "text.lines_encoding|1|utf8",
                "text encoding metadata accepts UTF-8 split across read buffers");
          elsif To_String (Item.Name) = "overlong.txt" then
             Found_Overlong_Text := True;
-            Assert
-              (Item_Extra (Item) = "text.lines_encoding|1|binary",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "text.lines_encoding|1|binary",
                "overlong UTF-8 text files expose binary encoding metadata");
          elsif To_String (Item.Name) = "surrogate.txt" then
             Found_Surrogate_Text := True;
-            Assert
-              (Item_Extra (Item) = "text.lines_encoding|1|binary",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "text.lines_encoding|1|binary",
                "surrogate UTF-8 text files expose binary encoding metadata");
          elsif To_String (Item.Name) = "notes.md" then
             Found_Markdown := True;
-            Assert
-              (Item_Extra (Item) = "markdown.lines_encoding|2|ascii",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "markdown.lines_encoding|2|ascii",
                "Markdown files expose markdown line and encoding metadata");
          elsif To_String (Item.Name) = "picture.png" then
             Found_Png := True;
-            Assert
-              (Item_Extra (Item) = "image.dimensions|32x16",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "image.dimensions|32x16",
                "PNG dimensions are loaded as filetype-specific metadata");
          elsif To_String (Item.Name) = "photo.jpg" then
             Found_Jpeg := True;
-            Assert
-              (Item_Extra (Item) = "image.dimensions|48x24",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "image.dimensions|48x24",
                "JPEG dimensions tolerate fill bytes before frame markers");
          elsif To_String (Item.Name) = "folder" then
             Found_Dir := True;
-            Assert
-              (Item_Extra (Item) = "directory.count|1",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "directory.count|1",
                "directory item counts are loaded as filetype-specific metadata");
          elsif To_String (Item.Name) = "paper.pdf" then
             Found_Pdf := True;
-            Assert (To_String (Item.Filetype) = "application/pdf", "PDF extension maps to filetype");
-            Assert
-              (Item_Extra (Item) = "document.pdf.pages|1",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Item.Filetype),
+               "application/pdf",
+               "PDF extension maps to filetype");
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "document.pdf.pages|1",
                "PDF files expose page marker metadata");
          elsif To_String (Item.Name) = "paper-control.pdf" then
             Found_Pdf_Control := True;
-            Assert
-              (Item_Extra (Item) = "document.pdf.pages|2",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "document.pdf.pages|2",
                "PDF page markers accept vertical tab and form feed separators");
          elsif To_String (Item.Name) = "bundle.zip" then
             Found_Zip := True;
-            Assert (To_String (Item.Filetype) = "application/zip", "ZIP extension maps to filetype");
-            Assert
-              (Item_Extra (Item) = "archive.zip.entries|1",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Item.Filetype),
+               "application/zip",
+               "ZIP extension maps to filetype");
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "archive.zip.entries|1",
                "ZIP files expose entry-count metadata");
          elsif To_String (Item.Name) = "split.zip" then
             Found_Split_Zip := True;
-            Assert
-              (Item_Extra (Item) = "archive.zip.entries|1",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "archive.zip.entries|1",
                "ZIP entry counting detects signatures split across read buffers");
          elsif To_String (Item.Name) = "report.docx" then
             Found_Docx := True;
-            Assert
-              (To_String (Item.Filetype) =
+            Files_Suite.Support.Assert_Equal
+              (To_String (Item.Filetype),
                "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
                "DOCX extension maps to filetype");
-            Assert
-              (Item_Extra (Item) = "office.docx.entries|1",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "office.docx.entries|1",
                "DOCX files expose package entry-count metadata");
          elsif To_String (Item.Name) = "sheet.xlsx" then
             Found_Xlsx := True;
-            Assert
-              (To_String (Item.Filetype) =
+            Files_Suite.Support.Assert_Equal
+              (To_String (Item.Filetype),
                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                "XLSX extension maps to filetype");
-            Assert
-              (Item_Extra (Item) = "office.xlsx.entries|1",
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "office.xlsx.entries|1",
                "XLSX files expose package entry-count metadata");
          elsif To_String (Item.Name) = "track.mp3" then
             Found_Mp3 := True;
-            Assert (To_String (Item.Filetype) = "audio/mpeg", "MP3 extension maps to filetype");
-            Assert
-              (Item_Extra (Item) = "media.kind|audio",
-               "MP3 files expose audio metadata");
+            Files_Suite.Support.Assert_Equal
+              (To_String (Item.Filetype),
+               "audio/mpeg",
+               "MP3 extension maps to filetype");
+            Files_Suite.Support.Assert_Equal (Item_Extra (Item), "media.kind|audio", "MP3 files expose audio metadata");
          elsif To_String (Item.Name) = "clip.mp4" then
             Found_Mp4 := True;
-            Assert (To_String (Item.Filetype) = "video/mp4", "MP4 extension maps to filetype");
-            Assert
-              (Item_Extra (Item) = "media.kind|video",
-               "MP4 files expose video metadata");
+            Files_Suite.Support.Assert_Equal (To_String (Item.Filetype), "video/mp4", "MP4 extension maps to filetype");
+            Files_Suite.Support.Assert_Equal (Item_Extra (Item), "media.kind|video", "MP4 files expose video metadata");
          elsif To_String (Item.Name) = "archive.tar.gz" then
             Found_Tar_Gz := True;
-            Assert (To_String (Item.Filetype) = "application/gzip-tar",
-                    "compound extension maps to filetype; got "
-                    & To_String (Item.Filetype));
-            Assert
-              (Item_Extra (Item) = "archive.format|gzip",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Item.Filetype),
+               "application/gzip-tar",
+               "compound extension maps to filetype; got "
+               & To_String (Item.Filetype));
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "archive.format|gzip",
                "compound gzip-tar archive files expose gzip format metadata");
          elsif To_String (Item.Name) = "unit.adb" then
             Found_Ada := True;
-            Assert (To_String (Item.Filetype) = "text/x-ada", "Ada body extension maps to filetype");
-            Assert
-              (Item_Extra (Item) = "source.ada.lines_encoding|4|ascii",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Item.Filetype),
+               "text/x-ada",
+               "Ada body extension maps to filetype");
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "source.ada.lines_encoding|4|ascii",
                "Ada source files expose source metadata");
          elsif To_String (Item.Name) = "data.json" then
             Found_Json := True;
-            Assert (To_String (Item.Filetype) = "application/json", "JSON extension maps to filetype");
-            Assert
-              (Item_Extra (Item) = "source.json.lines_encoding|1|ascii",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Item.Filetype),
+               "application/json",
+               "JSON extension maps to filetype");
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "source.json.lines_encoding|1|ascii",
                "JSON files expose source metadata");
          elsif To_String (Item.Name) = "doc.xml" then
             Found_Xml := True;
-            Assert (To_String (Item.Filetype) = "application/xml", "XML extension maps to filetype");
-            Assert
-              (Item_Extra (Item) = "source.xml.lines_encoding|1|ascii",
+            Files_Suite.Support.Assert_Equal
+              (To_String (Item.Filetype),
+               "application/xml",
+               "XML extension maps to filetype");
+            Files_Suite.Support.Assert_Equal
+              (Item_Extra (Item),
+               "source.xml.lines_encoding|1|ascii",
                "XML files expose source metadata");
          end if;
       end loop;
@@ -994,155 +1132,197 @@ package body Files_Suite.Model is
       Ada_Item := Files.File_System.Make_Item (Root, "main.adb", Files.Types.Regular_File_Item, Settings);
       Executable_Ada_Item := Files.File_System.Make_Item (Root, "tool.adb", Files.Types.Executable_Item, Settings);
       Symlink_Ada_Item := Files.File_System.Make_Item (Root, "link.adb", Files.Types.Symlink_Item, Settings);
-      Assert
-        (To_String (Directory_Item.Filetype) = "inode/directory",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Directory_Item.Filetype),
+         "inode/directory",
          "directory helper item gets directory filetype");
-      Assert (To_String (Directory_Item.Icon_Id) = "folder", "directory helper item gets directory icon");
-      Assert
-        (To_String (Symlink_Item.Filetype) = "inode/symlink",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Directory_Item.Icon_Id),
+         "folder",
+         "directory helper item gets directory icon");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Symlink_Item.Filetype),
+         "inode/symlink",
          "symlink helper item gets symlink filetype before extension mapping");
-      Assert (To_String (Symlink_Item.Icon_Id) = "link", "symlink helper item gets symlink icon");
-      Assert
-        (To_String (Executable_Item.Filetype) = "application/x-executable",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Symlink_Item.Icon_Id),
+         "link",
+         "symlink helper item gets symlink icon");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Executable_Item.Filetype),
+         "application/x-executable",
          "executable helper item gets executable filetype");
-      Assert (To_String (Executable_Item.Icon_Id) = "executable", "executable helper item gets executable icon");
-      Assert
-        (To_String (Executable_Ada_Item.Filetype) = "application/x-executable",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Executable_Item.Icon_Id),
+         "executable",
+         "executable helper item gets executable icon");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Executable_Ada_Item.Filetype),
+         "application/x-executable",
          "settings-aware executable helper item ignores extension mappings");
-      Assert
-        (To_String (Executable_Ada_Item.Icon_Id) = "executable",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Executable_Ada_Item.Icon_Id),
+         "executable",
          "settings-aware executable helper item keeps executable icon");
-      Assert
-        (To_String (Symlink_Ada_Item.Filetype) = "inode/symlink",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Symlink_Ada_Item.Filetype),
+         "inode/symlink",
          "settings-aware symlink helper item ignores extension mappings");
-      Assert
-        (To_String (Symlink_Ada_Item.Icon_Id) = "link",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Symlink_Ada_Item.Icon_Id),
+         "link",
          "settings-aware symlink helper item keeps symlink icon");
-      Assert
-        (To_String (Regular_Item.Filetype) = "text/plain",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Regular_Item.Filetype),
+         "text/plain",
          "regular helper item uses default extension mapping");
-      Assert (To_String (Regular_Item.Icon_Id) = "text", "regular helper item uses mapped text icon");
-      Assert
-        (To_String (Ada_Item.Filetype) = "text/x-ada",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Regular_Item.Icon_Id),
+         "text",
+         "regular helper item uses mapped text icon");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Ada_Item.Filetype),
+         "text/x-ada",
          "settings-aware helper item uses custom extension mapping");
-      Assert (To_String (Ada_Item.Icon_Id) = "ada", "settings-aware helper item uses custom icon mapping");
-      Assert
-        (To_String (Regular_Item.Full_Path) = "loose.txt",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Ada_Item.Icon_Id),
+         "ada",
+         "settings-aware helper item uses custom icon mapping");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Regular_Item.Full_Path),
+         "loose.txt",
          "helper item with empty parent uses simple path");
-      Assert
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Directory_Item, "src") = "inode/directory",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Directory_Item, "src"),
+         "inode/directory",
          "directory filetype wins before extension mapping");
-      Assert
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Executable_Item, "tool.adb") =
-           "application/x-executable",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Executable_Item, "tool.adb"),
+         "application/x-executable",
          "executable filetype wins before extension mapping");
-      Assert
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Symlink_Item, "link.adb") = "inode/symlink",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Symlink_Item, "link.adb"),
+         "inode/symlink",
          "symlink filetype wins before extension mapping");
-      Assert
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "main.adb") = "text/x-ada",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "main.adb"),
+         "text/x-ada",
          "extension mapping is used for regular files");
-      Assert
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "MAIN.ADB") = "text/x-ada",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "MAIN.ADB"),
+         "text/x-ada",
          "filetype detection normalizes filename extension case before mapping");
-      Assert
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "archive.tar.gz") =
-           "application/gzip-tar",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "archive.tar.gz"),
+         "application/gzip-tar",
          "compound extension mapping wins over final suffix mapping");
-      Assert (Files.File_Types.Extension_Of ("archive.tar.gz") = "gz", "final extension is extracted");
-      Assert (Files.File_Types.Extension_Of ("MAIN.ADB") = "adb", "extension extraction normalizes case");
-      Assert (Files.File_Types.Extension_Of (".profile") = "", "leading-dot file has no extension");
-      Assert (Files.File_Types.Extension_Of ("name.") = "", "trailing-dot file has no extension");
-      Assert (Files.File_Types.Extension_Of (" main.adb ") = "adb", "extension extraction trims whitespace");
-      Assert
-        (Files.File_Types.Extension_Of (ASCII.LF & "main.adb" & ASCII.LF) = "adb",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of ("archive.tar.gz"),
+         "gz",
+         "final extension is extracted");
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of ("MAIN.ADB"),
+         "adb",
+         "extension extraction normalizes case");
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of (".profile"),
+         "",
+         "leading-dot file has no extension");
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of ("name."),
+         "",
+         "trailing-dot file has no extension");
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of (" main.adb "),
+         "adb",
+         "extension extraction trims whitespace");
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of (ASCII.LF & "main.adb" & ASCII.LF),
+         "adb",
          "extension extraction trims line-feed whitespace");
-      Assert
-        (Files.File_Types.Extension_Of (ASCII.VT & "main.adb" & ASCII.FF) = "adb",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of (ASCII.VT & "main.adb" & ASCII.FF),
+         "adb",
          "extension extraction trims vertical-tab and form-feed whitespace");
-      Assert
-        (Files.File_Types.Extension_Of (C1_Break & "main.adb" & C1_Break) = "adb",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of (C1_Break & "main.adb" & C1_Break),
+         "adb",
          "extension extraction trims C1 line-break whitespace");
-      Assert
-        (Files.File_Types.Extension_Of (NBSP & "main.adb" & NBSP) = "adb",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of (NBSP & "main.adb" & NBSP),
+         "adb",
          "extension extraction trims UTF-8 NBSP whitespace");
-      Assert
-        (Files.File_Types.Extension_Of (Line_Separator & "main.adb" & Line_Separator) = "adb",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of (Line_Separator & "main.adb" & Line_Separator),
+         "adb",
          "extension extraction trims UTF-8 line-separator whitespace");
-      Assert (Files.File_Types.Extension_Of ("   ") = "", "blank filename has no extension");
-      Assert
-        (Files.File_Types.Extension_Of ("/tmp/dir.with.dots/main.adb") = "adb",
+      Files_Suite.Support.Assert_Equal (Files.File_Types.Extension_Of ("   "), "", "blank filename has no extension");
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of ("/tmp/dir.with.dots/main.adb"),
+         "adb",
          "extension extraction uses the Unix path leaf name");
-      Assert
-        (Files.File_Types.Extension_Of ("C:\tmp\dir.with.dots\main.adb") = "adb",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of ("C:\tmp\dir.with.dots\main.adb"),
+         "adb",
          "extension extraction uses the Windows path leaf name");
       if Hostkit.Host.Current /= Hostkit.Host.Windows then
-         Assert
-           (Files.File_Types.Extension_Of ("report.txt\raw") = "txt\raw",
+         Files_Suite.Support.Assert_Equal
+           (Files.File_Types.Extension_Of ("report.txt\raw"),
+            "txt\raw",
             "a POSIX backslash remains part of the extension-bearing filename");
       end if;
-      Assert
-        (Files.File_Types.Extension_Of ("/tmp/dir.with.dots/file") = "",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Extension_Of ("/tmp/dir.with.dots/file"),
+         "",
          "extension extraction ignores dotted directory names");
-      Assert
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, ".profile") =
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, ".profile"),
          "application/octet-stream",
          "leading-dot file does not match an extension mapping");
-      Assert
-        (Files.File_Types.Detect_Filetype
-           (Settings,
-            Files.Types.Regular_File_Item,
-            "/tmp/dir.with.dots/main.adb") = "text/x-ada",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "/tmp/dir.with.dots/main.adb"),
+         "text/x-ada",
          "filetype detection uses the Unix path leaf name");
-      Assert
-        (Files.File_Types.Detect_Filetype
-           (Settings,
-            Files.Types.Regular_File_Item,
-            "C:\tmp\dir.with.dots\main.adb") = "text/x-ada",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "C:\tmp\dir.with.dots\main.adb"),
+         "text/x-ada",
          "filetype detection uses the Windows path leaf name");
-      Assert
-        (Files.File_Types.Detect_Filetype
-           (Settings,
-            Files.Types.Regular_File_Item,
-            "/tmp/dir.with.dots/file") = "application/octet-stream",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "/tmp/dir.with.dots/file"),
+         "application/octet-stream",
          "filetype detection ignores dotted directory names");
-      Assert
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, " main.adb ") = "text/x-ada",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, " main.adb "),
+         "text/x-ada",
          "filetype detection trims filename whitespace before mapping");
-      Assert
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Unknown_Item, "mystery.adb") = "text/x-ada",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Unknown_Item, "mystery.adb"),
+         "text/x-ada",
          "unknown item filetype still uses configured extension mappings");
-      Assert
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Other_Item, "socket") = "application/octet-stream",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Other_Item, "socket"),
+         "application/octet-stream",
          "other item filetype falls back deterministically without mapping");
       Files.Settings.Add_Extension_Mapping (Settings, "backup.tar.gz", "application/x-backup");
-      Assert
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "weekly.backup.tar.gz") =
-           "application/x-backup",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "weekly.backup.tar.gz"),
+         "application/x-backup",
          "custom compound extension mapping uses the longest configured suffix");
-      Assert
-        (Files.File_Types.Detect_Filetype
-           (Settings,
-            Files.Types.Regular_File_Item,
-            ASCII.LF & "main.adb" & ASCII.LF) = "text/x-ada",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, ASCII.LF & "main.adb" & ASCII.LF),
+         "text/x-ada",
          "filetype detection trims line-feed filename whitespace before mapping");
-      Assert
-        (Files.File_Types.Detect_Filetype
-           (Settings,
-            Files.Types.Regular_File_Item,
-            ASCII.VT & "main.adb" & ASCII.FF) = "text/x-ada",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, ASCII.VT & "main.adb" & ASCII.FF),
+         "text/x-ada",
          "filetype detection trims vertical-tab and form-feed filename whitespace before mapping");
-      Assert
-        (Files.File_Types.Detect_Filetype
-           (Settings,
-            Files.Types.Regular_File_Item,
-            C1_Break & "main.adb" & C1_Break) = "text/x-ada",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, C1_Break & "main.adb" & C1_Break),
+         "text/x-ada",
          "filetype detection trims C1 line-break filename whitespace before mapping");
-      Assert
-        (Files.File_Types.Detect_Filetype
-           (Settings,
-            Files.Types.Regular_File_Item,
-            NBSP & "main.adb" & NBSP) = "text/x-ada",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, NBSP & "main.adb" & NBSP),
+         "text/x-ada",
          "filetype detection trims UTF-8 NBSP filename whitespace before mapping");
       Assert
         (Files.File_Types.Detect_Filetype
@@ -1150,34 +1330,41 @@ package body Files_Suite.Model is
             Files.Types.Regular_File_Item,
             Line_Separator & "main.adb" & Line_Separator) = "text/x-ada",
          "filetype detection trims UTF-8 line-separator filename whitespace before mapping");
-      Assert
-        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "blob.bin") =
-           "application/octet-stream",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "blob.bin"),
+         "application/octet-stream",
          "unknown extension falls back deterministically");
-      Assert
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Symlink_Item, "inode/symlink") = "link",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Symlink_Item, "inode/symlink"),
+         "link",
          "symlink icon mapping is used");
-      Assert
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Symlink_Item, " inode/symlink ") = "link",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Symlink_Item, " inode/symlink "),
+         "link",
          "icon classification trims filetype whitespace before mapping");
-      Assert
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Regular_File_Item, " text/x-ada ") = "ada",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Regular_File_Item, " text/x-ada "),
+         "ada",
          "mapped regular-file icon classification trims filetype whitespace");
-      Assert
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Regular_File_Item, "application/x-custom") =
-           "unknown",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Regular_File_Item, "application/x-custom"),
+         "unknown",
          "unmapped regular-file icon falls back deterministically");
-      Assert
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Directory_Item, "") = "folder",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Directory_Item, ""),
+         "folder",
          "directory icon falls back by item kind without mapping");
-      Assert
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Symlink_Item, "") = "link",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Symlink_Item, ""),
+         "link",
          "symlink icon falls back by item kind without mapping");
-      Assert
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Executable_Item, "") = "executable",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Executable_Item, ""),
+         "executable",
          "executable icon falls back by item kind without mapping");
-      Assert
-        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Other_Item, "") = "unknown",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_Types.Icon_Id_For (Settings, Files.Types.Other_Item, ""),
+         "unknown",
          "other item icon falls back deterministically without mapping");
    end Test_Filetype_Detection;
 
@@ -1186,11 +1373,20 @@ package body Files_Suite.Model is
       Model : Files.Model.Window_Model := Sample_Model;
    begin
       Files.Model.Set_View_Mode (Model, Files.Types.Large_Icons);
-      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Large_Icons, "large icons can be selected");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.View_Mode_Of (Model),
+         Files.Types.Large_Icons,
+         "large icons can be selected");
       Files.Commands.Execute (Files.Commands.Select_Details_Command, Model);
-      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Details, "details command selects details");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.View_Mode_Of (Model),
+         Files.Types.Details,
+         "details command selects details");
       Files.Commands.Execute (Files.Commands.Select_Small_Icons_Command, Model);
-      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Small_Icons, "small command clears prior mode");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.View_Mode_Of (Model),
+         Files.Types.Small_Icons,
+         "small command clears prior mode");
    end Test_View_Mode_State;
 
    procedure Test_Selection_Movement (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1207,17 +1403,23 @@ package body Files_Suite.Model is
       Ctrl_Shift (Guikit.Input.Control_Key) := True;
       Ctrl_Shift (Guikit.Input.Shift_Key) := True;
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
-      Assert (Files.Model.Selected_Index (Model) = 1, "first movement selects first visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         1,
+         "first movement selects first visible item");
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Left);
-      Assert (Files.Model.Selected_Index (Model) = 3, "left from first wraps to last");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 3, "left from first wraps to last");
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
-      Assert (Files.Model.Selected_Index (Model) = 1, "right from last wraps to first");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 1, "right from last wraps to first");
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Up);
-      Assert (Files.Model.Selected_Index (Model) = 3, "up from first wraps to last");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 3, "up from first wraps to last");
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
-      Assert (Files.Model.Selected_Index (Model) = 1, "right from last wraps to first after up wrap");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         1,
+         "right from last wraps to first after up wrap");
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Down);
-      Assert (Files.Model.Selected_Index (Model) = 2, "down advances selection");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 2, "down advances selection");
       declare
          Grid_Items : Files.File_System.Item_Vectors.Vector := Sample_Items;
          Grid_Model : Files.Model.Window_Model;
@@ -1233,110 +1435,218 @@ package body Files_Suite.Model is
             Home_Path         => "/home/test",
             Default_View_Mode => Files.Types.Small_Icons);
          Files.Model.Set_Selection_Grid_Columns (Grid_Model, 2);
-         Assert (Files.Model.Selection_Grid_Columns (Grid_Model) = 2, "model records rendered grid columns");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selection_Grid_Columns (Grid_Model),
+            2,
+            "model records rendered grid columns");
          Files.Model.Select_Visible (Grid_Model, 1);
          Files.Model.Move_Selection (Grid_Model, Guikit.Input.Move_Down);
-         Assert (Files.Model.Selected_Index (Grid_Model) = 3, "down moves to same column in next grid row");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selected_Index (Grid_Model),
+            3,
+            "down moves to same column in next grid row");
          Files.Model.Move_Selection (Grid_Model, Guikit.Input.Move_Up);
-         Assert (Files.Model.Selected_Index (Grid_Model) = 1, "up moves to same column in previous grid row");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selected_Index (Grid_Model),
+            1,
+            "up moves to same column in previous grid row");
          Files.Model.Select_Visible (Grid_Model, 5);
          Files.Model.Move_Selection (Grid_Model, Guikit.Input.Move_Down);
-         Assert (Files.Model.Selected_Index (Grid_Model) = 1, "down from last grid item wraps to first");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selected_Index (Grid_Model),
+            1,
+            "down from last grid item wraps to first");
       end;
       Files.Model.Toggle_Visible_Selection (Model, 1);
-      Assert (Files.Model.Selected_Count (Model) = 2, "toggle adds a second deterministic selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         2,
+         "toggle adds a second deterministic selection");
       Assert (Files.Model.Is_Selected (Model, 1), "first toggled item is selected");
       Assert (Files.Model.Is_Selected (Model, 2), "primary item remains selected");
       declare
          Selected_Items : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
       begin
-         Assert (Natural (Selected_Items.Length) = 2, "selected items API returns all selected items");
-         Assert (To_String (Selected_Items.Element (1).Name) = "Alpha.txt", "selected items use item order");
-         Assert (To_String (Selected_Items.Element (2).Name) = "Beta.txt", "selected items include primary item");
+         Files_Suite.Support.Assert_Equal
+           (Natural (Selected_Items.Length),
+            2,
+            "selected items API returns all selected items");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Selected_Items.Element (1).Name),
+            "Alpha.txt",
+            "selected items use item order");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Selected_Items.Element (2).Name),
+            "Beta.txt",
+            "selected items include primary item");
       end;
       Files.Model.Toggle_Visible_Selection (Model, 2);
-      Assert (Files.Model.Selected_Count (Model) = 1, "toggle removes selected item");
-      Assert (Files.Model.Selected_Index (Model) = 1, "primary selection falls back to remaining selected item");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 1, "toggle removes selected item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         1,
+         "primary selection falls back to remaining selected item");
       Files.Model.Clear_Selection (Model);
-      Assert (Files.Model.Selected_Count (Model) = 0, "clear selection empties deterministic selection set");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         0,
+         "clear selection empties deterministic selection set");
       Files.Model.Select_Visible (Model, 2);
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "controller arrow moves selection");
-      Assert (Files.Model.Selected_Index (Model) = 3, "controller down advances selection");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "controller arrow moves selection");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 3, "controller down advances selection");
       Files.Model.Select_Visible (Model, 1);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
-      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "shift-down expands selection");
-      Assert (Files.Model.Selected_Index (Model) = 2, "shift-down moves primary selection to target item");
-      Assert (Files.Model.Selected_Count (Model) = 2, "shift-down keeps anchor and target selected");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "shift-down expands selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         2,
+         "shift-down moves primary selection to target item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         2,
+         "shift-down keeps anchor and target selected");
       Assert (Files.Model.Is_Selected (Model, 1), "shift-down keeps anchor item selected");
       Assert (Files.Model.Is_Selected (Model, 2), "shift-down selects target item");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down, Shift);
-      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "second shift-down expands selection");
-      Assert (Files.Model.Selected_Index (Model) = 3, "second shift-down moves primary selection to next item");
-      Assert (Files.Model.Selected_Count (Model) = 3, "second shift-down preserves range anchor");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "second shift-down expands selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         3,
+         "second shift-down moves primary selection to next item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         3,
+         "second shift-down preserves range anchor");
       Assert (Files.Model.Is_Selected (Model, 1), "second shift-down keeps original anchor selected");
       Assert (Files.Model.Is_Selected (Model, 3), "second shift-down selects new target item");
       Files.Model.Select_Visible (Model, 3);
       Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 1, Modifiers => Ctrl);
-      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "control-click toggles selection");
-      Assert (Files.Model.Selected_Count (Model) = 2, "control-click adds to selection");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "control-click toggles selection");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 2, "control-click adds to selection");
       Assert (Files.Model.Is_Selected (Model, 1), "control-click selects clicked item");
       Assert (Files.Model.Is_Selected (Model, 3), "control-click preserves existing selection");
       Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 3, Modifiers => Ctrl);
-      Assert (Files.Model.Selected_Count (Model) = 1, "second control-click removes selected item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         1,
+         "second control-click removes selected item");
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Select_Visible_Range (Model, 1, 3);
-      Assert (Files.Model.Selected_Count (Model) = 3, "range selection selects every visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         3,
+         "range selection selects every visible item");
       Assert (Files.Model.Is_Selected (Model, 1), "range selection includes anchor");
       Assert (Files.Model.Is_Selected (Model, 2), "range selection includes middle item");
       Assert (Files.Model.Is_Selected (Model, 3), "range selection includes target");
       Files.Model.Select_Visible_Range (Model, 3, 1);
-      Assert (Files.Model.Selected_Count (Model) = 3, "reverse range selection selects every visible item");
-      Assert (Files.Model.Selected_Index (Model) = 1, "reverse range selection makes target primary");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         3,
+         "reverse range selection selects every visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         1,
+         "reverse range selection makes target primary");
       Assert (Files.Model.Is_Selected (Model, 1), "reverse range selection includes target");
       Assert (Files.Model.Is_Selected (Model, 2), "reverse range selection includes middle item");
       Assert (Files.Model.Is_Selected (Model, 3), "reverse range selection includes anchor");
       Files.Model.Clear_Selection (Model);
       Files.Model.Select_All_Visible (Model);
-      Assert (Files.Model.Selected_Count (Model) = 3, "select-all selects every visible loaded item");
-      Assert (Files.Model.Selected_Index (Model) = 1, "select-all keeps first visible item primary");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         3,
+         "select-all selects every visible loaded item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         1,
+         "select-all keeps first visible item primary");
       Files.Model.Set_Filter (Model, "alpha");
       Files.Model.Select_All_Visible (Model);
-      Assert (Files.Model.Selected_Count (Model) = 1, "select-all respects visible filter projection");
-      Assert (Files.Model.Selected_Name (Model) = "Alpha.txt", "filtered select-all selects visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         1,
+         "select-all respects visible filter projection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Name (Model),
+         "Alpha.txt",
+         "filtered select-all selects visible item");
       Files.Model.Set_Filter (Model, "");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_A, Ctrl);
-      Assert (Result.Command = Files.Commands.Select_All_Command, "Control+A routes select-all command");
-      Assert (Files.Model.Selected_Count (Model) = 3, "Control+A selects all visible loaded items");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Select_All_Command,
+         "Control+A routes select-all command");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         3,
+         "Control+A selects all visible loaded items");
       Files.Model.Clear_Selection (Model);
       Files.Model.Select_Visible (Model, 1);
-      Assert (Files.Model.Selected_Count (Model) = 1, "invert test starts with a single selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         1,
+         "invert test starts with a single selection");
       Files.Model.Invert_Selection (Model);
-      Assert (Files.Model.Selected_Count (Model) = 2, "invert selects the previously unselected visible items");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         2,
+         "invert selects the previously unselected visible items");
       Assert (not Files.Model.Is_Selected (Model, 1), "invert unselects the previously selected item");
       Assert (Files.Model.Is_Selected (Model, 2), "invert selects a previously unselected item");
       Assert (Files.Model.Is_Selected (Model, 3), "invert selects the remaining unselected item");
       Files.Model.Invert_Selection (Model);
-      Assert (Files.Model.Selected_Count (Model) = 1, "second invert restores the original selection count");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         1,
+         "second invert restores the original selection count");
       Assert (Files.Model.Is_Selected (Model, 1), "second invert restores the original selected item");
       Assert (not Files.Model.Is_Selected (Model, 2), "second invert clears the intermediate selection");
       Files.Model.Set_Filter (Model, "alpha");
       Files.Model.Clear_Selection (Model);
       Files.Model.Invert_Selection (Model);
-      Assert (Files.Model.Selected_Count (Model) = 1, "invert only touches visible filtered items");
-      Assert (Files.Model.Selected_Name (Model) = "Alpha.txt", "invert selects the visible filtered item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         1,
+         "invert only touches visible filtered items");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Name (Model),
+         "Alpha.txt",
+         "invert selects the visible filtered item");
       Files.Model.Set_Filter (Model, "");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_I, Ctrl);
-      Assert (Result.Command = Files.Commands.Invert_Selection_Command, "Control+I routes invert-selection command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Invert_Selection_Command,
+         "Control+I routes invert-selection command");
       Files.Model.Select_All_Visible (Model);
-      Assert (Files.Model.Selected_Count (Model) = 3, "deselect test starts from a full selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         3,
+         "deselect test starts from a full selection");
       Files.Model.Deselect_All (Model);
-      Assert (Files.Model.Selected_Count (Model) = 0, "deselect all clears the selection");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 0, "deselect all clears the selection");
       Files.Model.Select_All_Visible (Model);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_A, Ctrl_Shift);
-      Assert (Result.Command = Files.Commands.Deselect_All_Command, "Control+Shift+A routes deselect-all command");
-      Assert (Files.Model.Selected_Count (Model) = 0, "Control+Shift+A clears the selection");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Deselect_All_Command,
+         "Control+Shift+A routes deselect-all command");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 0, "Control+Shift+A clears the selection");
       Files.Model.Select_Visible (Model, 1);
       declare
          Shift : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
@@ -1344,17 +1654,27 @@ package body Files_Suite.Model is
          Shift (Guikit.Input.Shift_Key) := True;
          Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 3, Modifiers => Shift);
       end;
-      Assert (Files.Model.Selected_Count (Model) = 3, "shift-click selects a deterministic visible range");
-      Assert (Files.Model.Selected_Index (Model) = 3, "shift-click makes the clicked item primary");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         3,
+         "shift-click selects a deterministic visible range");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         3,
+         "shift-click makes the clicked item primary");
       Files.Model.Select_Visible (Model, 3);
       Files.Model.Focus_Path_Input (Model);
       declare
          Before_Focused_Key : constant Natural := Files.Model.Selected_Index (Model);
       begin
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-         Assert (Result.Status = Files.Controller.Controller_Ignored, "focused input suppresses arrow selection");
-         Assert
-           (Files.Model.Selected_Index (Model) = Before_Focused_Key,
+         Files_Suite.Support.Assert_Equal
+           (Result.Status,
+            Files.Controller.Controller_Ignored,
+            "focused input suppresses arrow selection");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selected_Index (Model),
+            Before_Focused_Key,
             "focused input keeps selection unchanged");
       end;
    end Test_Selection_Movement;
@@ -1388,60 +1708,105 @@ package body Files_Suite.Model is
       Home_Dir : constant String := Files.Model.Current_Path (Model);
       Result   : Files.Controller.Controller_Result;
    begin
-      Assert (Files.Model.Visible_Count (Model) = 25, "paging model exposes all 25 visible items");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Visible_Count (Model),
+         25,
+         "paging model exposes all 25 visible items");
 
       --  Direct model primitives: first / last selection.
       Files.Model.Select_Last_Visible (Model);
-      Assert (Files.Model.Selected_Index (Model) = 25, "Select_Last_Visible selects the last visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         25,
+         "Select_Last_Visible selects the last visible item");
       Files.Model.Select_First_Visible (Model);
-      Assert (Files.Model.Selected_Index (Model) = 1, "Select_First_Visible selects the first visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         1,
+         "Select_First_Visible selects the first visible item");
 
       --  Single-column paging moves by Page_Rows items and clamps at the edges.
       Files.Model.Move_Selection_By_Page (Model, 10, Down => True);
-      Assert (Files.Model.Selected_Index (Model) = 11, "PageDown advances the selection by one page (10 rows)");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         11,
+         "PageDown advances the selection by one page (10 rows)");
       Files.Model.Move_Selection_By_Page (Model, 10, Down => True);
-      Assert (Files.Model.Selected_Index (Model) = 21, "a second PageDown advances another page");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         21,
+         "a second PageDown advances another page");
       Files.Model.Move_Selection_By_Page (Model, 10, Down => True);
-      Assert (Files.Model.Selected_Index (Model) = 25, "PageDown clamps at the last item");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 25, "PageDown clamps at the last item");
       Files.Model.Move_Selection_By_Page (Model, 10, Down => True);
-      Assert (Files.Model.Selected_Index (Model) = 25, "PageDown on the last item stays put");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 25, "PageDown on the last item stays put");
       Files.Model.Move_Selection_By_Page (Model, 10, Down => False);
-      Assert (Files.Model.Selected_Index (Model) = 15, "PageUp retreats the selection by one page");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         15,
+         "PageUp retreats the selection by one page");
       Files.Model.Move_Selection_By_Page (Model, 10, Down => False);
-      Assert (Files.Model.Selected_Index (Model) = 5, "a second PageUp retreats another page");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 5, "a second PageUp retreats another page");
       Files.Model.Move_Selection_By_Page (Model, 10, Down => False);
-      Assert (Files.Model.Selected_Index (Model) = 1, "PageUp clamps at the first item");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 1, "PageUp clamps at the first item");
 
       --  Grid stride: with 3 columns a page spans Page_Rows * columns items.
       Files.Model.Set_Selection_Grid_Columns (Model, 3);
       Files.Model.Select_First_Visible (Model);
       Files.Model.Move_Selection_By_Page (Model, 2, Down => True);
-      Assert (Files.Model.Selected_Index (Model) = 7, "grid paging moves Page_Rows * columns items (2*3)");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         7,
+         "grid paging moves Page_Rows * columns items (2*3)");
 
       --  Empty model: paging clears rather than crashing.
       declare
          Empty : Files.Model.Window_Model := Paging_Model (0);
       begin
          Files.Model.Select_First_Visible (Empty);
-         Assert (Files.Model.Selected_Index (Empty) = 0, "first-visible on an empty grid selects nothing");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selected_Index (Empty),
+            0,
+            "first-visible on an empty grid selects nothing");
          Files.Model.Move_Selection_By_Page (Empty, 10, Down => True);
-         Assert (Files.Model.Selected_Index (Empty) = 0, "paging an empty grid selects nothing");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selected_Index (Empty),
+            0,
+            "paging an empty grid selects nothing");
       end;
 
       --  Through the real controller key seam: plain Home/End move the grid
       --  selection and never navigate (Alt+Home stays the navigate-home key).
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_End);
-      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "plain End moves the grid selection");
-      Assert (Files.Model.Selected_Index (Model) = 25, "plain End selects the last visible item");
-      Assert (Files.Model.Current_Path (Model) = Home_Dir, "plain End does not navigate");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "plain End moves the grid selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         25,
+         "plain End selects the last visible item");
+      Files_Suite.Support.Assert_Equal (Files.Model.Current_Path (Model), Home_Dir, "plain End does not navigate");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
-      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "plain Home moves the grid selection");
-      Assert (Files.Model.Selected_Index (Model) = 1, "plain Home selects the first visible item");
-      Assert (Files.Model.Current_Path (Model) = Home_Dir, "plain Home does not navigate home (that stays Alt+Home)");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "plain Home moves the grid selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         1,
+         "plain Home selects the first visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Home_Dir,
+         "plain Home does not navigate home (that stays Alt+Home)");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "plain Home on the first item is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "plain Home on the first item is ignored");
 
       --  Alt+Home remains the navigate-home shortcut, distinct from plain Home.
       Assert
@@ -1489,67 +1854,92 @@ package body Files_Suite.Model is
       end Feed;
    begin
       --  Pure matcher: first item starting with the prefix, case-insensitive.
-      Assert
-        (Files.Type_Ahead.Type_Ahead_Target (Grid_Items, "do", 1) = 2,
+      Files_Suite.Support.Assert_Equal
+        (Files.Type_Ahead.Type_Ahead_Target (Grid_Items, "do", 1),
+         2,
          "matcher returns the first item starting with the prefix");
-      Assert
-        (Files.Type_Ahead.Type_Ahead_Target (Grid_Items, "DO", 1) = 2,
+      Files_Suite.Support.Assert_Equal
+        (Files.Type_Ahead.Type_Ahead_Target (Grid_Items, "DO", 1),
+         2,
          "matcher is case-insensitive");
-      Assert
-        (Files.Type_Ahead.Type_Ahead_Target (Grid_Items, "z", 1) = 0,
+      Files_Suite.Support.Assert_Equal
+        (Files.Type_Ahead.Type_Ahead_Target (Grid_Items, "z", 1),
+         0,
          "matcher returns zero when nothing matches");
-      Assert
-        (Files.Type_Ahead.Type_Ahead_Target (Grid_Items, "", 1) = 0,
+      Files_Suite.Support.Assert_Equal
+        (Files.Type_Ahead.Type_Ahead_Target (Grid_Items, "", 1),
+         0,
          "matcher returns zero for an empty prefix");
       --  Start-index respected: "d" items sit at 1, 3, 4; scanning from 3 finds 3.
-      Assert
-        (Files.Type_Ahead.Type_Ahead_Target (Grid_Items, "d", 3) = 3,
+      Files_Suite.Support.Assert_Equal
+        (Files.Type_Ahead.Type_Ahead_Target (Grid_Items, "d", 3),
+         3,
          "matcher honours the start index inclusively");
-      Assert
-        (Files.Type_Ahead.Type_Ahead_Target (Grid_Items, "d", 5) = 1,
+      Files_Suite.Support.Assert_Equal
+        (Files.Type_Ahead.Type_Ahead_Target (Grid_Items, "d", 5),
+         1,
          "matcher wraps around past the end of the projection");
 
       --  Through the seam with the grid focused (Focus_None): a bare printable
       --  character selects the first matching item.
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "fresh grid model starts unfocused");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "fresh grid model starts unfocused");
       Feed ("d");
-      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "type-ahead reports a moved selection");
-      Assert (Files.Model.Selected_Index (Model) = 1, "typing d selects the first d-item (delta)");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "type-ahead reports a moved selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         1,
+         "typing d selects the first d-item (delta)");
 
       --  A longer prefix refines to the matching item.
       Feed ("u");
-      Assert (Files.Model.Selected_Index (Model) = 3, "refining to du selects dune");
-      Assert (Files.Model.Type_Ahead_Buffer (Model) = "du", "buffer accumulates the refined prefix");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 3, "refining to du selects dune");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Type_Ahead_Buffer (Model),
+         "du",
+         "buffer accumulates the refined prefix");
 
       --  A non-matching character leaves the selection where it was.
       Feed ("z");
-      Assert (Files.Model.Selected_Index (Model) = 3, "a non-matching character keeps the current selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         3,
+         "a non-matching character keeps the current selection");
 
       --  Repeated single letter cycles through every item starting with it.
       Model := New_Grid_Model;
       Feed ("d");
-      Assert (Files.Model.Selected_Index (Model) = 1, "first d selects delta");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 1, "first d selects delta");
       Feed ("d");
-      Assert (Files.Model.Selected_Index (Model) = 2, "second d cycles to Doc");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 2, "second d cycles to Doc");
       Feed ("d");
-      Assert (Files.Model.Selected_Index (Model) = 3, "third d cycles to dune");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 3, "third d cycles to dune");
       Feed ("d");
-      Assert (Files.Model.Selected_Index (Model) = 4, "fourth d cycles to date");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 4, "fourth d cycles to date");
       Feed ("d");
-      Assert (Files.Model.Selected_Index (Model) = 1, "fifth d wraps back to delta");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 1, "fifth d wraps back to delta");
 
       --  Reset trigger (arrow key): a fresh keystroke starts a new prefix rather
       --  than extending the stale one.
       Model := New_Grid_Model;
       Feed ("d");
       Feed ("u");
-      Assert (Files.Model.Selected_Index (Model) = 3, "du selects dune before the reset");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 3, "du selects dune before the reset");
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Down);
-      Assert (Files.Model.Type_Ahead_Buffer (Model) = "", "an arrow key clears the type-ahead buffer");
-      Assert (Files.Model.Selected_Index (Model) = 4, "arrow key moves selection to date");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Type_Ahead_Buffer (Model),
+         "",
+         "an arrow key clears the type-ahead buffer");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 4, "arrow key moves selection to date");
       Feed ("d");
-      Assert
-        (Files.Model.Selected_Index (Model) = 1,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         1,
          "a keystroke after the reset starts a fresh single-letter cycle (delta)");
 
       --  Reset trigger (focus change): focusing a text field clears the buffer,
@@ -1557,9 +1947,15 @@ package body Files_Suite.Model is
       Model := New_Grid_Model;
       Feed ("d");
       Feed ("u");
-      Assert (Files.Model.Selected_Index (Model) = 3, "du selects dune before the focus change");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         3,
+         "du selects dune before the focus change");
       Files.Model.Focus_Path_Input (Model);
-      Assert (Files.Model.Type_Ahead_Buffer (Model) = "", "focusing a text field clears the type-ahead buffer");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Type_Ahead_Buffer (Model),
+         "",
+         "focusing a text field clears the type-ahead buffer");
 
       --  Typing into the focused text field edits the field and never moves the
       --  grid selection (the path input, unlike the filter, does not reproject).
@@ -1568,20 +1964,31 @@ package body Files_Suite.Model is
          Before_Length : constant Natural := Files.Model.Path_Input_Text (Model)'Length;
       begin
          Feed ("x");
-         Assert
-           (Files.Model.Path_Input_Text (Model)'Length = Before_Length + 1,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Path_Input_Text (Model)'Length,
+            Before_Length + 1,
             "typed text lands in the focused path input");
-         Assert (Files.Model.Type_Ahead_Buffer (Model) = "", "typing into a text field never feeds type-ahead");
-         Assert
-           (Files.Model.Selected_Index (Model) = Before,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Type_Ahead_Buffer (Model),
+            "",
+            "typing into a text field never feeds type-ahead");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selected_Index (Model),
+            Before,
             "typing into a text field does not jump the grid selection");
       end;
 
       --  Back on the grid, a fresh keystroke starts a new prefix.
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "cancelling returns focus to the grid");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "cancelling returns focus to the grid");
       Feed ("d");
-      Assert (Files.Model.Type_Ahead_Buffer (Model) = "d", "a keystroke after the focus reset starts a fresh prefix");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Type_Ahead_Buffer (Model),
+         "d",
+         "a keystroke after the focus reset starts a fresh prefix");
    end Test_Type_Ahead_Selection;
 
    procedure Test_Filtering_Reconciles_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1592,7 +1999,10 @@ package body Files_Suite.Model is
       Result       : Files.Controller.Controller_Result;
    begin
       Missing_Item := Files.Model.Visible_Item (Model, 99);
-      Assert (To_String (Missing_Item.Name) = "", "invalid visible item index returns empty item");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Missing_Item.Name),
+         "",
+         "invalid visible item index returns empty item");
       Assert (Missing_Item.Kind = Files.Types.Unknown_Item, "invalid visible item index returns unknown kind");
       declare
          --  Content-search hits whose names lack the query stay listed, and the
@@ -1608,9 +2018,18 @@ package body Files_Suite.Model is
       end;
       Files.Model.Select_Visible (Model, 3);
       Files.Model.Set_Filter (Model, "alp");
-      Assert (Files.Model.Visible_Count (Model) = 1, "filter matches item names case-insensitively");
-      Assert (Files.Model.Selected_Index (Model) = 1, "filtered-out selection moves to first visible item");
-      Assert (Files.Model.Selected_Name (Model) = "Alpha.txt", "selection points to visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Visible_Count (Model),
+         1,
+         "filter matches item names case-insensitively");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         1,
+         "filtered-out selection moves to first visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Name (Model),
+         "Alpha.txt",
+         "selection points to visible item");
       Assert (Files.Model.Is_Selected (Model, 1), "selected visible item is reported selected");
       Assert (not Files.Model.Is_Selected (Model, 2), "out-of-range visible item is not selected");
       declare
@@ -1625,36 +2044,61 @@ package body Files_Suite.Model is
            (Files.File_System.Make_Item (Root, Upper_Name, Files.Types.Regular_File_Item, "text/plain"));
          Files.Model.Initialize (Unicode_Model, Root, Unicode_Items, Root, Files.Types.Small_Icons);
          Files.Model.Set_Filter (Unicode_Model, Lower_Query);
-         Assert
-           (Files.Model.Visible_Count (Unicode_Model) = 1,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Visible_Count (Unicode_Model),
+            1,
             "filter matches UTF-8 Latin-1 item names case-insensitively");
-         Assert
-           (Files.Model.Selected_Name (Unicode_Model) = Upper_Name,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selected_Name (Unicode_Model),
+            Upper_Name,
             "UTF-8 Latin-1 filter selects the matching visible item");
       end;
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "single visible item movement is ignored");
-      Assert (Files.Model.Selected_Index (Model) = 1, "single visible item movement keeps selection");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "single visible item movement is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         1,
+         "single visible item movement keeps selection");
       Files.Model.Clear_Filter (Model);
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Files.Model.Toggle_Visible_Selection (Model, 3);
-      Assert (Files.Model.Selected_Count (Model) = 3, "filter reconciliation starts from multi-selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         3,
+         "filter reconciliation starts from multi-selection");
       Files.Model.Set_Filter (Model, "beta");
-      Assert (Files.Model.Visible_Count (Model) = 1, "multi-selection filter leaves one visible item");
-      Assert
-        (Files.Model.Selected_Count (Model) = 1,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Visible_Count (Model),
+         1,
+         "multi-selection filter leaves one visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         1,
          "filter reconciliation drops invisible multi-selected items");
-      Assert
-        (Files.Model.Selected_Name (Model) = "Beta.txt",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Name (Model),
+         "Beta.txt",
          "filter reconciliation keeps visible multi-selected item primary");
       Files.Model.Set_Filter (Model, "zzz");
-      Assert (Files.Model.Visible_Count (Model) = 0, "unmatched filter hides all items");
-      Assert (Files.Model.Selected_Count (Model) = 0, "selection becomes empty when no items are visible");
+      Files_Suite.Support.Assert_Equal (Files.Model.Visible_Count (Model), 0, "unmatched filter hides all items");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         0,
+         "selection becomes empty when no items are visible");
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Down);
-      Assert (Files.Model.Selected_Count (Model) = 0, "moving selection with no visible items stays empty");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         0,
+         "moving selection with no visible items stays empty");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "empty visible selection movement is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "empty visible selection movement is ignored");
    end Test_Filtering_Reconciles_Selection;
 
    procedure Test_Path_History (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1663,24 +2107,42 @@ package body Files_Suite.Model is
       Items : constant Files.File_System.Item_Vectors.Vector := Sample_Items;
    begin
       Files.Model.Go_Back (Model);
-      Assert (Files.Model.Current_Path (Model) = Root, "empty back history leaves path unchanged");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
+         "empty back history leaves path unchanged");
       Files.Model.Go_Forward (Model);
-      Assert (Files.Model.Current_Path (Model) = Root, "empty forward history leaves path unchanged");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
+         "empty forward history leaves path unchanged");
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
-      Assert (Files.Model.Selected_Count (Model) = 2, "history test starts with multi-selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         2,
+         "history test starts with multi-selection");
       Files.Model.Navigate_To (Model, Root, Items);
       Assert (not Files.Model.Can_Go_Back (Model), "same-path navigation does not push history");
-      Assert (Files.Model.Selected_Count (Model) = 0, "same-path navigation clears multi-selection state");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         0,
+         "same-path navigation clears multi-selection state");
 
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Files.Model.Navigate_To (Model, "/tmp/files_aunit/second", Items);
-      Assert (Files.Model.Selected_Count (Model) = 0, "navigation clears multi-selection state");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         0,
+         "navigation clears multi-selection state");
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Files.Model.Navigate_To (Model, "/tmp/files_aunit/third", Items);
-      Assert (Files.Model.Selected_Count (Model) = 0, "second navigation clears multi-selection state");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         0,
+         "second navigation clears multi-selection state");
       Assert (Files.Model.Can_Go_Back (Model), "back is enabled after navigation");
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
@@ -1688,33 +2150,54 @@ package body Files_Suite.Model is
       Files.Model.Open_Command_Palette (Model);
       Files.Model.Set_Path_Input_Text (Model, "/tmp/bad-history-path");
       Files.Model.Go_Back (Model);
-      Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/second", "back restores previous path");
-      Assert (Files.Model.Selected_Count (Model) = 0, "back clears multi-selection state");
-      Assert (Files.Model.Path_Input_Text (Model) = "/tmp/files_aunit/second", "back restores path input text");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         "/tmp/files_aunit/second",
+         "back restores previous path");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 0, "back clears multi-selection state");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Path_Input_Text (Model),
+         "/tmp/files_aunit/second",
+         "back restores path input text");
       Assert (Files.Model.Path_Input_Is_Valid (Model), "back clears path validation state");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "back clears temporary create state");
       Assert (not Files.Model.Rename_Is_Active (Model), "back clears rename state");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "back closes command palette");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "back clears focus");
+      Files_Suite.Support.Assert_Equal (Files.Model.Focus (Model), Files.Types.Focus_None, "back clears focus");
       Assert (Files.Model.Can_Go_Forward (Model), "forward is enabled after back");
       Files.Model.Navigate_To (Model, "/tmp/files_aunit/branch", Items);
       Assert (not Files.Model.Can_Go_Forward (Model), "new navigation after back clears forward history");
       Files.Model.Go_Back (Model);
-      Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/second", "back reaches branch origin");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         "/tmp/files_aunit/second",
+         "back reaches branch origin");
       Files.Model.Begin_Create_File (Model, "forward-pending.txt");
       Files.Model.Open_Command_Palette (Model);
       Files.Model.Go_Forward (Model);
-      Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/branch", "forward reaches branch path");
-      Assert (Files.Model.Selected_Count (Model) = 0, "forward clears multi-selection state");
-      Assert (Files.Model.Path_Input_Text (Model) = "/tmp/files_aunit/branch", "forward restores path input text");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         "/tmp/files_aunit/branch",
+         "forward reaches branch path");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 0, "forward clears multi-selection state");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Path_Input_Text (Model),
+         "/tmp/files_aunit/branch",
+         "forward restores path input text");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "forward clears temporary create state");
       Assert (not Files.Model.Rename_Is_Active (Model), "forward clears rename state");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "forward closes command palette");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "forward clears focus");
+      Files_Suite.Support.Assert_Equal (Files.Model.Focus (Model), Files.Types.Focus_None, "forward clears focus");
       Files.Model.Go_Forward (Model);
-      Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/branch", "forward is exhausted after branch path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         "/tmp/files_aunit/branch",
+         "forward is exhausted after branch path");
       Files.Model.Go_Home (Model);
-      Assert (Files.Model.Current_Path (Model) = "/home/test", "home navigates to model home path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         "/home/test",
+         "home navigates to model home path");
    end Test_Path_History;
 
    procedure Test_Path_Input_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1731,26 +2214,53 @@ package body Files_Suite.Model is
          Error_Key      => Null_Unbounded_String);
    begin
       Files.Model.Focus_Path_Input (Model);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "path input receives focus directly");
-      Assert (Files.Model.Path_Input_Text (Model) = Root, "path input focus restores current path text");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Path_Input,
+         "path input receives focus directly");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Path_Input_Text (Model),
+         Root,
+         "path input focus restores current path text");
       Files.Model.Set_Path_Input_Text (Model, "/does/not/exist");
       Files.Model.Commit_Path_Input (Model, Invalid, Empty);
       Assert (not Files.Model.Path_Input_Is_Valid (Model), "invalid input sets validation state");
-      Assert (Files.Model.Path_Input_Error_Key (Model) = "error.path.missing", "invalid input records error key");
-      Assert (Files.Model.Current_Path (Model) = Root, "invalid input does not change current path");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "invalid path input keeps focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Path_Input_Error_Key (Model),
+         "error.path.missing",
+         "invalid input records error key");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
+         "invalid input does not change current path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Path_Input,
+         "invalid path input keeps focus");
       Files.Model.Focus_Filter_Input (Model);
       Files.Model.Focus_Path_Input (Model);
-      Assert (Files.Model.Path_Input_Text (Model) = Root, "refocus restores current path after invalid input");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Path_Input_Text (Model),
+         Root,
+         "refocus restores current path after invalid input");
       Assert (Files.Model.Path_Input_Is_Valid (Model), "refocus clears stale path validation state");
-      Assert (Files.Model.Path_Input_Error_Key (Model) = "", "refocus clears stale path validation error");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Path_Input_Error_Key (Model),
+         "",
+         "refocus clears stale path validation error");
       Files.Model.Set_Path_Input_Text (Model, "/does/not/exist");
       Files.Model.Commit_Path_Input (Model, Invalid, Empty);
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Assert (Files.Model.Path_Input_Text (Model) = Root, "escape restores current path text");
+      Files_Suite.Support.Assert_Equal (Files.Model.Path_Input_Text (Model), Root, "escape restores current path text");
       Assert (Files.Model.Path_Input_Is_Valid (Model), "escape clears path validation state");
-      Assert (Files.Model.Path_Input_Error_Key (Model) = "", "escape clears path validation error");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "escape clears path input focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Path_Input_Error_Key (Model),
+         "",
+         "escape clears path validation error");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "escape clears path input focus");
 
       Files.Model.Open_Command_Palette (Model);
       Files.Model.Focus_Path_Input (Model);
@@ -1758,9 +2268,18 @@ package body Files_Suite.Model is
       Files.Model.Set_Path_Input_Text (Model, "/tmp/files_aunit/valid");
       Files.Model.Commit_Path_Input (Model, Valid, Empty);
       Assert (Files.Model.Path_Input_Is_Valid (Model), "valid input clears validation state");
-      Assert (Files.Model.Path_Input_Error_Key (Model) = "", "valid input clears validation error key");
-      Assert (Files.Model.Current_Path (Model) = "/tmp/files_aunit/valid", "valid input changes path");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "valid path input clears focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Path_Input_Error_Key (Model),
+         "",
+         "valid input clears validation error key");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         "/tmp/files_aunit/valid",
+         "valid input changes path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "valid path input clears focus");
    end Test_Path_Input_Validation;
 
    procedure Test_Runtime_Sort_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1828,38 +2347,71 @@ package body Files_Suite.Model is
       --  (Apply_Persisted_UI_State); the drawn order is the model's order.
       Files.Model.Apply_Sort (Model, Files.Model.Sort_Name, Ascending => True);
 
-      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Name, "default runtime sort field is name");
+      Files_Suite.Support.Assert_Equal
+
+        (Files.Model.Sort_Field_Of (Model),
+
+         Files.Model.Sort_Name,
+
+         "default runtime sort field is name");
       Assert (Files.Model.Sort_Is_Ascending (Model), "default runtime sort direction is ascending");
-      Assert (Snapshot_Name (1) = "alpha.md", "default snapshot sorts by name ascending");
-      Assert (Snapshot_Name (4) = "zulu", "default snapshot does not group directories before files");
+      Files_Suite.Support.Assert_Equal (Snapshot_Name (1), "alpha.md", "default snapshot sorts by name ascending");
+      Files_Suite.Support.Assert_Equal
+        (Snapshot_Name (4),
+         "zulu",
+         "default snapshot does not group directories before files");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Sort_Menu_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Toggle_Sort_Menu_Command, "sort menu command is routed");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Toggle_Sort_Menu_Command,
+         "sort menu command is routed");
       Assert (Files.Model.Sort_Menu_Is_Open (Model), "sort menu opens");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Size_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Sort_By_Size_Command, "sort-by-size command is routed");
-      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Size, "sort-by-size selects size field");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Sort_By_Size_Command,
+         "sort-by-size command is routed");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Sort_Field_Of (Model),
+         Files.Model.Sort_Size,
+         "sort-by-size selects size field");
       Assert (Files.Model.Sort_Is_Ascending (Model), "new sort field starts ascending");
       Assert (not Files.Model.Sort_Menu_Is_Open (Model), "selecting a sort field closes the menu");
-      Assert (Snapshot_Name (1) = "charlie.bin", "size ascending sorts smallest file first");
+      Files_Suite.Support.Assert_Equal (Snapshot_Name (1), "charlie.bin", "size ascending sorts smallest file first");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Size_Command, Model, Settings);
       Assert (not Files.Model.Sort_Is_Ascending (Model), "selecting same sort field toggles descending");
-      Assert (Snapshot_Name (1) = "alpha.md", "size descending sorts largest file first");
+      Files_Suite.Support.Assert_Equal (Snapshot_Name (1), "alpha.md", "size descending sorts largest file first");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Type_Command, Model, Settings);
-      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Type, "sort-by-type selects type field");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Sort_Field_Of (Model),
+         Files.Model.Sort_Type,
+         "sort-by-type selects type field");
       Assert (Files.Model.Sort_Is_Ascending (Model), "different sort field resets to ascending");
-      Assert (Snapshot_Name (1) = "charlie.bin", "type ascending sorts by filetype token");
+      Files_Suite.Support.Assert_Equal (Snapshot_Name (1), "charlie.bin", "type ascending sorts by filetype token");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Created_Command, Model, Settings);
-      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Created, "sort-by-created selects creation field");
-      Assert (Snapshot_Name (1) = "charlie.bin", "created ascending sorts oldest creation time first");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Sort_Field_Of (Model),
+         Files.Model.Sort_Created,
+         "sort-by-created selects creation field");
+      Files_Suite.Support.Assert_Equal
+        (Snapshot_Name (1),
+         "charlie.bin",
+         "created ascending sorts oldest creation time first");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Changed_Command, Model, Settings);
-      Assert (Files.Model.Sort_Field_Of (Model) = Files.Model.Sort_Changed, "sort-by-changed selects modified field");
-      Assert (Snapshot_Name (1) = "alpha.md", "changed ascending sorts oldest modified time first");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Sort_Field_Of (Model),
+         Files.Model.Sort_Changed,
+         "sort-by-changed selects modified field");
+      Files_Suite.Support.Assert_Equal
+        (Snapshot_Name (1),
+         "alpha.md",
+         "changed ascending sorts oldest modified time first");
    end Test_Runtime_Sort_State;
 
    procedure Test_Root_Selector_And_Root_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -1993,23 +2545,34 @@ package body Files_Suite.Model is
       Entries := Files.File_System.Available_Root_Entries;
       Root_Status := Files.File_System.Root_Discovery_Status;
       Assert (not Roots_A.Is_Empty, "available roots is never empty");
-      Assert (Natural (Entries.Length) = Natural (Roots_A.Length), "root metadata count matches root paths");
-      Assert (Root_Status.Root_Count = Natural (Entries.Length), "root diagnostics count discovered roots");
-      Assert (Root_Status.Ready_Count = Natural (Entries.Length), "root diagnostics count ready roots");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Entries.Length),
+         Natural (Roots_A.Length),
+         "root metadata count matches root paths");
+      Files_Suite.Support.Assert_Equal
+        (Root_Status.Root_Count,
+         Natural (Entries.Length),
+         "root diagnostics count discovered roots");
+      Files_Suite.Support.Assert_Equal
+        (Root_Status.Ready_Count,
+         Natural (Entries.Length),
+         "root diagnostics count ready roots");
       Assert (Root_Status.Duplicate_Paths_Removed, "root diagnostics expose duplicate-removal policy");
       Assert (Root_Status.Deterministic_Order, "root diagnostics expose deterministic ordering policy");
       Assert
         (not Volume_Caps.Labels_From_Platform_Api,
          "root volume capabilities do not claim platform labels yet");
       Assert (Volume_Caps.Readiness_From_Platform_Api, "root volume capabilities expose readiness checks");
-      Assert
-        (Volume_Caps.Capacity_From_Platform_Api = Volume_Caps.Capacity_Bytes_Known,
+      Files_Suite.Support.Assert_Equal
+        (Volume_Caps.Capacity_From_Platform_Api,
+         Volume_Caps.Capacity_Bytes_Known,
          "root volume capacity capability matches capacity-byte availability");
       Assert
         (Volume_Caps.Native_Binding_Status = Files.File_System.Native_API_Binding_Available,
          "current target exposes native volume binding status");
-      Assert
-        (To_String (Volume_Caps.Binding_Unit) = "Files.File_System",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Volume_Caps.Binding_Unit),
+         "Files.File_System",
          "root volume capabilities expose binding unit");
       Assert
         (Edge_Profile.Permission_Errors_Recoverable,
@@ -2037,21 +2600,25 @@ package body Files_Suite.Model is
       --  Exactly one adapter is the current target, and which one depends on the
       --  host. This block used to assert it was always Linux, which is why every
       --  one of these failed the moment the suite first ran on a Mac.
-      Assert
-        (Linux_Profile.Current_Target = (Current_Profile.Adapter = Files.File_System.Native_Adapter_Linux),
+      Files_Suite.Support.Assert_Equal
+        (Linux_Profile.Current_Target,
+         (Current_Profile.Adapter = Files.File_System.Native_Adapter_Linux),
          "the Linux profile marks itself the current target exactly on Linux");
-      Assert
-        (Windows_Profile.Current_Target = (Current_Profile.Adapter = Files.File_System.Native_Adapter_Windows),
+      Files_Suite.Support.Assert_Equal
+        (Windows_Profile.Current_Target,
+         (Current_Profile.Adapter = Files.File_System.Native_Adapter_Windows),
          "the Windows profile marks itself the current target exactly on Windows");
-      Assert
-        (Macos_Profile.Current_Target = (Current_Profile.Adapter = Files.File_System.Native_Adapter_Macos),
+      Files_Suite.Support.Assert_Equal
+        (Macos_Profile.Current_Target,
+         (Current_Profile.Adapter = Files.File_System.Native_Adapter_Macos),
          "the macOS profile marks itself the current target exactly on macOS");
       Assert (Current_Profile.Current_Target, "the current profile is the current target");
       Assert
         (Linux_Profile.Volume_Binding_Status = Volume_Caps.Native_Binding_Status,
          "Linux native profile follows volume capability binding status");
-      Assert
-        (To_String (Linux_Profile.Volume_Binding_Unit) = "Files.File_System.Root_Volume_Details_For",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Linux_Profile.Volume_Binding_Unit),
+         "Files.File_System.Root_Volume_Details_For",
          "Linux native profile records volume binding unit");
       declare
          Host_Profile : constant Files.File_System.Native_Platform_API_Profile :=
@@ -2060,26 +2627,30 @@ package body Files_Suite.Model is
          Assert
            (Current_Profile.Volume_Binding_Status = Host_Profile.Volume_Binding_Status,
             "platform current API profile follows host volume status");
-         Assert
-           (To_String (Current_Profile.Volume_Binding_Unit) = To_String (Host_Profile.Volume_Binding_Unit),
+         Files_Suite.Support.Assert_Equal
+           (To_String (Current_Profile.Volume_Binding_Unit),
+            To_String (Host_Profile.Volume_Binding_Unit),
             "platform current API profile exposes host binding unit");
       end;
       Assert
         (Current_Profile.Adapter = Files.File_System.Native_Adapter_Windows
          or else Windows_Profile.Trash_Binding_Status = Files.File_System.Native_API_Not_Target,
          "Windows native profile is not active off Windows");
-      Assert
-        (To_String (Windows_Profile.Trash_Binding_Unit) = "Hostkit.Trash",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Windows_Profile.Trash_Binding_Unit),
+         "Hostkit.Trash",
          "Windows native profile records the unit that owns the trash binding");
-      Assert
-        (To_String (Windows_Profile.Volume_API_Name) = "GetVolumeInformationW+GetDiskFreeSpaceExW",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Windows_Profile.Volume_API_Name),
+         "GetVolumeInformationW+GetDiskFreeSpaceExW",
          "Windows native profile records volume APIs");
       Assert
         (Current_Profile.Adapter = Files.File_System.Native_Adapter_Macos
          or else Macos_Profile.Volume_Binding_Status = Files.File_System.Native_API_Not_Target,
          "macOS native profile is not active off macOS");
-      Assert
-        (To_String (Macos_Profile.Required_Framework) = "Foundation",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Macos_Profile.Required_Framework),
+         "Foundation",
          "macOS native profile names the framework its trash binding actually needs");
       --  The project file no longer selects per-OS bodies -- there are none left
       --  to select. files_suite-startup asserts the single source list.
@@ -2103,40 +2674,51 @@ package body Files_Suite.Model is
          or else To_String (Volume_Caps.Native_Api_Name) = "statvfs+proc.mounts+sysfs"
          or else To_String (Volume_Caps.Native_Api_Name) = "sysfs",
          "root volume capabilities name adapter");
-      Assert
-        (Volume_Caps.Source_Device_Available = Volume_Caps.Filesystem_Type_Available,
+      Files_Suite.Support.Assert_Equal
+        (Volume_Caps.Source_Device_Available,
+         Volume_Caps.Filesystem_Type_Available,
          "root volume source-device availability follows mount metadata availability");
-      Assert
-        (Volume_Caps.Mount_Options_Available = Volume_Caps.Filesystem_Type_Available,
+      Files_Suite.Support.Assert_Equal
+        (Volume_Caps.Mount_Options_Available,
+         Volume_Caps.Filesystem_Type_Available,
          "root volume mount-options availability follows mount metadata availability");
-      Assert
-        (Volume_Caps.Network_Metadata_Available = Volume_Caps.Filesystem_Type_Available,
+      Files_Suite.Support.Assert_Equal
+        (Volume_Caps.Network_Metadata_Available,
+         Volume_Caps.Filesystem_Type_Available,
          "root volume network metadata availability follows mount metadata availability");
-      Assert
-        (Volume_Caps.Free_Bytes_Known = Volume_Caps.Capacity_Bytes_Known,
+      Files_Suite.Support.Assert_Equal
+        (Volume_Caps.Free_Bytes_Known,
+         Volume_Caps.Capacity_Bytes_Known,
          "root volume free-byte availability follows capacity availability");
-      Assert
-        (Volume_Caps.Inode_Count_Known = Volume_Caps.Capacity_Bytes_Known,
+      Files_Suite.Support.Assert_Equal
+        (Volume_Caps.Inode_Count_Known,
+         Volume_Caps.Capacity_Bytes_Known,
          "root volume inode availability follows statvfs availability");
-      Assert
-        (Volume_Caps.Read_Only_Available = Volume_Caps.Capacity_Bytes_Known,
+      Files_Suite.Support.Assert_Equal
+        (Volume_Caps.Read_Only_Available,
+         Volume_Caps.Capacity_Bytes_Known,
          "root volume read-only availability follows statvfs availability");
-      Assert
-        (Volume_Caps.Name_Max_Available = Volume_Caps.Capacity_Bytes_Known,
+      Files_Suite.Support.Assert_Equal
+        (Volume_Caps.Name_Max_Available,
+         Volume_Caps.Capacity_Bytes_Known,
          "root volume name-limit availability follows statvfs availability");
       Assert (not Volume_Caps.Eject_Available, "root volume capabilities do not claim eject support");
       Assert
         (Repository_Source_Contains ("function Is_Mount_Container")
          and then Repository_Source_Contains ("return not Is_Mount_Container"),
          "root discovery excludes mount container rows");
-      Assert (Natural (Roots_A.Length) = Natural (Roots_B.Length), "available roots count is deterministic");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Roots_A.Length),
+         Natural (Roots_B.Length),
+         "available roots count is deterministic");
       for Index in 1 .. Natural (Roots_A.Length) loop
          declare
             Detail : constant Files.File_System.Root_Volume_Details :=
               Files.File_System.Root_Volume_Details_For (Entries.Element (Index));
          begin
-            Assert
-              (To_String (Detail.Path) = To_String (Entries.Element (Index).Path),
+            Files_Suite.Support.Assert_Equal
+              (To_String (Detail.Path),
+               To_String (Entries.Element (Index).Path),
                "root volume details preserve root path");
             Assert
               (To_String (Detail.Native_Api_Name) = "none"
@@ -2151,7 +2733,10 @@ package body Files_Suite.Model is
                Assert (To_String (Detail.Source_Device) /= "", "root volume details include mount source");
                Assert (To_String (Detail.Mount_Options) /= "", "root volume details include mount options");
             end if;
-            Assert (Detail.Capacity_Known = Detail.Free_Known, "root volume size flags are consistent");
+            Files_Suite.Support.Assert_Equal
+              (Detail.Capacity_Known,
+               Detail.Free_Known,
+               "root volume size flags are consistent");
             if Detail.Capacity_Known then
                Assert (Detail.Capacity_Bytes > 0, "known root volume capacity is positive");
                Assert (Detail.Free_Bytes >= 0, "known root volume free space is non-negative");
@@ -2178,8 +2763,9 @@ package body Files_Suite.Model is
                "root volume details platform flag follows filesystem type availability");
          end;
          Assert (To_String (Roots_A.Element (Index)) /= "", "available root path is non-empty");
-         Assert
-           (To_String (Entries.Element (Index).Path) = To_String (Roots_A.Element (Index)),
+         Files_Suite.Support.Assert_Equal
+           (To_String (Entries.Element (Index).Path),
+            To_String (Roots_A.Element (Index)),
             "root metadata path matches path projection");
          Assert (To_String (Entries.Element (Index).Label) /= "", "root metadata label is non-empty");
          Assert (To_String (Entries.Element (Index).Volume_Name) /= "", "root metadata volume name is non-empty");
@@ -2199,25 +2785,30 @@ package body Files_Suite.Model is
             Assert
               (Is_User_Visible_Mount_Point (To_String (Entries.Element (Index).Path)),
                "root selector excludes system implementation mounts");
-            Assert
-              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|tmpfs") = 0,
+            Files_Suite.Support.Assert_Equal
+              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|tmpfs"),
+               0,
                "root selector excludes tmpfs mounts from proc metadata");
-            Assert
-              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|proc") = 0,
+            Files_Suite.Support.Assert_Equal
+              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|proc"),
+               0,
                "root selector excludes proc mounts from proc metadata");
-            Assert
-              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|sysfs") = 0,
+            Files_Suite.Support.Assert_Equal
+              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|sysfs"),
+               0,
                "root selector excludes sysfs mounts from proc metadata");
-            Assert
-              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|squashfs") = 0,
+            Files_Suite.Support.Assert_Equal
+              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|squashfs"),
+               0,
                "root selector excludes snap package mounts from proc metadata");
          end if;
          Assert (Ada.Directories.Exists (To_String (Roots_A.Element (Index))), "available root path exists");
          Assert
            (Ada.Directories.Kind (To_String (Roots_A.Element (Index))) = Ada.Directories.Directory,
             "available root path is a directory");
-         Assert
-           (To_String (Roots_A.Element (Index)) = To_String (Roots_B.Element (Index)),
+         Files_Suite.Support.Assert_Equal
+           (To_String (Roots_A.Element (Index)),
+            To_String (Roots_B.Element (Index)),
             "available roots preserve deterministic order");
          for Other in Index + 1 .. Natural (Roots_A.Length) loop
             Assert
@@ -2264,8 +2855,9 @@ package body Files_Suite.Model is
                Shared_Profile_Count := Shared_Profile_Count + 1;
             end if;
          end loop;
-         Assert
-           (Shared_Profile_Count = 1,
+         Files_Suite.Support.Assert_Equal
+           (Shared_Profile_Count,
+            1,
             "available roots collapse duplicate HOME and USERPROFILE directories");
          Restore_Root_Environment;
       exception
@@ -2284,8 +2876,9 @@ package body Files_Suite.Model is
          Bad_Detail : constant Files.File_System.Root_Volume_Details :=
            Files.File_System.Root_Volume_Details_For (Bad_Root);
       begin
-         Assert
-           (To_String (Bad_Detail.Native_Api_Name) = "none",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Bad_Detail.Native_Api_Name),
+            "none",
             "malformed root volume detail skips platform adapter");
          Assert
            (not Bad_Detail.Uses_Platform_Detail,
@@ -2293,23 +2886,37 @@ package body Files_Suite.Model is
       end;
 
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Select_Drive_Command, "drive selector command is routed");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Select_Drive_Command,
+         "drive selector command is routed");
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector opens root selector");
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "root selector opening closes settings pane");
       Assert (Files.Model.Root_Count (Model) >= 1, "root selector contains at least one root");
-      Assert (Files.Model.Root_Selected_Index (Model) = 1, "root selector selects the first root by default");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Root_Selected_Index (Model),
+         1,
+         "root selector selects the first root by default");
       Assert (Files.Model.Root_Path (Model, 1) /= "", "root selector exposes a root path");
-      Assert (Files.Model.Root_Path (Model, 99) = "", "invalid root selector index returns empty path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Root_Path (Model, 99),
+         "",
+         "invalid root selector index returns empty path");
 
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Assert (Snapshot.Root_Selector_Open, "snapshot captures root selector visibility");
       Assert (not Snapshot.Settings_Pane_Open, "snapshot exposes root selector as exclusive settings modal");
-      Assert (Snapshot.Root_Selected_Index = 1, "snapshot captures selected root selector row");
-      Assert
-        (Natural (Snapshot.Root_Paths.Length) = Files.Model.Root_Count (Model),
+      Files_Suite.Support.Assert_Equal
+        (Snapshot.Root_Selected_Index,
+         1,
+         "snapshot captures selected root selector row");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Snapshot.Root_Paths.Length),
+         Files.Model.Root_Count (Model),
          "snapshot captures root selector paths");
-      Assert
-        (Natural (Snapshot.Root_Labels.Length) = Files.Model.Root_Count (Model),
+      Files_Suite.Support.Assert_Equal
+        (Natural (Snapshot.Root_Labels.Length),
+         Files.Model.Root_Count (Model),
          "snapshot captures root selector labels");
       Assert (To_String (Snapshot.Root_Labels.Element (1)) /= "", "root selector label is non-empty");
       Entries.Clear;
@@ -2360,8 +2967,9 @@ package body Files_Suite.Model is
            Files.File_System.Root_Volume_Details_For (Entries.Element (1));
       begin
          Assert (Network_Detail.Network_Mount, "network root detail marks remote mounts");
-         Assert
-           (To_String (Network_Detail.Remote_Protocol) = "smb",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Network_Detail.Remote_Protocol),
+            "smb",
             "network root detail derives SMB protocol from GVFS path");
          Assert (Network_Detail.Offline_Possible, "network root detail marks offline risk");
          Assert (Network_Detail.Auth_May_Be_Required, "network root detail marks authentication risk");
@@ -2393,8 +3001,9 @@ package body Files_Suite.Model is
            Files.File_System.Root_Volume_Details_For (Entries.Element (1));
       begin
          Assert (not Local_Detail.Network_Mount, "local root detail does not claim network status");
-         Assert
-           (To_String (Local_Detail.Remote_Protocol) = "",
+         Files_Suite.Support.Assert_Equal
+           (To_String (Local_Detail.Remote_Protocol),
+            "",
             "local root detail has no remote protocol");
          Assert (not Local_Detail.Offline_Possible, "local root detail has no offline network risk");
          Assert
@@ -2419,15 +3028,21 @@ package body Files_Suite.Model is
         (Files.Commands.Is_Enabled (Files.Commands.Eject_Selected_Root_Command, Model),
          "eject command is enabled for removable roots");
       Result := Files.Controller.Execute_Command (Files.Commands.Eject_Selected_Root_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Eject_Selected_Root_Command, "eject command reports command");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Failed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Eject_Selected_Root_Command,
+         "eject command reports command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Failed,
          "eject command reports unavailable native operation");
-      Assert
-        (To_String (Result.Operation.Error_Key) = "error.root.eject_unavailable",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Operation.Error_Key),
+         "error.root.eject_unavailable",
          "eject command reports localized unavailable error");
-      Assert
-        (To_String (Result.Operation.Path) = "/tmp/example-mount",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Operation.Path),
+         "/tmp/example-mount",
          "eject command reports selected root path");
       Entries.Clear;
       Entries.Append
@@ -2443,11 +3058,18 @@ package body Files_Suite.Model is
         (not Files.Commands.Is_Enabled (Files.Commands.Eject_Selected_Root_Command, Model),
          "eject command is disabled for non-removable roots");
       Result := Files.Controller.Execute_Command (Files.Commands.Open_Selected_Root_Command, Model, Settings);
-      Assert
-        (Result.Command = Files.Commands.Open_Selected_Root_Command,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Open_Selected_Root_Command,
          "root-open command reports root activation command");
-      Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "root-open command navigates");
-      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Target), "root-open loads selected root");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Navigated,
+         "root-open command navigates");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Ada.Directories.Full_Name (Target),
+         "root-open loads selected root");
       Files.Model.Navigate_To (Model, Root, Files.File_System.Item_Vectors.Empty_Vector);
       Files.Model.Toggle_Settings_Pane (Model);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens before direct root selector call");
@@ -2465,45 +3087,80 @@ package body Files_Suite.Model is
          "string root selector overload closes settings pane");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Select_Drive_Command, "second drive selector click is routed");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Select_Drive_Command,
+         "second drive selector click is routed");
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "second drive selector click closes root selector");
-      Assert (Files.Model.Current_Path (Model) = Root, "second drive selector click does not navigate");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
+         "second drive selector click does not navigate");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector reopens after toggle close");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert (Result.Command = Files.Commands.Close_Command_Palette_Command, "Escape routes root selector close");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Close_Command_Palette_Command,
+         "Escape routes root selector close");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
          "root selector Escape reports successful state-only close");
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "Escape closes root selector");
-      Assert (Files.Model.Root_Count (Model) = 0, "Escape clears closed root selector entries");
-      Assert (Files.Model.Current_Path (Model) = Root, "root selector Escape does not navigate");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Root_Count (Model),
+         0,
+         "Escape clears closed root selector entries");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
+         "root selector Escape does not navigate");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector can reopen after Escape");
       Result := Files.Controller.Execute_Command (Files.Commands.Close_Command_Palette_Command, Model, Settings);
-      Assert
-        (Result.Command = Files.Commands.Close_Command_Palette_Command,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Close_Command_Palette_Command,
          "close command routes root selector close");
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "close command closes root selector");
-      Assert (Files.Model.Root_Count (Model) = 0, "close command clears closed root selector entries");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Root_Count (Model),
+         0,
+         "close command clears closed root selector entries");
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector reopens after close command");
       Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks path focus command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "root selector blocks path focus command");
       Assert (Files.Model.Root_Selector_Is_Open (Model), "blocked path focus keeps root selector open");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "blocked path focus leaves focus clear");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "blocked path focus leaves focus clear");
       Files.Model.Close_Root_Selector (Model);
-      Assert (Files.Model.Root_Count (Model) = 0, "direct close clears closed root selector entries");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Root_Count (Model),
+         0,
+         "direct close clears closed root selector entries");
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector reopens after blocked path focus");
       Result := Files.Controller.Execute_Command (Files.Commands.Open_Command_Palette_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Open_Command_Palette_Command, "palette command is routed");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Open_Command_Palette_Command,
+         "palette command is routed");
       Assert (Files.Model.Command_Palette_Is_Open (Model), "palette opens from toolbar state");
       Assert (Files.Model.Root_Selector_Is_Open (Model), "palette opening preserves root selector");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Command_Palette, Cursor_Position => 0);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "same palette search cursor click is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "same palette search cursor click is ignored");
       Assert (Files.Model.Root_Selector_Is_Open (Model), "palette search focus preserves root selector");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "Escape closes palette after selector handoff");
@@ -2515,7 +3172,10 @@ package body Files_Suite.Model is
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector opens from palette state");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "drive selector closes command palette");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "drive selector clears palette focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "drive selector clears palette focus");
       Files.Model.Close_Root_Selector (Model);
 
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
@@ -2524,107 +3184,210 @@ package body Files_Suite.Model is
       Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
 
       Result := Files.Controller.Select_Root (Model, Settings, Join (Root, "missing-root"));
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "invalid root selection executes command");
-      Assert (Result.Command = Files.Commands.Select_Drive_Command, "invalid root selection reports drive command");
-      Assert (Result.Operation.Status = Files.Operations.Operation_Failed, "invalid root selection fails as data");
-      Assert
-        (To_String (Result.Operation.Error_Key) = "error.path.missing",
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "invalid root selection executes command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Select_Drive_Command,
+         "invalid root selection reports drive command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Failed,
+         "invalid root selection fails as data");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Operation.Error_Key),
+         "error.path.missing",
          "invalid root selection reports path diagnostic");
-      Assert (Files.Model.Current_Path (Model) = Root, "invalid root selection does not navigate");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
+         "invalid root selection does not navigate");
       Assert (Files.Model.Root_Selector_Is_Open (Model), "invalid root selection keeps selector open");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.path.missing", "invalid root selection records error");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.path.missing",
+         "invalid root selection records error");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "invalid root selection preserves temporary create state");
       Assert (Files.Model.Rename_Is_Active (Model), "invalid root selection preserves rename state");
       Result := Files.Controller.Handle_Root_Click (Model, Settings, Root_Index => 0);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "outside root row click is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "outside root row click is ignored");
       Assert (Files.Model.Root_Selector_Is_Open (Model), "outside root row click keeps selector open");
 
       Result := Files.Controller.Select_Root (Model, Settings, Target);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "root selection executes command");
-      Assert (Result.Command = Files.Commands.Select_Drive_Command, "root selection reports drive command");
-      Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "root selection navigates");
-      Assert
-        (To_String (Result.Operation.Path) = Ada.Directories.Full_Name (Target),
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "root selection executes command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Select_Drive_Command,
+         "root selection reports drive command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Navigated,
+         "root selection navigates");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Operation.Path),
+         Ada.Directories.Full_Name (Target),
          "root selection operation carries normalized path");
-      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Target), "selected root is loaded");
-      Assert (Files.Model.Last_Error_Key (Model) = "", "root selection clears stale error state");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Ada.Directories.Full_Name (Target),
+         "selected root is loaded");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
+         "root selection clears stale error state");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "root selection clears temporary create state");
       Assert (not Files.Model.Rename_Is_Active (Model), "root selection clears rename state");
-      Assert (Files.Model.Item_Count (Model) = 1, "selected root directory items are loaded");
+      Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 1, "selected root directory items are loaded");
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "root selection closes selector");
       Assert (Files.Model.Can_Go_Back (Model), "root selection updates back history");
       Result := Files.Controller.Handle_Root_Click (Model, Settings, Root_Index => 1);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "closed root selector row click is ignored");
-      Assert
-        (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Target),
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "closed root selector row click is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Ada.Directories.Full_Name (Target),
          "closed root selector row click does not navigate");
 
       Files.Model.Initialize (Model, Root, Sample_Items, Root);
       Files.Model.Open_Root_Selector (Model, Files.Types.String_Vectors.Empty_Vector);
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "empty root selector stays closed");
-      Assert (Files.Model.Root_Selected_Index (Model) = 0, "empty root selector has no selected row");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Root_Selected_Index (Model),
+         0,
+         "empty root selector has no selected row");
       Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
-      Assert
-        (Result.Status = Files.Controller.Controller_Command_Executed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
          "empty root selector does not create an invisible modal command blocker");
       Roots_A.Clear;
       Roots_A.Append (To_Unbounded_String (Root));
       Files.Model.Open_Root_Selector (Model, Roots_A);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "single root selector movement is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "single root selector movement is ignored");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector Home at first row is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "root selector Home at first row is ignored");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_End);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "single root selector End is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "single root selector End is ignored");
       Roots_A.Clear;
       Roots_A.Append (To_Unbounded_String (Root));
       Roots_A.Append (To_Unbounded_String (Target));
       Roots_A.Append (To_Unbounded_String (Ada.Directories.Full_Name (Root)));
       Files.Model.Open_Root_Selector (Model, Roots_A);
-      Assert (Files.Model.Root_Selected_Index (Model) = 1, "non-empty root selector selects first row");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Root_Selected_Index (Model),
+         1,
+         "non-empty root selector selects first row");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
-      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "Down moves root selector row");
-      Assert (Files.Model.Root_Selected_Index (Model) = 2, "Down selects next root row");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "Down moves root selector row");
+      Files_Suite.Support.Assert_Equal (Files.Model.Root_Selected_Index (Model), 2, "Down selects next root row");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Up);
-      Assert (Files.Model.Root_Selected_Index (Model) = 1, "Up selects previous root row");
+      Files_Suite.Support.Assert_Equal (Files.Model.Root_Selected_Index (Model), 1, "Up selects previous root row");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Up);
-      Assert (Files.Model.Root_Selected_Index (Model) = 3, "Up wraps root selector to last row");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Root_Selected_Index (Model),
+         3,
+         "Up wraps root selector to last row");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Home);
-      Assert (Files.Model.Root_Selected_Index (Model) = 1, "Home selects first root row");
+      Files_Suite.Support.Assert_Equal (Files.Model.Root_Selected_Index (Model), 1, "Home selects first root row");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_End);
-      Assert (Files.Model.Root_Selected_Index (Model) = 3, "End selects last root row");
+      Files_Suite.Support.Assert_Equal (Files.Model.Root_Selected_Index (Model), 3, "End selects last root row");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
-      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "Right wraps root selector to first row");
-      Assert (Files.Model.Root_Selected_Index (Model) = 1, "Right from last root row wraps to first row");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "Right wraps root selector to first row");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Root_Selected_Index (Model),
+         1,
+         "Right from last root row wraps to first row");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
-      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "Left wraps root selector to last row");
-      Assert (Files.Model.Root_Selected_Index (Model) = 3, "Left from first root row wraps to last row");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "Left wraps root selector to last row");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Root_Selected_Index (Model),
+         3,
+         "Left from first root row wraps to last row");
       Files.Model.Select_Visible (Model, 1);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks background delete key");
-      Assert (Files.Model.Selected_Count (Model) = 1, "blocked root selector delete keeps selection");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "root selector blocks background delete key");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         1,
+         "blocked root selector delete keeps selection");
       Assert (Files.Model.Root_Selector_Is_Open (Model), "blocked root selector delete keeps selector open");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Path_Input, Cursor_Position => 1);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks background text focus");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "blocked text focus leaves focus clear");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "root selector blocks background text focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "blocked text focus leaves focus clear");
       Result := Files.Controller.Handle_Scroll (Model, Lines => 3);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks background wheel scroll");
-      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "blocked root selector scroll leaves main view still");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "root selector blocks background wheel scroll");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Main_View_Scroll_Lines (Model),
+         0,
+         "blocked root selector scroll leaves main view still");
       Result :=
         Files.Controller.Handle_Targeted_Scroll
           (Model,
            Files.Events.Scroll_Auto,
            Lines => 3);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks targeted auto scroll");
-      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "blocked root auto scroll leaves main view still");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "root selector blocks targeted auto scroll");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Main_View_Scroll_Lines (Model),
+         0,
+         "blocked root auto scroll leaves main view still");
       Result :=
         Files.Controller.Handle_Targeted_Scroll
           (Model,
            Files.Events.Scroll_Main_View,
            Lines => 3);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks targeted main scroll");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "root selector blocks targeted main scroll");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
-      Assert (Result.Command = Files.Commands.Open_Command_Palette_Command, "root selector allows palette shortcut");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Open_Command_Palette_Command,
+         "root selector allows palette shortcut");
       Assert (Files.Model.Command_Palette_Is_Open (Model), "palette opens over root selector from shortcut");
       Assert (Files.Model.Root_Selector_Is_Open (Model), "palette shortcut keeps root selector available");
       Snapshot := Files.Rendering.Build_Snapshot (Model);
@@ -2633,42 +3396,70 @@ package body Files_Suite.Model is
         (not Snapshot.Root_Selector_Open,
          "snapshot suppresses root selector drawing while the palette is above it");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Command_Palette, Cursor_Position => 0);
-      Assert
-        (Result.Status = Files.Controller.Controller_Ignored,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
          "same palette search cursor click is ignored over root selector");
       Files.Model.Close_Command_Palette (Model);
       Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks direct path focus command");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "blocked direct path focus leaves focus clear");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "root selector blocks direct path focus command");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "blocked direct path focus leaves focus clear");
       Files.Model.Set_Error (Model, "error.path.missing");
       Result := Files.Controller.Execute_Command (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks direct delete command");
-      Assert (Files.Model.Selected_Count (Model) = 1, "blocked direct delete keeps selection");
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "error.path.missing",
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "root selector blocks direct delete command");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 1, "blocked direct delete keeps selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.path.missing",
          "modal command block does not replace existing error");
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "root selector blocks direct settings command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "root selector blocks direct settings command");
       Assert (Files.Model.Root_Selector_Is_Open (Model), "blocked direct settings keeps root selector open");
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "blocked direct settings leaves settings pane closed");
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "error.path.missing",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.path.missing",
          "root selector settings block preserves existing error");
       Result := Files.Controller.Execute_Command (Files.Commands.Open_Command_Palette_Command, Model, Settings);
-      Assert
-        (Result.Command = Files.Commands.Open_Command_Palette_Command,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Open_Command_Palette_Command,
          "root selector allows direct palette command");
       Assert (Files.Model.Command_Palette_Is_Open (Model), "direct palette command opens over root selector");
       Files.Model.Close_Command_Palette (Model);
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Select_Drive_Command, "root selector allows drive toggle command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Select_Drive_Command,
+         "root selector allows drive toggle command");
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "drive toggle closes root selector");
       Files.Model.Open_Root_Selector (Model, Roots_A);
       Files.Model.Set_Root_Selected_Index (Model, 2);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
-      Assert (Result.Command = Files.Commands.Open_Selected_Root_Command, "Return activates selected root row");
-      Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "Return root activation navigates");
-      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Target), "Return loads selected root");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Open_Selected_Root_Command,
+         "Return activates selected root row");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Navigated,
+         "Return root activation navigates");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Ada.Directories.Full_Name (Target),
+         "Return loads selected root");
 
       Files.Model.Initialize (Model, Root, Sample_Items, Root);
       Roots_A.Clear;
@@ -2678,14 +3469,25 @@ package body Files_Suite.Model is
       Files.Controller.Replace_Focused_Text (Model, "/tmp/root-click-edit");
       Files.Model.Open_Root_Selector (Model, Roots_A);
       Result := Files.Controller.Handle_Root_Click (Model, Settings, Root_Index => 1);
-      Assert
-        (Result.Command = Files.Commands.Open_Selected_Root_Command,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Open_Selected_Root_Command,
          "root row click reports root activation command");
-      Assert (Result.Operation.Status = Files.Operations.Operation_Navigated, "root row click navigates");
-      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Target), "root row click loads root");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "root row click clears path input focus");
-      Assert
-        (Files.Model.Path_Input_Text (Model) = Ada.Directories.Full_Name (Target),
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Navigated,
+         "root row click navigates");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Ada.Directories.Full_Name (Target),
+         "root row click loads root");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "root row click clears path input focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Path_Input_Text (Model),
+         Ada.Directories.Full_Name (Target),
          "root row click replaces edited path text");
    end Test_Root_Selector_And_Root_Selection;
 
@@ -2740,11 +3542,13 @@ package body Files_Suite.Model is
 
       --  The info pane can always be toggled, even with nothing selected.
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
-      Assert
-        (Result.Command = Files.Commands.Toggle_Info_Pane_Command,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Toggle_Info_Pane_Command,
          "Control+4 routes info-pane command with no selection");
-      Assert
-        (Result.Status = Files.Controller.Controller_Command_Executed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
          "Control+4 toggles the info pane with no selection");
       Assert (Files.Model.Info_Pane_Is_Open (Model), "info pane opens without a selection");
       --  Close it again, then reopen with a selection so the rest of the
@@ -2753,16 +3557,20 @@ package body Files_Suite.Model is
       Assert (not Files.Model.Info_Pane_Is_Open (Model), "a second Control+4 closes the info pane");
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
-      Assert (Result.Command = Files.Commands.Toggle_Info_Pane_Command, "Control+4 routes info-pane command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Toggle_Info_Pane_Command,
+         "Control+4 routes info-pane command");
       Assert (Files.Model.Info_Pane_Is_Open (Model), "info pane toggles open");
-      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "info pane opens unscrolled");
+      Files_Suite.Support.Assert_Equal (Files.Model.Info_Pane_Scroll_Lines (Model), 0, "info pane opens unscrolled");
 
       declare
          Before : constant Natural := Files.Model.Revision (Model);
       begin
          Files.Model.Set_Info_Pane_Scroll_Lines (Model, 0);
-         Assert
-           (Files.Model.Revision (Model) = Before,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Revision (Model),
+            Before,
             "holding an unmoved info-pane scrollbar does not revise the model");
       end;
 
@@ -2770,47 +3578,96 @@ package body Files_Suite.Model is
          Before : constant Natural := Files.Model.Revision (Model);
       begin
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
-         Assert (Result.Status = Files.Controller.Controller_Ignored, "PageUp at top of info pane is ignored");
-         Assert
-           (Files.Model.Revision (Model) = Before,
+         Files_Suite.Support.Assert_Equal
+           (Result.Status,
+            Files.Controller.Controller_Ignored,
+            "PageUp at top of info pane is ignored");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Revision (Model),
+            Before,
             "ignored info-pane PageUp leaves the model revision unchanged");
       end;
 
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Info_Pane, -1);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "negative info scroll at top is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "negative info scroll at top is ignored");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "PageDown pages info pane");
-      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 10, "PageDown scrolls info pane by page");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "PageDown pages info pane");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Info_Pane_Scroll_Lines (Model),
+         10,
+         "PageDown scrolls info pane by page");
 
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Info_Pane, Integer'Last);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "large info scroll is handled");
-      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = Natural'Last, "large info scroll saturates");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "large info scroll is handled");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Info_Pane_Scroll_Lines (Model),
+         Natural'Last,
+         "large info scroll saturates");
 
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Info_Pane, Integer'First);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "large negative info scroll is handled");
-      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "large negative info scroll clamps to top");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "large negative info scroll is handled");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Info_Pane_Scroll_Lines (Model),
+         0,
+         "large negative info scroll clamps to top");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
-      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 10, "info pane scroll resumes after saturation");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Info_Pane_Scroll_Lines (Model),
+         10,
+         "info pane scroll resumes after saturation");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "PageUp pages info pane");
-      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "PageUp scrolls info pane back to top");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "PageUp pages info pane");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Info_Pane_Scroll_Lines (Model),
+         0,
+         "PageUp scrolls info pane back to top");
 
       Files.Model.Scroll_Info_Pane (Model, Lines => 3);
-      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 3, "info pane can scroll before selection changes");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Info_Pane_Scroll_Lines (Model),
+         3,
+         "info pane can scroll before selection changes");
       Files.Model.Select_Visible (Model, 2);
-      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "single selection resets info pane scroll");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Info_Pane_Scroll_Lines (Model),
+         0,
+         "single selection resets info pane scroll");
       Files.Model.Scroll_Info_Pane (Model, Lines => 3);
       Files.Model.Toggle_Visible_Selection (Model, 1);
-      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "toggle selection resets info pane scroll");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Info_Pane_Scroll_Lines (Model),
+         0,
+         "toggle selection resets info pane scroll");
       Files.Model.Scroll_Info_Pane (Model, Lines => 3);
       Files.Model.Select_Visible_Range (Model, 1, 3);
-      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "range selection resets info pane scroll");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Info_Pane_Scroll_Lines (Model),
+         0,
+         "range selection resets info pane scroll");
       Files.Model.Scroll_Info_Pane (Model, Lines => 3);
       Files.Model.Clear_Selection (Model);
-      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "clear selection resets info pane scroll");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Info_Pane_Scroll_Lines (Model),
+         0,
+         "clear selection resets info pane scroll");
       Result :=
         Files.Controller.Execute_Command
           (Files.Commands.Toggle_Settings_Pane_Command,
@@ -2818,18 +3675,42 @@ package body Files_Suite.Model is
            Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens over info pane");
       Result := Files.Controller.Handle_Scroll (Model, Lines => 3);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "wheel scrolls the open settings pane");
-      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "settings wheel scroll leaves info pane still");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "wheel scrolls the open settings pane");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Info_Pane_Scroll_Lines (Model),
+         0,
+         "settings wheel scroll leaves info pane still");
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Auto, 10);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "auto scroll reaches the settings pane");
-      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "settings auto scroll leaves info pane still");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "auto scroll reaches the settings pane");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Info_Pane_Scroll_Lines (Model),
+         0,
+         "settings auto scroll leaves info pane still");
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Info_Pane, 10);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks targeted info scroll");
-      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "blocked targeted scroll leaves info pane still");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "settings pane blocks targeted info scroll");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Info_Pane_Scroll_Lines (Model),
+         0,
+         "blocked targeted scroll leaves info pane still");
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks background PageDown");
-      Assert (Files.Model.Info_Pane_Scroll_Lines (Model) = 0, "blocked PageDown leaves info pane still");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "settings pane blocks background PageDown");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Info_Pane_Scroll_Lines (Model),
+         0,
+         "blocked PageDown leaves info pane still");
       Result :=
         Files.Controller.Execute_Command
           (Files.Commands.Toggle_Settings_Pane_Command,
@@ -2838,27 +3719,49 @@ package body Files_Suite.Model is
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes after scroll block checks");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_2, Ctrl);
-      Assert (Result.Command = Files.Commands.Select_Large_Icons_Command, "Control+2 routes large-icons command");
-      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Large_Icons, "large mode shortcut works");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Select_Large_Icons_Command,
+         "Control+2 routes large-icons command");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.View_Mode_Of (Model),
+         Files.Types.Large_Icons,
+         "large mode shortcut works");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_3, Ctrl);
-      Assert (Result.Command = Files.Commands.Select_Details_Command, "Control+3 routes details command");
-      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Details, "details shortcut works");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Select_Details_Command,
+         "Control+3 routes details command");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.View_Mode_Of (Model),
+         Files.Types.Details,
+         "details shortcut works");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_1, Ctrl);
-      Assert (Result.Command = Files.Commands.Select_Small_Icons_Command, "Control+1 routes small-icons command");
-      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Small_Icons, "small mode shortcut works");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Select_Small_Icons_Command,
+         "Control+1 routes small-icons command");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.View_Mode_Of (Model),
+         Files.Types.Small_Icons,
+         "small mode shortcut works");
 
       --  The info pane can always be toggled, even with no selection: the click
       --  now closes the currently open pane rather than being ignored.
       Result := Files.Controller.Handle_Command_Click (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
-      Assert
-        (Result.Command = Files.Commands.Toggle_Info_Pane_Command,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Toggle_Info_Pane_Command,
          "info-pane click routes command with no selection");
       Assert (not Files.Model.Info_Pane_Is_Open (Model), "info-pane click closes the pane with no selection");
       Files.Model.Select_Visible (Model, 1);
       Result := Files.Controller.Handle_Command_Click (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Toggle_Info_Pane_Command, "enabled info-pane click routes command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Toggle_Info_Pane_Command,
+         "enabled info-pane click routes command");
       Assert (Files.Model.Info_Pane_Is_Open (Model), "info-pane click toggles open");
       --  Restore the closed state expected by the following main-view scroll
       --  checks.
@@ -2870,48 +3773,85 @@ package body Files_Suite.Model is
       --  still scrolls through the wheel / targeted-scroll seam below.
       Files.Model.Select_Visible (Model, 1);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "grid PageUp on the first item is ignored");
-      Assert (Files.Model.Selected_Index (Model) = 1, "grid PageUp keeps the first item selected");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "grid PageUp on the first item is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         1,
+         "grid PageUp keeps the first item selected");
 
       declare
          Before : constant Natural := Files.Model.Revision (Model);
       begin
          Result := Files.Controller.Handle_Scroll (Model, Lines => -1);
-         Assert (Result.Status = Files.Controller.Controller_Ignored, "negative main scroll at top is ignored");
-         Assert
-           (Files.Model.Revision (Model) = Before,
+         Files_Suite.Support.Assert_Equal
+           (Result.Status,
+            Files.Controller.Controller_Ignored,
+            "negative main scroll at top is ignored");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Revision (Model),
+            Before,
             "ignored main-view scrolling leaves the model revision unchanged");
       end;
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
-      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "grid PageDown pages the selection");
-      Assert
-        (Files.Model.Selected_Index (Model) = Files.Model.Visible_Count (Model),
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "grid PageDown pages the selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         Files.Model.Visible_Count (Model),
          "grid PageDown moves the selection a full page down to the last item");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "grid PageDown on the last item is ignored");
-      Assert
-        (Files.Model.Selected_Index (Model) = Files.Model.Visible_Count (Model),
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "grid PageDown on the last item is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         Files.Model.Visible_Count (Model),
          "grid PageDown keeps the last item selected");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
-      Assert (Result.Status = Files.Controller.Controller_Selection_Moved, "grid PageUp pages the selection back");
-      Assert (Files.Model.Selected_Index (Model) = 1, "grid PageUp returns the selection to the first item");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Selection_Moved,
+         "grid PageUp pages the selection back");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Index (Model),
+         1,
+         "grid PageUp returns the selection to the first item");
 
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Main_View, Integer'Last);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "large main scroll is handled");
-      Assert (Files.Model.Main_View_Scroll_Lines (Model) = Natural'Last, "large main scroll saturates");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "large main scroll is handled");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Main_View_Scroll_Lines (Model),
+         Natural'Last,
+         "large main scroll saturates");
 
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Main_View, Integer'First);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "large negative main scroll is handled");
-      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "large negative main scroll clamps to top");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "large negative main scroll is handled");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Main_View_Scroll_Lines (Model),
+         0,
+         "large negative main scroll clamps to top");
       declare
          Before : constant Natural := Files.Model.Revision (Model);
       begin
          Files.Model.Set_Main_View_Scroll_Lines (Model, 0);
-         Assert
-           (Files.Model.Revision (Model) = Before,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Revision (Model),
+            Before,
             "holding an unmoved main scrollbar does not revise the model");
       end;
       Result :=
@@ -2921,18 +3861,42 @@ package body Files_Suite.Model is
            Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens over main view");
       Result := Files.Controller.Handle_Scroll (Model, Lines => 3);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "wheel scrolls the open settings pane");
-      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "settings wheel scroll leaves main view still");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "wheel scrolls the open settings pane");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Main_View_Scroll_Lines (Model),
+         0,
+         "settings wheel scroll leaves main view still");
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Auto, 10);
-      Assert (Result.Status = Files.Controller.Controller_Command_Executed, "auto scroll reaches the settings pane");
-      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "settings auto scroll leaves main view still");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Command_Executed,
+         "auto scroll reaches the settings pane");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Main_View_Scroll_Lines (Model),
+         0,
+         "settings auto scroll leaves main view still");
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Main_View, 10);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks targeted main scroll");
-      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "blocked targeted scroll leaves main view still");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "settings pane blocks targeted main scroll");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Main_View_Scroll_Lines (Model),
+         0,
+         "blocked targeted scroll leaves main view still");
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Down);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "settings pane blocks main PageDown");
-      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "blocked PageDown leaves main view still");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "settings pane blocks main PageDown");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Main_View_Scroll_Lines (Model),
+         0,
+         "blocked PageDown leaves main view still");
       Result :=
         Files.Controller.Execute_Command
           (Files.Commands.Toggle_Settings_Pane_Command,
@@ -2941,12 +3905,24 @@ package body Files_Suite.Model is
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes before command click checks");
 
       Result := Files.Controller.Handle_Command_Click (Files.Commands.Select_Details_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Select_Details_Command, "details click routes command");
-      Assert (Files.Model.View_Mode_Of (Model) = Files.Types.Details, "details click changes view mode");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Select_Details_Command,
+         "details click routes command");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.View_Mode_Of (Model),
+         Files.Types.Details,
+         "details click changes view mode");
 
       Result := Files.Controller.Handle_Command_Click (Files.Commands.No_Command, Model, Settings);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "empty command click is ignored");
-      Assert (Result.Command = Files.Commands.No_Command, "empty command click reports no command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "empty command click is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.No_Command,
+         "empty command click reports no command");
    end Test_Info_And_Bottom_Bar_Commands;
 
    procedure Test_Rename_Mode (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -2967,7 +3943,10 @@ package body Files_Suite.Model is
       Files.Model.Toggle_Rename (Model);
       Assert (Files.Model.Rename_Is_Active (Model), "direct rename enters rename mode");
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "direct rename closes stale root selector");
-      Assert (Files.Model.Root_Count (Model) = 0, "direct rename clears stale root selector entries");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Root_Count (Model),
+         0,
+         "direct rename clears stale root selector entries");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "direct rename closes stale command palette");
       Files.Model.Toggle_Rename (Model);
       Assert (not Files.Model.Rename_Is_Active (Model), "direct rename can be cancelled after overlay cleanup");
@@ -2984,16 +3963,25 @@ package body Files_Suite.Model is
       Assert (Files.Model.Rename_Is_Enabled (Model), "rename enabled with multi-selection");
       Files.Model.Toggle_Rename (Model);
       Assert (Files.Model.Rename_Is_Active (Model), "multi-selection rename enters rename mode");
-      Assert (Files.Model.Rename_Field_Count (Model) = 2, "multi-selection rename opens one field per item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Rename_Field_Count (Model),
+         2,
+         "multi-selection rename opens one field per item");
       Files.Model.Toggle_Rename (Model);
       Assert (not Files.Model.Rename_Is_Active (Model), "toggling rename again cancels multi rename");
       Files.Model.Select_Visible (Model, 2);
       Files.Commands.Execute (Files.Commands.Rename_Selected_Items_Command, Model);
       Assert (Files.Model.Rename_Is_Active (Model), "rename command enters rename mode");
-      Assert (Files.Model.Rename_Text (Model) = "Beta.txt", "rename text is selected file name");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Rename_Text (Model),
+         "Beta.txt",
+         "rename text is selected file name");
       Files.Model.Select_Visible (Model, 1);
       Assert (not Files.Model.Rename_Is_Active (Model), "selection change cancels stale rename mode");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "selection change clears stale rename focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "selection change clears stale rename focus");
 
       Files.Model.Select_Visible (Model, 2);
       Files.Commands.Execute (Files.Commands.Rename_Selected_Items_Command, Model);
@@ -3006,7 +3994,10 @@ package body Files_Suite.Model is
       Files.Commands.Execute (Files.Commands.Rename_Selected_Items_Command, Model);
       Files.Model.Set_Filter (Model, "Alpha");
       Assert (not Files.Model.Rename_Is_Active (Model), "filter hiding rename target cancels rename mode");
-      Assert (Files.Model.Selected_Name (Model) = "Alpha.txt", "filter reconciliation selects visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Name (Model),
+         "Alpha.txt",
+         "filter reconciliation selects visible item");
       Files.Model.Clear_Filter (Model);
       Files.Model.Select_Visible (Model, 2);
       Files.Commands.Execute (Files.Commands.Rename_Selected_Items_Command, Model);
@@ -3014,31 +4005,50 @@ package body Files_Suite.Model is
       Assert (not Files.Model.Rename_Is_Active (Model), "F2 while renaming cancels rename mode");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
-      Assert (Result.Command = Files.Commands.Rename_Selected_Items_Command, "F2 routes rename through controller");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Rename_Selected_Items_Command,
+         "F2 routes rename through controller");
       Assert (Files.Model.Rename_Is_Active (Model), "controller F2 enters rename mode");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert (Result.Command = Files.Commands.Close_Command_Palette_Command, "Escape routes context cancel");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Close_Command_Palette_Command,
+         "Escape routes context cancel");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
          "rename Escape reports successful state-only cancel");
       Assert (not Files.Model.Rename_Is_Active (Model), "Escape cancels focused rename mode");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
       Assert (Files.Model.Rename_Is_Active (Model), "rename can be entered again");
       Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "path focus can move away from rename");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Path_Input,
+         "path focus can move away from rename");
       Assert (Files.Model.Rename_Is_Active (Model), "path focus does not implicitly cancel rename");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "Escape clears focused path input");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "Escape clears focused path input");
       Assert (not Files.Model.Rename_Is_Active (Model), "Escape cancels rename state after path focus");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
       Assert (Files.Model.Rename_Is_Active (Model), "rename can be entered after path focus Escape");
       Result := Files.Controller.Execute_Command (Files.Commands.Focus_Filter_Input_Command, Model, Settings);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Filter_Input, "focus can move away from rename");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Filter_Input,
+         "focus can move away from rename");
       Assert (Files.Model.Rename_Is_Active (Model), "moving focus does not implicitly cancel rename");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "first Escape clears focused filter input");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "first Escape clears focused filter input");
       Assert (not Files.Model.Rename_Is_Active (Model), "Escape cancels pending rename state after focus moved");
    end Test_Rename_Mode;
 
@@ -3081,7 +4091,10 @@ package body Files_Suite.Model is
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Files.Model.Toggle_Rename (Model);
       Assert (Files.Model.Rename_Is_Active (Model), "multi-rename activates for two selected items");
-      Assert (Files.Model.Rename_Field_Count (Model) = 2, "multi-rename opens one field per selected item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Rename_Field_Count (Model),
+         2,
+         "multi-rename opens one field per selected item");
 
       Assert (RActive (1) and then RActive (2), "both selected rows carry an active rename field");
       Assert (not RActive (3), "an unselected row carries no rename field");
@@ -3106,8 +4119,8 @@ package body Files_Suite.Model is
 
       --  A per-field click moves only that field's caret.
       Files.Model.Set_Rename_Caret (Model, Visible_Index => 1, Position => 0);
-      Assert (RCursor (1) = 0, "a click moves the clicked field's caret");
-      Assert (RCursor (2) = 4, "a click leaves the other field's caret untouched");
+      Files_Suite.Support.Assert_Equal (RCursor (1), 0, "a click moves the clicked field's caret");
+      Files_Suite.Support.Assert_Equal (RCursor (2), 4, "a click leaves the other field's caret untouched");
 
       --  A keyboard arrow moves every caret together.
       Changed := Files.Model.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right);
@@ -3135,47 +4148,90 @@ package body Files_Suite.Model is
       Files.Model.Begin_Create_File (Model, "draft.txt");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "direct create adds temporary item");
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "direct create closes stale root selector");
-      Assert (Files.Model.Root_Count (Model) = 0, "direct create clears stale root selector entries");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Root_Count (Model),
+         0,
+         "direct create clears stale root selector entries");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "direct create closes stale command palette");
       Files.Model.Cancel_Create_File (Model);
       Files.Model.Set_Filter (Model, "does-not-match-untitled");
       Files.Model.Set_Error (Model, "error.path.missing");
       Files.Model.Scroll_Main_View (Model, 4);
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
-      Assert (Result.Command = Files.Commands.Create_File_Command, "create command routes through controller");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Create_File_Command,
+         "create command routes through controller");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
          "create command reports successful temporary-item operation");
-      Assert (Files.Model.Last_Error_Key (Model) = "", "create command clears stale error state");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
+         "create command clears stale error state");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "create command adds temporary item");
-      Assert (Files.Model.Temporary_Item_Name (Model) = "untitled 3.txt", "temporary item name is deterministic");
-      Assert (Files.Model.Main_View_Scroll_Lines (Model) = 0, "create command scrolls temporary item into view");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Temporary_Item_Name (Model),
+         "untitled 3.txt",
+         "temporary item name is deterministic");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Main_View_Scroll_Lines (Model),
+         0,
+         "create command scrolls temporary item into view");
       Assert (Files.Model.Rename_Is_Active (Model), "create command starts rename mode");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input, "create command focuses rename input");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Rename_Input,
+         "create command focuses rename input");
       Assert
         (not Files.Commands.Is_Enabled (Files.Commands.Create_File_Command, Model),
          "create command is disabled while a temporary item exists");
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
-      Assert (Result.Status = Files.Controller.Controller_Ignored, "second create command is ignored");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Disabled,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "second create command is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Disabled,
          "second create command reports disabled operation");
-      Assert
-        (To_String (Result.Operation.Error_Key) = "error.create.pending",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Operation.Error_Key),
+         "error.create.pending",
          "second create command reports pending-create error");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.create.pending", "second create records error");
-      Assert (Files.Model.Temporary_Item_Name (Model) = "untitled 3.txt", "ignored create keeps pending name");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.create.pending",
+         "second create records error");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Temporary_Item_Name (Model),
+         "untitled 3.txt",
+         "ignored create keeps pending name");
       Files.Model.Cancel_Create_File (Model);
       Ada.Directories.Delete_File (Join (Root, "untitled 2.txt"));
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
-      Assert (Files.Model.Temporary_Item_Name (Model) = "untitled 2.txt", "create command uses first name gap");
-      Assert (Files.Model.Visible_Count (Model) = 1, "temporary item appears despite active filter");
-      Assert
-        (To_String (Files.Model.Visible_Item (Model, 1).Name) = "untitled 2.txt",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Temporary_Item_Name (Model),
+         "untitled 2.txt",
+         "create command uses first name gap");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Visible_Count (Model),
+         1,
+         "temporary item appears despite active filter");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Files.Model.Visible_Item (Model, 1).Name),
+         "untitled 2.txt",
          "temporary item is the visible item while pending");
-      Assert (Files.Model.Selected_Index (Model) = 1, "create command selects temporary item");
-      Assert (Files.Model.Selected_Count (Model) = 1, "temporary item counts as a selected visible item");
-      Assert (Files.Model.Selected_Name (Model) = "untitled 2.txt", "temporary selection exposes pending name");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 1, "create command selects temporary item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         1,
+         "temporary item counts as a selected visible item");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Name (Model),
+         "untitled 2.txt",
+         "temporary selection exposes pending name");
       Assert (Files.Model.Selected_Item_Is_Temporary (Model), "model identifies selected temporary item");
       Assert (not Files.Model.Rename_Is_Enabled (Model), "temporary item is not a real rename target");
       Assert
@@ -3188,14 +4244,32 @@ package body Files_Suite.Model is
         (not Files.Commands.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Model),
          "selected temporary item does not enable open");
       Operation := Files.Operations.Open_Selected (Model, Settings);
-      Assert (Operation.Status = Files.Operations.Operation_Disabled, "temporary item cannot be opened directly");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.selection.empty", "temporary open records disabled state");
+      Files_Suite.Support.Assert_Equal
+        (Operation.Status,
+         Files.Operations.Operation_Disabled,
+         "temporary item cannot be opened directly");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.selection.empty",
+         "temporary open records disabled state");
       Operation := Files.Operations.Delete_Selected (Model, Settings);
-      Assert (Operation.Status = Files.Operations.Operation_Disabled, "temporary item cannot be deleted directly");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.selection.empty", "temporary delete records disabled state");
+      Files_Suite.Support.Assert_Equal
+        (Operation.Status,
+         Files.Operations.Operation_Disabled,
+         "temporary item cannot be deleted directly");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.selection.empty",
+         "temporary delete records disabled state");
       Operation := Files.Operations.Commit_Rename (Model, Settings);
-      Assert (Operation.Status = Files.Operations.Operation_Disabled, "temporary item cannot be renamed directly");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.rename.disabled", "temporary rename records disabled state");
+      Files_Suite.Support.Assert_Equal
+        (Operation.Status,
+         Files.Operations.Operation_Disabled,
+         "temporary item cannot be renamed directly");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.rename.disabled",
+         "temporary rename records disabled state");
 
       declare
          Mixed_Model : Files.Model.Window_Model := Sample_Model;
@@ -3207,11 +4281,13 @@ package body Files_Suite.Model is
             Anchor_Index => Positive (Files.Model.Visible_Count (Mixed_Model)),
             Target_Index => 1);
          Mixed_Items := Files.Model.Selected_Items (Mixed_Model);
-         Assert
-           (Files.Model.Selected_Count (Mixed_Model) = 4,
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Selected_Count (Mixed_Model),
+            4,
             "mixed selection includes real items and temporary item");
-         Assert
-           (Natural (Mixed_Items.Length) = 3,
+         Files_Suite.Support.Assert_Equal
+           (Natural (Mixed_Items.Length),
+            3,
             "selected items excludes the transient create-file item");
          Assert
            (Files.Model.Selection_Includes_Temporary (Mixed_Model),
@@ -3226,89 +4302,131 @@ package body Files_Suite.Model is
            (not Files.Commands.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Mixed_Model),
             "mixed temporary selection does not enable open");
          Operation := Files.Operations.Open_Selected (Mixed_Model, Settings);
-         Assert (Operation.Status = Files.Operations.Operation_Disabled, "mixed temporary selection cannot open");
-         Assert
-           (Files.Model.Last_Error_Key (Mixed_Model) = "error.selection.empty",
+         Files_Suite.Support.Assert_Equal
+           (Operation.Status,
+            Files.Operations.Operation_Disabled,
+            "mixed temporary selection cannot open");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Last_Error_Key (Mixed_Model),
+            "error.selection.empty",
             "mixed temporary open records disabled state");
          Operation := Files.Operations.Delete_Selected (Mixed_Model, Settings);
-         Assert (Operation.Status = Files.Operations.Operation_Disabled, "mixed temporary selection cannot delete");
-         Assert
-           (Files.Model.Last_Error_Key (Mixed_Model) = "error.selection.empty",
+         Files_Suite.Support.Assert_Equal
+           (Operation.Status,
+            Files.Operations.Operation_Disabled,
+            "mixed temporary selection cannot delete");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Last_Error_Key (Mixed_Model),
+            "error.selection.empty",
             "mixed temporary delete records disabled state");
       end;
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
-      Assert (Result.Command = Files.Commands.Rename_Selected_Items_Command, "F2 routes temporary rename cancel");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Rename_Selected_Items_Command,
+         "F2 routes temporary rename cancel");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "F2 cancels pending temporary item");
       Assert (not Files.Model.Rename_Is_Active (Model), "F2 clears temporary rename state");
-      Assert (Files.Model.Selected_Count (Model) = 0, "F2 clears temporary selection");
-      Assert (Files.Model.Visible_Count (Model) = 0, "F2 removes temporary item from projection");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 0, "F2 clears temporary selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Visible_Count (Model),
+         0,
+         "F2 removes temporary item from projection");
       Assert (not Ada.Directories.Exists (Join (Root, "untitled 2.txt")), "F2 does not create a file");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_N, Ctrl);
-      Assert (Result.Command = Files.Commands.Create_File_Command, "Control+N routes create-file command");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Create_File_Command,
+         "Control+N routes create-file command");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "Control+N adds temporary item");
       Files.Model.Cancel_Create_File (Model);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "direct create cancel clears rename focus");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "direct create cancel clears rename focus");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_N, Ctrl);
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "Control+N can add temporary item after direct cancel");
       Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_Path_Input, "path focus can move away from create");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_Path_Input,
+         "path focus can move away from create");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "Escape clears path focus during create");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "Escape clears path focus during create");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "Escape cancels temporary item after path focus");
       Assert (not Files.Model.Rename_Is_Active (Model), "Escape clears create rename after path focus");
-      Assert (Files.Model.Visible_Count (Model) = 0, "path-focus Escape removes temporary item from projection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Visible_Count (Model),
+         0,
+         "path-focus Escape removes temporary item from projection");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Down);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert (Result.Command = Files.Commands.Close_Command_Palette_Command, "Escape routes context cancel");
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Close_Command_Palette_Command,
+         "Escape routes context cancel");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
          "create Escape reports successful state-only cancel");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "Escape cancels temporary item");
       Assert (not Files.Model.Rename_Is_Active (Model), "Escape clears temporary rename state");
-      Assert (Files.Model.Selected_Count (Model) = 0, "Escape clears temporary selection");
-      Assert (Files.Model.Visible_Count (Model) = 0, "cancelled temporary item disappears from projection");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 0, "Escape clears temporary selection");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Visible_Count (Model),
+         0,
+         "cancelled temporary item disappears from projection");
       Assert (not Ada.Directories.Exists (Join (Root, "untitled 3.txt")), "Escape does not create a file");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
       Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 1);
-      Assert
-        (Result.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
          "temporary-row item click reports successful context cancel");
       Assert
         (not Files.Model.Temporary_Item_Is_Active (Model),
          "temporary-row item click cancels pending create");
-      Assert
-        (Files.Model.Selected_Count (Model) = 0,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Model),
+         0,
          "temporary-row item click does not leave a zero selection");
-      Assert
-        (Files.Model.Visible_Count (Model) = 0,
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Visible_Count (Model),
+         0,
          "temporary-row item click removes the only visible row");
 
       Reset_Root;
       Ada.Directories.Create_Path (Join (Root, "untitled.txt"));
       Write_File (Join (Root, "untitled 3.txt"));
       Write_File (Join (Root, "name-parent.txt"));
-      Assert
-        (Files.File_System.Next_Untitled_Name (Join (Root, "name-parent.txt")) = "untitled.txt",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_System.Next_Untitled_Name (Join (Root, "name-parent.txt")),
+         "untitled.txt",
          "untitled name generation falls back deterministically for non-directory probes");
-      Assert
-        (Files.File_System.Next_Untitled_Name (Root) = "untitled 2.txt",
+      Files_Suite.Support.Assert_Equal
+        (Files.File_System.Next_Untitled_Name (Root),
+         "untitled 2.txt",
          "untitled name generation skips directory collisions");
       Dangling_Untitled := Create_Symlink ("missing-target", Join (Root, "untitled 2.txt"));
       if Dangling_Untitled then
-         Assert
-           (Files.File_System.Next_Untitled_Name (Root) = "untitled 4.txt",
+         Files_Suite.Support.Assert_Equal
+           (Files.File_System.Next_Untitled_Name (Root),
+            "untitled 4.txt",
             "untitled name generation skips dangling-link collisions");
       end if;
       Files.Model.Initialize (Model, Root, Items, Root);
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
-      Assert
-        (Files.Model.Temporary_Item_Name (Model) =
-           (if Dangling_Untitled then "untitled 4.txt" else "untitled 2.txt"),
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Temporary_Item_Name (Model),
+         (if Dangling_Untitled then "untitled 4.txt" else "untitled 2.txt"),
          "create uses the first suffix without an existing directory entry");
       Files.Model.Cancel_Create_File (Model);
       declare
@@ -3327,8 +4445,9 @@ package body Files_Suite.Model is
          end loop;
       end;
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
-      Assert
-        (Files.Model.Temporary_Item_Name (Model) = "untitled 11.txt",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Temporary_Item_Name (Model),
+         "untitled 11.txt",
          "create uses explicit spaced suffix text after single digits");
    end Test_Create_File_Temporary_State;
 
@@ -3340,37 +4459,65 @@ package body Files_Suite.Model is
       Item     : Files.File_System.Directory_Item;
    begin
       Item := Files.Model.Selected_Item (Model);
-      Assert (To_String (Item.Name) = "", "empty selection returns an empty selected item");
-      Assert (To_String (Item.Full_Path) = "", "empty selection selected item has empty path");
+      Files_Suite.Support.Assert_Equal (To_String (Item.Name), "", "empty selection returns an empty selected item");
+      Files_Suite.Support.Assert_Equal (To_String (Item.Full_Path), "", "empty selection selected item has empty path");
       Assert (Item.Kind = Files.Types.Unknown_Item, "empty selection selected item has unknown kind");
       Assert (not Files.Model.Selected_Item_Is_Temporary (Model), "empty selection is not temporary");
 
       Result := Files.Operations.Open_Selected (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Disabled, "empty open is represented as disabled");
-      Assert (To_String (Result.Path) = "", "disabled empty open has no target path");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.selection.empty", "empty open records an error");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Disabled,
+         "empty open is represented as disabled");
+      Files_Suite.Support.Assert_Equal (To_String (Result.Path), "", "disabled empty open has no target path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.selection.empty",
+         "empty open records an error");
       Result := Files.Operations.Navigate_Back (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Disabled, "empty back history is disabled");
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "error.history.back_unavailable",
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Disabled,
+         "empty back history is disabled");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.history.back_unavailable",
          "empty back history records an error");
       Result := Files.Operations.Commit_Create_File (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Disabled, "create commit without temporary item is disabled");
-      Assert (To_String (Result.Path) = "", "disabled create commit has no target path");
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "error.create.no_temporary_item",
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Disabled,
+         "create commit without temporary item is disabled");
+      Files_Suite.Support.Assert_Equal (To_String (Result.Path), "", "disabled create commit has no target path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.create.no_temporary_item",
          "missing temporary item records an error");
       Result := Files.Operations.Commit_Rename (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Disabled, "rename commit outside rename mode is disabled");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.rename.disabled", "disabled rename records an error");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Disabled,
+         "rename commit outside rename mode is disabled");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.rename.disabled",
+         "disabled rename records an error");
 
       Files.Model.Select_Visible (Model, 1);
       Result := Files.Operations.Delete_Selected (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Failed, "trash failure is represented as data");
-      Assert (To_String (Result.Path) = Join (Root, "Alpha.txt"), "trash failure reports selected path");
-      Assert (Files.Model.Last_Error_Key (Model) = "error.trash.failed",
-              "trash failure is recorded as data; key was "
-              & Files.Model.Last_Error_Key (Model));
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Failed,
+         "trash failure is represented as data");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Path),
+         Join (Root, "Alpha.txt"),
+         "trash failure reports selected path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.trash.failed",
+         "trash failure is recorded as data; key was "
+         & Files.Model.Last_Error_Key (Model));
    end Test_Error_State;
 
    procedure Test_Quick_Look_Content_Prep (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -3396,8 +4543,11 @@ package body Files_Suite.Model is
               Raw_Bytes => "alpha" & ASCII.LF & "beta" & ASCII.LF & "gamma");
       begin
          Assert (Content.Kind = Files.Quick_Look.Text_Content, "a text file yields Text content");
-         Assert (Natural (Content.Text_Lines.Length) = 3, "all three short lines are carried");
-         Assert (To_String (Content.Text_Lines.First_Element) = "alpha", "the first line is preserved");
+         Files_Suite.Support.Assert_Equal (Natural (Content.Text_Lines.Length), 3, "all three short lines are carried");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Content.Text_Lines.First_Element),
+            "alpha",
+            "the first line is preserved");
          Assert (not Content.Text_Truncated, "a short file is not truncated");
       end;
 
@@ -3438,7 +4588,10 @@ package body Files_Suite.Model is
               Is_Image => True, Image_Path => "/tmp/photo.png", Raw_Bytes => "");
       begin
          Assert (Content.Kind = Files.Quick_Look.Image_Content, "an image item yields Image content");
-         Assert (To_String (Content.Image_Path) = "/tmp/photo.png", "image content carries the source path");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Content.Image_Path),
+            "/tmp/photo.png",
+            "image content carries the source path");
       end;
 
       --  A directory yields the metadata info card with name and type.
@@ -3450,8 +4603,11 @@ package body Files_Suite.Model is
               Is_Image => False, Image_Path => "/tmp/Documents", Raw_Bytes => "");
       begin
          Assert (Content.Kind = Files.Quick_Look.Info_Content, "a directory yields Info content");
-         Assert (To_String (Content.Name) = "Documents", "info content carries the item name");
-         Assert (To_String (Content.Filetype) = "inode/directory", "info content carries the item type");
+         Files_Suite.Support.Assert_Equal (To_String (Content.Name), "Documents", "info content carries the item name");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Content.Filetype),
+            "inode/directory",
+            "info content carries the item type");
       end;
    end Test_Quick_Look_Content_Prep;
 
@@ -3465,8 +4621,9 @@ package body Files_Suite.Model is
 
       Files.Model.Toggle_Quick_Look (Model);
       Assert (Files.Model.Quick_Look_Is_Open (Model), "toggling with a single selection opens quick look");
-      Assert
-        (Files.Model.Quick_Look_Path (Model) = To_String (Files.Model.Selected_Item (Model).Full_Path),
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Quick_Look_Path (Model),
+         To_String (Files.Model.Selected_Item (Model).Full_Path),
          "quick look records the previewed item path");
       Assert
         (Files.Model.Quick_Look_Content_Of (Model).Kind = Files.Quick_Look.Info_Content,
@@ -3519,8 +4676,11 @@ package body Files_Suite.Model is
 
       Mib : constant Long_Long_Integer := 1024 * 1024;
    begin
-      Assert (Typed (Files.Types.Directory_Item, "") = 1, "folders come first");
-      Assert (Typed (Files.Types.Regular_File_Item, "IMAGE/PNG") = 2, "image types, in any case");
+      Files_Suite.Support.Assert_Equal (Typed (Files.Types.Directory_Item, ""), 1, "folders come first");
+      Files_Suite.Support.Assert_Equal
+        (Typed (Files.Types.Regular_File_Item, "IMAGE/PNG"),
+         2,
+         "image types, in any case");
       Assert (Typed (Files.Types.Regular_File_Item, "audio/flac") = 3
               and then Typed (Files.Types.Regular_File_Item, "video/mp4") = 4, "audio, then video");
       Assert (Typed (Files.Types.Regular_File_Item, "text/plain") = 5
@@ -3533,17 +4693,20 @@ package body Files_Suite.Model is
               and then Typed (Files.Types.Regular_File_Item, "") = 7, "everything else last");
 
       Assert (Dated (True, Today) = 1 and then Dated (True, Ada.Calendar.Clock) = 1, "today, from midnight on");
-      Assert (Dated (True, Today + 3.0 * Day) = 1, "a time past now counts as today, not as earlier");
+      Files_Suite.Support.Assert_Equal
+        (Dated (True, Today + 3.0 * Day),
+         1,
+         "a time past now counts as today, not as earlier");
       Assert (Dated (True, Today - 1.0) = 2 and then Dated (True, Today - 6.0 * Day + 60.0) = 2,
               "the six days before today");
-      Assert (Dated (True, Today - 7.0 * Day) = 3, "older than that");
-      Assert (Dated (False, Today) = 4, "an unknown time last");
+      Files_Suite.Support.Assert_Equal (Dated (True, Today - 7.0 * Day), 3, "older than that");
+      Files_Suite.Support.Assert_Equal (Dated (False, Today), 4, "an unknown time last");
 
       Assert (Sized (True, 0) = 1 and then Sized (True, -5) = 1, "empty");
       Assert (Sized (True, 1) = 2 and then Sized (True, Mib - 1) = 2, "under a MiB");
       Assert (Sized (True, Mib) = 3 and then Sized (True, 1024 * Mib - 1) = 3, "under a GiB");
-      Assert (Sized (True, 1024 * Mib) = 4, "a GiB and up");
-      Assert (Sized (False, 0) = 5, "an unknown size last");
+      Files_Suite.Support.Assert_Equal (Sized (True, 1024 * Mib), 4, "a GiB and up");
+      Files_Suite.Support.Assert_Equal (Sized (False, 0), 5, "an unknown size last");
    end Test_Grouping_Band_Edges;
 
    procedure Test_Group_By_Label_Bands (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -3577,13 +4740,15 @@ package body Files_Suite.Model is
             if not Item.Is_Group_Header then
                --  Keyboard and range selection walk visible indexes in order;
                --  the drawn rows must follow the same order.
-               Assert (Item.Visible_Index = Last_Visible + 1,
-                       "grouped rows are drawn in the order the keyboard walks them");
+               Files_Suite.Support.Assert_Equal
+                 (Item.Visible_Index,
+                  Last_Visible + 1,
+                  "grouped rows are drawn in the order the keyboard walks them");
                Last_Visible := Item.Visible_Index;
             end if;
             if Item.Is_Group_Header then
                Header_Count := Header_Count + 1;
-               Assert (Item.Visible_Index = 0, "a label band header is non-selectable");
+               Files_Suite.Support.Assert_Equal (Item.Visible_Index, 0, "a label band header is non-selectable");
                Prev_Was_Header := True;
             else
                declare
@@ -3603,7 +4768,7 @@ package body Files_Suite.Model is
          end loop;
 
          --  Three occupied bands (Red, Blue, Unlabeled) each emit one header.
-         Assert (Header_Count = 3, "three occupied label bands emit three headers");
+         Files_Suite.Support.Assert_Equal (Header_Count, 3, "three occupied label bands emit three headers");
          Assert (Header_Before_Alpha, "the first labeled item sits under a band header");
          --  Band order: Red (Alpha) before Blue (Gamma) before Unlabeled (Beta).
          Assert (Alpha_Pos > 0 and then Gamma_Pos > 0 and then Beta_Pos > 0,
@@ -3627,7 +4792,10 @@ package body Files_Suite.Model is
             Expected : constant Files.Rendering.View_Snapshot :=
               Files.Rendering.Build_Snapshot (Reference, Settings);
          begin
-            Assert (Snapshot.Items.Last_Index = Expected.Items.Last_Index, "ungrouping keeps every item");
+            Files_Suite.Support.Assert_Equal
+              (Snapshot.Items.Last_Index,
+               Expected.Items.Last_Index,
+               "ungrouping keeps every item");
             for Index in Snapshot.Items.First_Index .. Snapshot.Items.Last_Index loop
                Assert (not Snapshot.Items (Index).Is_Group_Header, "no band headers without grouping");
                Assert (Snapshot.Items (Index).Name = Expected.Items (Index).Name,

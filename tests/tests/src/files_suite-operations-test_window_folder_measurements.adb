@@ -72,8 +72,10 @@ separate (Files_Suite.Operations)
          Files.Model.Poll_Folder_Sizes (Other);
          exit when not Files.Model.Folder_Scan_Is_Active (Other);
       end loop;
-      Assert (Files.Model.Folder_Size_Value (Other, Folder).Total_Bytes = 15,
-              "refresh remeasures descendant changes even when parent entries were unchanged");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Folder_Size_Value (Other, Folder).Total_Bytes,
+         15,
+         "refresh remeasures descendant changes even when parent entries were unchanged");
       Files.Model.Cancel_Folder_Scan (Model);
       for Attempt in Files_Suite.Support.Polling loop
          Files.Process_Jobs.Poll (Empty, Finished, Cancelled);
@@ -97,8 +99,10 @@ separate (Files_Suite.Operations)
          Files.Model.Poll_Folder_Sizes (Other);
          exit when not Files.Model.Folder_Scan_Is_Active (Other);
       end loop;
-      Assert (Files.Model.Folder_Size_Value (Other, Folder).Total_Bytes = 15,
-              "measurement resumes normally after the asynchronous listing was applied");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Folder_Size_Value (Other, Folder).Total_Bytes,
+         15,
+         "measurement resumes normally after the asynchronous listing was applied");
       Restore;
    exception
       when others => Restore; raise;

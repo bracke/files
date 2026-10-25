@@ -603,8 +603,9 @@ separate (Files_Suite.Operations)
                  (Result.Started and then not Result.Timed_Out
                   and then Result.Exit_Status = 0,
                   "unsafe recovery still completes when its report marker is a hardlink");
-               Assert
-                 (Project_Tools.Files.Read_Raw_File (Victim) = "unchanged",
+               Files_Suite.Support.Assert_Equal
+                 (Project_Tools.Files.Read_Raw_File (Victim),
+                  "unchanged",
                   "unsafe recovery never appends through a planted report hardlink");
                Assert
                  (not Files.Job_Scavenger.Has_Unrecoverable,

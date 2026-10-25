@@ -19,7 +19,10 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "a.txt");
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);
-      Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "copy-to command starts the picker");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
+         "copy-to command starts the picker");
       Assert (Files.Model.Tree_Pick_Is_Active (Model), "the picker is active after the command");
       Files.Model.Set_Tree_Pick_Target (Model, Dest_Dir);
 
@@ -27,8 +30,10 @@ separate (Files_Suite.Operations)
       --  Cancel button and the panel close box): it closes the tree and clears
       --  the picker without writing anything.
       Routed := Files.Controller.Execute_Command (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
-      Assert
-        (Routed.Status = Files.Controller.Controller_Command_Executed, "the cancel command is executed");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Status,
+         Files.Controller.Controller_Command_Executed,
+         "the cancel command is executed");
       Assert (not Files.Model.Tree_Pick_Is_Active (Model), "cancelling clears the picker");
       Assert (not Files.Model.Tree_Panel_Is_Open (Model), "cancelling closes the folder tree");
       Assert (not Ada.Directories.Exists (Join (Dest_Dir, "a.txt")), "cancelling copies nothing");

@@ -20,7 +20,10 @@ separate (Files_Suite.Operations)
          when Constraint_Error =>
             null;
       end;
-      Assert (Ada.Environment_Variables.Value (Set_Name, "") = "before", "a set variable gets its value back");
+      Files_Suite.Support.Assert_Equal
+        (Ada.Environment_Variables.Value (Set_Name, ""),
+         "before",
+         "a set variable gets its value back");
       Assert (not Ada.Environment_Variables.Exists (Unset_Name), "an unset variable is unset again");
       Ada.Environment_Variables.Clear (Set_Name);
    end Test_Environment_Guard;

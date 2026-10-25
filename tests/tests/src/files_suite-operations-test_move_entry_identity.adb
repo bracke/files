@@ -59,15 +59,24 @@ separate (Files_Suite.Operations)
                end if;
                Step := Complete_Operation (Model, Settings, Step);
                Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Success, "the initial history move succeeds");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Success,
+                  "the initial history move succeeds");
                Replace_And_Refuse (Dest, False);
                Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Success, "Undo can retry the restored entry");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Success,
+                  "Undo can retry the restored entry");
                Replace_And_Refuse (Source, True);
                Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
                Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Success, "Redo can retry the restored entry");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Success,
+                  "Redo can retry the restored entry");
                --  A vanished source and an unrelated target are not evidence
                --  that the history transition already completed.
                Assert (Hostkit.Fs.Move_No_Replace (Dest, Saved), "remove the owned source pathname");

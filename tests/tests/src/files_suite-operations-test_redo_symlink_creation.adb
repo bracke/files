@@ -19,16 +19,25 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "report.txt");
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Create_Symlink_Command, Model, Settings);
-      Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "create-symlink succeeds");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
+         "create-symlink succeeds");
       Assert (Hostkit.Fs.Is_Link (Link_Path), "the symbolic link is created");
 
       Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Result.Status = Files.Operations.Operation_Success, "undo of a created link succeeds");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
+         "undo of a created link succeeds");
       Assert (not Ada.Directories.Exists (Link_Path), "undo removes the created link");
       Assert (Files.Model.Redo_Available (Model), "a created link is redoable");
 
       Result := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-      Assert (Result.Status = Files.Operations.Operation_Success, "redo of a created link succeeds");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
+         "redo of a created link succeeds");
       Assert (Hostkit.Fs.Is_Link (Link_Path), "redo re-creates the symbolic link from its source");
       Assert (Ada.Directories.Exists (Source), "redo keeps the original source item");
       Assert (Files.Model.Undo_Available (Model), "the re-created link is undoable again");

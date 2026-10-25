@@ -20,8 +20,9 @@ separate (Files_Suite.Operations)
          Files.Model.Toggle_Rename (Model);
          Files.Model.Set_Rename_Text (Model, To_Name);
          Step := Files.Operations.Commit_Rename (Model, Settings);
-         Assert
-           (Step.Status = Files.Operations.Operation_Success,
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Success,
             "rename " & From_Name & " to " & To_Name & " commits");
       end Rename;
    begin
@@ -42,7 +43,7 @@ separate (Files_Suite.Operations)
 
       --  Undo unwinds last-in-first-out: C, then B, then A.
       Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Result.Status = Files.Operations.Operation_Success, "first undo succeeds");
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "first undo succeeds");
       Assert
         (Ada.Directories.Exists (C0) and then not Ada.Directories.Exists (C1),
          "the first undo reverses the most recent rename (C)");

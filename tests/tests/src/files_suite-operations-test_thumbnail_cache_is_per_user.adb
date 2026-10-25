@@ -47,8 +47,9 @@ separate (Files_Suite.Operations)
       end if;
 
       Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Cache_Home);
-      Assert
-        (Cache_Directory = Join (Join (Cache_Home, "files"), "thumbnails"),
+      Files_Suite.Support.Assert_Equal
+        (Cache_Directory,
+         Join (Join (Cache_Home, "files"), "thumbnails"),
          "an explicit XDG_CACHE_HOME is honoured on every host, got " & Cache_Directory);
 
       Ada.Environment_Variables.Set (Host_Variable, Cache_Home);
@@ -60,8 +61,9 @@ separate (Files_Suite.Operations)
          "a relative XDG_CACHE_HOME cannot redirect thumbnails into the process directory");
 
       Ada.Environment_Variables.Clear ("XDG_CACHE_HOME");
-      Assert
-        (Cache_Directory = Join (Join (Host_Cache_Root, "files"), "thumbnails"),
+      Files_Suite.Support.Assert_Equal
+        (Cache_Directory,
+         Join (Join (Host_Cache_Root, "files"), "thumbnails"),
          "without XDG_CACHE_HOME the cache follows this host's convention, got " & Cache_Directory);
 
       Assert

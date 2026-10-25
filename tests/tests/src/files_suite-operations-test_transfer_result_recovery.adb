@@ -49,8 +49,10 @@ separate (Files_Suite.Operations)
                        & Integer'Image (Fault) & " status=" & Files.Operations.Operation_Status'Image (Step.Status)
                        & " error=" & To_String (Step.Error_Key)
                        & " undo=" & Boolean'Image (Files.Model.Undo_Available (Model)));
-               Assert (Ada.Directories.Exists (Source) = (Mode = Files.File_System.Drop_Copy),
-                       "recovery recognizes whether the source move committed");
+               Files_Suite.Support.Assert_Equal
+                 (Ada.Directories.Exists (Source),
+                  (Mode = Files.File_System.Drop_Copy),
+                  "recovery recognizes whether the source move committed");
                if Fault = 4 then
                   Assert (Files.Model.Undo_History (Model).Last_Element.Created_Identities.First_Element
                           = Files.File_Identities.Token (Dest & "-saved"),

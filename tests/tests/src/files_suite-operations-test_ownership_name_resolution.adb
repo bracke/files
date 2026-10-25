@@ -45,7 +45,7 @@ separate (Files_Suite.Operations)
          --  "wheel", so accept a successful resolution to 0 or a not-found result
          --  rather than asserting a fixed gid that may vary by distribution.
          if Found then
-            Assert (Id = 0, "group name root, when present, resolves to gid 0");
+            Files_Suite.Support.Assert_Equal (Id, 0, "group name root, when present, resolves to gid 0");
          end if;
       end if;
 
@@ -61,11 +61,15 @@ separate (Files_Suite.Operations)
       if Files.Platform.Current_API_Profile.Adapter
            /= Files.File_System.Native_Adapter_Windows
       then
-         Assert (Files.File_System.User_Name_For_Id (0) = "root", "uid 0 resolves to root");
+         Files_Suite.Support.Assert_Equal (Files.File_System.User_Name_For_Id (0), "root", "uid 0 resolves to root");
          Assert (Files.File_System.Group_Name_For_Id (0) /= "", "gid 0 resolves to a group name");
       end if;
-      Assert (Files.File_System.User_Name_For_Id (2_000_000_000) = "",
-              "an unassigned uid resolves to the empty string");
-      Assert (Files.File_System.Group_Name_For_Id (2_000_000_000) = "",
-              "an unassigned gid resolves to the empty string");
+      Files_Suite.Support.Assert_Equal
+        (Files.File_System.User_Name_For_Id (2_000_000_000),
+         "",
+         "an unassigned uid resolves to the empty string");
+      Files_Suite.Support.Assert_Equal
+        (Files.File_System.Group_Name_For_Id (2_000_000_000),
+         "",
+         "an unassigned gid resolves to the empty string");
    end Test_Ownership_Name_Resolution;

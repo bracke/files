@@ -38,19 +38,24 @@ separate (Files_Suite.Operations)
          "compress-zip command is enabled with a selection");
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Compress_Zip_Command, Model, Settings);
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
          "compress to zip succeeds");
       Assert (Ada.Directories.Exists (Zip_Path), "zip archive is created next to the first item");
-      Assert (First_Bytes (Zip_Path, 4) = Zip_Magic, "zip archive begins with the ZIP local-header signature");
+      Files_Suite.Support.Assert_Equal
+        (First_Bytes (Zip_Path, 4),
+         Zip_Magic,
+         "zip archive begins with the ZIP local-header signature");
 
       Select_Name (Model, "report.txt");
       Routed := Files.Controller.Execute_Command (Files.Commands.Compress_7z_Command, Model, Settings);
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
          "compress to 7z succeeds");
       Assert (Ada.Directories.Exists (Sz_Path), "7z archive is created next to the first item");
-      Assert (First_Bytes (Sz_Path, 6) = Sz_Magic, "7z archive begins with the 7z signature");
+      Files_Suite.Support.Assert_Equal (First_Bytes (Sz_Path, 6), Sz_Magic, "7z archive begins with the 7z signature");
 
       Select_Name (Model, "notes.txt");
       Files.File_Identities.Testing.Set_Unavailable (True);

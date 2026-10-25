@@ -17,22 +17,32 @@ separate (Files_Suite.Operations)
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Files.Model.Toggle_Rename (Model);
-      Assert (Files.Model.Rename_Field_Count (Model) = 2, "multi-rename opens a field per selected file");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Rename_Field_Count (Model),
+         2,
+         "multi-rename opens a field per selected file");
       Changed := Files.Model.Rename_Insert_At_Carets (Model, "Z");
       Assert (Changed, "broadcast insert edits both rename fields");
 
       Result := Files.Operations.Commit_Rename (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Success, "committing both renames reports success");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
+         "committing both renames reports success");
       Assert (Ada.Directories.Exists (Join (Root, "aaaZ.txt")), "the first item is renamed on disk");
       Assert (Ada.Directories.Exists (Join (Root, "bbbZ.txt")), "the second item is renamed on disk");
       Assert (not Ada.Directories.Exists (Join (Root, "aaa.txt")), "the first old name is gone");
       Assert (not Ada.Directories.Exists (Join (Root, "bbb.txt")), "the second old name is gone");
-      Assert
-        (Natural (Files.Model.Undo_From_Paths (Model).Length) = 2,
+      Files_Suite.Support.Assert_Equal
+        (Natural (Files.Model.Undo_From_Paths (Model).Length),
+         2,
          "committing two renames records a two-entry undo");
 
       Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Result.Status = Files.Operations.Operation_Success, "one undo reverses the whole multi-rename");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
+         "one undo reverses the whole multi-rename");
       Assert (Ada.Directories.Exists (Join (Root, "aaa.txt")), "undo restores the first original name");
       Assert (Ada.Directories.Exists (Join (Root, "bbb.txt")), "undo restores the second original name");
       Assert (not Ada.Directories.Exists (Join (Root, "aaaZ.txt")), "undo removes the first renamed file");
@@ -60,19 +70,25 @@ separate (Files_Suite.Operations)
          end if;
       end loop;
       Files.Model.Toggle_Rename (Model);
-      Assert (Files.Model.Rename_Field_Count (Model) = 2, "best-effort rename opens two fields");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Rename_Field_Count (Model),
+         2,
+         "best-effort rename opens two fields");
       Changed := Files.Model.Rename_Insert_At_Carets (Model, "Z");
       Assert (Changed, "broadcast insert edits both best-effort fields");
 
       Result := Files.Operations.Commit_Rename (Model, Settings);
-      Assert
-        (Result.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
          "a partial multi-rename still reports overall success");
-      Assert
-        (To_String (Result.Error_Key) = "error.rename.partial",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Error_Key),
+         "error.rename.partial",
          "a partial multi-rename reports the partial error key");
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "error.rename.partial",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.rename.partial",
          "a partial multi-rename records the partial error key");
       Assert (Ada.Directories.Exists (Join (Root, "twoZ.txt")), "the non-colliding rename lands");
       Assert (not Ada.Directories.Exists (Join (Root, "two.txt")), "the renamed source is gone");
@@ -80,7 +96,8 @@ separate (Files_Suite.Operations)
       Assert
         (Ada.Strings.Fixed.Index (Project_Tools.Files.Read_Raw_File (Join (Root, "oneZ.txt")), "occupied") > 0,
          "the collision preserves the pre-existing destination file");
-      Assert
-        (Natural (Files.Model.Undo_From_Paths (Model).Length) = 1,
+      Files_Suite.Support.Assert_Equal
+        (Natural (Files.Model.Undo_From_Paths (Model).Length),
+         1,
          "a partial multi-rename records undo only for the successful rename");
    end Test_Commit_Multi_Rename;

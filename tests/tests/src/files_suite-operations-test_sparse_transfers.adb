@@ -73,14 +73,14 @@ separate (Files_Suite.Operations)
             Step := Complete_Operation
               (Model, Settings, Files.Operations.Begin_Paste_To (Model, Settings, Paths, Parent));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success, "copy a sparse file");
+            Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "copy a sparse file");
             Check (Dest, Mixed);
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success, "Undo a sparse copy");
+            Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "Undo a sparse copy");
             Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success, "Redo a sparse copy");
+            Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "Redo a sparse copy");
             Check (Dest, Mixed);
             Mutation := Files.File_System.Rename_Item (Dest, Join (To_String (Remote), "moved"));
             Assert (Mutation.Success, "move a sparse file across filesystems");

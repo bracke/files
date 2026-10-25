@@ -54,7 +54,10 @@ separate (Files_Suite.Operations)
                if Background then
                   Await_Refresh (False);
                else
-                  Assert (Step.Status = Files.Operations.Operation_Failed, "unavailable refresh fails synchronously");
+                  Files_Suite.Support.Assert_Equal
+                    (Step.Status,
+                     Files.Operations.Operation_Failed,
+                     "unavailable refresh fails synchronously");
                end if;
                Assert (Files.Model.Last_Error_Key (Model) = "error.directory.load"
                        and then Files.Model.Item_Count (Model) = 1,
@@ -65,11 +68,16 @@ separate (Files_Suite.Operations)
                     "restoring the same directory leaves the previous signature unchanged");
             Start_Refresh (Manual);
             if Background then
-               Assert (Files.Model.Last_Error_Key (Model) = "error.directory.load",
-                       "posting a retry retains the load error until success is confirmed");
+               Files_Suite.Support.Assert_Equal
+                 (Files.Model.Last_Error_Key (Model),
+                  "error.directory.load",
+                  "posting a retry retains the load error until success is confirmed");
                Await_Refresh (True);
             else
-               Assert (Step.Status = Files.Operations.Operation_Success, "the synchronous recovery succeeds");
+               Files_Suite.Support.Assert_Equal
+                 (Step.Status,
+                  Files.Operations.Operation_Success,
+                  "the synchronous recovery succeeds");
             end if;
             Assert (Files.Model.Last_Error_Key (Model) = "" and then Files.Model.Item_Count (Model) = 1
                     and then Files.Model.Selected_Name (Model) = "alpha",
@@ -81,22 +89,28 @@ separate (Files_Suite.Operations)
          Files.Model.Set_Error (Model, "error.trash.restore_exists");
          Start_Refresh (Manual);
          Await_Refresh (Manual);
-         Assert (Files.Model.Last_Error_Key (Model) = "error.trash.restore_exists",
-                 "changed and unchanged successful refreshes retain file operation errors");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Last_Error_Key (Model),
+            "error.trash.restore_exists",
+            "changed and unchanged successful refreshes retain file operation errors");
       end loop;
       Files.Model.Set_Error (Model, "error.directory.load");
       Start_Refresh (False);
       Await_Ready;
       Files.Model.Set_Error (Model, "error.undo.failed");
       Await_Refresh (False);
-      Assert (Files.Model.Last_Error_Key (Model) = "error.undo.failed",
-              "an old successful recovery cannot erase a newer operation error");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.undo.failed",
+         "an old successful recovery cannot erase a newer operation error");
       Files.Model.Set_Error (Model, "error.directory.load");
       Start_Refresh (True);
       Files.Refresh_Jobs.Cancel (Model);
       Await_Refresh (False);
-      Assert (Files.Model.Last_Error_Key (Model) = "error.directory.load",
-              "cancelling a retry does not clear an unconfirmed load error");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.directory.load",
+         "cancelling a retry does not clear an unconfirmed load error");
       Files.Settings.Note_Recent (Settings, Join (View, "alpha"));
       Files.Model.Navigate_Recent (Model, Files.File_System.Item_Vectors.Empty_Vector);
       for Operation_Error in Boolean loop

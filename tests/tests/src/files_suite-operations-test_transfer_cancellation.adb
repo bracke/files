@@ -35,7 +35,10 @@ separate (Files_Suite.Operations)
       Write_Binary_File (Dest, "keep");
       Result := Files.File_System.Execute_Drop_Import (Plans);
       Assert (not Result.Success, "a late destination collision fails");
-      Assert (Project_Tools.Files.Read_Raw_File (Dest) = "keep", "collision cleanup never removes unrelated data");
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (Dest),
+         "keep",
+         "collision cleanup never removes unrelated data");
       Plans.Clear;
       Plans.Append
         (Files.File_System.Drop_Import_Plan'

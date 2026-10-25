@@ -34,18 +34,33 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
       Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
       Assert (Files.Model.Paste_Execution_Is_Active (Model), "arming a paste execution activates it");
-      Assert (Files.Model.Paste_Execution_Total (Model) = Count, "the total counts every write action");
-      Assert (Files.Model.Paste_Execution_Done (Model) = 0, "nothing is done before the first advance");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Paste_Execution_Total (Model),
+         Count,
+         "the total counts every write action");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Paste_Execution_Done (Model),
+         0,
+         "nothing is done before the first advance");
 
       --  Max_Items = 2 over 5 actions => completes after ceil(5 / 2) = 3 calls.
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
-      Assert (Step.Status = Files.Operations.Operation_Success, "the first batch reports success");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "the first batch reports success");
       Assert (Files.Model.Paste_Execution_Is_Active (Model), "the execution is still in progress after one batch");
-      Assert (Files.Model.Paste_Execution_Done (Model) = 2, "the first batch completes two writes");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Paste_Execution_Done (Model),
+         2,
+         "the first batch completes two writes");
 
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
       Assert (Files.Model.Paste_Execution_Is_Active (Model), "the execution is still in progress after two batches");
-      Assert (Files.Model.Paste_Execution_Done (Model) = 4, "progress advances to four writes");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Paste_Execution_Done (Model),
+         4,
+         "progress advances to four writes");
 
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
       Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the third batch finalizes the execution");
@@ -59,13 +74,14 @@ separate (Files_Suite.Operations)
       Assert
         (Files.Model.Undo_Kind_Of (Model) = Files.Model.Undo_Delete_Created,
          "a copy paste is undone by deleting the created copies");
-      Assert
-        (Natural (Files.Model.Undo_From_Paths (Model).Length) = Count,
+      Files_Suite.Support.Assert_Equal
+        (Natural (Files.Model.Undo_From_Paths (Model).Length),
+         Count,
          "one undo covers the whole completed set");
 
       Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Step.Status = Files.Operations.Operation_Success, "undo of the paste succeeds");
+      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "undo of the paste succeeds");
       for N in 1 .. Count loop
          Assert (not Ada.Directories.Exists (Dest (N)), "undo removes each pasted copy");
       end loop;

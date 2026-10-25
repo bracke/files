@@ -65,7 +65,10 @@ separate (Files_Suite.Operations)
          end loop;
          Assert (not Files.Model.Paste_Execution_Is_Active (Model),
                  "the UI collects the helper result without blocking");
-         Assert (Step.Status = Files.Operations.Operation_Success, "the background operation completes successfully");
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Success,
+            "the background operation completes successfully");
       end Finish;
    begin
       Reset_Root;
@@ -78,8 +81,10 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "a.txt");
       Step := Files.Operations.Duplicate_Selected (Model, Settings);
       Finish;
-      Assert (Project_Tools.Files.Read_Raw_File (Join (Root, "a (copy).txt")) = "needle",
-              "background duplicate copies bytes");
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (Join (Root, "a (copy).txt")),
+         "needle",
+         "background duplicate copies bytes");
       Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
       Assert (Step.Status = Files.Operations.Operation_Success and then not Ada.Directories.Exists (Join (Root,
@@ -98,8 +103,10 @@ separate (Files_Suite.Operations)
             Select_Name (Model, Archive);
             Step := Files.Operations.Extract_Selected (Model, Settings);
             Finish;
-            Assert (Project_Tools.Files.Read_Raw_File (Join (Join (Root, "a"), "a.txt")) = "needle",
-                    "background extraction publishes the complete directory");
+            Files_Suite.Support.Assert_Equal
+              (Project_Tools.Files.Read_Raw_File (Join (Join (Root, "a"), "a.txt")),
+               "needle",
+               "background extraction publishes the complete directory");
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Assert (Step.Status = Files.Operations.Operation_Success and then not Ada.Directories.Exists (Join (Root,

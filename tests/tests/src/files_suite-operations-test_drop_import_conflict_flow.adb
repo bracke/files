@@ -43,17 +43,23 @@ separate (Files_Suite.Operations)
          Sources : constant Files.Types.String_Vectors.Vector := Prepare;
       begin
          Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
-         Assert
-           (Routed.Operation.Status = Files.Operations.Operation_Success,
+         Files_Suite.Support.Assert_Equal
+           (Routed.Operation.Status,
+            Files.Operations.Operation_Success,
             "an armed drop conflict reports success without writing");
          Assert (Files.Model.Paste_Conflict_Is_Active (Model), "a colliding drop arms the conflict dialog");
-         Assert (Files.Model.Paste_Conflict_Name (Model) = "a.txt", "the drop dialog names the colliding item");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Paste_Conflict_Name (Model),
+            "a.txt",
+            "the drop dialog names the colliding item");
          Routed.Operation :=
            Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
          Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "resolving the drop clears the dialog");
-         Assert (Read (Join (Dest_Dir, "a.txt")) = "SRC",
-              "replace overwrites the destination with the dropped source; destination holds "
-              & Read (Join (Dest_Dir, "a.txt")));
+         Files_Suite.Support.Assert_Equal
+           (Read (Join (Dest_Dir, "a.txt")),
+            "SRC",
+            "replace overwrites the destination with the dropped source; destination holds "
+            & Read (Join (Dest_Dir, "a.txt")));
       end;
 
       --  Skip: the destination and the source both stay untouched.
@@ -63,7 +69,10 @@ separate (Files_Suite.Operations)
          Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
          Routed.Operation :=
            Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Skip, False);
-         Assert (Read (Join (Dest_Dir, "a.txt")) = "DEST", "skip leaves the drop destination untouched");
+         Files_Suite.Support.Assert_Equal
+           (Read (Join (Dest_Dir, "a.txt")),
+            "DEST",
+            "skip leaves the drop destination untouched");
          Assert (Ada.Directories.Exists (Join (Src_Dir, "a.txt")), "skip leaves the dropped source in place");
       end;
 
@@ -74,8 +83,14 @@ separate (Files_Suite.Operations)
          Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
          Routed.Operation :=
            Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Rename, False);
-         Assert (Read (Join (Dest_Dir, "a.txt")) = "DEST", "rename keeps the original drop destination");
-         Assert (Read (Join (Dest_Dir, "a 2.txt")) = "SRC", "rename writes the dropped source under a unique name");
+         Files_Suite.Support.Assert_Equal
+           (Read (Join (Dest_Dir, "a.txt")),
+            "DEST",
+            "rename keeps the original drop destination");
+         Files_Suite.Support.Assert_Equal
+           (Read (Join (Dest_Dir, "a 2.txt")),
+            "SRC",
+            "rename writes the dropped source under a unique name");
          Routed.Operation := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
          Assert
            (not Ada.Directories.Exists (Join (Dest_Dir, "a 2.txt")),
@@ -101,8 +116,9 @@ separate (Files_Suite.Operations)
          Sources.Append (To_Unbounded_String (Join (Src_Dir, "m.txt")));
          Routed :=
            Files.Controller.Handle_Drop_Import (Model, Settings, Sources, Files.File_System.Drop_Move);
-         Assert
-           (Routed.Operation.Status = Files.Operations.Operation_Success,
+         Files_Suite.Support.Assert_Equal
+           (Routed.Operation.Status,
+            Files.Operations.Operation_Success,
             "a collision-free dropped move succeeds");
          Assert
            (Ada.Directories.Exists (Join (Dest_Dir, "m.txt")),

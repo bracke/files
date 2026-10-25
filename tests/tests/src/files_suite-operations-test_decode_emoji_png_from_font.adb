@@ -58,8 +58,9 @@ separate (Files_Suite.Operations)
                   Assert (Decoded.Available, "the picture decodes");
                   Assert (Decoded.Width = Width and then Decoded.Height = Height,
                           "at the size its header declared");
-                  Assert
-                    (Natural (Decoded.Pixels.Length) = Width * Height * 4,
+                  Files_Suite.Support.Assert_Equal
+                    (Natural (Decoded.Pixels.Length),
+                     Width * Height * 4,
                      "with four bytes per pixel");
 
                   --  A grinning face is mostly opaque and mostly not grey. Both

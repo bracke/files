@@ -1214,8 +1214,10 @@ package body Files_Suite.Operations is
       end loop;
 
       Assert (Available, "background scan produced a finished result");
-      Assert (Ada.Strings.Unbounded.To_String (Path) = Tree,
-              "result path matches the requested root");
+      Files_Suite.Support.Assert_Equal
+        (Ada.Strings.Unbounded.To_String (Path),
+         Tree,
+         "result path matches the requested root");
       Assert (Result.Available = Reference.Available
                 and then Result.Total_Bytes = Reference.Total_Bytes
                 and then Result.File_Count = Reference.File_Count
@@ -1263,7 +1265,7 @@ package body Files_Suite.Operations is
       --  Select both folders with the info pane open, then request their sizes.
       Files.Model.Toggle_Info_Pane (Model);
       Files.Model.Select_All_Visible (Model);
-      Assert (Files.Model.Selected_Count (Model) = 2, "both folders are selected");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 2, "both folders are selected");
       Files.Operations.Update_Folder_Size (Model, Settings);
 
       --  Drive both queued walks to completion, publishing each result as the
@@ -1448,24 +1450,32 @@ package body Files_Suite.Operations is
       Select_Name (Model, "report.txt");
       Routed := Files.Controller.Execute_Command
         (Files.Commands.Create_Hardlink_Command, Model, Settings);
-      Assert (Routed.Operation.Status = Files.Operations.Operation_Success,
-              "readable hard link is created");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
+         "readable hard link is created");
       Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Step.Status = Files.Operations.Operation_Success,
-              "hard link is removed before Redo");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "hard link is removed before Redo");
       Assert (Files.File_System.Set_Permissions (Source, 0).Success,
               "source permissions can be removed");
 
       Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-      Assert (Step.Status = Files.Operations.Operation_Failed,
-              "Redo refuses an unreadable hard link before publication");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Failed,
+         "Redo refuses an unreadable hard link before publication");
       Assert (not Ada.Directories.Exists (Link_Path),
               "failed Redo leaves no hard link behind");
       Assert (Files.File_System.Set_Permissions (Source, 8#644#).Success,
               "source permissions can be restored");
       Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-      Assert (Step.Status = Files.Operations.Operation_Success,
-              "Redo can retry after the source becomes readable");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "Redo can retry after the source becomes readable");
       Assert (Ada.Directories.Exists (Link_Path), "retry publishes the hard link");
 
       Files.Model.Clear_Undo (Model);
@@ -1479,8 +1489,10 @@ package body Files_Suite.Operations is
       Select_Name (Model, "report.txt");
       Routed := Files.Controller.Execute_Command
         (Files.Commands.Create_Hardlink_Command, Model, Settings);
-      Assert (Routed.Operation.Status = Files.Operations.Operation_Success,
-              "creating an unreadable hard link reports success");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
+         "creating an unreadable hard link reports success");
       Assert (Ada.Directories.Exists (Link_Path),
               "unreadable hard link is actually published");
       Assert (not Files.Model.Undo_Available (Model),
@@ -2255,8 +2267,9 @@ package body Files_Suite.Operations is
          Read_Result := Files.Job_Records.Read_Operation_Result
            (Ada.Streams.Stream_IO.Stream (File));
          Ada.Streams.Stream_IO.Close (File);
-         Assert
-           (Read_Result.Status = Written_Result.Status,
+         Files_Suite.Support.Assert_Equal
+           (Read_Result.Status,
+            Written_Result.Status,
             "the complete job record decodes before prefix mutation");
 
          for Prefix_Length in 0 .. Natural (Data'Length) - 1 loop

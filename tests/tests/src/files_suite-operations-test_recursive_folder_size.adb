@@ -16,8 +16,8 @@ separate (Files_Suite.Operations)
 
       Size := Files.File_System.Directory_Size (Tree);
       Assert (Size.Available, "recursive size is available for a real directory");
-      Assert (Size.Total_Bytes = 10, "recursive size sums all descendant file bytes");
-      Assert (Size.File_Count = 3, "recursive size counts every descendant regular file");
+      Files_Suite.Support.Assert_Equal (Size.Total_Bytes, 10, "recursive size sums all descendant file bytes");
+      Files_Suite.Support.Assert_Equal (Size.File_Count, 3, "recursive size counts every descendant regular file");
       Assert (not Size.Capped, "a small tree does not trip the entry/depth cap");
 
       --  A symlink cycle must not hang or be followed. Measure with the loop
@@ -33,7 +33,7 @@ separate (Files_Suite.Operations)
             --  following it, whichever kind of entry the platform made it.
             Project_Tools.Files.Delete_Tree (Join (Tree, "loop"));
             Assert (Guarded.Available, "size walk completes despite a symlink cycle");
-            Assert (Guarded.Total_Bytes = 10, "symlinked directory is not descended into");
+            Files_Suite.Support.Assert_Equal (Guarded.Total_Bytes, 10, "symlinked directory is not descended into");
          end;
       end if;
 
@@ -153,8 +153,9 @@ separate (Files_Suite.Operations)
          Assert
            (Snapshot.Selected_Info.Element (1).Folder_Size_Available,
             "the info snapshot carries the measured folder size");
-         Assert
-           (Snapshot.Selected_Info.Element (1).Folder_Size_Bytes = 10,
+         Files_Suite.Support.Assert_Equal
+           (Snapshot.Selected_Info.Element (1).Folder_Size_Bytes,
+            10,
             "the info snapshot folder-size total is correct");
          for Command of Frame.Text loop
             if Ada.Strings.Fixed.Index (To_String (Command.Text), Label) > 0 then

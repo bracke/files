@@ -82,8 +82,9 @@ separate (Files_Suite.Operations)
          Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
          Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 8);
          Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the copy-replace paste finalizes");
-         Assert
-           (Files.File_System.Read_Preview_Text (Dest, 3) = "new",
+         Files_Suite.Support.Assert_Equal
+           (Files.File_System.Read_Preview_Text (Dest, 3),
+            "new",
             "the copy-replace overwrites the destination with the pasted content");
 
          Step := Complete_Operation

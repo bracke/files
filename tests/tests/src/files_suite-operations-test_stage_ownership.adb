@@ -330,8 +330,10 @@ separate (Files_Suite.Operations)
          "truncated");
       Files.Process_Jobs.Clean_Stages (Transport_Job);
       Assert (not Ada.Directories.Exists (To_String (Stage)), "cleanup removes its own partial staging directory");
-      Assert (Project_Tools.Files.Read_Raw_File (Join (Unrelated, "keep")) = "unrelated",
-              "cleanup preserves unrelated data");
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (Join (Unrelated, "keep")),
+         "unrelated",
+         "cleanup preserves unrelated data");
       Assert (Ada.Directories.Exists (Unowned), "cleanup refuses an unowned staging-shaped pathname");
       Assert (not Linked or else Hostkit.Fs.Is_Link (Link), "cleanup never follows or deletes a substituted symlink");
       Assert
@@ -412,8 +414,10 @@ separate (Files_Suite.Operations)
       begin
          Ada.Streams.Stream_IO.Open
            (File, Ada.Streams.Stream_IO.In_File, Join (To_String (Stage), ".files-owner"));
-         Assert (String'Input (Ada.Streams.Stream_IO.Stream (File)) = "files-stage-owner-1",
-                 "foreground stage publishes its owner marker atomically");
+         Files_Suite.Support.Assert_Equal
+           (String'Input (Ada.Streams.Stream_IO.Stream (File)),
+            "files-stage-owner-1",
+            "foreground stage publishes its owner marker atomically");
          Owner_Directory := To_Unbounded_String (String'Input (Ada.Streams.Stream_IO.Stream (File)));
          Ada.Streams.Stream_IO.Close (File);
          Ada.Directories.Rename (To_String (Stage), Saved);
@@ -442,9 +446,9 @@ separate (Files_Suite.Operations)
                exit when Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children") =
                  To_String (Children_Before);
             end loop;
-            Assert
-              (Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children") =
-                 To_String (Children_Before),
+            Files_Suite.Support.Assert_Equal
+              (Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children"),
+               To_String (Children_Before),
                "idle cleanup leaves no child process waiting for a later job API call");
          end if;
       end;

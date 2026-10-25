@@ -84,12 +84,17 @@ separate (Files_Suite.Operations)
                   Files.Model.Toggle_Visible_Selection (Model, Index);
                end if;
             end loop;
-            Assert (Files.Model.Selected_Count (Model) = 3, "select files from two folders and one directory");
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Selected_Count (Model),
+               3,
+               "select files from two folders and one directory");
             Files.Model.Set_Background_Transfers (Model, Background);
             Ada.Directories.Set_Directory (Cwd);
             Step := Files.Operations.Duplicate_Selected (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success,
-                    "Recent Duplicate starts or completes successfully");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "Recent Duplicate starts or completes successfully");
             if Background then
                for Attempt in Files_Suite.Support.Polling loop
                   Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
@@ -114,8 +119,10 @@ separate (Files_Suite.Operations)
             Assert (File_Has_Bytes (Existing, "existing copy bytes"), "Undo preserves the pre-existing copy collision");
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-            Assert (Step.Status = Files.Operations.Operation_Success,
-                    "Redo re-creates the recorded adjacent destinations");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "Redo re-creates the recorded adjacent destinations");
             Await_Refresh;
             Check_Recent;
             Check_Copies;

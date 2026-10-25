@@ -58,7 +58,10 @@ separate (Files_Suite.Operations)
          Files.Model.Set_Rename_Text (Model, "renamed.txt");
          Step := Files.Operations.Commit_Rename (Model, Settings);
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
-         Assert (Files.Settings.Label_Of (Settings, Renamed) = Files.Types.Green, "the label follows the rename");
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Label_Of (Settings, Renamed),
+            Files.Types.Green,
+            "the label follows the rename");
          Files.Model.Set_Background_Transfers (Model, Background);
          Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");

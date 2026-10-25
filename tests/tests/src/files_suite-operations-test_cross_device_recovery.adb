@@ -109,8 +109,9 @@ separate (Files_Suite.Operations)
               "read-only descendants do not cause partial source deletion during trash (success="
               & Result.Success'Image & ", error=" & To_String (Result.Error_Key)
               & ", source left=" & Ada.Directories.Exists (Tree)'Image & ")");
-      Assert
-        (Project_Tools.Files.Read_Raw_File (Join (To_String (Trashed), "a.txt")) = "complete",
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (Join (To_String (Trashed), "a.txt")),
+         "complete",
          "cross-device trash retains its complete payload");
       Assert
         (Ada.Directories.Exists
@@ -145,7 +146,10 @@ separate (Files_Suite.Operations)
       Result := Files.File_System.Restore_From_Trash (To_String (Trashed));
       Files.Job_Context.Initialize ("");
       Assert (Result.Success, "restoring can retry after a partial copy failure and cancellation");
-      Assert (Project_Tools.Files.Read_Raw_File (Join (Tree, "a.txt")) = "complete", "retry restores full content");
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (Join (Tree, "a.txt")),
+         "complete",
+         "retry restores full content");
       Cleanup;
    exception
       when others =>

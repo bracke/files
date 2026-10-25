@@ -13,20 +13,30 @@ separate (Files_Suite.Operations)
       Files.Model.Set_Error (Model, "error.file.create");
       Files.Model.Begin_Create_File (Model, "created.txt");
       Result := Files.Operations.Commit_Create_File (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Success, "create commit succeeds");
-      Assert (To_String (Result.Path) = Join (Root, "created.txt"), "create commit returns created path");
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "create commit succeeds");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Path),
+         Join (Root, "created.txt"),
+         "create commit returns created path");
       Assert (Ada.Directories.Exists (Join (Root, "created.txt")), "create commit creates the file");
-      Assert (Files.Model.Last_Error_Key (Model) = "", "successful create clears stale error state");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
+         "successful create clears stale error state");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "create commit clears temporary state");
       Assert (not Files.Model.Rename_Is_Active (Model), "create commit clears rename state");
-      Assert (Files.Model.Item_Count (Model) = 1, "create commit reloads the directory model");
-      Assert (Files.Model.Selected_Name (Model) = "created.txt", "created item is selected after reload");
+      Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 1, "create commit reloads the directory model");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Name (Model),
+         "created.txt",
+         "created item is selected after reload");
 
       Items := Files.Model.Selected_Items (Model);
       Files.Model.Navigate_Recent (Model, Items);
       Result := Files.Operations.Open_Terminal (Model, Settings);
-      Assert
-        (Result.Status = Files.Operations.Operation_Disabled,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Disabled,
          "direct terminal launch is rejected before resolving an empty recent-view path");
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Rename (Model);

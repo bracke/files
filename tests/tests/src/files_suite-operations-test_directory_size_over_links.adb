@@ -46,5 +46,8 @@ separate (Files_Suite.Operations)
               "a cycle neither fails the walk nor runs it into a cap");
       Assert (Size.Total_Bytes = 7 and then Size.File_Count = 2,
               "only the tree's own files are summed, not what its links point at");
-      Assert (Size.Item_Count = 7, "every link is counted once as an item:" & Size.Item_Count'Image);
+      Files_Suite.Support.Assert_Equal
+        (Size.Item_Count,
+         7,
+         "every link is counted once as an item:" & Size.Item_Count'Image);
    end Test_Directory_Size_Over_Links;

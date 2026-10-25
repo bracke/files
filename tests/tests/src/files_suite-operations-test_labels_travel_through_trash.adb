@@ -59,14 +59,18 @@ separate (Files_Suite.Operations)
          Assert (Files.Settings.Label_Of (Settings, Photo) = Files.Types.No_Label and then Labeled_Anywhere,
                  "the label went into the trash with the file" & (if Background then " (background)" else ""));
          Write_Binary_File (Photo, "a new file at the old path");
-         Assert (Files.Settings.Label_Of (Settings, Photo) = Files.Types.No_Label,
-                 "a new file at the old path inherits no label");
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Label_Of (Settings, Photo),
+            Files.Types.No_Label,
+            "a new file at the old path inherits no label");
          Ada.Directories.Delete_File (Photo);
 
          Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
-         Assert (Files.Settings.Label_Of (Settings, Photo) = Files.Types.Purple,
-                 "restoring brings the label back" & (if Background then " (background)" else ""));
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Label_Of (Settings, Photo),
+            Files.Types.Purple,
+            "restoring brings the label back" & (if Background then " (background)" else ""));
 
          Trash_Photo (Background);
          Step := Complete_Operation (Model, Settings, Files.Operations.Empty_Trash (Model, Settings));

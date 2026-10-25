@@ -127,19 +127,20 @@ separate (Files_Suite.Operations)
          "extract command is enabled when an archive is selected");
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Extract_Archive_Command, Model, Settings);
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
          "extract succeeds");
       Assert (Ada.Directories.Exists (Dest_Dir), "destination folder is created from the archive base name");
       Assert (Ada.Directories.Exists (Out_Report), "first archived file is extracted");
       Assert (Ada.Directories.Exists (Out_Notes), "second archived file is extracted");
-      Assert
-        (Project_Tools.Files.Read_Raw_File (Out_Report)
-           = Project_Tools.Files.Read_Raw_File (Source_Report),
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (Out_Report),
+         Project_Tools.Files.Read_Raw_File (Source_Report),
          "first extracted file matches the original contents");
-      Assert
-        (Project_Tools.Files.Read_Raw_File (Out_Notes)
-           = Project_Tools.Files.Read_Raw_File (Source_Notes),
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (Out_Notes),
+         Project_Tools.Files.Read_Raw_File (Source_Notes),
          "second extracted file matches the original contents");
 
       Select_Name (Model, "bundle.zip");

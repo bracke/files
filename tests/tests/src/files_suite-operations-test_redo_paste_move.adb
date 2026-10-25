@@ -36,7 +36,7 @@ separate (Files_Suite.Operations)
 
       Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Step.Status = Files.Operations.Operation_Success, "undo of the move succeeds");
+      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "undo of the move succeeds");
       Assert
         (Ada.Directories.Exists (Source) and then not Ada.Directories.Exists (Dest),
          "undo moves the file back to its source");
@@ -44,7 +44,7 @@ separate (Files_Suite.Operations)
 
       Step := Complete_Operation
                        (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-      Assert (Step.Status = Files.Operations.Operation_Success, "redo of the move succeeds");
+      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "redo of the move succeeds");
       Assert
         (Ada.Directories.Exists (Dest) and then not Ada.Directories.Exists (Source),
          "redo re-applies the move to the destination");

@@ -23,19 +23,22 @@ separate (Files_Suite.Operations)
          "create-symlink command is enabled with a selection");
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Create_Symlink_Command, Model, Settings);
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
          "create-symlink succeeds");
       Assert (Ada.Directories.Exists (Source), "original item still exists after linking");
       Assert (Hostkit.Fs.Is_Link (Link_Path), "a symbolic link is created next to the source");
-      Assert
-        (Project_Tools.Files.Read_Raw_File (Link_Path) = Project_Tools.Files.Read_Raw_File (Source),
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (Link_Path),
+         Project_Tools.Files.Read_Raw_File (Source),
          "the symbolic link resolves to the original contents");
       Assert (Files.Model.Undo_Available (Model), "undo is available after creating a link");
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Undo_Command, Model, Settings);
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
          "undo of a created symlink succeeds");
       Assert (not Ada.Directories.Exists (Link_Path), "undo removes the created symlink");
       Assert (not Hostkit.Fs.Is_Link (Link_Path), "undo leaves no dangling symlink entry");

@@ -80,15 +80,21 @@ separate (Files_Suite.Operations)
       Load := Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
       Assert (Load.Success, "empty-trash setup loads the trash view");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
-      Assert (Files.Model.Item_Count (Model) = 2, "the trash view lists both trashed items");
+      Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "the trash view lists both trashed items");
       Assert
         (Files.Commands.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
          "empty trash is enabled in the non-empty trash view");
 
       --  Emptying purges every payload and sidecar and reloads an empty view.
       Result := Files.Controller.Execute_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
-      Assert (Result.Operation.Status = Files.Operations.Operation_Success, "empty trash reports success");
-      Assert (Files.Model.Item_Count (Model) = 0, "the trash view reloads empty after empty trash");
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "empty trash reports success");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         0,
+         "the trash view reloads empty after empty trash");
       Assert (not Ada.Directories.Exists (Join (Trash_File, "empty-a.txt")), "payload a is purged");
       Assert (not Ada.Directories.Exists (Join (Trash_Info, "empty-a.txt.trashinfo")), "sidecar a is purged");
       Assert (not Ada.Directories.Exists (Join (Trash_File, "empty-b.txt")), "payload b is purged");

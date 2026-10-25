@@ -43,14 +43,21 @@ separate (Files_Suite.Operations)
                Assert (not Result.Success, "a collision after validation fails without overwriting");
                case Kind is
                   when File_Entry =>
-                     Assert (Project_Tools.Files.Read_Raw_File (Dest) = "unrelated", "the raced file is preserved");
+                     Files_Suite.Support.Assert_Equal
+                       (Project_Tools.Files.Read_Raw_File (Dest),
+                        "unrelated",
+                        "the raced file is preserved");
                   when Directory_Entry =>
-                     Assert (Project_Tools.Files.Read_Raw_File (Join (Dest, "keep")) = "unrelated",
-                             "the raced directory and its contents are preserved");
+                     Files_Suite.Support.Assert_Equal
+                       (Project_Tools.Files.Read_Raw_File (Join (Dest, "keep")),
+                        "unrelated",
+                        "the raced directory and its contents are preserved");
                   when Link_Entry => Assert (Hostkit.Fs.Is_Link (Dest), "the raced symlink is preserved");
                end case;
-               Assert (Project_Tools.Files.Read_Raw_File (Source) = "source",
-                       "the source is never deleted on collision");
+               Files_Suite.Support.Assert_Equal
+                 (Project_Tools.Files.Read_Raw_File (Source),
+                  "source",
+                  "the source is never deleted on collision");
                Result := Files.File_System.Delete_Permanently (Dest);
                Assert (Result.Success, "the owned collision fixture is cleaned");
             else
@@ -63,7 +70,10 @@ separate (Files_Suite.Operations)
             end if;
          end loop;
       end loop;
-      Assert (Project_Tools.Files.Read_Raw_File (Target) = "unrelated", "link targets remain untouched");
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (Target),
+         "unrelated",
+         "link targets remain untouched");
       Ada.Directories.Create_Directory (Join (Root, "source-dir"));
       Ada.Directories.Create_Directory (Join (Root, "target-dir"));
       Write_Binary_File (Join (Join (Root, "source-dir"), "keep"), "source");

@@ -65,9 +65,11 @@ separate (Files_Suite.Operations)
          Assert (Step.Status = Files.Operations.Operation_Success
                  and then Ada.Directories.Exists (Join (Root, "bag.zip")),
                  "a folder holding a link still compresses");
-         Assert (Files.Model.Last_Error_Key (Model) = "error.compress.links_skipped",
-                 "compressing says the link was left out"
-                 & (if Background then " (background)" else " (foreground)"));
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Last_Error_Key (Model),
+            "error.compress.links_skipped",
+            "compressing says the link was left out"
+            & (if Background then " (background)" else " (foreground)"));
          Await_View (Model, Settings);
       end loop;
       if Hostkit.Host.Current /= Hostkit.Host.Windows then

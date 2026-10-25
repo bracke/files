@@ -33,18 +33,30 @@ separate (Files_Suite.Operations)
       --  A collision-free drop arms the resumable executor and runs the first
       --  batch; a set larger than one batch keeps the progress state active.
       Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
-      Assert (Routed.Operation.Status = Files.Operations.Operation_Success, "large drop import reports success");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
+         "large drop import reports success");
       Assert (Files.Model.Paste_Execution_Is_Active (Model), "a large drop keeps the progress executor active");
-      Assert (Files.Model.Paste_Execution_Total (Model) = Count, "the drop progress total counts every source");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Paste_Execution_Total (Model),
+         Count,
+         "the drop progress total counts every source");
       Assert (Files.Model.Paste_Execution_Done (Model) < Count, "the first drop batch does not finish the whole set");
 
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, Count);
-      Assert (Step.Status = Files.Operations.Operation_Success, "advancing the drop executor reports success");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "advancing the drop executor reports success");
       Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the drop executor finalizes after the last batch");
 
       for N in 1 .. Count loop
          Assert (Ada.Directories.Exists (Dest (N)), "every dropped source is imported to the destination");
          Assert (Ada.Directories.Exists (Src (N)), "a dropped copy leaves the sources in place");
       end loop;
-      Assert (Files.Model.Item_Count (Model) = Count, "the collision-free drop refreshes the destination model");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         Count,
+         "the collision-free drop refreshes the destination model");
    end Test_Drop_Import_Progress;

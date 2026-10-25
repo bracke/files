@@ -58,8 +58,10 @@ separate (Files_Suite.Operations)
                  "restore uses the link pathname, including dangling links");
          Result := Files.File_System.Delete_Permanently (Link);
          Assert (Result.Success and then not Hostkit.Fs.Is_Link (Link), "permanent deletion removes dangling links");
-         Assert (Project_Tools.Files.Read_Raw_File (Target) = "target",
-                 "trashing, restoring and deleting never touch the target");
+         Files_Suite.Support.Assert_Equal
+           (Project_Tools.Files.Read_Raw_File (Target),
+            "target",
+            "trashing, restoring and deleting never touch the target");
       end loop;
       if Hostkit.Fs.Create_Link (Join (Root, "missing-target"), Link) then
          declare
@@ -98,8 +100,10 @@ separate (Files_Suite.Operations)
                        "folder listings show dangling links as links");
                Assert (Single.Success and then Single.Item.Kind = Files.Types.Symlink_Item,
                        "single-item loading accepts a dangling link");
-               Assert (Files.File_System.Directory_State (Output).Entry_Count = 1,
-                       "refresh signatures count dangling links");
+               Files_Suite.Support.Assert_Equal
+                 (Files.File_System.Directory_State (Output).Entry_Count,
+                  1,
+                  "refresh signatures count dangling links");
             end;
             declare
                Nested : constant String := Join (Output, "nested");

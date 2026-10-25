@@ -33,10 +33,12 @@ separate (Files_Suite.Operations)
          Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
          exit when not Files.Model.Paste_Execution_Is_Active (Model);
       end loop;
-      Assert (Step.Status = Files.Operations.Operation_Success, "the duplicate completes");
+      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "the duplicate completes");
       Await_View (Model, Settings);
-      Assert (Files.Model.Item_Count (Model) = 2,
-              "an operation outliving an edit in its own view still relists that view");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model),
+         2,
+         "an operation outliving an edit in its own view still relists that view");
 
       --  A forced refresh outdated by an edit is discarded but owed, and the
       --  owed reload keeps the newer diagnostic.

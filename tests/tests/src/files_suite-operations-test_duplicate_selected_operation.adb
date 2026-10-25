@@ -23,13 +23,15 @@ separate (Files_Suite.Operations)
          "duplicate command is enabled with a selection");
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Duplicate_Selected_Command, Model, Settings);
-      Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
          "duplicate succeeds");
       Assert (Ada.Directories.Exists (Source), "original item still exists after duplicating");
       Assert (Ada.Directories.Exists (Copy_Path), "duplicate is created with a distinct name");
-      Assert
-        (Project_Tools.Files.Read_Raw_File (Copy_Path) = Project_Tools.Files.Read_Raw_File (Source),
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (Copy_Path),
+         Project_Tools.Files.Read_Raw_File (Source),
          "duplicate has identical contents to the original");
 
       --  A dotfile has no extension: its copy is ".bashrc (copy)", not " (copy).bashrc".

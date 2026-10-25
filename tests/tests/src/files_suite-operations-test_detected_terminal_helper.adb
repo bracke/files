@@ -16,8 +16,9 @@ separate (Files_Suite.Operations)
 
       if Ada.Directories.Exists (Shell_Path) then
          Ada.Environment_Variables.Set ("TERMINAL", Shell_Path);
-         Assert
-           (Files.Operations.Detected_Terminal = Shell_Path,
+         Files_Suite.Support.Assert_Equal
+           (Files.Operations.Detected_Terminal,
+            Shell_Path,
             "an available TERMINAL override selects the configured terminal executable");
       end if;
 

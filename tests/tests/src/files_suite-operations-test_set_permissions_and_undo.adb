@@ -21,33 +21,35 @@ separate (Files_Suite.Operations)
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "modeable.txt");
-      Assert (Mode_Of (Target) = 8#644#, "baseline permission bits are 0644");
+      Files_Suite.Support.Assert_Equal (Mode_Of (Target), 8#644#, "baseline permission bits are 0644");
 
       Assert
         (not Files.File_System.Set_Permissions (Target, 8#10_000#).Success,
          "the filesystem API rejects permission bits outside 07777");
       Result := Files.Operations.Set_Permissions_For
         (Model, 8#10_000#, Settings);
-      Assert
-        (Result.Status = Files.Operations.Operation_Failed,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Failed,
          "the operation API rejects permission bits outside 07777");
-      Assert (Mode_Of (Target) = 8#644#, "an invalid mode leaves the file unchanged");
+      Files_Suite.Support.Assert_Equal (Mode_Of (Target), 8#644#, "an invalid mode leaves the file unchanged");
       Assert
         (not Files.Model.Undo_Available (Model),
          "an invalid mode does not create an undo record");
 
       Result := Files.Operations.Set_Permissions_For (Model, 8#600#, Settings);
-      Assert
-        (Result.Status = Files.Operations.Operation_Success,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Success,
          "set-permissions operation succeeds");
-      Assert (Mode_Of (Target) = 8#600#, "mode reads back as 0600 after chmod");
+      Files_Suite.Support.Assert_Equal (Mode_Of (Target), 8#600#, "mode reads back as 0600 after chmod");
       Assert
         (Files.Model.Undo_Kind_Of (Model) = Files.Model.Undo_Set_Permissions,
          "set-permissions records a permission undo");
 
       Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Result.Status = Files.Operations.Operation_Success, "undo of chmod succeeds");
-      Assert (Mode_Of (Target) = 8#644#, "undo restores the previous 0644 mode");
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "undo of chmod succeeds");
+      Files_Suite.Support.Assert_Equal (Mode_Of (Target), 8#644#, "undo restores the previous 0644 mode");
       Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after chmod undo");
 
       Select_Name (Model, "modeable.txt");

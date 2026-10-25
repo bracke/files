@@ -14,7 +14,10 @@ separate (Files_Suite.Operations)
          Arguments.Append (To_Unbounded_String ("--files-test-drain-reaper"));
          Assert (Hostkit.Process.Run (Hostkit.Fs.Own_Executable, Arguments, Exit_Status),
                  "the drain-reaper helper runs");
-         Assert (Exit_Status = 0, "shutdown drains queued orphan work before reporting completion");
+         Files_Suite.Support.Assert_Equal
+           (Exit_Status,
+            0,
+            "shutdown drains queued orphan work before reporting completion");
       end;
       declare
          Arguments : Hostkit.String_Vectors.Vector;

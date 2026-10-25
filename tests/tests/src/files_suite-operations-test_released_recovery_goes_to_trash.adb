@@ -50,8 +50,10 @@ separate (Files_Suite.Operations)
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
       Result := Files.File_System.Release_Recovery_Payload (To_String (Backup));
       Assert (Result.Success, "a released payload goes to the trash");
-      Assert (Project_Tools.Files.Read_Raw_File (Trashed) = "original",
-              "the trash holds the original under its own name");
+      Files_Suite.Support.Assert_Equal
+        (Project_Tools.Files.Read_Raw_File (Trashed),
+         "original",
+         "the trash holds the original under its own name");
       Assert (not Ada.Directories.Exists (Ada.Directories.Containing_Directory (To_String (Backup))),
               "the hidden recovery folder is gone");
       Restore_Environment;

@@ -57,11 +57,16 @@ separate (Files_Suite.Operations)
                     "Undo removes the entry it created");
             Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success, "Redo republishes the entry");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "Redo republishes the entry");
             Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Success,
-                    "Undo uses the new identity recorded by Redo");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status,
+               Files.Operations.Operation_Success,
+               "Undo uses the new identity recorded by Redo");
             Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
             Assert (Hostkit.Fs.Move_No_Replace (Dest, Old_Dest), "retain the original inode at another path");
@@ -126,8 +131,10 @@ separate (Files_Suite.Operations)
          Select_Name (Model, "original");
          Step := Complete_Operation (Model, Settings, Files.Operations.Duplicate_Selected (Model, Settings));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Success,
-                 "duplicate a directory containing a regular file");
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Success,
+            "duplicate a directory containing a regular file");
          declare
             Child : constant String := Join (Dest, "child");
             Stamp : constant GNAT.OS_Lib.OS_Time := GNAT.OS_Lib.File_Time_Stamp (Child);
@@ -328,7 +335,10 @@ separate (Files_Suite.Operations)
                   Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
                   exit when Files.Model.Paste_Execution_Done (Model) = 1;
                end loop;
-               Assert (Files.Model.Paste_Execution_Done (Model) = 1, "the first paste member commits");
+               Files_Suite.Support.Assert_Equal
+                 (Files.Model.Paste_Execution_Done (Model),
+                  1,
+                  "the first paste member commits");
                Assert (Hostkit.Fs.Move_No_Replace (A, Saved_A), "retain the first owned entry between batches");
                Write_Binary_File (A, "unrelated a");
                Step := Complete_Operation (Model, Settings, Step);

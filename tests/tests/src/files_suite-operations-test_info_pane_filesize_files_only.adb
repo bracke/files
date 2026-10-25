@@ -26,8 +26,10 @@ separate (Files_Suite.Operations)
          return Rows;
       end Size_Label_Rows;
    begin
-      Assert (Files.Localization.Text ("info.size", "en") = "Filesize",
-              "the file-size label reads Filesize in the default catalog");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("info.size", "en"),
+         "Filesize",
+         "the file-size label reads Filesize in the default catalog");
 
       --  Single folder: no Filesize field (it carries no byte size).
       Reset_Root;
@@ -38,7 +40,7 @@ separate (Files_Suite.Operations)
       Files.Model.Toggle_Info_Pane (Model);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
-      Assert (Size_Label_Rows = 0, "a single selected folder shows no Filesize field");
+      Files_Suite.Support.Assert_Equal (Size_Label_Rows, 0, "a single selected folder shows no Filesize field");
 
       --  All folders: the Filesize section is omitted.
       Reset_Root;
@@ -50,8 +52,8 @@ separate (Files_Suite.Operations)
       Files.Model.Toggle_Info_Pane (Model);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
-      Assert (Files.Model.Selected_Count (Model) = 2, "two folders are selected");
-      Assert (Size_Label_Rows = 0, "an all-folder selection shows no Filesize section");
+      Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 2, "two folders are selected");
+      Files_Suite.Support.Assert_Equal (Size_Label_Rows, 0, "an all-folder selection shows no Filesize section");
 
       --  Mixed file + folder: the Filesize section appears (once) for the file.
       Reset_Root;
@@ -63,5 +65,8 @@ separate (Files_Suite.Operations)
       Files.Model.Toggle_Info_Pane (Model);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Frame := Files.Rendering.Build_Frame_Commands (Snapshot, Width => 800, Height => 1200, Line_Height => 20);
-      Assert (Size_Label_Rows = 1, "a mixed selection shows the Filesize section for its file");
+      Files_Suite.Support.Assert_Equal
+        (Size_Label_Rows,
+         1,
+         "a mixed selection shows the Filesize section for its file");
    end Test_Info_Pane_Filesize_Files_Only;

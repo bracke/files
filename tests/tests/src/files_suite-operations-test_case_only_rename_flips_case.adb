@@ -92,8 +92,10 @@ separate (Files_Suite.Operations)
          Files.Model.Toggle_Rename (Model);
          Files.Model.Set_Rename_Text (Model, "Report.txt");
          Step := Files.Operations.Commit_Rename (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Success,
-                 "the case-only rename succeeds" & (if Folding then " (case-insensitive volume)" else ""));
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Success,
+            "the case-only rename succeeds" & (if Folding then " (case-insensitive volume)" else ""));
          Load := Files.File_System.Load_Directory (Folder, Settings);
          for Item of Load.Items loop
             Names.Append (Item.Name);
@@ -101,8 +103,10 @@ separate (Files_Suite.Operations)
          Assert (Names.Contains (To_Unbounded_String ("Report.txt"))
                  and then not Names.Contains (To_Unbounded_String ("report.txt")),
                  "the folder now lists Report.txt, not report.txt");
-         Assert (Project_Tools.Files.Read_Raw_File (Join (Folder, "Report.txt")) = "the report",
-                 "the contents are intact");
+         Files_Suite.Support.Assert_Equal
+           (Project_Tools.Files.Read_Raw_File (Join (Folder, "Report.txt")),
+            "the report",
+            "the contents are intact");
          Ada.Directories.Delete_File (Join (Folder, "Report.txt"));
       end;
       Detach;

@@ -20,54 +20,102 @@ separate (Files_Suite.Operations)
       Files.Model.Set_Error (Model, "error.directory.load");
 
       Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings);
-      Assert
-        (Result.Status = Files.Operations.Operation_Disabled,
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Disabled,
          "pending create selection blocks direct open preparation");
-      Assert
-        (To_String (Result.Error_Key) = "error.selection.empty",
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Error_Key),
+         "error.selection.empty",
          "pending create open preparation reports disabled selection");
-      Assert (Files.Model.Current_Path (Model) = Root, "preparing directory open does not navigate");
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "error.selection.empty",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
+         "preparing directory open does not navigate");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.selection.empty",
          "preparing pending create open records disabled state");
       Files.Model.Set_Error (Model, "error.directory.load");
 
       Result := Files.Operations.Open_Selected (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Disabled, "pending create item cannot be opened directly");
-      Assert (Files.Model.Current_Path (Model) = Root, "disabled pending create open keeps path");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Disabled,
+         "pending create item cannot be opened directly");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
+         "disabled pending create open keeps path");
 
       Routed := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 1, Activate => True);
-      Assert (Routed.Command = Files.Commands.Open_Selected_Items_Command, "double-click routes open command");
-      Assert (Routed.Operation.Status = Files.Operations.Operation_Navigated, "double-click opens directory");
-      Assert
-        (To_String (Routed.Operation.Path) = Ada.Directories.Full_Name (Dir),
+      Files_Suite.Support.Assert_Equal
+        (Routed.Command,
+         Files.Commands.Open_Selected_Items_Command,
+         "double-click routes open command");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Navigated,
+         "double-click opens directory");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Routed.Operation.Path),
+         Ada.Directories.Full_Name (Dir),
          "directory open returns loaded path");
-      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Dir), "directory open changes path");
-      Assert (Files.Model.Last_Error_Key (Model) = "", "directory open clears stale error state");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Ada.Directories.Full_Name (Dir),
+         "directory open changes path");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "",
+         "directory open clears stale error state");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "directory open clears temporary create state");
       Assert (not Files.Model.Rename_Is_Active (Model), "directory open clears rename state");
-      Assert (Files.Model.Rename_Text (Model) = "", "directory open clears stale rename text");
-      Assert (Files.Model.Temporary_Item_Name (Model) = "", "directory open clears stale temporary name");
-      Assert (Files.Model.Focus (Model) = Files.Types.Focus_None, "directory open clears rename focus");
-      Assert (Files.Model.Item_Count (Model) = 1, "directory open loads destination items");
+      Files_Suite.Support.Assert_Equal (Files.Model.Rename_Text (Model), "", "directory open clears stale rename text");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Temporary_Item_Name (Model),
+         "",
+         "directory open clears stale temporary name");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Focus (Model),
+         Files.Types.Focus_None,
+         "directory open clears rename focus");
+      Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 1, "directory open loads destination items");
       Assert (Files.Model.Visible_Item (Model, 1).Name = To_Unbounded_String ("child.txt"), "child item is loaded");
 
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Result := Files.Operations.Open_Selected (Model, Settings);
-      Assert (Result.Status = Files.Operations.Operation_Failed, "multi-directory open is rejected");
-      Assert
-        (To_String (Result.Error_Key) = "error.open_action.multi_directory",
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Operations.Operation_Failed,
+         "multi-directory open is rejected");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Result.Error_Key),
+         "error.open_action.multi_directory",
          "multi-directory open reports localized diagnostic key");
-      Assert
-        (Files.Model.Last_Error_Key (Model) = "error.open_action.multi_directory",
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Model),
+         "error.open_action.multi_directory",
          "multi-directory open records localized diagnostic key");
-      Assert (Files.Model.Current_Path (Model) = Root, "multi-directory open does not navigate");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Root,
+         "multi-directory open does not navigate");
 
       Files.Model.Initialize (Model, Root, Items, Root);
       Routed := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 1, Activate => True);
-      Assert (Routed.Command = Files.Commands.Open_Selected_Items_Command, "double-click routes open command");
-      Assert (Routed.Operation.Status = Files.Operations.Operation_Navigated, "double-click opens directory");
-      Assert (Files.Model.Current_Path (Model) = Ada.Directories.Full_Name (Dir), "double-click changes path");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Command,
+         Files.Commands.Open_Selected_Items_Command,
+         "double-click routes open command");
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Navigated,
+         "double-click opens directory");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Ada.Directories.Full_Name (Dir),
+         "double-click changes path");
    end Test_Open_Selected_Directory_Loads_Items;
