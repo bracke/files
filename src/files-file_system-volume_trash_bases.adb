@@ -26,7 +26,7 @@ begin
       if Root.Kind in Root_Mount | Root_User_Mount then
          declare
             Top : constant String := To_String (Root.Path);
-            Id  : constant String := Image_No_Space (Uid);
+            Id  : constant String := Natural_Text (Uid);
          begin
             Consider (Join_Path (Join_Path (Top, ".Trash"), Id));
             Consider (Join_Path (Top, ".Trash-" & Id));

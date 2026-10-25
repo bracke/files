@@ -61,13 +61,6 @@ private package Files.File_System.Support is
       Expected : String)
       return Boolean;
 
-   --  Natural'Image with the leading space GNAT prefixes to a non-negative
-   --  number stripped.
-   --
-   --  @param Value Number to format.
-   --  @return Value's decimal text, without a leading space.
-   function Image_No_Space (Value : Natural) return String;
-
    --  Whether Value begins with Prefix.
    --
    --  @param Value String to test.

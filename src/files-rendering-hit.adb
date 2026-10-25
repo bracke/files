@@ -365,7 +365,7 @@ package body Files.Rendering.Hit is
       Toolbar  : constant Toolbar_Layout := Calculate_Toolbar_Layout (Width);
       Input_Y  : constant Natural := Toolbar_Input_Y (Line_Height);
       Input_H  : constant Natural := Toolbar_Input_Height (Line_Height);
-      Toolbar_H : constant Natural := Saturating_Multiply (Line_Height, 2);
+      Toolbar_H : constant Natural := Files.UI.Toolbar_Height (Line_Height);
    begin
       if Width = 0 or else Y >= Toolbar_H then
          return Files.Commands.No_Command;
@@ -404,7 +404,7 @@ package body Files.Rendering.Hit is
       return Files.Commands.Command_Id
    is
       Bottom   : constant Bottom_Bar_Layout := Files.UI.Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
-      Bottom_H : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
+      Bottom_H : constant Natural := Files.UI.Bottom_Bar_Height (Line_Height);
       Bottom_Y : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
       --  The hidden-files toggle occupies only the counts area; when a free-space
       --  field is split off, the toggle stops at the divider and the free field

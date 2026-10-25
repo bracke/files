@@ -262,6 +262,7 @@ package body Files_Suite.Operations is
    procedure Test_Stray_Home_Trash_Stays_Freedesktop (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Volume_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Path_Input_Opens_Trash_View (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_User_Visible_Mount_Points (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_From_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_From_Trash_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_Url_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -642,6 +643,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Path_Input_Opens_Trash_View'Access,
          "typing the trash's path into the path bar opens the trash view");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_User_Visible_Mount_Points'Access,
+         "the root list shows what is mounted under the mount containers, never the containers themselves");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Restore_From_Trash'Access, "restore operation returns trashed item to original path");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1123,6 +1127,8 @@ package body Files_Suite.Operations is
    procedure Test_Volume_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Path_Input_Opens_Trash_View (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_User_Visible_Mount_Points (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Restore_From_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

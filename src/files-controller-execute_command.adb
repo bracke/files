@@ -191,22 +191,15 @@ separate (Files.Controller)
             Files.Model.Set_Error (Model, "");
             Operation.Status := Files.Operations.Operation_Success;
          when Files.Commands.Close_Command_Palette_Command =>
-            if Files.Model.Label_Picker_Is_Open (Model) then
-               Files.Model.Close_Label_Picker (Model);
-            elsif Files.Model.Context_Menu_Is_Open (Model) then
-               Files.Model.Close_Context_Menu (Model);
-            elsif Files.Model.Command_Palette_Is_Open (Model) then
-               Files.Model.Close_Command_Palette (Model);
-            elsif Files.Model.Root_Selector_Is_Open (Model) then
-               Files.Model.Close_Root_Selector (Model);
-            elsif Files.Model.Sort_Menu_Is_Open (Model) then
-               Files.Model.Close_Sort_Menu (Model);
-            elsif Files.Model.Settings_Pane_Is_Open (Model) then
-               --  Closed the way Escape in the pane closes it; reopening starts a fresh draft.
-               Files.Model.Toggle_Settings_Pane (Model);
-            else
-               Files.Model.Cancel_Focus_Or_Edit (Model);
-            end if;
+            declare
+               Overlay : Files.Model.Input_Overlay;
+            begin
+               if Files.Model.Escape_Overlay (Model, Overlay) then
+                  Files.Model.Close_Overlay (Model, Overlay);
+               else
+                  Files.Model.Cancel_Focus_Or_Edit (Model);
+               end if;
+            end;
          when Files.Commands.Toggle_Settings_Pane_Command =>
             if Files.Model.Settings_Pane_Is_Open (Model) then
                Files.Model.Toggle_Settings_Pane (Model);

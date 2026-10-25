@@ -9,6 +9,9 @@ separate (Files_Suite.Settings)
    --  unbinding on an empty chord, and clearing the override when set to default.
    procedure Test_Shortcut_Editing (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      --  Clears the overrides this test sets, on an assertion failure too.
+      Shortcuts : Files_Suite.Support.Shortcut_Guard;
+      pragma Unreferenced (Shortcuts);
       package SP renames Guikit.Settings_Panel;
       use type SP.Field_Kind;
 
@@ -138,6 +141,4 @@ separate (Files_Suite.Settings)
          end loop;
          Assert (Found, "the command with a secondary has a shortcut row");
       end;
-
-      Files.Commands.Reset_Shortcut_Overrides;
    end Test_Shortcut_Editing;

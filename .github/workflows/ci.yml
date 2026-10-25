@@ -185,7 +185,7 @@ jobs:
           clone_at humanize 60c99ebd3d4080e92b8455fba47adc9c50f19fc3
           clone_at textrender 0a6721cb4239e581518c0d312bb7085e5b1ff402
           clone_at zlib 56d3b4fab7bb749f04952c5ec118aab0ef0787b8
-          clone_at guikit df72fa0196a2bcfe2766d82a4630d35e737289f9
+          clone_at guikit a6c7bdf7b3fc9a3f486e20a381b429f4fb4f6a02
           clone_at hostkit 9f650eecbdec59d8ead52b50e899c352f61e11c4
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
@@ -430,11 +430,17 @@ jobs:
           # Linux-only tests (29), plus the Noto emoji font path (2), invalid
           # UTF-8 names (1) and the stopped-cleanup-worker half that reads
           # /proc (1), and on Windows the mode-bit (3), reserve, FIFO and
-          # backslash-in-a-name lookup tests. A fixture link that cannot be made
+          # backslash-in-a-name lookup tests, the volume trash and the stray
+          # ~/.Trash test (no freedesktop or home trash there): 34 + 8 = 42.
+          # The tests that need a second volume (Test_Volume_Trash,
+          # Test_Move_Source_Changes_Off_Volume and the cross-device moves)
+          # skip without one; the mount steps above provide it on macOS and
+          # Windows and /dev/shm does on Linux, so none of those is budgeted --
+          # a failed mount turns red here. A fixture link that cannot be made
           # fails on Linux and skips elsewhere (Link_Not_Made); none is expected
           # to on these runners, so none is budgeted. Raise a ceiling only
           # together with the Skip that needs it.
-          FILES_TEST_MAX_SKIPS: ${{ runner.os == 'Linux' && '1' || runner.os == 'macOS' && '34' || '41' }}
+          FILES_TEST_MAX_SKIPS: ${{ runner.os == 'Linux' && '1' || runner.os == 'macOS' && '34' || '42' }}
         run: |
           alr --non-interactive build
           # The runners keep UTC, where local and UTC time format alike, so a
@@ -514,24 +520,44 @@ jobs:
           FILES_LDFLAGS: -fsanitize=undefined -fno-sanitize-recover=all
           FILES_TEST_PROGRESS: '1'
           FILES_DIAGNOSTICS: '1'
+          # The same Linux ceiling as the main test step: a test that starts
+          # skipping under the sanitizer build must not pass unseen.
+          FILES_TEST_MAX_SKIPS: '1'
         run: |
           alr --non-interactive build
           ./bin/tests
+
+      - name: Run the test suite instrumented for coverage (Linux)
+        # The coverage run is a test run like the others, so a failing test
+        # fails the job here; only the report below is allowed to be soft.
+        # Its log is kept out of the job page unless the run fails.
+        if: runner.os == 'Linux'
+        shell: bash
+        working-directory: files/tests
+        env:
+          FILES_TEST_MAX_SKIPS: '1'
+          # The instrumented build is slower; give the timing bounds room.
+          FILES_TEST_TIME_SCALE: '2'
+        run: |
+          # -f: the objects from the steps above are not instrumented.
+          alr --non-interactive build -- -f -cargs -fprofile-arcs -ftest-coverage -largs --coverage
+          if ! ./bin/tests > "$RUNNER_TEMP/coverage-tests.log" 2>&1; then
+            tail -n 200 "$RUNNER_TEMP/coverage-tests.log"
+            echo "::error::the test suite failed in the coverage build (last 200 lines above)"
+            exit 1
+          fi
 
       - name: Line coverage of src/ (Linux)
         # Which of the application's code the suite runs. The summary goes
         # to the job page; tests/coverage-floor.txt, when present, holds the
         # percentage the run must not fall below. Until a floor is recorded
-        # the step reports without failing the job.
+        # the report does not fail the job.
         if: runner.os == 'Linux'
         continue-on-error: ${{ hashFiles('files/tests/coverage-floor.txt') == '' }}
         shell: bash
         working-directory: files/tests
         run: |
           python3 -m pip install --quiet gcovr
-          # -f: the objects from the steps above are not instrumented.
-          alr --non-interactive build -- -f -cargs -fprofile-arcs -ftest-coverage -largs --coverage
-          ./bin/tests > /dev/null || true
           cd ..
           gcovr --root . --filter 'src/' --exclude-unreachable-branches \
             --txt-summary --txt coverage.txt --json-summary coverage-summary.json .

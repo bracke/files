@@ -15,12 +15,6 @@ is
    --  the second would silently overwrite the first.
    Claimed : Files.Types.String_Vectors.Vector;
 
-   function Image_No_Space (Value : Natural) return String is
-      Image : constant String := Natural'Image (Value);
-   begin
-      return Image (Image'First + 1 .. Image'Last);
-   end Image_No_Space;
-
    function Extension_Start (Name : String) return Natural is
    begin
       for Index in reverse Name'Range loop
@@ -54,7 +48,7 @@ is
    begin
       while (Ada.Directories.Exists (To_String (Full)) or else Hostkit.Fs.Is_Link (To_String (Full)))
         or else Is_Claimed (To_String (Full)) loop
-         Candidate := To_Unbounded_String (Stem & " " & Image_No_Space (Counter) & Extension);
+         Candidate := To_Unbounded_String (Stem & " " & Natural_Text (Counter) & Extension);
          Full := To_Unbounded_String (Join_Path (Destination_Directory, To_String (Candidate)));
          exit when Counter = Positive'Last;
          Counter := Counter + 1;

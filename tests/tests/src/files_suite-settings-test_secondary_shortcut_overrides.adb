@@ -5,6 +5,9 @@ separate (Files_Suite.Settings)
    --  primary).
    procedure Test_Secondary_Shortcut_Overrides (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      --  Clears the overrides this test sets, on an assertion failure too.
+      Shortcuts : Files_Suite.Support.Shortcut_Guard;
+      pragma Unreferenced (Shortcuts);
       package SP renames Guikit.Settings_Panel;
       package GI renames Guikit.Input;
 
@@ -60,6 +63,4 @@ separate (Files_Suite.Settings)
       Assert (not Saved, "another command's primary is a conflict");
       Assert (Files.Commands.Find_By_Shortcut (GI.Key_C, Ctrl) = Files.Commands.Copy_Selected_Items_Command,
               "Ctrl+C still copies after the rejected rebind");
-
-      Files.Commands.Reset_Shortcut_Overrides;
    end Test_Secondary_Shortcut_Overrides;

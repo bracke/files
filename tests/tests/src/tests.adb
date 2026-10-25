@@ -52,7 +52,10 @@ procedure Tests is
    --  How long a helper held by a test waits for the test to let it go, or to
    --  kill it, before it gives up: far beyond any test's own bounded waits, so
    --  it only ends a helper whose test has already died and left it behind.
-   Helper_Hold_Limit : constant Duration := 4 * Files_Suite.Support.Poll_Limit;
+   --  Scaled by FILES_TEST_TIME_SCALE like the tests' waits, so it stays
+   --  beyond them on a slow runner too.
+   Helper_Hold_Limit : constant Duration :=
+     Files_Suite.Support.Seconds (Files_Suite.Support.Scaled (4 * Files_Suite.Support.Poll_Limit));
 
    --  Publish a file another process waits for in one step: write Content
    --  beside Path, then rename it into place, so a reader that sees Path
@@ -139,9 +142,13 @@ begin
             end if;
          elsif Ada.Command_Line.Argument (1) = "--files-test-hold-before-marker" then
             Publish (Ada.Command_Line.Argument (3) & ".started");
-            for Attempt in Files_Suite.Support.Polling loop
+            for Attempt in Files_Suite.Support.Polling (Limit => Helper_Hold_Limit, Interval => 0.01) loop
                exit when Ada.Directories.Exists (Ada.Command_Line.Argument (3) & ".release");
             end loop;
+            --  Never released: the test that held it is gone.
+            if not Ada.Directories.Exists (Ada.Command_Line.Argument (3) & ".release") then
+               Hostkit.Process.End_Now (1);
+            end if;
          end if;
          Hostkit.Process.End_Now (0);
       end;

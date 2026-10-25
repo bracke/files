@@ -1,6 +1,9 @@
 separate (Files_Suite.Commands)
    procedure Test_Shortcut_Overrides (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      --  Clears the overrides this test sets, on an assertion failure too.
+      Shortcuts : Files_Suite.Support.Shortcut_Guard;
+      pragma Unreferenced (Shortcuts);
       Ctrl       : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Ctrl_Shift : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
    begin
@@ -101,6 +104,4 @@ separate (Files_Suite.Commands)
         (Files.Commands.Id_For_Identifier ("no.such.command"),
          Files.Commands.No_Command,
          "Id_For_Identifier reports No_Command for an unknown identifier");
-
-      Files.Commands.Reset_Shortcut_Overrides;
    end Test_Shortcut_Overrides;

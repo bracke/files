@@ -9,11 +9,7 @@ separate (Files.Controller)
       Error_Key : constant String :=
         Files.Commands.Reason_Key (Files.Commands.Status_Of (Id, Model).Reason);
    begin
-      if Id in Files.Commands.Save_Settings_Command | Files.Commands.Reset_Settings_Command
-        and then not Files.Model.Settings_Pane_Is_Open (Model)
-      then
-         return Settings_Closed_Result (Id, Model);
-      elsif Error_Key = "" then
+      if Error_Key = "" then
          --  Nothing worth saying (no history to undo, nothing to close).
          return Make_Result (Controller_Ignored, Id);
       end if;

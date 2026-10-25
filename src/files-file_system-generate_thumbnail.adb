@@ -152,7 +152,7 @@ begin
       Stream_IO.Create (File, Stream_IO.Out_File, To_String (Temp), Form => "shared=no");
       Put_Header
         ("P6" & ASCII.LF
-         & Image_No_Space (Size) & " " & Image_No_Space (Size) & ASCII.LF
+         & Natural_Text (Size) & " " & Natural_Text (Size) & ASCII.LF
          & "255" & ASCII.LF);
 
       for Row in 0 .. Size - 1 loop

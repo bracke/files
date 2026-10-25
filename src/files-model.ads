@@ -149,6 +149,32 @@ package Files.Model is
       Overlay : Input_Overlay)
       return Boolean;
 
+   --  The open overlay on top: the one whose own controls alone still act
+   --  (a paste in progress first, then Quick Look, the label picker, the
+   --  command palette, the settings pane, the root selector, the sort menu,
+   --  the context menu, a tree pick).
+   --
+   --  @param Model Model to inspect.
+   --  @param Overlay Set to the top-most open overlay when one is open.
+   --  @return True when any input-owning overlay is open.
+   function Topmost_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean;
+
+   --  The open overlay Escape (the close command) closes first: the label
+   --  picker, the context menu, the command palette, the root selector, the
+   --  sort menu, then the settings pane. The other overlays have their own
+   --  way out.
+   --
+   --  @param Model Model to inspect.
+   --  @param Overlay Set to that overlay when one is open.
+   --  @return True when an overlay Escape closes is open.
+   function Escape_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean;
+
+   --  Close one overlay, as Escape closes it.
+   --
+   --  @param Model Model to update.
+   --  @param Overlay The overlay to close.
+   procedure Close_Overlay (Model : in out Window_Model; Overlay : Input_Overlay);
+
    --  Return whether an input-owning overlay other than Except is open: what
    --  an overlay's own click handler asks so it ignores clicks while another
    --  overlay is on top of it.

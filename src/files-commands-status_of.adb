@@ -139,16 +139,15 @@ separate (Files.Commands)
                     Rename_Unavailable_Reason));
          when Close_Command_Palette_Command =>
             --  Nothing open to close: Escape just does nothing.
-            return
-              Require
-                (Files.Model.Context_Menu_Is_Open (Model)
-                 or else Files.Model.Command_Palette_Is_Open (Model)
-                 or else Files.Model.Root_Selector_Is_Open (Model)
-                 or else Files.Model.Sort_Menu_Is_Open (Model)
-                 or else Files.Model.Settings_Pane_Is_Open (Model)
-                 or else Files.Model.Label_Picker_Is_Open (Model)
-                 or else Files.Model.Focus (Model) /= Files.Types.Focus_None
-                 or else Files.Model.Rename_Is_Active (Model));
+            declare
+               Overlay : Files.Model.Input_Overlay;
+            begin
+               return
+                 Require
+                   (Files.Model.Escape_Overlay (Model, Overlay)
+                    or else Files.Model.Focus (Model) /= Files.Types.Focus_None
+                    or else Files.Model.Rename_Is_Active (Model));
+            end;
          when Open_Selected_Root_Command =>
             return Require (Valid_Root_Selected, Root_Unselected_Reason);
          when Eject_Selected_Root_Command =>

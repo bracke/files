@@ -36,6 +36,19 @@ package Files.UI is
      (Line_Height : Positive := 20)
       return Natural;
 
+   --  Height of the toolbar at Line_Height, as the layout and every hit-test
+   --  use it.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return Toolbar height in pixels.
+   function Toolbar_Height (Line_Height : Positive) return Natural;
+
+   --  Height of the bottom bar (and of each sort-menu row) at Line_Height.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return Bottom bar height in pixels.
+   function Bottom_Bar_Height (Line_Height : Positive) return Natural;
+
    --  Width of the visible sort dropdown at a particular window width. This
    --  clamps the preferred width at the right framebuffer edge and is shared by
    --  rendering and hit-testing.

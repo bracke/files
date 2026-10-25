@@ -135,21 +135,36 @@ package body Files.Controller is
       return Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Settings));
    end Write_Settings;
 
-   --  Save settings that are already applied, reporting a write that fails or
-   --  is not durable in the window's error line. The change itself is kept.
+   --  The one save policy for a settings change, wherever it came from: the
+   --  change is applied already and kept for the session; a file that would
+   --  not load again (Loadable) is not written; a write that fails or is not
+   --  durable is reported in the window's error line. (A settings command's
+   --  own durable save clears that line; a save following another operation
+   --  leaves that operation's message.)
    function Persisted
      (Model         : in out Files.Model.Window_Model;
       Settings      : Files.Settings.Settings_Model;
       Settings_Path : String)
       return Files.Settings.Settings_Write_Result
    is
-      Saved : constant Files.Settings.Settings_Write_Result := Write_Settings (Settings_Path, Settings);
    begin
-      if not Saved.Success or else not Saved.Durable then
-         --  Applied, but not saved (or not safely): say so.
-         Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
+      if not Files.Settings.Loadable (Settings) then
+         Files.Model.Set_Error (Model, "error.settings.full");
+         return
+           (Success   => False,
+            Durable   => False,
+            Path      => To_Unbounded_String (Settings_Path),
+            Error_Key => To_Unbounded_String ("error.settings.full"));
       end if;
-      return Saved;
+      declare
+         Saved : constant Files.Settings.Settings_Write_Result := Write_Settings (Settings_Path, Settings);
+      begin
+         if not Saved.Success or else not Saved.Durable then
+            --  Applied, but not saved (or not safely): say so.
+            Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
+         end if;
+         return Saved;
+      end;
    end Persisted;
 
    procedure Persist_Settings

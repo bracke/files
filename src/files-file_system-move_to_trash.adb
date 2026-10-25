@@ -5,12 +5,6 @@ function Move_To_Trash
    Recorded_Path : String := "")
    return Mutation_Result
 is
-   function Image_No_Space (Value : Natural) return String is
-      Image : constant String := Natural'Image (Value);
-   begin
-      return Image (Image'First + 1 .. Image'Last);
-   end Image_No_Space;
-
    function Unique_Trash_Name
      (Files_Directory : String;
       Info_Directory  : String;
@@ -27,7 +21,7 @@ is
                    (Ada.Directories.Exists (Join_Path (Info_Directory, To_String (Candidate) & ".trashinfo"))
                     or else Hostkit.Fs.Is_Link (Join_Path (Info_Directory, To_String (Candidate) & ".trashinfo"))))
       loop
-         Candidate := To_Unbounded_String (Name & "." & Image_No_Space (Counter));
+         Candidate := To_Unbounded_String (Name & "." & Natural_Text (Counter));
          exit when Counter = Positive'Last;
          Counter := Counter + 1;
       end loop;

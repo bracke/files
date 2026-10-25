@@ -1,3 +1,4 @@
+with Hostkit.Host;
 with Hostkit.Process;
 
 separate (Files.File_System)
@@ -45,13 +46,17 @@ function Volume_Trash_For (Path : String) return String is
       App  : constant String := (if Data = "" then "" else Join_Path (Data, "files"));
       List : constant String := (if App = "" then "" else Join_Path (App, "volume-trashes"));
       Known : constant Files.Types.String_Vectors.Vector := Remembered_Volume_Trashes;
+      --  This process's own temporary file: background jobs trash too.
+      Partial : constant String :=
+        List & ".partial-" & Natural_Text (Natural (abs Hostkit.Host.Own_Process_Id));
       File : Ada.Text_IO.File_Type;
+      Renamed : Boolean;
    begin
       if List = "" or else Known.Contains (To_Unbounded_String (Base)) then
          return;
       end if;
       Ada.Directories.Create_Path (App);
-      Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, List & ".partial");
+      Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Partial);
       for Item of Known loop
          --  Bounded: the oldest are dropped first.
          if Natural (Known.Length) < Max_Remembered_Volume_Trashes
@@ -62,10 +67,11 @@ function Volume_Trash_For (Path : String) return String is
       end loop;
       Ada.Text_IO.Put_Line (File, Base);
       Ada.Text_IO.Close (File);
-      if Ada.Directories.Exists (List) then
-         Ada.Directories.Delete_File (List);
+      --  One step that replaces the list, so it is never missing.
+      GNAT.OS_Lib.Rename_File (Partial, List, Renamed);
+      if not Renamed then
+         Ada.Directories.Delete_File (Partial);
       end if;
-      Ada.Directories.Rename (List & ".partial", List);
    exception
       when Swallowed : others =>
          if Ada.Text_IO.Is_Open (File) then
@@ -88,7 +94,7 @@ begin
    declare
       --  The top of the item's filesystem: the highest ancestor on its device.
       Top : Unbounded_String := To_Unbounded_String (Ada.Directories.Containing_Directory (Path));
-      Id  : constant String := Image_No_Space (Uid);
+      Id  : constant String := Natural_Text (Uid);
    begin
       loop
          declare

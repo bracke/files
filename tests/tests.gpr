@@ -11,9 +11,14 @@ project Tests is
    for Exec_Dir use "bin";
    for Main use ("tests.adb", "noop.adb", "failing.adb", "marker.adb");
 
+   --  Warnings fail the build, as in files.gpr, so a test cannot quietly
+   --  grow dead code or a check that is always true. The one class left out
+   --  is -gnatwm ("assigned but never read", "possibly useless assignment"):
+   --  tests routinely assign a result only to drive a call or to overwrite
+   --  it with the next step's, and that is not a defect worth failing on.
    package Compiler is
       for Default_Switches ("Ada") use
-        Tests_Config.Ada_Compiler_Switches & ("-gnat2022", "-gnatyM120", "-gnatX");
+        Tests_Config.Ada_Compiler_Switches & ("-gnat2022", "-gnatyM120", "-gnatX", "-gnatwM", "-gnatwe");
       for Default_Switches ("C") use
         ("-std=c11", "-Wall", "-Wextra", "-Wpedantic", "-Werror") & Extra_C_Switches;
    end Compiler;

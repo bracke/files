@@ -40,7 +40,6 @@ package body Files.Commands is
       With_Text_Focus    : Boolean := False;
       --  Changes view, sort or info-pane state that is mirrored into settings.
       Persists_UI_State  : Boolean := False;
-      --  Reorders the listing, so the model's item order must be re-listed.
    end record;
 
    Traits : constant array (Command_Id) of Command_Traits :=

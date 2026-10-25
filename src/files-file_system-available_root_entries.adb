@@ -90,31 +90,8 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
    end Root_Kind_For_Mount;
 
    function Is_User_Visible_Mount_Point (Mount_Point : String) return Boolean is
-      Runtime_Gvfs : constant String :=
-        (if Xdg_Runtime_Dir = "" then "" else Join_Path (Xdg_Runtime_Dir, "gvfs"));
-
-      function Is_Mount_Container return Boolean is
-      begin
-         return Mount_Point = "/mnt"
-           or else Mount_Point = "/media"
-           or else Mount_Point = "/run/media"
-           or else Mount_Point = "/Volumes"
-           or else Mount_Point = "/System/Volumes"
-           or else (Runtime_Gvfs /= "" and then Mount_Point = Runtime_Gvfs);
-      end Is_Mount_Container;
-   begin
-      return not Is_Mount_Container
-        and then
-          (Mount_Point = "/"
-        or else Starts_With (Mount_Point, "/mnt/")
-        or else Starts_With (Mount_Point, "/media/")
-        or else Starts_With (Mount_Point, "/run/media/")
-        or else Starts_With (Mount_Point, "/Volumes/")
-        or else Starts_With (Mount_Point, "/System/Volumes/")
-        or else
-          (Runtime_Gvfs /= ""
-           and then Starts_With (Mount_Point, Runtime_Gvfs & "/")));
-   end Is_User_Visible_Mount_Point;
+     (Files.File_System.Is_User_Visible_Mount_Point
+        (Mount_Point, (if Xdg_Runtime_Dir = "" then "" else Join_Path (Xdg_Runtime_Dir, "gvfs"))));
 
    function Is_Displayable_Root_Mount
      (Mount_Point     : String;

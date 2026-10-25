@@ -3,10 +3,14 @@ separate (Files_Suite.Interaction)
       pragma Unreferenced (T);
       use Ada.Strings.Unbounded;
 
+      --  A configuration constant, so the comparison is static: always False
+      --  on Linux and macOS, always True on Windows.
       pragma Warnings (Off, "condition is always False");
+      pragma Warnings (Off, "condition is always True");
       function Running_On_Windows return Boolean is
         (Files_Config.Alire_Host_OS = "windows");
       pragma No_Inline (Running_On_Windows);
+      pragma Warnings (On, "condition is always True");
       pragma Warnings (On, "condition is always False");
    begin
       declare

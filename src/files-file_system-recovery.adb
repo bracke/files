@@ -342,7 +342,7 @@ package body Files.File_System.Recovery is
       for N in 1 .. 9_999 loop
          declare
             Candidate : constant String :=
-              Join_Path (Root, ".files-recovery-" & Image_No_Space (N));
+              Join_Path (Root, ".files-recovery-" & Natural_Text (N));
          begin
             if Files.Private_Directories.Try_Create (Candidate) =
               Files.Private_Directories.Collision
@@ -728,7 +728,7 @@ package body Files.File_System.Recovery is
       end if;
       for N in 1 .. 9_999 loop
          declare
-            Candidate : constant String := Join_Path (Parent, ".files-recovery-" & Image_No_Space (N));
+            Candidate : constant String := Join_Path (Parent, ".files-recovery-" & Natural_Text (N));
          begin
             if Files.Private_Directories.Try_Create (Candidate) =
               Files.Private_Directories.Collision

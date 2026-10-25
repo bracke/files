@@ -10,6 +10,23 @@ separate (Files_Suite.Interaction)
       Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
       Before   : constant Boolean := Settings.Show_File_Extensions;
    begin
+      --  Control: with no persistence asked for (an empty path, nothing
+      --  refused) the same change is quietly session-only, so the report
+      --  below comes from the refusal and not from the empty path.
+      declare
+         Plain_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Plain_Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      begin
+         Plain_Settings.Persistence_Refused := False;
+         Files.Interaction.Execute_Command
+           (Plain_Model, Plain_Settings, "", Files.Commands.Toggle_Show_Extensions_Command, Base_Font,
+            Result => Result);
+         Assert (Plain_Settings.Show_File_Extensions /= Before, "the control's toggle applies");
+         Assert
+           (Files.Model.Last_Error_Key (Plain_Model) /= "error.settings.not_persisted",
+            "without a refused load, an empty settings path reports nothing unsaved");
+      end;
+
       Settings.Persistence_Refused := True;
       Files.Interaction.Execute_Command
         (Model, Settings, "", Files.Commands.Toggle_Show_Extensions_Command, Base_Font, Result => Result);

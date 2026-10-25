@@ -21,7 +21,7 @@ begin
       return False;
    end if;
    declare
-      Id     : constant String := Image_No_Space (Uid);
+      Id     : constant String := Natural_Text (Uid);
       Name   : constant String := Ada.Directories.Simple_Name (Base);
       Parent : constant String := Ada.Directories.Containing_Directory (Base);
       --  A part not made yet, or our own real directory.

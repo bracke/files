@@ -587,6 +587,17 @@ package body Files_Suite.Support is
       Guard.Count := 0;
    end Finalize;
 
+   overriding procedure Finalize (Guard : in out Shortcut_Guard) is
+      pragma Unreferenced (Guard);
+   begin
+      Files.Commands.Reset_Shortcut_Overrides;
+   exception
+      when Error : others =>
+         Ada.Text_IO.Put_Line
+           (Ada.Text_IO.Standard_Error,
+            "Shortcut_Guard could not clear the shortcut overrides: " & Ada.Exceptions.Exception_Message (Error));
+   end Finalize;
+
    overriding procedure Initialize (Guard : in out Directory_Guard) is
    begin
       Guard.Saved := To_Unbounded_String (Ada.Directories.Current_Directory);

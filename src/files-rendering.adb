@@ -896,9 +896,9 @@ package body Files.Rendering is
       Line_Height : Positive := 20)
       return Layout_Metrics
    is
-      Toolbar    : constant Natural := Saturating_Multiply (Line_Height, 2);
+      Toolbar    : constant Natural := Files.UI.Toolbar_Height (Line_Height);
       Bottom     : constant Natural :=
-        Saturating_Add (Line_Height, Saturating_Multiply (Guikit.Layout.Bottom_Bar_Padding, 2));
+        Files.UI.Bottom_Bar_Height (Line_Height);
       Used_Y     : constant Natural := Saturating_Add (Toolbar, Bottom);
       Main_H     : constant Natural := (if Height > Used_Y then Height - Used_Y else 0);
       --  A quarter-width pane is too narrow for ordinary metadata at the

@@ -713,10 +713,6 @@ package body Files.File_System is
    --  with numeric user ids.
    function Volume_Trash_Supported return Boolean;
 
-   --  Decimal digits of Value, without the leading blank.
-   function Image_No_Space (Value : Natural) return String is
-     (Ada.Strings.Fixed.Trim (Natural'Image (Value), Ada.Strings.Left));
-
    --  How many volume trashes the list of those trashed into keeps.
    Max_Remembered_Volume_Trashes : constant := 64;
 
@@ -908,6 +904,8 @@ package body Files.File_System is
    function Volume_Trash_Bases return Files.Types.String_Vectors.Vector is separate;
 
    function Trash_Base_Of (Trashed_Path : String) return String is separate;
+
+   function Is_User_Visible_Mount_Point (Mount_Point : String; Runtime_Gvfs : String) return Boolean is separate;
 
    function Is_Volume_Trash_Item (Path : String) return Boolean is
       Base : constant String := Trash_Base_Of (Path);

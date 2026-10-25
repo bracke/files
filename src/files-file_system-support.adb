@@ -131,12 +131,6 @@ package body Files.File_System.Support is
       return Files.Types.To_Lower (Safe_Environment_Value (Name)) = Expected;
    end Environment_Equals;
 
-   function Image_No_Space (Value : Natural) return String is
-      Image : constant String := Natural'Image (Value);
-   begin
-      return Image (Image'First + 1 .. Image'Last);
-   end Image_No_Space;
-
    function Starts_With
      (Value  : String;
       Prefix : String)

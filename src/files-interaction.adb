@@ -23,32 +23,31 @@ package body Files.Interaction is
    function Command_Action_Is_Current
      (Model   : Files.Model.Window_Model;
       Command : Files.Commands.Command_Id) return Boolean is
+      Overlay : Files.Model.Input_Overlay;
    begin
-      if Files.Model.Paste_Execution_Is_Active (Model)
-        or else Files.Model.Paste_Conflict_Is_Active (Model)
-      then
-         return False;
-      elsif Files.Model.Quick_Look_Is_Open (Model) then
-         return Command = Files.Commands.Toggle_Quick_Look_Command;
-      elsif Files.Model.Label_Picker_Is_Open (Model) then
-         return Command = Files.Commands.Close_Command_Palette_Command;
-      elsif Files.Model.Command_Palette_Is_Open (Model) then
-         return Command = Files.Commands.Close_Command_Palette_Command;
-      elsif Files.Model.Settings_Pane_Is_Open (Model) then
-         return Command = Files.Commands.Toggle_Settings_Pane_Command;
-      elsif Files.Model.Root_Selector_Is_Open (Model) then
-         return Command in Files.Commands.Select_Drive_Command
-                           | Files.Commands.Close_Command_Palette_Command;
-      elsif Files.Model.Sort_Menu_Is_Open (Model) then
-         return Command in Files.Commands.Sort_Command_Id
-                           | Files.Commands.Close_Command_Palette_Command;
-      elsif Files.Model.Context_Menu_Is_Open (Model) then
-         return Command = Files.Commands.Close_Command_Palette_Command;
-      elsif Files.Model.Tree_Pick_Is_Active (Model) then
-         return Command = Files.Commands.Toggle_Folder_Tree_Command;
+      if not Files.Model.Topmost_Overlay (Model, Overlay) then
+         return True;
       end if;
-
-      return True;
+      case Overlay is
+         when Files.Model.Paste_Execution_Overlay | Files.Model.Paste_Conflict_Overlay =>
+            return False;
+         when Files.Model.Quick_Look_Overlay =>
+            return Command = Files.Commands.Toggle_Quick_Look_Command;
+         when Files.Model.Label_Picker_Overlay
+            | Files.Model.Command_Palette_Overlay
+            | Files.Model.Context_Menu_Overlay =>
+            return Command = Files.Commands.Close_Command_Palette_Command;
+         when Files.Model.Settings_Pane_Overlay =>
+            return Command = Files.Commands.Toggle_Settings_Pane_Command;
+         when Files.Model.Root_Selector_Overlay =>
+            return Command in Files.Commands.Select_Drive_Command
+                              | Files.Commands.Close_Command_Palette_Command;
+         when Files.Model.Sort_Menu_Overlay =>
+            return Command in Files.Commands.Sort_Command_Id
+                              | Files.Commands.Close_Command_Palette_Command;
+         when Files.Model.Tree_Pick_Overlay =>
+            return Command = Files.Commands.Toggle_Folder_Tree_Command;
+      end case;
    end Command_Action_Is_Current;
 
    --  Copy the common controller observations into the public interaction

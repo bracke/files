@@ -4,7 +4,9 @@ separate (Files.Operations)
 --  rename uniquification, so a renamed paste avoids any existing name, not
 --  just the colliding one. Listed is False, with an empty set, when the
 --  directory cannot be scanned or holds more than Max_Destination_Entries
---  entries; the caller then checks the incoming names one by one.
+--  entries; the caller then checks the incoming names one by one, and a
+--  renamed paste may then pick a name already there, which the publish
+--  (never replacing) refuses rather than overwrites.
 function Existing_Destination_Paths
   (Directory : String;
    Listed    : out Boolean)

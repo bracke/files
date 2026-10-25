@@ -238,11 +238,24 @@ package Files_Suite.Support is
    --  @param Guard Guard leaving scope.
    overriding procedure Finalize (Guard : in out Environment_Guard);
 
+   --  Clears every global shortcut override (Files.Commands) when it leaves
+   --  scope, whether the test passed or an assertion raised, so a failing
+   --  shortcut test cannot leave its bindings in force for the rest of the
+   --  suite. Declaring one does not clear anything; a test that needs a clean
+   --  start still calls Files.Commands.Reset_Shortcut_Overrides first.
+   type Shortcut_Guard is new Ada.Finalization.Limited_Controlled with null record;
+
+   --  Clear every shortcut override.
+   --
+   --  @param Guard Guard leaving scope.
+   overriding procedure Finalize (Guard : in out Shortcut_Guard);
+
    --  Puts the working directory back to what it was when the guard was
    --  declared, when it leaves scope -- on an assertion failure too -- so a
    --  test that changes directory cannot leave the rest of the suite running
    --  somewhere else. A restore that fails is reported on standard error
-   --  (a finalizer must not raise), and the next guard's check sees it.
+   --  (a finalizer must not raise); the test that owned the guard is not
+   --  failed by it.
    type Directory_Guard is new Ada.Finalization.Limited_Controlled with private;
 
    --  Remember the current working directory.

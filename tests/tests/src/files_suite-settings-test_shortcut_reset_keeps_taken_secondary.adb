@@ -4,6 +4,9 @@ separate (Files_Suite.Settings)
    --  Ctrl+Y from under the command bound to it.
    procedure Test_Shortcut_Reset_Keeps_Taken_Secondary (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      --  Clears the overrides this test sets, on an assertion failure too.
+      Shortcuts : Files_Suite.Support.Shortcut_Guard;
+      pragma Unreferenced (Shortcuts);
       use type Files.Commands.Shortcut;
       Ctrl : constant Guikit.Input.Modifier_Set := [Guikit.Input.Control_Key => True, others => False];
       Ctrl_Shift : constant Guikit.Input.Modifier_Set :=
@@ -29,9 +32,4 @@ separate (Files_Suite.Settings)
       Files.Commands.Clear_Shortcut_Override (Files.Commands.Redo_Command);
       Assert (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Y, Ctrl) = Files.Commands.Redo_Command,
               "a free secondary returns with the reset");
-      Files.Commands.Reset_Shortcut_Overrides;
-   exception
-      when others =>
-         Files.Commands.Reset_Shortcut_Overrides;
-         raise;
    end Test_Shortcut_Reset_Keeps_Taken_Secondary;

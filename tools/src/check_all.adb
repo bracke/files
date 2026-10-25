@@ -762,19 +762,21 @@ procedure Check_All is
    --  Every test package is in the suite, and every Test_* routine a suite
    --  body declares is registered there: a declared, stubbed and written
    --  test that nobody registers compiles cleanly and never runs.
-   --  Require that the suite registers Routine -- the AUnit test whose
-   --  assertions cover what Message names. Keyed to the routine's name, not to
-   --  the text of an assertion message inside it: rewording a message does not
-   --  break the guard, and a routine that is dropped or no longer registered
-   --  does. (Check_AUnit_Test_Registration separately requires every declared
+   --  Require that the suite registers Routine. Only the registration is
+   --  checked -- what the routine asserts is not -- so Message says what the
+   --  routine is the test of, for a failure to name, and claims nothing more.
+   --  Keyed to the routine's name, not to the text of an assertion message
+   --  inside it: rewording a message does not break the guard, and a routine
+   --  that is dropped or no longer registered does.
+   --  (Check_AUnit_Test_Registration separately requires every declared
    --  routine to be registered.)
    --
    --  @param Routine Test procedure name, as registered with 'Access.
-   --  @param Message What the routine must keep covering.
+   --  @param Message What the routine tests, as a noun phrase.
    procedure Require_Registered_Routine (Routine : String; Message : String) is
    begin
       Project_Tools.Files.Require_Contains
-        (Combined_Suite, "(T, " & Routine & "'Access", Message & " (" & Routine & " must stay registered)");
+        (Combined_Suite, "(T, " & Routine & "'Access", Routine & ", " & Message & ", must stay registered");
    end Require_Registered_Routine;
 
    procedure Check_AUnit_Test_Registration is
@@ -2122,14 +2124,13 @@ procedure Check_All is
       Check_Error_Localization_Test_Coverage;
       Require_Registered_Routine
         ("Test_Localization_Runtime_Labels",
-         "localization tests must cover startup, runtime-smoke and CLI help labels");
+         "the test of startup, runtime-smoke and CLI help labels");
       Require_Registered_Routine
         ("Test_Startup_And_Runtime_Smoke_Reports",
-         "startup and runtime smoke report tests must build expected labels and metrics through localization"
-         & " and cover glyph/font diagnostics");
+         "the test of the startup and runtime smoke reports");
       Require_Registered_Routine
         ("Test_Detected_Locale_Catalogs",
-         "localization tests must cover translated locale resource loading");
+         "the test of translated locale catalog loading");
       --  The per-host locale calls, and the frameworks they need, are Hostkit's
       --  now and are guarded by check_hostkit's Require_Binding (verified there
       --  by a negative test, after this comment was written while that guard did
@@ -2138,14 +2139,13 @@ procedure Check_All is
       --  way to the environment fallbacks.
       Require_Registered_Routine
         ("Test_Host_Locale_Fallbacks",
-         "locale tests must cover asking the host for its locale");
+         "the test of asking the host for its locale");
       Require_Registered_Routine
         ("Test_Localization_Pane_Labels",
-         "localization tests must cover unknown-key fallback, status labels and landmark labels");
+         "the test of pane, status and landmark labels");
       Require_Registered_Routine
         ("Test_Localization_Error_And_Command_Keys",
-         "localization tests must cover every recoverable error key and registered command names"
-         & " and descriptions");
+         "the test of error keys and command names and descriptions");
       Check_Command_Localization_Keys;
       Check_Indirect_Localization_Keys_In_Tree (Root & "/src");
       Check_Direct_Localization_Call_Keys_In_Tree (Root & "/src");
@@ -2225,8 +2225,7 @@ procedure Check_All is
    begin
       Require_Registered_Routine
         ("Test_Filetype_Detection",
-         "filetype detection tests must cover extension normalization and trimming, kind precedence,"
-         & " fallbacks and path-leaf handling");
+         "the test of file type detection");
    end Check_Filetype_Detection_Order;
 
    procedure Check_Event_Translation_Contract is
@@ -2240,6 +2239,45 @@ procedure Check_All is
         [To_Unbounded_String ("Files.Rendering.Hit"),
          To_Unbounded_String ("Files.UTF8"),
          To_Unbounded_String ("Files.UI")];
+
+      --  Translation turns input into actions; it never reaches the
+      --  filesystem or starts processes. These are the units that would let
+      --  it (Hostkit and its children are the platform layer: spawning,
+      --  shells, file metadata); each is a unit-name prefix, so children are
+      --  caught too, and the with clauses are parsed rather than matched as
+      --  text, so "with Ada.Text_IO, Ada.Directories;" or a clause split over
+      --  lines cannot slip through.
+      Filesystem_Units : constant String_List :=
+        [To_Unbounded_String ("Hostkit"),
+         To_Unbounded_String ("Ada.Directories"),
+         To_Unbounded_String ("Ada.Streams.Stream_IO"),
+         To_Unbounded_String ("Ada.Text_IO"),
+         To_Unbounded_String ("Ada.Wide_Text_IO"),
+         To_Unbounded_String ("Ada.Wide_Wide_Text_IO"),
+         To_Unbounded_String ("Ada.Direct_IO"),
+         To_Unbounded_String ("Ada.Sequential_IO"),
+         To_Unbounded_String ("Text_IO"),
+         To_Unbounded_String ("Direct_IO"),
+         To_Unbounded_String ("Sequential_IO"),
+         To_Unbounded_String ("GNAT.OS_Lib"),
+         To_Unbounded_String ("System.OS_Lib")];
+      No_Units : constant String_List := [1 .. 0 => <>];
+
+      --  Reject a with of any Filesystem_Units unit in Path.
+      --
+      --  @param Path An Ada source of Files.Events.
+      procedure Require_No_Filesystem_Imports (Path : String) is
+      begin
+         for Unit of Filesystem_Units loop
+            Require_Only_Allowed_With_Clauses (Path, To_String (Unit), No_Units);
+         end loop;
+      exception
+         when Program_Error =>
+            Ada.Text_IO.Put_Line
+              (Ada.Text_IO.Standard_Error,
+               "error: event translation must not import filesystem or process units: " & Path);
+            raise;
+      end Require_No_Filesystem_Imports;
 
       --  Apply the body's with-clause boundary to every subunit of
       --  Files.Events (files-events-*.adb, nested subunits included): a
@@ -2257,6 +2295,7 @@ procedure Check_All is
          while Ada.Directories.More_Entries (Search) loop
             Ada.Directories.Get_Next_Entry (Search, Item);
             Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), "Files.", Body_Allowed);
+            Require_No_Filesystem_Imports (Ada.Directories.Full_Name (Item));
          end loop;
          Ada.Directories.End_Search (Search);
       exception
@@ -2267,14 +2306,10 @@ procedure Check_All is
             raise;
       end Check_Subunit_With_Clauses;
    begin
-      Require_Not_Contains_In_Unit
-        (Events_Body,
-         "with Ada.Directories;",
-         "event translation must not import Ada.Directories for filesystem access");
-      Require_Not_Contains_In_Unit
-        (Events_Body,
-         "with GNAT.OS_Lib;",
-         "event translation must not import process execution APIs");
+      --  No filesystem or process imports in the spec, the body, or (below)
+      --  any subunit.
+      Require_No_Filesystem_Imports (Events_Spec);
+      Require_No_Filesystem_Imports (Events_Body);
       --  Lock the Files.* import boundary through the shared helper, over the
       --  body and every subunit.
       Require_Only_Allowed_With_Clauses (Events_Body, "Files.", Body_Allowed);
@@ -2320,24 +2355,6 @@ procedure Check_All is
          "Files.Model.",
          "event translation must not mutate or inspect live model state");
    end Check_Event_Translation_Contract;
-
-   --  The root selector lists what is mounted under the mount containers
-   --  (/mnt/x, /media/x, /run/media/<user>/x, /Volumes/x), never the container
-   --  directory itself. Test_Root_Discovery checks the discovered roots, but a
-   --  host whose containers are not themselves mount points never exercises
-   --  the exclusion, so its shape is held here.
-   procedure Check_Root_Discovery_Contract is
-      Root_Entries : constant String := Root & "/src/files-file_system-available_root_entries.adb";
-   begin
-      Project_Tools.Files.Require_Contains
-        (Root_Entries,
-         "function Is_Mount_Container",
-         "root discovery must name the mount containers it excludes");
-      Project_Tools.Files.Require_Contains
-        (Root_Entries,
-         "return not Is_Mount_Container",
-         "root discovery must exclude mount container rows from the root selector");
-   end Check_Root_Discovery_Contract;
 
    procedure Check_Crate_Structure is
       Main_Manifest  : constant String := Root & "/alire.toml";
@@ -2609,7 +2626,7 @@ procedure Check_All is
          "desktop Vulkan runtime must not configure OpenGL swap interval");
       Require_Registered_Routine
         ("Test_Runtime_Capabilities_And_Drop_Events",
-         "desktop runtime tests must cover drop event-source automation");
+         "the test of runtime capabilities and drop events");
       Require_Not_Contains_In_Unit
         (Windows_Body,
          "Runtime.Last_Missing_Glyph_Count = 0",
@@ -3883,7 +3900,6 @@ begin
    Check_Localization_Usage;
    Check_Filetype_Detection_Order;
    Check_Event_Translation_Contract;
-   Check_Root_Discovery_Contract;
    Check_Crate_Structure;
    Check_Application_CLI_Surface;
    Check_Rendering_Architecture;

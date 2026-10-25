@@ -448,6 +448,52 @@ package body Files.Model is
       end case;
    end Overlay_Is_Open;
 
+   type Overlay_Order is array (Positive range <>) of Input_Overlay;
+
+   --  The first open overlay of Order.
+   function First_Open (Model : Window_Model; Order : Overlay_Order; Overlay : out Input_Overlay) return Boolean is
+   begin
+      for Candidate of Order loop
+         if Overlay_Is_Open (Model, Candidate) then
+            Overlay := Candidate;
+            return True;
+         end if;
+      end loop;
+      Overlay := Order (Order'First);
+      return False;
+   end First_Open;
+
+   function Topmost_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean is
+     (First_Open
+        (Model,
+         [Paste_Execution_Overlay, Paste_Conflict_Overlay, Quick_Look_Overlay, Label_Picker_Overlay,
+          Command_Palette_Overlay, Settings_Pane_Overlay, Root_Selector_Overlay, Sort_Menu_Overlay,
+          Context_Menu_Overlay, Tree_Pick_Overlay],
+         Overlay));
+
+   function Escape_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean is
+     (First_Open
+        (Model,
+         [Label_Picker_Overlay, Context_Menu_Overlay, Command_Palette_Overlay, Root_Selector_Overlay,
+          Sort_Menu_Overlay, Settings_Pane_Overlay],
+         Overlay));
+
+   procedure Close_Overlay (Model : in out Window_Model; Overlay : Input_Overlay) is
+   begin
+      case Overlay is
+         when Label_Picker_Overlay    => Close_Label_Picker (Model);
+         when Context_Menu_Overlay    => Close_Context_Menu (Model);
+         when Command_Palette_Overlay => Close_Command_Palette (Model);
+         when Root_Selector_Overlay   => Close_Root_Selector (Model);
+         when Sort_Menu_Overlay       => Close_Sort_Menu (Model);
+         --  Closed the way Escape in the pane closes it; reopening starts a fresh draft.
+         when Settings_Pane_Overlay   => Toggle_Settings_Pane (Model);
+         when Quick_Look_Overlay      => Close_Quick_Look (Model);
+         --  A tree pick and a paste end through their own controls.
+         when Tree_Pick_Overlay | Paste_Conflict_Overlay | Paste_Execution_Overlay => null;
+      end case;
+   end Close_Overlay;
+
    function Other_Input_Owning_Overlay_Is_Open
      (Model  : Window_Model;
       Except : Input_Overlay)

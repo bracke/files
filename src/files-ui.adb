@@ -67,6 +67,12 @@ package body Files.UI is
            Saturating_Add (Widest, Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)));
    end Sort_Menu_Width;
 
+   function Toolbar_Height (Line_Height : Positive) return Natural is
+     (Saturating_Multiply (Line_Height, 2));
+
+   function Bottom_Bar_Height (Line_Height : Positive) return Natural is
+     (Saturating_Add (Line_Height, Saturating_Multiply (Guikit.Layout.Bottom_Bar_Padding, 2)));
+
    function Sort_Menu_Visible_Width
      (Width       : Natural;
       Sort_Field  : Files.Types.Sort_Field;
@@ -94,10 +100,10 @@ package body Files.UI is
         Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
       Row_Count : constant Natural := Files.Types.Sort_Field'Pos (Files.Types.Sort_Field'Last) + 1;
       --  Each row is as tall as the bottom bar itself.
-      Row_H     : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
+      Row_H     : constant Natural := Bottom_Bar_Height (Line_Height);
       Menu_H    : constant Natural :=
         Saturating_Add (Saturating_Multiply (Row_H, Row_Count), Saturating_Multiply (Sort_Menu_Padding, 2));
-      Bottom_H  : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
+      Bottom_H  : constant Natural := Bottom_Bar_Height (Line_Height);
       Bottom_Y  : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
       Menu_Y    : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
    begin

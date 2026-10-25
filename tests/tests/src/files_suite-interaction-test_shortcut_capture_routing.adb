@@ -5,6 +5,9 @@ separate (Files_Suite.Interaction)
    --  default -- exercising Files.Controller.Capture_Settings_Shortcut end to end.
    procedure Test_Shortcut_Capture_Routing (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      --  Clears the overrides this test sets, on an assertion failure too.
+      Shortcuts : Files_Suite.Support.Shortcut_Guard;
+      pragma Unreferenced (Shortcuts);
       use type Guikit.Input.Key_Code;
       use type Files.Commands.Shortcut;
       Path : constant String :=
@@ -124,6 +127,4 @@ separate (Files_Suite.Interaction)
          Assert (Files.Commands.Shortcut_For (Cmd) = Files.Commands.Default_Shortcut_For (Cmd),
                  "the command resolves to its default binding after a reset");
       end;
-
-      Files.Commands.Reset_Shortcut_Overrides;
    end Test_Shortcut_Capture_Routing;
