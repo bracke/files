@@ -1,3 +1,5 @@
+with Files.File_System.Testing;
+
 separate (Files_Suite.Operations)
    procedure Test_Xdg_Trash_Move (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -24,9 +26,9 @@ separate (Files_Suite.Operations)
          Write_File (Join (Root, "native-execute.txt"));
          declare
             Request : constant Files.File_System.Native_Trash_Request :=
-              Files.File_System.Native_Trash_Request_For (Join (Root, "native-execute.txt"));
+              Files.File_System.Testing.Native_Trash_Request_For (Join (Root, "native-execute.txt"));
             Native_Execution : constant Files.File_System.Native_Trash_Result :=
-              Files.File_System.Execute_Native_Trash (Request);
+              Files.File_System.Testing.Execute_Native_Trash (Request);
          begin
             Assert (Request.Can_Use_Current_Process, "XDG trash request can execute in current process");
             Assert (Native_Execution.Supported, "XDG trash execution reports supported adapter");

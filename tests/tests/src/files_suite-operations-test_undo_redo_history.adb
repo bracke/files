@@ -165,6 +165,8 @@ separate (Files_Suite.Operations)
             Assert
               (Rejected and then File_Has_Bytes (Victim, "protected history target"),
                "history snapshots refuse a temporary symlink without truncating its target");
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Undo_Redo_History", Files_Suite.Support.Symbolic_Link);
          end if;
 
          Ada.Directories.Create_Directory (Source_Directory);
@@ -181,6 +183,8 @@ separate (Files_Suite.Operations)
               (not Files.History_Journal.Restore (Read_Directory, Model)
                and then Files.Model.Undo_Available (Model),
                "history restore refuses a linked snapshot without replacing live history");
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Undo_Redo_History", Files_Suite.Support.Symbolic_Link);
          end if;
          Ada.Directories.Create_Directory (Hard_Directory);
          if Hostkit.Fs.Create_Hard_Link
@@ -191,6 +195,8 @@ separate (Files_Suite.Operations)
               (not Files.History_Journal.Restore (Hard_Directory, Model)
                and then Files.Model.Undo_Available (Model),
                "history restore refuses a multiply-linked snapshot without replacing live history");
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Undo_Redo_History", Files_Suite.Support.Hard_Link);
          end if;
       end;
    end Test_Undo_Redo_History;

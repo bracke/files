@@ -48,6 +48,10 @@ separate (Files_Suite.Operations)
          begin
             null;
          end;
+      else
+         Files_Suite.Support.Link_Not_Made
+           ("Test_Replacement_Checkpoint_Validation",
+            Files_Suite.Support.Symbolic_Link);
       end if;
       if Hostkit.Fs.Create_Hard_Link
         (Replacement_Target, Replacement_Record)
@@ -57,6 +61,8 @@ separate (Files_Suite.Operations)
               (Replacement_Record),
             "replacement recovery refuses a multiply-linked checkpoint");
          Ada.Directories.Delete_File (Replacement_Record);
+      else
+         Files_Suite.Support.Link_Not_Made ("Test_Replacement_Checkpoint_Validation", Files_Suite.Support.Hard_Link);
       end if;
    exception
       when others =>

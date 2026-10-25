@@ -1,44 +1,27 @@
+with Files.Settings;
 with Ada.Text_IO;
-with Ada.Calendar;
-with Ada.Characters.Handling;
 with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables;
+with Ada.Exceptions;
 with Interfaces;
 with Ada.Strings;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
-with System;
 
 with AUnit;
 with AUnit.Assertions;
-with AUnit.Test_Cases;
 
 with Project_Tools.Files;
 
-with Glfw;
-with Glfw.Input.Mouse;
-
 with GNAT.OS_Lib;
 with GNAT.CRC32;
-with Textrender.Fonts;
 
-with Files.Accessibility;
-with Files.Application;
-with Files.Application.Windows;
-with Files.Command_Palette;
-with Files.Drop_Events;
-with Files.File_Types;
-with Files.Fonts;
-with Files.Localization;
 with Files.Platform;
-with Guikit.Draw;
-with Guikit.Vulkan;
-with Files.UTF8;
-with Files.UI;
 with Hostkit.Fs;
+with Hostkit.Host;
 
 package body Files_Suite.Support is
 
@@ -109,43 +92,10 @@ package body Files_Suite.Support is
 
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;
-   use type Ada.Calendar.Time;
-   use type Ada.Directories.File_Kind;
+   --  Bit masking in Chunk's CRC bytes, and the adapter check in
+   --  Honours_Executable_Bit.
    use type Interfaces.Unsigned_32;
-   use type Files.Commands.Command_Id;
-   use type Files.Commands.Command_Placement;
-   use type Files.Controller.Controller_Status;
-   use type Files.Events.Input_Action_Kind;
-   use type Files.Events.Scroll_Target;
-   use type Files.File_System.Native_API_Binding_Status;
    use type Files.File_System.Native_Platform_Adapter;
-   use type Files.File_System.Path_Status;
-   use type Files.File_System.Drop_Import_Mode;
-   use type Files.File_System.Root_Kind;
-   use type Files.File_System.Root_Readiness;
-   use type Files.File_System.Thumbnail_Status;
-   use type Files.File_System.Trash_Backend;
-   use type Files.Application.Run_Mode;
-   use type Files.Operations.Open_Action_Lifecycle_State;
-   use type Files.Operations.Operation_Status;
-   use type Guikit.Draw.Accessibility_Role;
-   use type Guikit.Draw.Icon_Asset_Color_Role;
-   use type Guikit.Draw.Render_Color;
-   use type Files.Rendering.Text_Render_Status;
-   use type Guikit.Vulkan.Atlas_Texture_Format;
-   use type Guikit.Vulkan.Texture_Source;
-   use type Guikit.Vulkan.Vulkan_Status;
-   use type Interfaces.Unsigned_8;
-   use type Textrender.Fonts.Load_Result;
-   use type Files.Types.Sort_Field;
-   use type Files.Types.Focus_Target;
-   use type Files.Types.Item_Kind;
-   use type Guikit.Input.Key_Code;
-   use type Guikit.Input.Modifier_Set;
-   use type Guikit.Input.Navigation_Direction;
-   use type Files.Types.View_Mode;
-   use type Glfw.Input.Mouse.Coordinate;
-   use type System.Address;
 
    function Click_Action
      (Snapshot    : Files.Rendering.View_Snapshot;
@@ -173,6 +123,17 @@ package body Files_Suite.Support is
       --  that -- Windows needs Developer Mode or a privilege to create one.
       return Hostkit.Fs.Create_Link (Target, Linkpath);
    end Create_Symlink;
+
+   procedure Link_Not_Made (Test : String; Kind : Link_Kind := Symbolic_Link) is
+      use type Hostkit.Host.Kind;
+      Name : constant String := (if Kind = Hard_Link then "hard link" else "symbolic link");
+   begin
+      if Hostkit.Host.Current = Hostkit.Host.Linux then
+         Assert (False, Test & ": could not make a " & Name & " in the test root, which Linux always allows");
+      else
+         Skip (Test, "this host would not make the " & Name & " the test needs");
+      end if;
+   end Link_Not_Made;
 
    procedure Run_Command
      (Id    : Files.Commands.Command_Id;
@@ -625,6 +586,66 @@ package body Files_Suite.Support is
       end loop;
       Guard.Count := 0;
    end Finalize;
+
+   overriding procedure Initialize (Guard : in out Directory_Guard) is
+   begin
+      Guard.Saved := To_Unbounded_String (Ada.Directories.Current_Directory);
+   end Initialize;
+
+   overriding procedure Finalize (Guard : in out Directory_Guard) is
+   begin
+      if Length (Guard.Saved) > 0 then
+         Ada.Directories.Set_Directory (To_String (Guard.Saved));
+      end if;
+   exception
+      when Error : others =>
+         Ada.Text_IO.Put_Line
+           (Ada.Text_IO.Standard_Error,
+            "Directory_Guard could not return to " & To_String (Guard.Saved) & ": "
+            & Ada.Exceptions.Exception_Message (Error));
+   end Finalize;
+
+   function Saved_Directory (Guard : Directory_Guard) return String is (To_String (Guard.Saved));
+
+   procedure Drain_Folder_Sizes (Model : in out Files.Model.Window_Model) is
+   begin
+      for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
+         Files.Model.Poll_Folder_Sizes (Model);
+         exit when not Files.Model.Folder_Scan_Is_Active (Model);
+      end loop;
+      Assert (not Files.Model.Folder_Scan_Is_Active (Model), "the background folder-size walks finish");
+   end Drain_Folder_Sizes;
+
+   function Process_State (Process_Id : Integer) return Character is
+      Path : constant String :=
+        "/proc/" & Ada.Strings.Fixed.Trim (Integer'Image (Process_Id), Ada.Strings.Both) & "/stat";
+      File : Ada.Text_IO.File_Type;
+   begin
+      if not Ada.Directories.Exists (Path) then
+         return ' ';
+      end if;
+      --  Text_IO, not a sized read: /proc files report a size of 0.
+      Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
+      if Ada.Text_IO.End_Of_File (File) then
+         Ada.Text_IO.Close (File);
+         return ' ';
+      end if;
+      declare
+         Line : constant String := Ada.Text_IO.Get_Line (File);
+         --  "pid (comm) state ...": comm may itself hold spaces and
+         --  parentheses, so the state follows the last ')'.
+         Close_Paren : constant Natural := Ada.Strings.Fixed.Index (Line, ")", Ada.Strings.Backward);
+      begin
+         Ada.Text_IO.Close (File);
+         return (if Close_Paren > 0 and then Close_Paren + 2 <= Line'Last then Line (Close_Paren + 2) else ' ');
+      end;
+   exception
+      when others =>
+         if Ada.Text_IO.Is_Open (File) then
+            Ada.Text_IO.Close (File);
+         end if;
+         return ' ';
+   end Process_State;
 
    procedure Assert_Equal (Actual, Expected : Integer; Message : String) is
    begin

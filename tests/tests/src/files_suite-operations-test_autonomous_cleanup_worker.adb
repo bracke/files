@@ -65,12 +65,10 @@ separate (Files_Suite.Operations)
         (not Ada.Directories.Exists (To_String (Transport)),
          "cleanup completes without a later process-jobs API call");
 
-      if Hostkit.Host.Current = Hostkit.Host.Linux
-        and then Ada.Directories.Exists ("/proc/thread-self/children")
-      then
+      --  The second half stops the worker with SIGSTOP and watches its state
+      --  through /proc, which only Linux has.
+      if Hostkit.Host.Current = Hostkit.Host.Linux and then Ada.Directories.Exists ("/proc/self/stat") then
          declare
-            Children_Before : constant String :=
-              Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children");
             Launcher_Id : Integer;
             Resumed : Boolean;
             Id_File : Ada.Text_IO.File_Type;
@@ -86,27 +84,38 @@ separate (Files_Suite.Operations)
             Assert
               (Ada.Directories.Exists (Item ("cleanup-worker-started")),
                "the stopped cleanup worker publishes its process id");
-            --  Let the uncatchable stop take effect before the autonomous
-            --  reaper observes its state.
-            delay 0.05;
             Ada.Text_IO.Open
               (Id_File, Ada.Text_IO.In_File, Item ("cleanup-worker-started"));
             Launcher_Id := Integer'Value (Ada.Text_IO.Get_Line (Id_File));
             Ada.Text_IO.Close (Id_File);
+            --  The worker stops itself straight after publishing; wait until
+            --  the kernel reports it stopped, so the reaper is seen to handle a
+            --  stopped worker rather than racing one that is still running.
+            for Attempt in Files_Suite.Support.Polling loop
+               exit when Files_Suite.Support.Process_State (Launcher_Id) = 'T';
+            end loop;
+            Assert_Equal
+              (Files_Suite.Support.Process_State (Launcher_Id) & "", "T",
+               "the cleanup worker is stopped before it is continued (state in /proc/<pid>/stat)");
             Resumed := Hostkit.Signals.Send_To_Process
               (Launcher_Id, Hostkit.Signals.Signal_Continue);
             Assert (Resumed, "the stopped cleanup worker remains resumable");
+            --  Reaped, not merely finished: an exited child nobody waited for
+            --  stays in /proc as a zombie until it is collected.
             for Attempt in Files_Suite.Support.Polling loop
                exit when not Ada.Directories.Exists (To_String (Transport))
-                 and then Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children") =
-                   Children_Before;
+                 and then Files_Suite.Support.Process_State (Launcher_Id) = ' ';
             end loop;
             Assert
-              (not Ada.Directories.Exists (To_String (Transport))
-               and then Project_Tools.Files.Read_Raw_File ("/proc/thread-self/children") =
-                 Children_Before,
-               "stopped and continued cleanup workers stay owned until reaped");
+              (not Ada.Directories.Exists (To_String (Transport)),
+               "stopped and continued cleanup workers finish the cleanup");
+            Assert_Equal
+              (Files_Suite.Support.Process_State (Launcher_Id) & "", " ",
+               "stopped and continued cleanup workers stay owned until reaped (no process left in /proc)");
          end;
+      else
+         Files_Suite.Support.Skip
+           ("Test_Autonomous_Cleanup_Worker", "the stopped-worker half needs Linux and its /proc");
       end if;
       Release_Transport;
    exception

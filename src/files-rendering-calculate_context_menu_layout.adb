@@ -50,7 +50,7 @@ separate (Files.Rendering)
       --  cell metric and edge padding the renderer draws rows with).
       declare
          Cell_W    : constant Positive :=
-           Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+           Guikit.Layout.Caret_Advance_Width (Line_Height);
          Edge_Pad  : constant Natural :=
            Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2);
          Max_Label : Natural := 0;

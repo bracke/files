@@ -449,15 +449,20 @@ package body Files.Desktop_Applications is
             if not Valid then
                return;
             end if;
-         else
-            if In_Quotes and then Text (Position) = '%'
-              and then Position < Text'Last
-              and then Text (Position + 1) /= '%'
-            then
+         elsif In_Quotes and then Text (Position) = '%' then
+            --  Field codes are not allowed inside quotes; an escaped "%%" is.
+            --  Keep both characters (Append_Expanded and Decode_Executable
+            --  collapse the pair) and step over the second, which would
+            --  otherwise be read as the start of a field code.
+            if Position = Text'Last or else Text (Position + 1) /= '%' then
                Valid := False;
                Tokens.Clear;
                return;
             end if;
+            Append (Current, "%%");
+            Started := True;
+            Position := Position + 1;
+         else
             Append (Current, Text (Position));
             Started := True;
          end if;

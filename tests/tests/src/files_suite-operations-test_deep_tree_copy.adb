@@ -12,7 +12,7 @@ separate (Files_Suite.Operations)
       Remote : Files_Suite.Volumes.Remote_Directory;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Deep_Tree_Copy", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Deep_Tree_Copy", "needs Linux");
          return;
       end if;
       Settings.Show_Hidden_Files := True;

@@ -13,7 +13,7 @@ separate (Files_Suite.Operations)
       Made     : Boolean;
    begin
       if Hostkit.Host.Current = Hostkit.Host.Windows then
-         Files_Suite.Support.Skip ("Test_Fifo_Never_Blocks", "Hostkit.Host.Current = Hostkit.Host.Windows");
+         Files_Suite.Support.Skip ("Test_Fifo_Never_Blocks", "Windows has no FIFOs");
          return;
       end if;
       Reset_Root;
@@ -26,7 +26,7 @@ separate (Files_Suite.Operations)
          Interfaces.C.Strings.Free (C_Pipe);
       end;
       if not Made then
-         Files_Suite.Support.Skip ("Test_Fifo_Never_Blocks", "not Made");
+         Files_Suite.Support.Skip ("Test_Fifo_Never_Blocks", "this host would not make a FIFO");
          return;
       end if;
 

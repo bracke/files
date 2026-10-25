@@ -33,12 +33,12 @@ separate (Files_Suite.Operations)
       end Check;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Move_Ownership", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Move_Ownership", "needs Linux");
          return;
       end if;
       Expected := Supplementary_Group;
       if Expected < 0 then
-         Files_Suite.Support.Skip ("Test_Move_Ownership", "Expected < 0");
+         Files_Suite.Support.Skip ("Test_Move_Ownership", "needs a supplementary group to hand the files to");
          return;
       end if;
       Remote.Create ("files-test-move-ownership-");

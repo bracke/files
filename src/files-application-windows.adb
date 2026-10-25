@@ -889,7 +889,7 @@ package body Files.Application.Windows is
       Refreshed := Files.Refresh_Jobs.Advance (Runtime.Model, Runtime.Settings);
       Files.Refresh_Jobs.Resume_Owed (Runtime.Model, Runtime.Settings);
       --  Also service selections deferred by a cancelled or failed refresh.
-      Files.Model.Ensure_Selected_Item_Extra (Runtime.Model);
+      Files.Operations.Ensure_Selected_Item_Extra (Runtime.Model);
 
       if Drain_Native_Watch (Runtime) then
          declare

@@ -27,7 +27,6 @@ separate (Files_Suite.Model)
          return Model;
       end New_Grid_Model;
 
-      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := New_Grid_Model;
       Result   : Files.Controller.Controller_Result;
 

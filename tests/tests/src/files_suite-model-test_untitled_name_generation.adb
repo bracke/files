@@ -25,6 +25,8 @@ separate (Files_Suite.Model)
            (Files.File_System.Next_Untitled_Name (Root),
             "untitled 4.txt",
             "untitled name generation skips dangling-link collisions");
+      else
+         Files_Suite.Support.Link_Not_Made ("Test_Untitled_Name_Generation", Files_Suite.Support.Symbolic_Link);
       end if;
       Files.Model.Initialize (Model, Root, Items, Root);
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);

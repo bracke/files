@@ -144,7 +144,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                      Color : Render_Color := Text_Color)
                   is
                      Raw        : constant String := To_String (Text);
-                     Cell_W     : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+                     Cell_W     : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
                      Capacity   : constant Natural := Text_W / Cell_W;
                      Line_Index : Natural := 0;
 
@@ -231,9 +231,9 @@ separate (Files.Rendering.Build_Frame_Commands)
                               Description : constant Unbounded_String :=
                                 To_Unbounded_String
                                   (Files.Localization.Text ("info.filetype") & ": " &
-                                   To_String (Info_Field_Value (Info, 1)) & ", " &
+                                   To_String (Info_Field_Value (Info, Info_Filetype)) & ", " &
                                    Files.Localization.Text ("info.size") & ": " &
-                                   To_String (Info_Field_Value (Info, 2)));
+                                   To_String (Info_Field_Value (Info, Info_Size)));
                            begin
                               if Y >= Integer (Info_Pane.Y)
                                 and then Y < Integer (Info_Bottom)
@@ -357,7 +357,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                         Color : Render_Color := Text_Color)
                      is
                         Raw        : constant String := To_String (Text);
-                        Cell_W     : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+                        Cell_W     : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
                         Capacity   : constant Natural := Text_W / Cell_W;
                         Line_Index : Natural := 0;
 
@@ -438,16 +438,13 @@ separate (Files.Rendering.Build_Frame_Commands)
                      end Add_Info_Heading;
 
                      procedure Add_Info_Field
-                       (Key   : String;
-                        Value : UString;
-                        Field : Natural;
+                       (Field : Info_Section_Field;
                         Color : Render_Color := Text_Color)
                      is
-                        Display_Value : constant UString :=
-                          (if Field = 8 then Info_Field_Display_Value (Info, Field) else Value);
+                        Display_Value : constant UString := Info_Field_Display_Value (Info, Field);
                         Value_Rows : constant Natural := Wrapped_Line_Count (Display_Value, Text_W, Line_Height);
                      begin
-                        Add_Info_Label (Current_Row, Key);
+                        Add_Info_Label (Current_Row, Info_Field_Label_Key (Field));
                         Current_Row := Saturating_Add (Current_Row, 1);
                         Add_Info_Wrapped_Value (Current_Row, Display_Value, Color);
                         Current_Row := Saturating_Add (Current_Row, Saturating_Add (Value_Rows, 1));
@@ -463,7 +460,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                         Gap  : constant Natural := Natural'Max (2, Line_Height / 6);
                         --  Approximate glyph advance, used to horizontally centre a
                         --  header letter over its column.
-                        Char_W : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+                        Char_W : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
                         --  The glyph box is ~4/5 of the line height and sits at the
                         --  bottom of the row (the leading is above it), so centre the
                         --  cell square within that font box -- not the whole line --
@@ -506,7 +503,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                               when 1      => "info.permissions.group",
                               when others => "info.permissions.other");
                      begin
-                        Add_Info_Label (Current_Row, "info.permissions");
+                        Add_Info_Label (Current_Row, Info_Field_Label_Key (Info_Permissions));
 
                         --  R/W/E header, one letter centred over each column.
                         for Col in 0 .. 2 loop
@@ -571,8 +568,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                      --  click hit region over it. While editing, the value shows
                      --  the editor buffer with an underline and a text caret.
                      procedure Add_Ownership_Field
-                       (Key     : String;
-                        Field   : Natural;
+                       (Field   : Info_Section_Field;
                         Editing : Boolean)
                      is
                         Value      : constant UString := Info_Field_Value (Info, Field);
@@ -580,7 +576,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                         Value_Row  : Natural;
                         Cell_Y     : Integer;
                      begin
-                        Add_Info_Label (Current_Row, Key);
+                        Add_Info_Label (Current_Row, Info_Field_Label_Key (Field));
                         Current_Row := Saturating_Add (Current_Row, 1);
                         Value_Row := Current_Row;
                         Add_Info_Wrapped_Value
@@ -594,7 +590,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                            Result.Ownership_Hits.Append
                              (Ownership_Hit_Region'
                                 (Present  => True,
-                                 Is_Group => Field = 10,
+                                 Is_Group => Field = Info_Group,
                                  X        => Text_X,
                                  Y        => Natural (Cell_Y),
                                  Width    => Text_W,
@@ -630,32 +626,25 @@ separate (Files.Rendering.Build_Frame_Commands)
                      end Add_Ownership_Field;
                   begin
                      Add_Info_Heading;
-                     Add_Info_Field ("info.filetype", Info_Field_Value (Info, 1), 1);
-                     --  Filesize is a file-only field; a folder shows Contents.
-                     if not Info.Is_Directory then
-                        Add_Info_Field ("info.size", Info_Field_Value (Info, 2), 2);
-                     end if;
-                     if Info.Is_Directory and then Info.Folder_Size_Available then
-                        Add_Info_Field ("info.folder_size", Folder_Contents_Text (Info), 2);
-                     end if;
-                     Add_Info_Field ("info.created", Info_Field_Value (Info, 3), 3);
-                     Add_Info_Field ("info.modified", Info_Field_Value (Info, 4), 4);
-                     --  Permissions render as a labelled matrix (no text summary),
-                     --  clickable only when editable (gated inside Add_Permission_Grid).
-                     if Info.Mode_Available then
-                        Add_Permission_Grid;
-                     end if;
-                     if Info.Ownership_Available then
-                        Add_Ownership_Field ("info.owner", 9, Info.Owner_Editing);
-                        Add_Ownership_Field ("info.group", 10, Info.Group_Editing);
-                     end if;
-                     --  Metadata Error only appears when the item's metadata could
-                     --  not be read; healthy items show no such row.
-                     if Info.Metadata_Error then
-                        Add_Info_Field ("info.metadata_error", Info_Field_Value (Info, 6), 6);
-                     end if;
-                     --  Kind (field 7) is omitted: it duplicates the Filetype field.
-                     Add_Info_Field ("info.extra", Info_Field_Value (Info, 8), 8);
+                     --  One ordered section list (Info_Section_Field) drives both
+                     --  this drawing and Info_Section_Row_Count. Permissions render
+                     --  as a labelled matrix (no text summary), clickable only when
+                     --  editable (gated inside Add_Permission_Grid); owner and
+                     --  group are inline-editable values.
+                     for Field in Info_Section_Field loop
+                        if Info_Field_Shown (Info, Field) then
+                           case Field is
+                              when Info_Permissions =>
+                                 Add_Permission_Grid;
+                              when Info_Owner =>
+                                 Add_Ownership_Field (Field, Info.Owner_Editing);
+                              when Info_Group =>
+                                 Add_Ownership_Field (Field, Info.Group_Editing);
+                              when others =>
+                                 Add_Info_Field (Field);
+                           end case;
+                        end if;
+                     end loop;
                      declare
                         Section_H : constant Natural :=
                           Natural'Min
@@ -670,13 +659,13 @@ separate (Files.Rendering.Build_Frame_Commands)
                              Integer (Info_Bottom));
                         Visible_H : constant Natural :=
                           (if Raw_Bottom > Visible_Y then Natural (Raw_Bottom - Visible_Y) else 0);
-                        Size_Text : constant String := To_String (Info_Field_Value (Info, 2));
+                        Size_Text : constant String := To_String (Info_Field_Value (Info, Info_Size));
                         Modified_Text : constant String :=
                           To_String (Time_Text (Info.Modified_Available, Info.Modified_Time, "info.modified"));
                         Description : Unbounded_String :=
                           To_Unbounded_String
                             (Files.Localization.Text ("info.filetype") & ": " &
-                             To_String (Info_Field_Value (Info, 1)) & ", " &
+                             To_String (Info_Field_Value (Info, Info_Filetype)) & ", " &
                              Files.Localization.Text ("info.size") & ": " &
                              Size_Text & ", " &
                              Modified_Text);

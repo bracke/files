@@ -4,21 +4,6 @@ separate (Files_Suite.Operations)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
-
-      --  Drive the background scan to completion and publish it into the model,
-      --  as the frame loop's Poll_All_Folder_Sizes would.
-      procedure Drain_Into_Model is
-         Path      : Ada.Strings.Unbounded.Unbounded_String;
-         Result    : Files.File_System.Directory_Size_Result;
-         Available : Boolean := False;
-      begin
-         loop
-            Files.Model.Poll_Folder_Sizes (Model);
-            Available := not Files.Model.Folder_Scan_Is_Active (Model);
-            exit when Available or else not Files.Model.Folder_Scan_Is_Active (Model);
-            delay 0.001;
-         end loop;
-      end Drain_Into_Model;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Join (Root, "sub"));
@@ -43,7 +28,7 @@ separate (Files_Suite.Operations)
 
          --  Advancing the background scan to completion publishes the
          --  measurement, which matches the synchronous reference.
-         Drain_Into_Model;
+         Drain_Folder_Sizes (Model);
          Assert (Files.Model.Folder_Size_Cached_For (Model, Path),
                  "folder size is published once the background scan finishes");
          declare

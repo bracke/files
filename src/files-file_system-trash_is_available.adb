@@ -1,6 +1,6 @@
 separate (Files.File_System)
 function Trash_Is_Available return Boolean is
-   Backend : constant Trash_Backend := Trash_Backend_For_Base;
+   Backend : constant Trash_Backend := Trash_Backend_Of_Current_Environment;
 begin
    --  The desktop's own trash needs no base directory of ours: the Recycle
    --  Bin and the Finder's trash are simply there. Asking for a base path

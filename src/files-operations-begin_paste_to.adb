@@ -10,6 +10,32 @@ function Begin_Paste_To
 is
    Directory : constant String := Destination;
    Plans     : Files.File_System.Drop_Import_Result;
+
+   --  The incoming destination paths that already exist, probed one by one:
+   --  the fallback when the destination cannot be listed whole, so a
+   --  collision is still detected rather than hidden. A dangling link counts.
+   function Probed_Destinations
+     (Work : Files.Paste.Work_Item_Vectors.Vector)
+      return Files.Types.String_Vectors.Vector
+   is
+      Result : Files.Types.String_Vectors.Vector;
+   begin
+      for Item of Work loop
+         declare
+            Desired : constant String :=
+              Files.Paste.Desired_Path (To_String (Item.Dest_Dir), To_String (Item.Dest_Name));
+         begin
+            if Ada.Directories.Exists (Desired) or else Hostkit.Fs.Is_Link (Desired) then
+               Result.Append (To_Unbounded_String (Desired));
+            end if;
+         exception
+            when others =>
+               --  Unknowable: treat it as taken, so the user is asked.
+               Result.Append (To_Unbounded_String (Desired));
+         end;
+      end loop;
+      return Result;
+   end Probed_Destinations;
 begin
    if Files.Model.Paste_Execution_Is_Active (Model) or else Files.Model.Paste_Conflict_Is_Active (Model) then
       return Make_Result (Operation_Disabled, Path => Directory);
@@ -43,8 +69,10 @@ begin
    declare
       Work     : constant Files.Paste.Work_Item_Vectors.Vector :=
         Paste_Work_List (Plans.Plans, Directory);
+      Listed   : Boolean;
+      Listing  : constant Files.Types.String_Vectors.Vector := Existing_Destination_Paths (Directory, Listed);
       Existing : constant Files.Types.String_Vectors.Vector :=
-        With_Case_Aliases (Work, Existing_Destination_Paths (Directory), Directory);
+        With_Case_Aliases (Work, (if Listed then Listing else Probed_Destinations (Work)), Directory);
       Conflict : constant Natural :=
         Files.Paste.Next_Unresolved_Conflict
           (Work, Files.Paste.Policy_Ask, Files.Paste.Item_Decision_Vectors.Empty_Vector, Existing);

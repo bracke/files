@@ -6,7 +6,7 @@ is
    Base : constant String := Trash_Base_Path;
 
    Uses_Native_Trash : constant Boolean :=
-     Trash_Backend_For_Base in Trash_Windows_Recycle_Bin | Trash_Macos_Native;
+     Trash_Backend_Of_Current_Environment in Trash_Windows_Recycle_Bin | Trash_Macos_Native;
 
    --  A filesystem root ("/", "C:\"): its containing directory is itself,
    --  or does not exist at all.

@@ -215,7 +215,7 @@ package body Files.File_System.Support is
          Revision : constant String := Files.File_Identities.Revision
            (Full_Path, Depth /= 0 and then not Is_Directory);
          Is_Regular_File : constant Boolean :=
-           Content and then not Is_Directory and then not Hostkit.Fs.Is_Link (Full_Path)
+           Content and then Depth = 0 and then not Is_Directory and then not Hostkit.Fs.Is_Link (Full_Path)
            and then Ada.Directories.Kind (Full_Path) = Ada.Directories.Ordinary_File;
          procedure Child (Name : String) is
          begin
@@ -268,6 +268,26 @@ package body Files.File_System.Support is
       Sorting.Sort (Result.Shapes);
       return Result;
    end Snapshot;
+
+   function With_Root_Content (Snapshot : Source_Snapshot; Digest : String) return Source_Snapshot is
+      package Sorting is new Files.Types.String_Vectors.Generic_Sorting;
+      --  The root is the one entry with an empty relative path.
+      Root_Prefix : constant String := Natural'Image (0) & ":";
+      Result : Source_Snapshot := Snapshot;
+   begin
+      if Digest = "" then
+         return Result;
+      end if;
+      for Item of Result.Entries loop
+         if Length (Item) >= Root_Prefix'Length
+           and then Slice (Item, 1, Root_Prefix'Length) = Root_Prefix
+         then
+            Append (Item, Digest);
+         end if;
+      end loop;
+      Sorting.Sort (Result.Entries);
+      return Result;
+   end With_Root_Content;
 
    function Regular_File_Digest
      (Path                   : String;
@@ -673,12 +693,16 @@ package body Files.File_System.Support is
       Cancel : Cancellation_Check := null;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
       Preserve_Ownership : Boolean := False;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
+      Root_Digest : access Files.Types.UString := null)
    is
       Stage : UString;
       Links : Copied_File_Maps.Map := Load_Links (Batch);
       Copied_Digest : aliased Files.Types.UString;
    begin
+      if Root_Digest /= null then
+         Root_Digest.all := Null_Unbounded_String;
+      end if;
       Identity := Null_Unbounded_String;
       Tree_Revision_Value := Null_Unbounded_String;
       Check_Copy_Destination (Source_Path, Destination_Path);
@@ -687,6 +711,9 @@ package body Files.File_System.Support is
                       Preserve_Ownership, Links, Files.Copy_Context.Directory (Batch) /= "",
                       Copied_Digest'Access);
       Identity := To_Unbounded_String (Files.File_Identities.Token (Join_Path (To_String (Stage), "payload")));
+      if Root_Digest /= null then
+         Root_Digest.all := Copied_Digest;
+      end if;
       declare
          Payload : constant String := Join_Path (To_String (Stage), "payload");
       begin
@@ -778,6 +805,9 @@ package body Files.File_System.Support is
       Source_Revision : Files.Types.UString;
       Source_Content_Digest : Files.Types.UString;
       Track_Hard_Link : Boolean := False;
+      --  The digest of the bytes Copy_Bytes read and wrote, when it was asked
+      --  for one (a root file, or a hard link to be recorded).
+      Copied_Bytes_Digest : Files.Types.UString;
 
       procedure Check_Cancelled;
 
@@ -841,20 +871,30 @@ package body Files.File_System.Support is
       procedure Record_Hard_Link is
       begin
          if Track_Hard_Link then
-            if Files.File_Identities.Revision (Source_Path, False) /= To_String (Source_Revision)
-              or else Content_Digest (Source_Path) /= To_String (Source_Content_Digest)
-            then
-               raise Ada.Directories.Use_Error;
-            end if;
+            --  The source as copied, checked once more against change during
+            --  the copy (these revisions leave out the change time, which the
+            --  link count moves). A regular file was hashed as it was copied,
+            --  and the destination holds exactly those bytes; a link's target
+            --  is short and read on both sides.
+            declare
+               From_Copy : constant Boolean := Length (Copied_Bytes_Digest) > 0;
+            begin
+               Source_Content_Digest :=
+                 (if From_Copy then Copied_Bytes_Digest else To_Unbounded_String (Content_Digest (Source_Path)));
+               if Files.File_Identities.Revision (Source_Path, False) /= To_String (Source_Revision)
+                 or else (From_Copy and then Content_Digest (Source_Path) /= To_String (Source_Content_Digest))
+                 or else (not From_Copy
+                          and then Content_Digest (Destination_Path) /= To_String (Source_Content_Digest))
+               then
+                  raise Ada.Directories.Use_Error;
+               end if;
+            end;
             declare
                Identity : constant String := Files.File_Identities.Token (Destination_Path);
                Destination_Revision : constant String :=
                  Files.File_Identities.Revision (Destination_Path, False);
-               Destination_Digest : constant String := Content_Digest (Destination_Path);
             begin
-               if Identity = "" or else Destination_Revision = ""
-                 or else Destination_Digest /= To_String (Source_Content_Digest)
-               then
+               if Identity = "" or else Destination_Revision = "" then
                   raise Ada.Directories.Use_Error;
                end if;
                Copied_Files.Insert
@@ -894,14 +934,15 @@ package body Files.File_System.Support is
                raise Ada.Directories.Use_Error;
             end if;
             Track_Hard_Link := Links > 1 or else Copied_Files.Contains (To_String (Source_Identity));
-            if Track_Hard_Link then
-               Source_Content_Digest := To_Unbounded_String (Content_Digest (Source_Path));
-            end if;
          end if;
          if Length (Source_Identity) > 0 and then Copied_Files.Contains (To_String (Source_Identity)) then
             declare
                First : constant Copied_File := Copied_Files.Element (To_String (Source_Identity));
             begin
+               --  The source is the inode already copied, unchanged since, and
+               --  the first copy still holds what was written: in a retried
+               --  batch it is a published file that may have been edited (a
+               --  same-size edit with its time put back shows only in content).
                if Files.File_Identities.Revision (Source_Path, False) /= To_String (First.Source_Revision)
                  or else Content_Digest (Source_Path) /= To_String (First.Content_Digest)
                  or else Files.File_Identities.Token (To_String (First.Path)) /= To_String (First.Identity)
@@ -915,15 +956,15 @@ package body Files.File_System.Support is
                   raise Ada.Directories.Use_Error;
                end if;
                Owned := True;
+               --  The new link is the first copy's inode (same identity), so
+               --  its content is that copy's; only metadata can have moved.
                if Files.File_Identities.Revision (Source_Path, False) /= To_String (First.Source_Revision)
-                 or else Content_Digest (Source_Path) /= To_String (First.Content_Digest)
                  or else Files.File_Identities.Token (To_String (First.Path)) /= To_String (First.Identity)
                  or else Files.File_Identities.Token (Destination_Path) /= To_String (First.Identity)
                  or else Files.File_Identities.Revision (To_String (First.Path), False)
                    /= To_String (First.Destination_Revision)
                  or else Files.File_Identities.Revision (Destination_Path, False)
                    /= To_String (First.Destination_Revision)
-                 or else Content_Digest (Destination_Path) /= To_String (First.Content_Digest)
                then
                   raise Ada.Directories.Use_Error;
                end if;
@@ -958,7 +999,7 @@ package body Files.File_System.Support is
          Digest_Text : String (1 .. 64);
          procedure Copy_Buffer (Buffer_Last : Stream_Element_Offset) is
          begin
-            if Root_File_Digest /= null
+            if (Root_File_Digest /= null or else Track_Hard_Link)
               and then Buffer_Last >= Buffer'First
             then
                CryptoLib.Hashes.Update
@@ -987,7 +1028,8 @@ package body Files.File_System.Support is
             end loop;
          end Copy_Buffer;
       begin
-         if Root_File_Digest /= null then
+         Copied_Bytes_Digest := Null_Unbounded_String;
+         if Root_File_Digest /= null or else Track_Hard_Link then
             CryptoLib.Hashes.Initialize_SHA256 (Digest_Context);
          end if;
          declare
@@ -1052,7 +1094,7 @@ package body Files.File_System.Support is
             Files.Io_Errors.Capture;
             raise Ada.Directories.Use_Error;
          end if;
-         if Root_File_Digest /= null then
+         if Root_File_Digest /= null or else Track_Hard_Link then
             Digest := CryptoLib.Hashes.Finalize (Digest_Context);
             for Index in Digest'Range loop
                Digest_Text ((Index - Digest'First) * 2 + 1) :=
@@ -1060,7 +1102,10 @@ package body Files.File_System.Support is
                Digest_Text ((Index - Digest'First) * 2 + 2) :=
                  Hex (Natural (Digest (Index)) mod 16 + 1);
             end loop;
-            Root_File_Digest.all := To_Unbounded_String (Digest_Text);
+            Copied_Bytes_Digest := To_Unbounded_String (Digest_Text);
+            if Root_File_Digest /= null then
+               Root_File_Digest.all := Copied_Bytes_Digest;
+            end if;
          end if;
          Check_Cancelled;
       exception

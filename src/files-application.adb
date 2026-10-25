@@ -318,6 +318,9 @@ package body Files.Application is
          end if;
       end;
 
+      --  Run read-only after a failed load, and say so on every later save
+      --  rather than letting changes look saved.
+      Settings.Persistence_Refused := Load_Failed;
       Result.Settings := Settings;
       Result.Settings_Path :=
         (if Load_Failed then Null_Unbounded_String else To_Unbounded_String (Effective_Path));
@@ -331,9 +334,9 @@ package body Files.Application is
       return Result;
    end Resolve_Startup;
 
-   --  Map the settings sort enum onto the runtime model's sort enum and
-   --  apply the persisted info-pane toggle. Used after Files.Model.Initialize
-   --  so every freshly created window reflects the last persisted UI state.
+   --  Apply the persisted view mode, sort and info-pane toggle. Used after
+   --  Files.Model.Initialize so every freshly created window reflects the last
+   --  persisted UI state.
    procedure Apply_Persisted_UI_State
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
@@ -484,6 +487,7 @@ package body Files.Application is
                               Items             => Load.Items,
                               Home_Path         => Home,
                               Default_View_Mode => Settings.Default_View);
+                           Files.Operations.Settle_Current_Is_Trash (Window.Model);
                            Apply_Persisted_UI_State (Window.Model, Settings);
                            --  As on navigation, missing thumbnails are made by a
                            --  background listing, which the window's first poll launches.

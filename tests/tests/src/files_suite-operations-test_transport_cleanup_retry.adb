@@ -16,9 +16,11 @@ separate (Files_Suite.Operations)
       if Hostkit.Host.Current /= Hostkit.Host.Linux or else Hostkit.Host.Is_Elevated then
          Files_Suite.Support.Skip
            ("Test_Transport_Cleanup_Retry",
-            "Hostkit.Host.Current /= Hostkit.Host.Linux or else Hostkit.Host.Is_...");
+            "needs Linux, not root");
          return;
       end if;
+      --  The hard-link alias below goes in the test root.
+      Reset_Root;
 
       Files.Process_Jobs.Reserve (Job);
       Transport := To_Unbounded_String (Files.Process_Jobs.Path (Job, ""));
@@ -60,6 +62,8 @@ separate (Files_Suite.Operations)
               (Ada.Directories.Exists (To_String (Transport)),
                "marker inspection rejects a multiply-linked authority file: transport kept");
             Ada.Directories.Delete_File (Marker_Alias);
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Transport_Cleanup_Retry", Files_Suite.Support.Hard_Link);
          end if;
          Result := Files.File_System.Set_Permissions (Marker, 0);
          Assert (Result.Success, "prepare a temporarily unreadable transport marker");

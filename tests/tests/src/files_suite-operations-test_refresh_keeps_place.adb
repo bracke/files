@@ -43,12 +43,24 @@ separate (Files_Suite.Operations)
       Write_Binary_File (Join (Root, "later"), "new");
       Step := Files.Refresh_Jobs.Start (Model, Settings, Force => True);
       Files.Model.Open_Command_Palette (Model);
-      for Attempt in 1 .. 300 loop
-         Applied := Files.Refresh_Jobs.Advance (Model, Settings);
-         delay 0.001;
-      end loop;
+      --  Wait until the read has actually finished -- its result is there to
+      --  apply -- so the check below is of a result held back, not of one a
+      --  slow host had simply not produced yet.
+      declare
+         Finished, Cancelled : Boolean := False;
+      begin
+         for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
+            Applied := Files.Refresh_Jobs.Advance (Model, Settings);
+            Files.Process_Jobs.Poll (Files.Model.Background_Refresh (Model), Finished, Cancelled);
+            exit when Finished or else not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
+         end loop;
+         Assert (Finished and then not Cancelled, "the refresh started under the palette finishes its read");
+      end;
+      Applied := Files.Refresh_Jobs.Advance (Model, Settings);
       Assert (Files.Model.Command_Palette_Is_Open (Model) and then not Listed ("later"),
               "an in-flight refresh neither closes the palette nor replaces the items under it");
+      Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
+              "the finished refresh is kept, waiting for the palette to close");
       Files.Model.Close_Command_Palette (Model);
       Await_View (Model, Settings);
       Assert (Listed ("later"), "the waiting refresh lands once the palette closes");

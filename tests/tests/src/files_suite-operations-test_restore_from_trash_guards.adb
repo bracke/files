@@ -1,7 +1,6 @@
 separate (Files_Suite.Operations)
    procedure Test_Restore_From_Trash_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Settings     : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Trash_Home   : constant String := Root & "_restore_guard_xdg";
       Trash_File   : constant String := Join (Join (Trash_Home, "Trash"), "files");
       Trash_Info   : constant String := Join (Join (Trash_Home, "Trash"), "info");

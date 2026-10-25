@@ -59,6 +59,8 @@ separate (Files_Suite.Operations)
                  (Join (Join (Transport, "stages"), "stage-1")),
                "stage cleanup rejects a multiply-linked owner marker");
             Ada.Directories.Delete_File (Owner_Alias);
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Stage_Owner_Marker_Guards", Files_Suite.Support.Hard_Link);
          end if;
       end;
       declare

@@ -35,6 +35,8 @@ separate (Files_Suite.Operations)
             Assert (Guarded.Available, "size walk completes despite a symlink cycle");
             Files_Suite.Support.Assert_Equal (Guarded.Total_Bytes, 10, "symlinked directory is not descended into");
          end;
+      else
+         Files_Suite.Support.Link_Not_Made ("Test_Recursive_Folder_Size", Files_Suite.Support.Symbolic_Link);
       end if;
 
       declare
@@ -56,6 +58,8 @@ separate (Files_Suite.Operations)
                   0,
                   "folder sizing refuses a symlink supplied as its root: no items");
             end;
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Recursive_Folder_Size", Files_Suite.Support.Symbolic_Link);
          end if;
       end;
 
@@ -144,18 +148,7 @@ separate (Files_Suite.Operations)
 
       --  The measurement now runs in a helper off the UI path; drive it to
       --  completion and publish it, as the frame loop would, before snapshotting.
-      declare
-         Done_Path : Ada.Strings.Unbounded.Unbounded_String;
-         Measured  : Files.File_System.Directory_Size_Result;
-         Available : Boolean := False;
-      begin
-         loop
-            Files.Model.Poll_Folder_Sizes (Model);
-            Available := not Files.Model.Folder_Scan_Is_Active (Model);
-            exit when Available or else not Files.Model.Folder_Scan_Is_Active (Model);
-            delay 0.001;
-         end loop;
-      end;
+      Drain_Folder_Sizes (Model);
 
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=

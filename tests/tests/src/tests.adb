@@ -15,7 +15,6 @@ with Files.Job_Helpers;
 with Files.Job_Context;
 with Files.Job_Scavenger;
 with Files.Job_Transports;
-with Files.Job_Cleanup;
 with Files.File_Identities;
 with Files.File_Identities.Testing;
 with Files.Private_Directories;
@@ -44,6 +43,35 @@ procedure Tests is
 
    Reporter : AUnit.Reporter.Text.Text_Reporter;
    Status   : AUnit.Status;
+
+   --  The scratch directory this process made for the run, which it alone
+   --  removes at the end; empty when the caller supplied FILES_TEST_ROOT (and
+   --  so owns FILES_TEST_TEMP), and in every helper process, which inherits it.
+   Owned_Temp : Ada.Strings.Unbounded.Unbounded_String;
+
+   --  How long a helper held by a test waits for the test to let it go, or to
+   --  kill it, before it gives up: far beyond any test's own bounded waits, so
+   --  it only ends a helper whose test has already died and left it behind.
+   Helper_Hold_Limit : constant Duration := 4 * Files_Suite.Support.Poll_Limit;
+
+   --  Publish a file another process waits for in one step: write Content
+   --  beside Path, then rename it into place, so a reader that sees Path
+   --  exist never reads it half-written (empty, or without its process id).
+   --
+   --  @param Path File the waiting process looks for.
+   --  @param Content What it holds.
+   procedure Publish (Path : String; Content : String := "") is
+      Partial : constant String := Path & ".partial";
+      File    : Ada.Text_IO.File_Type;
+   begin
+      Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Partial);
+      Ada.Text_IO.Put (File, Content);
+      Ada.Text_IO.Close (File);
+      if Ada.Directories.Exists (Path) then
+         Ada.Directories.Delete_File (Path);
+      end if;
+      Ada.Directories.Rename (Partial, Path);
+   end Publish;
 begin
    if not Ada.Environment_Variables.Exists ("FILES_TEST_ROOT") then
       declare
@@ -62,6 +90,7 @@ begin
            ("FILES_TEST_ROOT", Hostkit.Fs.Join (Suite_Temp, "fixtures"));
          Ada.Environment_Variables.Set ("FILES_TEST_TEMP", Suite_Temp);
          Ada.Environment_Variables.Set ("TMPDIR", Job_Temp);
+         Owned_Temp := Ada.Strings.Unbounded.To_Unbounded_String (Suite_Temp);
       end;
    end if;
 
@@ -82,7 +111,6 @@ begin
            [Character'Pos ('p'), Character'Pos ('r'), Character'Pos ('e'),
             Character'Pos ('p'), Character'Pos ('a'), Character'Pos ('r'),
             Character'Pos ('e'), Character'Pos ('4')];
-         File : Ada.Text_IO.File_Type;
       begin
          if Hostkit.Lease_Files.Create (Witness_Path, Witness) /=
            Hostkit.Lease_Files.Opened
@@ -99,8 +127,7 @@ begin
                Hostkit.Process.End_Now (1);
             end if;
          elsif Ada.Command_Line.Argument (1) = "--files-test-hold-before-marker" then
-            Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Ada.Command_Line.Argument (3) & ".started");
-            Ada.Text_IO.Close (File);
+            Publish (Ada.Command_Line.Argument (3) & ".started");
             for Attempt in Files_Suite.Support.Polling loop
                exit when Ada.Directories.Exists (Ada.Command_Line.Argument (3) & ".release");
             end loop;
@@ -399,14 +426,14 @@ begin
       declare
          Control : constant String :=
            Ada.Environment_Variables.Value ("FILES_TEST_STALL_SCAVENGER");
-         File : Ada.Text_IO.File_Type;
       begin
-         Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Control & ".started");
-         Ada.Text_IO.Put (File, Integer'Image (Hostkit.Host.Own_Process_Id));
-         Ada.Text_IO.Close (File);
-         while not Ada.Directories.Exists (Control & ".release") loop
-            delay 0.01;
+         Publish (Control & ".started", Integer'Image (Hostkit.Host.Own_Process_Id));
+         for Attempt in Files_Suite.Support.Polling (Limit => Helper_Hold_Limit, Interval => 0.01) loop
+            exit when Ada.Directories.Exists (Control & ".release");
          end loop;
+         if not Ada.Directories.Exists (Control & ".release") then
+            Hostkit.Process.End_Now (1);
+         end if;
       end;
    end if;
 
@@ -487,15 +514,17 @@ begin
                Ada.Directories.Rename (Marker & ".tmp", Marker);
             end;
          end if;
-         loop
+         --  Held until the test cancels or kills it; the bound only ends a
+         --  helper whose test has died without doing either.
+         for Attempt in Files_Suite.Support.Polling (Limit => Helper_Hold_Limit, Interval => 0.1) loop
             if Ada.Command_Line.Argument (1) = "--files-operation"
               and then Files.Process_Jobs.Cancellation_Requested
                 (Ada.Command_Line.Argument (2))
             then
                Hostkit.Process.End_Now (0);
             end if;
-            delay 0.1;
          end loop;
+         Hostkit.Process.End_Now (1);
       end;
    end if;
    if Ada.Command_Line.Argument_Count = 3
@@ -541,12 +570,9 @@ begin
       declare
          Directory : constant String := Ada.Command_Line.Argument (2);
          Started   : constant String := Directory & "/cleanup-worker-started";
-         File      : Ada.Text_IO.File_Type;
          Sent      : Boolean;
       begin
-         Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Started);
-         Ada.Text_IO.Put (File, Integer'Image (Hostkit.Host.Own_Process_Id));
-         Ada.Text_IO.Close (File);
+         Publish (Started, Integer'Image (Hostkit.Host.Own_Process_Id));
          Sent := Hostkit.Signals.Send_To_Process
            (Hostkit.Host.Own_Process_Id, Hostkit.Signals.Signal_Stop);
          if not Sent then
@@ -563,13 +589,14 @@ begin
          Directory : constant String := Ada.Command_Line.Argument (2);
          Started   : constant String := Directory & "/cleanup-worker-started";
          Release   : constant String := Directory & "/release-cleanup-worker";
-         File      : Ada.Text_IO.File_Type;
       begin
-         Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Started);
-         Ada.Text_IO.Close (File);
-         while not Ada.Directories.Exists (Release) loop
-            delay 0.01;
+         Publish (Started);
+         for Attempt in Files_Suite.Support.Polling (Limit => Helper_Hold_Limit, Interval => 0.01) loop
+            exit when Ada.Directories.Exists (Release);
          end loop;
+         if not Ada.Directories.Exists (Release) then
+            Hostkit.Process.End_Now (1);
+         end if;
       end;
    end if;
    if Files.Job_Helpers.Run_If_Requested then
@@ -662,6 +689,14 @@ begin
       if Status = AUnit.Failure then
          Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
       end if;
+      --  A filter that matches nothing runs nothing, and nothing fails: say
+      --  so, or a mistyped FILES_TEST_ONLY reads as a green repeat.
+      if Test_Progress.Only /= "" and then Test_Progress.Matched = 0 then
+         Ada.Text_IO.Put_Line
+           (Ada.Text_IO.Standard_Error,
+            "FAILED: FILES_TEST_ONLY=" & Test_Progress.Only & " matches no registered test routine");
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+      end if;
       --  A skip passes, so a test that quietly stops running here would go
       --  unnoticed: CI names how many may skip on each host, and more fails.
       declare
@@ -698,15 +733,17 @@ begin
             Hostkit.Process.End_Now (1);
          end if;
       end;
-      declare
-         Suite_Temp : constant String := Ada.Environment_Variables.Value ("FILES_TEST_TEMP", "");
-         Removed : constant Files.File_System.Mutation_Result :=
-           (if Suite_Temp = "" then (Success => True, Error_Key => Ada.Strings.Unbounded.Null_Unbounded_String)
-            else Files.File_System.Delete_Permanently (Suite_Temp));
-         pragma Unreferenced (Removed);
-      begin
-         null;
-      end;
+      --  Only the directory this run made: one the caller supplied through
+      --  FILES_TEST_ROOT / FILES_TEST_TEMP is the caller's to keep or remove.
+      if Ada.Strings.Unbounded.Length (Owned_Temp) > 0 then
+         declare
+            Removed : constant Files.File_System.Mutation_Result :=
+              Files.File_System.Delete_Permanently (Ada.Strings.Unbounded.To_String (Owned_Temp));
+            pragma Unreferenced (Removed);
+         begin
+            null;
+         end;
+      end if;
    end;
 exception
    when others =>

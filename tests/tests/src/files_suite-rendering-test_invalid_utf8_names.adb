@@ -14,7 +14,7 @@ separate (Files_Suite.Rendering)
       if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows) then
          Files_Suite.Support.Skip
            ("Test_Invalid_UTF8_Names",
-            "Hostkit.Host.""="" (Hostkit.Host.Current, Hostkit.Host.Windows)");
+            "Windows file names cannot hold bytes that are not UTF-8");
          return;
       end if;
       Files_Suite.Support.Reset_Root;
@@ -27,7 +27,7 @@ separate (Files_Suite.Rendering)
       if not Created or else not Ada.Directories.Exists (Bad_Path) then
          Files_Suite.Support.Skip
            ("Test_Invalid_UTF8_Names",
-            "not Created or else not Ada.Directories.Exists (Bad_Path)");
+            "this filesystem would not store a name that is not valid UTF-8");
          return;
       end if;
       Files_Suite.Support.Write_File (Files_Suite.Support.Root & "/plain.txt", "x");

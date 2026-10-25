@@ -21,7 +21,7 @@ separate (Files_Suite.Operations)
       end Cleanup;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Trash_Source_Verification", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Trash_Source_Verification", "needs Linux");
          return;
       end if;
       Remote.Create ("files-test-trash-source-");

@@ -85,6 +85,8 @@ separate (Files_Suite.Operations)
          Assert
            (Rejected, "transfer result reads refuse a multiply-linked file");
          Ada.Directories.Delete_File (Transfer_Path);
+      else
+         Files_Suite.Support.Link_Not_Made ("Test_Transfer_Record_Validation", Files_Suite.Support.Hard_Link);
       end if;
 
       Transfer_Action :=
@@ -142,5 +144,7 @@ separate (Files_Suite.Operations)
          Assert
            (Rejected, "transfer request reads refuse a multiply-linked file");
          Ada.Directories.Delete_File (Transfer_Request_Path);
+      else
+         Files_Suite.Support.Link_Not_Made ("Test_Transfer_Record_Validation", Files_Suite.Support.Hard_Link);
       end if;
    end Test_Transfer_Record_Validation;

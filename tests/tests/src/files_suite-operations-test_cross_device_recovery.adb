@@ -36,7 +36,7 @@ separate (Files_Suite.Operations)
       end Prepare_Tree;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Cross_Device_Recovery", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Cross_Device_Recovery", "needs Linux");
          return;
       end if;
       Reset_Root;

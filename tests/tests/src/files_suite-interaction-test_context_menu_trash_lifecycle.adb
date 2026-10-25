@@ -68,6 +68,7 @@ separate (Files_Suite.Interaction)
          Load := Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
          Files.Model.Initialize
            (Model, Ada.Strings.Unbounded.To_String (Load.Path), Load.Items, Files_Suite.Support.Root);
+         Files.Operations.Settle_Current_Is_Trash (Model);
          Files_Suite.Support.Select_Name (Model, "restore-me.txt");
          Open_Item_Context_Menu (Model, Settings, Result);
          Dispatch_Menu_Command

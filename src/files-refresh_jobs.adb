@@ -458,7 +458,7 @@ package body Files.Refresh_Jobs is
          Files.Model.Set_Error (Model, To_String (Work.Error_Key));
       end if;
       Files.Model.Set_Directory_Signature (Model, Done.Signature);
-      Files.Model.Ensure_Selected_Item_Extra (Model);
+      Files.Operations.Ensure_Selected_Item_Extra (Model);
       return Done.Reloaded;
    exception
       when others =>

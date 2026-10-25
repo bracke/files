@@ -134,6 +134,8 @@ separate (Files_Suite.Operations)
                "created journal I/O refuses a multiply-linked file: victim unchanged");
             Assert (Destinations.Is_Empty, "created journal I/O refuses a multiply-linked file: no destinations");
             Assert (Identities.Is_Empty, "created journal I/O refuses a multiply-linked file: no identities");
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Recovery_Entry_Identity", Files_Suite.Support.Hard_Link);
          end if;
       end;
       Ada.Directories.Create_Directory (Join (Root, "journal"));

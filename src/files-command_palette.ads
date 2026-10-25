@@ -1,5 +1,6 @@
 with Guikit.Command_Palette;
 
+with Files.Commands;
 with Files.Model;
 
 --  The palette command list for the current mode. Guikit.Command_Palette owns
@@ -19,5 +20,16 @@ package Files.Command_Palette is
    function Commands
      (Model : Files.Model.Window_Model)
       return Guikit.Command_Palette.Command_Vectors.Vector;
+
+   --  The command of the palette's highlighted row: the inverse of the Id
+   --  Commands gives each row in Commands mode. No_Command in Open-With mode,
+   --  with nothing highlighted, or for an Id outside the enumeration (a stale
+   --  or malformed palette model).
+   --
+   --  @param Model Current model, for the mode and the highlighted row.
+   --  @return The highlighted command, or No_Command.
+   function Selected_Command
+     (Model : Files.Model.Window_Model)
+      return Files.Commands.Command_Id;
 
 end Files.Command_Palette;

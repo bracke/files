@@ -687,14 +687,6 @@ package Files.File_System is
    --  @return Structured trash capability description.
    function Trash_Capabilities_Of_Current_Environment return Trash_Capabilities;
 
-   --  Build the native trash request that would be needed for Path.
-   --
-   --  @param Path Filesystem path requested for native trash handling.
-   --  @return Native trash request metadata.
-   function Native_Trash_Request_For
-     (Path : String)
-      return Native_Trash_Request;
-
    --  Evaluate native trash support for Request without deleting anything.
    --
    --  @param Request Native trash request metadata.
@@ -703,13 +695,16 @@ package Files.File_System is
      (Request : Native_Trash_Request)
       return Native_Trash_Result;
 
-   --  Execute a trash request through the selected backend when supported.
+   --  Hand Request's item to the desktop's own trash (the Windows Recycle Bin
+   --  or the macOS Trash). Nothing is attempted on a build that does not
+   --  target that desktop.
    --
-   --  @param Request Native trash request metadata.
-   --  @return Trash execution result with adapter diagnostics.
-   function Execute_Native_Trash
+   --  @param Request Native trash request for a native backend.
+   --  @return The evaluation, with Attempted and Completed set by the attempt.
+   function Trash_Natively
      (Request : Native_Trash_Request)
-      return Native_Trash_Result;
+      return Native_Trash_Result
+     with Pre => Request.Backend in Trash_Windows_Recycle_Bin | Trash_Macos_Native;
 
    --  Validate whether an entry can be moved to the selected trash backend.
    --

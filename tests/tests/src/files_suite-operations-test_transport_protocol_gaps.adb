@@ -90,6 +90,8 @@ separate (Files_Suite.Operations)
                "unchanged",
                "cancellation never truncates through a planted marker hardlink");
             Ada.Directories.Delete_File (Marker);
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Transport_Protocol_Gaps", Files_Suite.Support.Hard_Link);
          end if;
          Ada.Directories.Delete_File (Victim);
       exception

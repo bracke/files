@@ -6,7 +6,7 @@ separate (Files_Suite.Operations)
       Load     : Files.File_System.Directory_Load_Result;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Special_Entry_Metadata", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Special_Entry_Metadata", "needs Linux");
          return;
       end if;
       Reset_Root;

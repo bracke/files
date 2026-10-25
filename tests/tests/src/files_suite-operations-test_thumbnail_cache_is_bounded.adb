@@ -97,6 +97,8 @@ separate (Files_Suite.Operations)
                     "cache pruning leaves a linked cache root in place");
             Assert (File_Has_Bytes (Kept_File, Filler (4_000)),
                     "cache pruning never deletes from a linked directory target");
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Thumbnail_Cache_Is_Bounded", Files_Suite.Support.Symbolic_Link);
          end if;
       end;
    end Test_Thumbnail_Cache_Is_Bounded;

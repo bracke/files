@@ -59,7 +59,7 @@ is
 begin
    --  Filetype_Extra (folder item counts, document page/entry/line counts,
    --  symlink targets) is computed lazily for the selected item when the info
-   --  pane needs it -- see Files.Model.Ensure_Selected_Item_Extra -- rather
+   --  pane needs it -- see Files.Operations.Ensure_Selected_Item_Extra -- rather
    --  than here, where it would open every subfolder and read every document
    --  on load, making navigation slow. It stays empty at load time.
    begin

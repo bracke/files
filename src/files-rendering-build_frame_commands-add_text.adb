@@ -12,7 +12,7 @@ separate (Files.Rendering.Build_Frame_Commands)
    is
       Draw_W   : constant Natural := Clipped_Size (X, Text_W, Layout.Width);
       Draw_H   : constant Natural := Clipped_Size (Y, Text_H, Layout.Height);
-      Cell_W   : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+      Cell_W   : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
       Capacity : constant Natural := Draw_W / Cell_W;
       Fitted   : constant UString := (if Fit then Fitted_Text_For (Text, Capacity) else Text);
       Was_Truncated : constant Boolean := Fit and then Fitted /= Text;

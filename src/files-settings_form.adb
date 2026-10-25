@@ -181,9 +181,9 @@ package body Files.Settings_Form is
                --  then append the built-in secondary.
                Help      : UString := L ("settings.help.shortcut");
             begin
-               --  Built-in secondary shortcuts are not editable, but they still
-               --  block conflicting rebinds, so surface them read-only in the
-               --  help line to explain a "already used" rejection.
+               --  A built-in secondary shortcut is not edited on its own: it lasts
+               --  until the command is rebound or unbound, so surface it
+               --  read-only in the help line.
                if Secondary.Present then
                   if Length (Help) > 0 then
                      Append (Help, U (" - "));
@@ -382,7 +382,9 @@ package body Files.Settings_Form is
    --  Route a captured chord (Combo, empty to unbind) to the command named by a
    --  "shortcut.<identifier>" field Key, updating the live Files.Commands override
    --  table. Applied is set when the binding changed; Conflict is set instead when
-   --  a different command already owns the chord (the binding is left untouched).
+   --  a different command's live primary binding is the chord (the binding is
+   --  left untouched). A chord held only by another command's built-in secondary
+   --  is taken from it.
    --  A binding equal to the built-in default clears the override so an untouched
    --  keymap leaves no persisted [shortcuts] entry.
    procedure Apply_Shortcut
@@ -410,13 +412,21 @@ package body Files.Settings_Form is
          Parsed : constant Files.Commands.Shortcut := Files.Commands.Parse_Shortcut (Combo);
       begin
          if Parsed.Present then
+            --  Only live bindings conflict. Another command's primary does;
+            --  its built-in secondary does not: the chord moves to Id and that
+            --  command keeps its primary alone (an override drops its secondary).
+            for Other in Files.Commands.Registered_Command_Id loop
+               if Other /= Id and then Files.Commands.Shortcut_For (Other) = Parsed then
+                  Conflict := True;
+                  return;
+               end if;
+            end loop;
             declare
                Owner : constant Files.Commands.Command_Id :=
                  Files.Commands.Find_By_Shortcut (Parsed.Key, Parsed.Modifiers);
             begin
                if Owner /= Files.Commands.No_Command and then Owner /= Id then
-                  Conflict := True;
-                  return;
+                  Files.Commands.Set_Shortcut_Override (Owner, Files.Commands.Shortcut_For (Owner));
                end if;
             end;
          end if;

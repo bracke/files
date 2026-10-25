@@ -14,7 +14,7 @@ separate (Files_Suite.Operations)
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Staging_Default_ACL", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Staging_Default_ACL", "needs Linux");
          return;
       end if;
       for Background in Boolean loop

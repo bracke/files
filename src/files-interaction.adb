@@ -2,6 +2,7 @@ with Ada.Strings.Unbounded;
 
 with Guikit.Settings_Panel;
 
+with Files.Command_Palette;
 with Files.File_System;
 with Files.Operations;
 
@@ -11,7 +12,6 @@ package body Files.Interaction is
    use type Files.Commands.Command_Id;
    use type Files.Controller.Controller_Status;
    use type Files.Model.Tree_Pick_Mode;
-   use type Files.Model.Palette_Mode;
    use type Files.Operations.Operation_Status;
    use type Files.Types.Focus_Target;
    use type Guikit.Input.Key_Code;
@@ -105,9 +105,6 @@ package body Files.Interaction is
       Settings_Path : String)
       renames Files.Controller.Persist_Settings;
 
-   --  Fold any paths the model queued while opening items into the persisted
-   --  recent list and write the settings. A no-op when nothing was opened, so it
-   --  is safe to call after every dispatch seam (open routes through several).
    --  Give every selected item Label (No_Label clears it) and close the label
    --  picker. An edit that would make the settings file too big to load again
    --  is refused whole, with an error, rather than saved.
@@ -166,6 +163,9 @@ package body Files.Interaction is
       return Changed;
    end Follow_Path_Moves;
 
+   --  Fold any paths the model queued while opening items into the persisted
+   --  recent list and write the settings. A no-op when nothing was opened, so it
+   --  is safe to call after every dispatch seam (open routes through several).
    procedure Persist_Recent_Opens
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
@@ -521,7 +521,7 @@ package body Files.Interaction is
       --  Keep the info-pane folder-size cache aligned with keyboard-driven
       --  selection changes. Cheap when the selected directory is unchanged.
       Files.Operations.Update_Folder_Size (Model, Settings);
-      Files.Model.Ensure_Selected_Item_Extra (Model);
+      Files.Operations.Ensure_Selected_Item_Extra (Model);
    end Handle_Key;
 
    procedure Apply_Input_Action
@@ -632,14 +632,7 @@ package body Files.Interaction is
               and then Files.Model.Palette_Click (Model, Action.Click_X, Action.Click_Y)
             then
                declare
-                  Id      : constant Natural := Files.Model.Palette_Selected_Id (Model);
-                  Command : constant Files.Commands.Command_Id :=
-                    (if Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Commands
-                       and then Id > 0
-                       and then Id <= Files.Commands.Command_Id'Pos
-                         (Files.Commands.Command_Id'Last)
-                     then Files.Commands.Command_Id'Val (Id)
-                     else Files.Commands.No_Command);
+                  Command : constant Files.Commands.Command_Id := Files.Command_Palette.Selected_Command (Model);
                begin
                   if Command /= Files.Commands.No_Command
                     and then (Files.Commands.Requires_Settings_Path (Command)
@@ -674,10 +667,9 @@ package body Files.Interaction is
                  X     => Action.Click_X,
                  Y     => Action.Click_Y);
             Observe_Controller_Outcome (Outcome, Result);
-            if Outcome.Command = Files.Commands.Save_Settings_Command
-              or else Outcome.Command = Files.Commands.Toggle_Hidden_Files_Command
-           or else Outcome.Command = Files.Commands.Toggle_Show_Extensions_Command
-            then
+            --  A settings click reports Save_Settings_Command when the change
+            --  auto-saves (No_Command otherwise); the save needs the path.
+            if Outcome.Command = Files.Commands.Save_Settings_Command then
                Execute_Command
                  (Model, Settings, Settings_Path, Outcome.Command,
                   Current_Font_Size, Guikit.Input.No_Modifiers, Result);
@@ -706,12 +698,12 @@ package body Files.Interaction is
               and then not Files.Model.Input_Owning_Overlay_Is_Open (Model)
               and then Action.Item_Index <= 1
             then
-               Files.Model.Focus_Ownership_Input
+               Files.Operations.Focus_Ownership_Input
                  (Model, Editing_Group => Action.Item_Index = 1);
             end if;
          when Files.Events.Conflict_Click_Input_Action =>
             if Files.Model.Paste_Conflict_Is_Active (Model) then
-               case Action.Settings_Field is
+               case Action.Conflict_Button is
                   when Files.Events.Conflict_Button_Apply_All =>
                      Files.Model.Toggle_Paste_Conflict_Apply_All (Model);
                   when Files.Events.Conflict_Button_Replace
@@ -720,11 +712,11 @@ package body Files.Interaction is
                      | Files.Events.Conflict_Button_Cancel =>
                      declare
                         Choice : constant Files.Operations.Conflict_Choice :=
-                          (if Action.Settings_Field = Files.Events.Conflict_Button_Replace
+                          (if Action.Conflict_Button = Files.Events.Conflict_Button_Replace
                            then Files.Operations.Choice_Replace
-                           elsif Action.Settings_Field = Files.Events.Conflict_Button_Skip
+                           elsif Action.Conflict_Button = Files.Events.Conflict_Button_Skip
                            then Files.Operations.Choice_Skip
-                           elsif Action.Settings_Field = Files.Events.Conflict_Button_Rename
+                           elsif Action.Conflict_Button = Files.Events.Conflict_Button_Rename
                            then Files.Operations.Choice_Rename
                            else Files.Operations.Choice_Cancel);
                         Outcome : constant Files.Operations.Operation_Result :=
@@ -799,7 +791,7 @@ package body Files.Interaction is
       --  page/entry/line counts, symlink target) lazily for the info pane, so
       --  navigation does not open every subfolder and read every document on
       --  load. A no-op when the info pane is closed or the value is cached.
-      Files.Model.Ensure_Selected_Item_Extra (Model);
+      Files.Operations.Ensure_Selected_Item_Extra (Model);
    end Apply_Input_Action;
 
    procedure Apply_Context_Menu_Command
@@ -864,21 +856,14 @@ package body Files.Interaction is
       Result            : out Interaction_Result;
       In_Details_Header : Boolean := False)
    is
-      --  Any input-owning overlay must
-      --  swallow the click exactly as left-clicks are suppressed behind these
-      --  overlays. Otherwise a right-click in the grid region behind the modal
-      --  would open a context menu on top and the next left-click would execute
-      --  file commands from a state where they should be unreachable.
+      --  Any input-owning overlay must swallow the click exactly as left-clicks
+      --  are suppressed behind these overlays. Otherwise a right-click in the
+      --  grid region behind the modal would open a context menu on top and the
+      --  next left-click would execute file commands from a state where they
+      --  should be unreachable. An open context menu does not count:
+      --  right-clicking elsewhere replaces it with a new menu.
       Overlay_Open : constant Boolean :=
-        Files.Model.Settings_Pane_Is_Open (Model)
-        or else Files.Model.Command_Palette_Is_Open (Model)
-        or else Files.Model.Root_Selector_Is_Open (Model)
-        or else Files.Model.Sort_Menu_Is_Open (Model)
-        or else Files.Model.Label_Picker_Is_Open (Model)
-        or else Files.Model.Quick_Look_Is_Open (Model)
-        or else Files.Model.Tree_Pick_Is_Active (Model)
-        or else Files.Model.Paste_Conflict_Is_Active (Model)
-        or else Files.Model.Paste_Execution_Is_Active (Model);
+        Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Model.Context_Menu_Overlay);
    begin
       Result := (others => <>);
       if In_Details_Header and then not Overlay_Open then

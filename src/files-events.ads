@@ -31,7 +31,7 @@ package Files.Events is
       Search_Scope_Toggle_Input_Action,
       Label_Picker_Choice_Input_Action);
 
-   --  Button codes carried in Input_Action.Settings_Field for a
+   --  Button codes carried in Input_Action.Conflict_Button for a
    --  Conflict_Click_Input_Action, identifying which paste-conflict-dialog
    --  control was clicked.
    Conflict_Button_Replace   : constant := 1;
@@ -81,6 +81,9 @@ package Files.Events is
       Cursor_Position : Natural := 0;
       Settings_Field  : Natural := 0;
       Settings_Option : Natural := 0;
+      --  The paste-conflict dialog button of a Conflict_Click_Input_Action
+      --  (one of the Conflict_Button_* codes).
+      Conflict_Button : Natural := 0;
       Activate     : Boolean := False;
       Toggle_Selection : Boolean := False;
       Range_Selection  : Boolean := False;

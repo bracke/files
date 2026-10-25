@@ -45,7 +45,7 @@ separate (Files_Suite.Operations)
       Assert (Mutation.Success and then Ada.Directories.Modification_Time (Join (Root, "precise-copy")) = File_Time,
               "timestamp copies preserve the source's subsecond precision");
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Copy_Timestamps", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Copy_Timestamps", "needs Linux");
          return;
       end if;
       Remote.Create ("files-test-timestamps-");

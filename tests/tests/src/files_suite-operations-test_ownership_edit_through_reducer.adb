@@ -15,7 +15,8 @@ separate (Files_Suite.Operations)
       Owner_Y      : Natural := 0;
    begin
       if not Files.File_System.Supports_Ownership then
-         Files_Suite.Support.Skip ("Test_Ownership_Edit_Through_Reducer", "not Files.File_System.Supports_Ownership");
+         Files_Suite.Support.Skip
+           ("Test_Ownership_Edit_Through_Reducer", "this host has no POSIX owner and group to change");
          return;
       end if;
 

@@ -1,97 +1,36 @@
-with Ada.Calendar;
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with I18N.Normalization;
-with Ada.Characters.Handling;
 with Ada.Directories;
-with Ada.Environment_Variables;
-with Interfaces;
-with Interfaces.C.Strings;
 with Ada.Strings;
-with Ada.Streams;
-with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
-with System;
 
 with AUnit;
 with AUnit.Assertions;
 with AUnit.Test_Cases;
 
-with Project_Tools.Files;
-
-with Glfw;
-with Glfw.Input.Mouse;
-
-with GNAT.OS_Lib;
-with Textrender.Fonts;
-
-with Files.Accessibility;
 with Files.Application;
 with Files.Application.Windows;
-with Files.Command_Palette;
 with Files.Commands;
 with Files.Controller;
-with Files.Drop_Events;
-with Files.Events;
 with Files.File_System;
-with Files.File_Types;
-with Files.Fonts;
 with Files.Localization;
 with Files.Model;
 with Files.Operations;
-with Files.Platform;
-with Guikit.Draw;
-with Files.Rendering;
-with Guikit.Vulkan;
 with Files.Settings;
 with Guikit.Input;
 with Files.Types;
 with Files.UTF8;
-with Files.UI;
 with Files_Suite.Support;
 
 package body Files_Suite.Commands is
 
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;
-   use type Ada.Calendar.Time;
-   use type Ada.Directories.File_Kind;
-   use type Interfaces.Unsigned_32;
-   use type Files.Commands.Command_Id;
    use type Files.Commands.Command_Placement;
-   use type Files.Controller.Controller_Status;
-   use type Files.Events.Input_Action_Kind;
-   use type Files.Events.Scroll_Target;
-   use type Files.File_System.Native_API_Binding_Status;
-   use type Files.File_System.Native_Platform_Adapter;
-   use type Files.File_System.Path_Status;
-   use type Files.File_System.Drop_Import_Mode;
-   use type Files.File_System.Root_Kind;
-   use type Files.File_System.Root_Readiness;
-   use type Files.File_System.Thumbnail_Status;
-   use type Files.File_System.Trash_Backend;
-   use type Files.Application.Run_Mode;
-   use type Files.Operations.Open_Action_Lifecycle_State;
    use type Files.Operations.Operation_Status;
-   use type Guikit.Draw.Accessibility_Role;
-   use type Guikit.Draw.Icon_Asset_Color_Role;
-   use type Guikit.Draw.Render_Color;
-   use type Files.Rendering.Text_Render_Status;
-   use type Guikit.Vulkan.Atlas_Texture_Format;
-   use type Guikit.Vulkan.Texture_Source;
-   use type Guikit.Vulkan.Vulkan_Status;
-   use type Interfaces.Unsigned_8;
-   use type Interfaces.C.int;
-   use type Textrender.Fonts.Load_Result;
-   use type Files.Types.Sort_Field;
-   use type Files.Types.Focus_Target;
-   use type Files.Types.Item_Kind;
    use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;
-   use type Guikit.Input.Navigation_Direction;
-   use type Files.Types.View_Mode;
-   use type Glfw.Input.Mouse.Coordinate;
-   use type System.Address;
    use Files_Suite.Support;
 
    type Command_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
@@ -136,6 +75,7 @@ package body Files_Suite.Commands is
    procedure Test_Sort_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tab_Focus_Ring (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Disabled_Command_Reasons (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Command_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -231,6 +171,9 @@ package body Files_Suite.Commands is
         (T, Test_Context_Menu_Keyboard'Access, "the context menu opens with Shift+F10 and navigates by arrows");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Tab_Focus_Ring'Access, "Tab and Shift+Tab cycle focus around grid, path input, and filter");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Disabled_Command_Reasons'Access,
+         "a disabled command reports the reason its enablement rule gives");
    end Register_Tests;
 
    function Same_Shortcut
@@ -311,6 +254,8 @@ package body Files_Suite.Commands is
    procedure Test_Sort_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Tab_Focus_Ring (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Disabled_Command_Reasons (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Context_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

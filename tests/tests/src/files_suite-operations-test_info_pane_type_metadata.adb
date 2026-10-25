@@ -18,7 +18,7 @@ separate (Files_Suite.Operations)
       --  localized extra.
       for Idx in 1 .. Files.Model.Visible_Count (Model) loop
          Files.Model.Select_Visible (Model, Idx);
-         Files.Model.Ensure_Selected_Item_Extra (Model);
+         Files.Operations.Ensure_Selected_Item_Extra (Model);
       end loop;
       Files.Model.Select_All_Visible (Model);
       Snapshot := Files.Rendering.Build_Snapshot (Model);

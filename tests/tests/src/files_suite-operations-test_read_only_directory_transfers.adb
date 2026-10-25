@@ -60,7 +60,7 @@ separate (Files_Suite.Operations)
       end Check_Backups;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Read_Only_Directory_Transfers", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Read_Only_Directory_Transfers", "needs Linux");
          return;
       end if;
       Settings.Show_Hidden_Files := True;

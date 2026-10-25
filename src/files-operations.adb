@@ -304,7 +304,8 @@ package body Files.Operations is
    is separate;
 
    function Existing_Destination_Paths
-     (Directory : String)
+     (Directory : String;
+      Listed    : out Boolean)
       return Files.Types.String_Vectors.Vector
    is separate;
 
@@ -524,6 +525,46 @@ package body Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
    is separate;
+
+   procedure Settle_Current_Is_Trash
+     (Model : in out Files.Model.Window_Model) is
+   begin
+      Files.Model.Set_Current_Is_Trash (Model, Is_Trash_Directory (Files.Model.Current_Path (Model)));
+   end Settle_Current_Is_Trash;
+
+   procedure Ensure_Selected_Item_Extra
+     (Model : in out Files.Model.Window_Model) is
+   begin
+      if Files.Model.Selected_Item_Needs_Extra (Model) then
+         declare
+            Item : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
+         begin
+            Files.Model.Set_Selected_Item_Extra
+              (Model,
+               Files.File_System.Extra_Info_Token
+                 (To_String (Item.Full_Path), Item.Kind, To_String (Item.Filetype)));
+         end;
+      end if;
+   end Ensure_Selected_Item_Extra;
+
+   procedure Focus_Ownership_Input
+     (Model         : in out Files.Model.Window_Model;
+      Editing_Group : Boolean) is
+   begin
+      if not Files.File_System.Supports_Ownership or else Files.Model.Selected_Count (Model) /= 1 then
+         return;
+      end if;
+      declare
+         Item : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
+      begin
+         Files.Model.Focus_Ownership_Input
+           (Model,
+            Editing_Group,
+            (if Editing_Group
+             then Files.File_System.Group_Name_For_Id (Item.Group_Id)
+             else Files.File_System.User_Name_For_Id (Item.Owner_Id)));
+      end;
+   end Focus_Ownership_Input;
 
    procedure Update_Folder_Size
      (Model    : in out Files.Model.Window_Model;

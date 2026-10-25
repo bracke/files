@@ -49,9 +49,7 @@ package body Files_Suite.Rendering is
    use Files.Rendering;
    use Guikit.Draw;
    use type Files.Commands.Command_Id;
-   use type Files.Rendering.Context_Menu_Row_Kind;
    use type Guikit.Draw.Render_Color;
-   use type Files.Rendering.Text_Render_Status;
    use type Files.Events.Input_Action_Kind;
    use type Files.Types.Focus_Target;
    use type A11y.Results.Status_Code;

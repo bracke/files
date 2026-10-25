@@ -1,17 +1,11 @@
 separate (Files_Suite.Operations)
    procedure Test_Icon_Assets_Load_From_Disk (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Original_Cwd : constant String := Ada.Directories.Current_Directory;
+      --  Puts the working directory back however the test ends.
+      Cwd_Guard : Files_Suite.Support.Directory_Guard;
       Trusted_Root : constant String := Files.Resources.Share_Root;
       Counterfeit_Cwd : constant String := Join (Root, "counterfeit-resource-cwd");
       Folder : Unbounded_String;
-
-      procedure Restore is
-      begin
-         Ada.Directories.Set_Directory (Original_Cwd);
-      exception
-         when others => null;
-      end Restore;
 
       --  Read the bundled folder.icon from disk. This confirms the runtime loads
       --  icon definitions from the .icon files (the single edit surface) rather
@@ -36,7 +30,7 @@ separate (Files_Suite.Operations)
         (Files.Resources.Share_Root /=
            Ada.Directories.Full_Name ("share"),
          "bundled resources stay anchored to the executable, not the launch directory: not the cwd's share");
-      Restore;
+      Ada.Directories.Set_Directory (Saved_Directory (Cwd_Guard));
       Assert (Length (Folder) > 0, "the bundled folder.icon is read from disk");
       Assert (Ada.Strings.Fixed.Index (To_String (Folder), "files-icon-v1") > 0,
               "the disk icon carries the files-icon-v1 header");
@@ -49,6 +43,4 @@ separate (Files_Suite.Operations)
          and then Files.Icon_Assets.Disk_Icon_Asset
            ("folder", "../../untrusted-theme") = "",
          "icon assets reject path traversal and unknown theme identifiers");
-   exception
-      when others => Restore; raise;
    end Test_Icon_Assets_Load_From_Disk;

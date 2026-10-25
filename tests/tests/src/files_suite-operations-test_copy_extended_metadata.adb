@@ -35,7 +35,7 @@ separate (Files_Suite.Operations)
       end Check;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Copy_Extended_Metadata", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Copy_Extended_Metadata", "needs Linux");
          return;
       end if;
       Reset_Root;

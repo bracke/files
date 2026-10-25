@@ -25,6 +25,7 @@ separate (Files_Suite.Operations)
                     (Source, GNAT.OS_Lib.GM_Time_Of (2022, 3, 4, 5, 6, 8));
                when others =>
                   if not Hostkit.Fs.Create_Link (Target, Source) then
+                     Files_Suite.Support.Link_Not_Made ("Test_Duplicate_Undo_Identity");
                      return;
                   end if;
             end case;

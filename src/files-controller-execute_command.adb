@@ -7,6 +7,16 @@ separate (Files.Controller)
       return Controller_Result
    is
       Operation : Files.Operations.Operation_Result := Empty_Operation;
+
+      --  The full paths of the selected items, in selection order.
+      function Selected_Paths return Files.Types.String_Vectors.Vector is
+         Paths : Files.Types.String_Vectors.Vector;
+      begin
+         for Item of Files.Model.Selected_Items (Model) loop
+            Paths.Append (Item.Full_Path);
+         end loop;
+         return Paths;
+      end Selected_Paths;
    begin
       if Files.Model.Root_Selector_Is_Open (Model)
         and then not Files.Commands.Allowed_With_Root_Selector (Id)
@@ -45,13 +55,8 @@ separate (Files.Controller)
             Operation := Files.Operations.Open_Selected (Model, Settings, Modifiers);
          when Files.Commands.Open_With_Command =>
             declare
-               Items : constant Files.File_System.Item_Vectors.Vector :=
-                 Files.Model.Selected_Items (Model);
-               Targets : Files.Types.String_Vectors.Vector;
+               Targets : constant Files.Types.String_Vectors.Vector := Selected_Paths;
             begin
-               for Item of Items loop
-                  Targets.Append (Item.Full_Path);
-               end loop;
                --  Open_Command_Palette resets palette mode and targets, so
                --  capture the selection into the model only afterwards.
                Files.Model.Open_Command_Palette (Model);
@@ -66,33 +71,13 @@ separate (Files.Controller)
          when Files.Commands.Delete_Selected_Permanently_Command =>
             Operation := Files.Operations.Delete_Selected_Permanently (Model, Settings);
          when Files.Commands.Copy_Selected_Items_Command =>
-            declare
-               Items : constant Files.File_System.Item_Vectors.Vector :=
-                 Files.Model.Selected_Items (Model);
-               Paths : Files.Types.String_Vectors.Vector;
-            begin
-               for Item of Items loop
-                  Paths.Append (Item.Full_Path);
-               end loop;
-               Files.Model.Set_Clipboard
-                 (Model, Paths, Files.Model.Clipboard_Copy);
-               Files.Model.Set_Error (Model, "");
-               Operation.Status := Files.Operations.Operation_Success;
-            end;
+            Files.Model.Set_Clipboard (Model, Selected_Paths, Files.Model.Clipboard_Copy);
+            Files.Model.Set_Error (Model, "");
+            Operation.Status := Files.Operations.Operation_Success;
          when Files.Commands.Cut_Selected_Items_Command =>
-            declare
-               Items : constant Files.File_System.Item_Vectors.Vector :=
-                 Files.Model.Selected_Items (Model);
-               Paths : Files.Types.String_Vectors.Vector;
-            begin
-               for Item of Items loop
-                  Paths.Append (Item.Full_Path);
-               end loop;
-               Files.Model.Set_Clipboard
-                 (Model, Paths, Files.Model.Clipboard_Cut);
-               Files.Model.Set_Error (Model, "");
-               Operation.Status := Files.Operations.Operation_Success;
-            end;
+            Files.Model.Set_Clipboard (Model, Selected_Paths, Files.Model.Clipboard_Cut);
+            Files.Model.Set_Error (Model, "");
+            Operation.Status := Files.Operations.Operation_Success;
          when Files.Commands.Duplicate_Selected_Command =>
             Operation := Files.Operations.Duplicate_Selected (Model, Settings);
          when Files.Commands.Create_Symlink_Command =>
@@ -163,29 +148,7 @@ separate (Files.Controller)
             if Files.Model.Root_Selector_Is_Open (Model) then
                Files.Model.Close_Root_Selector (Model);
             else
-               declare
-                  Roots : Files.File_System.Root_Entry_Vectors.Vector :=
-                    Files.File_System.Available_Root_Entries;
-               begin
-                  for Path of Settings.Favorite_Paths loop
-                     Roots.Append
-                       (Files.File_System.Root_Entry'
-                          (Path        => Path,
-                           --  Use the "root.favorite|<name>" label token so the
-                           --  selector renders the star prefix and base name
-                           --  rather than the full path.
-                           Label       =>
-                             Ada.Strings.Unbounded.To_Unbounded_String
-                               (Files.File_System.Root_Label
-                                  (Ada.Strings.Unbounded.To_String (Path),
-                                   Files.File_System.Root_Favorite)),
-                           Kind        => Files.File_System.Root_Favorite,
-                           Volume_Name => Ada.Strings.Unbounded.Null_Unbounded_String,
-                           Ready       => Files.File_System.Root_Ready,
-                           Removable   => False));
-                  end loop;
-                  Files.Model.Open_Root_Selector (Model, Roots);
-               end;
+               Files.Model.Open_Root_Selector (Model, Root_Entries_With_Favorites (Settings));
             end if;
             Files.Model.Set_Error (Model, "");
          when Files.Commands.Toggle_Folder_Tree_Command =>
@@ -203,19 +166,13 @@ separate (Files.Controller)
             --  Capture the current selection, then open the folder tree as a
             --  destination picker seeded with the same roots the toggle uses.
             declare
-               Items : constant Files.File_System.Item_Vectors.Vector :=
-                 Files.Model.Selected_Items (Model);
-               Paths : Files.Types.String_Vectors.Vector;
                Mode  : constant Files.Model.Tree_Pick_Mode :=
                  (if Id = Files.Commands.Move_To_Command
                   then Files.Model.Pick_Move
                   else Files.Model.Pick_Copy);
             begin
-               for Item of Items loop
-                  Paths.Append (Item.Full_Path);
-               end loop;
                Files.Model.Begin_Tree_Pick
-                 (Model, Mode, Paths, Files.Model.Current_Path (Model));
+                 (Model, Mode, Selected_Paths, Files.Model.Current_Path (Model));
                Seed_Tree_If_Needed (Model, Settings);
                Files.Model.Open_Tree_Panel (Model);
                Files.Model.Set_Error (Model, "");

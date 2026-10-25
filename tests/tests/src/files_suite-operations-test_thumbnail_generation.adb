@@ -1,4 +1,3 @@
-with Files_Suite.Repository;
 separate (Files_Suite.Operations)
    procedure Test_Thumbnail_Generation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -64,6 +63,8 @@ separate (Files_Suite.Operations)
             Assert (not Ada.Directories.Exists (Cache_Path & ".tmp")
                       and then not Hostkit.Fs.Is_Link (Cache_Path & ".tmp"),
                     "thumbnail publication leaves no temporary cache file");
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Thumbnail_Generation", Files_Suite.Support.Symbolic_Link);
          end if;
       end;
 
@@ -97,9 +98,45 @@ separate (Files_Suite.Operations)
                "the in-memory decoder rejects oversized dimensions before loading pixels");
          end;
       end;
-      Assert
-        (Files_Suite.Repository.Source_Contains ("gdk_pixbuf_loader_new"),
-         "JPEG thumbnail decoding is routed through the native image loader binding");
+      --  A real JPEG (8 x 8, solid red, baseline, 4:4:4) is decoded through the
+      --  native image loader: none of the in-Ada decoders reads JPEG, so red
+      --  pixels can only have come from it.
+      declare
+         Jpeg_Hex : constant String :=
+           "FFD8FFE000104A46494600010100000100010000FFDB0043000302020302020303030304030304050805050404050A07" &
+           "0706080C0A0C0C0B0A0B0B0D0E12100D0E110E0B0B1016101113141515150C0F171816141812141514FFDB0043010304" &
+           "0405040509050509140D0B0D141414141414141414141414141414141414141414141414141414141414141414141414" &
+           "1414141414141414141414141414FFC00011080008000803011100021101031101FFC400140001000000000000000000" &
+           "00000000000008FFC40014100100000000000000000000000000000000FFC40015010101000000000000000000000000" &
+           "00000709FFC40014110100000000000000000000000000000000FFDA000C03010002110311003F003A03154DFFD9";
+         Jpeg_Source : constant String := Join (Root, "red.jpg");
+         Jpeg_Bytes  : String (1 .. Jpeg_Hex'Length / 2);
+         Decoded     : Files.File_System.Decoded_Image;
+      begin
+         for Index in Jpeg_Bytes'Range loop
+            Jpeg_Bytes (Index) :=
+              Byte (Natural'Value ("16#" & Jpeg_Hex (Jpeg_Hex'First + 2 * (Index - 1) .. Jpeg_Hex'First + 2 * Index - 1)
+                                   & "#"));
+         end loop;
+         Write_Binary_File (Jpeg_Source, Jpeg_Bytes);
+         Decoded := Files.File_System.Decode_Image_To_Pixels (Jpeg_Source, 8);
+         Assert (Decoded.Available, "a real JPEG decodes through the native image loader");
+         Assert
+           (Decoded.Width in 1 .. 8 and then Decoded.Height in 1 .. 8,
+            "the decoded JPEG fits the requested box (" & Decoded.Width'Image & " x" & Decoded.Height'Image & ")");
+         Assert
+           (Natural (Decoded.Pixels.Length) >= 4,
+            "the decoded JPEG carries RGBA pixels");
+         declare
+            Red   : constant Natural := Natural (Decoded.Pixels.Element (Decoded.Pixels.First_Index));
+            Green : constant Natural := Natural (Decoded.Pixels.Element (Decoded.Pixels.First_Index + 1));
+            Blue  : constant Natural := Natural (Decoded.Pixels.Element (Decoded.Pixels.First_Index + 2));
+         begin
+            Assert
+              (Red > 200 and then Green < 60 and then Blue < 60,
+               "the decoded JPEG keeps its red (got" & Red'Image & "," & Green'Image & "," & Blue'Image & ")");
+         end;
+      end;
 
       Write_File
         (Ppm_Thumbnail_Source,

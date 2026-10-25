@@ -762,6 +762,21 @@ procedure Check_All is
    --  Every test package is in the suite, and every Test_* routine a suite
    --  body declares is registered there: a declared, stubbed and written
    --  test that nobody registers compiles cleanly and never runs.
+   --  Require that the suite registers Routine -- the AUnit test whose
+   --  assertions cover what Message names. Keyed to the routine's name, not to
+   --  the text of an assertion message inside it: rewording a message does not
+   --  break the guard, and a routine that is dropped or no longer registered
+   --  does. (Check_AUnit_Test_Registration separately requires every declared
+   --  routine to be registered.)
+   --
+   --  @param Routine Test procedure name, as registered with 'Access.
+   --  @param Message What the routine must keep covering.
+   procedure Require_Registered_Routine (Routine : String; Message : String) is
+   begin
+      Project_Tools.Files.Require_Contains
+        (Combined_Suite, "(T, " & Routine & "'Access", Message & " (" & Routine & " must stay registered)");
+   end Require_Registered_Routine;
+
    procedure Check_AUnit_Test_Registration is
       Search : Ada.Directories.Search_Type;
       Found  : Ada.Directories.Directory_Entry_Type;
@@ -2105,65 +2120,15 @@ procedure Check_All is
       Check_Catalog_Format;
       Check_Catalog_Baseline_Keys;
       Check_Error_Localization_Test_Coverage;
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "startup window label is localized",
-         "localization tests must cover startup window labels");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "startup report uses localized window label",
-         "startup report tests must build expected window labels through localization");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "startup error label is localized",
-         "localization tests must cover startup error labels");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "startup report uses localized error label and diagnostic",
-         "startup report tests must build expected error text through localization");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "runtime smoke text-failure label is localized",
-         "localization tests must cover runtime smoke text-failure diagnostics");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "runtime smoke no-window label is localized",
-         "localization tests must cover runtime smoke no-window diagnostics");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "runtime smoke report uses localized empty-startup diagnostic",
-         "runtime smoke tests must build empty-startup expected text through localization");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "runtime smoke no-display label is localized",
-         "localization tests must cover runtime smoke display diagnostics");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "runtime smoke ready label is localized",
-         "localization tests must cover runtime smoke ready diagnostics");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "runtime smoke report uses localized window label",
-         "runtime smoke tests must build expected window labels through localization");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "runtime smoke report uses localized vertex-count label",
-         "runtime smoke tests must build expected metric labels through localization");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "runtime smoke report exposes missing-glyph fallback count",
-         "runtime smoke tests must cover missing-glyph fallback diagnostics");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "runtime smoke report exposes selected text font path",
-         "runtime smoke tests must cover selected font diagnostics");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "CLI help flag description is localized",
-         "localization tests must cover help-flag CLI text");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "detected Danish locale loads translated app catalog resources",
+      Require_Registered_Routine
+        ("Test_Localization_Runtime_Labels",
+         "localization tests must cover startup, runtime-smoke and CLI help labels");
+      Require_Registered_Routine
+        ("Test_Startup_And_Runtime_Smoke_Reports",
+         "startup and runtime smoke report tests must build expected labels and metrics through localization"
+         & " and cover glyph/font diagnostics");
+      Require_Registered_Routine
+        ("Test_Detected_Locale_Catalogs",
          "localization tests must cover translated locale resource loading");
       --  The per-host locale calls, and the frameworks they need, are Hostkit's
       --  now and are guarded by check_hostkit's Require_Binding (verified there
@@ -2171,58 +2136,16 @@ procedure Check_All is
       --  not yet exist). What has to stay true here is that
       --  files asks the host one question rather than branching per OS on its
       --  way to the environment fallbacks.
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "the system locale is asked of the host, not detected per OS here",
+      Require_Registered_Routine
+        ("Test_Host_Locale_Fallbacks",
          "locale tests must cover asking the host for its locale");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "unknown localization key falls back to key text",
-         "localization tests must cover unknown-key fallback");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "item-count label is localized",
-         "localization tests must cover item-count status labels");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "visible-count label is localized",
-         "localization tests must cover visible-count status labels");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "selected-count label is localized",
-         "localization tests must cover selected-count status labels");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "toolbar landmark is localized",
-         "localization tests must cover toolbar accessibility labels");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "main-view landmark is localized",
-         "localization tests must cover main-view accessibility labels");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "info-pane landmark is localized",
-         "localization tests must cover info-pane accessibility labels");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "command-palette search label is localized",
-         "localization tests must cover command-palette search accessibility labels");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "root-selector landmark is localized",
-         "localization tests must cover root-selector accessibility labels");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "error localization exists for",
-         "localization tests must cover every recoverable error key");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "registered command name is localized for",
-         "localization tests must cover registered command names");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "registered command description is localized for",
-         "localization tests must cover registered command descriptions");
+      Require_Registered_Routine
+        ("Test_Localization_Pane_Labels",
+         "localization tests must cover unknown-key fallback, status labels and landmark labels");
+      Require_Registered_Routine
+        ("Test_Localization_Error_And_Command_Keys",
+         "localization tests must cover every recoverable error key and registered command names"
+         & " and descriptions");
       Check_Command_Localization_Keys;
       Check_Indirect_Localization_Keys_In_Tree (Root & "/src");
       Check_Direct_Localization_Call_Keys_In_Tree (Root & "/src");
@@ -2299,85 +2222,50 @@ procedure Check_All is
    end Require_Not_Contains_In_Unit;
 
    procedure Check_Filetype_Detection_Order is
-      File_Types_Body : constant String := Root & "/src/files-file_types.adb";
    begin
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "filetype detection normalizes filename extension case before mapping",
-         "filetype detection tests must cover filename extension case normalization");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "extension extraction trims vertical-tab and form-feed whitespace",
-         "filetype detection tests must cover control whitespace extension trimming");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "extension extraction trims UTF-8 NBSP whitespace",
-         "filetype detection tests must cover UTF-8 NBSP extension trimming");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "extension extraction trims UTF-8 line-separator whitespace",
-         "filetype detection tests must cover UTF-8 line-separator extension trimming");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "filetype detection trims vertical-tab and form-feed filename whitespace before mapping",
-         "filetype detection tests must cover control whitespace detection trimming");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "filetype detection trims UTF-8 NBSP filename whitespace before mapping",
-         "filetype detection tests must cover UTF-8 NBSP detection trimming");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "filetype detection trims UTF-8 line-separator filename whitespace before mapping",
-         "filetype detection tests must cover UTF-8 line-separator detection trimming");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "settings-aware executable helper item ignores extension mappings",
-         "filetype detection tests must cover helper executable precedence over extension mapping");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "settings-aware symlink helper item ignores extension mappings",
-         "filetype detection tests must cover helper symlink precedence over extension mapping");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "unknown item filetype still uses configured extension mappings",
-         "filetype detection tests must cover unknown-kind extension mapping");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "other item filetype falls back deterministically without mapping",
-         "filetype detection tests must cover other-kind fallback classification");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "directory icon falls back by item kind without mapping",
-         "filetype detection tests must cover directory icon fallback by kind");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "symlink icon falls back by item kind without mapping",
-         "filetype detection tests must cover symlink icon fallback by kind");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "executable icon falls back by item kind without mapping",
-         "filetype detection tests must cover executable icon fallback by kind");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "other item icon falls back deterministically without mapping",
-         "filetype detection tests must cover other-kind icon fallback");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "extension extraction normalizes case",
-         "filetype detection tests must cover extension extraction case normalization");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "extension extraction ignores dotted directory names",
-         "filetype detection tests must cover path leaf extension extraction");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "filetype detection ignores dotted directory names",
-         "filetype detection tests must cover path leaf filetype detection");
+      Require_Registered_Routine
+        ("Test_Filetype_Detection",
+         "filetype detection tests must cover extension normalization and trimming, kind precedence,"
+         & " fallbacks and path-leaf handling");
    end Check_Filetype_Detection_Order;
 
    procedure Check_Event_Translation_Contract is
+      Events_Spec : constant String := Root & "/src/files-events.ads";
       Events_Body : constant String := Root & "/src/files-events.adb";
-      Tests       : constant String := Combined_Suite;
+
+      --  Translation may only import Files.UTF8, Files.UI, and the pure
+      --  Files.Rendering.Hit geometry, which forbids the mutable model,
+      --  filesystem-operation, and filesystem-inspection units.
+      Body_Allowed : constant String_List :=
+        [To_Unbounded_String ("Files.Rendering.Hit"),
+         To_Unbounded_String ("Files.UTF8"),
+         To_Unbounded_String ("Files.UI")];
+
+      --  Apply the body's with-clause boundary to every subunit of
+      --  Files.Events (files-events-*.adb, nested subunits included): a
+      --  subunit inherits the body's context and may add its own with
+      --  clauses, which would otherwise widen the boundary unseen.
+      procedure Check_Subunit_With_Clauses is
+         Search  : Ada.Directories.Search_Type;
+         Item    : Ada.Directories.Directory_Entry_Type;
+         Prefix  : constant String := "files-events-";
+         Started : Boolean := False;
+      begin
+         Ada.Directories.Start_Search
+           (Search, Root & "/src", Prefix & "*.adb", [Ada.Directories.Ordinary_File => True, others => False]);
+         Started := True;
+         while Ada.Directories.More_Entries (Search) loop
+            Ada.Directories.Get_Next_Entry (Search, Item);
+            Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), "Files.", Body_Allowed);
+         end loop;
+         Ada.Directories.End_Search (Search);
+      exception
+         when others =>
+            if Started then
+               Ada.Directories.End_Search (Search);
+            end if;
+            raise;
+      end Check_Subunit_With_Clauses;
    begin
       Require_Not_Contains_In_Unit
         (Events_Body,
@@ -2387,16 +2275,34 @@ procedure Check_All is
         (Events_Body,
          "with GNAT.OS_Lib;",
          "event translation must not import process execution APIs");
-      --  Lock the Files.* import boundary through the shared helper: event
-      --  translation may only import Files.UTF8, Files.UI, and the pure
-      --  Files.Rendering.Hit geometry, which forbids the mutable model,
-      --  filesystem-operation, and filesystem-inspection units.
+      --  Lock the Files.* import boundary through the shared helper, over the
+      --  body and every subunit.
+      Require_Only_Allowed_With_Clauses (Events_Body, "Files.", Body_Allowed);
+      Check_Subunit_With_Clauses;
+      --  The spec names the types translation reads and produces: a
+      --  Command_Id in an Input_Action (Files.Commands), the View_Snapshot and
+      --  Frame_Commands that Translate_Click hit-tests (Files.Rendering), and
+      --  the shared value types (Files.Types). Those three are allowed there and
+      --  nothing else -- the body checks below still forbid any call into
+      --  them beyond reading those values.
       Require_Only_Allowed_With_Clauses
-        (Events_Body,
+        (Events_Spec,
          "Files.",
-         [To_Unbounded_String ("Files.Rendering.Hit"),
-          To_Unbounded_String ("Files.UTF8"),
-          To_Unbounded_String ("Files.UI")]);
+         [To_Unbounded_String ("Files.Commands"),
+          To_Unbounded_String ("Files.Rendering"),
+          To_Unbounded_String ("Files.Types")]);
+      Require_Not_Contains
+        (Events_Spec,
+         "Files.Model.",
+         "event translation's spec must not name live model state");
+      Require_Not_Contains
+        (Events_Spec,
+         "Files.File_System.",
+         "event translation's spec must not name filesystem state");
+      Require_Not_Contains
+        (Events_Spec,
+         "Files.Operations.",
+         "event translation's spec must not name operation execution");
       Require_Not_Contains_In_Unit
         (Events_Body,
          "Files.Commands.Execute",
@@ -2414,6 +2320,24 @@ procedure Check_All is
          "Files.Model.",
          "event translation must not mutate or inspect live model state");
    end Check_Event_Translation_Contract;
+
+   --  The root selector lists what is mounted under the mount containers
+   --  (/mnt/x, /media/x, /run/media/<user>/x, /Volumes/x), never the container
+   --  directory itself. Test_Root_Discovery checks the discovered roots, but a
+   --  host whose containers are not themselves mount points never exercises
+   --  the exclusion, so its shape is held here.
+   procedure Check_Root_Discovery_Contract is
+      Root_Entries : constant String := Root & "/src/files-file_system-available_root_entries.adb";
+   begin
+      Project_Tools.Files.Require_Contains
+        (Root_Entries,
+         "function Is_Mount_Container",
+         "root discovery must name the mount containers it excludes");
+      Project_Tools.Files.Require_Contains
+        (Root_Entries,
+         "return not Is_Mount_Container",
+         "root discovery must exclude mount container rows from the root selector");
+   end Check_Root_Discovery_Contract;
 
    procedure Check_Crate_Structure is
       Main_Manifest  : constant String := Root & "/alire.toml";
@@ -2683,9 +2607,8 @@ procedure Check_All is
         (Windows_Body,
          "Glfw.Windows.Context.Set_Swap_Interval",
          "desktop Vulkan runtime must not configure OpenGL swap interval");
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite,
-         "runtime capabilities expose drop event-source automation",
+      Require_Registered_Routine
+        ("Test_Runtime_Capabilities_And_Drop_Events",
          "desktop runtime tests must cover drop event-source automation");
       Require_Not_Contains_In_Unit
         (Windows_Body,
@@ -3960,6 +3883,7 @@ begin
    Check_Localization_Usage;
    Check_Filetype_Detection_Order;
    Check_Event_Translation_Contract;
+   Check_Root_Discovery_Contract;
    Check_Crate_Structure;
    Check_Application_CLI_Surface;
    Check_Rendering_Architecture;

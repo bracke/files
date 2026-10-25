@@ -12,7 +12,7 @@ separate (Files_Suite.Operations)
       Available : Boolean;
    begin
       if not Files.File_System.Supports_Permissions then
-         Files_Suite.Support.Skip ("Test_Live_Metadata_History", "not Files.File_System.Supports_Permissions");
+         Files_Suite.Support.Skip ("Test_Live_Metadata_History", "this host has no POSIX permissions to set");
          return;
       end if;
       for Background in Boolean loop

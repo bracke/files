@@ -178,20 +178,39 @@ private package Files.File_System.Support is
    --  @param Times Source times captured before verification reads the source.
    --  @param Preserve_Ownership Require original ownership before publishing a move.
    --  @param Batch Shared journal for hard links across copied roots.
+   --  @param Root_Digest When given, set to the SHA-256 of the bytes copied
+   --    for a regular-file root, as read during the copy; empty otherwise.
    procedure Copy_To_New_Path
      (Source_Path, Destination_Path : String;
       Identity, Tree_Revision_Value : out Files.Types.UString;
       Cancel : Cancellation_Check := null;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
       Preserve_Ownership : Boolean := False;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);
+      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
+      Root_Digest : access Files.Types.UString := null);
 
+   --  A snapshot reads one file's content at most: a regular-file root's.
+   --  Every entry below the root is pinned by its revision, change time
+   --  included, which any write moves; only the root's change time is left
+   --  out (the private rename that verifies a move changes it), so a root
+   --  file is pinned by its content instead.
+   --
    --  @param Path Source tree to snapshot without following links.
-   --  @param Content False to skip reading file contents: the result then
-   --    supports only Same_Shape, a cheap early check before a full one.
-   --  @return Sorted identities, revisions, and regular-file content digests,
-   --    raising if any entry cannot be verified.
+   --  @param Content False to skip reading the root file's content: the
+   --    result then supports only Same_Shape, a cheap early check before a
+   --    full one, or With_Root_Content.
+   --  @return Sorted identities, revisions, and the root file's content
+   --    digest, raising if any entry cannot be verified.
    function Snapshot (Path : String; Content : Boolean := True) return Source_Snapshot;
+
+   --  A snapshot taken with Content => False, completed with the digest of a
+   --  regular-file root obtained another way (as it was copied), so the root
+   --  is not read just to hash it.
+   --
+   --  @param Snapshot Metadata-only snapshot.
+   --  @param Digest The root file's content digest; empty leaves Snapshot as is.
+   --  @return The snapshot Snapshot (Path) would have returned for that content.
+   function With_Root_Content (Snapshot : Source_Snapshot; Digest : String) return Source_Snapshot;
 
    --  @param Left First snapshot.
    --  @param Right Second snapshot.

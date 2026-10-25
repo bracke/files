@@ -104,8 +104,12 @@ separate (Files_Suite.Model)
       Assert (Found_Run, "executable item was loaded");
       if Symlink_Created then
          Assert (Found_Symlink, "symlink item was loaded");
+      else
+         Files_Suite.Support.Link_Not_Made ("Test_Executable_And_Symlink_Metadata", Files_Suite.Support.Symbolic_Link);
       end if;
       if Executable_Symlink_Created then
          Assert (Found_Executable_Symlink, "executable symlink item was loaded");
+      else
+         Files_Suite.Support.Link_Not_Made ("Test_Executable_And_Symlink_Metadata", Files_Suite.Support.Symbolic_Link);
       end if;
    end Test_Executable_And_Symlink_Metadata;

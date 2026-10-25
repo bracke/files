@@ -1,104 +1,40 @@
-with Ada.Calendar;
-with Ada.Characters.Handling;
 with Ada.Directories;
-with Ada.Environment_Variables;
-with Interfaces;
-with Interfaces.C.Strings;
 with Ada.Strings;
-with Ada.Streams;
-with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
-with System;
 
 with AUnit;
 with AUnit.Assertions;
 with AUnit.Test_Cases;
 
-with Project_Tools.Files;
-
-with Glfw;
-with Glfw.Input.Mouse;
-
-with GNAT.OS_Lib;
-with Textrender.Fonts;
-
 with Hostkit.Host;
 with Hostkit.Fs;
 with Hostkit.Metadata;
 
-with Files.Accessibility;
 with Files.Application;
 with Files.Application.Windows;
-with Files.Command_Palette;
 with Files.Commands;
 with Files.Controller;
-with Files.Drop_Events;
-with Files.Events;
 with Files.File_System;
-with Files.File_Types;
-with Files.Fonts;
-with Files.Localization;
 with Files.Model;
 with Files.Operations;
-with Files.Platform;
-with Guikit.Draw;
-with Files.Rendering;
-with Guikit.Vulkan;
 with Files.Settings;
 with Files.Settings_Form;
 with Guikit.Settings_Panel;
 with Guikit.Input;
 with Files.Types;
-with Files.UTF8;
-with Files.UI;
 with Files_Suite.Support;
 
 package body Files_Suite.Settings is
 
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;
-   use type Ada.Calendar.Time;
-   use type Ada.Directories.File_Kind;
-   use type Interfaces.Unsigned_32;
    use type Files.Commands.Command_Id;
-   use type Files.Commands.Command_Placement;
-   use type Files.Controller.Controller_Status;
-   use type Files.Events.Input_Action_Kind;
-   use type Files.Events.Scroll_Target;
-   use type Files.File_System.Native_API_Binding_Status;
-   use type Files.File_System.Native_Platform_Adapter;
-   use type Files.File_System.Path_Status;
-   use type Files.File_System.Drop_Import_Mode;
-   use type Files.File_System.Root_Kind;
-   use type Files.File_System.Root_Readiness;
-   use type Files.File_System.Thumbnail_Status;
-   use type Files.File_System.Trash_Backend;
    use type Hostkit.Host.Kind;
-   use type Files.Application.Run_Mode;
-   use type Files.Operations.Open_Action_Lifecycle_State;
-   use type Files.Operations.Operation_Status;
-   use type Guikit.Draw.Accessibility_Role;
-   use type Guikit.Draw.Icon_Asset_Color_Role;
-   use type Guikit.Draw.Render_Color;
-   use type Files.Rendering.Text_Render_Status;
-   use type Guikit.Vulkan.Atlas_Texture_Format;
-   use type Guikit.Vulkan.Texture_Source;
-   use type Guikit.Vulkan.Vulkan_Status;
-   use type Interfaces.Unsigned_8;
-   use type Interfaces.C.int;
-   use type Textrender.Fonts.Load_Result;
-   use type Files.Types.Sort_Field;
    use type Files.Settings.Theme_Choice;
-   use type Files.Types.Focus_Target;
-   use type Files.Types.Item_Kind;
-   use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;
-   use type Guikit.Input.Navigation_Direction;
    use type Files.Types.View_Mode;
-   use type Glfw.Input.Mouse.Coordinate;
-   use type System.Address;
    use Files_Suite.Support;
 
    type Settings_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
@@ -140,6 +76,7 @@ package body Files_Suite.Settings is
    procedure Test_Settings_Form_Mapping_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Numeric_Values (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scalar_Settings_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Secondary_Shortcut_Overrides (T : in out AUnit.Test_Cases.Test_Case'Class);
    overriding function Name (T : Settings_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
    begin
@@ -244,6 +181,9 @@ package body Files_Suite.Settings is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Scalar_Settings_Round_Trip'Access,
          "every scalar setting round-trips through the settings text and, if the pane edits it, the draft");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Secondary_Shortcut_Overrides'Access,
+         "an override replaces a command's built-in secondary shortcut too");
    end Register_Tests;
 
    --  A settings text exercising every section the parsing and open-action
@@ -419,4 +359,6 @@ package body Files_Suite.Settings is
    procedure Test_Settings_Numeric_Values (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Scalar_Settings_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Secondary_Shortcut_Overrides (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 end Files_Suite.Settings;

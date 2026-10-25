@@ -1,7 +1,6 @@
 with Ada.Strings.Unbounded;
 
 with Files.Desktop_Applications;
-with Files.Commands;
 with Files.Localization;
 
 package body Files.Command_Palette is
@@ -60,5 +59,19 @@ package body Files.Command_Palette is
       end if;
       return Result;
    end Commands;
+
+   function Selected_Command
+     (Model : Files.Model.Window_Model)
+      return Files.Commands.Command_Id
+   is
+      Id : constant Natural := Files.Model.Palette_Selected_Id (Model);
+   begin
+      if Files.Model.Command_Palette_Mode_Of (Model) /= Files.Model.Palette_Commands
+        or else Id > Files.Commands.Command_Id'Pos (Files.Commands.Command_Id'Last)
+      then
+         return Files.Commands.No_Command;
+      end if;
+      return Files.Commands.Command_Id'Val (Id);
+   end Selected_Command;
 
 end Files.Command_Palette;

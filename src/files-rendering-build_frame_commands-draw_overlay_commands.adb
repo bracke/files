@@ -342,7 +342,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                   --  Add_Overlay_Text (Fit => True) would, so Draw_Menu_Row
                   --  reproduces the former per-row overlay text byte for byte.
                   Cell_W : constant Positive :=
-                    Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+                    Guikit.Layout.Caret_Advance_Width (Line_Height);
                begin
                   for Row in 1 .. Menu.Row_Count loop
                      declare

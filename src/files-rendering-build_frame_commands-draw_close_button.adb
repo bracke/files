@@ -23,7 +23,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             elsif Overlay then Overlay_Color
             else Pane_Color);
          --  Center the glyph cell within the square button.
-         Glyph_W    : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+         Glyph_W    : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
          Glyph_X    : constant Natural :=
            (if Btn.Width > Glyph_W
             then Saturating_Add (Btn.X, (Btn.Width - Glyph_W) / 2)

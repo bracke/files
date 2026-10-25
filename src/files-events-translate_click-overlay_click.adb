@@ -176,24 +176,10 @@ begin
 
    if Root_Index /= 0 then
       Result :=
-        (Kind            => Root_Click_Input_Action,
-         Command         => Files.Commands.No_Command,
-         Direction       => Guikit.Input.Move_Right,
-         Item_Index      => 0,
-         Root_Index      => Root_Index,
-         Result_Index    => 0,
-         Click_X          => 0,
-         Click_Y          => 0,
-         Scroll_Lines    => 0,
-         Scroll_Area     => Scroll_Auto,
-         Focus_Target    => Files.Types.Focus_None,
-         Cursor_Position => 0,
-         Settings_Field  => 0,
-         Settings_Option => 0,
-         Activate        => Activate,
-         Toggle_Selection => False,
-         Range_Selection  => False,
-      Scroll_Drag_Anchor => 0);
+        (Kind       => Root_Click_Input_Action,
+         Root_Index => Root_Index,
+         Activate   => Activate,
+         others     => <>);
       return;
    elsif Snapshot.Root_Selector_Open then
       declare

@@ -97,6 +97,8 @@ separate (Files_Suite.Operations)
       Add_Stage_Record ("stage-relative", ".files-work-relative", "");
       if Linked then
          Add_Stage_Record ("stage-link", Link, Files.File_Identities.Token (Link));
+      else
+         Files_Suite.Support.Link_Not_Made ("Test_Stage_Record_Cleanup", Files_Suite.Support.Symbolic_Link);
       end if;
       Add_Stage_Record ("stage-corrupt", "", "", Corrupt => True);
       Add_Stage_Record ("stage-oversized", "", "", Oversized => True);

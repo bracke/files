@@ -119,7 +119,7 @@ function Original_Path (Trashed_Path : String) return String is
    end Read_Original_Path;
 
    Base : constant String := Trash_Base_Path;
-   Backend : constant Trash_Backend := Trash_Backend_For_Base;
+   Backend : constant Trash_Backend := Trash_Backend_Of_Current_Environment;
 begin
    if Base = "" or else Backend not in Trash_Xdg_Data_Home | Trash_Home_Data then
       return "";

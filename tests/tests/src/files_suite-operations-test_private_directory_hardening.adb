@@ -36,6 +36,8 @@ separate (Files_Suite.Operations)
             begin
                null;
             end;
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Private_Directory_Hardening", Files_Suite.Support.Symbolic_Link);
          end if;
          Ada.Directories.Delete_Directory (Real_Directory);
       end;

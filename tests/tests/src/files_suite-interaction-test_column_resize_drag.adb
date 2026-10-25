@@ -2,7 +2,6 @@ separate (Files_Suite.Interaction)
    procedure Test_Column_Resize_Drag (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Files.Types.Detail_Column;
-      use type Files.Types.Sort_Field;
 
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;

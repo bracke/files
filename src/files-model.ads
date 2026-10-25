@@ -121,14 +121,76 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
+   --  The transient surfaces that own window input while open. A new overlay
+   --  is added here and to Overlay_Is_Open; every "is an overlay open" query
+   --  reads this list.
+   type Input_Overlay is
+     (Settings_Pane_Overlay,
+      Command_Palette_Overlay,
+      Root_Selector_Overlay,
+      Sort_Menu_Overlay,
+      Context_Menu_Overlay,
+      Label_Picker_Overlay,
+      Quick_Look_Overlay,
+      Tree_Pick_Overlay,
+      Paste_Conflict_Overlay,
+      Paste_Execution_Overlay);
+
+   --  The overlays with their own text-entry surface.
+   subtype Text_Input_Overlay is Input_Overlay range Settings_Pane_Overlay .. Command_Palette_Overlay;
+
+   --  Return whether one input-owning overlay is open.
+   --
+   --  @param Model Model to inspect.
+   --  @param Overlay The overlay to ask about.
+   --  @return True while Overlay is open (or, for a paste, active).
+   function Overlay_Is_Open
+     (Model   : Window_Model;
+      Overlay : Input_Overlay)
+      return Boolean;
+
+   --  Return whether an input-owning overlay other than Except is open: what
+   --  an overlay's own click handler asks so it ignores clicks while another
+   --  overlay is on top of it.
+   --
+   --  @param Model Model to inspect.
+   --  @param Except The overlay that does not count.
+   --  @return True while any other input-owning overlay is open.
+   function Other_Input_Owning_Overlay_Is_Open
+     (Model  : Window_Model;
+      Except : Input_Overlay)
+      return Boolean;
+
+   --  Return whether an overlay without a text-entry surface owns input, so
+   --  native character input and auto-targeted scrolling must be contained.
+   --  The root selector does not count while the command palette is open
+   --  over it: the palette's query field then owns the keyboard.
+   --
+   --  @param Model Model to inspect.
+   --  @return True while a non-text input-owning overlay owns input.
+   function Non_Text_Overlay_Owns_Input
+     (Model : Window_Model)
+      return Boolean;
+
    --  Whether the current directory is the trash's files directory, settled
-   --  when the directory was entered (no disk access here).
+   --  when the directory was entered (no disk access here). It is False after
+   --  every directory change until Set_Current_Is_Trash settles it; see
+   --  Files.Operations.Settle_Current_Is_Trash.
    --
    --  @param Model Model to inspect.
    --  @return True when the current directory is the trash.
    function Current_Is_Trash
      (Model : Window_Model)
       return Boolean;
+
+   --  Record whether the current directory is the trash's files directory,
+   --  as checked against the disk by the caller.
+   --
+   --  @param Model Model to update.
+   --  @param Is_Trash True when the current directory is the trash.
+   procedure Set_Current_Is_Trash
+     (Model    : in out Window_Model;
+      Is_Trash : Boolean);
 
    --  Return the model current path.
    --
@@ -824,15 +886,19 @@ package Files.Model is
 
    --  Open the info-pane ownership editor for the single selected item.
    --
-   --  The editor buffer is prefilled with the selected item's current numeric
-   --  owner or group id. Does nothing unless exactly one non-trash item is
-   --  selected whose ownership was read on a platform that supports chown.
+   --  The editor buffer is prefilled with Account_Name, the resolved name of
+   --  the selected item's owner or group, or with its numeric id when the name
+   --  is empty. Does nothing unless exactly one non-trash item is selected whose
+   --  ownership was read. Files.Operations.Focus_Ownership_Input resolves the
+   --  name and checks that the platform supports chown.
    --
    --  @param Model Model to update.
    --  @param Editing_Group True to edit the group id, False to edit the owner.
+   --  @param Account_Name The owner's (or group's) name, or "" when unknown.
    procedure Focus_Ownership_Input
      (Model         : in out Window_Model;
-      Editing_Group : Boolean);
+      Editing_Group : Boolean;
+      Account_Name  : String);
 
    --  Return the current text of the ownership editor buffer.
    --
@@ -1316,15 +1382,25 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
-   --  Compute and cache the selected item's "extra info" (folder child count,
-   --  document counts, symlink target) when the info pane is open and it has not
-   --  been computed yet. Called after input so the info pane can show the detail
-   --  without every item paying for it on load. A no-op when the info pane is
-   --  closed, nothing is selected, or the value is already cached.
+   --  Return whether the selected item's "extra info" (folder child count,
+   --  document counts, symlink target) is wanted and not computed yet: the info
+   --  pane is open, no paste or listing is in flight, and the value is not
+   --  cached. Files.Operations.Ensure_Selected_Item_Extra computes it.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when the selected item's extra info should be computed.
+   function Selected_Item_Needs_Extra
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Cache the selected item's computed extra info. A no-op unless
+   --  Selected_Item_Needs_Extra holds.
    --
    --  @param Model Model whose selected item is updated in place.
-   procedure Ensure_Selected_Item_Extra
-     (Model : in out Window_Model);
+   --  @param Token The extra-info token (empty when there is nothing to show).
+   procedure Set_Selected_Item_Extra
+     (Model : in out Window_Model;
+      Token : String);
 
    --  Toggle settings pane visibility.
    --

@@ -3,31 +3,17 @@ separate (Files.Rendering.Build_Frame_Commands)
    begin
       if Snapshot.View_Mode = Files.Types.Details then
          declare
-            Content : constant Content_Rectangle := Main_Content_Rect (Layout);
-            Content_X : constant Natural := Content.X;
-            Content_Y : constant Natural := Content.Y;
-            Content_W : constant Natural := Content.Width;
-            Content_H : constant Natural := Content.Height;
-            Header_H  : constant Natural :=
-              Natural'Min
-                (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
-            Header_Y  : constant Natural := Content_Y;
-            Header_W  : constant Natural := Content_W;
-            Header_Pad : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
-            --  Optically centre the label in the header field: sit it two pixels
-            --  above the geometric inset, matching the bottom bar's text baseline
+            Header    : constant Details_Header_Layout :=
+              Details_Header_Geometry (Snapshot, Layout, Line_Height);
+            Content_X : constant Natural := Header.Content.X;
+            Header_H  : constant Natural := Header.Height;
+            Header_Y  : constant Natural := Header.Content.Y;
+            Header_W  : constant Natural := Header.Content.Width;
+            --  Optically centre the label in the header field: lift it above the
+            --  geometric inset, matching the bottom bar's text baseline
             --  (Bottom_Content_Y), so the glyphs read as centred rather than low.
-            Text_Y    : constant Natural :=
-              Saturating_Add (Header_Y, (if Header_Pad >= 2 then Header_Pad - 2 else 0));
-            Columns   : constant Detail_Column_Geometry_Array :=
-              Compute_Detail_Columns
-                (Snapshot.Detail_Columns_Visible,
-                 Snapshot.Detail_Column_Widths,
-                 Snapshot.Detail_Column_Order,
-                 Content_X,
-                 Content_W,
-                 Line_Height,
-                 Header_Pad);
+            Text_Y    : constant Natural := Saturating_Add (Header_Y, Optically_Raised (Header.Pad));
+            Columns   : Detail_Column_Geometry_Array renames Header.Columns;
 
             function Cell_X (Column_X : Natural) return Natural is
             begin
@@ -57,38 +43,11 @@ separate (Files.Rendering.Build_Frame_Commands)
                end case;
             end Header_Label;
 
-            function Column_Sort_Field
-              (Column : Files.Types.Detail_Column;
-               Field  : out Files.Types.Sort_Field)
-               return Boolean is
-            begin
-               case Column is
-                  when Files.Types.Name_Column =>
-                     Field := Files.Types.Sort_Name;
-                     return True;
-                  when Files.Types.Modified_Column =>
-                     Field := Files.Types.Sort_Changed;
-                     return True;
-                  when Files.Types.Size_Column =>
-                     Field := Files.Types.Sort_Size;
-                     return True;
-                  when Files.Types.Filetype_Column =>
-                     Field := Files.Types.Sort_Type;
-                     return True;
-                  when Files.Types.Created_Column =>
-                     Field := Files.Types.Sort_Created;
-                     return True;
-                  when Files.Types.Permissions_Column =>
-                     Field := Files.Types.Sort_Name;
-                     return False;
-               end case;
-            end Column_Sort_Field;
-
             function Header_Text (Column : Files.Types.Detail_Column) return UString is
                Label : constant String := Files.Localization.Text (Header_Label (Column));
-               Field : Files.Types.Sort_Field;
+               Sort  : constant Detail_Column_Sort := Detail_Column_Sorts (Column);
             begin
-               if Column_Sort_Field (Column, Field) and then Snapshot.Sort_Field = Field then
+               if Sort.Sortable and then Snapshot.Sort_Field = Sort.Field then
                   return To_Unbounded_String (Label & " " & Direction_Text);
                else
                   return To_Unbounded_String (Label);

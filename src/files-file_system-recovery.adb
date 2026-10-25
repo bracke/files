@@ -625,14 +625,18 @@ package body Files.File_System.Recovery is
       Revision := Null_Unbounded_String;
       Copy_Kept := False;
       declare
-         Expected : constant Support.Source_Snapshot := Support.Snapshot (Source);
+         --  The source is read once, by the copy: a root file's content is
+         --  pinned by the digest of the bytes copied, not hashed beforehand.
+         Shape     : constant Support.Source_Snapshot := Support.Snapshot (Source, Content => False);
+         Digest    : aliased Files.Types.UString;
          Set_Aside : Boolean;
       begin
          Support.Copy_To_New_Path
-           (Source, Destination, Identity, Revision, Cancel, Expected.Times,
-            Preserve_Ownership => True, Batch => Batch);
+           (Source, Destination, Identity, Revision, Cancel, Shape.Times,
+            Preserve_Ownership => True, Batch => Batch, Root_Digest => Digest'Access);
          Copied := True;
          declare
+            Expected : constant Support.Source_Snapshot := Support.With_Root_Content (Shape, To_String (Digest));
             Removed : constant Mutation_Result :=
               Remove_Move_Source (Source, Expected, Fallback_Key, Set_Aside);
          begin

@@ -27,6 +27,7 @@ separate (Files_Suite.Operations)
                 when 3 => Files.File_System.Trash_Files_Directory,
                 when others => Root), Link)
          then
+            Files_Suite.Support.Link_Not_Made ("Test_Symlink_Recovery");
             return;
          end if;
          Result := Files.File_System.Move_To_Trash (Link, Trashed);
@@ -125,5 +126,7 @@ separate (Files_Suite.Operations)
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
          Assert (Step.Status = Files.Operations.Operation_Success and then not Hostkit.Fs.Is_Link (Link),
                  "Undo removes a created dangling link");
+      else
+         Files_Suite.Support.Link_Not_Made ("Test_Symlink_Recovery", Files_Suite.Support.Symbolic_Link);
       end if;
    end Test_Symlink_Recovery;

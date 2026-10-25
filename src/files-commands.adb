@@ -282,9 +282,11 @@ package body Files.Commands is
       return Default_Shortcut_For (Id);
    end Shortcut_For;
 
+   --  The built-in secondary is part of the default binding: overriding the
+   --  command (rebinding or unbinding it) replaces it along with the primary.
    function Secondary_Shortcut_For
      (Id : Command_Id)
-      return Shortcut is (Traits (Id).Secondary);
+      return Shortcut is (if Override_Set (Id) then (others => <>) else Traits (Id).Secondary);
 
    function Key_Text
      (Key : Guikit.Input.Key_Code)
@@ -416,10 +418,36 @@ package body Files.Commands is
       return To_String (Result);
    end Joined_Full_Paths;
 
+   Reason_Keys : constant array (Disabled_Reason) of Unbounded_String :=
+     [No_Reason                  => +"",
+      Selection_Empty_Reason     => +"error.selection.empty",
+      Create_Pending_Reason      => +"error.create.pending",
+      Trash_View_Reason          => +"error.command.trash_view",
+      Recent_View_Reason         => +"error.command.recent_view",
+      Not_Archive_Reason         => +"error.extract.not_archive",
+      Clipboard_Empty_Reason     => +"error.clipboard.empty",
+      Settings_Closed_Reason     => +"error.settings.closed",
+      Back_Unavailable_Reason    => +"error.history.back_unavailable",
+      Forward_Unavailable_Reason => +"error.history.forward_unavailable",
+      Rename_Unavailable_Reason  => +"error.rename.disabled",
+      Filter_Empty_Reason        => +"error.filter.empty",
+      Root_Unselected_Reason     => +"error.root.selection.empty",
+      Eject_Unavailable_Reason   => +"error.root.eject_unavailable",
+      Trash_Unavailable_Reason   => +"error.trash.unavailable"];
+
+   function Reason_Key
+     (Reason : Disabled_Reason)
+      return String is (To_String (Reason_Keys (Reason)));
+
+   function Status_Of
+     (Id    : Command_Id;
+      Model : Files.Model.Window_Model)
+      return Command_Status is separate;
+
    function Is_Enabled
      (Id    : Command_Id;
       Model : Files.Model.Window_Model)
-      return Boolean is separate;
+      return Boolean is (Status_Of (Id, Model).Enabled);
 
    function Find_By_Shortcut
      (Key       : Guikit.Input.Key_Code;

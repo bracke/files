@@ -1,56 +1,37 @@
 with Ada.Calendar;
 with Files.Grouping;
-with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Environment_Variables;
-with Interfaces;
-with Interfaces.C.Strings;
 with Ada.Strings;
-with Ada.Streams;
-with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
-with System;
 
 with AUnit;
 with AUnit.Assertions;
 with AUnit.Test_Cases;
 
-with Glfw;
-with Glfw.Input.Mouse;
-
 with GNAT.OS_Lib;
-with Textrender.Fonts;
 with Hostkit.Host;
 
-with Files.Accessibility;
 with Files.Application;
 with Files.Application.Windows;
 with Files.Bounded_Text_IO;
-with Files.Command_Palette;
 with Files.Commands;
 with Files.Controller;
-with Files.Drop_Events;
 with Files.Events;
 with Files.File_System;
 with Files.File_Types;
-with Files.Fonts;
 with Files.Localization;
 with Files.Model;
 with Files.Operations;
 with Files.Platform;
 with Files.Quick_Look;
-with Guikit.Draw;
 with Files.Rendering;
-with Guikit.Vulkan;
 with Files.Settings;
 with Files.Type_Ahead;
 with Guikit.Input;
 with Files.Types;
-with Files.UTF8;
-with Files.UI;
-with Files_Suite.Repository;
 with Files_Suite.Support;
 
 package body Files_Suite.Model is
@@ -60,43 +41,16 @@ package body Files_Suite.Model is
    use type Ada.Calendar.Time;
    use type Ada.Directories.File_Kind;
    use type Hostkit.Host.Kind;
-   use type Interfaces.Unsigned_32;
    use type Files.Commands.Command_Id;
-   use type Files.Commands.Command_Placement;
-   use type Files.Controller.Controller_Status;
-   use type Files.Events.Input_Action_Kind;
-   use type Files.Events.Scroll_Target;
    use type Files.File_System.Native_API_Binding_Status;
    use type Files.File_System.Native_Platform_Adapter;
    use type Files.File_System.Path_Status;
-   use type Files.File_System.Drop_Import_Mode;
    use type Files.File_System.Root_Kind;
    use type Files.File_System.Root_Readiness;
-   use type Files.File_System.Thumbnail_Status;
-   use type Files.File_System.Trash_Backend;
-   use type Files.Application.Run_Mode;
-   use type Files.Operations.Open_Action_Lifecycle_State;
-   use type Files.Operations.Operation_Status;
-   use type Guikit.Draw.Accessibility_Role;
-   use type Guikit.Draw.Icon_Asset_Color_Role;
-   use type Guikit.Draw.Render_Color;
-   use type Files.Rendering.Text_Render_Status;
-   use type Guikit.Vulkan.Atlas_Texture_Format;
-   use type Guikit.Vulkan.Texture_Source;
-   use type Guikit.Vulkan.Vulkan_Status;
-   use type Interfaces.Unsigned_8;
-   use type Interfaces.C.int;
-   use type Textrender.Fonts.Load_Result;
    use type Files.Types.Sort_Field;
    use type Files.Model.Undo_Entry;
-   use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
-   use type Guikit.Input.Key_Code;
-   use type Guikit.Input.Modifier_Set;
-   use type Guikit.Input.Navigation_Direction;
    use type Files.Types.View_Mode;
-   use type Glfw.Input.Mouse.Coordinate;
-   use type System.Address;
    use Files_Suite.Support;
 
    type Model_Test_Case is new AUnit.Test_Cases.Test_Case with null record;
@@ -154,6 +108,7 @@ package body Files_Suite.Model is
    procedure Test_Grouping_Band_Edges (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Snapshot_Labels_And_Favorites_At_Scale (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Snapshot_Owner_Names_From_Model (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Overlay_Queries (T : in out AUnit.Test_Cases.Test_Case'Class);
    overriding function Name (T : Model_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
    begin
@@ -283,6 +238,9 @@ package body Files_Suite.Model is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Snapshot_Owner_Names_From_Model'Access,
          "the info pane shows the owner names sampled into the model, and none before they are sampled");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Overlay_Queries'Access,
+         "the overlay queries read one list of input-owning overlays");
    end Register_Tests;
 
    procedure Test_Directory_Sorting (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -396,6 +354,8 @@ package body Files_Suite.Model is
    procedure Test_Snapshot_Labels_And_Favorites_At_Scale (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Snapshot_Owner_Names_From_Model (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Overlay_Queries (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

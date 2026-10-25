@@ -8,7 +8,7 @@ separate (Files_Suite.Operations)
       if Hostkit.Host.Current not in Hostkit.Host.Linux | Hostkit.Host.MacOS then
          Files_Suite.Support.Skip
            ("Test_Reserve_Exception_Safety",
-            "Hostkit.Host.Current not in Hostkit.Host.Linux | Hostkit.Host.MacOS");
+            "needs Linux or macOS");
          return;
       end if;
       Reset_Root;

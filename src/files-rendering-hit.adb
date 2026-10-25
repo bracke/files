@@ -148,22 +148,9 @@ package body Files.Rendering.Hit is
    function Header_Sort_Command
      (Column : Files.Types.Detail_Column)
       return Files.Commands.Command_Id is
-   begin
-      case Column is
-         when Files.Types.Name_Column =>
-            return Files.Commands.Sort_By_Name_Command;
-         when Files.Types.Modified_Column =>
-            return Files.Commands.Sort_By_Changed_Command;
-         when Files.Types.Size_Column =>
-            return Files.Commands.Sort_By_Size_Command;
-         when Files.Types.Filetype_Column =>
-            return Files.Commands.Sort_By_Type_Command;
-         when Files.Types.Created_Column =>
-            return Files.Commands.Sort_By_Created_Command;
-         when Files.Types.Permissions_Column =>
-            return Files.Commands.No_Command;
-      end case;
-   end Header_Sort_Command;
+     (if Detail_Column_Sorts (Column).Sortable
+      then Files.Commands.Sort_Command (Detail_Column_Sorts (Column).Field)
+      else Files.Commands.No_Command);
 
    function Details_Header_Cell_At
      (Snapshot    : View_Snapshot;
@@ -173,24 +160,13 @@ package body Files.Rendering.Hit is
       Line_Height : Positive := 20)
       return Detail_Header_Cell
    is
-      Content : constant Content_Rectangle := Main_Content_Rect (Layout);
-      Content_X : constant Natural := Content.X;
-      Content_Y : constant Natural := Content.Y;
-      Content_W : constant Natural := Content.Width;
-      Content_H : constant Natural := Content.Height;
-      Header_H  : constant Natural :=
-        Natural'Min
-          (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
-      Header_Pad : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
-      Columns   : constant Detail_Column_Geometry_Array :=
-        Compute_Detail_Columns
-          (Snapshot.Detail_Columns_Visible,
-           Snapshot.Detail_Column_Widths,
-           Snapshot.Detail_Column_Order,
-           Content_X,
-           Content_W,
-           Line_Height,
-           Header_Pad);
+      Header    : constant Details_Header_Layout :=
+        Details_Header_Geometry (Snapshot, Layout, Line_Height);
+      Content_X : constant Natural := Header.Content.X;
+      Content_Y : constant Natural := Header.Content.Y;
+      Content_W : constant Natural := Header.Content.Width;
+      Header_H  : constant Natural := Header.Height;
+      Columns   : Detail_Column_Geometry_Array renames Header.Columns;
 
       function Within (Column : Files.Types.Detail_Column) return Boolean is
       begin
@@ -227,24 +203,13 @@ package body Files.Rendering.Hit is
       return Natural
    is
       use type Files.Types.Detail_Column;
-      Content : constant Content_Rectangle := Main_Content_Rect (Layout);
-      Content_X : constant Natural := Content.X;
-      Content_Y : constant Natural := Content.Y;
-      Content_W : constant Natural := Content.Width;
-      Content_H : constant Natural := Content.Height;
-      Header_H  : constant Natural :=
-        Natural'Min
-          (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
-      Header_Pad : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
-      Columns   : constant Detail_Column_Geometry_Array :=
-        Compute_Detail_Columns
-          (Snapshot.Detail_Columns_Visible,
-           Snapshot.Detail_Column_Widths,
-           Snapshot.Detail_Column_Order,
-           Content_X,
-           Content_W,
-           Line_Height,
-           Header_Pad);
+      Header    : constant Details_Header_Layout :=
+        Details_Header_Geometry (Snapshot, Layout, Line_Height);
+      Content_X : constant Natural := Header.Content.X;
+      Content_Y : constant Natural := Header.Content.Y;
+      Content_W : constant Natural := Header.Content.Width;
+      Header_H  : constant Natural := Header.Height;
+      Columns   : Detail_Column_Geometry_Array renames Header.Columns;
    begin
       if Snapshot.View_Mode /= Files.Types.Details
         or else Header_H = 0
@@ -291,24 +256,11 @@ package body Files.Rendering.Hit is
       Line_Height : Positive := 20)
       return Detail_Column_Separator
    is
-      Content : constant Content_Rectangle := Main_Content_Rect (Layout);
-      Content_X : constant Natural := Content.X;
-      Content_Y : constant Natural := Content.Y;
-      Content_W : constant Natural := Content.Width;
-      Content_H : constant Natural := Content.Height;
-      Header_H  : constant Natural :=
-        Natural'Min
-          (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
-      Header_Pad : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
-      Columns   : constant Detail_Column_Geometry_Array :=
-        Compute_Detail_Columns
-          (Snapshot.Detail_Columns_Visible,
-           Snapshot.Detail_Column_Widths,
-           Snapshot.Detail_Column_Order,
-           Content_X,
-           Content_W,
-           Line_Height,
-           Header_Pad);
+      Header    : constant Details_Header_Layout :=
+        Details_Header_Geometry (Snapshot, Layout, Line_Height);
+      Content_Y : constant Natural := Header.Content.Y;
+      Header_H  : constant Natural := Header.Height;
+      Columns   : Detail_Column_Geometry_Array renames Header.Columns;
       Low       : constant Natural :=
         (if X > Detail_Separator_Hot_Zone then X - Detail_Separator_Hot_Zone else 0);
       High      : constant Natural := Saturating_Add (X, Detail_Separator_Hot_Zone);
@@ -425,7 +377,7 @@ package body Files.Rendering.Hit is
          return Files.Commands.No_Command;
       end if;
 
-      for Button_Index in 0 .. 6 loop
+      for Button_Index in Toolbar_Button_Index loop
          if Within_Rect
               (X,
                Y,
@@ -434,22 +386,7 @@ package body Files.Rendering.Hit is
                Toolbar_Left_Button_Width (Toolbar, Button_Index),
                Input_H)
          then
-            case Button_Index is
-               when 0 =>
-                  return Files.Commands.Select_Drive_Command;
-               when 1 =>
-                  return Files.Commands.Navigate_Home_Command;
-               when 2 =>
-                  return Files.Commands.Navigate_Back_Command;
-               when 3 =>
-                  return Files.Commands.Navigate_Forward_Command;
-               when 4 =>
-                  return Files.Commands.Navigate_Parent_Command;
-               when 5 =>
-                  return Files.Commands.Create_File_Command;
-               when others =>
-                  return Files.Commands.Delete_Selected_Items_Command;
-            end case;
+            return Toolbar_Button_Commands (Button_Index);
          end if;
       end loop;
 
@@ -524,49 +461,24 @@ package body Files.Rendering.Hit is
       Line_Height : Positive := 20)
       return Files.Commands.Command_Id
    is
-      Bottom       : constant Bottom_Bar_Layout :=
+      Bottom : constant Bottom_Bar_Layout :=
         Files.UI.Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
-      Row_Count    : constant Natural := 5;
-      Row_H        : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
-      Menu_H       : constant Natural :=
-        Saturating_Add
-          (Saturating_Multiply (Row_H, Row_Count), Saturating_Multiply (Sort_Menu_Padding, 2));
-      Bottom_H     : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
-      Bottom_Y     : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
-      Menu_Y       : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
-      Rows_Y       : constant Natural := Saturating_Add (Menu_Y, Sort_Menu_Padding);
-      --  The dropdown is as wide as the widest field, not the (snug) sort button.
-      Menu_W       : constant Natural :=
-        Files.UI.Sort_Menu_Visible_Width (Width, Sort_Field, Line_Height);
-      Relative_Row : Natural := 0;
+      Menu   : constant Files.UI.Sort_Menu_Layout :=
+        Files.UI.Calculate_Sort_Menu_Layout (Width, Height, Sort_Field, Line_Height);
    begin
       if Bottom.Sort_Button_Width = 0
         or else X >= Width
         or else Y >= Height
-        or else X < Bottom.Sort_Button_X
-        or else X >= Saturating_Add (Bottom.Sort_Button_X, Menu_W)
-        or else Y < Rows_Y
-        or else Y >= Saturating_Add (Rows_Y, Saturating_Multiply (Row_H, Row_Count))
-        or else Row_H = 0
+        or else X < Menu.X
+        or else X >= Saturating_Add (Menu.X, Menu.Width)
+        or else Y < Menu.Rows_Y
+        or else Y >= Saturating_Add (Menu.Rows_Y, Saturating_Multiply (Menu.Row_Height, Menu.Row_Count))
+        or else Menu.Row_Height = 0
       then
          return Files.Commands.No_Command;
       end if;
 
-      Relative_Row := (Y - Rows_Y) / Row_H;
-      case Relative_Row is
-         when 0 =>
-            return Files.Commands.Sort_By_Name_Command;
-         when 1 =>
-            return Files.Commands.Sort_By_Size_Command;
-         when 2 =>
-            return Files.Commands.Sort_By_Type_Command;
-         when 3 =>
-            return Files.Commands.Sort_By_Created_Command;
-         when 4 =>
-            return Files.Commands.Sort_By_Changed_Command;
-         when others =>
-            return Files.Commands.No_Command;
-      end case;
+      return Files.Commands.Sort_Command (Files.UI.Sort_Menu_Row_Field ((Y - Menu.Rows_Y) / Menu.Row_Height + 1));
    end Bottom_Bar_Sort_Menu_Command_At;
 
    function Bottom_Bar_Sort_Menu_Contains
@@ -578,26 +490,19 @@ package body Files.Rendering.Hit is
       Line_Height : Positive := 20)
       return Boolean
    is
-      Bottom    : constant Bottom_Bar_Layout := Files.UI.Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
-      Row_Count : constant Natural := 5;
-      Row_H     : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
-      Menu_H    : constant Natural :=
-        Saturating_Add
-          (Saturating_Multiply (Row_H, Row_Count), Saturating_Multiply (Sort_Menu_Padding, 2));
-      Bottom_H  : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
-      Bottom_Y  : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
-      Menu_Y    : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
-      Menu_W    : constant Natural :=
-        Files.UI.Sort_Menu_Visible_Width (Width, Sort_Field, Line_Height);
+      Bottom      : constant Bottom_Bar_Layout :=
+        Files.UI.Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
+      Menu        : constant Files.UI.Sort_Menu_Layout :=
+        Files.UI.Calculate_Sort_Menu_Layout (Width, Height, Sort_Field, Line_Height);
       Menu_Bottom : constant Natural :=
-        Natural'Min (Height, Saturating_Add (Menu_Y, Menu_H));
+        Natural'Min (Height, Saturating_Add (Menu.Y, Menu.Height));
    begin
       return Bottom.Sort_Button_Width > 0
         and then X < Width
         and then Y < Height
-        and then X >= Bottom.Sort_Button_X
-        and then X < Saturating_Add (Bottom.Sort_Button_X, Menu_W)
-        and then Y >= Menu_Y
+        and then X >= Menu.X
+        and then X < Saturating_Add (Menu.X, Menu.Width)
+        and then Y >= Menu.Y
         and then Y < Menu_Bottom;
    end Bottom_Bar_Sort_Menu_Contains;
 

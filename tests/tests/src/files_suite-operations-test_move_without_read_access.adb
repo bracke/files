@@ -11,7 +11,7 @@ separate (Files_Suite.Operations)
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
    begin
       if not Hostkit.Metadata.Mode_Bits_Are_Native then
-         Files_Suite.Support.Skip ("Test_Move_Without_Read_Access", "not Hostkit.Metadata.Mode_Bits_Are_Native");
+         Files_Suite.Support.Skip ("Test_Move_Without_Read_Access", "needs native POSIX mode bits");
          return;
       end if;
       for Directory_Move in Boolean loop

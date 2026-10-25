@@ -5,9 +5,7 @@ separate (Files.Controller)
       Settings_Path : String)
       return Controller_Result
    is
-      Updated   : Files.Settings.Settings_Model := Settings;
-      Saved     : Files.Settings.Settings_Write_Result;
-      Operation : Files.Operations.Operation_Result := Empty_Operation;
+      Updated : Files.Settings.Settings_Model := Settings;
    begin
       --  Cycle the field through free -> used -> bar -> free.
       if Updated.Show_Space_Bar then
@@ -19,26 +17,10 @@ separate (Files.Controller)
          Updated.Show_Used_Space := True;
       end if;
 
-      Saved := Write_Settings (Settings_Path, Updated);
-      if not Saved.Success then
-         Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
-         Operation.Status := Files.Operations.Operation_Failed;
-         Operation.Error_Key := Saved.Error_Key;
-         Operation.Path := To_Unbounded_String (Settings_Path);
-         return Make_Result
-           (Controller_Command_Executed, Files.Commands.Toggle_Free_Space_Display_Command, Operation);
-      end if;
-
       --  Display-only setting: the item list is unchanged, so there is no
       --  directory reload. The next Build_Snapshot carries the new flag, which
       --  differs from the cached snapshot and rebuilds the frame on its own.
-      Settings := Updated;
-      Files.Model.Set_Error
-        (Model, (if Saved.Durable then "" else To_String (Saved.Error_Key)));
-      Operation.Status := Files.Operations.Operation_Success;
-      Operation.Path := To_Unbounded_String (Settings_Path);
-      Operation.Error_Key := Saved.Error_Key;
-
-      return Make_Result
-        (Controller_Command_Executed, Files.Commands.Toggle_Free_Space_Display_Command, Operation);
+      return
+        Apply_Settings_Change
+          (Files.Commands.Toggle_Free_Space_Display_Command, Model, Settings, Updated, Settings_Path);
    end Toggle_Free_Space_Display;

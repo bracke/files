@@ -10,7 +10,7 @@ separate (Files_Suite.Operations)
       Read_Ok : Boolean;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Search_Read_Errors", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Search_Read_Errors", "needs Linux");
          return;
       end if;
       for Background in Boolean loop
@@ -85,6 +85,8 @@ separate (Files_Suite.Operations)
               (not Read_Ok and then Text = "",
                "preview reads refuse a symbolic link instead of following it");
          end;
+      else
+         Files_Suite.Support.Link_Not_Made ("Test_Search_Read_Errors", Files_Suite.Support.Symbolic_Link);
       end if;
       declare
          Text : constant String := Files.File_System.Read_Preview_Text

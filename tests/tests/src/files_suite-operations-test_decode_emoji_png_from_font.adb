@@ -7,7 +7,7 @@ separate (Files_Suite.Operations)
       use type Textrender.Fonts.Colour_Image_Format;
    begin
       if not Ada.Directories.Exists (Emoji_Path) then
-         Files_Suite.Support.Skip ("Test_Decode_Emoji_Png_From_Font", "not Ada.Directories.Exists (Emoji_Path)");
+         Files_Suite.Support.Skip ("Test_Decode_Emoji_Png_From_Font", "the Noto Color Emoji font is not installed");
          return;
       end if;
 

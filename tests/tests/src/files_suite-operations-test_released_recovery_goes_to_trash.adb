@@ -14,7 +14,7 @@ separate (Files_Suite.Operations)
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
          Files_Suite.Support.Skip
            ("Test_Released_Recovery_Goes_To_Trash",
-            "Hostkit.Host.Current /= Hostkit.Host.Linux");
+            "needs Linux");
          return;
       end if;
       Reset_Root;

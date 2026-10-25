@@ -8,7 +8,7 @@ separate (Files_Suite.Operations)
       Dest : constant String := Join (Root, "destination");
    begin
       if not Hostkit.Metadata.Mode_Bits_Are_Native then
-         Files_Suite.Support.Skip ("Test_Copy_Access_Bits", "not Hostkit.Metadata.Mode_Bits_Are_Native");
+         Files_Suite.Support.Skip ("Test_Copy_Access_Bits", "needs native POSIX mode bits");
          return;
       end if;
       for Directory_Copy in Boolean loop

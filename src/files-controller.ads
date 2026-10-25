@@ -72,9 +72,10 @@ package Files.Controller is
       Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result;
 
-   --  Persist the settings model to the central settings file. A no-op when the
-   --  path is empty; a write that fails, or is not durable, is reported in the
-   --  window's error line rather than dropped.
+   --  Persist the already-applied settings model to the central settings file.
+   --  A no-op when the path is empty; a write that fails, or is not durable, or
+   --  is refused because the settings file could not be loaded, is reported in
+   --  the window's error line while the change stays applied for the session.
    --
    --  @param Model Window whose error line reports a failed write.
    --  @param Settings Settings model to serialize.
@@ -84,10 +85,11 @@ package Files.Controller is
       Settings      : Files.Settings.Settings_Model;
       Settings_Path : String);
 
-   --  Validate, save, apply, and refresh edited settings.
+   --  Validate, apply, refresh, and save edited settings. A valid draft is
+   --  applied even when the save then fails; the failure is reported.
    --
    --  @param Model Window model to update.
-   --  @param Settings Live settings model to replace on success.
+   --  @param Settings Live settings model, replaced when the draft is valid.
    --  @param Settings_Path Central settings file path.
    --  @return Controller result with persistence operation details.
    function Save_Settings
@@ -98,10 +100,10 @@ package Files.Controller is
 
    --  Toggle hidden-file visibility, persist it, and reload the directory.
    --
-   --  Flips Settings.Show_Hidden_Files, writes the updated settings model to the
-   --  central settings file, and refreshes the current directory so it reloads
-   --  with the new visibility. On a save failure the model error is set and a
-   --  failed result is returned without leaving the toggle half-applied.
+   --  Flips Settings.Show_Hidden_Files, refreshes the current directory so it
+   --  reloads with the new visibility, and writes the settings file. Like every
+   --  settings change, a save failure keeps the change for the session: the
+   --  model error is set and the result's operation reports the failure.
    --
    --  @param Model Window model to update.
    --  @param Settings Live settings model whose visibility flag is flipped.

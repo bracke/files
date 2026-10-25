@@ -4,7 +4,7 @@ function Delete_From_Trash_Backend
    return Mutation_Result
 is
    Removed : Mutation_Result;
-   Backend : constant Trash_Backend := Trash_Backend_For_Base;
+   Backend : constant Trash_Backend := Trash_Backend_Of_Current_Environment;
    Base    : constant String := Trash_Base_Path;
 begin
    if Backend not in Trash_Xdg_Data_Home | Trash_Home_Data | Trash_Macos_Home

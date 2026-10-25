@@ -82,6 +82,7 @@ separate (Files_Suite.Operations)
                Trash_Items.Append (Source_Load.Item);
                Files.Model.Initialize
                  (Trash_Model, To_String (Trash_Load.Path), Trash_Items, Full_Child);
+               Files.Operations.Settle_Current_Is_Trash (Trash_Model);
                Files.Model.Select_Visible (Trash_Model, 1);
                Assert
                  (not Files.Commands.Is_Enabled (Files.Commands.Navigate_Parent_Command, Trash_Model),

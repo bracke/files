@@ -72,26 +72,12 @@ begin
       end if;
 
       Result :=
-        (Kind            => Item_Click_Input_Action,
-         Command         => Files.Commands.No_Command,
-         Direction       => Guikit.Input.Move_Right,
-         Item_Index      => Item_Index,
-         Root_Index      => 0,
-         Result_Index    => 0,
-         Click_X          => 0,
-         Click_Y          => 0,
-         Scroll_Lines    => 0,
-         Scroll_Area     => Scroll_Auto,
-         Focus_Target    => Files.Types.Focus_None,
-         Cursor_Position => 0,
-         Settings_Field  => 0,
-         Settings_Option => 0,
-         Activate        => Activate,
-         Toggle_Selection =>
-           Modifiers (Guikit.Input.Control_Key)
-             and then not Modifiers (Guikit.Input.Shift_Key),
+        (Kind             => Item_Click_Input_Action,
+         Item_Index       => Item_Index,
+         Activate         => Activate,
+         Toggle_Selection => Modifiers (Guikit.Input.Control_Key) and then not Modifiers (Guikit.Input.Shift_Key),
          Range_Selection  => Modifiers (Guikit.Input.Shift_Key),
-         Scroll_Drag_Anchor => 0);
+         others           => <>);
       return;
    end if;
 

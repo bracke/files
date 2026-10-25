@@ -657,6 +657,37 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  Settle whether the model's current directory is the trash's files
+   --  directory, a disk check (the trash may be reached through another path
+   --  to the same directory). Every navigation here calls it after it changes
+   --  the directory; so must any other caller that sets the model's directory
+   --  through Files.Model directly.
+   --
+   --  @param Model Window model whose trash flag is settled.
+   procedure Settle_Current_Is_Trash
+     (Model : in out Files.Model.Window_Model);
+
+   --  Compute and cache the selected item's "extra info" (folder child count,
+   --  document counts, symlink target) when the info pane wants it and it has
+   --  not been computed yet. Called after input so the info pane can show the
+   --  detail without every item paying for it on load. A no-op when the info
+   --  pane is closed, nothing is selected, or the value is already cached.
+   --
+   --  @param Model Window model whose selected item is updated in place.
+   procedure Ensure_Selected_Item_Extra
+     (Model : in out Files.Model.Window_Model);
+
+   --  Open the info-pane ownership editor for the single selected item,
+   --  prefilled with the owner's (or group's) resolved account name. Does
+   --  nothing on a platform without chown support, or when the model refuses
+   --  (see Files.Model.Focus_Ownership_Input).
+   --
+   --  @param Model Window model to update.
+   --  @param Editing_Group True to edit the group, False to edit the owner.
+   procedure Focus_Ownership_Input
+     (Model         : in out Files.Model.Window_Model;
+      Editing_Group : Boolean);
+
    --  Refresh the cached recursive folder size for the current selection.
    --
    --  Request uncached selected directories from a helper process and prune

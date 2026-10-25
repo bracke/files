@@ -116,6 +116,8 @@ separate (Files_Suite.Operations)
               (not Files.File_System.Is_Recovery_Payload (To_String (Backup)),
                "recovery rejects a multiply-linked ownership record");
             Ada.Directories.Delete_File (Owner_Alias);
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Native_Replace_Recovery", Files_Suite.Support.Hard_Link);
          end if;
          Write_Binary_File (Owner_Path, Owner_Data & "trailing");
          Assert

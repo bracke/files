@@ -178,10 +178,12 @@ package Files.Commands is
      (Id : Command_Id)
       return Shortcut;
 
-   --  Return a secondary command keyboard shortcut, when one exists.
+   --  Return a command's live secondary keyboard shortcut, when one exists. The
+   --  built-in secondary belongs to the default binding: once the command has
+   --  an override (a rebind or an unbind) it has no secondary.
    --
    --  @param Id Command identifier.
-   --  @return Secondary shortcut metadata.
+   --  @return Secondary shortcut metadata (absent while Id is overridden).
    function Secondary_Shortcut_For
      (Id : Command_Id)
       return Shortcut;
@@ -219,7 +221,8 @@ package Files.Commands is
    --  @return The parsed shortcut.
    function Parse_Shortcut (Text : String) return Shortcut;
 
-   --  Override a command's primary shortcut (Value.Present False unbinds it).
+   --  Override a command's shortcut (Value.Present False unbinds it). The
+   --  override replaces the whole default binding, built-in secondary included.
    --  Shortcut_For / Find_By_Shortcut then resolve to the effective
    --  (override-or-default) shortcut. Overrides are process-global.
    --
@@ -325,11 +328,58 @@ package Files.Commands is
      (Identifier_Text : String)
       return Command_Id;
 
+   --  Why a command cannot run now. No_Reason is used both for an enabled
+   --  command and for a disabled one with nothing worth telling the user (no
+   --  undo history, a modal overlay that silently owns the keyboard).
+   type Disabled_Reason is
+     (No_Reason,
+      Selection_Empty_Reason,
+      Create_Pending_Reason,
+      Trash_View_Reason,
+      Recent_View_Reason,
+      Not_Archive_Reason,
+      Clipboard_Empty_Reason,
+      Settings_Closed_Reason,
+      Back_Unavailable_Reason,
+      Forward_Unavailable_Reason,
+      Rename_Unavailable_Reason,
+      Filter_Empty_Reason,
+      Root_Unselected_Reason,
+      Eject_Unavailable_Reason,
+      Trash_Unavailable_Reason);
+
+   --  Whether a command can run, and if not, why.
+   type Command_Status is record
+      Enabled : Boolean := True;
+      --  Meaningful only when Enabled is False.
+      Reason  : Disabled_Reason := No_Reason;
+   end record;
+
+   --  The localization key of the message a disabled command reports.
+   --
+   --  @param Reason Why the command is disabled.
+   --  @return Error catalog key, or an empty string for No_Reason.
+   function Reason_Key
+     (Reason : Disabled_Reason)
+      return String;
+
+   --  Return whether a command is executable in the current model state and,
+   --  when it is not, why. This is the one set of enablement rules: Is_Enabled
+   --  and the controller's disabled-command report both read it.
+   --
+   --  @param Id Command identifier.
+   --  @param Model Current window model.
+   --  @return Enablement and the reason a disabled command cannot run.
+   function Status_Of
+     (Id    : Command_Id;
+      Model : Files.Model.Window_Model)
+      return Command_Status;
+
    --  Return whether a command is executable in the current model state.
    --
    --  @param Id Command identifier.
    --  @param Model Current window model.
-   --  @return True when command can execute.
+   --  @return True when command can execute (Status_Of (Id, Model).Enabled).
    function Is_Enabled
      (Id    : Command_Id;
       Model : Files.Model.Window_Model)
@@ -392,7 +442,8 @@ package Files.Commands is
      (Id : Command_Id)
       return Boolean;
 
-   --  Find a command registered for the given shortcut.
+   --  Find the command a shortcut runs: the first whose live primary or
+   --  secondary binding (see Shortcut_For / Secondary_Shortcut_For) matches.
    --
    --  @param Key Key code.
    --  @param Modifiers Active modifiers.

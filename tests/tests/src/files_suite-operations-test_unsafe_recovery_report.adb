@@ -115,6 +115,8 @@ separate (Files_Suite.Operations)
                Assert
                  (Files.Job_Scavenger.Has_Unrecoverable,
                   "recovery creates a validated report marker after a refused hardlink: report marker created");
+            else
+               Files_Suite.Support.Link_Not_Made ("Test_Unsafe_Recovery_Report", Files_Suite.Support.Hard_Link);
             end if;
             Ada.Directories.Delete_File (Victim);
          exception

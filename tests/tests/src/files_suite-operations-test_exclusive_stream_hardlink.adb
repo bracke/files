@@ -24,6 +24,8 @@ separate (Files_Suite.Operations)
                and then Project_Tools.Files.Read_Raw_File (Victim) = "unchanged",
                "exclusive transport streams refuse hardlinks without truncating their target");
             Ada.Directories.Delete_File (Alias);
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Exclusive_Stream_Hardlink", Files_Suite.Support.Hard_Link);
          end if;
          Ada.Directories.Delete_File (Victim);
       exception

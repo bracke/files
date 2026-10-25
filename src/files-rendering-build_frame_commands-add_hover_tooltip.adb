@@ -10,7 +10,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       Text        : constant UString := Tooltip_At (Hover_X, Hover_Y);
       Text_Raw    : constant String := To_String (Text);
       Text_Len    : constant Natural := Files.UTF8.Display_Units (Text_Raw);
-      Cell_W      : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+      Cell_W      : constant Natural := Guikit.Layout.Caret_Advance_Width (Line_Height);
       Max_Tip_W   : constant Natural :=
         (if Width > 2 * Margin then Width - 2 * Margin else Width);
       Raw_Text_W  : constant Natural := Saturating_Multiply (Text_Len, Cell_W);

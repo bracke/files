@@ -246,29 +246,17 @@ separate (Files.Rendering.Build_Frame_Commands)
 
       if Snapshot.Sort_Menu_Open and then Bottom.Sort_Button_Width > 0 then
          declare
-            Row_Count : constant Natural := 5;
-            Row_H     : constant Natural :=
-              Saturating_Add (Line_Height, Saturating_Multiply (Guikit.Layout.Bottom_Bar_Padding, 2));
-            Rows_H    : constant Natural := Saturating_Multiply (Row_H, Row_Count);
-            Menu_H    : constant Natural :=
-              Saturating_Add (Rows_H, Saturating_Multiply (Guikit.Layout.Sort_Menu_Padding, 2));
-            Menu_X    : constant Natural := Bottom.Sort_Button_X;
-            Menu_Y    : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
-            --  The dropdown fits the widest field, not the (snug) sort button.
-            Menu_W    : constant Natural :=
-              Files.UI.Sort_Menu_Visible_Width
-                (Width, Snapshot.Sort_Field, Line_Height);
-            Rows_Y    : constant Natural := Saturating_Add (Menu_Y, Guikit.Layout.Sort_Menu_Padding);
+            Menu      : constant Files.UI.Sort_Menu_Layout :=
+              Files.UI.Calculate_Sort_Menu_Layout (Width, Height, Snapshot.Sort_Field, Line_Height);
+            Row_H     : constant Natural := Menu.Row_Height;
+            Rows_H    : constant Natural := Saturating_Multiply (Row_H, Menu.Row_Count);
+            Menu_H    : constant Natural := Menu.Height;
+            Menu_X    : constant Natural := Menu.X;
+            Menu_Y    : constant Natural := Menu.Y;
+            Menu_W    : constant Natural := Menu.Width;
+            Rows_Y    : constant Natural := Menu.Rows_Y;
             Row_X     : constant Natural := Saturating_Add (Menu_X, 1);
             Row_W     : constant Natural := (if Menu_W > 2 then Menu_W - 2 else 0);
-
-            type Sort_Field_Array is array (Positive range <>) of Files.Types.Sort_Field;
-            Fields : constant Sort_Field_Array :=
-              [Files.Types.Sort_Name,
-               Files.Types.Sort_Size,
-               Files.Types.Sort_Type,
-               Files.Types.Sort_Created,
-               Files.Types.Sort_Changed];
          begin
             --  Keyboard and pointer routing are confined to the open menu;
             --  publish the same scope to assistive technology.
@@ -299,9 +287,9 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Show_Alternate_Rows => False,
                   others              => <>);
             begin
-               for Row in Fields'Range loop
+               for Row in 1 .. Menu.Row_Count loop
                   declare
-                     Field    : constant Files.Types.Sort_Field := Fields (Row);
+                     Field    : constant Files.Types.Sort_Field := Files.UI.Sort_Menu_Row_Field (Row);
                      Row_Y    : constant Natural :=
                        Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H));
                      Selected : constant Boolean := Field = Snapshot.Sort_Field;
@@ -346,9 +334,9 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Draw_Chrome   => False,
                   Row_Height    => Row_H);
 
-               for Row in Fields'Range loop
+               for Row in 1 .. Menu.Row_Count loop
                   declare
-                     Field : constant Files.Types.Sort_Field := Fields (Row);
+                     Field : constant Files.Types.Sort_Field := Files.UI.Sort_Menu_Row_Field (Row);
                      Row_Y : constant Natural :=
                        Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H));
                      Selected : constant Boolean := Field = Snapshot.Sort_Field;
@@ -357,7 +345,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                          (Sort_Field_Label (Field)
                           & (if Selected then " " & Direction_Text else ""));
                   begin
-                     if Row > Fields'First then
+                     if Row > 1 then
                         Add_Overlay_Rect (Row_X, Row_Y, Row_W, 1, Border_Color);
                      end if;
                      Add_Accessibility_Node

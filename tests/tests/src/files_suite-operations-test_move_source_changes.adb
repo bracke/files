@@ -37,7 +37,7 @@ separate (Files_Suite.Operations)
       end Change_Source;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Move_Source_Changes", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Move_Source_Changes", "needs Linux");
          return;
       end if;
       Reset_Root;

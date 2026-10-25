@@ -50,19 +50,11 @@ separate (Files.Rendering.Build_Frame_Commands)
             Border_Color);
       end if;
 
-      for Button_Index in 0 .. 6 loop
+      for Button_Index in Toolbar_Button_Index loop
          declare
             Button_X : constant Natural := Guikit.Layout.Toolbar_Left_Button_X (Toolbar, Button_Index);
             Button_W : constant Natural := Guikit.Layout.Toolbar_Left_Button_Width (Toolbar, Button_Index);
-            Command  : constant Files.Commands.Registered_Command_Id :=
-              (case Button_Index is
-                  when 0 => Files.Commands.Select_Drive_Command,
-                  when 1 => Files.Commands.Navigate_Home_Command,
-                  when 2 => Files.Commands.Navigate_Back_Command,
-                  when 3 => Files.Commands.Navigate_Forward_Command,
-                  when 4 => Files.Commands.Navigate_Parent_Command,
-                  when 5 => Files.Commands.Create_File_Command,
-                  when others => Files.Commands.Delete_Selected_Items_Command);
+            Command  : constant Files.Commands.Registered_Command_Id := Toolbar_Button_Commands (Button_Index);
             Button_Y : constant Natural := Toolbar_Input_Y;
             Button_H : constant Natural :=
               (if Button_Y >= Layout.Toolbar_Height
@@ -79,9 +71,9 @@ separate (Files.Rendering.Build_Frame_Commands)
             Inner_Pad    : constant Natural := Natural'Min (3, Button_W / 6);
             Group_Pad    : constant Natural := Natural'Min (8, Button_W / 4);
             Button_Pad_L : constant Natural :=
-              (if Button_Index = 5 then Group_Pad else Inner_Pad);
+              (if Button_Index = First_File_Action_Button then Group_Pad else Inner_Pad);
             Button_Pad_R : constant Natural :=
-              (if Button_Index = 4 then Group_Pad else Inner_Pad);
+              (if Button_Index = First_File_Action_Button - 1 then Group_Pad else Inner_Pad);
             Visible_X : constant Natural := Saturating_Add (Button_X, Button_Pad_L);
             Visible_W : constant Natural :=
               (if Button_W > Saturating_Add (Button_Pad_L, Button_Pad_R)
@@ -145,7 +137,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       if Layout.Toolbar_Height > 0 then
          declare
             Group_Boundary_X : constant Natural :=
-              Guikit.Layout.Toolbar_Left_Button_X (Toolbar, 5);
+              Guikit.Layout.Toolbar_Left_Button_X (Toolbar, First_File_Action_Button);
             Divider_H : constant Natural :=
               Natural'Max (1, Layout.Toolbar_Height / 3);
             Divider_Y : constant Natural :=
@@ -577,7 +569,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             Field_Label : constant String := Sort_Field_Label (Snapshot.Sort_Field);
             Arrow_Text  : constant String := Direction_Text;
             Cell_W      : constant Positive :=
-              Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+              Guikit.Layout.Caret_Advance_Width (Line_Height);
             Label_W     : constant Natural :=
               Saturating_Multiply (Files.UTF8.Display_Units (Field_Label), Cell_W);
             --  Tighter than a full monospace space so the direction arrow sits
@@ -647,7 +639,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       --  affordances stop at the divider rather than spanning the whole region.
       declare
          Pad       : constant Natural := 4;
-         Cell_W    : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+         Cell_W    : constant Natural := Guikit.Layout.Caret_Advance_Width (Line_Height);
          Free_Text : constant String := Free_Space_Label (Snapshot);
          Free_W    : constant Natural := Free_Space_Label_Width (Snapshot, Line_Height);
          --  The counts/free split, shared with the click hit-test so the toggle's

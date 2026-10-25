@@ -3,7 +3,6 @@ separate (Files_Suite.Rendering)
    --  (Selection_Color) core whose width is the used fraction, and no text.
    procedure Test_Space_Bar_Renders (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Guikit.Draw.Render_Color;
       Snap     : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
       Used_Sfx : constant String := Files.Localization.Text ("status.used_space.suffix");
       Free_Sfx : constant String := Files.Localization.Text ("status.free_space.suffix");

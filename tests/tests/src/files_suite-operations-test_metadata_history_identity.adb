@@ -38,7 +38,7 @@ separate (Files_Suite.Operations)
       end Replace_And_Refuse;
    begin
       if not Files.File_System.Supports_Permissions then
-         Files_Suite.Support.Skip ("Test_Metadata_History_Identity", "not Files.File_System.Supports_Permissions");
+         Files_Suite.Support.Skip ("Test_Metadata_History_Identity", "this host has no POSIX permissions to set");
          return;
       end if;
       for Background in Boolean loop

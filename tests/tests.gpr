@@ -13,7 +13,7 @@ project Tests is
 
    package Compiler is
       for Default_Switches ("Ada") use
-        Tests_Config.Ada_Compiler_Switches & ("-gnat2022", "-gnatyM120", "-gnatX", "-gnatwU");
+        Tests_Config.Ada_Compiler_Switches & ("-gnat2022", "-gnatyM120", "-gnatX");
       for Default_Switches ("C") use
         ("-std=c11", "-Wall", "-Wextra", "-Wpedantic", "-Werror") & Extra_C_Switches;
    end Compiler;

@@ -25,7 +25,7 @@ separate (Files_Suite.Operations)
       end Check;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Hard_Linked_Symbolic_Links", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Hard_Linked_Symbolic_Links", "needs Linux");
          return;
       end if;
       Reset_Root;

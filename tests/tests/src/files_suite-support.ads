@@ -7,7 +7,6 @@ with Files.Events;
 with Files.File_System;
 with Files.Model;
 with Files.Operations;
-with Files.Settings;
 with Files.Rendering;
 with Guikit.Input;
 with Files.Types;
@@ -239,6 +238,43 @@ package Files_Suite.Support is
    --  @param Guard Guard leaving scope.
    overriding procedure Finalize (Guard : in out Environment_Guard);
 
+   --  Puts the working directory back to what it was when the guard was
+   --  declared, when it leaves scope -- on an assertion failure too -- so a
+   --  test that changes directory cannot leave the rest of the suite running
+   --  somewhere else. A restore that fails is reported on standard error
+   --  (a finalizer must not raise), and the next guard's check sees it.
+   type Directory_Guard is new Ada.Finalization.Limited_Controlled with private;
+
+   --  Remember the current working directory.
+   --
+   --  @param Guard Guard being declared.
+   overriding procedure Initialize (Guard : in out Directory_Guard);
+
+   --  Change back to the remembered working directory.
+   --
+   --  @param Guard Guard leaving scope.
+   overriding procedure Finalize (Guard : in out Directory_Guard);
+
+   --  @param Guard A guard.
+   --  @return The working directory Guard restores.
+   function Saved_Directory (Guard : Directory_Guard) return String;
+
+   --  Drive every queued background folder-size walk of Model to completion,
+   --  publishing each result as the frame loop's Poll_All_Folder_Sizes would,
+   --  and assert they finished within the (scaled) poll limit.
+   --
+   --  @param Model Window model whose folder scans to drain.
+   procedure Drain_Folder_Sizes (Model : in out Files.Model.Window_Model);
+
+   --  The scheduler state of a process, from the third field of Linux's
+   --  /proc/<pid>/stat: 'R' running, 'S' sleeping, 'T' stopped, 'Z' a zombie
+   --  nobody has reaped, and so on.
+   --
+   --  @param Process_Id Process to look at.
+   --  @return Its state letter, or ' ' when there is no such process (or no
+   --  /proc to ask).
+   function Process_State (Process_Id : Integer) return Character;
+
    --  The scratch directory every fixture builds under.
    --
    --  This is deliberately not a hardcoded "/tmp/...": on macOS /tmp is a
@@ -332,6 +368,21 @@ package Files_Suite.Support is
    --  @param Linkpath Path of the link to create.
    --  @return True when the link was created.
    function Create_Symlink (Target : String; Linkpath : String) return Boolean;
+
+   --  The kinds of link a fixture makes.
+   type Link_Kind is (Symbolic_Link, Hard_Link);
+
+   --  Report that Test could not make the link its fixture needs, instead of
+   --  passing without checking anything. On Linux both kinds of link always
+   --  work in the test root, so there it is a failure. Elsewhere it is a
+   --  recorded skip -- a symbolic link is a privilege on Windows (Developer
+   --  Mode or the create-symbolic-link right), and a file another handle holds
+   --  may refuse a second name there -- which CI's per-host skip ceiling still
+   --  turns red if it starts happening.
+   --
+   --  @param Test The test routine.
+   --  @param Kind The link that could not be made.
+   procedure Link_Not_Made (Test : String; Kind : Link_Kind := Symbolic_Link);
 
    --  Delete and recreate the temporary test root directory.
    procedure Reset_Root;
@@ -464,6 +515,10 @@ private
    type Environment_Guard is new Ada.Finalization.Limited_Controlled with record
       Count : Natural := 0;
       Saved : Saved_Variables;
+   end record;
+
+   type Directory_Guard is new Ada.Finalization.Limited_Controlled with record
+      Saved : Files.Types.UString;
    end record;
 
 end Files_Suite.Support;

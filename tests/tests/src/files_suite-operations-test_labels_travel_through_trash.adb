@@ -34,7 +34,7 @@ separate (Files_Suite.Operations)
         (for some Entry_Label of Settings.Labels => Entry_Label.Label = Files.Types.Purple);
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Labels_Travel_Through_Trash", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Labels_Travel_Through_Trash", "needs Linux");
          return;
       end if;
       Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");

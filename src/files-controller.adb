@@ -31,16 +31,7 @@ package body Files.Controller is
    --  predicate lives at the controller boundary because GLFW character and
    --  file-drop callbacks bypass the ordinary key/click translators.
    function Non_Text_Overlay_Owns_Input
-     (Model : Files.Model.Window_Model) return Boolean is
-     ((Files.Model.Root_Selector_Is_Open (Model)
-       and then not Files.Model.Command_Palette_Is_Open (Model))
-      or else Files.Model.Sort_Menu_Is_Open (Model)
-      or else Files.Model.Context_Menu_Is_Open (Model)
-      or else Files.Model.Label_Picker_Is_Open (Model)
-      or else Files.Model.Quick_Look_Is_Open (Model)
-      or else Files.Model.Tree_Pick_Is_Active (Model)
-      or else Files.Model.Paste_Conflict_Is_Active (Model)
-      or else Files.Model.Paste_Execution_Is_Active (Model));
+     (Model : Files.Model.Window_Model) return Boolean renames Files.Model.Non_Text_Overlay_Owns_Input;
 
    --  Settings and the command palette accept native character input only while
    --  their own text surface holds focus.  This also contains characters after
@@ -71,36 +62,50 @@ package body Files.Controller is
          others    => <>);
    end Empty_Operation;
 
-   --  Seed the folder tree's root nodes from the available filesystem roots and
-   --  the user's favorites, but only when it has not already been seeded. Used
-   --  by the tree toggle command and the Copy to.../Move to... destination
-   --  picker so both open onto the same populated tree.
+   --  The filesystem roots followed by the user's favorites: what the root
+   --  selector lists and the folder tree is seeded with. A favorite's label is
+   --  the "root.favorite|<name>" token, which the selector renders as the star
+   --  prefix and base name rather than the full path.
+   function Root_Entries_With_Favorites
+     (Settings : Files.Settings.Settings_Model)
+      return Files.File_System.Root_Entry_Vectors.Vector
+   is
+      Roots : Files.File_System.Root_Entry_Vectors.Vector := Files.File_System.Available_Root_Entries;
+   begin
+      for Path of Settings.Favorite_Paths loop
+         Roots.Append
+           (Files.File_System.Root_Entry'
+              (Path        => Path,
+               Label       =>
+                 To_Unbounded_String
+                   (Files.File_System.Root_Label (To_String (Path), Files.File_System.Root_Favorite)),
+               Kind        => Files.File_System.Root_Favorite,
+               Volume_Name => Null_Unbounded_String,
+               Ready       => Files.File_System.Root_Ready,
+               Removable   => False));
+      end loop;
+      return Roots;
+   end Root_Entries_With_Favorites;
+
+   --  Seed the folder tree's root nodes from Root_Entries_With_Favorites, but
+   --  only when it has not already been seeded. Used by the tree toggle command
+   --  and the Copy to.../Move to... destination picker so both open onto the
+   --  same populated tree. The tree draws a node's name verbatim, so a favorite
+   --  is named by its path rather than by the selector's label token.
    procedure Seed_Tree_If_Needed
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model) is
    begin
       if not Files.Model.Tree_Is_Seeded (Model) then
          declare
-            Roots : Files.File_System.Root_Entry_Vectors.Vector :=
-              Files.File_System.Available_Root_Entries;
             Seeds : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
          begin
-            for Path of Settings.Favorite_Paths loop
-               Roots.Append
-                 (Files.File_System.Root_Entry'
-                    (Path        => Path,
-                     Label       => Path,
-                     Kind        => Files.File_System.Root_Favorite,
-                     Volume_Name => Ada.Strings.Unbounded.Null_Unbounded_String,
-                     Ready       => Files.File_System.Root_Ready,
-                     Removable   => False));
-            end loop;
-            for Root of Roots loop
+            for Root of Root_Entries_With_Favorites (Settings) loop
                Seeds.Append
                  (Files.Folder_Tree.Entry_Seed'
                     (Path => Root.Path,
                      Name =>
-                       (if Length (Root.Label) > 0
+                       (if Root.Kind /= Files.File_System.Root_Favorite and then Length (Root.Label) > 0
                         then Root.Label
                         else Root.Path)));
             end loop;
@@ -109,11 +114,54 @@ package body Files.Controller is
       end if;
    end Seed_Tree_If_Needed;
 
-   --  Forward declaration: the settings-writing subunits come before its body.
+   --  The one place settings are written. An empty path turns persistence
+   --  off (smoke runs, tests): the settings apply in memory and count as saved.
+   --  A session whose settings file could not be loaded refuses to write it:
+   --  the change applies in memory and the result says it was not saved.
    function Write_Settings
      (Settings_Path : String;
       Settings      : Files.Settings.Settings_Model)
-      return Files.Settings.Settings_Write_Result;
+      return Files.Settings.Settings_Write_Result is
+   begin
+      if Settings.Persistence_Refused then
+         return
+           (Success   => True,
+            Durable   => False,
+            Path      => To_Unbounded_String (Settings_Path),
+            Error_Key => To_Unbounded_String ("error.settings.not_persisted"));
+      elsif Settings_Path = "" then
+         return (Success => True, Durable => True, Path => Null_Unbounded_String, Error_Key => Null_Unbounded_String);
+      end if;
+      return Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Settings));
+   end Write_Settings;
+
+   --  Save settings that are already applied, reporting a write that fails or
+   --  is not durable in the window's error line. The change itself is kept.
+   function Persisted
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Files.Settings.Settings_Write_Result
+   is
+      Saved : constant Files.Settings.Settings_Write_Result := Write_Settings (Settings_Path, Settings);
+   begin
+      if not Saved.Success or else not Saved.Durable then
+         --  Applied, but not saved (or not safely): say so.
+         Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
+      end if;
+      return Saved;
+   end Persisted;
+
+   procedure Persist_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : Files.Settings.Settings_Model;
+      Settings_Path : String)
+   is
+      Saved : constant Files.Settings.Settings_Write_Result := Persisted (Model, Settings, Settings_Path);
+      pragma Unreferenced (Saved);
+   begin
+      null;
+   end Persist_Settings;
 
    function Make_Result
      (Status    : Controller_Status;
@@ -375,44 +423,59 @@ package body Files.Controller is
       return Controller_Result
  is separate;
 
+   --  The one policy for a settings toggle: Updated is applied in memory and
+   --  kept for the session, then saved; a save that fails or is not durable is
+   --  reported in the error line and in the result, never by dropping the
+   --  change. Reload re-lists the directory first, for a setting that changes
+   --  which items are listed.
+   function Apply_Settings_Change
+     (Id            : Files.Commands.Command_Id;
+      Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Updated       : Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Reload        : Boolean := False)
+      return Controller_Result
+   is
+      Operation : Files.Operations.Operation_Result := Empty_Operation;
+      Saved     : Files.Settings.Settings_Write_Result;
+   begin
+      Settings := Updated;
+      if Reload then
+         Operation := Files.Operations.Refresh (Model, Settings);
+      end if;
+      Saved := Persisted (Model, Settings, Settings_Path);
+      if Operation.Status = Files.Operations.Operation_Failed then
+         return Make_Result (Controller_Command_Executed, Id, Operation);
+      end if;
+
+      if Saved.Success and then Saved.Durable then
+         Files.Model.Set_Error (Model, "");
+      end if;
+      Operation.Status :=
+        (if Saved.Success then Files.Operations.Operation_Success else Files.Operations.Operation_Failed);
+      Operation.Path := To_Unbounded_String (Settings_Path);
+      Operation.Error_Key := Saved.Error_Key;
+      return Make_Result (Controller_Command_Executed, Id, Operation);
+   end Apply_Settings_Change;
+
    function Toggle_Hidden_Files
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String)
       return Controller_Result
    is
-      Updated   : Files.Settings.Settings_Model := Settings;
-      Saved     : Files.Settings.Settings_Write_Result;
-      Operation : Files.Operations.Operation_Result := Empty_Operation;
+      Updated : Files.Settings.Settings_Model := Settings;
    begin
       Updated.Show_Hidden_Files := not Updated.Show_Hidden_Files;
-
-      Saved := Write_Settings (Settings_Path, Updated);
-      if not Saved.Success then
-         Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
-         Operation.Status := Files.Operations.Operation_Failed;
-         Operation.Error_Key := Saved.Error_Key;
-         Operation.Path := To_Unbounded_String (Settings_Path);
-         return Make_Result (Controller_Command_Executed, Files.Commands.Toggle_Hidden_Files_Command, Operation);
-      end if;
-
-      Settings := Updated;
-      Operation := Files.Operations.Refresh (Model, Settings);
-      if Operation.Status = Files.Operations.Operation_Failed then
-         return Make_Result (Controller_Command_Executed, Files.Commands.Toggle_Hidden_Files_Command, Operation);
-      end if;
-
-      Files.Model.Set_Error
-        (Model, (if Saved.Durable then "" else To_String (Saved.Error_Key)));
-      Operation.Status := Files.Operations.Operation_Success;
-      Operation.Path := To_Unbounded_String (Settings_Path);
-      Operation.Error_Key := Saved.Error_Key;
-
-      return Make_Result (Controller_Command_Executed, Files.Commands.Toggle_Hidden_Files_Command, Operation);
+      return
+        Apply_Settings_Change
+          (Files.Commands.Toggle_Hidden_Files_Command, Model, Settings, Updated, Settings_Path, Reload => True);
    end Toggle_Hidden_Files;
 
-   --  Flip the Show_File_Extensions setting, persist it, and refresh the view so
-   --  item names redraw with or without their trailing extension.
+   --  Flip the Show_File_Extensions setting and persist it. Display-only: the
+   --  item list is unchanged, so there is no directory reload; the next
+   --  Build_Snapshot carries the new flag and rebuilds the frame on its own.
    --
    --  @param Model Window model to update.
    --  @param Settings Live settings model whose extension flag is flipped.
@@ -424,32 +487,12 @@ package body Files.Controller is
       Settings_Path : String)
       return Controller_Result
    is
-      Updated   : Files.Settings.Settings_Model := Settings;
-      Saved     : Files.Settings.Settings_Write_Result;
-      Operation : Files.Operations.Operation_Result := Empty_Operation;
+      Updated : Files.Settings.Settings_Model := Settings;
    begin
       Updated.Show_File_Extensions := not Updated.Show_File_Extensions;
-
-      Saved := Write_Settings (Settings_Path, Updated);
-      if not Saved.Success then
-         Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
-         Operation.Status := Files.Operations.Operation_Failed;
-         Operation.Error_Key := Saved.Error_Key;
-         Operation.Path := To_Unbounded_String (Settings_Path);
-         return Make_Result (Controller_Command_Executed, Files.Commands.Toggle_Show_Extensions_Command, Operation);
-      end if;
-
-      --  Display-only setting: the item list is unchanged, so there is no
-      --  directory reload. The next Build_Snapshot carries the new flag, which
-      --  differs from the cached snapshot and rebuilds the frame on its own.
-      Settings := Updated;
-      Files.Model.Set_Error
-        (Model, (if Saved.Durable then "" else To_String (Saved.Error_Key)));
-      Operation.Status := Files.Operations.Operation_Success;
-      Operation.Path := To_Unbounded_String (Settings_Path);
-      Operation.Error_Key := Saved.Error_Key;
-
-      return Make_Result (Controller_Command_Executed, Files.Commands.Toggle_Show_Extensions_Command, Operation);
+      return
+        Apply_Settings_Change
+          (Files.Commands.Toggle_Show_Extensions_Command, Model, Settings, Updated, Settings_Path);
    end Toggle_Show_Extensions;
 
    function Toggle_Free_Space_Display
@@ -472,32 +515,6 @@ package body Files.Controller is
 
       return Execute_Command (Id, Model, Settings, Modifiers);
    end Handle_Command_Click;
-
-   --  The one place settings are written. An empty path turns persistence
-   --  off (smoke runs, tests): the settings apply in memory and count as saved.
-   function Write_Settings
-     (Settings_Path : String;
-      Settings      : Files.Settings.Settings_Model)
-      return Files.Settings.Settings_Write_Result is
-   begin
-      if Settings_Path = "" then
-         return (Success => True, Durable => True, Path => Null_Unbounded_String, Error_Key => Null_Unbounded_String);
-      end if;
-      return Files.Settings.Save_Text (Settings_Path, Files.Settings.To_Text (Settings));
-   end Write_Settings;
-
-   procedure Persist_Settings
-     (Model         : in out Files.Model.Window_Model;
-      Settings      : Files.Settings.Settings_Model;
-      Settings_Path : String)
-   is
-      Saved : constant Files.Settings.Settings_Write_Result := Write_Settings (Settings_Path, Settings);
-   begin
-      if not Saved.Success or else not Saved.Durable then
-         --  Applied, but not saved (or not safely): say so.
-         Files.Model.Set_Error (Model, To_String (Saved.Error_Key));
-      end if;
-   end Persist_Settings;
 
    function Apply_Settings_Command
      (Id            : Files.Commands.Settings_Command_Id;
@@ -677,15 +694,7 @@ package body Files.Controller is
       return Controller_Result is
    begin
       if not Files.Model.Root_Selector_Is_Open (Model)
-        or else Files.Model.Command_Palette_Is_Open (Model)
-        or else Files.Model.Settings_Pane_Is_Open (Model)
-        or else Files.Model.Sort_Menu_Is_Open (Model)
-        or else Files.Model.Context_Menu_Is_Open (Model)
-        or else Files.Model.Label_Picker_Is_Open (Model)
-        or else Files.Model.Quick_Look_Is_Open (Model)
-        or else Files.Model.Tree_Pick_Is_Active (Model)
-        or else Files.Model.Paste_Conflict_Is_Active (Model)
-        or else Files.Model.Paste_Execution_Is_Active (Model)
+        or else Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Model.Root_Selector_Overlay)
         or else Root_Index = 0
         or else Root_Index > Files.Model.Root_Count (Model)
       then
@@ -845,10 +854,6 @@ package body Files.Controller is
    is
       Id : constant Natural := Files.Model.Palette_Selected_Id (Model);
    begin
-      if Id = 0 then
-         return Make_Result (Controller_Ignored);
-      end if;
-
       if Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Open_With then
          declare
             Apps : constant Files.Desktop_Applications.Application_Vectors.Vector :=
@@ -861,17 +866,14 @@ package body Files.Controller is
          end;
       end if;
 
-      --  Guikit normally supplies an Id copied from the command registry, but
-      --  keep this public controller boundary safe if a stale or malformed
-      --  palette model supplies a value outside the enumeration.
-      if Id > Files.Commands.Command_Id'Pos (Files.Commands.Command_Id'Last) then
-         return Make_Result (Controller_Ignored);
-      end if;
-
       declare
-         Command : constant Files.Commands.Command_Id := Files.Commands.Command_Id'Val (Id);
-         Result  : constant Controller_Result := Execute_Command (Command, Model, Settings, Modifiers);
+         Command : constant Files.Commands.Command_Id := Files.Command_Palette.Selected_Command (Model);
+         Result  : Controller_Result;
       begin
+         if Command = Files.Commands.No_Command then
+            return Make_Result (Controller_Ignored);
+         end if;
+         Result := Execute_Command (Command, Model, Settings, Modifiers);
          if Result.Status /= Controller_Ignored
            and then Command /= Files.Commands.Open_With_Command
          then
@@ -1057,16 +1059,8 @@ package body Files.Controller is
       Y     : Integer)
       return Controller_Result is
    begin
-      if Files.Model.Command_Palette_Is_Open (Model)
-        or else not Files.Model.Settings_Pane_Is_Open (Model)
-        or else Files.Model.Root_Selector_Is_Open (Model)
-        or else Files.Model.Sort_Menu_Is_Open (Model)
-        or else Files.Model.Context_Menu_Is_Open (Model)
-        or else Files.Model.Label_Picker_Is_Open (Model)
-        or else Files.Model.Quick_Look_Is_Open (Model)
-        or else Files.Model.Tree_Pick_Is_Active (Model)
-        or else Files.Model.Paste_Conflict_Is_Active (Model)
-        or else Files.Model.Paste_Execution_Is_Active (Model)
+      if not Files.Model.Settings_Pane_Is_Open (Model)
+        or else Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Model.Settings_Pane_Overlay)
         or else not Files.Model.Settings_Click (Model, X, Y)
       then
          return Make_Result (Controller_Ignored);

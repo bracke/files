@@ -15,12 +15,10 @@ separate (Files_Suite.Operations)
       Write_Binary_File (Join (Outside, "big.bin"), [1 .. 4096 => 'x']);
 
       --  A link back to the root of the walk, a dangling link, and links to a
-      --  file and a folder outside it. If symlinks are unsupported on this
-      --  host, there is nothing to measure.
+      --  file and a folder outside it. Without symlinks there is nothing to
+      --  measure; Link_Not_Made says so.
       if not Files_Suite.Support.Create_Symlink (Tree, Join (Nested, "up")) then
-         Files_Suite.Support.Skip
-           ("Test_Directory_Size_Over_Links",
-            "not Files_Suite.Support.Create_Symlink (Tree, Join (Nested, ""up""))");
+         Files_Suite.Support.Link_Not_Made ("Test_Directory_Size_Over_Links");
          return;
       end if;
       Linked :=

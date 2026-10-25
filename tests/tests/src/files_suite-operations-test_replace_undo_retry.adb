@@ -49,7 +49,9 @@ separate (Files_Suite.Operations)
                else
                   Files.Operations.Record_Undo
                     (Model,
-                     (if Scenario = Move_Replace then Files.Model.Undo_Move else Files.Model.Undo_Delete_Created),
+                     (case Scenario is
+                         when Move_Replace => Files.Model.Undo_Move,
+                         when Copy_Replace | Recovery_Only => Files.Model.Undo_Delete_Created),
                      From_Paths, To_Paths, Redoable => False, Restore_Trash => Backups);
                end if;
                declare

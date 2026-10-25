@@ -10,9 +10,9 @@ separate (Files_Suite.Interaction)
       Existing : Files.Types.String_Vectors.Vector;
 
       function Click (Button : Natural) return Files.Events.Input_Action is
-        (Kind           => Files.Events.Conflict_Click_Input_Action,
-         Settings_Field => Button,
-         others         => <>);
+        (Kind            => Files.Events.Conflict_Click_Input_Action,
+         Conflict_Button => Button,
+         others          => <>);
 
       procedure Apply (Button : Natural) is
       begin

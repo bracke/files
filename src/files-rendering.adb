@@ -339,6 +339,19 @@ package body Files.Rendering is
       return Natural
      renames Guikit.Layout.Saturating_Multiply;
 
+   --  Visible glyph content sits low in its Line_Height cell, so text placed at
+   --  a geometric inset reads a little low. Every single-line field (toolbar
+   --  inputs, bottom bar, details header) lifts its text origin by this many
+   --  pixels so the glyphs read as centred and the fields agree.
+   Glyph_Optical_Bias : constant Natural := 2;
+
+   --  Return a text offset lifted by the optical bias, stopping at zero.
+   --
+   --  @param Offset Geometric text offset (an inset or a centred Y).
+   --  @return Offset minus Glyph_Optical_Bias, or zero when smaller.
+   function Optically_Raised (Offset : Natural) return Natural is
+     (if Offset >= Glyph_Optical_Bias then Offset - Glyph_Optical_Bias else 0);
+
    --  Proportional default width for a toggleable column, scaled to the line
    --  height so the layout tracks the font size. Applied whenever the settings
    --  do not pin an explicit width for the column.
@@ -605,7 +618,7 @@ package body Files.Rendering is
      (Snapshot : View_Snapshot; Line_Height : Positive) return Natural
    is
       Label  : constant String := Free_Space_Label (Snapshot);
-      Cell_W : constant Natural := Natural'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+      Cell_W : constant Natural := Guikit.Layout.Caret_Advance_Width (Line_Height);
    begin
       --  Bar mode reserves a fixed-width band for the graphical bar.
       if Free_Space_Bar_Active (Snapshot) then
@@ -806,6 +819,41 @@ package body Files.Rendering is
                     then Layout.Main_Height - Saturating_Multiply (Padding, 2)
                     else Layout.Main_Height));
    end Main_Content_Rect;
+
+   function Details_Header_Height
+     (Content_H   : Natural;
+      Line_Height : Positive)
+      return Natural is
+   begin
+      return
+        Natural'Min
+          (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
+   end Details_Header_Height;
+
+   function Details_Header_Geometry
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Details_Header_Layout
+   is
+      Content  : constant Content_Rectangle := Main_Content_Rect (Layout);
+      Header_H : constant Natural := Details_Header_Height (Content.Height, Line_Height);
+      Pad      : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
+   begin
+      return
+        (Content => Content,
+         Height  => Header_H,
+         Pad     => Pad,
+         Columns =>
+           Compute_Detail_Columns
+             (Snapshot.Detail_Columns_Visible,
+              Snapshot.Detail_Column_Widths,
+              Snapshot.Detail_Column_Order,
+              Content.X,
+              Content.Width,
+              Line_Height,
+              Pad));
+   end Details_Header_Geometry;
 
    function Metrics_For
      (Mode        : Files.Types.View_Mode;
@@ -1343,65 +1391,126 @@ package body Files.Rendering is
         To_Unbounded_String (Humanized_Time_Text (Value));
    end Info_Metadata_Text;
 
+   --  The fields of an item's info block. Name is the pane's heading; the
+   --  remaining fields are the single-item pane's labelled sections, and their
+   --  declaration order is the order those sections are drawn top to bottom.
+   --  The renderer and the row count (Info_Section_Row_Count) both walk
+   --  Info_Section_Field in this order, so the drawn rows and the scroll extent
+   --  cannot drift apart.
+   type Info_Field is
+     (Info_Name,
+      Info_Filetype,
+      Info_Size,
+      Info_Folder_Size,
+      Info_Created,
+      Info_Modified,
+      Info_Permissions,
+      Info_Owner,
+      Info_Group,
+      Info_Metadata_Error,
+      Info_Extra);
+
+   --  The labelled sections of the single-item info pane, in drawing order.
+   subtype Info_Section_Field is Info_Field range Info_Filetype .. Info_Extra;
+
+   --  The localization key of an info section's label.
+   --
+   --  @param Field Info section.
+   --  @return The section label's localization key.
+   function Info_Field_Label_Key (Field : Info_Section_Field) return String is
+     (case Field is
+         when Info_Filetype       => "info.filetype",
+         when Info_Size           => "info.size",
+         when Info_Folder_Size    => "info.folder_size",
+         when Info_Created        => "info.created",
+         when Info_Modified       => "info.modified",
+         when Info_Permissions    => "info.permissions",
+         when Info_Owner          => "info.owner",
+         when Info_Group          => "info.group",
+         when Info_Metadata_Error => "info.metadata_error",
+         when Info_Extra          => "info.extra");
+
+   --  Whether the single-item info pane shows a section for an item. Filesize
+   --  is file-only (a folder shows Contents instead, once its size is known);
+   --  permissions need the item's mode, owner/group its ownership, and the
+   --  metadata-error row appears only when metadata actually failed.
+   --
+   --  @param Info The selected-item info block.
+   --  @param Field Info section.
+   --  @return True when the section is drawn for this item.
+   function Info_Field_Shown
+     (Info  : Info_Snapshot;
+      Field : Info_Section_Field)
+      return Boolean is
+     (case Field is
+         when Info_Size           => not Info.Is_Directory,
+         when Info_Folder_Size    => Info.Is_Directory and then Info.Folder_Size_Available,
+         when Info_Permissions    => Info.Mode_Available,
+         when Info_Owner
+            | Info_Group          => Info.Ownership_Available,
+         when Info_Metadata_Error => Info.Metadata_Error,
+         when Info_Filetype
+            | Info_Created
+            | Info_Modified
+            | Info_Extra          => True);
+
    function Info_Field_Value
      (Info  : Info_Snapshot;
-      Field : Natural)
+      Field : Info_Field)
       return UString
    is
    begin
       case Field is
-         when 0 =>
+         when Info_Name =>
             return Info.Name;
-         when 1 =>
+         when Info_Filetype =>
             return Info.Filetype_Detail;
-         when 2 =>
+         when Info_Size =>
             return
               (if Info.Size_Available
                then To_Unbounded_String (Size_Text (Info.Size))
                else To_Unbounded_String (Files.Localization.Text ("status.missing_metadata")));
-         when 3 =>
+         when Info_Folder_Size =>
+            return Folder_Contents_Text (Info);
+         when Info_Created =>
             return Info_Metadata_Text (Info.Creation_Available, Info.Creation_Time);
-         when 4 =>
+         when Info_Modified =>
             return Info_Metadata_Text (Info.Modified_Available, Info.Modified_Time);
-         when 5 =>
+         when Info_Permissions =>
             return
               (if Length (Info.Permissions) = 0
                then To_Unbounded_String (Files.Localization.Text ("status.missing_metadata"))
                else To_Unbounded_String (Permission_Text (To_String (Info.Permissions))));
-         when 6 =>
+         when Info_Metadata_Error =>
             return
               (if Info.Metadata_Error
                then To_Unbounded_String (Files.Localization.Text (To_String (Info.Error_Key)))
                else To_Unbounded_String (Files.Localization.Text ("status.missing_metadata")));
-         when 7 =>
-            return Info.Filetype_Detail;
-         when 8 =>
+         when Info_Extra =>
             return Info.Filetype_Extra;
-         when 9 =>
+         when Info_Owner =>
             return
               (if Info.Owner_Editing then Info.Ownership_Buffer
                elsif Length (Info.Owner_Name) > 0 then Info.Owner_Name
                else To_Unbounded_String
                       (Files.Types.Account_Image (Info.Owner_Id)));
-         when 10 =>
+         when Info_Group =>
             return
               (if Info.Group_Editing then Info.Ownership_Buffer
                elsif Length (Info.Group_Name) > 0 then Info.Group_Name
                else To_Unbounded_String
                       (Files.Types.Account_Image (Info.Group_Id)));
-         when others =>
-            return Null_Unbounded_String;
       end case;
    end Info_Field_Value;
 
    function Info_Field_Display_Value
      (Info  : Info_Snapshot;
-      Field : Natural)
+      Field : Info_Field)
       return UString
    is
       Value : constant UString := Info_Field_Value (Info, Field);
    begin
-      if Field /= 8 then
+      if Field /= Info_Extra then
          return Value;
       end if;
 
@@ -1462,7 +1571,7 @@ package body Files.Rendering is
       Line_Height : Positive)
       return Natural
    is
-      Cell_W   : constant Positive := Positive'Max (1, Saturating_Multiply (Line_Height, 12) / 20);
+      Cell_W   : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
       Capacity : constant Natural := Text_W / Cell_W;
       Raw      : constant String := To_String (Text);
 
@@ -1544,21 +1653,6 @@ package body Files.Rendering is
    begin
       return " (" & To_String (Info.Name) & ")";
    end Info_Postfix;
-
-   --  The display value of a numbered info field. Single-item panes no longer
-   --  repeat the item name after each value; the function remains the shared
-   --  layout-side display transformation for those fields.
-   --
-   --  @param Info The selected-item info block.
-   --  @param Field Field index (see Info_Field_Value).
-   --  @return The display value used for single-item layout and rendering.
-   function Info_Field_Postfixed_Value
-     (Info  : Info_Snapshot;
-      Field : Natural)
-      return UString is
-   begin
-      return Info_Field_Display_Value (Info, Field);
-   end Info_Field_Postfixed_Value;
 
    function Info_Section_Row_Count
      (Info        : Info_Snapshot;

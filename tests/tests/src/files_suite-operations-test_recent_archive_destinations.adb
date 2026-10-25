@@ -1,7 +1,8 @@
 separate (Files_Suite.Operations)
    procedure Test_Recent_Archive_Destinations (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Original_Cwd : constant String := Ada.Directories.Current_Directory;
+      --  Puts the working directory back however the test ends.
+      Cwd_Guard : Files_Suite.Support.Directory_Guard;
       Settings : Files.Settings.Settings_Model;
       Model : Files.Model.Window_Model;
       Step : Files.Operations.Operation_Result;
@@ -111,11 +112,10 @@ separate (Files_Suite.Operations)
            (Ada.Directories.Exists (Join (Two, "note")),
             "Undo removes only the newly extracted adjacent folders: existing note folder kept");
          Assert (Ada.Directories.Exists (Zip), "Undo removes only the newly extracted adjacent folders: archive kept");
-         Ada.Directories.Set_Directory (Original_Cwd);
+         Ada.Directories.Set_Directory (Saved_Directory (Cwd_Guard));
       end loop;
    exception
       when others =>
-         Ada.Directories.Set_Directory (Original_Cwd);
          Files.Model.Clear_Paste_Execution (Model);
          Files.Refresh_Jobs.Cancel (Model);
          raise;

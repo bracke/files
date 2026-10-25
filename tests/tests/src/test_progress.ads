@@ -16,4 +16,13 @@ package Test_Progress is
 
    Filter : aliased Progress_Filter;
 
+   --  @return FILES_TEST_ONLY, or "" when every routine runs.
+   function Only return String;
+
+   --  How many routines matched FILES_TEST_ONLY and so ran (0 when it is
+   --  unset), so a filter that matches nothing can fail the run.
+   --
+   --  @return The count of distinct routines the filter let through.
+   function Matched return Natural;
+
 end Test_Progress;

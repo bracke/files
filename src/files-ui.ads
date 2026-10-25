@@ -50,6 +50,45 @@ package Files.UI is
       Line_Height : Positive := 20)
       return Natural;
 
+   --  Geometry of the open sort dropdown: the menu rectangle (it opens upward
+   --  from the bottom bar, left-aligned with the sort button), the top of its
+   --  first row, the row height, and the row count (one row per sort field).
+   type Sort_Menu_Layout is record
+      X          : Natural := 0;
+      Y          : Natural := 0;
+      Width      : Natural := 0;
+      Height     : Natural := 0;
+      Rows_Y     : Natural := 0;
+      Row_Height : Natural := 0;
+      Row_Count  : Natural := 0;
+   end record;
+
+   --  Calculate the sort dropdown geometry at a window size. The renderer and
+   --  the dropdown's click hit-tests share it so the drawn rows and the rows a
+   --  click resolves to cannot drift apart.
+   --
+   --  @param Width Framebuffer width in pixels.
+   --  @param Height Framebuffer height in pixels.
+   --  @param Sort_Field Currently selected sort field.
+   --  @param Line_Height Text line height in pixels.
+   --  @return The dropdown rectangle and row geometry.
+   function Calculate_Sort_Menu_Layout
+     (Width       : Natural;
+      Height      : Natural;
+      Sort_Field  : Files.Types.Sort_Field;
+      Line_Height : Positive := 20)
+      return Sort_Menu_Layout;
+
+   --  The sort field a dropdown row shows: rows follow Sort_Field's
+   --  declaration order, top to bottom.
+   --
+   --  @param Row One-based row index, at most the layout's Row_Count.
+   --  @return The sort field of that row.
+   function Sort_Menu_Row_Field
+     (Row : Positive)
+      return Files.Types.Sort_Field
+     with Pre => Row <= Files.Types.Sort_Field'Pos (Files.Types.Sort_Field'Last) + 1;
+
    --  The bottom-bar view-mode switcher cells (Small / Large / Details), left to
    --  right, labelled with their short localized names. The renderer and the
    --  click hit-test share this single definition so the variable-width cells

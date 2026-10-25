@@ -18,11 +18,9 @@ separate (Files_Suite.Operations)
       Write_Binary_File (Join (Nested, "c.txt"), "90");
 
       --  A self-referential link (points at an ancestor) plus a plain file link.
-      --  If symlinks are unsupported on this host, there is nothing to assert.
+      --  Without symlinks there is nothing to assert; Link_Not_Made says so.
       if not Files_Suite.Support.Create_Symlink (Tree, Join (Tree, "loop")) then
-         Files_Suite.Support.Skip
-           ("Test_Copy_Tree_Preserves_Symlinks",
-            "not Files_Suite.Support.Create_Symlink (Tree, Join (Tree, ""loop""))");
+         Files_Suite.Support.Link_Not_Made ("Test_Copy_Tree_Preserves_Symlinks");
          return;
       end if;
       declare

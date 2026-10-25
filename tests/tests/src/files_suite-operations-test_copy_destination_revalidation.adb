@@ -21,7 +21,7 @@ separate (Files_Suite.Operations)
       end Check_Source;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Copy_Destination_Revalidation", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Copy_Destination_Revalidation", "needs Linux");
          return;
       end if;
       Settings.Show_Hidden_Files := True;

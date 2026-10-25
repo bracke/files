@@ -421,18 +421,60 @@ package body Files.Model is
      (Model : Window_Model)
       return Boolean is
    begin
-      return
-        Model.Settings_Pane_Open
-        or else Model.Command_Palette_Open
-        or else Model.Root_Selector_Open
-        or else Model.Sort_Menu_Open
-        or else Model.Context_Menu.Open
-        or else Model.Label_Picker_Active
-        or else Model.Quick_Look_Active
-        or else Model.Tree_Pick_Mode_Value /= Pick_None
-        or else Model.Paste_Conflict.Active
-        or else Model.Paste_Exec.Active;
+      for Overlay in Input_Overlay loop
+         if Overlay_Is_Open (Model, Overlay) then
+            return True;
+         end if;
+      end loop;
+      return False;
    end Input_Owning_Overlay_Is_Open;
+
+   function Overlay_Is_Open
+     (Model   : Window_Model;
+      Overlay : Input_Overlay)
+      return Boolean is
+   begin
+      case Overlay is
+         when Settings_Pane_Overlay   => return Model.Settings_Pane_Open;
+         when Command_Palette_Overlay => return Model.Command_Palette_Open;
+         when Root_Selector_Overlay   => return Model.Root_Selector_Open;
+         when Sort_Menu_Overlay       => return Model.Sort_Menu_Open;
+         when Context_Menu_Overlay    => return Model.Context_Menu.Open;
+         when Label_Picker_Overlay    => return Model.Label_Picker_Active;
+         when Quick_Look_Overlay      => return Model.Quick_Look_Active;
+         when Tree_Pick_Overlay       => return Model.Tree_Pick_Mode_Value /= Pick_None;
+         when Paste_Conflict_Overlay  => return Model.Paste_Conflict.Active;
+         when Paste_Execution_Overlay => return Model.Paste_Exec.Active;
+      end case;
+   end Overlay_Is_Open;
+
+   function Other_Input_Owning_Overlay_Is_Open
+     (Model  : Window_Model;
+      Except : Input_Overlay)
+      return Boolean is
+   begin
+      for Overlay in Input_Overlay loop
+         if Overlay /= Except and then Overlay_Is_Open (Model, Overlay) then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Other_Input_Owning_Overlay_Is_Open;
+
+   function Non_Text_Overlay_Owns_Input
+     (Model : Window_Model)
+      return Boolean is
+   begin
+      for Overlay in Input_Overlay loop
+         if Overlay not in Text_Input_Overlay
+           and then Overlay_Is_Open (Model, Overlay)
+           and then not (Overlay = Root_Selector_Overlay and then Model.Command_Palette_Open)
+         then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Non_Text_Overlay_Owns_Input;
 
    --  Opening an overlay ends the grid's current type-to-select session.  Every
    --  caller already advances the model revision, so clear the private buffer
@@ -444,16 +486,28 @@ package body Files.Model is
    end Claim_Overlay_Input;
 
    --  Every change of directory goes through here: it starts a new view
-   --  incarnation and settles, once, whether the new directory is the trash,
-   --  so the commands and the snapshot can ask without touching the disk.
+   --  incarnation. Whether the new directory is the trash takes a disk check,
+   --  so it starts out False and Files.Operations settles it, once, through
+   --  Set_Current_Is_Trash; the commands and the snapshot then ask without
+   --  touching the disk.
    procedure Set_Current_Path
      (Model : in out Window_Model;
       Path  : UString) is
    begin
       Model.Current_Path_Value := Path;
       Model.View_Incarnation_Value := Model.View_Incarnation_Value + 1;
-      Model.Current_Is_Trash_Value := Files.File_System.Is_Trash_Files_Directory (To_String (Path));
+      Model.Current_Is_Trash_Value := False;
    end Set_Current_Path;
+
+   procedure Set_Current_Is_Trash
+     (Model    : in out Window_Model;
+      Is_Trash : Boolean) is
+   begin
+      if Model.Current_Is_Trash_Value /= Is_Trash then
+         Model.Current_Is_Trash_Value := Is_Trash;
+         Model.Revision_Value := Model.Revision_Value + 1;
+      end if;
+   end Set_Current_Is_Trash;
 
    procedure Initialize
      (Model             : out Window_Model;
@@ -1210,7 +1264,8 @@ package body Files.Model is
 
    procedure Focus_Ownership_Input
      (Model         : in out Window_Model;
-      Editing_Group : Boolean)
+      Editing_Group : Boolean;
+      Account_Name  : String)
    is separate;
 
    function Ownership_Input_Text
@@ -1545,9 +1600,13 @@ package body Files.Model is
    procedure Toggle_Info_Pane
      (Model : in out Window_Model) is separate;
 
-   procedure Ensure_Selected_Item_Extra
-     (Model : in out Window_Model)
-   is separate;
+   function Selected_Item_Needs_Extra
+     (Model : Window_Model)
+      return Boolean is separate;
+
+   procedure Set_Selected_Item_Extra
+     (Model : in out Window_Model;
+      Token : String) is separate;
 
    function Info_Pane_Is_Open
      (Model : Window_Model)

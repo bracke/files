@@ -539,7 +539,7 @@ package body Files.Operation_Jobs is
       if Reload_Owed then
          Reload_Current_View (To_String (Done.Selection));
       end if;
-      Files.Model.Ensure_Selected_Item_Extra (Model);
+      Files.Operations.Ensure_Selected_Item_Extra (Model);
       return Done.Result;
    exception
       when others =>

@@ -6,7 +6,6 @@ separate (Files_Suite.Rendering)
    --  palette rather than silently aliasing the ordinary dark theme.
    procedure Test_Theme_Palette_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Guikit.Draw.Palette_Color;
       Dark_Canvas : constant Palette_Color := Color_For (Canvas_Color, Theme_Dark);
       Light_Canvas : constant Palette_Color := Color_For (Canvas_Color, Theme_Light);
       Dark_Text   : constant Palette_Color := Color_For (Text_Color, Theme_Dark);

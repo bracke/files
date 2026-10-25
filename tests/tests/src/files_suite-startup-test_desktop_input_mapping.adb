@@ -1,6 +1,8 @@
+with Interfaces.C;
 separate (Files_Suite.Startup)
    procedure Test_Desktop_Input_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      use type Interfaces.C.double;
    begin
       Files_Suite.Support.Assert_Equal
         (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (Character'Pos ('A'))),

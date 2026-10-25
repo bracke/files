@@ -101,6 +101,10 @@ separate (Files_Suite.Operations)
                        "two entries with one target cannot be mistaken for a no-op rename: destination entry kept");
                Assert (File_Has_Bytes (Shared, "shared bytes"),
                        "two entries with one target cannot be mistaken for a no-op rename: target unchanged");
+            else
+               Files_Suite.Support.Link_Not_Made
+                 ("Test_Case_Only_Rename_Is_Safe",
+                  (if Symbolic then Files_Suite.Support.Symbolic_Link else Files_Suite.Support.Hard_Link));
             end if;
          end;
       end loop;
@@ -115,6 +119,8 @@ separate (Files_Suite.Operations)
                Mutation := Files.File_System.Rename_Item (Source_Link, Case_Link);
                Assert (Mutation.Success and then Hostkit.Fs.Is_Link (Case_Link),
                        "case-only rename moves a dangling link on a case-insensitive filesystem");
+            else
+               Files_Suite.Support.Link_Not_Made ("Test_Case_Only_Rename_Is_Safe", Files_Suite.Support.Symbolic_Link);
             end if;
          else
             Write_File (Join (Root, "shared"), "shared bytes");
@@ -134,6 +140,8 @@ separate (Files_Suite.Operations)
                Assert (Hostkit.Fs.Is_Link (Case_Link),
                        "different links to one target are a collision even when names differ only by case: "
                        & "destination link kept");
+            else
+               Files_Suite.Support.Link_Not_Made ("Test_Case_Only_Rename_Is_Safe", Files_Suite.Support.Symbolic_Link);
             end if;
          end if;
       end;

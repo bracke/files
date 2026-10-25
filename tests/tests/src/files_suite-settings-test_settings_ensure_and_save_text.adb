@@ -118,6 +118,8 @@ separate (Files_Suite.Settings)
             Assert (not Ada.Directories.Exists (Saved_Path & ".tmp-2")
                       and then not Hostkit.Fs.Is_Link (Saved_Path & ".tmp-2"),
                     "settings save removes its alternate temporary file");
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Settings_Ensure_And_Save_Text", Files_Suite.Support.Symbolic_Link);
          end if;
       end;
       Write_File (Blocked_Parent, "not a directory");

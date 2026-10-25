@@ -14,7 +14,7 @@ separate (Files_Suite.Model)
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
          Files_Suite.Support.Skip
            ("Test_History_Retire_Drain",
-            "Hostkit.Host.Current /= Hostkit.Host.Linux");
+            "needs Linux");
          return;
       end if;
       Reset_Root;

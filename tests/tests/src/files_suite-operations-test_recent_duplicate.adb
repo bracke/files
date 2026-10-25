@@ -1,7 +1,8 @@
 separate (Files_Suite.Operations)
    procedure Test_Recent_Duplicate (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Old_Cwd : constant String := Ada.Directories.Current_Directory;
+      --  Puts the working directory back however the test ends.
+      Cwd_Guard : Files_Suite.Support.Directory_Guard;
       Dir_A : constant String := Join (Root, "recent-duplicate-a");
       Dir_B : constant String := Join (Root, "recent-duplicate-b");
       Cwd : constant String := Join (Root, "unrelated-cwd");
@@ -159,11 +160,7 @@ separate (Files_Suite.Operations)
             Await_Refresh;
             Check_Recent;
             Check_Copies;
-            Ada.Directories.Set_Directory (Old_Cwd);
+            Ada.Directories.Set_Directory (Saved_Directory (Cwd_Guard));
          end;
       end loop;
-   exception
-      when others =>
-         Ada.Directories.Set_Directory (Old_Cwd);
-         raise;
    end Test_Recent_Duplicate;

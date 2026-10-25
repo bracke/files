@@ -29,7 +29,7 @@ separate (Files_Suite.Operations)
       end Check;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Sparse_Transfers", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Sparse_Transfers", "needs Linux");
          return;
       end if;
       Remote.Create ("files-test-sparse-move-");

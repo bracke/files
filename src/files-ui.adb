@@ -54,17 +54,11 @@ package body Files.UI is
             & Files.Localization.Text ("sort.direction.ascending"),
             Cell_W));
 
-      Widest : constant Natural :=
-        Natural'Max
-          (Label_W ("command.sort.name"),
-           Natural'Max
-             (Label_W ("command.sort.size"),
-              Natural'Max
-                (Label_W ("command.sort.type"),
-                 Natural'Max
-                   (Label_W ("command.sort.created"),
-                    Label_W ("command.sort.changed")))));
+      Widest : Natural := 0;
    begin
+      for Field in Files.Types.Sort_Field loop
+         Widest := Natural'Max (Widest, Label_W (Files.Commands.Sort_Label_Key (Field)));
+      end loop;
       --  Mirror the sort button's sizing (guikit Calculate_Bottom_Bar_Layout) but
       --  for the widest field, so the dropdown never clips a row.
       return
@@ -88,6 +82,39 @@ package body Files.UI is
       return Natural'Min
         (Sort_Menu_Width (Line_Height), Width - Bottom.Sort_Button_X);
    end Sort_Menu_Visible_Width;
+
+   function Calculate_Sort_Menu_Layout
+     (Width       : Natural;
+      Height      : Natural;
+      Sort_Field  : Files.Types.Sort_Field;
+      Line_Height : Positive := 20)
+      return Sort_Menu_Layout
+   is
+      Bottom    : constant Bottom_Bar_Layout :=
+        Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
+      Row_Count : constant Natural := Files.Types.Sort_Field'Pos (Files.Types.Sort_Field'Last) + 1;
+      --  Each row is as tall as the bottom bar itself.
+      Row_H     : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
+      Menu_H    : constant Natural :=
+        Saturating_Add (Saturating_Multiply (Row_H, Row_Count), Saturating_Multiply (Sort_Menu_Padding, 2));
+      Bottom_H  : constant Natural := Saturating_Add (Line_Height, Saturating_Multiply (Bottom_Bar_Padding, 2));
+      Bottom_Y  : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
+      Menu_Y    : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
+   begin
+      return
+        (X          => Bottom.Sort_Button_X,
+         Y          => Menu_Y,
+         --  The dropdown is as wide as the widest field, not the (snug) sort button.
+         Width      => Sort_Menu_Visible_Width (Width, Sort_Field, Line_Height),
+         Height     => Menu_H,
+         Rows_Y     => Saturating_Add (Menu_Y, Sort_Menu_Padding),
+         Row_Height => Row_H,
+         Row_Count  => Row_Count);
+   end Calculate_Sort_Menu_Layout;
+
+   function Sort_Menu_Row_Field
+     (Row : Positive)
+      return Files.Types.Sort_Field is (Files.Types.Sort_Field'Val (Row - 1));
 
    function View_Mode_Segments return Guikit.Segmented.Segment_Vectors.Vector is
       Result : Guikit.Segmented.Segment_Vectors.Vector;

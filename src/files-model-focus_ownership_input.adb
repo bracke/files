@@ -1,16 +1,15 @@
 separate (Files.Model)
 procedure Focus_Ownership_Input
   (Model         : in out Window_Model;
-   Editing_Group : Boolean)
+   Editing_Group : Boolean;
+   Account_Name  : String)
 is
    Item : constant Files.File_System.Directory_Item := Selected_Item (Model);
 begin
    if Selected_Count (Model) /= 1
      or else Selection_Includes_Temporary (Model)
-     or else not Files.File_System.Supports_Ownership
      or else not Item.Ownership_Available
-     or else Files.File_System.Is_Trash_Files_Directory
-                    (Current_Path (Model))
+     or else Model.Current_Is_Trash_Value
    then
       return;
    end if;
@@ -20,17 +19,13 @@ begin
    Model.Focus_Value := Files.Types.Focus_Ownership_Input;
    Model.Ownership_Editing_Group_Value := Editing_Group;
    declare
-      Id   : constant Files.Types.Account_Id := (if Editing_Group then Item.Group_Id else Item.Owner_Id);
+      Id : constant Files.Types.Account_Id := (if Editing_Group then Item.Group_Id else Item.Owner_Id);
+   begin
       --  Seed with the resolved name so the field matches its display; the
       --  commit path accepts a name or a number. Fall back to the number.
-      Name : constant String :=
-        (if Editing_Group
-         then Files.File_System.Group_Name_For_Id (Id)
-         else Files.File_System.User_Name_For_Id (Id));
-   begin
       Model.Ownership_Input_Value :=
         To_Unbounded_String
-          (if Name /= "" then Name
+          (if Account_Name /= "" then Account_Name
            else Files.Types.Account_Image (Id));
    end;
    Model.Ownership_Input_Cursor := Length (Model.Ownership_Input_Value);

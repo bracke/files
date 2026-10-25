@@ -3,7 +3,7 @@ function Restore_From_Trash_Backend
   (Trashed_Path : String; Expected_Identity : String := ""; Expected_Original : String := "")
    return Mutation_Result
 is
-   Backend   : constant Trash_Backend := Trash_Backend_For_Base;
+   Backend   : constant Trash_Backend := Trash_Backend_Of_Current_Environment;
    Base      : constant String := Trash_Base_Path;
 begin
    Files.Io_Errors.Reset;

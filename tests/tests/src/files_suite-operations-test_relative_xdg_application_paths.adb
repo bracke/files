@@ -4,7 +4,8 @@ separate (Files_Suite.Operations)
       LF          : constant Character := ASCII.LF;
       System_Base : constant String := Join (Root, "xdg_system");
       System_Apps : constant String := Join (System_Base, "applications");
-      Original_Directory : constant String := Ada.Directories.Current_Directory;
+      --  Puts the working directory back however the test ends.
+      Cwd_Guard : Files_Suite.Support.Directory_Guard;
 
       function Find
         (Apps : Files.Desktop_Applications.Application_Vectors.Vector;
@@ -54,11 +55,7 @@ separate (Files_Suite.Operations)
            (To_String (Find (Apps, "Absolute System Directory").Exec) /= "",
             "application discovery ignores relative XDG paths and keeps absolute components"
             & ": absolute system directory kept");
-         Ada.Directories.Set_Directory (Original_Directory);
-      exception
-         when others =>
-            Ada.Directories.Set_Directory (Original_Directory);
-            raise;
+         Ada.Directories.Set_Directory (Saved_Directory (Cwd_Guard));
       end Check;
    begin
       With_Desktop_Application_Fixture (Check'Access);

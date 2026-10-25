@@ -36,24 +36,15 @@ separate (Files.Rendering)
       Palette       : constant Command_Palette_Layout := Calculate_Command_Palette_Layout (Layout, Line_Height);
       Toolbar_Input_Y : constant Natural := Guikit.Layout.Toolbar_Input_Y (Line_Height);
       Toolbar_Input_H : constant Natural := Guikit.Layout.Toolbar_Input_Height (Line_Height);
-      --  Visible glyph content sits low in the Line_Height cell, so the text
-      --  origin is pulled up two pixels above the geometric centre. This matches
-      --  the bottom bar's optical text centring (Bottom_Content_Y) exactly -- the
-      --  fields share the same height -- so the toolbar text reads centred in its
-      --  field, aligning with the geometric-centred toolbar icons and favourite
-      --  star rather than sitting a pixel low.
-      Toolbar_Glyph_Bias : constant Natural := 2;
+      --  The text origin is pulled up by the optical bias above the geometric
+      --  centre. This matches the bottom bar's optical text centring
+      --  (Bottom_Content_Y) exactly -- the fields share the same height -- so the
+      --  toolbar text reads centred in its field, aligning with the
+      --  geometric-centred toolbar icons and favourite star rather than sitting
+      --  a pixel low.
       Toolbar_Input_Text_Y : constant Natural :=
         (if Toolbar_Input_H > Line_Height
-         then
-            (declare
-                Centered : constant Natural :=
-                  Saturating_Add
-                    (Toolbar_Input_Y, (Toolbar_Input_H - Line_Height) / 2);
-             begin
-                (if Centered > Toolbar_Glyph_Bias
-                 then Centered - Toolbar_Glyph_Bias
-                 else 0))
+         then Optically_Raised (Saturating_Add (Toolbar_Input_Y, (Toolbar_Input_H - Line_Height) / 2))
          else Toolbar_Input_Y);
       Toolbar_Input_Text_H : constant Natural :=
         Natural'Min (Line_Height, Toolbar_Input_H);
@@ -73,9 +64,7 @@ separate (Files.Rendering)
       Bottom_Y      : constant Natural :=
         (if Height > Layout.Bottom_Bar_Height then Height - Layout.Bottom_Bar_Height else 0);
       Bottom_Content_Y : constant Natural :=
-        Saturating_Add
-          (Bottom_Y,
-           (if Guikit.Layout.Bottom_Bar_Padding >= 2 then Guikit.Layout.Bottom_Bar_Padding - 2 else 0));
+        Saturating_Add (Bottom_Y, Optically_Raised (Guikit.Layout.Bottom_Bar_Padding));
       Bottom_Content_H : constant Natural :=
         (if Layout.Bottom_Bar_Height > Saturating_Multiply (Guikit.Layout.Bottom_Bar_Padding, 2)
          then Layout.Bottom_Bar_Height - Saturating_Multiply (Guikit.Layout.Bottom_Bar_Padding, 2)

@@ -59,7 +59,10 @@ separate (Files_Suite.Operations)
          Reset_Root;
          Ada.Directories.Create_Path (Join (Root, "bag"));
          Write_Binary_File (Join (Join (Root, "bag"), "keep.txt"), "kept");
-         exit when not Files_Suite.Support.Create_Symlink ("keep.txt", Join (Join (Root, "bag"), "pointer"));
+         if not Files_Suite.Support.Create_Symlink ("keep.txt", Join (Join (Root, "bag"), "pointer")) then
+            Files_Suite.Support.Link_Not_Made ("Test_Archive_Completeness");
+            exit;
+         end if;
          Settings := Files.Settings.Default_Settings;
          Load := Files.File_System.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);

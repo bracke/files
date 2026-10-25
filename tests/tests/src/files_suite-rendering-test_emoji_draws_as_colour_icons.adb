@@ -43,7 +43,7 @@ separate (Files_Suite.Rendering)
       Tile_Identity : Unbounded_String;
    begin
       if not Ada.Directories.Exists (Emoji_Font) then
-         Files_Suite.Support.Skip ("Test_Emoji_Draws_As_Colour_Icons", "not Ada.Directories.Exists (Emoji_Font)");
+         Files_Suite.Support.Skip ("Test_Emoji_Draws_As_Colour_Icons", "the Noto Color Emoji font is not installed");
          return;
       end if;
 

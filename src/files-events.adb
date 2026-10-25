@@ -17,24 +17,9 @@ package body Files.Events is
       return Input_Action is
    begin
       return
-        (Kind            => No_Input_Action,
-         Command         => Files.Commands.No_Command,
-         Direction       => Guikit.Input.Move_Right,
-         Item_Index      => 0,
-         Root_Index      => 0,
-         Result_Index    => 0,
-         Click_X          => 0,
-         Click_Y          => 0,
-         Scroll_Lines    => 0,
-         Scroll_Area     => Scroll_Auto,
-         Focus_Target    => Files.Types.Focus_None,
-         Cursor_Position => 0,
-         Settings_Field  => 0,
-         Settings_Option => 0,
-         Activate        => Activate,
-         Toggle_Selection => False,
-         Range_Selection  => False,
-         Scroll_Drag_Anchor => 0);
+        (Kind     => No_Input_Action,
+         Activate => Activate,
+         others   => <>);
    end No_Action;
 
    function Command_Action
@@ -43,24 +28,10 @@ package body Files.Events is
       return Input_Action is
    begin
       return
-        (Kind            => Command_Input_Action,
-         Command         => Command,
-         Direction       => Guikit.Input.Move_Right,
-         Item_Index      => 0,
-         Root_Index      => 0,
-         Result_Index    => 0,
-         Click_X          => 0,
-         Click_Y          => 0,
-         Scroll_Lines    => 0,
-         Scroll_Area     => Scroll_Auto,
-         Focus_Target    => Files.Types.Focus_None,
-         Cursor_Position => 0,
-         Settings_Field  => 0,
-         Settings_Option => 0,
-         Activate        => Activate,
-         Toggle_Selection => False,
-         Range_Selection  => False,
-         Scroll_Drag_Anchor => 0);
+        (Kind     => Command_Input_Action,
+         Command  => Command,
+         Activate => Activate,
+         others   => <>);
    end Command_Action;
 
    function Conflict_Action
@@ -70,23 +41,9 @@ package body Files.Events is
    begin
       return
         (Kind            => Conflict_Click_Input_Action,
-         Command         => Files.Commands.No_Command,
-         Direction       => Guikit.Input.Move_Right,
-         Item_Index      => 0,
-         Root_Index      => 0,
-         Result_Index    => 0,
-         Click_X          => 0,
-         Click_Y          => 0,
-         Scroll_Lines    => 0,
-         Scroll_Area     => Scroll_Auto,
-         Focus_Target    => Files.Types.Focus_None,
-         Cursor_Position => 0,
-         Settings_Field  => Button,
-         Settings_Option => 0,
+         Conflict_Button => Button,
          Activate        => Activate,
-         Toggle_Selection => False,
-         Range_Selection  => False,
-         Scroll_Drag_Anchor => 0);
+         others          => <>);
    end Conflict_Action;
 
    function Paste_Cancel_Action
@@ -94,24 +51,9 @@ package body Files.Events is
       return Input_Action is
    begin
       return
-        (Kind            => Paste_Cancel_Input_Action,
-         Command         => Files.Commands.No_Command,
-         Direction       => Guikit.Input.Move_Right,
-         Item_Index      => 0,
-         Root_Index      => 0,
-         Result_Index    => 0,
-         Click_X          => 0,
-         Click_Y          => 0,
-         Scroll_Lines    => 0,
-         Scroll_Area     => Scroll_Auto,
-         Focus_Target    => Files.Types.Focus_None,
-         Cursor_Position => 0,
-         Settings_Field  => 0,
-         Settings_Option => 0,
-         Activate        => Activate,
-         Toggle_Selection => False,
-         Range_Selection  => False,
-         Scroll_Drag_Anchor => 0);
+        (Kind     => Paste_Cancel_Input_Action,
+         Activate => Activate,
+         others   => <>);
    end Paste_Cancel_Action;
 
    --  Build a label-picker swatch-choice action carrying the chosen label's
@@ -122,24 +64,10 @@ package body Files.Events is
       return Input_Action is
    begin
       return
-        (Kind            => Label_Picker_Choice_Input_Action,
-         Command         => Files.Commands.No_Command,
-         Direction       => Guikit.Input.Move_Right,
-         Item_Index      => Label_Pos,
-         Root_Index      => 0,
-         Result_Index    => 0,
-         Click_X          => 0,
-         Click_Y          => 0,
-         Scroll_Lines    => 0,
-         Scroll_Area     => Scroll_Auto,
-         Focus_Target    => Files.Types.Focus_None,
-         Cursor_Position => 0,
-         Settings_Field  => 0,
-         Settings_Option => 0,
-         Activate        => Activate,
-         Toggle_Selection => False,
-         Range_Selection  => False,
-         Scroll_Drag_Anchor => 0);
+        (Kind       => Label_Picker_Choice_Input_Action,
+         Item_Index => Label_Pos,
+         Activate   => Activate,
+         others     => <>);
    end Label_Choice_Action;
 
    function Tree_Pick_Confirm_Action
@@ -147,24 +75,9 @@ package body Files.Events is
       return Input_Action is
    begin
       return
-        (Kind            => Tree_Pick_Confirm_Input_Action,
-         Command         => Files.Commands.No_Command,
-         Direction       => Guikit.Input.Move_Right,
-         Item_Index      => 0,
-         Root_Index      => 0,
-         Result_Index    => 0,
-         Click_X          => 0,
-         Click_Y          => 0,
-         Scroll_Lines    => 0,
-         Scroll_Area     => Scroll_Auto,
-         Focus_Target    => Files.Types.Focus_None,
-         Cursor_Position => 0,
-         Settings_Field  => 0,
-         Settings_Option => 0,
-         Activate        => Activate,
-         Toggle_Selection => False,
-         Range_Selection  => False,
-         Scroll_Drag_Anchor => 0);
+        (Kind     => Tree_Pick_Confirm_Input_Action,
+         Activate => Activate,
+         others   => <>);
    end Tree_Pick_Confirm_Action;
 
    function Selection_Action
@@ -172,24 +85,9 @@ package body Files.Events is
       return Input_Action is
    begin
       return
-        (Kind            => Selection_Input_Action,
-         Command         => Files.Commands.No_Command,
-         Direction       => Direction,
-         Item_Index      => 0,
-         Root_Index      => 0,
-         Result_Index    => 0,
-         Click_X          => 0,
-         Click_Y          => 0,
-         Scroll_Lines    => 0,
-         Scroll_Area     => Scroll_Auto,
-         Focus_Target    => Files.Types.Focus_None,
-         Cursor_Position => 0,
-         Settings_Field  => 0,
-         Settings_Option => 0,
-         Activate        => False,
-         Toggle_Selection => False,
-         Range_Selection  => False,
-         Scroll_Drag_Anchor => 0);
+        (Kind      => Selection_Input_Action,
+         Direction => Direction,
+         others    => <>);
    end Selection_Action;
 
    function Scroll_Action
@@ -199,24 +97,12 @@ package body Files.Events is
       return Input_Action is
    begin
       return
-        (Kind            => Scroll_Input_Action,
-         Command         => Files.Commands.No_Command,
-         Direction       => (if Lines < 0 then Guikit.Input.Move_Up else Guikit.Input.Move_Down),
-         Item_Index      => 0,
-         Root_Index      => 0,
-         Result_Index    => 0,
-         Click_X          => 0,
-         Click_Y          => 0,
-         Scroll_Lines    => Lines,
-         Scroll_Area     => Target,
-         Focus_Target    => Files.Types.Focus_None,
-         Cursor_Position => 0,
-         Settings_Field  => 0,
-         Settings_Option => 0,
-         Activate        => Activate,
-         Toggle_Selection => False,
-         Range_Selection  => False,
-         Scroll_Drag_Anchor => 0);
+        (Kind         => Scroll_Input_Action,
+         Direction    => (if Lines < 0 then Guikit.Input.Move_Up else Guikit.Input.Move_Down),
+         Scroll_Lines => Lines,
+         Scroll_Area  => Target,
+         Activate     => Activate,
+         others       => <>);
    end Scroll_Action;
 
    function Scroll_Drag_Begin_Action
@@ -226,24 +112,12 @@ package body Files.Events is
       return Input_Action is
    begin
       return
-        (Kind             => Scrollbar_Drag_Begin_Input_Action,
-         Command          => Files.Commands.No_Command,
-         Direction        => Guikit.Input.Move_Down,
-         Item_Index       => 0,
-         Root_Index       => 0,
-         Result_Index     => 0,
-         Click_X          => 0,
-         Click_Y          => 0,
-         Scroll_Lines     => 0,
-         Scroll_Area      => Target,
-         Focus_Target     => Files.Types.Focus_None,
-         Cursor_Position  => 0,
-         Settings_Field   => 0,
-         Settings_Option  => 0,
-         Activate         => Activate,
-         Toggle_Selection => False,
-         Range_Selection  => False,
-         Scroll_Drag_Anchor => Anchor);
+        (Kind               => Scrollbar_Drag_Begin_Input_Action,
+         Direction          => Guikit.Input.Move_Down,
+         Scroll_Area        => Target,
+         Activate           => Activate,
+         Scroll_Drag_Anchor => Anchor,
+         others             => <>);
    end Scroll_Drag_Begin_Action;
 
    --  Build a details-header column-resize drag-begin action. The target column,
@@ -263,24 +137,11 @@ package body Files.Events is
       return Input_Action is
    begin
       return
-        (Kind            => Column_Resize_Begin_Input_Action,
-         Command         => Files.Commands.No_Command,
-         Direction       => Guikit.Input.Move_Right,
-         Item_Index      => Files.Types.Detail_Column'Pos (Column),
-         Root_Index      => 0,
-         Result_Index    => 0,
-         Click_X          => 0,
-         Click_Y          => 0,
-         Scroll_Lines    => 0,
-         Scroll_Area     => Scroll_Auto,
-         Focus_Target    => Files.Types.Focus_None,
-         Cursor_Position => Origin_X,
-         Settings_Field  => 0,
-         Settings_Option => 0,
-         Activate        => False,
-         Toggle_Selection => False,
-         Range_Selection  => False,
-         Scroll_Drag_Anchor => Origin_Width);
+        (Kind               => Column_Resize_Begin_Input_Action,
+         Item_Index         => Files.Types.Detail_Column'Pos (Column),
+         Cursor_Position    => Origin_X,
+         Scroll_Drag_Anchor => Origin_Width,
+         others             => <>);
    end Column_Resize_Begin_Action;
 
    --  Build a details-header column-reorder drag-begin action. The dragged
@@ -302,22 +163,9 @@ package body Files.Events is
       return
         (Kind            => Column_Reorder_Begin_Input_Action,
          Command         => Sort_Command,
-         Direction       => Guikit.Input.Move_Right,
          Item_Index      => Files.Types.Detail_Column'Pos (Column),
-         Root_Index      => 0,
-         Result_Index    => 0,
-         Click_X          => 0,
-         Click_Y          => 0,
-         Scroll_Lines    => 0,
-         Scroll_Area     => Scroll_Auto,
-         Focus_Target    => Files.Types.Focus_None,
          Cursor_Position => Origin_X,
-         Settings_Field  => 0,
-         Settings_Option => 0,
-         Activate        => False,
-         Toggle_Selection => False,
-         Range_Selection  => False,
-         Scroll_Drag_Anchor => 0);
+         others          => <>);
    end Column_Reorder_Begin_Action;
 
    --  Build a marquee (rubber-band) drag-begin action. The press-point origin is
@@ -336,24 +184,11 @@ package body Files.Events is
       return Input_Action is
    begin
       return
-        (Kind            => Marquee_Begin_Input_Action,
-         Command         => Files.Commands.No_Command,
-         Direction       => Guikit.Input.Move_Right,
-         Item_Index      => 0,
-         Root_Index      => 0,
-         Result_Index    => 0,
-         Click_X          => 0,
-         Click_Y          => 0,
-         Scroll_Lines    => 0,
-         Scroll_Area     => Scroll_Auto,
-         Focus_Target    => Files.Types.Focus_None,
-         Cursor_Position => Origin_X,
-         Settings_Field  => Origin_Y,
-         Settings_Option => 0,
-         Activate        => False,
+        (Kind             => Marquee_Begin_Input_Action,
+         Cursor_Position  => Origin_X,
+         Settings_Field   => Origin_Y,
          Toggle_Selection => Additive,
-         Range_Selection  => False,
-         Scroll_Drag_Anchor => 0);
+         others           => <>);
    end Marquee_Begin_Action;
 
    function Saturating_Negated_Triple (Value : Integer) return Integer is

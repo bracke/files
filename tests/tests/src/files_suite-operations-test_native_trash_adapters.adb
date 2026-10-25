@@ -1,3 +1,5 @@
+with Files.File_System.Testing;
+
 separate (Files_Suite.Operations)
    procedure Test_Native_Trash_Adapters (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -20,11 +22,11 @@ separate (Files_Suite.Operations)
             "native trash capability does not opt into permanent deletion");
          declare
             Request : constant Files.File_System.Native_Trash_Request :=
-              Files.File_System.Native_Trash_Request_For (Join (Root, "missing-for-native-trash.txt"));
+              Files.File_System.Testing.Native_Trash_Request_For (Join (Root, "missing-for-native-trash.txt"));
             Native_Result : constant Files.File_System.Native_Trash_Result :=
               Files.File_System.Evaluate_Native_Trash (Request);
             Native_Execution : constant Files.File_System.Native_Trash_Result :=
-              Files.File_System.Execute_Native_Trash (Request);
+              Files.File_System.Testing.Execute_Native_Trash (Request);
          begin
             Assert (Request.Requires_Native_Api, "native trash request records native API requirement");
             Assert (not Request.Can_Use_Current_Process, "native trash request does not claim local fallback");

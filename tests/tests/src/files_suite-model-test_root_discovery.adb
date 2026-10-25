@@ -52,10 +52,19 @@ separate (Files_Suite.Model)
         (Root_Status.Ready_Count,
          Natural (Entries.Length),
          "root diagnostics count ready roots");
-      Assert
-        (Files_Suite.Repository.Source_Contains ("function Is_Mount_Container")
-         and then Files_Suite.Repository.Source_Contains ("return not Is_Mount_Container"),
-         "root discovery excludes mount container rows");
+      --  A mount container is listed only through what is mounted under it,
+      --  never as a row of its own (check_all holds the exclusion's shape for
+      --  hosts where no container is itself a mount point).
+      for Item of Entries loop
+         declare
+            Path : constant String := To_String (Item.Path);
+         begin
+            Assert
+              (Item.Kind /= Files.File_System.Root_Mount
+               or else Path not in "/mnt" | "/media" | "/run/media" | "/Volumes" | "/System/Volumes",
+               "root discovery excludes mount container rows: " & Path);
+         end;
+      end loop;
       Files_Suite.Support.Assert_Equal
         (Natural (Roots_A.Length),
          Natural (Roots_B.Length),

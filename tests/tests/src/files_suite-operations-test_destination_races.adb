@@ -62,6 +62,7 @@ separate (Files_Suite.Operations)
                Assert (Result.Success, "the owned collision fixture is cleaned");
             else
                --  Hosts without link privileges may complete this copy or move.
+               Files_Suite.Support.Link_Not_Made ("Test_Destination_Races");
                if not Ada.Directories.Exists (Source) then
                   Ada.Directories.Rename (Dest, Source);
                elsif Ada.Directories.Exists (Dest) then

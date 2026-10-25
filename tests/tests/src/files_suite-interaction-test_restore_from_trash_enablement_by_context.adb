@@ -39,6 +39,7 @@ separate (Files_Suite.Interaction)
       Load := Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
       Files.Model.Initialize
         (Model, Ada.Strings.Unbounded.To_String (Load.Path), Load.Items, Files_Suite.Support.Root);
+      Files.Operations.Settle_Current_Is_Trash (Model);
       Files_Suite.Support.Select_Name (Model, "doomed.txt");
       Assert (Files.Model.Selected_Count (Model) > 0, "the trashed item is selected in the trash view");
       Assert (Files.Commands.Is_Enabled (Files.Commands.Restore_From_Trash_Command, Model),

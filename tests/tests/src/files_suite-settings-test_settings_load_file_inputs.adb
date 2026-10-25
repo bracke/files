@@ -86,6 +86,8 @@ separate (Files_Suite.Settings)
             Assert
               (Loaded.Success and then Loaded.Settings.Show_Hidden_Files,
                "settings loading follows a link only to its verified regular-file target");
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Settings_Load_File_Inputs", Files_Suite.Support.Symbolic_Link);
          end if;
       end;
       if Hostkit.Host.Current = Hostkit.Host.Linux then

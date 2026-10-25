@@ -38,6 +38,7 @@ separate (Files_Suite.Operations)
                      Write_Binary_File (Join (Source, "child"), "owned bytes");
                   when others =>
                      if not Hostkit.Fs.Create_Link (Link_Target, Source) then
+                        Files_Suite.Support.Link_Not_Made ("Test_Move_Entry_Identity");
                         return;
                      end if;
                end case;

@@ -45,8 +45,7 @@ separate (Files.Rendering)
       --  the track spans the non-scrolling header band and the ends misalign.
       Header_H      : constant Natural :=
         (if Snapshot.View_Mode = Files.Types.Details
-         then Natural'Min
-           (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), View_H)
+         then Details_Header_Height (View_H, Line_Height)
          else 0);
       Viewport_H    : constant Natural := (if View_H > Header_H then View_H - Header_H else 0);
       Content_Total_H : constant Natural := Row_Content_H;

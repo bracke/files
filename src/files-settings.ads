@@ -119,6 +119,12 @@ package Files.Settings is
       --  leaves every built-in shortcut in force. Serialized as the
       --  [shortcuts] section and applied to Files.Commands at startup.
       Shortcut_Overrides     : Shortcut_Override_Vectors.Vector;
+      --  Session state, never written to the file: True when the settings
+      --  file exists but could not be loaded, so the session runs on defaults
+      --  and must not overwrite it. Changes then apply in memory and every
+      --  save reports error.settings.not_persisted. An empty settings path,
+      --  by contrast, asks for no persistence at all (tests, smoke runs).
+      Persistence_Refused    : Boolean := False;
    end record;
 
    --  The exact subset of the settings that Build_Snapshot reads. The render

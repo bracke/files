@@ -24,18 +24,18 @@ separate (Files_Suite.Commands)
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status, Files.Operations.Operation_Disabled,
-         "disabled recent-view create reports the missing parent without starting an edit (status)");
+         "disabled recent-view create reports the recent view without starting an edit (status)");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Last_Error_Key (Model), "error.file.parent_missing",
-         "disabled recent-view create reports the missing parent without starting an edit (error key)");
+        (Files.Model.Last_Error_Key (Model), "error.command.recent_view",
+         "disabled recent-view create reports the recent view without starting an edit (error key)");
       Assert
         (not Files.Model.Temporary_Item_Is_Active (Model),
-         "disabled recent-view create reports the missing parent without starting an edit (no edit started)");
+         "disabled recent-view create reports the recent view without starting an edit (no edit started)");
       Result := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       Assert
         (Result.Operation.Status = Files.Operations.Operation_Disabled
-         and then Files.Model.Last_Error_Key (Model) = "error.drop.invalid_destination",
-         "disabled recent-view paste reports an invalid destination");
+         and then Files.Model.Last_Error_Key (Model) = "error.command.recent_view",
+         "disabled recent-view paste reports the recent view");
       Files.Model.Set_Filter (Model, "alpha");
       Assert
         (not Files.Commands.Is_Enabled (Files.Commands.Search_Recursive_Command, Model)
@@ -45,8 +45,8 @@ separate (Files_Suite.Commands)
         Files.Controller.Execute_Command (Files.Commands.Search_Recursive_Command, Model, Settings);
       Assert
         (Result.Operation.Status = Files.Operations.Operation_Disabled
-         and then Files.Model.Last_Error_Key (Model) = "error.directory.load",
-         "disabled recent-view search reports the missing directory root");
+         and then Files.Model.Last_Error_Key (Model) = "error.command.recent_view",
+         "disabled recent-view search reports the recent view");
       Files.Model.Navigate_To (Model, "/tmp/files_aunit/next", Empty);
       Assert (Files.Commands.Is_Enabled (Files.Commands.Navigate_Back_Command, Model), "back enabled after navigation");
    end Test_Recent_View_Command_Enablement;

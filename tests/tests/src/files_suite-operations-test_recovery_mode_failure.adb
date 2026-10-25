@@ -15,7 +15,7 @@ separate (Files_Suite.Operations)
       Files_Suite.Support.Save (Environment, "FILES_TEST_DIRECTORY_RESTORE_FAULT");
       Files_Suite.Support.Save (Environment, "FILES_TEST_DIRECTORY_RESTORE_BLOCK");
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Recovery_Mode_Failure", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Recovery_Mode_Failure", "needs Linux");
          return;
       end if;
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
@@ -70,6 +70,8 @@ separate (Files_Suite.Operations)
                     (not Ada.Directories.Exists (Source),
                      "recovery refuses a multiply-linked mode record: source not created");
                   Ada.Directories.Delete_File (Mode_Alias);
+               else
+                  Files_Suite.Support.Link_Not_Made ("Test_Recovery_Mode_Failure", Files_Suite.Support.Hard_Link);
                end if;
             end;
             Mutation := Files.File_System.Restore_From_Trash

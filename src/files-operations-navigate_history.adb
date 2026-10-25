@@ -31,6 +31,7 @@ begin
    else
       Files.Model.Go_Forward (Model);
    end if;
+   Settle_Current_Is_Trash (Model);
 
    declare
       Reload : constant Operation_Result := Refresh (Model, Settings);
@@ -42,6 +43,7 @@ begin
          else
             Files.Model.Go_Back (Model);
          end if;
+         Settle_Current_Is_Trash (Model);
          if Had_Temporary then
             Files.Model.Begin_Create_File (Model, Temporary_Name);
          elsif Had_Rename then

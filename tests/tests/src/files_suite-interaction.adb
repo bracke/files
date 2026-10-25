@@ -11,7 +11,6 @@ with Project_Tools.Files;
 with Zlib;
 
 with Files.Breadcrumbs;
-with Files.Command_Palette;
 with Files.Commands;
 with Files.Controller;
 with Files.Events;
@@ -67,7 +66,6 @@ package body Files_Suite.Interaction is
    use type Files.Events.Scroll_Target;
    use type Files.File_System.Path_Status;
    use type Files.Model.Clipboard_Mode;
-   use type Files.Model.Palette_Mode;
    use type Guikit.Draw.Accessibility_Role;
    use type Files.Types.Color_Label;
    use type Files.Types.Focus_Target;
@@ -173,6 +171,7 @@ package body Files_Suite.Interaction is
    procedure Test_Recent_Commands_Registry (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Focus_Blocks_File_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Search_Scope_Chip_Cycles (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Refused_After_Failed_Load (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Interaction_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -385,6 +384,9 @@ package body Files_Suite.Interaction is
         (T, Test_Search_Scope_Chip_Cycles'Access,
          "clicking the filter-bar scope chip cycles the scope, re-runs the query, "
          & "and does not focus the filter input");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Refused_After_Failed_Load'Access,
+         "after a failed settings load changes apply but report they are not saved");
    end Register_Tests;
 
    --  Center of the cell laid out for visible item Index, derived from the real
@@ -583,25 +585,6 @@ package body Files_Suite.Interaction is
 
    procedure Test_Overlays_Contain_Wheel_Input (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-   --  Open the settings pane through the real Ctrl+, shortcut so its draft is
-   --  initialised exactly as the live app does.
-   procedure Open_Settings_Pane
-     (Model    : in out Files.Model.Window_Model;
-      Settings : in out Files.Settings.Settings_Model)
-   is
-      Result : Files.Interaction.Interaction_Result;
-      Action : constant Files.Events.Input_Action :=
-        Files.Events.Translate_Key (Guikit.Input.Key_Comma, Ctrl);
-   begin
-      Files.Interaction.Apply_Input_Action
-        (Model             => Model,
-         Settings          => Settings,
-         Settings_Path     => "",
-         Action            => Action,
-         Current_Font_Size => Base_Font,
-         Modifiers         => Ctrl,
-         Result            => Result);
-   end Open_Settings_Pane;
    procedure Test_Bottom_Bar_Hidden_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Bottom_Bar_Sort_Persists (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -715,7 +698,8 @@ package body Files_Suite.Interaction is
          end if;
       end loop;
       if Target_Row = 0 then
-         Files_Suite.Support.Skip ("Test_Bottom_Bar_Sort_Persists", "Target_Row = 0");
+         Files_Suite.Support.Skip
+           ("Test_Bottom_Bar_Sort_Persists", "the sort menu has no row for the command under test");
          return;
       end if;
       Row_X := Menu.X + Menu.Width / 2;
@@ -995,5 +979,7 @@ package body Files_Suite.Interaction is
    procedure Test_Recent_Commands_Registry (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Search_Scope_Chip_Cycles (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Settings_Refused_After_Failed_Load (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
 end Files_Suite.Interaction;

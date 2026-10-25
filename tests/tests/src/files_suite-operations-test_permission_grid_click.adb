@@ -15,7 +15,7 @@ separate (Files_Suite.Operations)
       Cell_Y     : Natural := 0;
    begin
       if not Files.File_System.Supports_Permissions then
-         Files_Suite.Support.Skip ("Test_Permission_Grid_Click", "not Files.File_System.Supports_Permissions");
+         Files_Suite.Support.Skip ("Test_Permission_Grid_Click", "this host has no POSIX permissions to set");
          return;
       end if;
 

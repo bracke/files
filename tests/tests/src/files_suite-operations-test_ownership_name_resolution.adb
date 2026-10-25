@@ -6,7 +6,8 @@ separate (Files_Suite.Operations)
       Id    : Files.Types.Account_Id := 0;
    begin
       if not Files.File_System.Supports_Ownership then
-         Files_Suite.Support.Skip ("Test_Ownership_Name_Resolution", "not Files.File_System.Supports_Ownership");
+         Files_Suite.Support.Skip
+           ("Test_Ownership_Name_Resolution", "this host has no POSIX owner and group to change");
          return;
       end if;
 

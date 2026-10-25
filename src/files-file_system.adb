@@ -820,8 +820,6 @@ package body Files.File_System is
 
    function Trash_Base_Path return String;
 
-   function Trash_Backend_For_Base return Trash_Backend;
-
    function Path_Can_Be_Directory (Path : String) return Boolean;
 
    function Two_Digit_Text (Value : Natural) return String;
@@ -834,8 +832,6 @@ package body Files.File_System is
    function Trash_Location_For_Environment return Trash_Location is separate;
 
    function Trash_Base_Path return String is separate;
-
-   function Trash_Backend_For_Base return Trash_Backend is separate;
 
    function Trash_Files_Directory return String is separate;
 
@@ -858,19 +854,13 @@ package body Files.File_System is
 
    function Trash_Capabilities_Of_Current_Environment return Trash_Capabilities is separate;
 
-   function Native_Trash_Request_For
-     (Path : String)
-      return Native_Trash_Request
-   is separate;
-
    function Evaluate_Native_Trash
      (Request : Native_Trash_Request)
       return Native_Trash_Result is separate;
 
-   function Execute_Native_Trash
+   function Trash_Natively
      (Request : Native_Trash_Request)
-      return Native_Trash_Result
-   is separate;
+      return Native_Trash_Result is separate;
 
    function Move_To_Trash_Preflight
      (Path : String)

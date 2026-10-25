@@ -2,10 +2,12 @@ separate (Files.Operations)
 --  Full paths of every entry directly inside Directory (hidden entries
 --  included). Used as the "already exists" set for conflict detection and for
 --  rename uniquification, so a renamed paste avoids any existing name, not
---  just the colliding one. Falls back to an empty set when the directory
---  cannot be scanned; Execute_Drop_Import then still refuses to clobber.
+--  just the colliding one. Listed is False, with an empty set, when the
+--  directory cannot be scanned or holds more than Max_Destination_Entries
+--  entries; the caller then checks the incoming names one by one.
 function Existing_Destination_Paths
-  (Directory : String)
+  (Directory : String;
+   Listed    : out Boolean)
    return Files.Types.String_Vectors.Vector
 is
    Max_Destination_Entries : constant Natural := 100_000;
@@ -15,6 +17,7 @@ is
    Started : Boolean := False;
    Count : Natural := 0;
 begin
+   Listed := False;
    Ada.Directories.Start_Search
      (Search    => Search,
       Directory => Directory,
@@ -39,6 +42,7 @@ begin
    end loop;
    Ada.Directories.End_Search (Search);
    Started := False;
+   Listed := True;
    return Result;
 exception
    when others =>
@@ -50,5 +54,6 @@ exception
                Files.Diagnostics.Note (Swallowed, "Files.Operations.Transfer");
          end;
       end if;
+      Listed := False;
       return Files.Types.String_Vectors.Empty_Vector;
 end Existing_Destination_Paths;

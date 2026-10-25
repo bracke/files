@@ -50,6 +50,7 @@ separate (Files_Suite.Operations)
       Load := Files.File_System.Load_Directory (Files.File_System.Trash_Files_Directory, Settings);
       Assert (Load.Success, "empty-trash setup loads the trash view");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
+      Files.Operations.Settle_Current_Is_Trash (Model);
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "the trash view lists both trashed items");
       Assert
         (Files.Commands.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),

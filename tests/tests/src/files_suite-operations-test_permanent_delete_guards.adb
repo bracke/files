@@ -97,6 +97,8 @@ separate (Files_Suite.Operations)
             Assert (Link_Gone, "permanent delete removes the symlink itself");
             Assert (Target_Kept, "permanent delete of a symlink does not delete the link target directory");
             Assert (Content_Kept, "permanent delete of a symlink preserves the target's real contents");
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Permanent_Delete_Guards", Files_Suite.Support.Symbolic_Link);
          end if;
       end;
 

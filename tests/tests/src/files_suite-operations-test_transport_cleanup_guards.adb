@@ -66,6 +66,8 @@ separate (Files_Suite.Operations)
               (Hostkit.Fs.Is_Link (Link_Path),
                "cleanup never reports a dangling symlink as a removed transport: link kept");
             Ada.Directories.Delete_File (Link_Path);
+         else
+            Files_Suite.Support.Link_Not_Made ("Test_Transport_Cleanup_Guards", Files_Suite.Support.Symbolic_Link);
          end if;
       end;
 

@@ -11,7 +11,7 @@ separate (Files_Suite.Operations)
       Avail    : Boolean := False;
    begin
       if not Files.File_System.Supports_Ownership then
-         Files_Suite.Support.Skip ("Test_Set_Ownership_Denied", "not Files.File_System.Supports_Ownership");
+         Files_Suite.Support.Skip ("Test_Set_Ownership_Denied", "this host has no POSIX owner and group to change");
          return;
       end if;
 

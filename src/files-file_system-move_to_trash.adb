@@ -68,7 +68,7 @@ is
       return To_String (Result);
    end Trash_Info_Path_Value;
 
-   Backend    : constant Trash_Backend := Trash_Backend_For_Base;
+   Backend    : constant Trash_Backend := Trash_Backend_Of_Current_Environment;
    Macos_Home : constant Boolean := Backend = Trash_Macos_Home;
    Base       : constant String := Trash_Base_Path;
    --  macOS ~/.Trash stores items at the top level, without the freedesktop
@@ -119,7 +119,7 @@ begin
             Requires_Native_Api     => True,
             Can_Use_Current_Process => True);
 
-         Native : constant Native_Trash_Result := Execute_Native_Trash (Request);
+         Native : constant Native_Trash_Result := Trash_Natively (Request);
       begin
          if Native.Completed then
             return (Success => True, Error_Key => Null_Unbounded_String);

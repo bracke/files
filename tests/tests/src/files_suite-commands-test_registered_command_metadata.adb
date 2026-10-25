@@ -1,6 +1,7 @@
 separate (Files_Suite.Commands)
    procedure Test_Registered_Command_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      use type Files.Commands.Command_Id;
    begin
       for Id in Files.Commands.Registered_Command_Id loop
          declare

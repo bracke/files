@@ -8,7 +8,7 @@ separate (Files_Suite.Operations)
       Result   : Files.Operations.Operation_Result;
    begin
       if not Files.File_System.Supports_Permissions then
-         Files_Suite.Support.Skip ("Test_Set_Permissions_And_Undo", "not Files.File_System.Supports_Permissions");
+         Files_Suite.Support.Skip ("Test_Set_Permissions_And_Undo", "this host has no POSIX permissions to set");
          return;
       end if;
 

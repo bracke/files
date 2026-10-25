@@ -110,23 +110,11 @@ separate (Files.Events)
       begin
          return
            (Kind            => Text_Click_Input_Action,
-            Command         => Files.Commands.No_Command,
-            Direction       => Guikit.Input.Move_Right,
             Item_Index      => Item_Index,
-            Root_Index      => 0,
-            Result_Index    => 0,
-            Click_X          => 0,
-            Click_Y          => 0,
-            Scroll_Lines    => 0,
-            Scroll_Area     => Scroll_Auto,
             Focus_Target    => Target,
             Cursor_Position => Cursor,
-            Settings_Field  => 0,
-            Settings_Option => 0,
             Activate        => Activate,
-            Toggle_Selection => False,
-            Range_Selection  => False,
-         Scroll_Drag_Anchor => 0);
+            others          => <>);
       end Text_Click;
 
       function Scroll_Click
@@ -273,23 +261,10 @@ separate (Files.Events)
       begin
          return
            (Kind             => Tree_Click_Input_Action,
-            Command          => Files.Commands.No_Command,
-            Direction        => Guikit.Input.Move_Right,
             Item_Index       => Node_Index,
-            Root_Index       => 0,
-            Result_Index     => 0,
-            Click_X          => 0,
-            Click_Y          => 0,
-            Scroll_Lines     => 0,
-            Scroll_Area      => Scroll_Auto,
-            Focus_Target     => Files.Types.Focus_None,
-            Cursor_Position  => 0,
-            Settings_Field   => 0,
-            Settings_Option  => 0,
             Activate         => Activate,
             Toggle_Selection => Toggle,
-            Range_Selection  => False,
-            Scroll_Drag_Anchor => 0);
+            others           => <>);
       end Tree_Action;
 
       --  Build a breadcrumb click action carrying the segment index.
@@ -298,24 +273,10 @@ separate (Files.Events)
          return Input_Action is
       begin
          return
-           (Kind             => Breadcrumb_Click_Input_Action,
-            Command          => Files.Commands.No_Command,
-            Direction        => Guikit.Input.Move_Right,
-            Item_Index       => Segment_Index,
-            Root_Index       => 0,
-            Result_Index     => 0,
-            Click_X          => 0,
-            Click_Y          => 0,
-            Scroll_Lines     => 0,
-            Scroll_Area      => Scroll_Auto,
-            Focus_Target     => Files.Types.Focus_None,
-            Cursor_Position  => 0,
-            Settings_Field   => 0,
-            Settings_Option  => 0,
-            Activate         => Activate,
-            Toggle_Selection => False,
-            Range_Selection  => False,
-            Scroll_Drag_Anchor => 0);
+           (Kind       => Breadcrumb_Click_Input_Action,
+            Item_Index => Segment_Index,
+            Activate   => Activate,
+            others     => <>);
       end Breadcrumb_Action;
 
       --  The click regions, front to back. Each sets Handled when the click is

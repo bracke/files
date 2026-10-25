@@ -1,7 +1,7 @@
 separate (Files.File_System)
 function Trash_Files_Directory return String is
    Base    : constant String := Trash_Base_Path;
-   Backend : constant Trash_Backend := Trash_Backend_For_Base;
+   Backend : constant Trash_Backend := Trash_Backend_Of_Current_Environment;
 begin
    if Base = "" then
       return "";

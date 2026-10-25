@@ -19,7 +19,7 @@ separate (Files_Suite.Operations)
       end Restore;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Failed_Move_Rollback", "Hostkit.Host.Current /= Hostkit.Host.Linux");
+         Files_Suite.Support.Skip ("Test_Failed_Move_Rollback", "needs Linux");
          return;
       end if;
       Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");

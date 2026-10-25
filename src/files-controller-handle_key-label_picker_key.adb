@@ -1,10 +1,8 @@
 separate (Files.Controller.Handle_Key)
---  These grid popups own the keyboard while open: Escape closes them, and
---  every other key is consumed so it does not leak through to move the
---  selection on the grid behind. Without this a keyboard user who opened
---  one from the command palette was trapped -- Escape did nothing and the
---  arrows moved the hidden grid. (They are still mouse-driven for choosing
---  a row; per-overlay arrow navigation is a separate enhancement.)
+--  The label picker owns the keyboard while open: Escape closes it, the
+--  arrows move its highlight, Enter applies the highlighted swatch (on the
+--  Interaction seam), and every other key is consumed so it does not leak
+--  through to move the selection on the grid behind.
 procedure Label_Picker_Key (Handled : out Boolean; Result : out Controller_Result) is
 begin
    Handled := True;

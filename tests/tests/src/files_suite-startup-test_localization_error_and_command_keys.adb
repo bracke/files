@@ -49,6 +49,11 @@ separate (Files_Suite.Startup)
       Add_Error_Key ("error.drop.failed");
       Add_Error_Key ("error.move.source_changed");
       Add_Error_Key ("error.move.source_set_aside");
+      Add_Error_Key ("error.settings.not_persisted");
+      Add_Error_Key ("error.extract.not_archive");
+      Add_Error_Key ("error.clipboard.empty");
+      Add_Error_Key ("error.command.recent_view");
+      Add_Error_Key ("error.command.trash_view");
       Add_Error_Key ("error.drop.into_self");
       Add_Error_Key ("error.copy.failed");
       Add_Error_Key ("error.io.no_space");

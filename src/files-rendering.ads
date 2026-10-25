@@ -1282,6 +1282,79 @@ private
       Point_Y  : Natural)
       return Boolean;
 
+   --  Height of the details-view sticky column header: one text line plus the
+   --  row padding above and below, clamped to the content height. The header
+   --  drawing, its click hit-tests, and the main-view scroll viewport share it.
+   --
+   --  @param Content_H Height of the main content rectangle.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Header height in pixels.
+   function Details_Header_Height
+     (Content_H   : Natural;
+      Line_Height : Positive)
+      return Natural;
+
+   --  Geometry of the details-view sticky column header: the content rectangle
+   --  it spans the top of, its height and inner padding, and the column layout
+   --  its cells (and every item row) align to.
+   type Details_Header_Layout is record
+      Content : Content_Rectangle;
+      Height  : Natural := 0;
+      Pad     : Natural := 0;
+      Columns : Detail_Column_Geometry_Array;
+   end record;
+
+   --  The details header geometry for a snapshot and window layout. The header
+   --  renderer and the header hit-tests (cell, drop slot, separator) all derive
+   --  their rectangles from this one function so they cannot drift apart.
+   --
+   --  @param Snapshot View snapshot holding the detail-column settings.
+   --  @param Layout High-level window layout metrics.
+   --  @param Line_Height Text line height in pixels.
+   --  @return The header's content rectangle, height, padding, and columns.
+   function Details_Header_Geometry
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      Line_Height : Positive)
+      return Details_Header_Layout;
+
+   --  Whether a detail column defines a sort and, when it does, the field a
+   --  header click on it sorts by.
+   type Detail_Column_Sort is record
+      Sortable : Boolean := False;
+      Field    : Files.Types.Sort_Field := Files.Types.Sort_Name;
+   end record;
+
+   --  The one mapping from a detail column to its sort field. The header label
+   --  (which column shows the direction indicator) and the header click
+   --  hit-test both read it. The permissions column defines no sort.
+   Detail_Column_Sorts : constant array (Files.Types.Detail_Column) of Detail_Column_Sort :=
+     [Files.Types.Name_Column        => (Sortable => True, Field => Files.Types.Sort_Name),
+      Files.Types.Modified_Column    => (Sortable => True, Field => Files.Types.Sort_Changed),
+      Files.Types.Size_Column        => (Sortable => True, Field => Files.Types.Sort_Size),
+      Files.Types.Filetype_Column    => (Sortable => True, Field => Files.Types.Sort_Type),
+      Files.Types.Created_Column     => (Sortable => True, Field => Files.Types.Sort_Created),
+      Files.Types.Permissions_Column => (Sortable => False, Field => Files.Types.Sort_Name)];
+
+   --  Zero-based index of a left-toolbar button, left to right.
+   subtype Toolbar_Button_Index is Natural range 0 .. Guikit.Layout.Toolbar_Button_Count - 1;
+
+   --  The command each left-toolbar button triggers, by button index. The
+   --  toolbar renderer and the toolbar click hit-test share this one table.
+   Toolbar_Button_Commands : constant array (Toolbar_Button_Index) of Files.Commands.Registered_Command_Id :=
+     [Files.Commands.Select_Drive_Command,
+      Files.Commands.Navigate_Home_Command,
+      Files.Commands.Navigate_Back_Command,
+      Files.Commands.Navigate_Forward_Command,
+      Files.Commands.Navigate_Parent_Command,
+      Files.Commands.Create_File_Command,
+      Files.Commands.Delete_Selected_Items_Command];
+
+   --  The first button of the file-action group (create/delete); the buttons
+   --  before it form the navigation group. The renderer widens the padding on
+   --  both sides of this boundary and draws a divider at its left edge.
+   First_File_Action_Button : constant Toolbar_Button_Index := 5;
+
    type Text_Renderer is record
       Loaded       : Boolean := False;
       Font_Path    : UString;

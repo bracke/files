@@ -20,7 +20,7 @@ separate (Files_Suite.Operations)
    begin
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       if not Files.File_System.Supports_Permissions then
-         Files_Suite.Support.Skip ("Test_Private_Copy_Stages", "not Files.File_System.Supports_Permissions");
+         Files_Suite.Support.Skip ("Test_Private_Copy_Stages", "this host has no POSIX permissions to set");
          return;
       end if;
       Reset_Root;

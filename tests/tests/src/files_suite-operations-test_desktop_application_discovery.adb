@@ -61,7 +61,7 @@ separate (Files_Suite.Operations)
                "viewer %F",
                "a linked desktop entry is listed, as Flatpak and NixOS install them");
          else
-            Files_Suite.Support.Skip ("Test_Desktop_Application_Discovery", "this host could not create a link");
+            Files_Suite.Support.Link_Not_Made ("Test_Desktop_Application_Discovery");
          end if;
          Files_Suite.Support.Assert_Equal
            (To_String (Find (Apps, "Excessive Exec").Exec),
