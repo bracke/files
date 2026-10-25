@@ -7,6 +7,8 @@ separate (Files_Suite.Operations)
       Finished  : Boolean;
       Cancelled : Boolean;
    begin
+      --  The late-owner helper writes its report into Root.
+      Reset_Root;
       declare
          Arguments : Hostkit.String_Vectors.Vector;
          Exit_Status : Integer;

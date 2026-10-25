@@ -118,6 +118,7 @@ separate (Files_Suite.Operations)
       Item.Thumbnail_Pixels := Files.Shared_Bytes.To_Shared ([1 => 0]);
       Items.Append (Item);
       Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
+      Rejected := False;
       begin
          Files.Job_Records.Write_Items
            (Ada.Streams.Stream_IO.Stream (File), Items);

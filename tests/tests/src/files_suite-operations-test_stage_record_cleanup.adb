@@ -228,6 +228,23 @@ separate (Files_Suite.Operations)
                "idle cleanup leaves no child process waiting for a later job API call");
          end if;
       end;
+      --  Cleanup rightly refuses the unowned and linked records planted
+      --  above, so it could never finish this transport. Remove them, then
+      --  release the transport and wait for its cleanup child, so no
+      --  cleanup outlives this test.
+      declare
+         Unowned_Record : constant Files.File_System.Mutation_Result :=
+           Files.File_System.Delete_Permanently (Join (Join (Transport, "stages"), "stage-unowned"));
+         Link_Record : constant Files.File_System.Mutation_Result :=
+           Files.File_System.Delete_Permanently (Join (Join (Transport, "stages"), "stage-link"));
+         pragma Unreferenced (Unowned_Record, Link_Record);
+      begin
+         null;
+      end;
+      Files.Process_Jobs.Reset (Transport_Job);
+      for Attempt in Files_Suite.Support.Polling loop
+         exit when not Ada.Directories.Exists (Transport);
+      end loop;
    exception
       when others => Files.Job_Context.Initialize (""); raise;
    end Test_Stage_Record_Cleanup;
