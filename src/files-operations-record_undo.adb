@@ -1,12 +1,12 @@
-separate (Files.Model)
+separate (Files.Operations)
 procedure Record_Undo
-  (Model       : in out Window_Model;
-   Kind        : Undo_Action_Kind;
+  (Model       : in out Files.Model.Window_Model;
+   Kind        : Files.Model.Undo_Action_Kind;
    From        : Files.Types.String_Vectors.Vector;
    To          : Files.Types.String_Vectors.Vector;
    Forward     : Files.Types.String_Vectors.Vector :=
      Files.Types.String_Vectors.Empty_Vector;
-   Create_Kind : Undo_Create_Kind := Create_None;
+   Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
    Redoable    : Boolean := True;
    Restore_Trash : Files.Types.String_Vectors.Vector :=
      Files.Types.String_Vectors.Empty_Vector;

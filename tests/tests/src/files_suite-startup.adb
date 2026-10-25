@@ -28,6 +28,7 @@ with Hostkit.Durability;
 with Files.Accessibility;
 with Files.Application;
 with Files.Application.Windows;
+with Files.Application.Windows.Smoke;
 with Files.Command_Palette;
 with Files.Commands;
 with Files.Controller;

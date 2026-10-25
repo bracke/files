@@ -6,14 +6,7 @@ procedure Record_Paste_Execution_Write
    Name        : String;
    Identity    : String;
    Tree_Revision : String;
-   Retain_Verified_Snapshot : Boolean := False) is
-   use type Files.File_System.Drop_Import_Mode;
-   function Identity_Matches (Path, Expected : String) return Boolean
-     renames Files.File_System.Entry_Identity_Matches;
-   function Creation_Snapshot_Matches
-     (Path, Identity, Tree_Revision : String;
-      Retain_Verified : Boolean := False) return Boolean
-     renames Files.File_System.Creation_Matches;
+   Verified    : Boolean) is
 begin
    Model.Revision_Value := Model.Revision_Value + 1;
    Model.Paste_Exec.Cursor := Model.Paste_Exec.Cursor + 1;
@@ -30,13 +23,7 @@ begin
      (To_Unbounded_String (Tree_Revision));
    if Model.Paste_Exec.Verified_Created_Count + 1 =
         Natural (Model.Paste_Exec.Undo_From.Length)
-     and then
-       ((Retain_Verified_Snapshot and then Identity /= "")
-        or else
-          (if Model.Paste_Exec.Mode = Files.File_System.Drop_Move
-           then Identity_Matches (To_String (Dest_Path), Identity)
-           else Creation_Snapshot_Matches
-             (To_String (Dest_Path), Identity, Tree_Revision)))
+     and then Verified
    then
       Model.Paste_Exec.Verified_Created_Count :=
         Model.Paste_Exec.Verified_Created_Count + 1;

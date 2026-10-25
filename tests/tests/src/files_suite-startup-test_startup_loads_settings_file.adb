@@ -67,7 +67,7 @@ separate (Files_Suite.Startup)
          4,
          "hidden-file setting affects startup load");
       Assert
-        (Files.Application.Windows.Headless_Smoke_Test (Startup),
+        (Files.Application.Windows.Smoke.Headless_Smoke_Test (Startup),
          "startup windows with Unicode and fallback filenames pass headless render smoke test");
 
       Args.Clear;

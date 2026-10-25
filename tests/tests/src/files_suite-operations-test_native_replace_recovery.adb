@@ -174,7 +174,7 @@ separate (Files_Suite.Operations)
          "unrelated",
          "rollback never overwrites a collision");
       Paths.Append (Backup);
-      Files.Model.Record_Undo
+      Files.Operations.Record_Undo
         (Model, Files.Model.Undo_Restore_Trash, Paths, Files.Types.String_Vectors.Empty_Vector, Redoable => False);
       Ada.Directories.Delete_File (Dest);
       Step := Complete_Operation

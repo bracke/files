@@ -30,6 +30,7 @@ begin
    --  action that fully succeeded is simply consumed.
    if not Succeeded then
       Files.Model.Push_Undo (Model, Action);
+      Settle_History (Model);
    elsif Action.Redoable then
       --  A subsequent redo starts a new Undo cycle for the full action.
       Action.Reverse_Completed.Clear;
@@ -37,6 +38,7 @@ begin
       Action.Forward_Completed.Clear;
       Action.Copy_Records.Clear;
       Files.Model.Push_Redo (Model, Action);
+      Settle_History (Model);
    end if;
 
    Returned_Action := True;
@@ -45,6 +47,7 @@ exception
    when others =>
       if Found and then not Returned_Action then
          Files.Model.Push_Undo (Model, Action);
+         Settle_History (Model);
       end if;
       Files.Model.Set_Error (Model, "error.undo.failed");
       return Make_Result (Operation_Failed, "error.undo.failed", Directory);

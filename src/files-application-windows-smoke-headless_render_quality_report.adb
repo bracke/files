@@ -1,6 +1,7 @@
+with Files.Shared_Bytes;
 with Ada.Calendar;
 
-separate (Files.Application.Windows)
+separate (Files.Application.Windows.Smoke)
    function Headless_Render_Quality_Report
      (Startup : Startup_Result;
       Width   : Natural := 1024;

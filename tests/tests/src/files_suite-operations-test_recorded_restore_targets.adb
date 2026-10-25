@@ -29,7 +29,7 @@ separate (Files_Suite.Operations)
                Write_Binary_File (Source, "original bytes");
                Load := Files.File_System.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Model.Clear_Undo (Model);
+               Files.Operations.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, Background);
                if Scenario = 1 then
                   Selected := Files.Model.Select_By_Name (Model, "entry");

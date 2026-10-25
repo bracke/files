@@ -21,7 +21,7 @@ separate (Files_Suite.Operations)
                end if;
                Load := Files.File_System.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Model.Clear_Undo (Model);
+               Files.Operations.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, Background);
                Select_Name (Model, "bag");
                Step := Complete_Operation

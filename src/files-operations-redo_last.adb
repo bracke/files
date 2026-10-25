@@ -29,8 +29,10 @@ begin
    if Succeeded then
       Action.Forward_Completed.Clear;
       Files.Model.Push_Undo (Model, Action);
+      Settle_History (Model);
    else
       Files.Model.Push_Redo (Model, Action);
+      Settle_History (Model);
    end if;
 
    Returned_Action := True;
@@ -39,6 +41,7 @@ exception
    when others =>
       if Found and then not Returned_Action then
          Files.Model.Push_Redo (Model, Action);
+         Settle_History (Model);
       end if;
       Files.Model.Set_Error (Model, "error.undo.failed");
       return Make_Result (Operation_Failed, "error.undo.failed", Directory);

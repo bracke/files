@@ -16,7 +16,7 @@ separate (Files_Suite.Model)
             From : Files.Types.String_Vectors.Vector;
          begin
             From.Append (To_Unbounded_String (History_Path));
-            Files.Model.Record_Undo
+            Files.Operations.Record_Undo
               (Model, Files.Model.Undo_Delete_Created, From => From,
                To => Files.Types.String_Vectors.Empty_Vector, Redoable => False);
          end;

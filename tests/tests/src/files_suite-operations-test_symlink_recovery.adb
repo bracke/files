@@ -119,7 +119,7 @@ separate (Files_Suite.Operations)
          end;
          Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
          Paths.Append (To_Unbounded_String (Link));
-         Files.Model.Record_Undo
+         Files.Operations.Record_Undo
            (Model, Files.Model.Undo_Delete_Created, Paths, Files.Types.String_Vectors.Empty_Vector, Redoable => False);
          Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));

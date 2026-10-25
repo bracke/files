@@ -12,7 +12,7 @@ separate (Files_Suite.Operations)
          Write_Binary_File (Join (Root, "b.txt"), "b bytes");
          Load := Files.File_System.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Clear_Undo (Model);
+         Files.Operations.Clear_Undo (Model);
          Files.Model.Select_All_Visible (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Ada.Directories.Delete_File (Join (Root, "b.txt"));
@@ -42,7 +42,7 @@ separate (Files_Suite.Operations)
          Files.Settings.Note_Recent (Settings, Join (Join (Root, "one"), "same.txt"));
          Files.Settings.Note_Recent (Settings, Join (Join (Root, "two"), "same.txt"));
          Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
-         Files.Model.Clear_Undo (Model);
+         Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Step := Files.Operations.Navigate_Recent (Model, Settings);
          Files.Model.Select_All_Visible (Model);
@@ -63,7 +63,7 @@ separate (Files_Suite.Operations)
          Settings := Files.Settings.Default_Settings;
          Load := Files.File_System.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Clear_Undo (Model);
+         Files.Operations.Clear_Undo (Model);
          Select_Name (Model, "bag");
          Files.Model.Set_Background_Transfers (Model, Background);
          Step := Complete_Operation
@@ -87,7 +87,7 @@ separate (Files_Suite.Operations)
                Settings := Files.Settings.Default_Settings;
                Load := Files.File_System.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Model.Clear_Undo (Model);
+               Files.Operations.Clear_Undo (Model);
                Files.Model.Set_Background_Transfers (Model, Background);
                Select_Name (Model, "bag");
                Step := Complete_Operation

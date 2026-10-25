@@ -31,7 +31,7 @@ is
       end if;
       Undo_Recorded := True;
       declare
-         Recorded : constant Boolean := Files.Model.Try_Record_Undo
+         Recorded : constant Boolean := Try_Record_Undo
            (Model, Files.Model.Undo_Delete_Created, Undo_From, Undo_To,
             Forward     => Undo_Sources,
             Create_Kind =>

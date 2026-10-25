@@ -28,14 +28,14 @@ separate (Files_Suite.Operations)
          Write_Binary_File (Join (Root, "victim.txt"), "victim bytes");
          Load := Files.File_System.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Clear_Undo (Model);
+         Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, True);
          Select_Name (Model, "victim.txt");
          Paths.Clear;
          Sources.Clear;
          Paths.Append (To_Unbounded_String (Join (Root, "victim.txt")));
          if Job_Kind = Undo_Job then
-            Files.Model.Record_Undo
+            Files.Operations.Record_Undo
               (Model, Files.Model.Undo_Delete_Created, Paths, Sources, Redoable => False);
          elsif Job_Kind = Redo_Job then
             Sources := Paths;
@@ -44,6 +44,7 @@ separate (Files_Suite.Operations)
             Action := (Kind => Files.Model.Undo_Delete_Created, From => Paths, Forward => Sources,
                        Create_Kind => Files.Model.Create_Copy, others => <>);
             Files.Model.Push_Redo (Model, Action);
+            Files.Operations.Settle_History (Model);
          end if;
          Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", "1");
          Before := Now;
@@ -107,7 +108,7 @@ separate (Files_Suite.Operations)
       Write_Binary_File (Join (Root, "victim.txt"), "victim bytes");
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Clear_Undo (Model);
+      Files.Operations.Clear_Undo (Model);
       Files.Model.Set_Background_Transfers (Model, True);
       Select_Name (Model, "victim.txt");
       Step := Complete_Operation (Model, Settings, Files.Operations.Delete_Selected (Model, Settings));
@@ -168,12 +169,12 @@ separate (Files_Suite.Operations)
               and then not Ada.Directories.Exists (To_String (Paths.First_Element)),
               "background empty trash purges only the private test trash backend");
       Files.Model.Set_Background_Transfers (Model, False);
-      Files.Model.Clear_Undo (Model);
+      Files.Operations.Clear_Undo (Model);
       Write_Binary_File (Join (Root, "checkpoint-target"), "preserve original bytes");
       Paths.Clear;
       Sources.Clear;
       Paths.Append (To_Unbounded_String (Join (Root, "checkpoint-target")));
-      Files.Model.Record_Undo
+      Files.Operations.Record_Undo
         (Model, Files.Model.Undo_Delete_Created, Paths, Sources, Redoable => False);
       Write_Binary_File (Join (Root, "blocked-transport"), "a file cannot hold a checkpoint");
       Files.Job_Context.Initialize (Join (Root, "blocked-transport"));

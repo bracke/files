@@ -18,7 +18,7 @@ is
       if Progress_Recorded then
          Files.Model.Take_Undo (Model, Previous, Found);
       end if;
-      Progress_Recorded := Files.Model.Try_Record_Undo
+      Progress_Recorded := Try_Record_Undo
         (Model, Files.Model.Undo_Restore_Trash, Undo_From, Undo_To, Redoable => False,
          Original_Identities => Identities,
          Retain_Verified_Main => Verified_Count);

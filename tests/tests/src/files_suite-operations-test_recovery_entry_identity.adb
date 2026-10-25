@@ -20,7 +20,7 @@ separate (Files_Suite.Operations)
          Write_Binary_File (Source, "owned bytes");
          Load := Files.File_System.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Clear_Undo (Model);
+         Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, False);
          Select_Name (Model, "original");
          if Redo_Recovery then

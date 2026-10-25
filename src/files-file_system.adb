@@ -1236,13 +1236,6 @@ package body Files.File_System is
       Group_Id  : out Natural;
       Available : out Boolean) is separate;
 
-   function Set_Ownership
-     (Path     : String;
-      User_Id  : Natural;
-      Group_Id : Natural)
-      return Mutation_Result
-   is separate;
-
    function User_Id_For_Name
      (Name  : String;
       Found : out Boolean)

@@ -22,7 +22,7 @@ separate (Files_Suite.Operations)
             Assert (Mutation.Success, "prepare cached permissions");
             Load := Files.File_System.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Model.Clear_Undo (Model);
+            Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             Select_Name (Model, "live-source");
             Mutation := Files.File_System.Set_Permissions (Source, 8#600#);
@@ -54,7 +54,7 @@ separate (Files_Suite.Operations)
                Load.Items.Replace_Element (Load.Items.First_Index, Item);
             end;
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Model.Clear_Undo (Model);
+            Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             Select_Name (Model, "live-source");
             Step := Files.Operations.Set_Ownership_For (Model, Uid, Gid, Settings);

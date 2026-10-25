@@ -7,7 +7,7 @@ with GNAT.OS_Lib;
 
 with Hostkit.Fs;
 
-with Files.Fs;
+with Files.Capped_Files;
 with Files.Localization;
 with Files.Operations;
 
@@ -672,8 +672,7 @@ package body Files.Applications is
       --  literal mixes letters with a space (which the repository's hard-coded
       --  text check would otherwise flag).
       Group_Header : constant String := "[Desktop" & " " & "Entry]";
-      use type GNAT.OS_Lib.File_Descriptor;
-      File         : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
+      use type Files.Capped_Files.Read_Status;
       In_Group     : Boolean := False;
       Have_Group   : Boolean := False;
       Have_Any_Group : Boolean := False;
@@ -704,8 +703,7 @@ package body Files.Applications is
       Entry_Valid : Boolean := True;
       Entry_Count : Natural := 0;
       File_Content : Unbounded_String;
-      Read_Buffer  : String (1 .. 8 * 1024);
-      Bytes_Read   : Integer;
+      Content_Status : Files.Capped_Files.Read_Status;
 
       procedure Assign_Decoded
         (Raw    : String;
@@ -873,30 +871,12 @@ package body Files.Applications is
          Icon         => Null_Unbounded_String,
          Desktop_File => Null_Unbounded_String);
 
-      File := Files.Fs.Open_Regular_Read (Path);
-      if File = GNAT.OS_Lib.Invalid_FD then
-         return;
-      end if;
-
-      loop
-         Bytes_Read := GNAT.OS_Lib.Read
-           (File, Read_Buffer'Address, Read_Buffer'Length);
-         if Bytes_Read < 0 then
-            raise Ada.Directories.Use_Error;
-         end if;
-         exit when Bytes_Read = 0;
-         if Natural (Bytes_Read) >
-           Max_Desktop_File_Bytes - Length (File_Content)
-         then
-            Entry_Valid := False;
-            exit;
-         end if;
-         Append (File_Content, Read_Buffer (1 .. Bytes_Read));
-      end loop;
-      GNAT.OS_Lib.Close (File);
-      File := GNAT.OS_Lib.Invalid_FD;
-
-      if not Entry_Valid then
+      --  A file over the cap is not an entry; one that cannot be read is not
+      --  found either way.
+      File_Content := To_Unbounded_String
+        (Files.Capped_Files.Read_Capped
+           (Path, Max_Desktop_File_Bytes, Files.Capped_Files.Refuse_Links, Content_Status));
+      if Content_Status /= Files.Capped_Files.Read_Complete then
          return;
       end if;
 
@@ -969,9 +949,6 @@ package body Files.Applications is
       end if;
    exception
       when others =>
-         if File /= GNAT.OS_Lib.Invalid_FD then
-            GNAT.OS_Lib.Close (File);
-         end if;
          Found := False;
    end Parse_Desktop_File;
 

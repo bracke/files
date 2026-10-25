@@ -44,10 +44,10 @@ separate (Files_Suite.Operations)
                end if;
                Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
                if Scenario = Recovery_Only then
-                  Files.Model.Record_Undo
+                  Files.Operations.Record_Undo
                     (Model, Files.Model.Undo_Restore_Trash, Backups, To_Paths, Redoable => False);
                else
-                  Files.Model.Record_Undo
+                  Files.Operations.Record_Undo
                     (Model,
                      (if Scenario = Move_Replace then Files.Model.Undo_Move else Files.Model.Undo_Delete_Created),
                      From_Paths, To_Paths, Redoable => False, Restore_Trash => Backups);

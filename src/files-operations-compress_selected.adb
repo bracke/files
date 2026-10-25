@@ -243,7 +243,7 @@ begin
         (Output_Path, "", To_String (Identities.First_Element), To_String (Tree_Revisions.First_Element));
       Discard_Stage;
       Created.Append (To_Unbounded_String (Output_Path));
-      Files.Model.Record_Undo
+      Record_Undo
         (Model, Files.Model.Undo_Delete_Created, Created,
          Files.Types.String_Vectors.Empty_Vector, Redoable => False, Original_Identities => Identities,
          Original_Tree_Revisions => Tree_Revisions);

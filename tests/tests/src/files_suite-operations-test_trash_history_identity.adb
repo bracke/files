@@ -17,7 +17,7 @@ separate (Files_Suite.Operations)
             Write_Binary_File (Source, "original destination");
             Load := Files.File_System.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Model.Clear_Undo (Model);
+            Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             if Replace then
                Ada.Directories.Create_Directory (Join (Root, "inbox"));

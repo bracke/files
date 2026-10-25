@@ -941,8 +941,6 @@ separate (Files.Rendering)
            To_Unbounded_String (Humanized_Time_Text (Item.Creation_Time));
       end Detail_Created_Text;
 
-      function Permission_Text (Permissions : String) return String is separate;
-
       type Overlay_Draw_Phase is
         (Persistent_Overlay_Phase, Modal_Overlay_Phase);
 

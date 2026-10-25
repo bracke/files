@@ -76,8 +76,8 @@ separate (Files_Suite.Startup)
             Files.Localization.Text ("runtime.smoke.no_windows")) > 0,
          "runtime smoke report uses localized empty-startup diagnostic");
       declare
-         Quality : constant Files.Application.Windows.Headless_Render_Quality_Result :=
-           Files.Application.Windows.Headless_Render_Quality_Report (Startup, Width => 1000, Height => 800);
+         Quality : constant Files.Application.Windows.Smoke.Headless_Render_Quality_Result :=
+           Files.Application.Windows.Smoke.Headless_Render_Quality_Report (Startup, Width => 1000, Height => 800);
       begin
          Files_Suite.Support.Assert_Equal (Quality.Window_Count, 1, "headless render quality report counts windows");
          Files_Suite.Support.Assert_Equal

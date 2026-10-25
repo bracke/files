@@ -16,7 +16,7 @@ separate (Files_Suite.Operations)
            (Source, GNAT.OS_Lib.GM_Time_Of (2020, 1, 2, 3, 4, 5));
          Load := Files.File_System.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Clear_Undo (Model);
+         Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Select_Name (Model, "original");
          Step := Complete_Operation (Model, Settings, Files.Operations.Duplicate_Selected (Model, Settings));
@@ -65,7 +65,7 @@ separate (Files_Suite.Operations)
            (Join (Source, "child"), GNAT.OS_Lib.GM_Time_Of (2020, 1, 2, 3, 4, 5));
          Load := Files.File_System.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Clear_Undo (Model);
+         Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Select_Name (Model, "original");
          Step := Complete_Operation (Model, Settings, Files.Operations.Duplicate_Selected (Model, Settings));

@@ -35,7 +35,7 @@ separate (Files_Suite.Operations)
       Assert (not Ada.Directories.Exists (Renamed), "undo removed the renamed file");
       Assert (not Files.Model.Undo_Available (Model), "undo record is cleared after undo");
 
-      Files.Model.Clear_Undo (Model);
+      Files.Operations.Clear_Undo (Model);
       Files.Model.Set_Error (Model, "error.directory.load");
       Result := Files.Operations.Undo_Last (Model, Settings);
       Assert

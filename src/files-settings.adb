@@ -2,8 +2,6 @@ with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
-with Ada.Streams;
-with Ada.Streams.Stream_IO;
 with Ada.Text_IO;
 with GNAT.OS_Lib;
 
@@ -12,7 +10,6 @@ with Hostkit.Host;
 
 with Files.File_Identities;
 with Files.Durable_Writes;
-with Files.Fs;
 with Files.Private_Directories;
 with Files.UTF8;
 

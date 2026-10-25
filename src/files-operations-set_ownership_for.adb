@@ -51,7 +51,7 @@ begin
            (To_Unbounded_String
               (Ownership_Text
                  (User_Id, Group_Id, New_User_Name, New_Group_Name)));
-         Files.Model.Record_Undo
+         Record_Undo
            (Model, Files.Model.Undo_Set_Ownership, Undo_From, Undo_To,
             Forward => Undo_Forward, Original_Identities => Identities);
       end;

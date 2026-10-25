@@ -1,14 +1,12 @@
-with Files.History_Journal;
-with Files.File_Identities;
-separate (Files.Model)
+separate (Files.Operations)
 function Try_Record_Undo
-  (Model       : in out Window_Model;
-   Kind        : Undo_Action_Kind;
+  (Model       : in out Files.Model.Window_Model;
+   Kind        : Files.Model.Undo_Action_Kind;
    From        : Files.Types.String_Vectors.Vector;
    To          : Files.Types.String_Vectors.Vector;
    Forward     : Files.Types.String_Vectors.Vector :=
      Files.Types.String_Vectors.Empty_Vector;
-   Create_Kind : Undo_Create_Kind := Create_None;
+   Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
    Redoable    : Boolean := True;
    Restore_Trash : Files.Types.String_Vectors.Vector :=
      Files.Types.String_Vectors.Empty_Vector;
@@ -22,31 +20,40 @@ function Try_Record_Undo
      Files.Types.String_Vectors.Empty_Vector;
    Retain_Verified_Main : Natural := 0;
    Retain_Verified_Restores : Natural := 0) return Boolean is
-   --  Cap the undo history so a session doing thousands of operations does not
-   --  grow it without bound: each entry retains the full source and destination
-   --  path lists (and permission/ownership images), so an unbounded stack pins
-   --  that data for the life of the window. Past the cap the oldest entry --
-   --  least likely to ever be undone -- is dropped; LIFO undo only touches the
-   --  newest, so the reachable history is unaffected.
-   Max_Undo_Depth : constant := 200;
+   use type Files.Model.Undo_Create_Kind;
    function Identity_Matches (Path, Expected : String) return Boolean
      renames Files.File_System.Entry_Identity_Matches;
    function Creation_Snapshot_Matches
      (Path, Identity, Tree_Revision : String;
       Retain_Verified : Boolean) return Boolean
      renames Files.File_System.Creation_Matches;
+   function Valid_Natural_Image (Value : Files.Types.UString) return Boolean
+     renames Files.Model.Valid_Natural_Image;
+   function Valid_Ownership_Image (Value : Files.Types.UString) return Boolean
+     renames Files.Model.Valid_Ownership_Image;
    Identities, Tree_Revisions, Restore_Identities, Restore_Targets : Files.Types.String_Vectors.Vector;
    Targets : Files.Types.String_Vectors.Vector := To;
    Kept_From, Kept_To, Kept_Forward : Files.Types.String_Vectors.Vector;
    Kept_Identities, Kept_Tree_Revisions : Files.Types.String_Vectors.Vector;
    Invalid_Main : Boolean := False;
    Invalid_Restore : Boolean := False;
+   Recorded : Boolean;
+
+   function Tree_Revision_Or_Empty (Path : String) return String is
+   begin
+      return Files.File_System.Tree_Revision (Path);
+   exception
+      --  A creation may already be published when its snapshot is captured.
+      --  Keep the operation successful, but omit unsafe Undo for this entry.
+      when others =>
+         return "";
+   end Tree_Revision_Or_Empty;
 
    function Main_Was_Verified (Index : Positive) return Boolean is
      (Index <= Retain_Verified_Main
       and then Index <= Original_Identities.Last_Index
       and then
-        (Kind /= Undo_Delete_Created
+        (Kind /= Files.Model.Undo_Delete_Created
          or else Index <= Original_Tree_Revisions.Last_Index));
 
    function Restore_Was_Verified (Index : Positive) return Boolean is
@@ -57,47 +64,41 @@ function Try_Record_Undo
    function Payload_Is_Complete (Index : Positive) return Boolean is
    begin
       case Kind is
-         when Undo_Delete_Created =>
+         when Files.Model.Undo_Delete_Created =>
             return not Redoable
-              or else (Create_Kind /= Create_None
+              or else (Create_Kind /= Files.Model.Create_None
                 and then Index <= Forward.Last_Index
                 and then Length (Forward (Index)) > 0);
-         when Undo_Rename | Undo_Move | Undo_Restore_Trash =>
+         when Files.Model.Undo_Rename | Files.Model.Undo_Move | Files.Model.Undo_Restore_Trash =>
             return Index <= Targets.Last_Index
               and then Length (Targets (Index)) > 0
-              and then (Kind /= Undo_Restore_Trash or else not Redoable);
-         when Undo_Set_Permissions =>
+              and then (Kind /= Files.Model.Undo_Restore_Trash or else not Redoable);
+         when Files.Model.Undo_Set_Permissions =>
             return Index <= Targets.Last_Index
               and then Valid_Natural_Image (Targets (Index))
               and then (not Redoable
                 or else (Index <= Forward.Last_Index
                   and then Valid_Natural_Image (Forward (Index))));
-         when Undo_Set_Ownership =>
+         when Files.Model.Undo_Set_Ownership =>
             return Index <= Targets.Last_Index
               and then Valid_Ownership_Image (Targets (Index))
               and then (not Redoable
                 or else (Index <= Forward.Last_Index
                   and then Valid_Ownership_Image (Forward (Index))));
-         when Undo_None =>
+         when Files.Model.Undo_None =>
             return False;
       end case;
    end Payload_Is_Complete;
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
-   if Kind = Undo_None or else From.Is_Empty then
+   --  The model advances its revision and notes completed renames and moves;
+   --  everything that reads the filesystem happens here, before the model
+   --  commits the entry.
+   Files.Model.Begin_Undo_Record (Model, Kind, From, To);
+   if Kind = Files.Model.Undo_None or else From.Is_Empty then
       return False;
    end if;
-   --  A rename or move is recorded once it is done, whether or not it can
-   --  be undone: To holds the old paths, From the new ones.
-   if Kind in Undo_Rename | Undo_Move then
-      for Index in From.First_Index .. From.Last_Index loop
-         if Index <= To.Last_Index then
-            Note_Path_Move (Model, To_String (To (Index)), To_String (From (Index)));
-         end if;
-      end loop;
-   end if;
-   if Kind in Undo_Delete_Created | Undo_Rename | Undo_Move | Undo_Restore_Trash
-     | Undo_Set_Permissions | Undo_Set_Ownership
+   if Kind in Files.Model.Undo_Delete_Created | Files.Model.Undo_Rename | Files.Model.Undo_Move
+     | Files.Model.Undo_Restore_Trash | Files.Model.Undo_Set_Permissions | Files.Model.Undo_Set_Ownership
    then
       for Index in From.First_Index .. From.Last_Index loop
          Identities.Append
@@ -105,13 +106,13 @@ begin
              else To_Unbounded_String (Files.File_Identities.Token (To_String (From (Index))))));
          Tree_Revisions.Append
            ((if Index <= Original_Tree_Revisions.Last_Index then Original_Tree_Revisions (Index)
-             elsif Kind = Undo_Delete_Created then
+             elsif Kind = Files.Model.Undo_Delete_Created then
                 To_Unbounded_String (Tree_Revision_Or_Empty (To_String (From (Index))))
              else Null_Unbounded_String));
       end loop;
    end if;
 
-   if Kind = Undo_Restore_Trash then
+   if Kind = Files.Model.Undo_Restore_Trash then
       for Index in From.First_Index .. From.Last_Index loop
          if Index > Targets.Last_Index then
             Targets.Append (To_Unbounded_String (Files.File_System.Trash_Original_Path (To_String (From (Index)))));
@@ -151,7 +152,7 @@ begin
            and then Index <= Tree_Revisions.Last_Index
            and then Payload_Is_Complete (Index)
            and then
-             (if Kind = Undo_Delete_Created
+             (if Kind = Files.Model.Undo_Delete_Created
               then Creation_Snapshot_Matches
                 (To_String (From (Index)), To_String (Identities (Index)),
                  To_String (Tree_Revisions (Index)), Main_Was_Verified (Index))
@@ -162,11 +163,12 @@ begin
       begin
          if Valid then
             Kept_From.Append (From (Index));
-            if Kind /= Undo_Delete_Created then
+            if Kind /= Files.Model.Undo_Delete_Created then
                Kept_To.Append (Targets (Index));
             end if;
             if Redoable
-              and then Kind in Undo_Delete_Created | Undo_Set_Permissions | Undo_Set_Ownership
+              and then Kind in Files.Model.Undo_Delete_Created | Files.Model.Undo_Set_Permissions
+                | Files.Model.Undo_Set_Ownership
             then
                Kept_Forward.Append (Forward (Index));
             end if;
@@ -185,15 +187,12 @@ begin
       Kept_From.Clear;
    end if;
 
-   Discard_Retained (Model.Redo_Stack);
-   Model.Redo_Stack.Clear;
-   if Kept_From.Is_Empty then
-      Files.History_Journal.Save (Model);
-      return False;
-   end if;
-
-   Model.Undo_Stack.Append
-     (Undo_Entry'
+   --  The model retires the redo stack (and, past its depth cap, the oldest
+   --  undo entries) before pushing; their payloads are deleted and the
+   --  journal saved only once the entries have left both stacks.
+   Recorded := Files.Model.Commit_Undo_Record
+     (Model,
+      Files.Model.Undo_Entry'
         (Kind          => Kind,
          From          => Kept_From,
          To            => Kept_To,
@@ -206,10 +205,6 @@ begin
          Created_Identities => Kept_Identities,
          Created_Tree_Revisions => Kept_Tree_Revisions,
          others        => <>));
-   while Natural (Model.Undo_Stack.Length) > Max_Undo_Depth loop
-      Discard_Retained (Model.Undo_Stack.First_Element);
-      Model.Undo_Stack.Delete_First;
-   end loop;
-   Files.History_Journal.Save (Model);
-   return True;
+   Settle_History (Model);
+   return Recorded;
 end Try_Record_Undo;

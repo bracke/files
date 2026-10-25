@@ -107,6 +107,10 @@ separate (Files_Suite.Operations)
       Assert
         (not Ada.Directories.Exists (To_String (Delayed_Path)),
          "the idle coordinator retries autonomously after access returns");
+      for Attempt in Files_Suite.Support.Polling loop
+         exit when Files.Job_Scavenger.Idle;
+      end loop;
+      Assert (Files.Job_Scavenger.Idle, "recovery is quiet again once its retries succeed");
       Files_Suite.Support.Finalize (Until_Environment);
       Restore;
    exception

@@ -37,7 +37,7 @@ begin
                   return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
                end if;
                if Length (Result.Trashed) > 0 then
-                  Files.Model.Record_Paste_Execution_Replaced_Trash
+                  Record_Paste_Replaced_Trash
                     (Model, Result.Trashed, To_String (Result.Trashed_Identity), To_String (Action.Dest_Path));
                end if;
                if Result.Cancelled then
@@ -45,7 +45,7 @@ begin
                elsif not Result.Mutation.Success then
                   return Finalize_Paste_Execution (Model, Settings, To_String (Result.Mutation.Error_Key));
                end if;
-               Files.Model.Record_Paste_Execution_Write
+               Record_Paste_Write
                  (Model, Action.Dest_Path, Action.Source_Path,
                   Ada.Directories.Simple_Name (To_String (Action.Dest_Path)),
                   To_String (Result.Created_Identity), To_String (Result.Created_Tree_Revision),
@@ -75,7 +75,7 @@ begin
                if Action.Replaced and then not Preserve_Replacement
                then
                   if Length (Replaced_Trash) > 0 then
-                     Files.Model.Record_Paste_Execution_Replaced_Trash
+                     Record_Paste_Replaced_Trash
                        (Model, Replaced_Trash, To_String (Replaced_Identity), To_String (Action.Dest_Path));
                   end if;
                   return Finalize_Paste_Execution (Model, Settings, "error.drop.failed");
@@ -109,7 +109,7 @@ begin
                                    To_String (Action.Dest_Path));
                            begin
                               if not Restored.Success then
-                                 Files.Model.Record_Paste_Execution_Replaced_Trash
+                                 Record_Paste_Replaced_Trash
                        (Model, Replaced_Trash, To_String (Replaced_Identity), To_String (Action.Dest_Path));
                                  return Finalize_Paste_Execution
                                    (Model, Settings, To_String (Restored.Error_Key));
@@ -125,11 +125,11 @@ begin
                --  Write succeeded: track the overwritten original's trash
                --  location so the paste's undo entry can restore it.
                if Length (Replaced_Trash) > 0 then
-                  Files.Model.Record_Paste_Execution_Replaced_Trash
+                  Record_Paste_Replaced_Trash
                        (Model, Replaced_Trash, To_String (Replaced_Identity), To_String (Action.Dest_Path));
                end if;
 
-               Files.Model.Record_Paste_Execution_Write
+               Record_Paste_Write
                  (Model,
                   Action.Dest_Path,
                   Action.Source_Path,

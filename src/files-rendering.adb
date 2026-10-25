@@ -14,7 +14,6 @@ with Util.Dates;
 with Util.Dates.Formats;
 with Util.Properties;
 
-with Files.Accessibility;
 with Files.File_Types;
 with Files.Fonts;
 with Guikit.Segmented;
@@ -24,7 +23,6 @@ with Files.Localization;
 with Humanize.Bytes;
 with Humanize.Datetimes;
 with Humanize.Status;
-with Hostkit.Metadata;
 with Files.UTF8;
 with Files.UI;
 
@@ -526,6 +524,12 @@ package body Files.Rendering is
         & Files.Localization.Text ("details.size.unit.bytes", Files.Localization.System_Number_Locale);
    end Size_Text;
 
+   --  Whether the free-space field should render the graphical used/free bar
+   --  (bar mode selected and the capacity totals are usable). When False the
+   --  field falls back to the free/used text label.
+   --
+   --  @param Snapshot The immutable view snapshot.
+   --  @return True when the field should draw the used/free bar.
    function Free_Space_Bar_Active (Snapshot : View_Snapshot) return Boolean is
      (Snapshot.Show_Space_Bar
       and then Snapshot.Free_Space_Known
@@ -534,6 +538,13 @@ package body Files.Rendering is
       and then Snapshot.Total_Space_Bytes > 0
       and then Snapshot.Total_Space_Bytes >= Snapshot.Free_Space_Bytes);
 
+   --  The bottom-bar free-space field's text, e.g. "12 GB free", or the empty
+   --  string when free space is unknown or an error line is showing. Shared by
+   --  the renderer (to draw) and the hit-test (to locate the field), so both
+   --  agree on where the free-space field begins.
+   --
+   --  @param Snapshot The immutable view snapshot.
+   --  @return The free-space label text, or "" when there is no free field.
    function Free_Space_Label (Snapshot : View_Snapshot) return String is
    begin
       --  Omitted when free space is unknown or an error line is showing, so the
@@ -715,6 +726,15 @@ package body Files.Rendering is
       end if;
    end Label_For_Swatch;
 
+   type Render_Theme is record
+      Name             : UString;
+      High_Contrast    : Boolean := False;
+      Selection_Strong : Boolean := False;
+      Focus_Ring       : Render_Color := Border_Color;
+      Warning_Color    : Render_Color := Error_Text_Color;
+   end record;
+
+   --  Return the default render theme metadata.
    function Default_Theme return Render_Theme is
    begin
       return
@@ -725,6 +745,7 @@ package body Files.Rendering is
          Warning_Color    => Error_Text_Color);
    end Default_Theme;
 
+   --  Return high-contrast render theme metadata.
    function High_Contrast_Theme return Render_Theme is
    begin
       return
@@ -734,102 +755,6 @@ package body Files.Rendering is
          Focus_Ring       => Selection_Color,
          Warning_Color    => Error_Text_Color);
    end High_Contrast_Theme;
-
-   function Default_Accessibility_Profile return Accessibility_Profile is
-   begin
-      return
-        (Keyboard_Navigation => True,
-         Focus_Rings         => True,
-         High_Contrast       => False,
-         Tooltips            => True,
-         Text_Truncation     => True,
-         Screen_Reader_Role_Metadata => True);
-   end Default_Accessibility_Profile;
-
-   function High_Contrast_Accessibility_Profile return Accessibility_Profile is
-   begin
-      return
-        (Keyboard_Navigation => True,
-         Focus_Rings         => True,
-         High_Contrast       => True,
-         Tooltips            => True,
-         Text_Truncation     => True,
-         Screen_Reader_Role_Metadata => True);
-   end High_Contrast_Accessibility_Profile;
-
-   function Accessibility_Integration_Profile_Of_Current_UI
-      return Accessibility_Integration_Profile is
-   begin
-      return Files.Accessibility.Integration_Profile;
-   end Accessibility_Integration_Profile_Of_Current_UI;
-
-   function Settings_Editor_Profile_Of_Current_UI return Settings_Editor_Profile is
-   begin
-      return
-        (Scalar_Controls       => 14,
-         Mapping_Controls      => 4,
-         Open_Action_Controls  => 2,
-         Supports_Save         => True,
-         Supports_Reset        => True,
-         Per_Field_Diagnostics => True,
-         Supports_Option_Cycling => True,
-         Supports_Add_Remove_Mapping => True,
-         Supports_Draft_Validation => True,
-         Saves_Central_Settings => True);
-   end Settings_Editor_Profile_Of_Current_UI;
-
-   function Icon_Theme_Profile_Of_Current_UI return Icon_Theme_Profile is
-   begin
-      return
-        (Theme_Name          => To_Unbounded_String ("files-basic"),
-         Placeholder_Icons   => False,
-         Scalable_Icons      => True,
-         Filetype_Icons      => Natural (Bundled_Icon_Asset_Names.Length),
-         Asset_Directory     => To_Unbounded_String ("share/files/icons"),
-         Asset_Format        => To_Unbounded_String ("files-icon-v1"),
-         User_Selectable     => True,
-         High_Contrast_Ready => True);
-   end Icon_Theme_Profile_Of_Current_UI;
-
-   function Icon_Theme_Profile_For
-     (Settings : Files.Settings.Settings_Model)
-      return Icon_Theme_Profile
-   is
-      Theme : constant String := To_String (Settings.Icon_Theme_Name);
-   begin
-      if Theme = "files-high-contrast" then
-         return
-           (Theme_Name          => To_Unbounded_String ("files-high-contrast"),
-            Placeholder_Icons   => False,
-            Scalable_Icons      => True,
-            Filetype_Icons      => Natural (Bundled_Icon_Asset_Names.Length),
-            Asset_Directory     => To_Unbounded_String ("share/files/icons/high-contrast"),
-            Asset_Format        => To_Unbounded_String ("files-icon-v1"),
-            User_Selectable     => True,
-            High_Contrast_Ready => True);
-      end if;
-
-      return Icon_Theme_Profile_Of_Current_UI;
-   end Icon_Theme_Profile_For;
-
-   function Bundled_Icon_Asset_Names return Files.Types.String_Vectors.Vector is
-      Names : Files.Types.String_Vectors.Vector;
-   begin
-      Names.Append (To_Unbounded_String ("folder"));
-      Names.Append (To_Unbounded_String ("text"));
-      Names.Append (To_Unbounded_String ("image"));
-      Names.Append (To_Unbounded_String ("executable"));
-      Names.Append (To_Unbounded_String ("link"));
-      Names.Append (To_Unbounded_String ("unknown"));
-      Names.Append (To_Unbounded_String ("ada"));
-      Names.Append (To_Unbounded_String ("markdown"));
-      Names.Append (To_Unbounded_String ("toolbar-home"));
-      Names.Append (To_Unbounded_String ("toolbar-back"));
-      Names.Append (To_Unbounded_String ("toolbar-forward"));
-      Names.Append (To_Unbounded_String ("toolbar-create"));
-      Names.Append (To_Unbounded_String ("toolbar-delete"));
-      return Names;
-   end Bundled_Icon_Asset_Names;
 
    --  Cell sizing lives in Guikit.Item_Grid now; this alias keeps existing
    --  Item_Cell_Metrics references (Width/Height/Icon_Size/Large) compiling.
@@ -1212,15 +1137,6 @@ package body Files.Rendering is
    begin
       Guikit.Item_Grid.Rename_Field_Extent (Item, Grid_View (View_Mode), Renaming, Field_X, Field_W);
    end Rename_Field_Extent;
-
-   function Details_Header_Command_At
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      X           : Natural;
-      Y           : Natural;
-      Line_Height : Positive := 20)
-      return Files.Commands.Command_Id
- is separate;
 
    --  Map a detail column to the sort command a header click on it triggers.
    --  Columns that do not define a sort (the permissions column) return

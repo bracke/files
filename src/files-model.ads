@@ -2329,102 +2329,73 @@ package Files.Model is
    --  @param Redo Redo stack, oldest first.
    procedure Set_History (Model : in out Window_Model; Undo, Redo : Undo_Entry_Vectors.Vector);
 
-   --  Push a newly performed undoable action onto the undo stack and clear the
-   --  redo stack (a new operation invalidates any pending redo). Empty actions
-   --  (Undo_None or no From paths) are ignored.
+   --  Return whether Value is a usable permission image for an undo entry.
    --
-   --  @param Model       Model to update.
-   --  @param Kind        Kind of action that can be undone.
-   --  @param From        Current locations to undo from (parallel to To).
-   --  @param To          Restore targets / old values (reverse payload).
-   --  @param Forward     Redo payload: source paths or new values; may be empty.
-   --  @param Create_Kind Creation kind re-run for Undo_Delete_Created redo.
-   --  @param Redoable    False marks the entry undo-only (skipped by redo).
-   --  @param Restore_Trash Trash locations of paste-replace originals to restore
-   --    from the trash after the main reverse; empty for non-replacing actions.
-   --  @param Original_Identities Snapshots captured at publication or retained when extending a batch.
-   --  @param Original_Tree_Revisions Directory or regular-file snapshots captured at publication.
-   --  @param Original_Restore_Identities Snapshots captured when preserving replacement originals.
-   --  @param Original_Restore_Targets Original destinations captured when preserving replacement originals.
-   --  @param Retain_Verified_Main Number of leading From snapshots already
-   --    validated at publication and retained across a partial operation.
-   --  @param Retain_Verified_Restores Number of leading Restore_Trash snapshots
-   --    already validated when their originals were preserved.
-   procedure Record_Undo
-     (Model       : in out Window_Model;
-      Kind        : Undo_Action_Kind;
-      From        : Files.Types.String_Vectors.Vector;
-      To          : Files.Types.String_Vectors.Vector;
-      Forward     : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Create_Kind : Undo_Create_Kind := Create_None;
-      Redoable    : Boolean := True;
-      Restore_Trash : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Retain_Verified_Main : Natural := 0;
-      Retain_Verified_Restores : Natural := 0);
+   --  @param Value Recorded permission value.
+   --  @return True when Value holds a natural number.
+   function Valid_Natural_Image (Value : UString) return Boolean;
 
-   --  Record only members whose publication identity still matches the live
-   --  entry. Created directories also require a matching recursive revision,
-   --  and every payload needed by Undo and Redo must be complete and valid.
-   --  Replacement actions are recorded only when every created and preserved
-   --  entry is verifiable, since their reverse steps are inseparable.
-   --  @param Model Model whose history is updated.
-   --  @param Kind Kind of action that can be undone.
-   --  @param From Current locations to undo from.
-   --  @param To Restore targets or old values parallel to From.
-   --  @param Forward Redo sources or new values parallel to From.
-   --  @param Create_Kind Creation operation used by Redo.
-   --  @param Redoable Whether a successful Undo may enter Redo history.
-   --  @param Restore_Trash Preserved replacement originals to restore.
-   --  @param Original_Identities Publication identities parallel to From.
-   --  @param Original_Tree_Revisions Directory revisions parallel to From.
-   --  @param Original_Restore_Identities Identities parallel to Restore_Trash.
-   --  @param Original_Restore_Targets Destinations parallel to Restore_Trash.
-   --  @param Retain_Verified_Main Number of leading From snapshots previously
-   --    validated and allowed to survive a later pathname replacement.
-   --  @param Retain_Verified_Restores Number of leading Restore_Trash snapshots
-   --    previously validated and allowed to survive a later replacement.
-   --  @return True when a usable history entry was added.
-   function Try_Record_Undo
-     (Model       : in out Window_Model;
-      Kind        : Undo_Action_Kind;
-      From        : Files.Types.String_Vectors.Vector;
-      To          : Files.Types.String_Vectors.Vector;
-      Forward     : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Create_Kind : Undo_Create_Kind := Create_None;
-      Redoable    : Boolean := True;
-      Restore_Trash : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Retain_Verified_Main : Natural := 0;
-      Retain_Verified_Restores : Natural := 0) return Boolean;
+   --  Return whether Value is a usable ownership image for an undo entry:
+   --  "uid gid", optionally followed by NUL-separated user and group names.
+   --
+   --  @param Value Recorded ownership value.
+   --  @return True when Value holds two natural numbers and well-formed names.
+   function Valid_Ownership_Image (Value : UString) return Boolean;
+
+   --  Start recording a performed action: advance the model revision and, for
+   --  a completed rename or move, note each path move whether or not the
+   --  action ends up undoable. Undo_None or an empty From only advances the
+   --  revision. Touches no filesystem; Commit_Undo_Record finishes the record.
+   --
+   --  @param Model Model to update.
+   --  @param Kind  Kind of the performed action.
+   --  @param From  Current (new) locations of the action's items.
+   --  @param To    Old locations, parallel to From.
+   procedure Begin_Undo_Record
+     (Model : in out Window_Model;
+      Kind  : Undo_Action_Kind;
+      From  : Files.Types.String_Vectors.Vector;
+      To    : Files.Types.String_Vectors.Vector);
+
+   --  Finish recording an action whose members the operations layer has
+   --  already verified against the filesystem: the redo stack is retired (a
+   --  new operation invalidates any pending redo) and, when Action keeps any
+   --  From path, Action is pushed and the oldest entries past the depth cap
+   --  are retired. Retired recovery payloads and the journal save are queued
+   --  for Take_Retired_History; nothing touches the filesystem here.
+   --
+   --  @param Model  Model whose history is updated.
+   --  @param Action Verified entry; an empty From records nothing.
+   --  @return True when Action was pushed onto the undo stack.
+   function Commit_Undo_Record
+     (Model  : in out Window_Model;
+      Action : Undo_Entry) return Boolean;
+
+   --  Hand over, and forget, what history mutations left for the operations
+   --  layer: recovery payloads of retired entries to delete, payloads of an
+   --  ended history to release to the system trash, and whether the history
+   --  changed since the journal was last saved.
+   --
+   --  @param Model         Model whose pending history work to drain.
+   --  @param Discarded     Restore_Trash payloads no entry references any more.
+   --  @param Released      Restore_Trash payloads of a released history.
+   --  @param Journal_Dirty True when the history journal must be saved.
+   procedure Take_Retired_History
+     (Model         : in out Window_Model;
+      Discarded     : out Files.Types.String_Vectors.Vector;
+      Released      : out Files.Types.String_Vectors.Vector;
+      Journal_Dirty : out Boolean);
 
    --  End the history with its window: originals a paste replaced, kept in a
-   --  hidden recovery folder only so Undo could put them back, go to the
-   --  system trash under their own names instead of staying hidden there.
+   --  hidden recovery folder only so Undo could put them back, are queued to
+   --  go to the system trash under their own names (Take_Retired_History).
    --
    --  @param Model Model to update.
    procedure Release_History
      (Model : in out Window_Model);
 
-   --  Forget the entire undo and redo history.
+   --  Forget the entire undo and redo history, queueing the retired recovery
+   --  payloads and the journal save for Take_Retired_History.
    --
    --  @param Model Model to update.
    procedure Clear_Undo
@@ -2466,7 +2437,8 @@ package Files.Model is
       Action : out Undo_Entry;
       Found  : out Boolean);
 
-   --  Push an action onto the redo stack (after a successful undo).
+   --  Push an action onto the redo stack (after a successful undo), queueing
+   --  the journal save for Take_Retired_History.
    --
    --  @param Model  Model to update.
    --  @param Action Action to push.
@@ -2475,7 +2447,8 @@ package Files.Model is
       Action : Undo_Entry);
 
    --  Push an action back onto the undo stack (after a successful redo),
-   --  leaving the redo stack untouched.
+   --  leaving the redo stack untouched and queueing the journal save for
+   --  Take_Retired_History.
    --
    --  @param Model  Model to update.
    --  @param Action Action to push.
@@ -2841,14 +2814,26 @@ package Files.Model is
    --  @return Shared private hard-link journal, or an empty session.
    function Paste_Execution_Copy_Context (Model : Window_Model) return Files.Copy_Context.Session;
 
+   --  Whether a preserved original recorded next would extend the verified
+   --  prefix, i.e. every original recorded so far was verified. Only then
+   --  does the operations layer check the live entry before recording.
+   --  @param Model Window owning the current paste batch.
+   --  @return True when all recorded originals are verified.
+   function Paste_Execution_Replaced_Extends_Verified
+     (Model : Window_Model) return Boolean;
+
    --  Record a preserved original and its identity for the paste's Undo.
+   --  The operations layer resolves the original destination and checks the
+   --  live entry first; this touches no filesystem.
    --  @param Model Model to update.
    --  @param Trash_Path The overwritten original's location inside the trash.
    --  @param Identity Snapshot captured when the original was preserved.
-   --  @param Original_Path Original destination captured before preservation.
+   --  @param Original_Path Original destination of the preserved entry.
+   --  @param Verified True when the live entry at Trash_Path matched Identity
+   --    while the verified prefix could still be extended.
    procedure Record_Paste_Execution_Replaced_Trash
      (Model : in out Window_Model; Trash_Path : Files.Types.UString; Identity : String;
-      Original_Path : String := "");
+      Original_Path : String; Verified : Boolean);
 
    --  The first destination path written, reported as the operation result path.
    --
@@ -2873,8 +2858,9 @@ package Files.Model is
    --  @param Name Leaf name shown as the current progress item.
    --  @param Identity Entry identity captured by the process that published the destination.
    --  @param Tree_Revision Directory or regular-file revision captured before publication.
-   --  @param Retain_Verified_Snapshot True when a private recovery checkpoint
-   --    already verified this exact publication snapshot.
+   --  @param Verified True when the publication snapshot was verified (by a
+   --    recovery checkpoint or against the live entry by the operations
+   --    layer) while the verified prefix could still be extended.
    procedure Record_Paste_Execution_Write
      (Model       : in out Window_Model;
       Dest_Path   : Files.Types.UString;
@@ -2882,7 +2868,15 @@ package Files.Model is
       Name        : String;
       Identity    : String;
       Tree_Revision : String;
-      Retain_Verified_Snapshot : Boolean := False);
+      Verified    : Boolean);
+
+   --  Whether a write recorded next would extend the verified prefix, i.e.
+   --  every write recorded so far was verified. Only then does the operations
+   --  layer check the published entry before recording.
+   --  @param Model Window owning the current paste batch.
+   --  @return True when all recorded writes are verified.
+   function Paste_Execution_Write_Extends_Verified
+     (Model : Window_Model) return Boolean;
 
    --  Request cancellation of the armed execution; the next advance finalizes
    --  over the items completed so far (already-written files are kept).
@@ -3267,6 +3261,12 @@ private
       Clipboard_Mode_Value  : Clipboard_Mode := Clipboard_None;
       Undo_Stack            : Undo_Entry_Vectors.Vector;
       Redo_Stack            : Undo_Entry_Vectors.Vector;
+      --  History work owed to the operations layer (Take_Retired_History):
+      --  payloads of retired entries to delete, payloads of a released
+      --  history to send to the trash, and an unsaved history change.
+      Retired_Discards      : Files.Types.String_Vectors.Vector;
+      Retired_Releases      : Files.Types.String_Vectors.Vector;
+      History_Journal_Dirty : Boolean := False;
       Folder_Sizes            : Folder_Size_Maps.Map;
       Folder_Scan             : Files.Folder_Size.Session;
       Context_Menu                  : Context_Menu_State;

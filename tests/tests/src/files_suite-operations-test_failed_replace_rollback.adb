@@ -44,7 +44,7 @@ separate (Files_Suite.Operations)
          Result := Files.File_System.Set_Permissions (Root, 8#555#);
          Assert (Result.Success, "the fixture permits copying but refuses atomic source removal");
          Files.Model.Initialize (Model, Remote.Path, Files.File_System.Item_Vectors.Empty_Vector, Root);
-         Files.Model.Clear_Undo (Model);
+         Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
          for Attempt in Files_Suite.Support.Polling loop

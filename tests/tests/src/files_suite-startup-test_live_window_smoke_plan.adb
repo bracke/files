@@ -8,8 +8,8 @@ separate (Files_Suite.Startup)
       Startup  : Files.Application.Startup_Result;
       Caps     : constant Files.Application.Windows.Desktop_Capabilities :=
         Files.Application.Windows.Runtime_Capabilities;
-      Plan     : Files.Application.Windows.Live_Smoke_Plan;
-      Live_Result : Files.Application.Windows.Live_Smoke_Result;
+      Plan     : Files.Application.Windows.Smoke.Live_Smoke_Plan;
+      Live_Result : Files.Application.Windows.Smoke.Live_Smoke_Result;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Dir);
@@ -19,7 +19,7 @@ separate (Files_Suite.Startup)
       --  The startup the runner sees once its path errors are cleared.
       Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
       Startup.Errors.Clear;
-      Plan := Files.Application.Windows.Live_Window_Smoke_Plan (Width => 640, Height => 360);
+      Plan := Files.Application.Windows.Smoke.Live_Window_Smoke_Plan (Width => 640, Height => 360);
       Files_Suite.Support.Assert_Equal (Plan.Width, 640, "live smoke plan records requested width");
       Files_Suite.Support.Assert_Equal (Plan.Height, 360, "live smoke plan records requested height");
       Files_Suite.Support.Assert_Equal
@@ -35,7 +35,7 @@ separate (Files_Suite.Startup)
          Caps.Live_Window_Smoke_Ready,
          "live smoke plan readiness matches runtime capabilities");
       Assert (To_String (Plan.Reason_Key) /= "", "live smoke plan exposes localized reason key");
-      Live_Result := Files.Application.Windows.Evaluate_Live_Window_Smoke (Plan);
+      Live_Result := Files.Application.Windows.Smoke.Evaluate_Live_Window_Smoke (Plan);
       Assert
         (Live_Result.Skipped_By_Plan = not Plan.Can_Run,
          "live smoke result records whether the plan skipped execution");
@@ -52,7 +52,7 @@ separate (Files_Suite.Startup)
         (not Live_Result.Framebuffer_Readback_Ready,
          "headless live smoke evaluation does not fake framebuffer readback");
       Assert (To_String (Live_Result.Error_Key) /= "", "live smoke result exposes status key");
-      Live_Result := Files.Application.Windows.Run_Live_Window_Smoke ((others => <>), Plan);
+      Live_Result := Files.Application.Windows.Smoke.Run_Live_Window_Smoke ((others => <>), Plan);
       Assert (not Live_Result.Window_Created, "live smoke runner does not create windows for empty startup");
       Files_Suite.Support.Assert_Equal
         (Live_Result.Frames_Attempted,
@@ -71,7 +71,7 @@ separate (Files_Suite.Startup)
          "live smoke runner reports empty startup");
       Plan.Can_Run := False;
       Plan.Reason_Key := To_Unbounded_String ("runtime.smoke.no_display");
-      Live_Result := Files.Application.Windows.Run_Live_Window_Smoke (Startup, Plan);
+      Live_Result := Files.Application.Windows.Smoke.Run_Live_Window_Smoke (Startup, Plan);
       Assert (Live_Result.Skipped_By_Plan, "live smoke runner skips when plan cannot run");
       Assert (not Live_Result.Attempted, "live smoke runner does not attempt skipped plan");
       Files_Suite.Support.Assert_Equal

@@ -16,7 +16,7 @@ separate (Files_Suite.Operations)
               "rename b to c, then a to b");
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Record_Undo
+      Files.Operations.Record_Undo
         (Model, Files.Model.Undo_Rename,
          From => [To_Unbounded_String (C), To_Unbounded_String (B)],
          To   => [To_Unbounded_String (B), To_Unbounded_String (A)]);

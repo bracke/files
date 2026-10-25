@@ -1,6 +1,6 @@
 with Files.File_System;
 
---  Platform-specific filesystem integration namespace.
+--  The native filesystem integration profile of the host this build is for.
 package Files.Platform is
    --  Return the native API profile for the current host adapter.
    --

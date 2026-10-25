@@ -16,6 +16,7 @@ with Files.Commands;
 with Files.File_System;
 with Files.Fs;
 with Files.Application.Windows;
+with Files.Application.Windows.Smoke;
 with Files_Config;
 with Files.Icon_Assets;
 with Files.Localization;
@@ -601,8 +602,8 @@ package body Files.Application is
       end if;
 
       declare
-         Quality : constant Files.Application.Windows.Headless_Render_Quality_Result :=
-           Files.Application.Windows.Headless_Render_Quality_Report
+         Quality : constant Files.Application.Windows.Smoke.Headless_Render_Quality_Result :=
+           Files.Application.Windows.Smoke.Headless_Render_Quality_Report
              (Result,
               Width  => Width,
               Height => Height);
@@ -786,13 +787,13 @@ package body Files.Application is
                --  or a fail (1), while still treating the skip as non-fatal.
                Live_Smoke_Skip_Exit_Code : constant Ada.Command_Line.Exit_Status := 77;
 
-               Plan       : constant Files.Application.Windows.Live_Smoke_Plan :=
-                 Files.Application.Windows.Live_Window_Smoke_Plan;
-               Live_Result : constant Files.Application.Windows.Live_Smoke_Result :=
-                 Files.Application.Windows.Run_Live_Window_Smoke (Result, Plan);
+               Plan       : constant Files.Application.Windows.Smoke.Live_Smoke_Plan :=
+                 Files.Application.Windows.Smoke.Live_Window_Smoke_Plan;
+               Live_Result : constant Files.Application.Windows.Smoke.Live_Smoke_Result :=
+                 Files.Application.Windows.Smoke.Run_Live_Window_Smoke (Result, Plan);
 
                function Live_Smoke_Fail_Reason
-                 (Failed : Files.Application.Windows.Live_Smoke_Result)
+                 (Failed : Files.Application.Windows.Smoke.Live_Smoke_Result)
                   return String is
                begin
                   if not Failed.Closed_Cleanly then
@@ -805,7 +806,7 @@ package body Files.Application is
                end Live_Smoke_Fail_Reason;
 
                function Live_Smoke_Skip_Reason
-                 (Skipped : Files.Application.Windows.Live_Smoke_Result)
+                 (Skipped : Files.Application.Windows.Smoke.Live_Smoke_Result)
                   return String is
                begin
                   if Skipped.Skipped_By_Plan or else not Skipped.Attempted then
@@ -881,18 +882,18 @@ package body Files.Application is
                --  One greppable line per scenario, built from ASCII fragments,
                --  so a state-specific display regression is visible in CI logs
                --  before the single canonical verdict line below.
-               for Scenario in Files.Application.Windows.Live_Smoke_Scenario loop
+               for Scenario in Files.Application.Windows.Smoke.Live_Smoke_Scenario loop
                   declare
-                     Outcome : constant Files.Application.Windows.Scenario_Outcome :=
+                     Outcome : constant Files.Application.Windows.Smoke.Scenario_Outcome :=
                        Live_Result.Scenario_Results (Scenario);
                      Region_Percent : constant Natural :=
                        Natural (Float'Floor (Outcome.Region_Ink_Fraction * 100.0));
                   begin
                      Ada.Text_IO.Put_Line
                        (Scenario_Prefix & Space & Scenario_Word & Space
-                        & Files.Application.Windows.Scenario_Name (Scenario)
+                        & Files.Application.Windows.Smoke.Scenario_Name (Scenario)
                         & Colon & Space
-                        & (if Files.Application.Windows.Scenario_Passed
+                        & (if Files.Application.Windows.Smoke.Scenario_Passed
                                (Live_Result.Scenario_Results, Scenario)
                            then Pass_Word else Fail_Word)
                         --  When a scenario asserted a layout-derived element
@@ -919,18 +920,18 @@ package body Files.Application is
                --  Emit exactly one canonical, greppable verdict line and set a
                --  matching exit code so CI can classify the run:
                --    PASS -> exit 0, FAIL -> exit 1, SKIP -> exit 77.
-               case Files.Application.Windows.Gate_Outcome (Live_Result) is
-                  when Files.Application.Windows.Live_Smoke_Pass =>
+               case Files.Application.Windows.Smoke.Gate_Outcome (Live_Result) is
+                  when Files.Application.Windows.Smoke.Live_Smoke_Pass =>
                      Ada.Text_IO.Put_Line (Live_Smoke_Marker & Space & Pass_Token);
                      Status := Ada.Command_Line.Success;
 
-                  when Files.Application.Windows.Live_Smoke_Fail =>
+                  when Files.Application.Windows.Smoke.Live_Smoke_Fail =>
                      Ada.Text_IO.Put_Line
                        (Live_Smoke_Marker & Space & Fail_Token & Space
                         & Live_Smoke_Fail_Reason (Live_Result));
                      Status := Ada.Command_Line.Failure;
 
-                  when Files.Application.Windows.Live_Smoke_Skip =>
+                  when Files.Application.Windows.Smoke.Live_Smoke_Skip =>
                      Ada.Text_IO.Put_Line
                        (Live_Smoke_Marker & Space & Skip_Token & Space
                         & Live_Smoke_Skip_Reason (Live_Result));

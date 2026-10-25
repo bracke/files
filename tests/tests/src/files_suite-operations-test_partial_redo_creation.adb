@@ -37,7 +37,7 @@ separate (Files_Suite.Operations)
                Sources.Append (To_Unbounded_String (Source_A));
                Sources.Append (To_Unbounded_String (Source_B));
                Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
-               Files.Model.Record_Undo
+               Files.Operations.Record_Undo
                  (Model, Files.Model.Undo_Delete_Created, Destinations,
                   Files.Types.String_Vectors.Empty_Vector, Forward => Sources, Create_Kind => Kind);
                Step := Complete_Operation

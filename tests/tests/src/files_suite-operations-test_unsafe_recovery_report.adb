@@ -11,6 +11,12 @@ separate (Files_Suite.Operations)
          Remove_Transport_Fixture (Young_Path);
       end Restore;
    begin
+      --  A scan or retry left by an earlier test would reclaim this test's
+      --  fixtures before its own coordinator could.
+      for Attempt in Files_Suite.Support.Polling loop
+         exit when Files.Job_Scavenger.Idle;
+      end loop;
+      Assert (Files.Job_Scavenger.Idle, "no earlier recovery scan is still running");
       Reset_Root;
       --  A live job keeps its transport present, as it is during startup recovery.
       Files.Process_Jobs.Reserve (Active);

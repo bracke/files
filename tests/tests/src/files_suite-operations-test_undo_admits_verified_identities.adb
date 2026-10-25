@@ -18,15 +18,15 @@ separate (Files_Suite.Operations)
          Write_Binary_File (Older, "older bytes");
          Files.Model.Initialize
            (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
-         Files.Model.Clear_Undo (Model);
+         Files.Operations.Clear_Undo (Model);
          Older_Path.Append (To_Unbounded_String (Older));
-         Files.Model.Record_Undo
+         Files.Operations.Record_Undo
            (Model, Files.Model.Undo_Delete_Created, Older_Path,
             Files.Types.String_Vectors.Empty_Vector, Redoable => False);
          Paths.Append (To_Unbounded_String (Unverifiable));
          Identities.Append (Null_Unbounded_String);
          Revisions.Append (Null_Unbounded_String);
-         Recorded := Files.Model.Try_Record_Undo
+         Recorded := Files.Operations.Try_Record_Undo
            (Model, Files.Model.Undo_Delete_Created, Paths,
             Files.Types.String_Vectors.Empty_Vector, Redoable => False,
             Original_Identities => Identities,
@@ -51,7 +51,7 @@ separate (Files_Suite.Operations)
             Candidate.Append (To_Unbounded_String (Stale));
             Candidate_Identities.Append (Old_Identity);
             Candidate_Revisions.Append (Null_Unbounded_String);
-            Recorded := Files.Model.Try_Record_Undo
+            Recorded := Files.Operations.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created, Candidate,
                Files.Types.String_Vectors.Empty_Vector, Redoable => False,
                Original_Identities => Candidate_Identities,
@@ -75,7 +75,7 @@ separate (Files_Suite.Operations)
               (To_Unbounded_String (Files.File_Identities.Token (Prefix)));
             Candidate_Revisions.Append
               (To_Unbounded_String (Files.File_System.Tree_Revision (Prefix)));
-            Recorded := Files.Model.Try_Record_Undo
+            Recorded := Files.Operations.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created, Candidate,
                Files.Types.String_Vectors.Empty_Vector, Redoable => False,
                Original_Identities => Candidate_Identities,
@@ -85,7 +85,7 @@ separate (Files_Suite.Operations)
             Candidate.Append (To_Unbounded_String (Stale));
             Candidate_Identities.Append (Old_Identity);
             Candidate_Revisions.Append (Null_Unbounded_String);
-            Recorded := Files.Model.Try_Record_Undo
+            Recorded := Files.Operations.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created, Candidate,
                Files.Types.String_Vectors.Empty_Vector, Redoable => False,
                Original_Identities => Candidate_Identities,
@@ -110,7 +110,7 @@ separate (Files_Suite.Operations)
             Candidate_Identities.Append
               (To_Unbounded_String (Files.File_Identities.Token (Directory_Path)));
             Candidate_Revisions.Append (Null_Unbounded_String);
-            Recorded := Files.Model.Try_Record_Undo
+            Recorded := Files.Operations.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created, Candidate,
                Files.Types.String_Vectors.Empty_Vector, Redoable => False,
                Original_Identities => Candidate_Identities,
@@ -121,7 +121,7 @@ separate (Files_Suite.Operations)
             Old_Revision := To_Unbounded_String (Files.File_System.Tree_Revision (Directory_Path));
             Write_Binary_File (Join (Directory_Path, "second"), "second");
             Candidate_Revisions.Replace_Element (Candidate_Revisions.First_Index, Old_Revision);
-            Recorded := Files.Model.Try_Record_Undo
+            Recorded := Files.Operations.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created, Candidate,
                Files.Types.String_Vectors.Empty_Vector, Redoable => False,
                Original_Identities => Candidate_Identities,
@@ -137,7 +137,7 @@ separate (Files_Suite.Operations)
             Candidate_Identities.Append
               (To_Unbounded_String (Files.File_Identities.Token (Incomplete)));
             Candidate_Revisions.Append (Null_Unbounded_String);
-            Recorded := Files.Model.Try_Record_Undo
+            Recorded := Files.Operations.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created, Candidate,
                Files.Types.String_Vectors.Empty_Vector,
                Create_Kind => Files.Model.Create_Copy,
@@ -150,7 +150,7 @@ separate (Files_Suite.Operations)
          Identities.Append (To_Unbounded_String (Files.File_Identities.Token (Verifiable)));
          Revisions.Append
            (To_Unbounded_String (Files.File_System.Tree_Revision (Verifiable)));
-         Recorded := Files.Model.Try_Record_Undo
+         Recorded := Files.Operations.Try_Record_Undo
            (Model, Files.Model.Undo_Delete_Created, Paths,
             Files.Types.String_Vectors.Empty_Vector, Redoable => False,
             Original_Identities => Identities,

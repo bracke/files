@@ -16,6 +16,13 @@ package Files.Job_Scavenger is
    --  @return Whether the desktop should show a recovery warning.
    function Has_Unrecoverable return Boolean;
 
+   --  True when no scan is queued, none is running (as a child or in the
+   --  monitor) and no retry is scheduled. A caller that must not race a
+   --  scan it did not start, such as a test creating recovery fixtures,
+   --  waits for this first.
+   --  @return Whether recovery is quiet.
+   function Idle return Boolean;
+
    --  Request coordinator shutdown and wait up to about two seconds for it
    --  to be reaped. An unfinished child remains owned by the monitor task.
    --  @param Reaped True when the monitor has terminated after reaping its child.

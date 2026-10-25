@@ -132,12 +132,18 @@ package body Files.Job_Scavenger is
       function Stop_Requested return Boolean is (Stopping);
    end Monitor_Control;
 
+   --  Requests for the monitor, and whether it is busy. Taking a request
+   --  marks it busy in the same protected action, so Idle can never read a
+   --  request as both no longer queued and not yet started.
    protected Scan_Requests is
       procedure Submit (Program : Files.Types.UString);
       procedure Take (Requested : out Boolean; Program : out Files.Types.UString);
+      procedure Settle (Still_Busy : Boolean);
+      function Quiet return Boolean;
    private
       Pending : Boolean := False;
       Pending_Program : Files.Types.UString;
+      Busy : Boolean := False;
    end Scan_Requests;
 
    protected Terminal_Reports is
@@ -227,10 +233,20 @@ package body Files.Job_Scavenger is
       begin
          Requested := Pending;
          Program := Pending_Program;
+         Busy := Busy or else Pending;
          Pending := False;
          Pending_Program := Null_Unbounded_String;
       end Take;
+
+      procedure Settle (Still_Busy : Boolean) is
+      begin
+         Busy := Still_Busy;
+      end Settle;
+
+      function Quiet return Boolean is (not Pending and then not Busy);
    end Scan_Requests;
+
+   function Idle return Boolean is (Scan_Requests.Quiet);
 
    task Coordinator_Monitor is
       entry Stop;
@@ -392,13 +408,16 @@ package body Files.Job_Scavenger is
                Start_Coordinator (Monitored_Program);
             end if;
          end if;
+         Scan_Requests.Settle (Active or else Retry_Pending);
       end loop Main_Loop;
+      Scan_Requests.Settle (False);
       Monitor_Result.Mark_Complete;
    exception
       --  Without this an exception would end recovery scans silently and leave
       --  Monitor_Result incomplete, so Shutdown would never clean the report.
       when E : others =>
          Files.Diagnostics.Note (E, "Files.Job_Scavenger.Coordinator_Monitor");
+         Scan_Requests.Settle (False);
          Monitor_Result.Mark_Complete;
    end Coordinator_Monitor;
 

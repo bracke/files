@@ -49,7 +49,7 @@ separate (Files_Suite.Operations)
             Check (Source, Mixed);
             Load := Files.File_System.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Model.Clear_Undo (Model);
+            Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             Paths.Clear;
             Paths.Append (To_Unbounded_String (Source));

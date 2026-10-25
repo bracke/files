@@ -1,4 +1,4 @@
-separate (Files.Application.Windows)
+separate (Files.Application.Windows.Smoke)
    function Scenario_Region
      (Runtime  : Runtime_Window;
       Scenario : Live_Smoke_Scenario;

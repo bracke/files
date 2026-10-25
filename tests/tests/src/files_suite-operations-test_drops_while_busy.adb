@@ -16,7 +16,7 @@ separate (Files_Suite.Operations)
          Write_Binary_File (Join (Join (Root, "inbox"), "incoming.txt"), "incoming");
          Load := Files.File_System.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Clear_Undo (Model);
+         Files.Operations.Clear_Undo (Model);
          Select_Name (Model, "original.txt");
          Files.Model.Set_Background_Transfers (Model, True);
          Step := Files.Operations.Duplicate_Selected (Model, Settings);

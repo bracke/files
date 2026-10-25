@@ -53,7 +53,7 @@ separate (Files_Suite.Operations)
       Write_File (Join (Dir, "b.txt"), "second");
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
-      Files.Model.Clear_Undo (Model);
+      Files.Operations.Clear_Undo (Model);
       Files.Model.Select_All_Visible (Model);
       Ada.Directories.Delete_File (Join (Dir, "b.txt"));
       Routed := Files.Controller.Execute_Command

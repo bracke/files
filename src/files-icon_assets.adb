@@ -1,18 +1,11 @@
-with Files.Diagnostics;
 with Ada.Containers.Indefinite_Hashed_Maps;
-with Ada.Streams;
 with Ada.Strings.Hash;
-with Ada.Strings.Unbounded;
 
-with GNAT.OS_Lib;
-
-with Files.Fs;
+with Files.Capped_Files;
 with Files.Resources;
 with Guikit.Draw;
 
 package body Files.Icon_Assets is
-
-   use Ada.Strings.Unbounded;
 
    package Text_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
@@ -43,63 +36,17 @@ package body Files.Icon_Assets is
    function Icons_Root return String is
      (Files.Resources.Share_Path ("files/icons"));
 
-   --  Read one small icon definition byte-for-byte. Returns "" on any error.
+   --  Read one small icon definition byte-for-byte. Returns "" on any error
+   --  and for a definition larger than Max_Icon_Asset_Bytes.
    function Read_File (Path : String) return String is
-      use type Ada.Streams.Stream_Element_Offset;
-      use type GNAT.OS_Lib.File_Descriptor;
+      use type Files.Capped_Files.Read_Status;
 
-      File   : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
-      Buffer : Ada.Streams.Stream_Element_Array (1 .. 4096);
-      Read   : Integer;
-      Result : Unbounded_String;
-
-      procedure Close_File is
-      begin
-         if File /= GNAT.OS_Lib.Invalid_FD then
-            GNAT.OS_Lib.Close (File);
-            File := GNAT.OS_Lib.Invalid_FD;
-         end if;
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Icon_Assets");
-      end Close_File;
+      Status : Files.Capped_Files.Read_Status;
+      Text   : constant String :=
+        Files.Capped_Files.Read_Capped
+          (Path, Max_Icon_Asset_Bytes, Files.Capped_Files.Follow_Links, Status);
    begin
-      File := Files.Fs.Open_Regular_Read_Following_Links (Path);
-      if File = GNAT.OS_Lib.Invalid_FD then
-         return "";
-      end if;
-
-      loop
-         Read := GNAT.OS_Lib.Read
-           (File, Buffer'Address, Integer (Buffer'Length));
-         if Read < 0 then
-            Close_File;
-            return "";
-         end if;
-         exit when Read = 0;
-         declare
-            Chunk_Length : constant Natural := Natural (Read);
-            Chunk : String (1 .. Chunk_Length);
-         begin
-            if Chunk_Length > Max_Icon_Asset_Bytes - Length (Result) then
-               Close_File;
-               return "";
-            end if;
-            for Index in Chunk'Range loop
-               Chunk (Index) := Character'Val
-                 (Buffer
-                    (Ada.Streams.Stream_Element_Offset (Index)
-                     + Buffer'First - 1));
-            end loop;
-            Append (Result, Chunk);
-         end;
-      end loop;
-      Close_File;
-      return To_String (Result);
-   exception
-      when others =>
-         Close_File;
-         return "";
+      return (if Status = Files.Capped_Files.Read_Complete then Text else "");
    end Read_File;
 
    function Disk_Icon_Asset

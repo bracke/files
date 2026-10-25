@@ -1,7 +1,7 @@
 with Ada.Directories;
 
 with Hostkit.Fs;
-with Files.Platform_Regular_Files;
+with Hostkit.Regular_Files;
 
 package body Files.Fs is
    use type Ada.Directories.File_Kind;
@@ -40,7 +40,7 @@ package body Files.Fs is
             return GNAT.OS_Lib.Invalid_FD;
          end if;
       end loop;
-      return Files.Platform_Regular_Files.Open_Read (Path, False, Supported);
+      return Hostkit.Regular_Files.Open_Read (Path, False, Supported);
    end Open_Regular_Read;
 
    function Open_Regular_Read_Following_Links
@@ -53,7 +53,7 @@ package body Files.Fs is
             return GNAT.OS_Lib.Invalid_FD;
          end if;
       end loop;
-      return Files.Platform_Regular_Files.Open_Read (Path, True, Supported);
+      return Hostkit.Regular_Files.Open_Read (Path, True, Supported);
    end Open_Regular_Read_Following_Links;
 
    procedure Delete_Tree (Path : String) is

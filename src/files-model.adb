@@ -105,71 +105,9 @@ package body Files.Model is
       return True;
    end Completion_Markers_Valid;
 
-   function Valid_Natural_Image (Value : UString) return Boolean is
-      Text : constant String := Ada.Strings.Fixed.Trim (To_String (Value), Ada.Strings.Both);
-      Parsed : Natural;
-      pragma Unreferenced (Parsed);
-   begin
-      if Text = "" then
-         return False;
-      end if;
-      Parsed := Natural'Value (Text);
-      return True;
-   exception
-      when others =>
-         return False;
-   end Valid_Natural_Image;
+   function Valid_Natural_Image (Value : UString) return Boolean is separate;
 
-   function Valid_Ownership_Image (Value : UString) return Boolean is
-      Text       : constant String := To_String (Value);
-      First_Nul  : Natural := 0;
-      Second_Nul : Natural := 0;
-   begin
-      if Text = "" then
-         return False;
-      end if;
-      for Index in Text'Range loop
-         if Text (Index) = ASCII.NUL then
-            First_Nul := Index;
-            exit;
-         end if;
-      end loop;
-      if First_Nul /= 0 then
-         for Index in First_Nul + 1 .. Text'Last loop
-            if Text (Index) = ASCII.NUL then
-               Second_Nul := Index;
-               exit;
-            end if;
-         end loop;
-         if Second_Nul = 0 then
-            return False;
-         end if;
-         for Index in Second_Nul + 1 .. Text'Last loop
-            if Text (Index) = ASCII.NUL then
-               return False;
-            end if;
-         end loop;
-      end if;
-      declare
-         Numeric_Last : constant Natural :=
-           (if First_Nul = 0 then Text'Last else First_Nul - 1);
-         Numeric : constant String := Ada.Strings.Fixed.Trim
-           (Text (Text'First .. Numeric_Last), Ada.Strings.Both);
-         Space : constant Natural := Ada.Strings.Fixed.Index (Numeric, " ");
-         User, Group : Natural;
-         pragma Unreferenced (User, Group);
-      begin
-         if Space = 0 then
-            return False;
-         end if;
-         User := Natural'Value (Numeric (Numeric'First .. Space - 1));
-         Group := Natural'Value (Numeric (Space + 1 .. Numeric'Last));
-         return True;
-      end;
-   exception
-      when others =>
-         return False;
-   end Valid_Ownership_Image;
+   function Valid_Ownership_Image (Value : UString) return Boolean is separate;
 
    function Valid_Copy_Records
      (Values : Files.Types.String_Vectors.Vector) return Boolean
@@ -1886,60 +1824,29 @@ package body Files.Model is
      (Model : Window_Model)
       return Boolean is separate;
 
-   procedure Discard_Retained (Action : Undo_Entry);
+   procedure Retire_Payloads
+     (Pending : in out Files.Types.String_Vectors.Vector;
+      Entries : Undo_Entry_Vectors.Vector);
 
-   function Tree_Revision_Or_Empty (Path : String) return String;
+   procedure Retire_Payloads
+     (Pending : in out Files.Types.String_Vectors.Vector;
+      Entries : Undo_Entry_Vectors.Vector) is separate;
 
-   procedure Discard_Retained (Entries : Undo_Entry_Vectors.Vector);
+   procedure Begin_Undo_Record
+     (Model : in out Window_Model;
+      Kind  : Undo_Action_Kind;
+      From  : Files.Types.String_Vectors.Vector;
+      To    : Files.Types.String_Vectors.Vector) is separate;
 
-   procedure Discard_Retained (Action : Undo_Entry) is separate;
+   function Commit_Undo_Record
+     (Model  : in out Window_Model;
+      Action : Undo_Entry) return Boolean is separate;
 
-   function Tree_Revision_Or_Empty (Path : String) return String is separate;
-
-   function Try_Record_Undo
-     (Model       : in out Window_Model;
-      Kind        : Undo_Action_Kind;
-      From        : Files.Types.String_Vectors.Vector;
-      To          : Files.Types.String_Vectors.Vector;
-      Forward     : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Create_Kind : Undo_Create_Kind := Create_None;
-      Redoable    : Boolean := True;
-      Restore_Trash : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Retain_Verified_Main : Natural := 0;
-      Retain_Verified_Restores : Natural := 0) return Boolean is separate;
-
-   procedure Record_Undo
-     (Model       : in out Window_Model;
-      Kind        : Undo_Action_Kind;
-      From        : Files.Types.String_Vectors.Vector;
-      To          : Files.Types.String_Vectors.Vector;
-      Forward     : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Create_Kind : Undo_Create_Kind := Create_None;
-      Redoable    : Boolean := True;
-      Restore_Trash : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Retain_Verified_Main : Natural := 0;
-      Retain_Verified_Restores : Natural := 0)
-   is separate;
+   procedure Take_Retired_History
+     (Model         : in out Window_Model;
+      Discarded     : out Files.Types.String_Vectors.Vector;
+      Released      : out Files.Types.String_Vectors.Vector;
+      Journal_Dirty : out Boolean) is separate;
 
    procedure Release_History
      (Model : in out Window_Model)
@@ -1985,14 +1892,6 @@ package body Files.Model is
    function Undo_To_Paths
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector is separate;
-
-   procedure Discard_Retained (Entries : Undo_Entry_Vectors.Vector) is
-      use type Ada.Directories.File_Kind;
-   begin
-      for Action of Entries loop
-         Discard_Retained (Action);
-      end loop;
-   end Discard_Retained;
 
    procedure Begin_Paste_Conflict
      (Model           : in out Window_Model;
@@ -2140,11 +2039,15 @@ package body Files.Model is
    function Paste_Execution_Verified_Replaced_Count
      (Model : Window_Model) return Natural is separate;
 
+   function Paste_Execution_Replaced_Extends_Verified
+     (Model : Window_Model) return Boolean is separate;
+
    procedure Record_Paste_Execution_Replaced_Trash
      (Model      : in out Window_Model;
       Trash_Path : Files.Types.UString;
       Identity : String;
-      Original_Path : String := "") is separate;
+      Original_Path : String;
+      Verified : Boolean) is separate;
 
    function Paste_Execution_First_Dest
      (Model : Window_Model)
@@ -2160,7 +2063,10 @@ package body Files.Model is
       Name        : String;
       Identity    : String;
       Tree_Revision : String;
-      Retain_Verified_Snapshot : Boolean := False) is separate;
+      Verified    : Boolean) is separate;
+
+   function Paste_Execution_Write_Extends_Verified
+     (Model : Window_Model) return Boolean is separate;
 
    procedure Cancel_Paste_Execution
      (Model : in out Window_Model) is separate;

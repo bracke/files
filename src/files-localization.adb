@@ -1,10 +1,8 @@
-with Files.Diagnostics;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Vectors;
 with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Environment_Variables;
-with Ada.Streams;
 with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Hash;
@@ -14,10 +12,8 @@ with Messages.Arguments;
 with Messages.Result;
 with Messages.Runtime;
 
-with GNAT.OS_Lib;
-
 with Files_Config;
-with Files.Fs;
+with Files.Capped_Files;
 with Files.Resources;
 
 with Hostkit.Host;
@@ -434,27 +430,11 @@ package body Files.Localization is
       Key     : String)
       return String
    is
-      use type Ada.Streams.Stream_Element_Offset;
       use type Ada.Directories.File_Kind;
-      use type GNAT.OS_Lib.File_Descriptor;
+      use type Files.Capped_Files.Read_Status;
 
       Max_Config_Bytes : constant := 256 * 1024;
-      File       : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
-      Buffer     : Ada.Streams.Stream_Element_Array (1 .. 4096);
-      Bytes_Read : Integer;
-      Text       : Unbounded_String;
       In_Section : Boolean := Section = "";
-
-      procedure Close_File is
-      begin
-         if File /= GNAT.OS_Lib.Invalid_FD then
-            GNAT.OS_Lib.Close (File);
-            File := GNAT.OS_Lib.Invalid_FD;
-         end if;
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Localization");
-      end Close_File;
    begin
       if not Ada.Directories.Exists (Path)
         or else Ada.Directories.Kind (Path) /= Ada.Directories.Ordinary_File
@@ -462,42 +442,16 @@ package body Files.Localization is
          return "";
       end if;
 
-      File := Files.Fs.Open_Regular_Read_Following_Links (Path);
-      if File = GNAT.OS_Lib.Invalid_FD then
-         return "";
-      end if;
-
-      loop
-         Bytes_Read := GNAT.OS_Lib.Read
-           (File, Buffer'Address, Integer (Buffer'Length));
-         if Bytes_Read < 0 then
-            Close_File;
-            return "";
-         end if;
-         exit when Bytes_Read = 0;
-         declare
-            Chunk_Length : constant Natural := Natural (Bytes_Read);
-            Chunk : String (1 .. Chunk_Length);
-         begin
-            if Chunk_Length > Max_Config_Bytes - Length (Text) then
-               Close_File;
-               return "";
-            end if;
-            for Index in Chunk'Range loop
-               Chunk (Index) := Character'Val
-                 (Buffer
-                    (Ada.Streams.Stream_Element_Offset (Index)
-                     + Buffer'First - 1));
-            end loop;
-            Append (Text, Chunk);
-         end;
-      end loop;
-      Close_File;
-
       declare
-         Content    : constant String := To_String (Text);
+         Status     : Files.Capped_Files.Read_Status;
+         Content    : constant String :=
+           Files.Capped_Files.Read_Capped
+             (Path, Max_Config_Bytes, Files.Capped_Files.Follow_Links, Status);
          Line_First : Natural := Content'First;
       begin
+         if Status /= Files.Capped_Files.Read_Complete then
+            return "";
+         end if;
          while Line_First <= Content'Last loop
             declare
                Newline : constant Natural :=
@@ -557,7 +511,6 @@ package body Files.Localization is
       end;
    exception
       when others =>
-         Close_File;
          return "";
    end Locale_Config_Value;
 

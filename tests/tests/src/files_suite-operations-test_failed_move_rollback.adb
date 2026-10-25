@@ -35,7 +35,7 @@ separate (Files_Suite.Operations)
             end if;
             Load := Files.File_System.Load_Directory (Destination, Settings);
             Files.Model.Initialize (Model, Destination, Load.Items, Root);
-            Files.Model.Clear_Undo (Model);
+            Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             Sources.Clear;
             Sources.Append (To_Unbounded_String (Join (Source_Parent, "item.txt")));

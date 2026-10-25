@@ -26,7 +26,7 @@ separate (Files_Suite.Operations)
          Files.Settings.Note_Recent (Settings, Join (One, "report.txt"));
          Files.Settings.Note_Recent (Settings, Join (Two, "note.txt"));
          Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
-         Files.Model.Clear_Undo (Model);
+         Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Step := Files.Operations.Navigate_Recent (Model, Settings);
          Files.Model.Select_All_Visible (Model);

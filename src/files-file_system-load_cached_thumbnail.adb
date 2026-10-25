@@ -1,3 +1,4 @@
+with Files.Capped_Files;
 separate (Files.File_System)
 function Load_Cached_Thumbnail
   (Path : String)
@@ -71,58 +72,17 @@ is
       Max_Bytes : Natural)
       return Unbounded_String
    is
-      use Ada.Streams;
+      use type Files.Capped_Files.Read_Status;
 
-      Input      : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
-      Buffer     : Stream_Element_Array (1 .. 64 * 1024);
-      Bytes_Read : Integer;
-      Bytes      : Unbounded_String;
-      Total      : Natural := 0;
+      Status : Files.Capped_Files.Read_Status;
+      Bytes  : constant String :=
+        Files.Capped_Files.Read_Capped
+          (From, Max_Bytes, Files.Capped_Files.Refuse_Links, Status);
    begin
-      Input := Files.Fs.Open_Regular_Read (From);
-      if Input = GNAT.OS_Lib.Invalid_FD then
+      if Status /= Files.Capped_Files.Read_Complete then
          return Null_Unbounded_String;
       end if;
-
-      loop
-         Bytes_Read := GNAT.OS_Lib.Read
-           (Input, Buffer'Address, Integer (Buffer'Length));
-         if Bytes_Read < 0 then
-            raise Ada.Directories.Use_Error;
-         end if;
-         exit when Bytes_Read = 0;
-
-         declare
-            Chunk_Length : constant Natural :=
-              Natural (Bytes_Read);
-            Chunk : String (1 .. Chunk_Length);
-         begin
-            if Chunk_Length > Max_Bytes - Total then
-               GNAT.OS_Lib.Close (Input);
-               Input := GNAT.OS_Lib.Invalid_FD;
-               return Null_Unbounded_String;
-            end if;
-
-            for Index in Chunk'Range loop
-               Chunk (Index) :=
-                 Character'Val (Buffer (Stream_Element_Offset (Index) + Buffer'First - 1));
-            end loop;
-
-            Append (Bytes, Chunk);
-            Total := Total + Chunk_Length;
-         end;
-      end loop;
-
-      GNAT.OS_Lib.Close (Input);
-      Input := GNAT.OS_Lib.Invalid_FD;
-      return Bytes;
-   exception
-      when others =>
-         if Input /= GNAT.OS_Lib.Invalid_FD then
-            GNAT.OS_Lib.Close (Input);
-         end if;
-
-         return Null_Unbounded_String;
+      return To_Unbounded_String (Bytes);
    end Read_Bytes;
 
    function Channel

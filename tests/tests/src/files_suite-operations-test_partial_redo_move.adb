@@ -23,7 +23,7 @@ separate (Files_Suite.Operations)
             Sources.Append (To_Unbounded_String (Source_A));
             Sources.Append (To_Unbounded_String (Source_B));
             Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
-            Files.Model.Record_Undo
+            Files.Operations.Record_Undo
               (Model, (if Scenario = Move_Action then Files.Model.Undo_Move else Files.Model.Undo_Rename),
                Destinations, Sources);
             Step := Complete_Operation

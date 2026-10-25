@@ -4,8 +4,6 @@ separate (Files_Suite.Rendering)
       Snapshot : View_Snapshot := Sample_Snapshot (4, Files.Types.Small_Icons);
       Frame    : Frame_Commands;
       Tree     : A11ykit.Tree.Accessibility_Tree;
-      Profile  : constant Files.Rendering.Accessibility_Integration_Profile :=
-        Files.Accessibility.Integration_Profile;
       Roots    : Natural := 0;
       Focused  : Natural := 0;
    begin
@@ -45,13 +43,6 @@ separate (Files_Suite.Rendering)
         (A11ykit.Compatibility.Validate_Tree (Tree).Status =
            A11y.Results.Success,
          "the mapped tree satisfies the provider contract");
-
-      Assert
-        (Profile.Native_API_Binding_Status =
-           (if A11y.Platforms.Current = A11y.Platforms.Unsupported
-            then Files.File_System.Native_API_Binding_Missing
-            else Files.File_System.Native_API_Binding_Available),
-         "the integration profile reports whether this target has a native provider binding");
 
       --  The provider needs the first tree before it can register its native
       --  application root. Publication must therefore run even while Available

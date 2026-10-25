@@ -850,22 +850,6 @@ package Files.File_System is
       Group_Id  : out Natural;
       Available : out Boolean);
 
-   --  Change the owner and group of an existing entry through chown(2).
-   --
-   --  The path must already exist. Because changing ownership usually requires
-   --  root privileges, an unprivileged failure maps to error.ownership.denied,
-   --  and an unsupported platform maps to error.ownership.unsupported.
-   --
-   --  @param Path Existing filesystem path whose ownership is changed.
-   --  @param User_Id New owning user id to apply.
-   --  @param Group_Id New owning group id to apply.
-   --  @return Mutation result with a localized error key on failure.
-   function Set_Ownership
-     (Path     : String;
-      User_Id  : Natural;
-      Group_Id : Natural)
-      return Mutation_Result;
-
    --  @param Path Existing entry; symbolic links must be resolved by the caller.
    --  @param Expected_Identity History identity to verify, or empty for a new live change.
    --  @param Ownership True changes ownership; False changes permission bits.

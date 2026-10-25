@@ -1451,7 +1451,7 @@ package body Files_Suite.Operations is
             Write_Binary_File (Join (Root, "source.zip"), "not an archive");
             Load := Files.File_System.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Model.Clear_Undo (Model);
+            Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             Files.Model.Begin_Create_File (Model, "pending.txt");
             Files.Model.Toggle_Visible_Selection (Model, 1);
@@ -1919,7 +1919,7 @@ package body Files_Suite.Operations is
          "Redo can retry after the source becomes readable");
       Assert (Ada.Directories.Exists (Link_Path), "retry publishes the hard link");
 
-      Files.Model.Clear_Undo (Model);
+      Files.Operations.Clear_Undo (Model);
       Reset_Root;
       Ada.Directories.Create_Path (Dir);
       Write_File (Source, "hard link contents");

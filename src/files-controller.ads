@@ -41,38 +41,6 @@ package Files.Controller is
       Text  : String)
       return Controller_Result;
 
-   --  Remove the final character from the currently focused text input.
-   --
-   --  @param Model Window model to update.
-   --  @return Controller result indicating whether text changed.
-   function Delete_Focused_Text_Backward
-     (Model : in out Files.Model.Window_Model)
-      return Controller_Result;
-
-   --  Remove the character at the cursor from the currently focused text input.
-   --
-   --  @param Model Window model to update.
-   --  @return Controller result indicating whether text changed.
-   function Delete_Focused_Text_Forward
-     (Model : in out Files.Model.Window_Model)
-      return Controller_Result;
-
-   --  Remove the previous word from the currently focused text input.
-   --
-   --  @param Model Window model to update.
-   --  @return Controller result indicating whether text changed.
-   function Delete_Focused_Text_Word_Backward
-     (Model : in out Files.Model.Window_Model)
-      return Controller_Result;
-
-   --  Remove the next word from the currently focused text input.
-   --
-   --  @param Model Window model to update.
-   --  @return Controller result indicating whether text changed.
-   function Delete_Focused_Text_Word_Forward
-     (Model : in out Files.Model.Window_Model)
-      return Controller_Result;
-
    --  Execute a command through the controller's filesystem-aware routing.
    --
    --  @param Id Command identifier.
@@ -140,19 +108,6 @@ package Files.Controller is
    --  @param Settings_Path Central settings file path.
    --  @return Controller result with persistence operation details.
    function Toggle_Hidden_Files
-     (Model         : in out Files.Model.Window_Model;
-      Settings      : in out Files.Settings.Settings_Model;
-      Settings_Path : String)
-      return Controller_Result;
-
-   --  Flip the Show_File_Extensions setting, persist it, and refresh the view so
-   --  item names redraw with or without their trailing extension.
-   --
-   --  @param Model Window model to update.
-   --  @param Settings Live settings model whose extension flag is flipped.
-   --  @param Settings_Path Central settings file path.
-   --  @return Controller result with persistence operation details.
-   function Toggle_Show_Extensions
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String)

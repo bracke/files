@@ -123,7 +123,7 @@ begin
    --  refresh fails, rather than stranding the model in it.
    Files.Model.Clear_Edit_State (Model);
    if not From_V.Is_Empty then
-      Files.Model.Record_Undo
+      Record_Undo
         (Model, Files.Model.Undo_Rename, From_V, To_V, Original_Identities => Identities);
    end if;
 

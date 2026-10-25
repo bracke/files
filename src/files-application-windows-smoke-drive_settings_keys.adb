@@ -1,7 +1,8 @@
+with Ada.Directories;
 with Guikit.Settings_Panel;
 with Hostkit.Fs;
 
-separate (Files.Application.Windows)
+separate (Files.Application.Windows.Smoke)
    procedure Drive_Settings_Keys
      (Runtime     : in out Runtime_Window;
       Failed_Step : out Natural)

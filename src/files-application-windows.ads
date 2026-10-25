@@ -1,11 +1,25 @@
 with Files.Model;
 with Files.Refresh_Jobs;
 with Files.Controller;
-with Guikit.Frame_Analysis;
 with Guikit.Vulkan;
 with Glfw;
 with Glfw.Input.Mouse;
-with Interfaces;
+
+private with Ada.Containers.Vectors;
+private with Ada.Real_Time;
+private with Ada.Strings.Unbounded;
+private with A11ykit.Provider;
+private with Files.Accessibility;
+private with Files.Commands;
+private with Files.Drop_Events;
+private with Files.Events;
+private with Files.Rendering;
+private with Files.Settings;
+private with Files.Types;
+private with Glfw.Input.Keys;
+private with Glfw.Windows;
+private with Guikit.Draw;
+private with Guikit.Input;
 
 --  GLFW-backed desktop window session for resolved startup windows.
 package Files.Application.Windows is
@@ -37,130 +51,6 @@ package Files.Application.Windows is
       Binding_Unit                    : UString;
    end record;
 
-   type Live_Smoke_Plan is record
-      Can_Run          : Boolean := False;
-      Needs_Display    : Boolean := True;
-      Needs_Vulkan     : Boolean := True;
-      Width            : Natural := 1024;
-      Height           : Natural := 768;
-      Frame_Count      : Positive := 1;
-      Input_Poll_Count : Positive := 1;
-      Reason_Key       : UString;
-   end record;
-
-   --  Named application states the multi-scenario live smoke renders in order.
-   --
-   --  Scenario_Default renders the unchanged startup state and is the baseline
-   --  every other scenario's framebuffer is compared against; the remaining
-   --  scenarios each apply one distinct state (a selection, an overflowing
-   --  scrolled list, the item context menu, the command palette, a near-maximum
-   --  font size, the light theme, and the details view) so a state-specific
-   --  display regression is caught rather than only the startup frame.
-   type Live_Smoke_Scenario is
-     (Scenario_Default,
-      Scenario_Selection,
-      Scenario_Scrolled,
-      Scenario_Context_Menu,
-      Scenario_Palette,
-      Scenario_Root_Selector,
-      Scenario_Sort_Menu,
-      Scenario_Tree_Panel,
-      Scenario_Settings,
-      --  The settings panel on each further tab (by position, 2 .. 7), then
-      --  with the light theme and at a large font, so every tab and both
-      --  extremes of the panel's styling are rendered, not just the first.
-      Scenario_Settings_Tab_2,
-      Scenario_Settings_Tab_3,
-      Scenario_Settings_Tab_4,
-      Scenario_Settings_Tab_5,
-      Scenario_Settings_Tab_6,
-      Scenario_Settings_Tab_7,
-      Scenario_Settings_Light,
-      Scenario_Settings_Large_Font,
-      --  The settings panel driven by real key presses through the window's
-      --  own key queue (open, move, toggle, switch tabs, close, reopen), each
-      --  checked against the model and followed by a rendered frame.
-      Scenario_Settings_Keyboard,
-      Scenario_Large_Font,
-      Scenario_Light_Theme,
-      Scenario_Details_View,
-      Scenario_Quick_Look,
-      Scenario_Quick_Look_Image);
-
-   --  Per-scenario live smoke outcome captured from the framebuffer readback.
-   type Scenario_Outcome is record
-      Rendered       : Boolean := False;
-      --  True when the scenario produced at least one rendered frame.
-      Readback_Ready : Boolean := False;
-      --  True when a framebuffer readback was captured for the scenario.
-      Passed         : Boolean := False;
-      --  True when the scenario frame passed structural analysis.
-      Hash           : Interfaces.Unsigned_32 := 0;
-      --  Hash of the scenario's last read-back framebuffer.
-      Region_Checked : Boolean := False;
-      --  True when the scenario asserted a layout-derived UI element rectangle
-      --  against the read-back framebuffer (only some scenarios do).
-      Region_Ink_Present : Boolean := False;
-      --  True when that layout-derived rectangle held drawn content, proving
-      --  the element rendered at its computed pixel position. Meaningful only
-      --  when Region_Checked is set.
-      Region_Ink_Fraction : Float := 0.0;
-      --  Measured ink fraction of the checked region, retained for diagnostics.
-      Keys_Checked : Boolean := False;
-      --  True when the scenario drove a scripted key sequence.
-      Keys_Failed_Step : Natural := 0;
-      --  The first scripted key step whose expected effect did not happen, or
-      --  zero when every step passed. Meaningful only when Keys_Checked is set.
-   end record;
-
-   type Scenario_Outcome_Array is array (Live_Smoke_Scenario) of Scenario_Outcome;
-
-   type Live_Smoke_Result is record
-      Attempted          : Boolean := False;
-      Window_Created     : Boolean := False;
-      Frame_Rendered     : Boolean := False;
-      Frames_Attempted   : Natural := 0;
-      Frames_Presented   : Natural := 0;
-      Input_Polled       : Boolean := False;
-      Closed_Cleanly     : Boolean := False;
-      Skipped_By_Plan    : Boolean := True;
-      Last_Status        : Guikit.Vulkan.Vulkan_Status :=
-        Guikit.Vulkan.Vulkan_Not_Initialized;
-      Last_Vk_Result     : Interfaces.Integer_32 := 0;
-      Framebuffer_Readback_Ready : Boolean := False;
-      Last_Framebuffer_Hash : Interfaces.Unsigned_32 := 0;
-      Last_Framebuffer_Bytes : Natural := 0;
-      Framebuffer_Analysis : Guikit.Frame_Analysis.Frame_Metrics;
-      Framebuffer_Passed : Boolean := False;
-      Vulkan_Device_Ready : Boolean := False;
-      Scenario_Results   : Scenario_Outcome_Array;
-      --  Per-scenario structural verdict and framebuffer hash captured by the
-      --  multi-scenario live smoke; Framebuffer_* above mirror the default
-      --  scenario's frame for the legacy single-frame diagnostics.
-      Error_Key          : UString;
-   end record;
-
-   --  CI gate taxonomy for a live-window smoke run.
-   --
-   --  Live_Smoke_Pass marks a rendered frame that passed structural analysis,
-   --  Live_Smoke_Fail marks an attempted-but-degenerate or errored frame, and
-   --  Live_Smoke_Skip marks an environment that could not run the smoke.
-   type Live_Smoke_Gate is (Live_Smoke_Pass, Live_Smoke_Fail, Live_Smoke_Skip);
-
-   type Headless_Render_Quality_Result is record
-      Window_Count        : Natural := 0;
-      Frame_Count         : Natural := 0;
-      Nonblank_Frames     : Natural := 0;
-      Text_Glyph_Frames   : Natural := 0;
-      Icon_Frames         : Natural := 0;
-      Toolbar_Icon_Frames : Natural := 0;
-      Drag_Preview_Frames : Natural := 0;
-      Missing_Glyph_Count : Natural := 0;
-      Failed_Frames       : Natural := 0;
-      Passed              : Boolean := False;
-      Error_Key           : UString;
-   end record;
-
    --  Create one GLFW window for each startup window and run until all close.
    --
    --  If GLFW cannot initialize or a native window cannot be created, this
@@ -176,26 +66,6 @@ package Files.Application.Windows is
    procedure Release_Window_Jobs
      (Model : in out Files.Model.Window_Model;
       Watch : in out Files.Refresh_Jobs.Watch_Session);
-
-   --  Validate startup window models through the render pipeline without opening native windows.
-   --
-   --  @param Startup Startup result containing window models to validate.
-   --  @return True when each startup window can produce a non-empty frame.
-   function Headless_Smoke_Test
-     (Startup : Startup_Result)
-      return Boolean;
-
-   --  Validate render quality gates without opening native windows.
-   --
-   --  @param Startup Startup result containing window models to validate.
-   --  @param Width Framebuffer width used for frame construction.
-   --  @param Height Framebuffer height used for frame construction.
-   --  @return Structured headless render-quality counters.
-   function Headless_Render_Quality_Report
-     (Startup : Startup_Result;
-      Width   : Natural := 1024;
-      Height  : Natural := 768)
-      return Headless_Render_Quality_Result;
 
    --  Return whether a live desktop display appears available.
    --
@@ -299,96 +169,400 @@ package Files.Application.Windows is
       Height : Glfw.Size)
       return Boolean;
 
-   --  Return the live-window smoke-test plan for the current environment.
-   --
-   --  @param Width Requested smoke window width in pixels.
-   --  @param Height Requested smoke window height in pixels.
-   --  @return Plan describing whether a live smoke can run and why.
-   function Live_Window_Smoke_Plan
-     (Width  : Natural := 1024;
-      Height : Natural := 768)
-      return Live_Smoke_Plan;
+private
 
-   --  Evaluate a live-window smoke plan without opening a native window.
-   --
-   --  This returns the execution contract a live harness must satisfy. It does
-   --  not create windows in headless test runs.
-   --
-   --  @param Plan Live smoke plan to evaluate.
-   --  @return Structured live smoke execution result.
-   function Evaluate_Live_Window_Smoke
-     (Plan : Live_Smoke_Plan)
-      return Live_Smoke_Result;
+   --  The window session's internals, shared with the smoke harness
+   --  (Files.Application.Windows.Smoke), which drives real windows through
+   --  the same input and render steps the event loop takes.
 
-   --  Execute a bounded live-window smoke test when Plan allows it.
-   --
-   --  This opens one native window for each startup window, polls input,
-   --  renders the requested frame count, releases all windows, and returns a
-   --  structured result. If Plan cannot run, it returns the skipped result.
-   --
-   --  @param Startup Startup result containing window models to smoke-test.
-   --  @param Plan Live smoke plan to execute.
-   --  @return Structured live smoke execution result.
-   function Run_Live_Window_Smoke
-     (Startup : Startup_Result;
-      Plan    : Live_Smoke_Plan)
-      return Live_Smoke_Result;
+   --  The keys the window tracks for presses, auto-repeat and shortcuts.
+   type Tracked_Key is
+     (Tracked_Key_1,
+      Tracked_Key_2,
+      Tracked_Key_3,
+      Tracked_Key_4,
+      Tracked_A,
+      Tracked_B,
+      Tracked_C,
+      Tracked_D,
+      Tracked_F,
+      Tracked_I,
+      Tracked_L,
+      Tracked_N,
+      Tracked_P,
+      Tracked_R,
+      Tracked_S,
+      Tracked_V,
+      Tracked_X,
+      Tracked_Z,
+      Tracked_Comma,
+      Tracked_Backspace,
+      Tracked_Delete,
+      Tracked_F2,
+      Tracked_F5,
+      Tracked_Escape,
+      Tracked_Enter,
+      Tracked_Numpad_Enter,
+      Tracked_Left,
+      Tracked_Right,
+      Tracked_Up,
+      Tracked_Down,
+      Tracked_Home,
+      Tracked_End,
+      Tracked_Page_Up,
+      Tracked_Page_Down,
+      Tracked_Equal,
+      Tracked_Minus,
+      Tracked_Right_Bracket,
+      Tracked_Slash,
+      Tracked_Numpad_Add,
+      Tracked_Numpad_Subtract,
+      Tracked_Zero,
+      Tracked_Space,
+      Tracked_Key_5, Tracked_Key_6, Tracked_Key_7, Tracked_Key_8, Tracked_Key_9,
+      Tracked_E, Tracked_G, Tracked_H, Tracked_J, Tracked_K, Tracked_M, Tracked_O,
+      Tracked_Q, Tracked_T, Tracked_U, Tracked_W, Tracked_Y,
+      Tracked_F1, Tracked_F3, Tracked_F4, Tracked_F6, Tracked_F7, Tracked_F8, Tracked_F9,
+      Tracked_F10, Tracked_F11, Tracked_F12,
+      Tracked_Tab, Tracked_Insert, Tracked_Menu);
 
-   --  Return the stable ASCII identifier of a live smoke scenario.
-   --
-   --  The identifier is a lowercase, letters-and-underscore fragment used to
-   --  build the greppable per-scenario report line; it is deliberately not
-   --  localized so CI can match it across locales.
-   --
-   --  @param Scenario Scenario to name.
-   --  @return ASCII scenario identifier.
-   function Scenario_Name
-     (Scenario : Live_Smoke_Scenario)
-      return String;
+   --  Keyboard input in arrival order. Draining key presses and typed text as
+   --  separate batches ran them out of order: text typed before Enter in a
+   --  fast burst reached the field after Enter had committed it, and a
+   --  shortcut's own character could swallow text typed around it.
+   type Input_Event_Kind is (Key_Press_Event, Text_Event);
 
-   --  Return whether a single scenario contributed to an overall pass.
-   --
-   --  A scenario contributes to a pass when its frame passed structural
-   --  analysis and, for every non-default scenario, its framebuffer hash
-   --  differs from the default scenario's hash (proving the state actually
-   --  changed the render). This never asserts equality against a golden image.
-   --
-   --  @param Outcomes Per-scenario outcomes captured by the live smoke.
-   --  @param Scenario Scenario to evaluate.
-   --  @return True when the scenario passed and, if non-default, differs from
-   --    the default scenario.
-   function Scenario_Passed
-     (Outcomes : Scenario_Outcome_Array;
-      Scenario : Live_Smoke_Scenario)
+   type Input_Event is record
+      Kind      : Input_Event_Kind := Text_Event;
+      Key       : Tracked_Key := Tracked_Escape;
+      --  The physical key, polled for auto-repeat while it is held.
+      Physical  : Glfw.Input.Keys.Key := Glfw.Input.Keys.Unknown;
+      --  Modifiers held when the key went down, not when the queue drains.
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Text      : Ada.Strings.Unbounded.Unbounded_String;
+      --  Text produced by the key press just before it (its own character),
+      --  which a consumed shortcut discards.
+      Parallel  : Boolean := False;
+   end record;
+
+   package Input_Event_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Input_Event);
+
+   Max_Pending_Input_Events : constant := 256;
+
+   type Desktop_Window is new Glfw.Windows.Window with record
+      Pending_Input : Input_Event_Vectors.Vector;
+      --  True between a tracked key press and the next callback, so that
+      --  callback's character is known to be the press's own.
+      Last_Was_Tracked_Press : Boolean := False;
+      Pending_Scroll : Integer := 0;
+      Pending_Scroll_Remainder : Long_Float := 0.0;
+      Pending_Left_Clicks : Natural := 0;
+      Pending_Left_Releases : Natural := 0;
+      Pending_Right_Clicks : Natural := 0;
+      Last_Mouse_X : Glfw.Input.Mouse.Coordinate := 0.0;
+      Last_Mouse_Y : Glfw.Input.Mouse.Coordinate := 0.0;
+      Drag_Start_X : Glfw.Input.Mouse.Coordinate := 0.0;
+      Drag_Start_Y : Glfw.Input.Mouse.Coordinate := 0.0;
+      Left_Mouse_Down : Boolean := False;
+      Drag_Moved : Boolean := False;
+      --  Time of the last accepted left-button press, for bounce rejection: a
+      --  failing mouse switch (or an un-debounced compositor) can emit a spurious
+      --  second press within a few ms of the real one, which double-fires the
+      --  click -- for a toggle toolbar icon that cancels out and looks like the
+      --  click "did nothing". See Left_Press_Debounce.
+      Last_Left_Press_Time : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+      Drop_Source : Files.Drop_Events.Drop_Event_Source;
+   end record;
+
+   overriding procedure Character_Entered
+     (Object : not null access Desktop_Window;
+      Char   : Wide_Wide_Character);
+
+   overriding procedure Key_Changed
+     (Object   : not null access Desktop_Window;
+      Key      : Glfw.Input.Keys.Key;
+      Scancode : Glfw.Input.Keys.Scancode;
+      Action   : Glfw.Input.Keys.Action;
+      Mods     : Glfw.Input.Keys.Modifiers);
+
+   overriding procedure Mouse_Scrolled
+     (Object : not null access Desktop_Window;
+      X      : Glfw.Input.Mouse.Scroll_Offset;
+      Y      : Glfw.Input.Mouse.Scroll_Offset);
+
+   overriding procedure Mouse_Button_Changed
+     (Object : not null access Desktop_Window;
+      Button : Glfw.Input.Mouse.Button;
+      State  : Glfw.Input.Button_State;
+      Mods   : Glfw.Input.Keys.Modifiers);
+
+   overriding procedure Mouse_Position_Changed
+     (Object : not null access Desktop_Window;
+      X      : Glfw.Input.Mouse.Coordinate;
+      Y      : Glfw.Input.Mouse.Coordinate);
+
+   type Window_Access is access all Desktop_Window;
+
+   type Pressed_Key_Map is array (Tracked_Key) of Boolean;
+   type Key_Time_Map    is array (Tracked_Key) of Ada.Real_Time.Time;
+   type Physical_Key_Map is array (Tracked_Key) of Glfw.Input.Keys.Key;
+
+   --  Input timers run on the monotonic clock: the wall clock can step back
+   --  (NTP, VM resume), which would make every press look like a bounce or a
+   --  double click and stall repeat and polling. Never is the "no event yet"
+   --  stamp; a timer is due once Now >= Stamp + Span, which a Never stamp
+   --  always is (subtracting Never instead would overflow the Time_Span).
+   Never : constant Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+
+   --  The text line height for a font pixel size.
+   function Cell_Height_For (Size : Positive) return Positive is
+     (Positive'Max (1, Size * 5 / 4));
+
+   --  A window keeps two view snapshots (see Runtime_Window.Snapshots).
+   type Snapshot_Slot is range 1 .. 2;
+   type Snapshot_Slot_Array is array (Snapshot_Slot) of Files.Rendering.View_Snapshot;
+
+   type Runtime_Window is record
+      Handle          : Window_Access;
+      A11y_Key        : Files.Accessibility.Window_Key := 0;
+      --  This window's part of the screen reader's tree.
+      Shown_Accessibility : Guikit.Draw.Accessibility_Node_Vectors.Vector;
+      --  The accessibility nodes of the frame last shown, overlays included.
+      Model           : Files.Model.Window_Model;
+      Settings        : Files.Settings.Settings_Model;
+      --  Settings as of the last cross-window sync; a difference means this
+      --  window changed them since (see Sync_Settings_Across_Windows).
+      Synced_Settings : Files.Settings.Settings_Model;
+      Settings_Path   : Ada.Strings.Unbounded.Unbounded_String;
+      Pressed_Keys    : Pressed_Key_Map := [others => False];
+      Key_Pressed_At  : Key_Time_Map := [others => Never];
+      Key_Last_Fired  : Key_Time_Map := [others => Never];
+      --  The physical key held for each tracked key, which differs from the
+      --  tracked key's own position when the layout moved its letter.
+      Held_Physical   : Physical_Key_Map := [others => Glfw.Input.Keys.Unknown];
+      Left_Mouse_Down : Boolean := False;
+      Drag_Source_Index : Natural := 0;
+      Scrollbar_Drag_Target : Files.Events.Scroll_Target := Files.Events.Scroll_Auto;
+      Scrollbar_Drag_Anchor : Integer := 0;
+      --  Details-header column-resize drag state, owned by the shell exactly like
+      --  the scrollbar drag above. Active gates a live resize; Target names the
+      --  column, Origin_X the separator edge, and Origin_Width the column's width
+      --  when the drag began, so each move sets width = origin +/- pointer delta.
+      --  Changed records that a move resized the column in memory, so the drag's
+      --  end writes the settings once.
+      Column_Resize_Active  : Boolean := False;
+      Column_Resize_Changed : Boolean := False;
+      Column_Resize_Target  : Files.Types.Detail_Column := Files.Types.Modified_Column;
+      Column_Resize_Origin_X : Integer := 0;
+      Column_Resize_Origin_W : Natural := 0;
+      --  Details-header column-reorder drag state, owned by the shell like the
+      --  resize drag. Active gates a live reorder; Target names the dragged
+      --  column, Origin_X the press x, Started records whether the pointer has
+      --  crossed the drag threshold (distinguishing a reorder from a sort
+      --  click), and Sort_Command the sort to apply on a click without a drag.
+      Column_Reorder_Active  : Boolean := False;
+      Column_Reorder_Target  : Files.Types.Detail_Column := Files.Types.Modified_Column;
+      Column_Reorder_Origin_X : Integer := 0;
+      Column_Reorder_Started  : Boolean := False;
+      Column_Reorder_Sort    : Files.Commands.Command_Id := Files.Commands.No_Command;
+      --  Rubber-band (marquee) selection drag state, owned by the shell like the
+      --  drags above. Active gates the gesture; Origin_X/Y is the press point;
+      --  Moved records whether the pointer crossed the drag threshold (below it a
+      --  press is a plain empty-space click that leaves the selection untouched);
+      --  Additive unions with Base (the selection captured at press) for a
+      --  Ctrl/Shift marquee; Rect_* is the live rectangle surfaced to the
+      --  renderer while Active.
+      Marquee_Active   : Boolean := False;
+      Marquee_Origin_X : Integer := 0;
+      Marquee_Origin_Y : Integer := 0;
+      Marquee_Moved    : Boolean := False;
+      Marquee_Additive : Boolean := False;
+      Marquee_Base     : Files.Rendering.Visible_Index_Vectors.Vector;
+      Marquee_Rect_X   : Natural := 0;
+      Marquee_Rect_Y   : Natural := 0;
+      Marquee_Rect_W   : Natural := 0;
+      Marquee_Rect_H   : Natural := 0;
+      Last_Click_Item : Natural := 0;
+      Last_Click_Path : Ada.Strings.Unbounded.Unbounded_String;
+      Last_Click_Time : Ada.Real_Time.Time := Never;
+      --  A press on part of a selection, held back until its release shows
+      --  whether it began a drag of the whole selection.
+      Deferred_Click_Pending : Boolean := False;
+      Deferred_Click         : Files.Events.Input_Action;
+      Deferred_Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      --  Monotonic time of the last grid type-ahead keystroke; the event loop clears
+      --  the pending prefix once this is older than Type_Ahead_Timeout so a fresh
+      --  keystroke after a pause starts a new prefix.
+      Type_Ahead_Input_At : Ada.Real_Time.Time := Never;
+      Text            : Files.Rendering.Text_Renderer;
+      Text_Ready      : Boolean := False;
+      Font_Pixel_Size : Positive := 16;
+      Text_Font_Path  : Ada.Strings.Unbounded.Unbounded_String;
+      Text_Content_Key : Ada.Strings.Unbounded.Unbounded_String;
+      Text_Content_Font_Path : Ada.Strings.Unbounded.Unbounded_String;
+      Text_Glyph_Key  : Ada.Strings.Unbounded.Unbounded_String;
+      Text_Glyphs     : Files.Rendering.Text_Render_Result;
+      Vulkan          : Guikit.Vulkan.Vulkan_Renderer;
+      Shown           : Boolean := False;
+      Fallback_Frames : Natural := 0;
+      --  Frame command caching: when none of the rendering inputs change
+      --  between two Render_Window calls, skip the expensive layout and
+      --  Build_Frame_Commands rebuild and reuse the previously built data.
+      Frame_Cache_Valid    : Boolean := False;
+      --  Present-gate state: whether we have presented at least once, and the
+      --  overlay open-states of the last presented frame. A frame is re-presented
+      --  only when its commands changed, an overlay is (or just was) open, or the
+      --  text is not yet settled -- otherwise the identical frame is left on
+      --  screen and the whole submit/present path is skipped.
+      Presented_Once             : Boolean := False;
+      Last_Present_Palette_Open  : Boolean := False;
+      Last_Present_Settings_Open : Boolean := False;
+      --  Frames still owed a present after the last visible change (grace window,
+      --  see Present_Grace_Frames). Nonzero keeps us presenting every frame so
+      --  interaction stays paced to the display; it decays to zero when idle and
+      --  the present gate may then skip.
+      Present_Grace              : Natural := 0;
+      --  The window's view snapshots. Snapshots (Current_Slot) is the model as
+      --  it is now, kept current by Refresh_Snapshot for the render and for
+      --  every input handler that lays the view out; Snapshots (Drawn_Slot) is
+      --  the one Cached_Frame was built from, what is on screen, which clicks
+      --  are hit-tested against. They are one slot until the model changes
+      --  between frames: Refresh_Snapshot then builds into the other slot, so
+      --  the drawn snapshot survives until the next render draws the new one.
+      --  Snapshot_Valid is False until the first build and after any change
+      --  the keys below do not see (a replaced model).
+      Snapshots       : Snapshot_Slot_Array;
+      Current_Slot    : Snapshot_Slot := 1;
+      Drawn_Slot      : Snapshot_Slot := 1;
+      Snapshot_Valid  : Boolean := False;
+      --  Wall-clock minute the current snapshot was built in: relative times
+      --  and the Today / This week bands are computed from the clock.
+      Snapshot_Minute : Natural := 0;
+      --  Model revision the current snapshot was built at. It is reused only
+      --  while the model's revision still matches, so a background poll (file
+      --  watch, folder sizes) that changed nothing forces no O(items) rebuild.
+      Cached_Model_Revision : Natural := 0;
+      --  Snapshot-relevant settings (theme, columns, visibility, favorites,
+      --  labels) the current snapshot was built with. With the model revision
+      --  these are the whole of Build_Snapshot's inputs, so the snapshot is
+      --  reused only while both still match -- no explicit invalidation.
+      Cached_Settings_Key  : Files.Settings.Snapshot_Settings_Key;
+      Cached_Frame         : Files.Rendering.Frame_Commands;
+      Cached_Frame_W       : Natural := 0;
+      Cached_Frame_H       : Natural := 0;
+      Cached_Line_Height   : Positive := 20;
+      Cached_Hover_X       : Natural := 0;
+      Cached_Hover_Y       : Natural := 0;
+      Cached_Has_Hover     : Boolean := False;
+      Cached_Has_Press     : Boolean := False;
+      Cached_Drag_Item     : Natural := 0;
+      Cached_Has_Drag      : Boolean := False;
+      Cached_Marquee_Active : Boolean := False;
+      Cached_Marquee_X     : Natural := 0;
+      Cached_Marquee_Y     : Natural := 0;
+      Cached_Marquee_W     : Natural := 0;
+      Cached_Marquee_H     : Natural := 0;
+      --  Wall-clock minute the cached frame was built in. Relative times
+      --  ("now", "Today 23:50") and the Today / This week group bands are
+      --  computed from the clock, which no other key covers.
+      Cached_Minute        : Natural := 0;
+      Last_Glyph_Count : Natural := 0;
+      Last_Missing_Glyph_Count : Natural := 0;
+      Last_Present_Status : Guikit.Vulkan.Vulkan_Status :=
+        Guikit.Vulkan.Vulkan_Not_Initialized;
+      Last_Watch_Poll : Ada.Real_Time.Time := Never;
+      Watch : Files.Refresh_Jobs.Watch_Session;
+   end record;
+
+   package Runtime_Window_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Runtime_Window);
+
+   --  The value of environment variable Name, or "" when unset.
+   function Safe_Environment_Value (Name : String) return String;
+
+   --  The GLFW window reference of a desktop window.
+   function As_Window
+     (Handle : Window_Access)
+      return Glfw.Windows.Window_Reference;
+
+   --  The GLFW key of a tracked key.
+   function To_Glfw_Key
+     (Key : Tracked_Key)
+      return Glfw.Input.Keys.Key;
+
+   --  Drain one window's queued key presses and typed text.
+   procedure Handle_Keyboard
+     (Runtime : in out Runtime_Window);
+
+   --  Handle_Keyboard for every window.
+   procedure Handle_All_Keyboard
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector);
+
+   --  Import the files dropped on every window.
+   procedure Handle_All_Drop_Input
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector);
+
+   --  Poll every window's watched directory for changes.
+   procedure Handle_All_File_Watch_Poll
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector);
+
+   --  Apply every window's pending scroll.
+   procedure Handle_All_Scroll_Input
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector);
+
+   --  Dispatch a click's input action to a window.
+   procedure Dispatch_Click_Action
+     (Runtime  : in out Runtime_Window;
+      Action   : Files.Events.Input_Action;
+      Modifiers : Guikit.Input.Modifier_Set);
+
+   --  The input action a click at a cursor position makes.
+   function Current_Click_Action
+     (Runtime   : in out Runtime_Window;
+      Window_W  : Glfw.Size;
+      Window_H  : Glfw.Size;
+      Frame_W   : Glfw.Size;
+      Frame_H   : Glfw.Size;
+      Cursor_X  : Glfw.Input.Mouse.Coordinate;
+      Cursor_Y  : Glfw.Input.Mouse.Coordinate;
+      Modifiers : Guikit.Input.Modifier_Set)
+      return Files.Events.Input_Action;
+
+   --  Carry out a screen reader's request on a window.
+   procedure Perform_Accessibility_Request
+     (Runtime : in out Runtime_Window;
+      Item    : A11ykit.Provider.Request);
+
+   --  Apply one window's pending mouse input.
+   procedure Handle_Mouse
+     (Runtime : in out Runtime_Window);
+
+   --  Handle_Mouse for every window.
+   procedure Handle_All_Mouse
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector);
+
+   --  Release every window and its resources.
+   procedure Release_All (Runtime_Windows : in out Runtime_Window_Vectors.Vector);
+
+   --  Open a native window for a startup window and append it.
+   procedure Append_Runtime_Window
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector;
+      Startup_Window  : Files.Application.Startup_Window;
+      Settings        : Files.Settings.Settings_Model;
+      Settings_Path   : Ada.Strings.Unbounded.Unbounded_String;
+      Width           : Natural;
+      Height          : Natural);
+
+   --  Render one window's frame.
+   procedure Render_Window
+     (Runtime : in out Runtime_Window);
+
+   --  Whether any window has rendered a frame.
+   function Any_Runtime_Frame_Rendered
+     (Runtime_Windows : Runtime_Window_Vectors.Vector)
       return Boolean;
-
-   --  Aggregate the per-scenario outcomes into the overall live smoke verdict.
-   --
-   --  The verdict is a pure, headless decision: it passes only when every
-   --  scenario passed structural analysis and every non-default scenario's
-   --  framebuffer hash differs from the default scenario's hash. It is a robust
-   --  inequality check, never a golden-image equality assertion.
-   --
-   --  @param Outcomes Per-scenario outcomes captured by the live smoke.
-   --  @return True when every scenario contributed to a pass.
-   function Scenarios_Verdict
-     (Outcomes : Scenario_Outcome_Array)
-      return Boolean;
-
-   --  Classify a live-window smoke result into the CI gate taxonomy.
-   --
-   --  The mapping is pure and headless. A plan that was skipped or never
-   --  attempted yields Live_Smoke_Skip, as does an attempted run in which no
-   --  usable Vulkan device initialized (a missing or unusable ICD is an
-   --  environment gap, not a rendering defect). An attempted run whose frame
-   --  passed structural analysis, produced a framebuffer readback, and closed
-   --  cleanly yields Live_Smoke_Pass; any other attempted run with a ready
-   --  Vulkan device yields Live_Smoke_Fail.
-   --
-   --  @param Result Live smoke execution result to classify.
-   --  @return Gate outcome describing pass, fail, or skip.
-   function Gate_Outcome
-     (Result : Live_Smoke_Result)
-      return Live_Smoke_Gate;
 
 end Files.Application.Windows;

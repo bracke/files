@@ -424,7 +424,7 @@ package body Files.Operation_Jobs is
                end if;
             end loop;
             if not Untracked.Is_Empty then
-               Files.Model.Record_Undo
+               Files.Operations.Record_Undo
                  (Model, Files.Model.Undo_Delete_Created, Untracked,
                   Files.Types.String_Vectors.Empty_Vector, Redoable => False,
                   Original_Identities => Untracked_Identities,

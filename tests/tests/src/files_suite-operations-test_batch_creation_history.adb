@@ -25,10 +25,10 @@ separate (Files_Suite.Operations)
                end if;
                Load := Files.File_System.Load_Directory (Root, Settings);
                Files.Model.Initialize (Model, Root, Load.Items, Root);
-               Files.Model.Clear_Undo (Model);
+               Files.Operations.Clear_Undo (Model);
                Prior.Clear;
                Prior.Append (To_Unbounded_String (Join (Root, "prior")));
-               Files.Model.Record_Undo
+               Files.Operations.Record_Undo
                  (Model, Files.Model.Undo_Delete_Created, Prior, Files.Types.String_Vectors.Empty_Vector,
                   Redoable => False);
                Files.Model.Set_Filter (Model, (if Extracting then ".zip" else ".txt"));

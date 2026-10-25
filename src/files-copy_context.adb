@@ -6,6 +6,7 @@ with Ada.Strings.Unbounded;
 with Ada.Streams;
 with GNAT.OS_Lib;
 with Files.Bounded_Streams;
+with Files.Descriptor_Streams;
 with Files.Durable_Writes;
 with Files.File_Identities;
 with Files.Lease_Streams;
@@ -17,7 +18,6 @@ package body Files.Copy_Context is
    use Ada.Strings.Unbounded;
    use type Ada.Containers.Count_Type;
    use type Ada.Directories.File_Kind;
-   use type Ada.Streams.Stream_Element_Offset;
    use type GNAT.OS_Lib.File_Descriptor;
    use type Hostkit.Lease_Files.Open_Outcome;
 
@@ -25,47 +25,6 @@ package body Files.Copy_Context is
    Max_Links_File_Bytes : constant := 64 * 1024 * 1024;
    Max_Link_Fields : constant := 1_000_000;
    Max_Link_Field_Length : constant := 32 * 1024;
-
-   type Descriptor_Output_Stream is new Ada.Streams.Root_Stream_Type with record
-      Descriptor : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
-   end record;
-
-   overriding procedure Read
-     (Stream : in out Descriptor_Output_Stream;
-      Item   : out Ada.Streams.Stream_Element_Array;
-      Last   : out Ada.Streams.Stream_Element_Offset);
-
-   overriding procedure Write
-     (Stream : in out Descriptor_Output_Stream;
-      Item   : Ada.Streams.Stream_Element_Array);
-
-   overriding procedure Read
-     (Stream : in out Descriptor_Output_Stream;
-      Item   : out Ada.Streams.Stream_Element_Array;
-      Last   : out Ada.Streams.Stream_Element_Offset)
-   is
-      pragma Unreferenced (Stream, Item, Last);
-   begin
-      raise Program_Error;
-   end Read;
-
-   overriding procedure Write
-     (Stream : in out Descriptor_Output_Stream;
-      Item   : Ada.Streams.Stream_Element_Array)
-   is
-      Next    : Ada.Streams.Stream_Element_Offset := Item'First;
-      Written : Integer;
-   begin
-      while Next <= Item'Last loop
-         Written := GNAT.OS_Lib.Write
-           (Stream.Descriptor, Item (Next)'Address,
-            Integer (Item'Last - Next + 1));
-         if Written <= 0 then
-            raise Ada.Directories.Use_Error;
-         end if;
-         Next := Next + Ada.Streams.Stream_Element_Offset (Written);
-      end loop;
-   end Write;
 
    function Valid_Batch_Directory (Path : String) return Boolean is
    begin
@@ -166,7 +125,7 @@ package body Files.Copy_Context is
       --  and vector count so the writer cannot create a journal its reader
       --  must reject for exceeding Max_Links_File_Bytes.
       Total : Natural := Links_Header'Length + 32;
-      Output : aliased Descriptor_Output_Stream :=
+      Output : aliased Files.Descriptor_Streams.Output_Stream :=
         (Ada.Streams.Root_Stream_Type with
          Descriptor => GNAT.OS_Lib.Invalid_FD);
       Temp_Identity : Unbounded_String;

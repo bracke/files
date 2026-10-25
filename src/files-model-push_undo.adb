@@ -1,4 +1,3 @@
-with Files.History_Journal;
 separate (Files.Model)
 procedure Push_Undo
   (Model  : in out Window_Model;
@@ -6,5 +5,5 @@ procedure Push_Undo
 begin
    Model.Revision_Value := Model.Revision_Value + 1;
    Model.Undo_Stack.Append (Action);
-   Files.History_Journal.Save (Model);
+   Model.History_Journal_Dirty := True;
 end Push_Undo;

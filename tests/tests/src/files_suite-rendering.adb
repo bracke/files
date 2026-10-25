@@ -28,7 +28,6 @@ with Files.Rendering;
 with Files.Accessibility;
 with Files.Settings;
 with Files_Suite.Support;
-with A11y.Platforms;
 with A11y.Results;
 with A11ykit.Compatibility;
 with A11ykit.Provider;
@@ -49,13 +48,11 @@ package body Files_Suite.Rendering is
    use Files.Rendering;
    use Guikit.Draw;
    use type Files.Commands.Command_Id;
-   use type Files.File_System.Native_API_Binding_Status;
    use type Files.Rendering.Context_Menu_Row_Kind;
    use type Guikit.Draw.Render_Color;
    use type Files.Rendering.Text_Render_Status;
    use type Files.Events.Input_Action_Kind;
    use type Files.Types.Focus_Target;
-   use type A11y.Platforms.Platform_Kind;
    use type A11y.Results.Status_Code;
    use type System.Address;
 

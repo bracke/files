@@ -335,6 +335,40 @@ package body Files.Operations is
       return Operation_Result
    is separate;
 
+   --  Resolve a preserved original's destination and check its live entry,
+   --  then record it in the model's paste execution.
+   procedure Record_Paste_Replaced_Trash
+     (Model         : in out Files.Model.Window_Model;
+      Trash_Path    : Files.Types.UString;
+      Identity      : String;
+      Original_Path : String);
+
+   procedure Record_Paste_Replaced_Trash
+     (Model         : in out Files.Model.Window_Model;
+      Trash_Path    : Files.Types.UString;
+      Identity      : String;
+      Original_Path : String) is separate;
+
+   --  Check a published destination against its creation snapshot, then
+   --  record the write in the model's paste execution.
+   procedure Record_Paste_Write
+     (Model         : in out Files.Model.Window_Model;
+      Dest_Path     : Files.Types.UString;
+      Source_Path   : Files.Types.UString;
+      Name          : String;
+      Identity      : String;
+      Tree_Revision : String;
+      Retain_Verified_Snapshot : Boolean := False);
+
+   procedure Record_Paste_Write
+     (Model         : in out Files.Model.Window_Model;
+      Dest_Path     : Files.Types.UString;
+      Source_Path   : Files.Types.UString;
+      Name          : String;
+      Identity      : String;
+      Tree_Revision : String;
+      Retain_Verified_Snapshot : Boolean := False) is separate;
+
    function Advance_Paste_Execution
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
@@ -599,6 +633,57 @@ package body Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
    is separate;
+
+   function Try_Record_Undo
+     (Model       : in out Files.Model.Window_Model;
+      Kind        : Files.Model.Undo_Action_Kind;
+      From        : Files.Types.String_Vectors.Vector;
+      To          : Files.Types.String_Vectors.Vector;
+      Forward     : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
+      Redoable    : Boolean := True;
+      Restore_Trash : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Retain_Verified_Main : Natural := 0;
+      Retain_Verified_Restores : Natural := 0) return Boolean is separate;
+
+   procedure Record_Undo
+     (Model       : in out Files.Model.Window_Model;
+      Kind        : Files.Model.Undo_Action_Kind;
+      From        : Files.Types.String_Vectors.Vector;
+      To          : Files.Types.String_Vectors.Vector;
+      Forward     : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
+      Redoable    : Boolean := True;
+      Restore_Trash : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Retain_Verified_Main : Natural := 0;
+      Retain_Verified_Restores : Natural := 0)
+   is separate;
+
+   procedure Clear_Undo (Model : in out Files.Model.Window_Model) is separate;
+
+   procedure Release_History (Model : in out Files.Model.Window_Model) is separate;
+
+   procedure Settle_History (Model : in out Files.Model.Window_Model) is separate;
 
    function Prepare_Quick_Look
      (Item : Files.File_System.Directory_Item)

@@ -58,7 +58,7 @@ separate (Files_Suite.Operations)
          Prepare;
          Load := Files.File_System.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
-         Files.Model.Clear_Undo (Model);
+         Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Actions.Clear;
          Actions.Append (Files.Paste.Resolved_Action'

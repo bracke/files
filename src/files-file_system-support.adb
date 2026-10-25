@@ -8,14 +8,14 @@ with Ada.Strings.Unbounded;
 with GNAT.OS_Lib;
 with GNAT.Directory_Operations;
 with Files.Job_Context;
-with Files.Directory_Rename_Access;
+with Hostkit.Directory_Write_Access;
 with Files.File_Identities;
-with Files.Platform_Regular_Files;
 with Files.Io_Errors;
 with Files_Config;
 with CryptoLib.Hashes;
 
 with Hostkit.Metadata;
+with Hostkit.Regular_Files;
 
 package body Files.File_System.Support is
 
@@ -288,7 +288,7 @@ package body Files.File_System.Support is
       Result : String (1 .. 64);
    begin
       CryptoLib.Hashes.Initialize_SHA256 (Context);
-      Descriptor := Files.Platform_Regular_Files.Open_Read (Path, False, Supported);
+      Descriptor := Hostkit.Regular_Files.Open_Read (Path, False, Supported);
       if Supported and then Descriptor = GNAT.OS_Lib.Invalid_FD then
          --  The native implementation is available but refused a link,
          --  non-regular entry, or failed open.  Falling back to a pathname
@@ -448,12 +448,12 @@ package body Files.File_System.Support is
      (Source, Destination : String)
       return Hostkit.Fs.Move_Outcome
    is
-      Context  : Files.Directory_Rename_Access.Context;
+      Context  : Hostkit.Directory_Write_Access.Context;
       Outcome  : Hostkit.Fs.Move_Outcome;
       Moved    : Boolean;
       Restored : Boolean;
    begin
-      if not Files.Directory_Rename_Access.Prepare (Source, Context) then
+      if not Hostkit.Directory_Write_Access.Prepare (Source, Context) then
          return Hostkit.Fs.Move_Refused;
       end if;
       Files.Io_Errors.Clear_Os_Error;
@@ -463,25 +463,25 @@ package body Files.File_System.Support is
          --  Before restoring access below, which makes calls of its own.
          Files.Io_Errors.Capture;
       end if;
-      Restored := Files.Directory_Rename_Access.Finish (Context);
+      Restored := Hostkit.Directory_Write_Access.Finish (Context);
       if not Restored then
          --  Restore the original pathname before reporting a refused operation.
          --  If that pathname is occupied, leave the committed payload in place.
          if Moved and then Hostkit.Fs.Move_No_Replace (Destination, Source) then
             Moved := False;
          end if;
-         Restored := Files.Directory_Rename_Access.Finish (Context);
+         Restored := Hostkit.Directory_Write_Access.Finish (Context);
          if not Restored then
-            Files.Directory_Rename_Access.Release (Context);
+            Hostkit.Directory_Write_Access.Release (Context);
          end if;
          raise Ada.Directories.Use_Error;
       end if;
       return Outcome;
    exception
       when others =>
-         Restored := Files.Directory_Rename_Access.Finish (Context);
+         Restored := Hostkit.Directory_Write_Access.Finish (Context);
          if not Restored then
-            Files.Directory_Rename_Access.Release (Context);
+            Hostkit.Directory_Write_Access.Release (Context);
          end if;
          raise;
    end Move_No_Replace_Outcome;
@@ -969,7 +969,7 @@ package body Files.File_System.Support is
               and then
                 (for all Index in Buffer'First .. Buffer_Last =>
                    Buffer (Index) = 0)
-              and then Files.Platform_Regular_Files.Skip_Zeros
+              and then Hostkit.Regular_Files.Skip_Zeros
                 (Output, Integer (Buffer_Last - Buffer'First + 1))
             then
                Sparse := True;
@@ -993,7 +993,7 @@ package body Files.File_System.Support is
          declare
             Supported : Boolean;
          begin
-            Input_Descriptor := Files.Platform_Regular_Files.Open_Read
+            Input_Descriptor := Hostkit.Regular_Files.Open_Read
               (Source_Path, False, Supported);
             if Supported and then Input_Descriptor = GNAT.OS_Lib.Invalid_FD then
                Files.Io_Errors.Capture;
@@ -1040,7 +1040,7 @@ package body Files.File_System.Support is
             end loop;
             Ada.Streams.Stream_IO.Close (Input);
          end if;
-         if Sparse and then not Files.Platform_Regular_Files.Finish_Sparse (Output) then
+         if Sparse and then not Hostkit.Regular_Files.Finish_Sparse (Output) then
             Files.Io_Errors.Capture;
             raise Ada.Directories.Use_Error;
          end if;

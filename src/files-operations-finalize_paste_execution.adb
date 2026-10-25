@@ -24,7 +24,7 @@ is
 begin
    if not Undo_From.Is_Empty then
       if Mode = Files.File_System.Drop_Move then
-         Files.Model.Record_Undo
+         Record_Undo
            (Model, Files.Model.Undo_Move, Undo_From, Undo_To,
             Redoable      => Redoable,
             Restore_Trash => Replaced_Trash,
@@ -37,7 +37,7 @@ begin
       else
          --  A copy is reversed by deleting the created copies (Undo_From) and
          --  redone by copying each source (Undo_To) back to its destination.
-         Files.Model.Record_Undo
+         Record_Undo
            (Model, Files.Model.Undo_Delete_Created, Undo_From,
             Files.Types.String_Vectors.Empty_Vector,
             Forward       => Undo_To,
@@ -64,7 +64,7 @@ begin
    end if;
 
    if Undo_From.Is_Empty and then not Replaced_Trash.Is_Empty then
-      Files.Model.Record_Undo
+      Record_Undo
         (Model, Files.Model.Undo_Restore_Trash, Replaced_Trash,
          Files.Model.Paste_Execution_Replaced_Targets (Model), Redoable => False,
          Original_Identities => Files.Model.Paste_Execution_Replaced_Identities (Model),

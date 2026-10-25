@@ -41,7 +41,7 @@ separate (Files_Suite.Operations)
                   end if;
                   Load := Files.File_System.Load_Directory (Parent, Settings);
                   Files.Model.Initialize (Model, Parent, Load.Items, Parent);
-                  Files.Model.Clear_Undo (Model);
+                  Files.Operations.Clear_Undo (Model);
                   Files.Model.Set_Background_Transfers (Model, True);
                   Actions.Clear;
                   Actions.Append (Files.Paste.Resolved_Action'

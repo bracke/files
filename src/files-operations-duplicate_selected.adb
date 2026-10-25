@@ -24,7 +24,7 @@ is
       if Progress_Recorded then
          Files.Model.Take_Undo (Model, Previous, Found);
       end if;
-      Progress_Recorded := Files.Model.Try_Record_Undo
+      Progress_Recorded := Try_Record_Undo
         (Model, Files.Model.Undo_Delete_Created, Created,
          Files.Types.String_Vectors.Empty_Vector, Forward => Sources, Create_Kind => Files.Model.Create_Copy,
          Original_Identities => Identities,

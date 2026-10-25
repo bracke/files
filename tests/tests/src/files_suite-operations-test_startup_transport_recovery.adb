@@ -24,6 +24,12 @@ separate (Files_Suite.Operations)
       end Restore;
    begin
       Files_Suite.Support.Save (Environment, "FILES_TEST_STALL_SCAVENGER");
+      --  A scan or retry left by an earlier test would reclaim this test's
+      --  fixtures before its own coordinator could.
+      for Attempt in Files_Suite.Support.Polling loop
+         exit when Files.Job_Scavenger.Idle;
+      end loop;
+      Assert (Files.Job_Scavenger.Idle, "no earlier recovery scan is still running");
       Reset_Root;
       Files.Process_Jobs.Reserve (Active);
       Active_Path := To_Unbounded_String (Files.Process_Jobs.Path (Active, ""));

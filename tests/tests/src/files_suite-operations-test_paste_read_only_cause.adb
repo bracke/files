@@ -18,7 +18,7 @@ separate (Files_Suite.Operations)
          Ada.Directories.Create_Directory (Locked);
          Load := Files.File_System.Load_Directory (Locked, Settings);
          Files.Model.Initialize (Model, Locked, Load.Items, Root);
-         Files.Model.Clear_Undo (Model);
+         Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          if not Lock_Directory (Locked) then
             Unlock_Directory (Locked);

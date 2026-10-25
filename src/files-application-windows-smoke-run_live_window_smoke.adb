@@ -1,6 +1,6 @@
 with Ada.Text_IO;
 
-separate (Files.Application.Windows)
+separate (Files.Application.Windows.Smoke)
    function Run_Live_Window_Smoke
      (Startup : Startup_Result;
       Plan    : Live_Smoke_Plan)

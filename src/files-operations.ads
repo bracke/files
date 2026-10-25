@@ -695,6 +695,117 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  Record a performed action in the undo history, keeping only members
+   --  whose publication identity still matches the live entry. Created
+   --  directories also require a matching recursive revision, and every
+   --  payload needed by Undo and Redo must be complete and valid. Replacement
+   --  actions are recorded only when every created and preserved entry is
+   --  verifiable, since their reverse steps are inseparable. Identities,
+   --  revisions and trash origins not supplied are captured here, before the
+   --  model records the entry; payloads the record retires are then deleted
+   --  and the history journal saved (Settle_History).
+   --
+   --  @param Model Model whose history is updated.
+   --  @param Kind Kind of action that can be undone.
+   --  @param From Current locations to undo from.
+   --  @param To Restore targets or old values parallel to From.
+   --  @param Forward Redo sources or new values parallel to From.
+   --  @param Create_Kind Creation operation used by Redo.
+   --  @param Redoable Whether a successful Undo may enter Redo history.
+   --  @param Restore_Trash Preserved replacement originals to restore.
+   --  @param Original_Identities Publication identities parallel to From.
+   --  @param Original_Tree_Revisions Directory revisions parallel to From.
+   --  @param Original_Restore_Identities Identities parallel to Restore_Trash.
+   --  @param Original_Restore_Targets Destinations parallel to Restore_Trash.
+   --  @param Retain_Verified_Main Number of leading From snapshots previously
+   --    validated and allowed to survive a later pathname replacement.
+   --  @param Retain_Verified_Restores Number of leading Restore_Trash snapshots
+   --    previously validated and allowed to survive a later replacement.
+   --  @return True when a usable history entry was added.
+   function Try_Record_Undo
+     (Model       : in out Files.Model.Window_Model;
+      Kind        : Files.Model.Undo_Action_Kind;
+      From        : Files.Types.String_Vectors.Vector;
+      To          : Files.Types.String_Vectors.Vector;
+      Forward     : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
+      Redoable    : Boolean := True;
+      Restore_Trash : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Retain_Verified_Main : Natural := 0;
+      Retain_Verified_Restores : Natural := 0) return Boolean;
+
+   --  Try_Record_Undo for callers that do not need to know whether an entry
+   --  was added.
+   --
+   --  @param Model Model whose history is updated.
+   --  @param Kind Kind of action that can be undone.
+   --  @param From Current locations to undo from.
+   --  @param To Restore targets or old values parallel to From.
+   --  @param Forward Redo sources or new values parallel to From.
+   --  @param Create_Kind Creation operation used by Redo.
+   --  @param Redoable Whether a successful Undo may enter Redo history.
+   --  @param Restore_Trash Preserved replacement originals to restore.
+   --  @param Original_Identities Publication identities parallel to From.
+   --  @param Original_Tree_Revisions Directory revisions parallel to From.
+   --  @param Original_Restore_Identities Identities parallel to Restore_Trash.
+   --  @param Original_Restore_Targets Destinations parallel to Restore_Trash.
+   --  @param Retain_Verified_Main Number of leading From snapshots previously
+   --    validated and allowed to survive a later pathname replacement.
+   --  @param Retain_Verified_Restores Number of leading Restore_Trash snapshots
+   --    previously validated and allowed to survive a later replacement.
+   procedure Record_Undo
+     (Model       : in out Files.Model.Window_Model;
+      Kind        : Files.Model.Undo_Action_Kind;
+      From        : Files.Types.String_Vectors.Vector;
+      To          : Files.Types.String_Vectors.Vector;
+      Forward     : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
+      Redoable    : Boolean := True;
+      Restore_Trash : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
+        Files.Types.String_Vectors.Empty_Vector;
+      Retain_Verified_Main : Natural := 0;
+      Retain_Verified_Restores : Natural := 0);
+
+   --  Forget the entire undo and redo history, then delete the recovery
+   --  payloads it retained and save the history journal.
+   --
+   --  @param Model Model whose history is cleared.
+   procedure Clear_Undo (Model : in out Files.Model.Window_Model);
+
+   --  End the history with its window: originals a paste replaced, kept in a
+   --  hidden recovery folder only so Undo could put them back, go to the
+   --  system trash under their own names instead of staying hidden there.
+   --
+   --  @param Model Model whose history ends.
+   procedure Release_History (Model : in out Files.Model.Window_Model);
+
+   --  Carry out the filesystem work model history mutations queued: delete
+   --  the recovery payloads of retired entries, release those of an ended
+   --  history to the system trash, and save the history journal when the
+   --  history changed. Call it right after each model history mutation.
+   --
+   --  @param Model Model whose queued history work to perform.
+   procedure Settle_History (Model : in out Files.Model.Window_Model);
+
    --  Prepare Quick Look preview content for a directory item, performing the
    --  bounded filesystem read the pure content-prep seam needs. Image items are
    --  classified with the shared image detector and previewed by path; other

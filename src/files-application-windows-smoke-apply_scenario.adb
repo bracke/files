@@ -1,4 +1,7 @@
-separate (Files.Application.Windows)
+with Files.Folder_Tree;
+with Files.Quick_Look;
+
+separate (Files.Application.Windows.Smoke)
    procedure Apply_Scenario
      (Runtime  : in out Runtime_Window;
       Scenario : Live_Smoke_Scenario)

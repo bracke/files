@@ -51,7 +51,7 @@ separate (Files_Suite.Operations)
             Reset_Fault;
             Load := Files.File_System.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
-            Files.Model.Clear_Undo (Model);
+            Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             Files.Model.Select_All_Visible (Model);
             Step := Complete_Operation (Model, Settings, Files.Operations.Delete_Selected (Model, Settings));

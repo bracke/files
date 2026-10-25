@@ -610,107 +610,6 @@ package Files.Rendering is
       Scrollbar_Track_Height : Natural := 0;
    end record;
 
-   type Render_Theme is record
-      Name             : UString;
-      High_Contrast    : Boolean := False;
-      Selection_Strong : Boolean := False;
-      Focus_Ring       : Render_Color := Border_Color;
-      Warning_Color    : Render_Color := Error_Text_Color;
-   end record;
-
-   type Accessibility_Profile is record
-      Keyboard_Navigation : Boolean := True;
-      Focus_Rings         : Boolean := True;
-      High_Contrast       : Boolean := False;
-      Tooltips            : Boolean := True;
-      Text_Truncation     : Boolean := True;
-      Screen_Reader_Role_Metadata : Boolean := False;
-   end record;
-
-   type Accessibility_Integration_Profile is record
-      Render_Node_Tree        : Boolean := True;
-      Native_API_Binding_Status : Files.File_System.Native_API_Binding_Status :=
-        Files.File_System.Native_API_Binding_Missing;
-      Role_Metadata           : Boolean := True;
-      Table_Metadata          : Boolean := True;
-      Pane_Section_Metadata   : Boolean := True;
-      Keyboard_Focus_Metadata : Boolean := True;
-      Binding_Unit            : UString;
-   end record;
-
-   type Settings_Editor_Profile is record
-      Scalar_Controls       : Natural := 0;
-      Mapping_Controls      : Natural := 0;
-      Open_Action_Controls  : Natural := 0;
-      Supports_Save         : Boolean := True;
-      Supports_Reset        : Boolean := True;
-      Per_Field_Diagnostics : Boolean := True;
-      Supports_Option_Cycling : Boolean := True;
-      Supports_Add_Remove_Mapping : Boolean := True;
-      Supports_Draft_Validation : Boolean := True;
-      Saves_Central_Settings : Boolean := True;
-   end record;
-
-   type Icon_Theme_Profile is record
-      Theme_Name          : UString;
-      Placeholder_Icons   : Boolean := True;
-      Scalable_Icons      : Boolean := False;
-      Filetype_Icons      : Natural := 0;
-      Asset_Directory     : UString;
-      Asset_Format        : UString;
-      User_Selectable     : Boolean := False;
-      High_Contrast_Ready : Boolean := False;
-   end record;
-
-   --  Return the default render theme metadata.
-   --
-   --  @return Theme metadata used by the first implementation.
-   function Default_Theme return Render_Theme;
-
-   --  Return high-contrast render theme metadata.
-   --
-   --  @return Theme metadata for accessibility-oriented rendering.
-   function High_Contrast_Theme return Render_Theme;
-
-   --  Return accessibility metadata for the default renderer profile.
-   --
-   --  @return Accessibility feature flags for the renderer.
-   function Default_Accessibility_Profile return Accessibility_Profile;
-
-   --  Return accessibility metadata for the high-contrast renderer profile.
-   --
-   --  @return Accessibility feature flags for the high-contrast renderer.
-   function High_Contrast_Accessibility_Profile return Accessibility_Profile;
-
-   --  Return accessibility tree and native API integration metadata.
-   --
-   --  @return Accessibility integration feature flags for the renderer.
-   function Accessibility_Integration_Profile_Of_Current_UI
-      return Accessibility_Integration_Profile;
-
-   --  Return settings editor control metadata for the current UI.
-   --
-   --  @return Settings editor profile.
-   function Settings_Editor_Profile_Of_Current_UI return Settings_Editor_Profile;
-
-   --  Return icon theme metadata for the current renderer.
-   --
-   --  @return Icon theme profile.
-   function Icon_Theme_Profile_Of_Current_UI return Icon_Theme_Profile;
-
-   --  Return icon theme metadata selected by Settings.
-   --
-   --  @param Settings Settings model containing the selected icon theme.
-   --  @return Icon theme profile for the configured theme.
-   function Icon_Theme_Profile_For
-     (Settings : Files.Settings.Settings_Model)
-      return Icon_Theme_Profile;
-
-   --  Return bundled icon asset identifiers declared by the current renderer.
-   --
-   --  @return Vector containing one icon identifier for each bundled icon asset.
-   function Bundled_Icon_Asset_Names return Files.Types.String_Vectors.Vector;
-
    --  Clickable controls of the paste-conflict dialog.
    type Conflict_Hit_Kind is
      (Conflict_Hit_None,
@@ -853,21 +752,6 @@ package Files.Rendering is
    function Text_Render_Success return Text_Render_Status
      renames Guikit.Draw.Text_Render_Success;
 
-   --  Re-export of the font-load-failure status literal.
-   --  @return The Text_Render_Font_Load_Failed value from Guikit.Draw.
-   function Text_Render_Font_Load_Failed return Text_Render_Status
-     renames Guikit.Draw.Text_Render_Font_Load_Failed;
-
-   --  Re-export of the font-not-loaded status literal.
-   --  @return The Text_Render_Font_Not_Loaded value from Guikit.Draw.
-   function Text_Render_Font_Not_Loaded return Text_Render_Status
-     renames Guikit.Draw.Text_Render_Font_Not_Loaded;
-
-   --  Re-export of the glyph-failure status literal.
-   --  @return The Text_Render_Glyph_Failed value from Guikit.Draw.
-   function Text_Render_Glyph_Failed return Text_Render_Status
-     renames Guikit.Draw.Text_Render_Glyph_Failed;
-
    subtype Text_Render_Result is Guikit.Draw.Text_Render_Result;
 
    --  How many selected items the info pane lists in detail. Past a hundred
@@ -970,23 +854,6 @@ package Files.Rendering is
       Y     : Natural)
       return Natural;
 
-   --  The bottom-bar free-space field's text, e.g. "12 GB free", or the empty
-   --  string when free space is unknown or an error line is showing. Shared by
-   --  the renderer (to draw) and the hit-test (to locate the field), so both
-   --  agree on where the free-space field begins.
-   --
-   --  @param Snapshot The immutable view snapshot.
-   --  @return The free-space label text, or "" when there is no free field.
-   function Free_Space_Label (Snapshot : View_Snapshot) return String;
-
-   --  Whether the free-space field should render the graphical used/free bar
-   --  (bar mode selected and the capacity totals are usable). When False the
-   --  field falls back to the free/used text label.
-   --
-   --  @param Snapshot The immutable view snapshot.
-   --  @return True when the field should draw the used/free bar.
-   function Free_Space_Bar_Active (Snapshot : View_Snapshot) return Boolean;
-
    --  The rendered pixel width of Free_Space_Label, or zero when there is no
    --  free field.
    --
@@ -1077,22 +944,6 @@ package Files.Rendering is
       Field_X   : out Natural;
       Field_W   : out Natural);
 
-   --  Return the sort command for a details header click.
-   --
-   --  @param Snapshot Immutable view snapshot.
-   --  @param Layout Calculated frame layout.
-   --  @param X Horizontal window coordinate.
-   --  @param Y Vertical window coordinate.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Sort command for the clicked details header column, or No_Command.
-   function Details_Header_Command_At
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      X           : Natural;
-      Y           : Natural;
-      Line_Height : Positive := 20)
-      return Files.Commands.Command_Id;
-
    --  A details-header cell under a coordinate. Present is False when the
    --  coordinate misses the header band. Column is the column whose cell body
    --  the coordinate falls in, and Command the sort command that a plain click
@@ -1106,9 +957,9 @@ package Files.Rendering is
    end record;
 
    --  Hit-test a details-header coordinate against the header cell bodies,
-   --  returning the column under it plus its sort command. Unlike
-   --  Details_Header_Command_At this reports every column (including ones that
-   --  do not sort) so a press can begin a column-reorder drag. Returns a cell
+   --  returning the column under it plus its sort command. It reports every
+   --  column (including ones that do not sort) so a press can begin a
+   --  column-reorder drag. Returns a cell
    --  with Present False outside the header band or the details view.
    --
    --  @param Snapshot Immutable view snapshot.
