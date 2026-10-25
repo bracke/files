@@ -39,7 +39,7 @@ is
      (Stream_Element
         ((Channel * Alpha + 255 * (255 - Alpha) + 127) / 255));
 begin
-   Stream_IO.Create (Output, Stream_IO.Out_File, Target_Path);
+   Stream_IO.Create (Output, Stream_IO.Out_File, Target_Path, Form => "shared=no");
    Put_Header
      ("P6" & ASCII.LF
       & Image_No_Space (Size) & " " & Image_No_Space (Size) & ASCII.LF

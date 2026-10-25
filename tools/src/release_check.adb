@@ -90,7 +90,7 @@ procedure Release_Check is
       Active : Boolean := False;
       Ordinal : Natural := 0;
    begin
-      Open (File, In_File, Path);
+      Open (File, In_File, Path, Form => "shared=no");
       while not End_Of_File (File) loop
          declare
             Line : constant String := Ada.Strings.Fixed.Trim (Get_Line (File), Ada.Strings.Both);

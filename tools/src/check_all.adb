@@ -857,7 +857,7 @@ procedure Check_All is
       Buffer : String (1 .. 2);
       Last   : Natural := 0;
    begin
-      Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
+      Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path, Form => "shared=no");
       if not Ada.Text_IO.End_Of_File (File) then
          Ada.Text_IO.Get_Line (File, Buffer, Last);
       end if;

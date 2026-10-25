@@ -314,7 +314,7 @@ package body Files.File_System.Support is
          GNAT.OS_Lib.Close (Descriptor);
          Descriptor := GNAT.OS_Lib.Invalid_FD;
       else
-         Ada.Streams.Stream_IO.Open (Input, Ada.Streams.Stream_IO.In_File, Path);
+         Ada.Streams.Stream_IO.Open (Input, Ada.Streams.Stream_IO.In_File, Path, Form => "shared=no");
          while not Ada.Streams.Stream_IO.End_Of_File (Input) loop
             if (Cancel /= null and then Cancel.all)
               or else
@@ -1004,7 +1004,7 @@ package body Files.File_System.Support is
             begin
                Files.Io_Errors.Clear_Os_Error;
                Ada.Streams.Stream_IO.Open
-                 (Input, Ada.Streams.Stream_IO.In_File, Source_Path);
+                 (Input, Ada.Streams.Stream_IO.In_File, Source_Path, Form => "shared=no");
             exception
                when others =>
                   Files.Io_Errors.Capture;

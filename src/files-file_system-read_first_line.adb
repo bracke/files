@@ -8,7 +8,7 @@ begin
       return "";
    end if;
 
-   Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path);
+   Ada.Text_IO.Open (File, Ada.Text_IO.In_File, Path, Form => "shared=no");
    Ada.Text_IO.Get_Line (File, Buffer, Last);
    Ada.Text_IO.Close (File);
    return Buffer (1 .. Last);

@@ -9,7 +9,7 @@ begin
       return Result;
    end if;
 
-   Ada.Text_IO.Open (File, Ada.Text_IO.In_File, "/proc/mounts");
+   Ada.Text_IO.Open (File, Ada.Text_IO.In_File, "/proc/mounts", Form => "shared=no");
    while not Ada.Text_IO.End_Of_File (File) loop
       Files.Bounded_Text_IO.Read_Line
         (File, Max_Mount_Record_Length, Line, Complete);

@@ -366,7 +366,7 @@ package body Files.Archive_Writing is
             return;
          end if;
          Status := Zlib.Input_File_Error;
-         IO.Open (Source, IO.In_File, Source_Path);
+         IO.Open (Source, IO.In_File, Source_Path, Form => "shared=no");
          IO.Set_Index (Source, IO.Size (Source) - 21);
          IO.Read (Source, End_Record, Last);
          if Last /= End_Record'Last or else Number (1, 4) /= 16#0605_4B50#
@@ -383,7 +383,7 @@ package body Files.Archive_Writing is
       end if;
 
       Status := Zlib.Output_File_Error;
-      IO.Create (Output, IO.Out_File, Output_Path);
+      IO.Create (Output, IO.Out_File, Output_Path, Form => "shared=no");
       if IO.Is_Open (Source) then
          Copy (Central_Offset);
       end if;
