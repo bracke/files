@@ -108,9 +108,30 @@ package body Files_Suite.Settings is
    overriding function Name (T : Settings_Test_Case) return AUnit.Message_String;
    overriding procedure Register_Tests (T : in out Settings_Test_Case);
 
-   procedure Test_Settings_Parsing_And_Open_Actions (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Text_Scalar_Values (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Filetype_And_Icon_Mappings (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Open_Action_Modifier_Lookup (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Open_Action_Placeholder_Expansion (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Embedded_Placeholders (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Open_Action_Fallback_And_Quoting (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Open_Actions_Serialize_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Open_Action_Token_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Direct_Mapping_Insertion (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Direct_Open_Action_Insertion (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Direct_Open_Action_Rejects_Unsafe (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Field_Diagnostics (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Draft_Mapping_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Open_Action_Field_Diagnostics (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Parser_Diagnostics (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Sort_Favorites_And_Mapping_Authority (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Default_Open_Action_Suits_The_Host (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Settings_Load_File (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Default_Settings_Text_And_Themes (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Load_File_Inputs (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Ensure_And_Save_Text (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Draft_Apply_And_Save (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Draft_Ignores_Orphan_Rows (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Controller_Settings_Save (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Ensure_Default_File_Existing_And_Invalid (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Invalid_Boolean (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Columns_And_Grouping (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Column_Order_Reorder (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -128,12 +149,76 @@ package body Files_Suite.Settings is
    overriding procedure Register_Tests (T : in out Settings_Test_Case) is
    begin
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Settings_Parsing_And_Open_Actions'Access, "settings parsing and open actions");
+        (T, Test_Settings_Text_Scalar_Values'Access,
+         "settings text parses scalar values case-insensitively; a duplicated key keeps its last value");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Filetype_And_Icon_Mappings'Access,
+         "filetype and icon mappings parse, unescape, normalize lookups, and have built-in defaults");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Open_Action_Modifier_Lookup'Access,
+         "open action lookup honours modifier tokens and structured-suffix filetypes");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Open_Action_Placeholder_Expansion'Access,
+         "open action placeholders expand for POSIX, Windows, UNC, relative, and edge-case paths");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Embedded_Placeholders'Access,
+         "embedded and unknown placeholders stay literal, and embedded ones mark an action unsafe");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Open_Action_Fallback_And_Quoting'Access,
+         "open action lookup falls back to the unmodified filetype; quoting, equals, empty and shell arguments parse");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Open_Actions_Serialize_Round_Trip'Access,
+         "serialized settings reload open actions and mappings, and quote an embedded icon-theme quote");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Open_Action_Token_Normalization'Access,
+         "open action modifier tokens normalize; drafts replace normalized rows; missing lookups report diagnostics");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Direct_Mapping_Insertion'Access,
+         "direct extension and icon mapping insertion trims, replaces, and ignores unrepresentable keys and values");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Direct_Open_Action_Insertion'Access,
+         "direct open-action insertion normalizes modifier tokens and ignores malformed filetype tokens");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Direct_Open_Action_Rejects_Unsafe'Access,
+         "direct open-action insertion ignores placeholders and control characters in executables and arguments");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Field_Diagnostics'Access,
+         "settings field diagnostics validate scalar, theme, sort, and mapping fields");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Draft_Mapping_Validation'Access,
+         "settings drafts keep quoted mapping values and reject malformed mapping and open-action rows");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Open_Action_Field_Diagnostics'Access,
+         "open action field diagnostics validate tokens, commands, field range, and argument count");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Parser_Diagnostics'Access,
+         "settings parser caps persistent entries and rejects malformed input with deterministic diagnostics");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Sort_Favorites_And_Mapping_Authority'Access,
+         "created sort field and tricky favorites round-trip; the file is authoritative for mappings");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Default_Open_Action_Suits_The_Host'Access,
          "the seeded default open action names a program this host has");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Settings_Load_File'Access, "settings load file");
+        (T, Test_Default_Settings_Text_And_Themes'Access,
+         "default settings text parses, an absent theme defaults to dark, and every theme round-trips");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Load_File_Inputs'Access,
+         "settings load file reads disk, follows a link to a regular file, and rejects bad paths and oversized input");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Ensure_And_Save_Text'Access,
+         "ensure default file creates it; save text is atomic, owner-only, link-safe, and rejects bad input");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Draft_Apply_And_Save'Access,
+         "settings drafts reset, apply, save, and reject invalid values; a closed settings pane cannot save");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Draft_Ignores_Orphan_Rows'Access, "empty and misaligned mapping drafts save no orphan rows");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Controller_Settings_Save'Access,
+         "the controller validates and saves an edited settings draft into live settings and reports refresh failure");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Ensure_Default_File_Existing_And_Invalid'Access,
+         "ensure default file keeps an existing file and rejects directory, blocked-parent, and empty paths");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Invalid_Boolean'Access, "settings invalid boolean");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -155,9 +240,11 @@ package body Files_Suite.Settings is
          "settings-form maps a draft to typed fields and pages/edits mapping entries");
    end Register_Tests;
 
-   procedure Test_Settings_Parsing_And_Open_Actions (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-      Text      : constant String :=
+   --  A settings text exercising every section the parsing and open-action
+   --  tests read: quoting, escaped quotes, modifier tokens, and placeholders.
+   function Open_Action_Settings_Text return String is
+   begin
+      return
         ASCII.HT & "[ Settings ]" & ASCII.CR & ASCII.LF &
         ASCII.HT & "Default_View_Mode" & ASCII.HT & "=" & ASCII.HT & "DETAILS" & ASCII.CR & ASCII.LF &
         "Show_Hidden_Files = TRUE" & ASCII.CR & ASCII.LF &
@@ -193,19 +280,59 @@ package body Files_Suite.Settings is
         "text/duplicate+CONTROL+alt+control = duplicate {path}" & ASCII.LF &
         "application/ld+json = json-viewer {path}" & ASCII.LF &
         "application/ld+json+control = json-editor {path}" & ASCII.LF;
-      Parsed    : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Text);
-      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Lookup    : Files.Settings.Action_Lookup_Result;
-      Expanded  : Files.Settings.Open_Action;
-      Manual    : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Args      : Files.Types.String_Vectors.Vector;
-      C1_Break  : constant Character := Character'Val (133);
-      Line_Separator : constant String :=
-        Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#2028#));
+   end Open_Action_Settings_Text;
+
+   --  Line breaks beyond ASCII that settings keys and values must reject.
+   C1_Break : constant Character := Character'Val (133);
+
+   function Line_Separator return String is
+     (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#2028#)));
+
+   --  The model the direct open-action insertion test starts from: the
+   --  defaults with the host opener fallback disabled, plus the extension
+   --  and icon rows the direct mapping test inserts (its rejected
+   --  insertions leave no row, as that test asserts).
+   function Settings_With_Direct_Mappings return Files.Settings.Settings_Model is
+      Manual : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
    begin
-      --  Exercise the genuine missing-action lookups deterministically; the
-      --  host opener fallback would otherwise resolve unmapped lookups.
       Manual.Use_System_Default_Opener := False;
+      Files.Settings.Add_Extension_Mapping (Manual, ".TXT", "text/first");
+      Files.Settings.Add_Extension_Mapping (Manual, " txt ", " text/second ");
+      Files.Settings.Add_Icon_Mapping (Manual, " text/second ", " first-icon ");
+      Files.Settings.Add_Icon_Mapping (Manual, "text/second", " second-icon ");
+      return Manual;
+   end Settings_With_Direct_Mappings;
+
+   --  Settings_With_Direct_Mappings plus the open actions the direct
+   --  open-action insertion test inserts successfully.
+   function Settings_With_Direct_Insertions return Files.Settings.Settings_Model is
+      Manual : Files.Settings.Settings_Model := Settings_With_Direct_Mappings;
+      Args   : Files.Types.String_Vectors.Vector;
+   begin
+      Args.Append (To_Unbounded_String ("{path}"));
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "text/manual+META+shift+alt+control+shift",
+         Files.Settings.Make_Action ("first", Args));
+      Files.Settings.Add_Open_Action
+        (Manual,
+         " text/manual+control+alt+meta+shift ",
+         Files.Settings.Make_Action ("second", Args));
+      Files.Settings.Add_Open_Action
+        (Manual,
+         " text/spaced-manual + META + shift ",
+         Files.Settings.Make_Action (" spaced-manual ", Args));
+      Files.Settings.Add_Open_Action
+        (Manual,
+         "image/svg+xml",
+         Files.Settings.Make_Action ("svg-viewer", Args));
+      return Manual;
+   end Settings_With_Direct_Insertions;
+
+   procedure Test_Settings_Text_Scalar_Values (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Open_Action_Settings_Text);
+   begin
       Assert (Parsed.Success, "settings text parses");
       Files_Suite.Support.Assert_Equal (Parsed.Settings.Default_View, Files.Types.Details, "default view mode parses");
       Assert (Parsed.Settings.Show_Hidden_Files, "setting keys parse case-insensitively");
@@ -245,6 +372,13 @@ package body Files_Suite.Settings is
             Files.Settings.Sort_By_Modified,
             "duplicate sort field setting uses the last value");
       end;
+   end Test_Settings_Text_Scalar_Values;
+
+   procedure Test_Filetype_And_Icon_Mappings (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Open_Action_Settings_Text);
+      Manual : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+   begin
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Filetype_For_Extension (Parsed.Settings, ".ada"),
          "text/x-ada",
@@ -381,7 +515,15 @@ package body Files_Suite.Settings is
         (Files.Settings.Icon_For_Filetype (Parsed.Settings, "   "),
          "",
          "blank filetype has no icon mapping");
+   end Test_Filetype_And_Icon_Mappings;
 
+   procedure Test_Open_Action_Modifier_Lookup (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Open_Action_Settings_Text);
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Lookup    : Files.Settings.Action_Lookup_Result;
+      Expanded  : Files.Settings.Open_Action;
+   begin
       Modifiers (Guikit.Input.Control_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Modifiers);
       Assert (Lookup.Found, "modifier-specific open action is found");
@@ -423,7 +565,14 @@ package body Files_Suite.Settings is
         (To_String (Lookup.Action.Executable),
          "json-editor",
          "structured-suffix modifier-specific executable parses");
+   end Test_Open_Action_Modifier_Lookup;
 
+   procedure Test_Open_Action_Placeholder_Expansion (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Open_Action_Settings_Text);
+      Lookup    : Files.Settings.Action_Lookup_Result;
+      Expanded  : Files.Settings.Open_Action;
+   begin
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/full", Guikit.Input.No_Modifiers);
       Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/archive.tar.gz");
       Assert (Lookup.Found, "full placeholder action is found");
@@ -590,7 +739,14 @@ package body Files_Suite.Settings is
         (To_String (Expanded.Arguments.Element (4)),
          "",
          "trailing separator extension expands to empty");
+   end Test_Open_Action_Placeholder_Expansion;
 
+   procedure Test_Embedded_Placeholders (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Open_Action_Settings_Text);
+      Lookup    : Files.Settings.Action_Lookup_Result;
+      Expanded  : Files.Settings.Open_Action;
+   begin
       declare
          Embedded_Args   : Files.Types.String_Vectors.Vector;
          Embedded_Action : Files.Settings.Open_Action;
@@ -640,7 +796,15 @@ package body Files_Suite.Settings is
         (To_String (Expanded.Arguments.Element (1)),
          "{unknown}",
          "unknown placeholder remains literal after expansion");
+   end Test_Embedded_Placeholders;
 
+   procedure Test_Open_Action_Fallback_And_Quoting (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Open_Action_Settings_Text);
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Lookup    : Files.Settings.Action_Lookup_Result;
+      Expanded  : Files.Settings.Open_Action;
+   begin
       Modifiers := Guikit.Input.No_Modifiers;
       Modifiers (Guikit.Input.Shift_Key) := True;
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Modifiers);
@@ -767,6 +931,13 @@ package body Files_Suite.Settings is
       Lookup := Files.Settings.Lookup_Open_Action (Parsed.Settings, "text/x-ada", Guikit.Input.No_Modifiers);
       Assert (Lookup.Found, "unmodified non-shell open action is found");
       Assert (not Lookup.Action.Use_Shell, "shell execution is opt-in through explicit prefix");
+   end Test_Open_Action_Fallback_And_Quoting;
+
+   procedure Test_Open_Actions_Serialize_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Open_Action_Settings_Text);
+      Lookup : Files.Settings.Action_Lookup_Result;
+   begin
       declare
          Serialized : constant String := Files.Settings.To_Text (Parsed.Settings);
          Reloaded   : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Serialized);
@@ -851,7 +1022,14 @@ package body Files_Suite.Settings is
            (Ada.Strings.Fixed.Index (To_String (Odd_Text), Expected) > 0,
             "serialized icon theme quotes embedded quote");
       end;
+   end Test_Open_Actions_Serialize_Round_Trip;
 
+   procedure Test_Open_Action_Token_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Open_Action_Settings_Text);
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Lookup    : Files.Settings.Action_Lookup_Result;
+   begin
       Modifiers := Guikit.Input.No_Modifiers;
       Modifiers (Guikit.Input.Control_Key) := True;
       Modifiers (Guikit.Input.Alt_Key) := True;
@@ -995,7 +1173,15 @@ package body Files_Suite.Settings is
         (To_String (Lookup.Error_Key),
          "error.open_action.missing",
          "empty filetype lookup reports deterministic diagnostic key");
+   end Test_Open_Action_Token_Normalization;
 
+   procedure Test_Direct_Mapping_Insertion (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Manual : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+   begin
+      --  Exercise the genuine missing-action lookups deterministically; the
+      --  host opener fallback would otherwise resolve unmapped lookups.
+      Manual.Use_System_Default_Opener := False;
       Files.Settings.Add_Extension_Mapping (Manual, ".TXT", "text/first");
       Files.Settings.Add_Extension_Mapping (Manual, " txt ", " text/second ");
       Files_Suite.Support.Assert_Equal
@@ -1130,7 +1316,15 @@ package body Files_Suite.Settings is
         (Files.Settings.Icon_For_Filetype (Manual, "text/unicodebreak-icon"),
          "",
          "direct icon mapping ignores Unicode line-separator values");
+   end Test_Direct_Mapping_Insertion;
 
+   procedure Test_Direct_Open_Action_Insertion (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Manual    : Files.Settings.Settings_Model := Settings_With_Direct_Mappings;
+      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Lookup    : Files.Settings.Action_Lookup_Result;
+      Args      : Files.Types.String_Vectors.Vector;
+   begin
       Args.Append (To_Unbounded_String ("{path}"));
       Files.Settings.Add_Open_Action
         (Manual,
@@ -1254,6 +1448,15 @@ package body Files_Suite.Settings is
          Files.Settings.Make_Action ("   ", Args));
       Lookup := Files.Settings.Lookup_Open_Action (Manual, "text/empty-executable", Guikit.Input.No_Modifiers);
       Assert (not Lookup.Found, "direct open-action insertion ignores empty executable");
+   end Test_Direct_Open_Action_Insertion;
+
+   procedure Test_Direct_Open_Action_Rejects_Unsafe (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Manual : Files.Settings.Settings_Model := Settings_With_Direct_Insertions;
+      Lookup : Files.Settings.Action_Lookup_Result;
+      Args   : Files.Types.String_Vectors.Vector;
+   begin
+      Args.Append (To_Unbounded_String ("{path}"));
       declare
          Unsafe_Args : Files.Types.String_Vectors.Vector;
       begin
@@ -1374,6 +1577,11 @@ package body Files_Suite.Settings is
            (not Lookup.Found,
             "direct open-action insertion ignores argument Unicode line separators");
       end;
+   end Test_Direct_Open_Action_Rejects_Unsafe;
+
+   procedure Test_Settings_Field_Diagnostics (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Field_Diagnostic (1, "details"),
          "",
@@ -1450,6 +1658,12 @@ package body Files_Suite.Settings is
         (Files.Settings.Field_Diagnostic (9, "text/bad=icon"),
          "error.settings.invalid_mapping",
          "icon filetype field rejects unrepresentable keys");
+   end Test_Settings_Field_Diagnostics;
+
+   procedure Test_Draft_Mapping_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Manual : constant Files.Settings.Settings_Model := Settings_With_Direct_Insertions;
+   begin
       declare
          Quote_Draft : Files.Settings.Settings_Draft := Files.Settings.Make_Draft (Manual);
          Applied     : Files.Settings.Settings_Parse_Result;
@@ -1634,6 +1848,11 @@ package body Files_Suite.Settings is
             "error.settings.invalid_open_action",
             "Unicode line-separator draft open-action command reports open-action diagnostic");
       end;
+   end Test_Draft_Mapping_Validation;
+
+   procedure Test_Open_Action_Field_Diagnostics (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Field_Diagnostic (11, "text/plain+control"),
          "",
@@ -1725,6 +1944,11 @@ package body Files_Suite.Settings is
             "error.settings.invalid_open_action",
             "open actions with an excessive argument vector are rejected");
       end;
+   end Test_Open_Action_Field_Diagnostics;
+
+   procedure Test_Settings_Parser_Diagnostics (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
       declare
          Text   : Unbounded_String := To_Unbounded_String ("[bookmarks]" & ASCII.LF);
          Parsed : Files.Settings.Settings_Parse_Result;
@@ -1854,83 +2078,6 @@ package body Files_Suite.Settings is
            (To_String (Broken.Error_Key),
             "error.settings.invalid_sort_field",
             "invalid sort field reports deterministic diagnostic");
-         declare
-            Created_Parsed : constant Files.Settings.Settings_Parse_Result :=
-              Files.Settings.Parse ("[settings]" & ASCII.LF & "sort_field = created" & ASCII.LF);
-            Modified_Parsed : constant Files.Settings.Settings_Parse_Result :=
-              Files.Settings.Parse ("[settings]" & ASCII.LF & "sort_field = modified" & ASCII.LF);
-         begin
-            Assert (Created_Parsed.Success, "settings parser accepts the created sort field");
-            Files_Suite.Support.Assert_Equal
-              (Created_Parsed.Settings.Sort_Field_Value,
-               Files.Settings.Sort_By_Created,
-               "created sort field round-trips distinctly from modified");
-            Files_Suite.Support.Assert_Equal
-              (Modified_Parsed.Settings.Sort_Field_Value,
-               Files.Settings.Sort_By_Modified,
-               "modified sort field still round-trips to modified");
-         end;
-         declare
-            With_Favorites : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-            Round          : Files.Settings.Settings_Parse_Result;
-            Found_Eq       : Boolean := False;
-            Found_Hash     : Boolean := False;
-            Found_File     : Boolean := False;
-         begin
-            With_Favorites.Favorite_Paths.Append (To_Unbounded_String ("/data/a=b"));
-            With_Favorites.Favorite_Paths.Append (To_Unbounded_String ("#hashdir"));
-            --  Favorites may reference files as well as folders; the path is
-            --  stored verbatim and must survive the round-trip either way.
-            With_Favorites.Favorite_Paths.Append (To_Unbounded_String ("/data/report.txt"));
-            Round := Files.Settings.Parse (Files.Settings.To_Text (With_Favorites));
-            Assert (Round.Success, "settings with tricky favorite paths round-trips");
-            for P of Round.Settings.Favorite_Paths loop
-               if To_String (P) = "/data/a=b" then
-                  Found_Eq := True;
-               elsif To_String (P) = "#hashdir" then
-                  Found_Hash := True;
-               elsif To_String (P) = "/data/report.txt" then
-                  Found_File := True;
-               end if;
-            end loop;
-            Assert (Found_Eq, "a favorite path containing '=' survives the round-trip");
-            Assert (Found_Hash, "a favorite path starting with '#' survives the round-trip");
-            Assert (Found_File, "a favorite path pointing at a file survives the round-trip");
-         end;
-         declare
-            Favorites : Files.Settings.Settings_Model :=
-              Files.Settings.Default_Settings;
-         begin
-            Files.Settings.Toggle_Favorite_Path (Favorites, "/tmp/safe");
-            Files.Settings.Toggle_Favorite_Path
-              (Favorites, "/tmp/bad" & Character'Val (0) & "ignored");
-            Files_Suite.Support.Assert_Equal
-              (Natural (Favorites.Favorite_Paths.Length),
-               1,
-               "a NUL-containing path cannot be persisted as a favorite");
-         end;
-         declare
-            --  The file is authoritative for mappings: a built-in mapping
-            --  omitted from the file does not reappear from the defaults, while
-            --  a fresh install still gets the defaults (seeded into the file by
-            --  Ensure_Default_File).
-            Authoritative : constant Files.Settings.Settings_Parse_Result :=
-              Files.Settings.Parse
-                ("[filetypes]" & ASCII.LF & "custom = application/x-custom" & ASCII.LF);
-         begin
-            Assert (Authoritative.Success, "settings with an explicit filetypes section parses");
-            Files_Suite.Support.Assert_Equal
-              (Files.Settings.Filetype_For_Extension (Authoritative.Settings, "custom"),
-               "application/x-custom",
-               "an explicit filetype mapping loads from the file");
-            Files_Suite.Support.Assert_Equal
-              (Files.Settings.Filetype_For_Extension (Authoritative.Settings, "txt"),
-               "",
-               "a built-in mapping omitted from the file does not reappear");
-            Assert
-              (Files.Settings.Filetype_For_Extension (Files.Settings.Default_Settings, "txt") /= "",
-               "built-in defaults still provide mappings for a fresh install");
-         end;
          Broken := Files.Settings.Parse ("[settings]" & ASCII.LF & "unexpected = value" & ASCII.LF);
          Assert (not Broken.Success, "settings parser rejects unknown setting keys");
          Files_Suite.Support.Assert_Equal
@@ -1950,7 +2097,89 @@ package body Files_Suite.Settings is
             "error.settings.invalid_open_action",
             "empty open-action command reports deterministic diagnostic");
       end;
-   end Test_Settings_Parsing_And_Open_Actions;
+   end Test_Settings_Parser_Diagnostics;
+
+   procedure Test_Sort_Favorites_And_Mapping_Authority (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
+      declare
+         Created_Parsed : constant Files.Settings.Settings_Parse_Result :=
+           Files.Settings.Parse ("[settings]" & ASCII.LF & "sort_field = created" & ASCII.LF);
+         Modified_Parsed : constant Files.Settings.Settings_Parse_Result :=
+           Files.Settings.Parse ("[settings]" & ASCII.LF & "sort_field = modified" & ASCII.LF);
+      begin
+         Assert (Created_Parsed.Success, "settings parser accepts the created sort field");
+         Files_Suite.Support.Assert_Equal
+           (Created_Parsed.Settings.Sort_Field_Value,
+            Files.Settings.Sort_By_Created,
+            "created sort field round-trips distinctly from modified");
+         Files_Suite.Support.Assert_Equal
+           (Modified_Parsed.Settings.Sort_Field_Value,
+            Files.Settings.Sort_By_Modified,
+            "modified sort field still round-trips to modified");
+      end;
+      declare
+         With_Favorites : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+         Round          : Files.Settings.Settings_Parse_Result;
+         Found_Eq       : Boolean := False;
+         Found_Hash     : Boolean := False;
+         Found_File     : Boolean := False;
+      begin
+         With_Favorites.Favorite_Paths.Append (To_Unbounded_String ("/data/a=b"));
+         With_Favorites.Favorite_Paths.Append (To_Unbounded_String ("#hashdir"));
+         --  Favorites may reference files as well as folders; the path is
+         --  stored verbatim and must survive the round-trip either way.
+         With_Favorites.Favorite_Paths.Append (To_Unbounded_String ("/data/report.txt"));
+         Round := Files.Settings.Parse (Files.Settings.To_Text (With_Favorites));
+         Assert (Round.Success, "settings with tricky favorite paths round-trips");
+         for P of Round.Settings.Favorite_Paths loop
+            if To_String (P) = "/data/a=b" then
+               Found_Eq := True;
+            elsif To_String (P) = "#hashdir" then
+               Found_Hash := True;
+            elsif To_String (P) = "/data/report.txt" then
+               Found_File := True;
+            end if;
+         end loop;
+         Assert (Found_Eq, "a favorite path containing '=' survives the round-trip");
+         Assert (Found_Hash, "a favorite path starting with '#' survives the round-trip");
+         Assert (Found_File, "a favorite path pointing at a file survives the round-trip");
+      end;
+      declare
+         Favorites : Files.Settings.Settings_Model :=
+           Files.Settings.Default_Settings;
+      begin
+         Files.Settings.Toggle_Favorite_Path (Favorites, "/tmp/safe");
+         Files.Settings.Toggle_Favorite_Path
+           (Favorites, "/tmp/bad" & Character'Val (0) & "ignored");
+         Files_Suite.Support.Assert_Equal
+           (Natural (Favorites.Favorite_Paths.Length),
+            1,
+            "a NUL-containing path cannot be persisted as a favorite");
+      end;
+      declare
+         --  The file is authoritative for mappings: a built-in mapping
+         --  omitted from the file does not reappear from the defaults, while
+         --  a fresh install still gets the defaults (seeded into the file by
+         --  Ensure_Default_File).
+         Authoritative : constant Files.Settings.Settings_Parse_Result :=
+           Files.Settings.Parse
+             ("[filetypes]" & ASCII.LF & "custom = application/x-custom" & ASCII.LF);
+      begin
+         Assert (Authoritative.Success, "settings with an explicit filetypes section parses");
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Filetype_For_Extension (Authoritative.Settings, "custom"),
+            "application/x-custom",
+            "an explicit filetype mapping loads from the file");
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Filetype_For_Extension (Authoritative.Settings, "txt"),
+            "",
+            "a built-in mapping omitted from the file does not reappear");
+         Assert
+           (Files.Settings.Filetype_For_Extension (Files.Settings.Default_Settings, "txt") /= "",
+            "built-in defaults still provide mappings for a fresh install");
+      end;
+   end Test_Sort_Favorites_And_Mapping_Authority;
 
    --  A fresh install's one seeded open action has to name a program the host
    --  running it actually has. It named xdg-open on every host, and since a
@@ -1985,41 +2214,21 @@ package body Files_Suite.Settings is
          "the seeded text/plain opener is handed the file to open");
    end Test_Default_Open_Action_Suits_The_Host;
 
-   procedure Test_Settings_Load_File (T : in out AUnit.Test_Cases.Test_Case'Class) is
+   --  The settings the draft tests start from: what Load_File returns for a
+   --  saved settings file holding only a details default view, in a fresh Root.
+   function Load_Saved_Details_Settings return Files.Settings.Settings_Parse_Result is
+      Path : constant String := Join (Root, "files.conf");
+   begin
+      Reset_Root;
+      Write_File (Path, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
+      return Files.Settings.Load_File (Path);
+   end Load_Saved_Details_Settings;
+
+   procedure Test_Default_Settings_Text_And_Themes (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Settings_Path : constant String := Join (Root, "files.conf");
-      Long_Path     : constant String := Join (Root, "long.conf");
-      Oversized_Path : constant String := Join (Root, "oversized.conf");
-      Long_Type     : constant String :=
-        "application/x-" &
-        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" &
-        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" &
-        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" &
-        "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd" &
-        "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" &
-        "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" &
-        "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg" &
-        "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh" &
-        "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" &
-        "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj" &
-        "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk" &
-        "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll";
-      Missing       : Files.Settings.Settings_Parse_Result;
-      Empty_Load    : Files.Settings.Settings_Parse_Result;
-      Not_File      : Files.Settings.Settings_Parse_Result;
-      Loaded        : Files.Settings.Settings_Parse_Result;
-      Long_Loaded   : Files.Settings.Settings_Parse_Result;
-      Oversized_Loaded : Files.Settings.Settings_Parse_Result;
-      Ensured_Path  : constant String := Join (Join (Root, "created-config"), "settings.conf");
-      Ensured       : Files.Settings.Settings_Write_Result;
-      Saved_Path    : constant String := Join (Join (Root, "saved-config"), "settings.conf");
-      Blocked_Parent : constant String := Join (Root, "blocked-parent");
-      Blocked_Path   : constant String := Join (Blocked_Parent, "settings.conf");
-      Saved         : Files.Settings.Settings_Write_Result;
       Default_Text  : constant String := Files.Settings.Default_Settings_Text;
       Default_Parse : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Default_Text);
    begin
-      Reset_Root;
       Assert (Default_Parse.Success, "default settings text parses");
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Filetype_For_Extension (Default_Parse.Settings, "txt"),
@@ -2060,6 +2269,35 @@ package body Files_Suite.Settings is
            (Round_Trip.Settings.Theme = Files.Settings.Theme_High_Contrast,
             "the high-contrast theme round-trips through To_Text and Parse");
       end;
+   end Test_Default_Settings_Text_And_Themes;
+
+   procedure Test_Settings_Load_File_Inputs (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings_Path : constant String := Join (Root, "files.conf");
+      Long_Path     : constant String := Join (Root, "long.conf");
+      Oversized_Path : constant String := Join (Root, "oversized.conf");
+      Long_Type     : constant String :=
+        "application/x-" &
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" &
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" &
+        "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc" &
+        "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd" &
+        "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee" &
+        "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" &
+        "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg" &
+        "hhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh" &
+        "iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii" &
+        "jjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjj" &
+        "kkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk" &
+        "llllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll";
+      Missing       : Files.Settings.Settings_Parse_Result;
+      Empty_Load    : Files.Settings.Settings_Parse_Result;
+      Not_File      : Files.Settings.Settings_Parse_Result;
+      Loaded        : Files.Settings.Settings_Parse_Result;
+      Long_Loaded   : Files.Settings.Settings_Parse_Result;
+      Oversized_Loaded : Files.Settings.Settings_Parse_Result;
+   begin
+      Reset_Root;
       Missing := Files.Settings.Load_File (Join (Root, "missing.conf"));
       Assert (Missing.Success, "missing settings file falls back to defaults");
       Files_Suite.Support.Assert_Equal
@@ -2150,7 +2388,19 @@ package body Files_Suite.Settings is
         (not Oversized_Loaded.Success
          and then To_String (Oversized_Loaded.Error_Key) = "error.settings.load",
          "oversized settings input is rejected at the bounded file reader");
+   end Test_Settings_Load_File_Inputs;
 
+   procedure Test_Settings_Ensure_And_Save_Text (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Loaded        : Files.Settings.Settings_Parse_Result;
+      Ensured_Path  : constant String := Join (Join (Root, "created-config"), "settings.conf");
+      Ensured       : Files.Settings.Settings_Write_Result;
+      Saved_Path    : constant String := Join (Join (Root, "saved-config"), "settings.conf");
+      Blocked_Parent : constant String := Join (Root, "blocked-parent");
+      Blocked_Path   : constant String := Join (Blocked_Parent, "settings.conf");
+      Saved         : Files.Settings.Settings_Write_Result;
+   begin
+      Reset_Root;
       Ensured := Files.Settings.Ensure_Default_File (Ensured_Path);
       Assert (Ensured.Success, "ensure default settings creates missing file");
       Assert (Ada.Directories.Exists (Ensured_Path), "ensure default settings creates parent directories");
@@ -2272,6 +2522,13 @@ package body Files_Suite.Settings is
         (To_String (Saved.Error_Key),
          "error.settings.not_file",
          "settings save parent failure reports not-file diagnostic");
+   end Test_Settings_Ensure_And_Save_Text;
+
+   procedure Test_Settings_Draft_Apply_And_Save (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Loaded : constant Files.Settings.Settings_Parse_Result := Load_Saved_Details_Settings;
+      Saved  : Files.Settings.Settings_Write_Result;
+   begin
       declare
          Reset_Draft : constant Files.Settings.Settings_Draft := Files.Settings.Reset_Draft_To_Defaults;
       begin
@@ -2288,9 +2545,7 @@ package body Files_Suite.Settings is
          Draft_Settings : Files.Settings.Settings_Model := Loaded.Settings;
          Controller_Result : Files.Controller.Controller_Result;
          Lookup : Files.Settings.Action_Lookup_Result;
-         Ctrl : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       begin
-         Ctrl (Guikit.Input.Control_Key) := True;
          Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
          Files_Suite.Support.Assert_Equal
            (Controller_Result.Operation.Status,
@@ -2304,7 +2559,6 @@ package body Files_Suite.Settings is
            (To_String (Controller_Result.Operation.Path),
             Draft_Path,
             "closed settings save reports settings path");
-         Files.Model.Begin_Settings_Edit (Draft_Model, Files.Settings.Make_Draft (Draft_Settings));
          Draft.Default_View_Mode := To_Unbounded_String ("details");
          Draft.Show_Hidden_Files := To_Unbounded_String ("true");
          Draft.Sort_Field_Value := To_Unbounded_String ("size");
@@ -2387,89 +2641,120 @@ package body Files_Suite.Settings is
            (To_String (Saved.Error_Key),
             "error.settings.invalid_view_mode",
             "invalid draft save reports validation diagnostic");
-         declare
-            Empty_Settings : Files.Settings.Settings_Model := Loaded.Settings;
-            Empty_Model    : Files.Model.Window_Model := Sample_Model;
-            Empty_Load     : Files.Settings.Settings_Parse_Result;
-            Repair_Draft   : Files.Settings.Settings_Draft;
-         begin
-            Empty_Settings.Extension_Filetypes.Clear;
-            Empty_Settings.Icon_Mappings.Clear;
-            Empty_Settings.Open_Actions.Clear;
-            --  Keep missing open-action lookups deterministic by opting out of
-            --  the host opener fallback that would otherwise resolve.
-            Empty_Settings.Use_System_Default_Opener := False;
-            Files.Model.Begin_Settings_Edit (Empty_Model, Files.Settings.Make_Draft (Empty_Settings));
+      end;
+   end Test_Settings_Draft_Apply_And_Save;
 
-            Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
-            Assert (Empty_Load.Success, "empty mapping draft remains valid after ignored edits");
-            Files_Suite.Support.Assert_Equal
-              (Files.Settings.Filetype_For_Extension (Empty_Load.Settings, "ghost"),
-               "",
-               "ignored empty-list filetype edit is not saved");
-            Files_Suite.Support.Assert_Equal
-              (Files.Settings.Icon_For_Filetype (Empty_Load.Settings, "text/x-ghost"),
-               "",
-               "ignored empty-list icon edit is not saved");
-            Lookup :=
-              Files.Settings.Lookup_Open_Action
-                (Empty_Load.Settings,
-                 "text/x-ghost",
-                 Guikit.Input.No_Modifiers);
-            Assert (not Lookup.Found, "ignored empty-list open-action edit is not saved");
+   procedure Test_Settings_Draft_Ignores_Orphan_Rows (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Loaded : constant Files.Settings.Settings_Parse_Result := Load_Saved_Details_Settings;
+      Lookup : Files.Settings.Action_Lookup_Result;
+   begin
+      declare
+         Empty_Settings : Files.Settings.Settings_Model := Loaded.Settings;
+         Empty_Model    : Files.Model.Window_Model := Sample_Model;
+         Empty_Load     : Files.Settings.Settings_Parse_Result;
+         Repair_Draft   : Files.Settings.Settings_Draft;
+      begin
+         Empty_Settings.Extension_Filetypes.Clear;
+         Empty_Settings.Icon_Mappings.Clear;
+         Empty_Settings.Open_Actions.Clear;
+         --  Keep missing open-action lookups deterministic by opting out of
+         --  the host opener fallback that would otherwise resolve.
+         Empty_Settings.Use_System_Default_Opener := False;
+         Files.Model.Begin_Settings_Edit (Empty_Model, Files.Settings.Make_Draft (Empty_Settings));
 
-            Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
-            Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
-            Repair_Draft.Filetype_Index := 1;
-            Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
-            Assert (Empty_Load.Success, "repaired misaligned filetype draft validates");
-            Files_Suite.Support.Assert_Equal
-              (Files.Settings.Filetype_For_Extension (Empty_Load.Settings, "orphan-ext"),
-               "",
-               "repaired misaligned filetype edit is not saved");
+         Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
+         Assert (Empty_Load.Success, "empty mapping draft remains valid after ignored edits");
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Filetype_For_Extension (Empty_Load.Settings, "ghost"),
+            "",
+            "ignored empty-list filetype edit is not saved");
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Icon_For_Filetype (Empty_Load.Settings, "text/x-ghost"),
+            "",
+            "ignored empty-list icon edit is not saved");
+         Lookup :=
+           Files.Settings.Lookup_Open_Action
+             (Empty_Load.Settings,
+              "text/x-ghost",
+              Guikit.Input.No_Modifiers);
+         Assert (not Lookup.Found, "ignored empty-list open-action edit is not saved");
 
-            Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
-            Repair_Draft.Icon_Values.Append (To_Unbounded_String ("orphan-icon"));
-            Repair_Draft.Icon_Index := 1;
-            Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
-            Assert (Empty_Load.Success, "repaired misaligned icon draft validates");
-            Files_Suite.Support.Assert_Equal
-              (Files.Settings.Icon_For_Filetype (Empty_Load.Settings, "text/x-orphan"),
-               "",
-               "repaired misaligned icon edit is not saved");
+         Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
+         Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
+         Repair_Draft.Filetype_Index := 1;
+         Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
+         Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
+         Assert (Empty_Load.Success, "repaired misaligned filetype draft validates");
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Filetype_For_Extension (Empty_Load.Settings, "orphan-ext"),
+            "",
+            "repaired misaligned filetype edit is not saved");
 
-            Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
-            Repair_Draft.Open_Action_Keys.Append (To_Unbounded_String ("text/x-orphan"));
-            Repair_Draft.Open_Action_Index := 1;
-            Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
-            Assert (Empty_Load.Success, "repaired misaligned open-action draft validates");
-            Lookup :=
-              Files.Settings.Lookup_Open_Action
-                (Empty_Load.Settings,
-                 "text/x-orphan",
-                 Guikit.Input.No_Modifiers);
-            Assert (not Lookup.Found, "repaired misaligned open-action edit is not saved");
+         Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
+         Repair_Draft.Icon_Values.Append (To_Unbounded_String ("orphan-icon"));
+         Repair_Draft.Icon_Index := 1;
+         Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
+         Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
+         Assert (Empty_Load.Success, "repaired misaligned icon draft validates");
+         Files_Suite.Support.Assert_Equal
+           (Files.Settings.Icon_For_Filetype (Empty_Load.Settings, "text/x-orphan"),
+            "",
+            "repaired misaligned icon edit is not saved");
 
-            Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
-            Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
-            Repair_Draft.Filetype_Index := 1;
-            Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-            Files_Suite.Support.Assert_Equal
-              (Natural (Files.Model.Settings_Draft_Of (Empty_Model).Filetype_Keys.Length),
-               0,
-               "begin settings edit drops orphan filetype rows");
+         Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
+         Repair_Draft.Open_Action_Keys.Append (To_Unbounded_String ("text/x-orphan"));
+         Repair_Draft.Open_Action_Index := 1;
+         Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
+         Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
+         Assert (Empty_Load.Success, "repaired misaligned open-action draft validates");
+         Lookup :=
+           Files.Settings.Lookup_Open_Action
+             (Empty_Load.Settings,
+              "text/x-orphan",
+              Guikit.Input.No_Modifiers);
+         Assert (not Lookup.Found, "repaired misaligned open-action edit is not saved");
 
-            Files.Settings.Add_Extension_Mapping (Empty_Settings, "ada", "text/x-ada");
-            Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
-            Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
-            Repair_Draft.Filetype_Index := Natural (Repair_Draft.Filetype_Keys.Length);
-            Repair_Draft.Filetype_Extension := To_Unbounded_String ("stale-ext");
-            Repair_Draft.Filetype_Value := To_Unbounded_String ("text/x-stale");
-            Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-         end;
+         Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
+         Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
+         Repair_Draft.Filetype_Index := 1;
+         Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
+         Files_Suite.Support.Assert_Equal
+           (Natural (Files.Model.Settings_Draft_Of (Empty_Model).Filetype_Keys.Length),
+            0,
+            "begin settings edit drops orphan filetype rows");
+
+         Files.Settings.Add_Extension_Mapping (Empty_Settings, "ada", "text/x-ada");
+         Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
+         Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
+         Repair_Draft.Filetype_Index := Natural (Repair_Draft.Filetype_Keys.Length);
+         Repair_Draft.Filetype_Extension := To_Unbounded_String ("stale-ext");
+         Repair_Draft.Filetype_Value := To_Unbounded_String ("text/x-stale");
+         Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
+      end;
+   end Test_Settings_Draft_Ignores_Orphan_Rows;
+
+   procedure Test_Controller_Settings_Save (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Loaded : constant Files.Settings.Settings_Parse_Result := Load_Saved_Details_Settings;
+   begin
+      Ada.Directories.Create_Path (Join (Root, "settings-dir"));
+      declare
+         Draft_Path : constant String := Join (Join (Root, "draft-config"), "settings.conf");
+         Draft_Load : Files.Settings.Settings_Parse_Result;
+         Draft_Model : Files.Model.Window_Model := Sample_Model;
+         Draft_Settings : Files.Settings.Settings_Model := Loaded.Settings;
+         Controller_Result : Files.Controller.Controller_Result;
+         Lookup : Files.Settings.Action_Lookup_Result;
+         Ctrl : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      begin
+         Ctrl (Guikit.Input.Control_Key) := True;
+         --  The earlier draft save left a settings file at Draft_Path; saves
+         --  replace it atomically, so only its presence matters here.
+         Ada.Directories.Create_Path (Join (Root, "draft-config"));
+         Write_File (Draft_Path, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
+         Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
+         Files.Model.Begin_Settings_Edit (Draft_Model, Files.Settings.Make_Draft (Draft_Settings));
          --  Parse no longer injects the built-in mappings (the file is now
          --  authoritative), so seed this draft-editing test's mapping set from
          --  the defaults directly, keeping the same populated set it relies on.
@@ -2640,6 +2925,20 @@ package body Files_Suite.Settings is
                "controller settings save leaves refresh failure visible");
          end;
       end;
+   end Test_Controller_Settings_Save;
+
+   procedure Test_Ensure_Default_File_Existing_And_Invalid (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Loaded         : Files.Settings.Settings_Parse_Result;
+      Ensured_Path   : constant String := Join (Join (Root, "created-config"), "settings.conf");
+      Ensured        : Files.Settings.Settings_Write_Result;
+      Blocked_Parent : constant String := Join (Root, "blocked-parent");
+      Blocked_Path   : constant String := Join (Blocked_Parent, "settings.conf");
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Join (Root, "settings-dir"));
+      Ada.Directories.Create_Path (Join (Root, "created-config"));
+      Write_File (Blocked_Parent, "not a directory");
       Write_File (Ensured_Path, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
       Ensured := Files.Settings.Ensure_Default_File (Ensured_Path);
       Assert (Ensured.Success, "ensure default settings accepts existing regular file");
@@ -2670,7 +2969,7 @@ package body Files_Suite.Settings is
         (To_String (Ensured.Error_Key),
          "error.settings.save",
          "ensure default settings empty path reports save diagnostic");
-   end Test_Settings_Load_File;
+   end Test_Ensure_Default_File_Existing_And_Invalid;
 
    procedure Test_Settings_Invalid_Boolean (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

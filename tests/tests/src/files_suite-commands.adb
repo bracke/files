@@ -101,11 +101,29 @@ package body Files_Suite.Commands is
    overriding function Name (T : Command_Test_Case) return AUnit.Message_String;
    overriding procedure Register_Tests (T : in out Command_Test_Case);
 
-   procedure Test_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Command_Registry_And_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Clear_Filter_And_No_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Commands_Disabled_Without_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Pure_Command_Execution (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Pane_Toggle_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Field_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Pane_Modal_Blocking (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Recent_View_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Command_Identifiers_Registered (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Command_Modal_Allowlists (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Registered_Command_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Command_Shortcut_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Shortcut_Text_And_Search (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Shortcut_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Command_Placements (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shortcut_Overrides (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Path_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Controller_Filter_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Filter_Focus_And_Palette (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Filter_Input_Editing (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Filter_Input_Utf8_Cursor (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Filter_Word_Editing (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Filter_Word_Control_Separators (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Filter_Word_Unicode_Separators (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Filter_Return_And_Clear (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Range_Edges_And_Picker_Tree (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Multi_Rename_Multibyte_Edits (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Rename_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -128,15 +146,60 @@ package body Files_Suite.Commands is
    overriding procedure Register_Tests (T : in out Command_Test_Case) is
    begin
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Command_Enablement'Access, "command enablement");
+        (T, Test_Clear_Filter_And_No_Command_Enablement'Access, "clear-filter enablement and the no-command no-op");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Command_Registry_And_Shortcuts'Access, "command registry and shortcuts");
+        (T, Test_Commands_Disabled_Without_Selection'Access,
+         "commands without a selection or history are disabled and report why");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Pure_Command_Execution'Access, "pure command execution touches neither filesystem nor history");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Pane_Toggle_Commands'Access, "the settings pane toggles, seeds a draft, and resets");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Field_Keys'Access, "settings fields keep the caret at the end and validate on Return");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Pane_Modal_Blocking'Access,
+         "the settings pane opens by shortcut and blocks background commands");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Recent_View_Command_Enablement'Access,
+         "the virtual recent view disables create, paste, rename, and search");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Command_Identifiers_Registered'Access, "command identifiers are registered");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Command_Modal_Allowlists'Access, "commands allowed while the root selector or settings pane is open");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Registered_Command_Metadata'Access,
+         "every registered command has localized metadata and unique shortcuts");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Command_Shortcut_Metadata'Access, "command shortcut and persistence metadata");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Shortcut_Text_And_Search'Access, "shortcut text is normalized and search text includes aliases");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Shortcut_Dispatch'Access, "shortcuts dispatch through the command registry");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Command_Placements'Access, "commands are placed in the toolbar, bottom bar, or palette");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Shortcut_Overrides'Access, "shortcut parsing, override resolution, and conflict lookup");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Controller_Path_Input_Return'Access, "controller commits path input on Return");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Controller_Filter_Input_Return'Access, "controller commits filter input on Return");
+        (T, Test_Filter_Focus_And_Palette'Access,
+         "the filter shortcut focuses the filter and hands focus to the palette");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Filter_Input_Editing'Access, "filter input edits text at the cursor and updates the projection");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Filter_Input_Utf8_Cursor'Access,
+         "the filter cursor moves and deletes whole UTF-8 characters and combining sequences");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Filter_Word_Editing'Access, "Control word movement and deletion in the filter input");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Filter_Word_Control_Separators'Access,
+         "ASCII and C1 control characters separate words in the filter input");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Filter_Word_Unicode_Separators'Access,
+         "Unicode spaces separate words and multibyte letters form whole words in the filter input");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Filter_Return_And_Clear'Access,
+         "controller commits filter input on Return and clear-filter restores the listing");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Range_Edges_And_Picker_Tree'Access,
          "Shift+arrow stops at the listing's edges, and Copy To leaves an open folder tree open");
@@ -165,16 +228,23 @@ package body Files_Suite.Commands is
         (T, Test_Tab_Focus_Ring'Access, "Tab and Shift+Tab cycle focus around grid, path input, and filter");
    end Register_Tests;
 
-   procedure Test_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
+   function Same_Shortcut
+     (Left  : Files.Commands.Shortcut;
+      Right : Files.Commands.Shortcut)
+      return Boolean is
+   begin
+      return Left.Present
+        and then Right.Present
+        and then Left.Key = Right.Key
+        and then Left.Modifiers = Right.Modifiers;
+   end Same_Shortcut;
+
+   procedure Test_Clear_Filter_And_No_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Sample_Model;
-      Empty    : Files.File_System.Item_Vectors.Vector;
-      Clipboard : Files.Types.String_Vectors.Vector;
       Result   : Files.Controller.Controller_Result;
-      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
    begin
-      Ctrl (Guikit.Input.Control_Key) := True;
       Assert (not Files.Commands.Is_Enabled (Files.Commands.No_Command, Model), "no-command is never enabled");
       Assert (Files.Commands.Is_Enabled (Files.Commands.Create_File_Command, Model), "create is enabled initially");
       Assert
@@ -220,7 +290,14 @@ package body Files_Suite.Commands is
         (Files.Model.View_Mode_Of (Model),
          Files.Types.Small_Icons,
          "direct no-command execution preserves view");
+   end Test_Clear_Filter_And_No_Command_Enablement;
 
+   procedure Test_Commands_Disabled_Without_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Result   : Files.Controller.Controller_Result;
+   begin
       Assert (not Files.Commands.Is_Enabled (Files.Commands.Navigate_Back_Command, Model), "back disabled initially");
       Files.Commands.Execute (Files.Commands.Navigate_Back_Command, Model);
       Files_Suite.Support.Assert_Equal
@@ -344,7 +421,13 @@ package body Files_Suite.Commands is
         (Files.Commands.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
          "context cancel enabled while root selector is open");
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Model := Sample_Model;
+   end Test_Commands_Disabled_Without_Selection;
+
+   procedure Test_Pure_Command_Execution (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model : Files.Model.Window_Model := Sample_Model;
+      Empty : Files.File_System.Item_Vectors.Vector;
+   begin
       Files.Commands.Execute (Files.Commands.Select_Drive_Command, Model);
       Assert
         (not Files.Model.Root_Selector_Is_Open (Model),
@@ -405,6 +488,15 @@ package body Files_Suite.Commands is
         (Files.Commands.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
          "context cancel enabled while rename is active");
       Files.Model.Cancel_Focus_Or_Edit (Model);
+   end Test_Pure_Command_Execution;
+
+   procedure Test_Settings_Pane_Toggle_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
       Assert
         (Files.Commands.Is_Enabled (Files.Commands.Toggle_Settings_Pane_Command, Model),
          "settings pane command is enabled in the normal model state");
@@ -472,6 +564,20 @@ package body Files_Suite.Commands is
         (Result.Operation.Status,
          Files.Operations.Operation_Disabled,
          "pure save settings command keeps runtime path-resolution sentinel");
+   end Test_Settings_Pane_Toggle_Commands;
+
+   procedure Test_Settings_Field_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Result   : Files.Controller.Controller_Result;
+      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+   begin
+      Ctrl (Guikit.Input.Control_Key) := True;
+      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Files.Controller.Replace_Focused_Text (Model, "details");
+      Result := Files.Controller.Execute_Command (Files.Commands.Reset_Settings_Command, Model, Settings);
       --  Opening the pane now focuses the first setting, not the preamble action
       --  buttons. The settings caret is not movable -- it always rests at the end
       --  of the focused value -- so a manually set cursor is superseded by that end
@@ -554,6 +660,17 @@ package body Files_Suite.Commands is
          "valid settings draft field validates on Return");
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "controller closes settings pane");
+   end Test_Settings_Field_Keys;
+
+   procedure Test_Settings_Pane_Modal_Blocking (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Result   : Files.Controller.Controller_Result;
+      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+   begin
+      Ctrl (Guikit.Input.Control_Key) := True;
+      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Comma, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
@@ -667,7 +784,17 @@ package body Files_Suite.Commands is
       Files.Model.Close_Command_Palette (Model);
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes before history enablement check");
+   end Test_Settings_Pane_Modal_Blocking;
 
+   procedure Test_Recent_View_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Empty    : Files.File_System.Item_Vectors.Vector;
+      Clipboard : Files.Types.String_Vectors.Vector;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Files.Model.Select_Visible (Model, 1);
       Clipboard.Append (To_Unbounded_String (Join (Root, "Alpha.txt")));
       Files.Model.Set_Clipboard (Model, Clipboard, Files.Model.Clipboard_Copy);
       Files.Model.Navigate_Recent (Model, Empty);
@@ -705,37 +832,11 @@ package body Files_Suite.Commands is
          "disabled recent-view search reports the missing directory root");
       Files.Model.Navigate_To (Model, "/tmp/files_aunit/next", Empty);
       Assert (Files.Commands.Is_Enabled (Files.Commands.Navigate_Back_Command, Model), "back enabled after navigation");
-   end Test_Command_Enablement;
+   end Test_Recent_View_Command_Enablement;
 
-   procedure Test_Command_Registry_And_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class) is
+   procedure Test_Command_Identifiers_Registered (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Ctrl          : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Alt           : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Shift         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Ctrl_Shift    : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Small_Shortcut : Files.Commands.Shortcut;
-      Drive_Shortcut : Files.Commands.Shortcut;
-      Settings_Shortcut : Files.Commands.Shortcut;
-      Empty_Shortcut : Files.Commands.Shortcut;
-      Delete_Secondary : Files.Commands.Shortcut;
-      Empty_Secondary : Files.Commands.Shortcut;
-
-      function Same_Shortcut
-        (Left  : Files.Commands.Shortcut;
-         Right : Files.Commands.Shortcut)
-         return Boolean is
-      begin
-         return Left.Present
-           and then Right.Present
-           and then Left.Key = Right.Key
-           and then Left.Modifiers = Right.Modifiers;
-      end Same_Shortcut;
    begin
-      Ctrl (Guikit.Input.Control_Key) := True;
-      Alt (Guikit.Input.Alt_Key) := True;
-      Shift (Guikit.Input.Shift_Key) := True;
-      Ctrl_Shift (Guikit.Input.Control_Key) := True;
-      Ctrl_Shift (Guikit.Input.Shift_Key) := True;
       Files_Suite.Support.Assert_Equal (Files.Commands.Command_Count, 73, "all expected commands are registered");
       Assert (Files.Commands.Contains ("status.free_space_toggle"),
               "free/used-space toggle command identifier is registered");
@@ -793,6 +894,11 @@ package body Files_Suite.Commands is
         (Files.Commands.Contains ("directory.search_recursive"),
          "recursive search command identifier is registered");
       Assert (not Files.Commands.Contains (""), "empty command identifier is not registered");
+   end Test_Command_Identifiers_Registered;
+
+   procedure Test_Command_Modal_Allowlists (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
       Files_Suite.Support.Assert_Equal
         (Files.Commands.Placement_For (Files.Commands.No_Command),
          Files.Commands.No_Placement,
@@ -839,6 +945,11 @@ package body Files_Suite.Commands is
       Assert
         (not Files.Commands.Command_Palette_Visible (Files.Commands.No_Command),
          "no-command is hidden from the command palette");
+   end Test_Command_Modal_Allowlists;
+
+   procedure Test_Registered_Command_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
       for Id in Files.Commands.Registered_Command_Id loop
          declare
             Identifier : constant String := Files.Commands.Identifier (Id);
@@ -934,6 +1045,19 @@ package body Files_Suite.Commands is
             end if;
          end;
       end loop;
+   end Test_Registered_Command_Metadata;
+
+   procedure Test_Command_Shortcut_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Ctrl              : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Small_Shortcut    : Files.Commands.Shortcut;
+      Drive_Shortcut    : Files.Commands.Shortcut;
+      Settings_Shortcut : Files.Commands.Shortcut;
+      Empty_Shortcut    : Files.Commands.Shortcut;
+      Delete_Secondary  : Files.Commands.Shortcut;
+      Empty_Secondary   : Files.Commands.Shortcut;
+   begin
+      Ctrl (Guikit.Input.Control_Key) := True;
       Small_Shortcut := Files.Commands.Shortcut_For (Files.Commands.Select_Small_Icons_Command);
       Assert (Small_Shortcut.Present, "shortcut metadata marks small-icons shortcut present");
       Files_Suite.Support.Assert_Equal
@@ -1000,6 +1124,11 @@ package body Files_Suite.Commands is
       Assert
         (Delete_Secondary.Modifiers = Guikit.Input.No_Modifiers,
          "delete secondary shortcut has no modifiers");
+   end Test_Command_Shortcut_Metadata;
+
+   procedure Test_Shortcut_Text_And_Search (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
       Files_Suite.Support.Assert_Equal
         (Files.Commands.Shortcut_Text (Files.Commands.Shortcut_For (Files.Commands.Open_Command_Palette_Command)),
          "control+p",
@@ -1062,6 +1191,20 @@ package body Files_Suite.Commands is
         (Files.Commands.Shortcut_Search_Text (Files.Commands.No_Command),
          "",
          "no-command has no shortcut search text");
+   end Test_Shortcut_Text_And_Search;
+
+   procedure Test_Shortcut_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Ctrl       : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Alt        : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Shift      : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Ctrl_Shift : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+   begin
+      Ctrl (Guikit.Input.Control_Key) := True;
+      Alt (Guikit.Input.Alt_Key) := True;
+      Shift (Guikit.Input.Shift_Key) := True;
+      Ctrl_Shift (Guikit.Input.Control_Key) := True;
+      Ctrl_Shift (Guikit.Input.Shift_Key) := True;
       Files_Suite.Support.Assert_Equal
         (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_1, Ctrl),
          Files.Commands.Select_Small_Icons_Command,
@@ -1202,6 +1345,16 @@ package body Files_Suite.Commands is
         (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Y, Ctrl),
          Files.Commands.Redo_Command,
          "Ctrl+Y is a secondary redo accelerator alongside Ctrl+Shift+Z");
+   end Test_Shortcut_Dispatch;
+
+   procedure Test_Command_Placements (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Ctrl       : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Ctrl_Shift : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+   begin
+      Ctrl (Guikit.Input.Control_Key) := True;
+      Ctrl_Shift (Guikit.Input.Control_Key) := True;
+      Ctrl_Shift (Guikit.Input.Shift_Key) := True;
       Files_Suite.Support.Assert_Equal
         (Files.Commands.Placement_For (Files.Commands.Select_Drive_Command),
          Files.Commands.Toolbar_Left,
@@ -1336,7 +1489,7 @@ package body Files_Suite.Commands is
         (Files.Commands.Placement_For (Files.Commands.Save_Settings_Command),
          Files.Commands.Command_Palette_Only,
          "settings save command is palette-only metadata");
-   end Test_Command_Registry_And_Shortcuts;
+   end Test_Command_Placements;
 
    procedure Test_Shortcut_Overrides (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1731,17 +1884,14 @@ package body Files_Suite.Commands is
       Assert (not Files.Model.Tree_Panel_Is_Open (Model), "and closes it again when the pick ends");
    end Test_Range_Edges_And_Picker_Tree;
 
-   procedure Test_Controller_Filter_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is
+   procedure Test_Filter_Focus_And_Palette (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Sample_Model;
       Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Ctrl_Shift : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result   : Files.Controller.Controller_Result;
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
-      Ctrl_Shift (Guikit.Input.Control_Key) := True;
-      Ctrl_Shift (Guikit.Input.Shift_Key) := True;
       Files.Model.Set_Error (Model, "error.path.missing");
       Files.Model.Open_Command_Palette (Model);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F, Ctrl);
@@ -1782,6 +1932,16 @@ package body Files_Suite.Commands is
          Files.Commands.Close_Command_Palette_Command,
          "Escape closes palette after filter shortcut");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "palette closes before filter editing resumes");
+   end Test_Filter_Focus_And_Palette;
+
+   procedure Test_Filter_Input_Editing (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Ctrl (Guikit.Input.Control_Key) := True;
       Files.Model.Focus_Filter_Input (Model);
 
       Files.Model.Select_Visible (Model, 2);
@@ -1946,6 +2106,15 @@ package body Files_Suite.Commands is
         (Files.Model.Filter_Text (Model),
          "beta",
          "filter append after short replacement uses clamped cursor");
+   end Test_Filter_Input_Editing;
+
+   procedure Test_Filter_Input_Utf8_Cursor (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Files.Model.Focus_Filter_Input (Model);
       declare
          Utf8_Text : constant String := Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00E9#));
          Combining_Text : constant String :=
@@ -2069,6 +2238,17 @@ package body Files_Suite.Commands is
             Combining_Text'Length,
             "filter append leaves cursor after appended trailing combining mark");
       end;
+   end Test_Filter_Input_Utf8_Cursor;
+
+   procedure Test_Filter_Word_Editing (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Ctrl (Guikit.Input.Control_Key) := True;
+      Files.Model.Focus_Filter_Input (Model);
       Files.Controller.Replace_Focused_Text (Model, "alpha beta-gamma");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),
@@ -2134,7 +2314,18 @@ package body Files_Suite.Commands is
             "overlong UTF-8 bytes remain separate cursor and deletion units");
       end;
       Files.Controller.Replace_Focused_Text (Model, "beta");
+   end Test_Filter_Word_Editing;
 
+   procedure Test_Filter_Word_Control_Separators (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+      pragma Unreferenced (Result);
+   begin
+      Ctrl (Guikit.Input.Control_Key) := True;
+      Files.Model.Focus_Filter_Input (Model);
       Files.Controller.Replace_Focused_Text (Model, "alpha" & ASCII.LF & "beta");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
       Files_Suite.Support.Assert_Equal
@@ -2205,6 +2396,18 @@ package body Files_Suite.Commands is
             "alpha",
             "Control+Delete removes next word across C1 NEL");
       end;
+   end Test_Filter_Word_Control_Separators;
+
+   procedure Test_Filter_Word_Unicode_Separators (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+      pragma Unreferenced (Result);
+   begin
+      Ctrl (Guikit.Input.Control_Key) := True;
+      Files.Model.Focus_Filter_Input (Model);
       declare
          NBSP : constant String := Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#));
       begin
@@ -2287,6 +2490,19 @@ package body Files_Suite.Commands is
             8,
             "Control+Left treats UTF-8 line separator as word separator");
       end;
+   end Test_Filter_Word_Unicode_Separators;
+
+   procedure Test_Filter_Return_And_Clear (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Ctrl_Shift : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Ctrl_Shift (Guikit.Input.Control_Key) := True;
+      Ctrl_Shift (Guikit.Input.Shift_Key) := True;
+      Files.Model.Focus_Filter_Input (Model);
+      Files.Model.Select_Visible (Model, 2);
       Files.Controller.Replace_Focused_Text (Model, "beta");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
@@ -2330,7 +2546,7 @@ package body Files_Suite.Commands is
       Assert
         (not Files.Commands.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
          "clear-filter disables after clearing");
-   end Test_Controller_Filter_Input_Return;
+   end Test_Filter_Return_And_Clear;
 
    procedure Test_Controller_Rename_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

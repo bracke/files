@@ -112,7 +112,10 @@ package body Files_Suite.Model is
    procedure Test_History_Bounds (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_History_Restore_Admission (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Directory_Projection_Settings (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Directory_Metadata_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Filetype_Metadata_Policy (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Executable_And_Symlink_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Text_Encoding_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Document_Media_And_Source_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filetype_Detection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_View_Mode_State (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Selection_Movement (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -122,12 +125,30 @@ package body Files_Suite.Model is
    procedure Test_Path_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Path_Input_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Runtime_Sort_State (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Root_Selector_And_Root_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Root_Discovery (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Root_Volume_Capabilities_And_Platform_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Root_Discovery_Environment_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Root_Selector_Open_And_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Root_Volume_Details_By_Mount_Kind (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Root_Selector_Eject_And_Open (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Root_Selector_Settings_Exclusivity_And_Close (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Root_Selection_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Root_Selector_Keyboard_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Root_Selector_Blocks_Background_Input (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Root_Selector_Row_Activation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bounded_Host_Text_Records (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Info_And_Bottom_Bar_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_Pane_Toggle_And_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_Pane_Scroll_Resets_And_Settings_Block (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_View_Mode_And_Bottom_Bar_Clicks (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Grid_Page_Keys_Page_The_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Main_View_Scroll_And_Settings_Block (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Rename_Mode (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Multi_Rename_Broadcast (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Create_File_Temporary_State (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Create_File_Command_State (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Create_File_Temporary_Item_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Create_File_Mixed_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Create_File_Cancellation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Untitled_Name_Generation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Error_State (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Content_Prep (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Model_State (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -153,7 +174,15 @@ package body Files_Suite.Model is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Directory_Projection_Settings'Access, "directory projection settings");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Directory_Metadata_Permissions'Access, "directory metadata permissions");
+        (T, Test_Filetype_Metadata_Policy'Access,
+         "filetype metadata policy names what the current implementation parses");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Executable_And_Symlink_Metadata'Access, "directory metadata permissions for executables and symlinks");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Text_Encoding_Metadata'Access, "directory metadata reports text line counts and encodings");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Document_Media_And_Source_Metadata'Access,
+         "directory metadata for images, documents, archives, media and source files");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Filetype_Detection'Access, "filetype detection");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -173,18 +202,66 @@ package body Files_Suite.Model is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Runtime_Sort_State'Access, "runtime sort state");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Root_Selector_And_Root_Selection'Access, "root selector and root selection");
+        (T, Test_Root_Discovery'Access, "root discovery is deterministic, duplicate-free and describes each root");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Root_Volume_Capabilities_And_Platform_Profiles'Access,
+         "root volume capabilities and native platform API profiles");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Root_Discovery_Environment_Profiles'Access,
+         "root discovery honours HOMEDRIVE/HOMEPATH and collapses HOME/USERPROFILE");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Root_Selector_Open_And_Snapshot'Access,
+         "drive command opens the root selector and the snapshot renders localized labels");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Root_Volume_Details_By_Mount_Kind'Access,
+         "root volume details classify malformed, network and local roots");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Root_Selector_Eject_And_Open'Access, "root selector eject and open-selected-root commands");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Root_Selector_Settings_Exclusivity_And_Close'Access,
+         "root selector excludes settings and closes by toggle, Escape and close command");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Root_Selection_Navigation'Access,
+         "root selection navigates, reports invalid roots and clears pending edits");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Root_Selector_Keyboard_Navigation'Access, "root selector keyboard navigation wraps and clamps");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Root_Selector_Blocks_Background_Input'Access,
+         "root selector blocks background input but allows palette and drive toggle");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Root_Selector_Row_Activation'Access, "root selector Return and row click activate a root");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bounded_Host_Text_Records'Access,
          "bounded host text input rejects an oversized physical record atomically");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Info_And_Bottom_Bar_Commands'Access, "info pane and bottom bar commands");
+        (T, Test_Info_Pane_Toggle_And_Scroll'Access, "info pane toggles and pages, saturating and clamping its scroll");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Info_Pane_Scroll_Resets_And_Settings_Block'Access,
+         "info pane scroll resets on selection changes and is blocked by settings");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_View_Mode_And_Bottom_Bar_Clicks'Access, "view mode shortcuts and bottom bar command clicks");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Grid_Page_Keys_Page_The_Selection'Access, "grid PageUp/PageDown page the selection");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Main_View_Scroll_And_Settings_Block'Access,
+         "main view scroll saturates and is blocked by the settings pane");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Rename_Mode'Access, "rename mode");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Multi_Rename_Broadcast'Access, "synchronized multi-rename broadcast");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Create_File_Temporary_State'Access, "create-file temporary item state");
+        (T, Test_Create_File_Command_State'Access,
+         "create-file command adds one temporary item and closes stale overlays");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Create_File_Temporary_Item_Guards'Access,
+         "pending temporary item is visible and selected but not openable, deletable or renamable");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Create_File_Mixed_Selection'Access, "mixed selection with a temporary item disables open and delete");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Create_File_Cancellation'Access,
+         "F2, Escape and item click cancel a pending create without writing a file");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Untitled_Name_Generation'Access, "untitled name generation skips existing entries and gaps");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Error_State'Access, "error-state representation");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -676,76 +753,14 @@ package body Files_Suite.Model is
          "descending modified sort orders older item last");
    end Test_Directory_Projection_Settings;
 
-   procedure Test_Directory_Metadata_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class) is
+   --  The "extra info" is now computed lazily (not stored on load), so tests
+   --  compute it on demand via the shared token function.
+   function Item_Extra (I : Files.File_System.Directory_Item) return String is
+     (Files.File_System.Extra_Info_Token
+        (To_String (I.Full_Path), I.Kind, To_String (I.Filetype)));
+
+   procedure Test_Filetype_Metadata_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      --  The "extra info" is now computed lazily (not stored on load), so tests
-      --  compute it on demand via the shared token function.
-      function Item_Extra (I : Files.File_System.Directory_Item) return String is
-        (Files.File_System.Extra_Info_Token
-           (To_String (I.Full_Path), I.Kind, To_String (I.Filetype)));
-      Run_Path  : constant String := Join (Root, "run.sh");
-      --  What "executable" means is host-specific, so cover both meanings: the
-      --  mode bit on POSIX, the extension on Windows. See Support.Honours_Executable_Bit.
-      Bat_Path  : constant String := Join (Root, "run.bat");
-      Text_Path : constant String := Join (Root, "plain.txt");
-      Long_Text_Path : constant String := Join (Root, "long-line.txt");
-      Utf8_Path : constant String := Join (Root, "utf8.txt");
-      Binary_Text_Path : constant String := Join (Root, "binary.txt");
-      Late_Binary_Text_Path : constant String := Join (Root, "late-binary.txt");
-      Sampled_Text_Path : constant String := Join (Root, "sampled.txt");
-      Huge_Oneline_Path : constant String := Join (Root, "huge-oneline.txt");
-      Split_Utf8_Path : constant String := Join (Root, "split-utf8.txt");
-      Overlong_Text_Path : constant String := Join (Root, "overlong.txt");
-      Surrogate_Text_Path : constant String := Join (Root, "surrogate.txt");
-      Markdown_Path : constant String := Join (Root, "notes.md");
-      Png_Path  : constant String := Join (Root, "picture.png");
-      Jpeg_Path : constant String := Join (Root, "photo.jpg");
-      Pdf_Path  : constant String := Join (Root, "paper.pdf");
-      Pdf_Control_Path : constant String := Join (Root, "paper-control.pdf");
-      Zip_Path  : constant String := Join (Root, "bundle.zip");
-      Split_Zip_Path : constant String := Join (Root, "split.zip");
-      Docx_Path : constant String := Join (Root, "report.docx");
-      Xlsx_Path : constant String := Join (Root, "sheet.xlsx");
-      Mp3_Path  : constant String := Join (Root, "track.mp3");
-      Mp4_Path  : constant String := Join (Root, "clip.mp4");
-      Tar_Gz_Path : constant String := Join (Root, "archive.tar.gz");
-      Ada_Path  : constant String := Join (Root, "unit.adb");
-      Json_Path : constant String := Join (Root, "data.json");
-      Xml_Path  : constant String := Join (Root, "doc.xml");
-      Symlink_Path : constant String := Join (Root, "link-to-plain.adb");
-      Executable_Symlink_Path : constant String := Join (Root, "link-to-run.sh");
-      Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Load      : Files.File_System.Directory_Load_Result;
-      Found_Run : Boolean := False;
-      Found_Symlink : Boolean := False;
-      Found_Executable_Symlink : Boolean := False;
-      Symlink_Created : Boolean := False;
-      Executable_Symlink_Created : Boolean := False;
-      Found_Long_Text : Boolean := False;
-      Found_Utf8 : Boolean := False;
-      Found_Binary_Text : Boolean := False;
-      Found_Late_Binary_Text : Boolean := False;
-      Found_Sampled_Text : Boolean := False;
-      Found_Huge_Oneline : Boolean := False;
-      Found_Split_Utf8 : Boolean := False;
-      Found_Overlong_Text : Boolean := False;
-      Found_Surrogate_Text : Boolean := False;
-      Found_Markdown : Boolean := False;
-      Found_Png : Boolean := False;
-      Found_Jpeg : Boolean := False;
-      Found_Dir : Boolean := False;
-      Found_Pdf : Boolean := False;
-      Found_Pdf_Control : Boolean := False;
-      Found_Zip : Boolean := False;
-      Found_Split_Zip : Boolean := False;
-      Found_Docx : Boolean := False;
-      Found_Xlsx : Boolean := False;
-      Found_Mp3 : Boolean := False;
-      Found_Mp4 : Boolean := False;
-      Found_Tar_Gz : Boolean := False;
-      Found_Ada : Boolean := False;
-      Found_Json : Boolean := False;
-      Found_Xml : Boolean := False;
       Metadata_Policy : constant Files.File_System.Filetype_Metadata_Policy :=
         Files.File_System.Filetype_Metadata_Policy_Of_Current_Implementation;
    begin
@@ -757,59 +772,29 @@ package body Files_Suite.Model is
       Assert (Metadata_Policy.Parses_Pdf_Page_Markers, "metadata policy parses PDF page markers");
       Assert (not Metadata_Policy.Parses_Media_Codecs, "metadata policy does not claim media codecs");
       Assert (Metadata_Policy.Parses_Office_Package_Info, "metadata policy parses Office package info");
+   end Test_Filetype_Metadata_Policy;
+
+   procedure Test_Executable_And_Symlink_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Run_Path  : constant String := Join (Root, "run.sh");
+      --  What "executable" means is host-specific, so cover both meanings: the
+      --  mode bit on POSIX, the extension on Windows. See Support.Honours_Executable_Bit.
+      Bat_Path  : constant String := Join (Root, "run.bat");
+      Text_Path : constant String := Join (Root, "plain.txt");
+      Symlink_Path : constant String := Join (Root, "link-to-plain.adb");
+      Executable_Symlink_Path : constant String := Join (Root, "link-to-run.sh");
+      Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Load      : Files.File_System.Directory_Load_Result;
+      Found_Run : Boolean := False;
+      Found_Symlink : Boolean := False;
+      Found_Executable_Symlink : Boolean := False;
+      Symlink_Created : Boolean := False;
+      Executable_Symlink_Created : Boolean := False;
+   begin
       Reset_Root;
-      Ada.Directories.Create_Path (Join (Root, "folder"));
-      Write_File (Join (Join (Root, "folder"), "inside.txt"));
       Write_File (Run_Path, "echo run");
       Write_File (Bat_Path, "@echo run");
       Write_File (Text_Path, "plain");
-      Write_File (Long_Text_Path, String'(1 .. 2048 => 'x'));
-      Write_Binary_File (Utf8_Path, "caf" & Character'Val (16#C3#) & Character'Val (16#A9#));
-      Write_Binary_File (Binary_Text_Path, "bad" & Character'Val (16#C3#));
-      Write_Binary_File (Late_Binary_Text_Path, String'(1 .. 4096 => 'x') & Character'Val (0));
-      --  A binary byte only past the 128 KiB encoding sample window: a bounded
-      --  scan classifies this by its clean prefix and never reads the NUL.
-      Write_Binary_File (Sampled_Text_Path, String'(1 .. 131_072 => 'x') & Character'Val (0));
-      --  Bigger than the metadata readers' 8 MiB scan cap and newline-free until
-      --  past it: a correctly capped line count stops early and reports the one
-      --  trailing partial line (1), rather than reading the whole file to find
-      --  the two newlines near its end.
-      Write_Filler_File
-        (Huge_Oneline_Path, 'x', 8_388_610, Character'Val (10) & "A" & Character'Val (10));
-      Write_Binary_File
-        (Split_Utf8_Path,
-         String'(1 .. 4095 => 'x') & Character'Val (16#C3#) & Character'Val (16#A9#));
-      Write_Binary_File
-        (Overlong_Text_Path,
-         "bad" & Character'Val (16#E0#) & Character'Val (16#80#) & Character'Val (16#80#));
-      Write_Binary_File
-        (Surrogate_Text_Path,
-         "bad" & Character'Val (16#ED#) & Character'Val (16#A0#) & Character'Val (16#80#));
-      Write_File (Markdown_Path, "# Title" & ASCII.LF & "body");
-      Write_Binary_File (Png_Path, Minimal_Png_Header (32, 16));
-      Write_Binary_File (Jpeg_Path, Minimal_Jpeg_With_Fill (48, 24));
-      Write_File
-        (Pdf_Path,
-         "%PDF-1.7" & ASCII.LF &
-         "1 0 obj /Type /Pages endobj" & ASCII.LF &
-         "2 0 obj /Type /Page endobj");
-      Write_File
-        (Pdf_Control_Path,
-         "%PDF-1.7" & ASCII.LF &
-         "1 0 obj /Type /Page" & ASCII.VT & "endobj" & ASCII.LF &
-         "2 0 obj /Type /Page" & ASCII.FF & "endobj");
-      Write_Binary_File (Zip_Path, "PK" & Character'Val (1) & Character'Val (2));
-      Write_Binary_File
-        (Split_Zip_Path,
-         String'(1 .. 4094 => 'x') & "PK" & Character'Val (1) & Character'Val (2));
-      Write_Binary_File (Docx_Path, "PK" & Character'Val (1) & Character'Val (2));
-      Write_Binary_File (Xlsx_Path, "PK" & Character'Val (1) & Character'Val (2));
-      Write_File (Mp3_Path, "ID3");
-      Write_File (Mp4_Path, "....ftyp");
-      Write_Binary_File (Tar_Gz_Path, Character'Val (16#1F#) & Character'Val (16#8B#) & "gzip");
-      Write_File (Ada_Path, "procedure Unit is" & ASCII.LF & "begin" & ASCII.LF & "null;" & ASCII.LF & "end;");
-      Write_File (Json_Path, "{""ok"":true}");
-      Write_File (Xml_Path, "<root/>");
       GNAT.OS_Lib.Set_Executable (Run_Path);
       Symlink_Created := Create_Symlink ("plain.txt", Symlink_Path);
       Executable_Symlink_Created := Create_Symlink ("run.sh", Executable_Symlink_Path);
@@ -888,7 +873,72 @@ package body Files_Suite.Model is
               (Item_Extra (Item),
                "symlink.target|run.sh",
                "executable symlink records target metadata");
-         elsif To_String (Item.Name) = "long-line.txt" then
+         end if;
+      end loop;
+
+      Assert (Found_Run, "executable item was loaded");
+      if Symlink_Created then
+         Assert (Found_Symlink, "symlink item was loaded");
+      end if;
+      if Executable_Symlink_Created then
+         Assert (Found_Executable_Symlink, "executable symlink item was loaded");
+      end if;
+   end Test_Executable_And_Symlink_Metadata;
+
+   procedure Test_Text_Encoding_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Long_Text_Path : constant String := Join (Root, "long-line.txt");
+      Utf8_Path : constant String := Join (Root, "utf8.txt");
+      Binary_Text_Path : constant String := Join (Root, "binary.txt");
+      Late_Binary_Text_Path : constant String := Join (Root, "late-binary.txt");
+      Sampled_Text_Path : constant String := Join (Root, "sampled.txt");
+      Huge_Oneline_Path : constant String := Join (Root, "huge-oneline.txt");
+      Split_Utf8_Path : constant String := Join (Root, "split-utf8.txt");
+      Overlong_Text_Path : constant String := Join (Root, "overlong.txt");
+      Surrogate_Text_Path : constant String := Join (Root, "surrogate.txt");
+      Markdown_Path : constant String := Join (Root, "notes.md");
+      Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Load      : Files.File_System.Directory_Load_Result;
+      Found_Long_Text : Boolean := False;
+      Found_Utf8 : Boolean := False;
+      Found_Binary_Text : Boolean := False;
+      Found_Late_Binary_Text : Boolean := False;
+      Found_Sampled_Text : Boolean := False;
+      Found_Huge_Oneline : Boolean := False;
+      Found_Split_Utf8 : Boolean := False;
+      Found_Overlong_Text : Boolean := False;
+      Found_Surrogate_Text : Boolean := False;
+      Found_Markdown : Boolean := False;
+   begin
+      Reset_Root;
+      Write_File (Long_Text_Path, String'(1 .. 2048 => 'x'));
+      Write_Binary_File (Utf8_Path, "caf" & Character'Val (16#C3#) & Character'Val (16#A9#));
+      Write_Binary_File (Binary_Text_Path, "bad" & Character'Val (16#C3#));
+      Write_Binary_File (Late_Binary_Text_Path, String'(1 .. 4096 => 'x') & Character'Val (0));
+      --  A binary byte only past the 128 KiB encoding sample window: a bounded
+      --  scan classifies this by its clean prefix and never reads the NUL.
+      Write_Binary_File (Sampled_Text_Path, String'(1 .. 131_072 => 'x') & Character'Val (0));
+      --  Bigger than the metadata readers' 8 MiB scan cap and newline-free until
+      --  past it: a correctly capped line count stops early and reports the one
+      --  trailing partial line (1), rather than reading the whole file to find
+      --  the two newlines near its end.
+      Write_Filler_File
+        (Huge_Oneline_Path, 'x', 8_388_610, Character'Val (10) & "A" & Character'Val (10));
+      Write_Binary_File
+        (Split_Utf8_Path,
+         String'(1 .. 4095 => 'x') & Character'Val (16#C3#) & Character'Val (16#A9#));
+      Write_Binary_File
+        (Overlong_Text_Path,
+         "bad" & Character'Val (16#E0#) & Character'Val (16#80#) & Character'Val (16#80#));
+      Write_Binary_File
+        (Surrogate_Text_Path,
+         "bad" & Character'Val (16#ED#) & Character'Val (16#A0#) & Character'Val (16#80#));
+      Write_File (Markdown_Path, "# Title" & ASCII.LF & "body");
+
+      Load := Files.File_System.Load_Directory (Root, Settings);
+
+      for Item of Load.Items loop
+         if To_String (Item.Name) = "long-line.txt" then
             Found_Long_Text := True;
             Files_Suite.Support.Assert_Equal
               (Item_Extra (Item),
@@ -948,7 +998,87 @@ package body Files_Suite.Model is
               (Item_Extra (Item),
                "markdown.lines_encoding|2|ascii",
                "Markdown files expose markdown line and encoding metadata");
-         elsif To_String (Item.Name) = "picture.png" then
+         end if;
+      end loop;
+
+      Assert (Found_Long_Text, "long text line item was loaded");
+      Assert (Found_Utf8, "UTF-8 text item was loaded");
+      Assert (Found_Binary_Text, "binary text item was loaded");
+      Assert (Found_Late_Binary_Text, "late binary text item was loaded");
+      Assert (Found_Sampled_Text, "sampled text item was loaded");
+      Assert (Found_Huge_Oneline, "huge single-line text item was loaded");
+      Assert (Found_Split_Utf8, "split UTF-8 text item was loaded");
+      Assert (Found_Overlong_Text, "overlong UTF-8 text item was loaded");
+      Assert (Found_Surrogate_Text, "surrogate UTF-8 text item was loaded");
+      Assert (Found_Markdown, "Markdown item was loaded");
+   end Test_Text_Encoding_Metadata;
+
+   procedure Test_Document_Media_And_Source_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Png_Path  : constant String := Join (Root, "picture.png");
+      Jpeg_Path : constant String := Join (Root, "photo.jpg");
+      Pdf_Path  : constant String := Join (Root, "paper.pdf");
+      Pdf_Control_Path : constant String := Join (Root, "paper-control.pdf");
+      Zip_Path  : constant String := Join (Root, "bundle.zip");
+      Split_Zip_Path : constant String := Join (Root, "split.zip");
+      Docx_Path : constant String := Join (Root, "report.docx");
+      Xlsx_Path : constant String := Join (Root, "sheet.xlsx");
+      Mp3_Path  : constant String := Join (Root, "track.mp3");
+      Mp4_Path  : constant String := Join (Root, "clip.mp4");
+      Tar_Gz_Path : constant String := Join (Root, "archive.tar.gz");
+      Ada_Path  : constant String := Join (Root, "unit.adb");
+      Json_Path : constant String := Join (Root, "data.json");
+      Xml_Path  : constant String := Join (Root, "doc.xml");
+      Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Load      : Files.File_System.Directory_Load_Result;
+      Found_Png : Boolean := False;
+      Found_Jpeg : Boolean := False;
+      Found_Dir : Boolean := False;
+      Found_Pdf : Boolean := False;
+      Found_Pdf_Control : Boolean := False;
+      Found_Zip : Boolean := False;
+      Found_Split_Zip : Boolean := False;
+      Found_Docx : Boolean := False;
+      Found_Xlsx : Boolean := False;
+      Found_Mp3 : Boolean := False;
+      Found_Mp4 : Boolean := False;
+      Found_Tar_Gz : Boolean := False;
+      Found_Ada : Boolean := False;
+      Found_Json : Boolean := False;
+      Found_Xml : Boolean := False;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Join (Root, "folder"));
+      Write_File (Join (Join (Root, "folder"), "inside.txt"));
+      Write_Binary_File (Png_Path, Minimal_Png_Header (32, 16));
+      Write_Binary_File (Jpeg_Path, Minimal_Jpeg_With_Fill (48, 24));
+      Write_File
+        (Pdf_Path,
+         "%PDF-1.7" & ASCII.LF &
+         "1 0 obj /Type /Pages endobj" & ASCII.LF &
+         "2 0 obj /Type /Page endobj");
+      Write_File
+        (Pdf_Control_Path,
+         "%PDF-1.7" & ASCII.LF &
+         "1 0 obj /Type /Page" & ASCII.VT & "endobj" & ASCII.LF &
+         "2 0 obj /Type /Page" & ASCII.FF & "endobj");
+      Write_Binary_File (Zip_Path, "PK" & Character'Val (1) & Character'Val (2));
+      Write_Binary_File
+        (Split_Zip_Path,
+         String'(1 .. 4094 => 'x') & "PK" & Character'Val (1) & Character'Val (2));
+      Write_Binary_File (Docx_Path, "PK" & Character'Val (1) & Character'Val (2));
+      Write_Binary_File (Xlsx_Path, "PK" & Character'Val (1) & Character'Val (2));
+      Write_File (Mp3_Path, "ID3");
+      Write_File (Mp4_Path, "....ftyp");
+      Write_Binary_File (Tar_Gz_Path, Character'Val (16#1F#) & Character'Val (16#8B#) & "gzip");
+      Write_File (Ada_Path, "procedure Unit is" & ASCII.LF & "begin" & ASCII.LF & "null;" & ASCII.LF & "end;");
+      Write_File (Json_Path, "{""ok"":true}");
+      Write_File (Xml_Path, "<root/>");
+
+      Load := Files.File_System.Load_Directory (Root, Settings);
+
+      for Item of Load.Items loop
+         if To_String (Item.Name) = "picture.png" then
             Found_Png := True;
             Files_Suite.Support.Assert_Equal
               (Item_Extra (Item),
@@ -1073,23 +1203,6 @@ package body Files_Suite.Model is
          end if;
       end loop;
 
-      Assert (Found_Run, "executable item was loaded");
-      if Symlink_Created then
-         Assert (Found_Symlink, "symlink item was loaded");
-      end if;
-      if Executable_Symlink_Created then
-         Assert (Found_Executable_Symlink, "executable symlink item was loaded");
-      end if;
-      Assert (Found_Long_Text, "long text line item was loaded");
-      Assert (Found_Utf8, "UTF-8 text item was loaded");
-      Assert (Found_Binary_Text, "binary text item was loaded");
-      Assert (Found_Late_Binary_Text, "late binary text item was loaded");
-      Assert (Found_Sampled_Text, "sampled text item was loaded");
-      Assert (Found_Huge_Oneline, "huge single-line text item was loaded");
-      Assert (Found_Split_Utf8, "split UTF-8 text item was loaded");
-      Assert (Found_Overlong_Text, "overlong UTF-8 text item was loaded");
-      Assert (Found_Surrogate_Text, "surrogate UTF-8 text item was loaded");
-      Assert (Found_Markdown, "Markdown item was loaded");
       Assert (Found_Png, "PNG item was loaded");
       Assert (Found_Jpeg, "JPEG item was loaded");
       Assert (Found_Dir, "directory item was loaded");
@@ -1105,7 +1218,7 @@ package body Files_Suite.Model is
       Assert (Found_Ada, "Ada item was loaded");
       Assert (Found_Json, "JSON item was loaded");
       Assert (Found_Xml, "XML item was loaded");
-   end Test_Directory_Metadata_Permissions;
+   end Test_Document_Media_And_Source_Metadata;
 
    procedure Test_Filetype_Detection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -2414,38 +2527,13 @@ package body Files_Suite.Model is
          "changed ascending sorts oldest modified time first");
    end Test_Runtime_Sort_State;
 
-   procedure Test_Root_Selector_And_Root_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+   procedure Test_Root_Discovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Target   : constant String := Join (Root, "selected-root");
-      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model    : Files.Model.Window_Model := Sample_Model;
       Roots_A  : Files.Types.String_Vectors.Vector;
       Roots_B  : Files.Types.String_Vectors.Vector;
       Entries  : Files.File_System.Root_Entry_Vectors.Vector;
-      Result   : Files.Controller.Controller_Result;
-      Snapshot : Files.Rendering.View_Snapshot;
-      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Root_Status : Files.File_System.Root_Discovery_Diagnostics;
-      Volume_Caps : constant Files.File_System.Root_Volume_Capabilities :=
-        Files.File_System.Root_Volume_Capabilities_Of_Current_Environment;
-      Edge_Profile : constant Files.File_System.Filesystem_Edge_Case_Profile :=
-        Files.File_System.Filesystem_Edge_Case_Profile_Of_Current_Environment;
-      Linux_Profile : constant Files.File_System.Native_Platform_API_Profile :=
-        Files.File_System.Native_Platform_API_Profile_For (Files.File_System.Native_Adapter_Linux);
-      Current_Profile : constant Files.File_System.Native_Platform_API_Profile :=
-        Files.Platform.Current_API_Profile;
-      Windows_Profile : constant Files.File_System.Native_Platform_API_Profile :=
-        Files.File_System.Native_Platform_API_Profile_For (Files.File_System.Native_Adapter_Windows);
-      Macos_Profile : constant Files.File_System.Native_Platform_API_Profile :=
-        Files.File_System.Native_Platform_API_Profile_For (Files.File_System.Native_Adapter_Macos);
-      Had_Home       : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
-      Had_User_Profile : constant Boolean := Ada.Environment_Variables.Exists ("USERPROFILE");
-      Had_Home_Drive : constant Boolean := Ada.Environment_Variables.Exists ("HOMEDRIVE");
-      Had_Home_Path  : constant Boolean := Ada.Environment_Variables.Exists ("HOMEPATH");
-      Old_Home       : Unbounded_String;
-      Old_User_Profile : Unbounded_String;
-      Old_Home_Drive : Unbounded_String;
-      Old_Home_Path  : Unbounded_String;
 
       function Repository_File_Contains
         (Path    : String;
@@ -2494,52 +2582,10 @@ package body Files_Suite.Model is
            or else Starts_With (Path, "/System/Volumes/");
       end Is_User_Visible_Mount_Point;
 
-      procedure Restore_Root_Environment is
-      begin
-         if Had_Home then
-            Ada.Environment_Variables.Set ("HOME", To_String (Old_Home));
-         else
-            Ada.Environment_Variables.Clear ("HOME");
-         end if;
-
-         if Had_User_Profile then
-            Ada.Environment_Variables.Set ("USERPROFILE", To_String (Old_User_Profile));
-         else
-            Ada.Environment_Variables.Clear ("USERPROFILE");
-         end if;
-
-         if Had_Home_Drive then
-            Ada.Environment_Variables.Set ("HOMEDRIVE", To_String (Old_Home_Drive));
-         else
-            Ada.Environment_Variables.Clear ("HOMEDRIVE");
-         end if;
-
-         if Had_Home_Path then
-            Ada.Environment_Variables.Set ("HOMEPATH", To_String (Old_Home_Path));
-         else
-            Ada.Environment_Variables.Clear ("HOMEPATH");
-         end if;
-      end Restore_Root_Environment;
-
    begin
-      if Had_Home then
-         Old_Home := To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
-      end if;
-      if Had_User_Profile then
-         Old_User_Profile := To_Unbounded_String (Ada.Environment_Variables.Value ("USERPROFILE"));
-      end if;
-      if Had_Home_Drive then
-         Old_Home_Drive := To_Unbounded_String (Ada.Environment_Variables.Value ("HOMEDRIVE"));
-      end if;
-      if Had_Home_Path then
-         Old_Home_Path := To_Unbounded_String (Ada.Environment_Variables.Value ("HOMEPATH"));
-      end if;
-
-      Ctrl (Guikit.Input.Control_Key) := True;
       Reset_Root;
       Ada.Directories.Create_Path (Target);
       Write_File (Join (Target, "inside.txt"));
-      Files.Model.Set_Error (Model, "error.path.missing");
       Roots_A := Files.File_System.Available_Roots;
       Roots_B := Files.File_System.Available_Roots;
       Entries := Files.File_System.Available_Root_Entries;
@@ -2559,6 +2605,136 @@ package body Files_Suite.Model is
          "root diagnostics count ready roots");
       Assert (Root_Status.Duplicate_Paths_Removed, "root diagnostics expose duplicate-removal policy");
       Assert (Root_Status.Deterministic_Order, "root diagnostics expose deterministic ordering policy");
+      Assert
+        (Repository_Source_Contains ("function Is_Mount_Container")
+         and then Repository_Source_Contains ("return not Is_Mount_Container"),
+         "root discovery excludes mount container rows");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Roots_A.Length),
+         Natural (Roots_B.Length),
+         "available roots count is deterministic");
+      for Index in 1 .. Natural (Roots_A.Length) loop
+         declare
+            Detail : constant Files.File_System.Root_Volume_Details :=
+              Files.File_System.Root_Volume_Details_For (Entries.Element (Index));
+         begin
+            Files_Suite.Support.Assert_Equal
+              (To_String (Detail.Path),
+               To_String (Entries.Element (Index).Path),
+               "root volume details preserve root path");
+            Assert
+              (To_String (Detail.Native_Api_Name) = "none"
+               or else To_String (Detail.Native_Api_Name) = "proc.mounts"
+               or else To_String (Detail.Native_Api_Name) = "proc.mounts+sysfs"
+               or else To_String (Detail.Native_Api_Name) = "statvfs"
+               or else To_String (Detail.Native_Api_Name) = "statvfs+proc.mounts"
+               or else To_String (Detail.Native_Api_Name) = "statvfs+proc.mounts+sysfs"
+               or else To_String (Detail.Native_Api_Name) = "sysfs",
+               "root volume details name adapter");
+            if To_String (Detail.Filesystem_Type) /= "" then
+               Assert (To_String (Detail.Source_Device) /= "", "root volume details include mount source");
+               Assert (To_String (Detail.Mount_Options) /= "", "root volume details include mount options");
+            end if;
+            Files_Suite.Support.Assert_Equal
+              (Detail.Capacity_Known,
+               Detail.Free_Known,
+               "root volume size flags are consistent");
+            if Detail.Capacity_Known then
+               Assert (Detail.Capacity_Bytes > 0, "known root volume capacity is positive");
+               Assert (Detail.Free_Bytes >= 0, "known root volume free space is non-negative");
+               Assert (Detail.Free_Bytes <= Detail.Capacity_Bytes, "known root volume free space fits capacity");
+               Assert (Detail.Read_Only_Known, "known root volume capacity includes read-only metadata");
+               Assert (Detail.Name_Max_Known, "known root volume capacity includes filename limit metadata");
+               Assert (Detail.Name_Max > 0, "known root volume filename limit is positive");
+            end if;
+            if Detail.Inode_Count_Known then
+               Assert (Detail.Inode_Count > 0, "known root volume inode count is positive");
+               Assert (Detail.Free_Inode_Known, "known root volume inode count includes free inode count");
+               Assert
+                 (Detail.Free_Inode_Count <= Detail.Inode_Count,
+                  "known root volume free inode count fits inode count");
+            end if;
+            Assert
+              (Detail.Uses_Platform_Detail =
+               (Detail.Capacity_Known
+                or else Detail.Inode_Count_Known
+                or else Detail.Read_Only_Known
+                or else Detail.Name_Max_Known
+                or else Detail.Removable_Known
+                or else To_String (Detail.Filesystem_Type) /= ""),
+               "root volume details platform flag follows filesystem type availability");
+         end;
+         Assert (To_String (Roots_A.Element (Index)) /= "", "available root path is non-empty");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Entries.Element (Index).Path),
+            To_String (Roots_A.Element (Index)),
+            "root metadata path matches path projection");
+         Assert (To_String (Entries.Element (Index).Label) /= "", "root metadata label is non-empty");
+         Assert (To_String (Entries.Element (Index).Volume_Name) /= "", "root metadata volume name is non-empty");
+         Assert (Entries.Element (Index).Ready = Files.File_System.Root_Ready, "root metadata marks roots ready");
+         case Entries.Element (Index).Kind is
+            when Files.File_System.Root_Filesystem
+               | Files.File_System.Root_Home
+               | Files.File_System.Root_Current
+               | Files.File_System.Root_Mount
+               | Files.File_System.Root_User_Mount
+               | Files.File_System.Root_Network_Mount
+               | Files.File_System.Root_Windows_Drive
+               | Files.File_System.Root_Favorite =>
+               null;
+         end case;
+         if Entries.Element (Index).Kind = Files.File_System.Root_Mount then
+            Assert
+              (Is_User_Visible_Mount_Point (To_String (Entries.Element (Index).Path)),
+               "root selector excludes system implementation mounts");
+            Files_Suite.Support.Assert_Equal
+              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|tmpfs"),
+               0,
+               "root selector excludes tmpfs mounts from proc metadata");
+            Files_Suite.Support.Assert_Equal
+              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|proc"),
+               0,
+               "root selector excludes proc mounts from proc metadata");
+            Files_Suite.Support.Assert_Equal
+              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|sysfs"),
+               0,
+               "root selector excludes sysfs mounts from proc metadata");
+            Files_Suite.Support.Assert_Equal
+              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|squashfs"),
+               0,
+               "root selector excludes snap package mounts from proc metadata");
+         end if;
+         Assert (Ada.Directories.Exists (To_String (Roots_A.Element (Index))), "available root path exists");
+         Assert
+           (Ada.Directories.Kind (To_String (Roots_A.Element (Index))) = Ada.Directories.Directory,
+            "available root path is a directory");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Roots_A.Element (Index)),
+            To_String (Roots_B.Element (Index)),
+            "available roots preserve deterministic order");
+         for Other in Index + 1 .. Natural (Roots_A.Length) loop
+            Assert
+              (To_String (Roots_A.Element (Index)) /= To_String (Roots_A.Element (Other)),
+               "available roots do not contain duplicates");
+         end loop;
+      end loop;
+   end Test_Root_Discovery;
+
+   procedure Test_Root_Volume_Capabilities_And_Platform_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Volume_Caps : constant Files.File_System.Root_Volume_Capabilities :=
+        Files.File_System.Root_Volume_Capabilities_Of_Current_Environment;
+      Edge_Profile : constant Files.File_System.Filesystem_Edge_Case_Profile :=
+        Files.File_System.Filesystem_Edge_Case_Profile_Of_Current_Environment;
+      Linux_Profile : constant Files.File_System.Native_Platform_API_Profile :=
+        Files.File_System.Native_Platform_API_Profile_For (Files.File_System.Native_Adapter_Linux);
+      Current_Profile : constant Files.File_System.Native_Platform_API_Profile :=
+        Files.Platform.Current_API_Profile;
+      Windows_Profile : constant Files.File_System.Native_Platform_API_Profile :=
+        Files.File_System.Native_Platform_API_Profile_For (Files.File_System.Native_Adapter_Windows);
+      Macos_Profile : constant Files.File_System.Native_Platform_API_Profile :=
+        Files.File_System.Native_Platform_API_Profile_For (Files.File_System.Native_Adapter_Macos);
+   begin
       Assert
         (not Volume_Caps.Labels_From_Platform_Api,
          "root volume capabilities do not claim platform labels yet");
@@ -2703,119 +2879,62 @@ package body Files_Suite.Model is
          Volume_Caps.Capacity_Bytes_Known,
          "root volume name-limit availability follows statvfs availability");
       Assert (not Volume_Caps.Eject_Available, "root volume capabilities do not claim eject support");
-      Assert
-        (Repository_Source_Contains ("function Is_Mount_Container")
-         and then Repository_Source_Contains ("return not Is_Mount_Container"),
-         "root discovery excludes mount container rows");
-      Files_Suite.Support.Assert_Equal
-        (Natural (Roots_A.Length),
-         Natural (Roots_B.Length),
-         "available roots count is deterministic");
-      for Index in 1 .. Natural (Roots_A.Length) loop
-         declare
-            Detail : constant Files.File_System.Root_Volume_Details :=
-              Files.File_System.Root_Volume_Details_For (Entries.Element (Index));
-         begin
-            Files_Suite.Support.Assert_Equal
-              (To_String (Detail.Path),
-               To_String (Entries.Element (Index).Path),
-               "root volume details preserve root path");
-            Assert
-              (To_String (Detail.Native_Api_Name) = "none"
-               or else To_String (Detail.Native_Api_Name) = "proc.mounts"
-               or else To_String (Detail.Native_Api_Name) = "proc.mounts+sysfs"
-               or else To_String (Detail.Native_Api_Name) = "statvfs"
-               or else To_String (Detail.Native_Api_Name) = "statvfs+proc.mounts"
-               or else To_String (Detail.Native_Api_Name) = "statvfs+proc.mounts+sysfs"
-               or else To_String (Detail.Native_Api_Name) = "sysfs",
-               "root volume details name adapter");
-            if To_String (Detail.Filesystem_Type) /= "" then
-               Assert (To_String (Detail.Source_Device) /= "", "root volume details include mount source");
-               Assert (To_String (Detail.Mount_Options) /= "", "root volume details include mount options");
-            end if;
-            Files_Suite.Support.Assert_Equal
-              (Detail.Capacity_Known,
-               Detail.Free_Known,
-               "root volume size flags are consistent");
-            if Detail.Capacity_Known then
-               Assert (Detail.Capacity_Bytes > 0, "known root volume capacity is positive");
-               Assert (Detail.Free_Bytes >= 0, "known root volume free space is non-negative");
-               Assert (Detail.Free_Bytes <= Detail.Capacity_Bytes, "known root volume free space fits capacity");
-               Assert (Detail.Read_Only_Known, "known root volume capacity includes read-only metadata");
-               Assert (Detail.Name_Max_Known, "known root volume capacity includes filename limit metadata");
-               Assert (Detail.Name_Max > 0, "known root volume filename limit is positive");
-            end if;
-            if Detail.Inode_Count_Known then
-               Assert (Detail.Inode_Count > 0, "known root volume inode count is positive");
-               Assert (Detail.Free_Inode_Known, "known root volume inode count includes free inode count");
-               Assert
-                 (Detail.Free_Inode_Count <= Detail.Inode_Count,
-                  "known root volume free inode count fits inode count");
-            end if;
-            Assert
-              (Detail.Uses_Platform_Detail =
-               (Detail.Capacity_Known
-                or else Detail.Inode_Count_Known
-                or else Detail.Read_Only_Known
-                or else Detail.Name_Max_Known
-                or else Detail.Removable_Known
-                or else To_String (Detail.Filesystem_Type) /= ""),
-               "root volume details platform flag follows filesystem type availability");
-         end;
-         Assert (To_String (Roots_A.Element (Index)) /= "", "available root path is non-empty");
-         Files_Suite.Support.Assert_Equal
-           (To_String (Entries.Element (Index).Path),
-            To_String (Roots_A.Element (Index)),
-            "root metadata path matches path projection");
-         Assert (To_String (Entries.Element (Index).Label) /= "", "root metadata label is non-empty");
-         Assert (To_String (Entries.Element (Index).Volume_Name) /= "", "root metadata volume name is non-empty");
-         Assert (Entries.Element (Index).Ready = Files.File_System.Root_Ready, "root metadata marks roots ready");
-         case Entries.Element (Index).Kind is
-            when Files.File_System.Root_Filesystem
-               | Files.File_System.Root_Home
-               | Files.File_System.Root_Current
-               | Files.File_System.Root_Mount
-               | Files.File_System.Root_User_Mount
-               | Files.File_System.Root_Network_Mount
-               | Files.File_System.Root_Windows_Drive
-               | Files.File_System.Root_Favorite =>
-               null;
-         end case;
-         if Entries.Element (Index).Kind = Files.File_System.Root_Mount then
-            Assert
-              (Is_User_Visible_Mount_Point (To_String (Entries.Element (Index).Path)),
-               "root selector excludes system implementation mounts");
-            Files_Suite.Support.Assert_Equal
-              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|tmpfs"),
-               0,
-               "root selector excludes tmpfs mounts from proc metadata");
-            Files_Suite.Support.Assert_Equal
-              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|proc"),
-               0,
-               "root selector excludes proc mounts from proc metadata");
-            Files_Suite.Support.Assert_Equal
-              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|sysfs"),
-               0,
-               "root selector excludes sysfs mounts from proc metadata");
-            Files_Suite.Support.Assert_Equal
-              (Ada.Strings.Fixed.Index (To_String (Entries.Element (Index).Label), "|squashfs"),
-               0,
-               "root selector excludes snap package mounts from proc metadata");
+   end Test_Root_Volume_Capabilities_And_Platform_Profiles;
+
+   procedure Test_Root_Discovery_Environment_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Entries  : Files.File_System.Root_Entry_Vectors.Vector;
+      Had_Home       : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
+      Had_User_Profile : constant Boolean := Ada.Environment_Variables.Exists ("USERPROFILE");
+      Had_Home_Drive : constant Boolean := Ada.Environment_Variables.Exists ("HOMEDRIVE");
+      Had_Home_Path  : constant Boolean := Ada.Environment_Variables.Exists ("HOMEPATH");
+      Old_Home       : Unbounded_String;
+      Old_User_Profile : Unbounded_String;
+      Old_Home_Drive : Unbounded_String;
+      Old_Home_Path  : Unbounded_String;
+
+      procedure Restore_Root_Environment is
+      begin
+         if Had_Home then
+            Ada.Environment_Variables.Set ("HOME", To_String (Old_Home));
+         else
+            Ada.Environment_Variables.Clear ("HOME");
          end if;
-         Assert (Ada.Directories.Exists (To_String (Roots_A.Element (Index))), "available root path exists");
-         Assert
-           (Ada.Directories.Kind (To_String (Roots_A.Element (Index))) = Ada.Directories.Directory,
-            "available root path is a directory");
-         Files_Suite.Support.Assert_Equal
-           (To_String (Roots_A.Element (Index)),
-            To_String (Roots_B.Element (Index)),
-            "available roots preserve deterministic order");
-         for Other in Index + 1 .. Natural (Roots_A.Length) loop
-            Assert
-              (To_String (Roots_A.Element (Index)) /= To_String (Roots_A.Element (Other)),
-               "available roots do not contain duplicates");
-         end loop;
-      end loop;
+
+         if Had_User_Profile then
+            Ada.Environment_Variables.Set ("USERPROFILE", To_String (Old_User_Profile));
+         else
+            Ada.Environment_Variables.Clear ("USERPROFILE");
+         end if;
+
+         if Had_Home_Drive then
+            Ada.Environment_Variables.Set ("HOMEDRIVE", To_String (Old_Home_Drive));
+         else
+            Ada.Environment_Variables.Clear ("HOMEDRIVE");
+         end if;
+
+         if Had_Home_Path then
+            Ada.Environment_Variables.Set ("HOMEPATH", To_String (Old_Home_Path));
+         else
+            Ada.Environment_Variables.Clear ("HOMEPATH");
+         end if;
+      end Restore_Root_Environment;
+
+   begin
+      if Had_Home then
+         Old_Home := To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
+      end if;
+      if Had_User_Profile then
+         Old_User_Profile := To_Unbounded_String (Ada.Environment_Variables.Value ("USERPROFILE"));
+      end if;
+      if Had_Home_Drive then
+         Old_Home_Drive := To_Unbounded_String (Ada.Environment_Variables.Value ("HOMEDRIVE"));
+      end if;
+      if Had_Home_Path then
+         Old_Home_Path := To_Unbounded_String (Ada.Environment_Variables.Value ("HOMEPATH"));
+      end if;
+
+      Reset_Root;
       declare
          Drive_Profile_Path : constant String := Join (Root, "drive-profile-root");
          Found_Drive_Profile : Boolean := False;
@@ -2865,26 +2984,17 @@ package body Files_Suite.Model is
             Restore_Root_Environment;
             raise;
       end;
-      declare
-         Bad_Root : constant Files.File_System.Root_Entry :=
-           (Path        => To_Unbounded_String (Root & "/bad" & Character'Val (0) & "root"),
-            Label       => To_Unbounded_String ("bad"),
-            Kind        => Files.File_System.Root_Mount,
-            Volume_Name => To_Unbounded_String ("bad"),
-            Ready       => Files.File_System.Root_Inaccessible,
-            Removable   => False);
-         Bad_Detail : constant Files.File_System.Root_Volume_Details :=
-           Files.File_System.Root_Volume_Details_For (Bad_Root);
-      begin
-         Files_Suite.Support.Assert_Equal
-           (To_String (Bad_Detail.Native_Api_Name),
-            "none",
-            "malformed root volume detail skips platform adapter");
-         Assert
-           (not Bad_Detail.Uses_Platform_Detail,
-            "malformed root volume detail has no platform metadata");
-      end;
+   end Test_Root_Discovery_Environment_Profiles;
 
+   procedure Test_Root_Selector_Open_And_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Entries  : Files.File_System.Root_Entry_Vectors.Vector;
+      Result   : Files.Controller.Controller_Result;
+      Snapshot : Files.Rendering.View_Snapshot;
+   begin
+      Files.Model.Set_Error (Model, "error.path.missing");
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
@@ -2953,6 +3063,33 @@ package body Files_Suite.Model is
          Files.Localization.Text ("root.detail.suffix") &
          Files.Localization.Text ("root.mount.suffix"),
          "root selector renders localized platform detail suffix");
+   end Test_Root_Selector_Open_And_Snapshot;
+
+   procedure Test_Root_Volume_Details_By_Mount_Kind (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Entries  : Files.File_System.Root_Entry_Vectors.Vector;
+      Snapshot : Files.Rendering.View_Snapshot;
+   begin
+      declare
+         Bad_Root : constant Files.File_System.Root_Entry :=
+           (Path        => To_Unbounded_String (Root & "/bad" & Character'Val (0) & "root"),
+            Label       => To_Unbounded_String ("bad"),
+            Kind        => Files.File_System.Root_Mount,
+            Volume_Name => To_Unbounded_String ("bad"),
+            Ready       => Files.File_System.Root_Inaccessible,
+            Removable   => False);
+         Bad_Detail : constant Files.File_System.Root_Volume_Details :=
+           Files.File_System.Root_Volume_Details_For (Bad_Root);
+      begin
+         Files_Suite.Support.Assert_Equal
+           (To_String (Bad_Detail.Native_Api_Name),
+            "none",
+            "malformed root volume detail skips platform adapter");
+         Assert
+           (not Bad_Detail.Uses_Platform_Detail,
+            "malformed root volume detail has no platform metadata");
+      end;
       Entries.Clear;
       Entries.Append
         (Files.File_System.Root_Entry'
@@ -3014,6 +3151,19 @@ package body Files_Suite.Model is
            (not Local_Detail.Special_Error_Recovery,
             "local root detail has no network recovery policy");
       end;
+   end Test_Root_Volume_Details_By_Mount_Kind;
+
+   procedure Test_Root_Selector_Eject_And_Open (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Target   : constant String := Join (Root, "selected-root");
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Entries  : Files.File_System.Root_Entry_Vectors.Vector;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Target);
+      Write_File (Join (Target, "inside.txt"));
       Entries.Clear;
       Entries.Append
         (Files.File_System.Root_Entry'
@@ -3070,6 +3220,33 @@ package body Files_Suite.Model is
         (Files.Model.Current_Path (Model),
          Ada.Directories.Full_Name (Target),
          "root-open loads selected root");
+   end Test_Root_Selector_Eject_And_Open;
+
+   procedure Test_Root_Selector_Settings_Exclusivity_And_Close (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Target   : constant String := Join (Root, "selected-root");
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Roots_A  : Files.Types.String_Vectors.Vector;
+      Entries  : Files.File_System.Root_Entry_Vectors.Vector;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Target);
+      Write_File (Join (Target, "inside.txt"));
+      Roots_A := Files.File_System.Available_Roots;
+      --  Open the selected root and come back to Root, so the selector starts
+      --  closed over a navigated window.
+      Entries.Append
+        (Files.File_System.Root_Entry'
+           (Path  => To_Unbounded_String (Target),
+            Label => To_Unbounded_String ("root.mount|selected-root"),
+            Kind  => Files.File_System.Root_Mount,
+            Volume_Name => To_Unbounded_String ("selected-root"),
+            Ready => Files.File_System.Root_Ready,
+            Removable => False));
+      Files.Model.Open_Root_Selector (Model, Entries);
+      Result := Files.Controller.Execute_Command (Files.Commands.Open_Selected_Root_Command, Model, Settings);
       Files.Model.Navigate_To (Model, Root, Files.File_System.Item_Vectors.Empty_Vector);
       Files.Model.Toggle_Settings_Pane (Model);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens before direct root selector call");
@@ -3177,6 +3354,20 @@ package body Files_Suite.Model is
          Files.Types.Focus_None,
          "drive selector clears palette focus");
       Files.Model.Close_Root_Selector (Model);
+   end Test_Root_Selector_Settings_Exclusivity_And_Close;
+
+   procedure Test_Root_Selection_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Target   : constant String := Join (Root, "selected-root");
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Target);
+      Write_File (Join (Target, "inside.txt"));
+      --  An empty listing at Root with every overlay closed.
+      Files.Model.Navigate_To (Model, Root, Files.File_System.Item_Vectors.Empty_Vector);
 
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector can reopen after palette Escape");
@@ -3257,6 +3448,19 @@ package body Files_Suite.Model is
         (Files.Model.Current_Path (Model),
          Ada.Directories.Full_Name (Target),
          "closed root selector row click does not navigate");
+   end Test_Root_Selection_Navigation;
+
+   procedure Test_Root_Selector_Keyboard_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Target   : constant String := Join (Root, "selected-root");
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Roots_A  : Files.Types.String_Vectors.Vector;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Target);
+      Write_File (Join (Target, "inside.txt"));
 
       Files.Model.Initialize (Model, Root, Sample_Items, Root);
       Files.Model.Open_Root_Selector (Model, Files.Types.String_Vectors.Empty_Vector);
@@ -3332,6 +3536,29 @@ package body Files_Suite.Model is
         (Files.Model.Root_Selected_Index (Model),
          3,
          "Left from first root row wraps to last row");
+   end Test_Root_Selector_Keyboard_Navigation;
+
+   procedure Test_Root_Selector_Blocks_Background_Input (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Target   : constant String := Join (Root, "selected-root");
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Roots_A  : Files.Types.String_Vectors.Vector;
+      Result   : Files.Controller.Controller_Result;
+      Snapshot : Files.Rendering.View_Snapshot;
+      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+   begin
+      Ctrl (Guikit.Input.Control_Key) := True;
+      Reset_Root;
+      Ada.Directories.Create_Path (Target);
+      Write_File (Join (Target, "inside.txt"));
+      --  A three-row selector opened over a focused path input.
+      Files.Model.Initialize (Model, Root, Sample_Items, Root);
+      Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
+      Roots_A.Append (To_Unbounded_String (Root));
+      Roots_A.Append (To_Unbounded_String (Target));
+      Roots_A.Append (To_Unbounded_String (Ada.Directories.Full_Name (Root)));
+      Files.Model.Open_Root_Selector (Model, Roots_A);
       Files.Model.Select_Visible (Model, 1);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
       Files_Suite.Support.Assert_Equal
@@ -3445,6 +3672,24 @@ package body Files_Suite.Model is
          Files.Commands.Select_Drive_Command,
          "root selector allows drive toggle command");
       Assert (not Files.Model.Root_Selector_Is_Open (Model), "drive toggle closes root selector");
+   end Test_Root_Selector_Blocks_Background_Input;
+
+   procedure Test_Root_Selector_Row_Activation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Target   : constant String := Join (Root, "selected-root");
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Roots_A  : Files.Types.String_Vectors.Vector;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Target);
+      Write_File (Join (Target, "inside.txt"));
+      Files.Model.Initialize (Model, Root, Sample_Items, Root);
+      Roots_A.Append (To_Unbounded_String (Root));
+      Roots_A.Append (To_Unbounded_String (Target));
+      Roots_A.Append (To_Unbounded_String (Ada.Directories.Full_Name (Root)));
+      --  Row 2 is Target.
       Files.Model.Open_Root_Selector (Model, Roots_A);
       Files.Model.Set_Root_Selected_Index (Model, 2);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
@@ -3489,7 +3734,7 @@ package body Files_Suite.Model is
         (Files.Model.Path_Input_Text (Model),
          Ada.Directories.Full_Name (Target),
          "root row click replaces edited path text");
-   end Test_Root_Selector_And_Root_Selection;
+   end Test_Root_Selector_Row_Activation;
 
    procedure Test_Bounded_Host_Text_Records
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -3531,7 +3776,7 @@ package body Files_Suite.Model is
          raise;
    end Test_Bounded_Host_Text_Records;
 
-   procedure Test_Info_And_Bottom_Bar_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is
+   procedure Test_Info_Pane_Toggle_And_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Sample_Model;
@@ -3639,6 +3884,19 @@ package body Files_Suite.Model is
         (Files.Model.Info_Pane_Scroll_Lines (Model),
          0,
          "PageUp scrolls info pane back to top");
+   end Test_Info_Pane_Toggle_And_Scroll;
+
+   procedure Test_Info_Pane_Scroll_Resets_And_Settings_Block (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Ctrl (Guikit.Input.Control_Key) := True;
+      --  Start from an open, selection-backed, unscrolled info pane.
+      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
 
       Files.Model.Scroll_Info_Pane (Model, Lines => 3);
       Files_Suite.Support.Assert_Equal
@@ -3717,6 +3975,20 @@ package body Files_Suite.Model is
            Model,
            Settings);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes after scroll block checks");
+   end Test_Info_Pane_Scroll_Resets_And_Settings_Block;
+
+   procedure Test_View_Mode_And_Bottom_Bar_Clicks (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Ctrl (Guikit.Input.Control_Key) := True;
+      --  Start from an open info pane with nothing selected.
+      Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
+      Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_4, Ctrl);
+      Files.Model.Clear_Selection (Model);
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_2, Ctrl);
       Files_Suite.Support.Assert_Equal
@@ -3763,14 +4035,42 @@ package body Files_Suite.Model is
          Files.Commands.Toggle_Info_Pane_Command,
          "enabled info-pane click routes command");
       Assert (Files.Model.Info_Pane_Is_Open (Model), "info-pane click toggles open");
-      --  Restore the closed state expected by the following main-view scroll
+      --  Restore the closed state expected by the following command click
       --  checks.
       Result := Files.Controller.Handle_Command_Click (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
       Assert (not Files.Model.Info_Pane_Is_Open (Model), "a second info-pane click closes the pane again");
 
+      Result := Files.Controller.Handle_Command_Click (Files.Commands.Select_Details_Command, Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.Select_Details_Command,
+         "details click routes command");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.View_Mode_Of (Model),
+         Files.Types.Details,
+         "details click changes view mode");
+
+      Result := Files.Controller.Handle_Command_Click (Files.Commands.No_Command, Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Result.Status,
+         Files.Controller.Controller_Ignored,
+         "empty command click is ignored");
+      Files_Suite.Support.Assert_Equal
+        (Result.Command,
+         Files.Commands.No_Command,
+         "empty command click reports no command");
+   end Test_View_Mode_And_Bottom_Bar_Clicks;
+
+   procedure Test_Grid_Page_Keys_Page_The_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Result   : Files.Controller.Controller_Result;
+   begin
       --  Over the file grid (info pane closed) plain Page Up / Page Down now
       --  page the SELECTION rather than scrolling the main view. The main view
-      --  still scrolls through the wheel / targeted-scroll seam below.
+      --  still scrolls through the wheel / targeted-scroll seam, which
+      --  Test_Main_View_Scroll_And_Settings_Block covers.
       Files.Model.Select_Visible (Model, 1);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Page_Up);
       Files_Suite.Support.Assert_Equal
@@ -3825,6 +4125,15 @@ package body Files_Suite.Model is
         (Files.Model.Selected_Index (Model),
          1,
          "grid PageUp returns the selection to the first item");
+   end Test_Grid_Page_Keys_Page_The_Selection;
+
+   procedure Test_Main_View_Scroll_And_Settings_Block (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model := Sample_Model;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Files.Model.Select_Visible (Model, 1);
 
       Result := Files.Controller.Handle_Targeted_Scroll (Model, Files.Events.Scroll_Main_View, Integer'Last);
       Files_Suite.Support.Assert_Equal
@@ -3903,27 +4212,7 @@ package body Files_Suite.Model is
            Model,
            Settings);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes before command click checks");
-
-      Result := Files.Controller.Handle_Command_Click (Files.Commands.Select_Details_Command, Model, Settings);
-      Files_Suite.Support.Assert_Equal
-        (Result.Command,
-         Files.Commands.Select_Details_Command,
-         "details click routes command");
-      Files_Suite.Support.Assert_Equal
-        (Files.Model.View_Mode_Of (Model),
-         Files.Types.Details,
-         "details click changes view mode");
-
-      Result := Files.Controller.Handle_Command_Click (Files.Commands.No_Command, Model, Settings);
-      Files_Suite.Support.Assert_Equal
-        (Result.Status,
-         Files.Controller.Controller_Ignored,
-         "empty command click is ignored");
-      Files_Suite.Support.Assert_Equal
-        (Result.Command,
-         Files.Commands.No_Command,
-         "empty command click reports no command");
-   end Test_Info_And_Bottom_Bar_Commands;
+   end Test_Main_View_Scroll_And_Settings_Block;
 
    procedure Test_Rename_Mode (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -4128,17 +4417,13 @@ package body Files_Suite.Model is
       Assert (RCursor (1) = 1 and then RCursor (2) = 5, "a keyboard arrow moves every caret together");
    end Test_Multi_Rename_Broadcast;
 
-   procedure Test_Create_File_Temporary_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
+   procedure Test_Create_File_Command_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
       Items    : Files.File_System.Item_Vectors.Vector;
-      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result   : Files.Controller.Controller_Result;
-      Operation : Files.Operations.Operation_Result;
-      Dangling_Untitled : Boolean := False;
    begin
-      Ctrl (Guikit.Input.Control_Key) := True;
       Reset_Root;
       Write_File (Join (Root, "untitled.txt"));
       Write_File (Join (Root, "untitled 2.txt"));
@@ -4208,7 +4493,23 @@ package body Files_Suite.Model is
         (Files.Model.Temporary_Item_Name (Model),
          "untitled 3.txt",
          "ignored create keeps pending name");
-      Files.Model.Cancel_Create_File (Model);
+   end Test_Create_File_Command_State;
+
+   procedure Test_Create_File_Temporary_Item_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model;
+      Items    : Files.File_System.Item_Vectors.Vector;
+      Result   : Files.Controller.Controller_Result;
+      pragma Unreferenced (Result);
+      Operation : Files.Operations.Operation_Result;
+   begin
+      Reset_Root;
+      Write_File (Join (Root, "untitled.txt"));
+      Write_File (Join (Root, "untitled 2.txt"));
+      Files.Model.Initialize (Model, Root, Items, Root);
+      Files.Model.Set_Filter (Model, "does-not-match-untitled");
+      --  Open a gap in the untitled names before creating.
       Ada.Directories.Delete_File (Join (Root, "untitled 2.txt"));
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -4270,56 +4571,76 @@ package body Files_Suite.Model is
         (Files.Model.Last_Error_Key (Model),
          "error.rename.disabled",
          "temporary rename records disabled state");
+   end Test_Create_File_Temporary_Item_Guards;
 
-      declare
-         Mixed_Model : Files.Model.Window_Model := Sample_Model;
-         Mixed_Items : Files.File_System.Item_Vectors.Vector;
-      begin
-         Files.Model.Begin_Create_File (Mixed_Model, "pending.txt");
-         Files.Model.Select_Visible_Range
-           (Mixed_Model,
-            Anchor_Index => Positive (Files.Model.Visible_Count (Mixed_Model)),
-            Target_Index => 1);
-         Mixed_Items := Files.Model.Selected_Items (Mixed_Model);
-         Files_Suite.Support.Assert_Equal
-           (Files.Model.Selected_Count (Mixed_Model),
-            4,
-            "mixed selection includes real items and temporary item");
-         Files_Suite.Support.Assert_Equal
-           (Natural (Mixed_Items.Length),
-            3,
-            "selected items excludes the transient create-file item");
-         Assert
-           (Files.Model.Selection_Includes_Temporary (Mixed_Model),
-            "model identifies temporary item inside mixed selection");
-         Assert
-           (not Files.Model.Selected_Item_Is_Temporary (Mixed_Model),
-            "primary selected item need not be temporary in a mixed selection");
-         Assert
-           (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Mixed_Model),
-            "mixed temporary selection does not enable delete");
-         Assert
-           (not Files.Commands.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Mixed_Model),
-            "mixed temporary selection does not enable open");
-         Operation := Files.Operations.Open_Selected (Mixed_Model, Settings);
-         Files_Suite.Support.Assert_Equal
-           (Operation.Status,
-            Files.Operations.Operation_Disabled,
-            "mixed temporary selection cannot open");
-         Files_Suite.Support.Assert_Equal
-           (Files.Model.Last_Error_Key (Mixed_Model),
-            "error.selection.empty",
-            "mixed temporary open records disabled state");
-         Operation := Files.Operations.Delete_Selected (Mixed_Model, Settings);
-         Files_Suite.Support.Assert_Equal
-           (Operation.Status,
-            Files.Operations.Operation_Disabled,
-            "mixed temporary selection cannot delete");
-         Files_Suite.Support.Assert_Equal
-           (Files.Model.Last_Error_Key (Mixed_Model),
-            "error.selection.empty",
-            "mixed temporary delete records disabled state");
-      end;
+   procedure Test_Create_File_Mixed_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Mixed_Model : Files.Model.Window_Model := Sample_Model;
+      Mixed_Items : Files.File_System.Item_Vectors.Vector;
+      Operation : Files.Operations.Operation_Result;
+   begin
+      Files.Model.Begin_Create_File (Mixed_Model, "pending.txt");
+      Files.Model.Select_Visible_Range
+        (Mixed_Model,
+         Anchor_Index => Positive (Files.Model.Visible_Count (Mixed_Model)),
+         Target_Index => 1);
+      Mixed_Items := Files.Model.Selected_Items (Mixed_Model);
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Selected_Count (Mixed_Model),
+         4,
+         "mixed selection includes real items and temporary item");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Mixed_Items.Length),
+         3,
+         "selected items excludes the transient create-file item");
+      Assert
+        (Files.Model.Selection_Includes_Temporary (Mixed_Model),
+         "model identifies temporary item inside mixed selection");
+      Assert
+        (not Files.Model.Selected_Item_Is_Temporary (Mixed_Model),
+         "primary selected item need not be temporary in a mixed selection");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Mixed_Model),
+         "mixed temporary selection does not enable delete");
+      Assert
+        (not Files.Commands.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Mixed_Model),
+         "mixed temporary selection does not enable open");
+      Operation := Files.Operations.Open_Selected (Mixed_Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Operation.Status,
+         Files.Operations.Operation_Disabled,
+         "mixed temporary selection cannot open");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Mixed_Model),
+         "error.selection.empty",
+         "mixed temporary open records disabled state");
+      Operation := Files.Operations.Delete_Selected (Mixed_Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Operation.Status,
+         Files.Operations.Operation_Disabled,
+         "mixed temporary selection cannot delete");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Last_Error_Key (Mixed_Model),
+         "error.selection.empty",
+         "mixed temporary delete records disabled state");
+   end Test_Create_File_Mixed_Selection;
+
+   procedure Test_Create_File_Cancellation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model;
+      Items    : Files.File_System.Item_Vectors.Vector;
+      Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+      Result   : Files.Controller.Controller_Result;
+   begin
+      Ctrl (Guikit.Input.Control_Key) := True;
+      Reset_Root;
+      Write_File (Join (Root, "untitled.txt"));
+      Files.Model.Initialize (Model, Root, Items, Root);
+      Files.Model.Set_Filter (Model, "does-not-match-untitled");
+      --  A pending "untitled 2.txt" create in a filtered, empty listing.
+      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
       Files_Suite.Support.Assert_Equal
@@ -4402,7 +4723,17 @@ package body Files_Suite.Model is
         (Files.Model.Visible_Count (Model),
          0,
          "temporary-row item click removes the only visible row");
+   end Test_Create_File_Cancellation;
 
+   procedure Test_Untitled_Name_Generation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Model    : Files.Model.Window_Model;
+      Items    : Files.File_System.Item_Vectors.Vector;
+      Result   : Files.Controller.Controller_Result;
+      pragma Unreferenced (Result);
+      Dangling_Untitled : Boolean := False;
+   begin
       Reset_Root;
       Ada.Directories.Create_Path (Join (Root, "untitled.txt"));
       Write_File (Join (Root, "untitled 3.txt"));
@@ -4449,7 +4780,7 @@ package body Files_Suite.Model is
         (Files.Model.Temporary_Item_Name (Model),
          "untitled 11.txt",
          "create uses explicit spaced suffix text after single digits");
-   end Test_Create_File_Temporary_State;
+   end Test_Untitled_Name_Generation;
 
    procedure Test_Error_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

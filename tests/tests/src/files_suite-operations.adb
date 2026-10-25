@@ -185,7 +185,10 @@ package body Files_Suite.Operations is
    procedure Test_Drops_While_Busy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Empty_Archive_Directories (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Undo_Entry_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Duplicate_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Undo_Same_Size_Edits (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Undo_Admits_Verified_Identities (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Paste_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Refresh_Keeps_Place (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Navigation_Defers_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Access_Bits (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -227,7 +230,19 @@ package body Files_Suite.Operations is
    procedure Test_Search_Read_Errors (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Selection_Completion (T : in out AUnit.Test_Cases.Test_Case'Class);
 
-   procedure Test_Delete_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   --  Saves XDG_DATA_HOME, HOME and FILES_TRASH_BACKEND, resets Root and the
+   --  XDG trash fixture, runs Check, removes the trash fixtures, and restores
+   --  the environment (also when Check raises).
+   procedure With_Trash_Environment (Check : not null access procedure);
+   procedure Test_Trash_Deletion_Date (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Trash_Backend_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Native_Trash_Adapters (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Xdg_Trash_Move (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Trash_Name_Collisions (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Trash_Backspace_And_Encoding (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Multi_Selection_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Nested_Trash_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Macos_Home_Trash_Fallback (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_From_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_From_Trash_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_Url_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -235,18 +250,36 @@ package body Files_Suite.Operations is
    procedure Test_Empty_Trash_Partial_Failure (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Empty_Trash_Undo_Safe (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Open_Selected_Directory_Loads_Items (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Open_Action_Policy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Open_Selected_File_Prepares_Action (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Multi_File_Open_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Open_Shell_Environment (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Item_Click_Selects_Without_Opening (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Explicit_Shell_Open_Actions (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Open_Executable_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Return_And_Double_Click_Open (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Missing_Open_Action_Reports_Error (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Create_File (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Create_Folder (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_File_Does_Not_Overwrite (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Advanced_Filesystem_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Recursive_Search (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Directory_Change_Watcher (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Drop_Import_Execution (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Drop_Import_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Permanent_Delete_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Backslash_Executable_Lookup (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Thumbnail_Generation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Png_Thumbnail_Decoding (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Directory_Load_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Thumbnail_Cache_Entries (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Thumbnail_Command_Rendering (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Decode_Emoji_Png_From_Font (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Permission_String_Agrees_With_The_Host (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Explicit_Thumbnail_Survives_The_Listing (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Invalid_File_Operation_Names (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Invalid_Create_Names (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Invalid_Rename_Names (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Leaf_Name_Rules (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Expand_User_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -256,6 +289,25 @@ package body Files_Suite.Operations is
    procedure Test_Search_Result_Actions_Stay_Beside_Source (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Multi_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_Pane_Type_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_Pane_Localized_Extras (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_Pane_Frame_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_Pane_Word_Wrap (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_Pane_Item_Field_Fallbacks (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_Pane_Multi_Selection_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
+   --  Info-pane detail text as the renderer composes it: localized prefix, value, localized suffix.
+   function Detail_Value (Prefix_Key : String; Value : String; Suffix_Key : String) return String;
+   --  Detail_Value with the value itself looked up in the localization catalog.
+   function Detail_Localized_Value (Prefix_Key : String; Value_Key : String; Suffix_Key : String) return String;
+   --  A line-count detail followed by the localized encoding detail.
+   function Detail_Lines_Encoding
+     (Lines_Prefix_Key : String;
+      Lines            : String;
+      Lines_Suffix_Key : String;
+      Encoding_Key     : String)
+      return String;
+   --  Write the info-pane metadata fixtures (text, source, office, PDF, PNG, JPEG) into Root.
+   procedure Write_Info_Metadata_Fixtures;
    procedure Test_Info_Pane_Section_Tooltips (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Free_Space_Display_Cycle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Apply_Ui_State_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -272,7 +324,9 @@ package body Files_Suite.Operations is
      (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Selection_Total_Counts_Folders
      (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Controller_Home_Loading (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Controller_Refresh_Loading (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Controller_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Navigate_Parent_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Compress_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Duplicate_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -292,7 +346,19 @@ package body Files_Suite.Operations is
    procedure Test_Special_Entry_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Unreadable_Hardlink_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detected_Terminal_Helper (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Available_Applications (T : in out AUnit.Test_Cases.Test_Case'Class);
+   --  Saves the XDG and locale variables, resets Root, writes the desktop-entry
+   --  fixture under it, points the XDG/locale variables at it, runs Check, and
+   --  restores the environment (also when Check raises).
+   procedure With_Desktop_Application_Fixture (Check : not null access procedure);
+   --  The application named Name, or one with every field empty.
+   function Find_Application
+     (Apps : Files.Applications.Application_Vectors.Vector;
+      Name : String)
+      return Files.Applications.Application;
+   procedure Test_Desktop_Application_Discovery (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Desktop_Exec_Expansion (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Open_With_Palette_Launch (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Relative_Xdg_Application_Paths (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Toggle_Hidden_Files (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Set_Permissions_And_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Failed_Undo_Keeps_Entry (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -329,12 +395,18 @@ package body Files_Suite.Operations is
    procedure Test_Recovery_Command_Line (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Preserve_Puts_Original_Back (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Background_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Stale_Background_Results (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Background_Result_Mismatch (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Owed_Reloads (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Registry_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Helper_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transport_Protocol_Gaps (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Journal_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Job_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Job_Request_Path_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Job_Item_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Operation_Result_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Transfer_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Replacement_Checkpoint_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Truncated_Persisted_Records (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Autonomous_Cleanup_Worker (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Cleanup_Exit_Verification (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -342,9 +414,23 @@ package body Files_Suite.Operations is
    procedure Test_Reserve_Exception_Safety (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transport_Cleanup_Retry (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Helper_Lease_Survives_Parent (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Crash_Transport_Scavenging (T : in out AUnit.Test_Cases.Test_Case'Class);
+   --  Runs this executable's abandon-transport crash fixture, which reports the
+   --  transport it left behind in the file Report; Path receives that pathname.
+   procedure Create_Abandoned_Transport (Report : String; Path : out Files.Types.UString);
+   --  Deletes the transport directory Path when it is set and exists.
+   procedure Remove_Transport_Fixture (Path : Files.Types.UString);
+   procedure Test_Exclusive_Stream_Hardlink (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Scavenger_Coordinator_Failures (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Transport_Lease_Claims (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Startup_Transport_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Unmarked_Transport_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Unsafe_Recovery_Report (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Private_Directory_Hardening (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Scavenger_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Window_Job_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Stage_Ownership (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Transport_Cleanup_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Stage_Owner_Marker_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Stage_Record_Cleanup (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transfer_Cancellation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Background_Transfers (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Replace_Trash_Failure (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -410,7 +496,13 @@ package body Files_Suite.Operations is
          "a preserve that fails after moving the original puts it back where it was");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Background_Operations'Access,
-                "duplicate, archive, extract and recursive searches use cancellable helpers");
+         "duplicate, archive, extract and recursive searches use cancellable helpers");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Stale_Background_Results'Access,
+         "a background result never overwrites a newer view, and stays undoable");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Background_Result_Mismatch'Access,
+         "a helper result that disagrees with its request is rejected but keeps its Undo");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Helper_Shutdown'Access, "closing a session never waits for blocked helper work");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -420,8 +512,19 @@ package body Files_Suite.Operations is
         (T, Test_Copy_Journal_Validation'Access,
          "copy journals reject trailing transport data");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Job_Record_Validation'Access,
-         "background records reject inconsistent redundant metadata");
+        (T, Test_Job_Request_Path_Validation'Access,
+         "refresh, operation and watch requests reject relative or NUL-containing paths");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Job_Item_Record_Validation'Access,
+         "directory signatures and job items reject invalid paths and thumbnails");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Operation_Result_Record_Validation'Access, "operation results reject inconsistent action metadata");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Transfer_Record_Validation'Access,
+         "transfer results and requests reject inconsistent or multiply-linked records");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Replacement_Checkpoint_Validation'Access,
+         "replacement checkpoints reject trailing fields and linked files");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Truncated_Persisted_Records'Access,
          "every strict prefix of persisted job and history records is rejected");
@@ -443,12 +546,38 @@ package body Files_Suite.Operations is
         (T, Test_Helper_Lease_Survives_Parent'Access,
          "a helper keeps recovery out after parent exit and fails closed if recovery wins");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Crash_Transport_Scavenging'Access,
-         "startup scavenging removes crashed and pre-release transports while preserving live jobs");
+        (T, Test_Exclusive_Stream_Hardlink'Access,
+         "exclusive transport streams refuse hardlinks without truncating their target");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Scavenger_Coordinator_Failures'Access,
+         "startup recovery completes when its coordinator cannot launch or fails");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Transport_Lease_Claims'Access,
+         "transport lease claims distinguish live, missing and replaced leases");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Startup_Transport_Recovery'Access,
+         "startup scavenging removes crashed transports while preserving live and development ones");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Unmarked_Transport_Recovery'Access,
+         "unmarked pre-lease transports are preserved and never claimed by age alone");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Unsafe_Recovery_Report'Access,
+         "unsafe recovery is reported through a validated marker, never a planted hardlink");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Private_Directory_Hardening'Access,
+         "private directory creation reports collisions and rejects links");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Scavenger_Shutdown'Access, "scavenger shutdown reaps a stalled coordinator before returning");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Window_Job_Shutdown'Access, "closing one window stops its stalled jobs while another remains active");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Stage_Ownership'Access, "cleanup deletes only staging directories owned by its job");
+        (T, Test_Transport_Cleanup_Guards'Access,
+         "transport cleanup refuses unmarked, leased, linked and replaced directories");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Stage_Owner_Marker_Guards'Access,
+         "stage cleanup rejects forged owner markers and retries the restored stage");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Stage_Record_Cleanup'Access, "cleanup deletes only staging directories owned by its job");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Transfer_Cancellation'Access, "a transfer cancels between chunks without losing its source");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -459,7 +588,27 @@ package body Files_Suite.Operations is
         (T, Test_Cross_Device_Recovery'Access,
          "cross-device move, trash, and restore failures preserve recoverable data");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Delete_Selected_Operation'Access, "delete operation moves selected item to trash");
+        (T, Test_Trash_Deletion_Date'Access, "trash deletion dates format whole seconds without rounding up");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Trash_Backend_Selection'Access,
+         "the trash backend, availability and preflight follow the environment and path identity");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Native_Trash_Adapters'Access,
+         "native Windows and macOS trash adapters report their support per host");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Xdg_Trash_Move'Access, "Delete moves the selected item into an owner-only XDG trash");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Trash_Name_Collisions'Access, "trash name collisions choose a suffixed name and metadata");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Trash_Backspace_And_Encoding'Access,
+         "Backspace trashes too and trashinfo percent-encodes the original path");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Multi_Selection_Trash'Access,
+         "multi-selection trash moves every item or, on preflight failure, none");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Nested_Trash_Preflight'Access, "trash refuses to move a directory into its own trash");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Macos_Home_Trash_Fallback'Access, "a macOS-style ~/.Trash is used directly as a fallback");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Restore_From_Trash'Access, "restore operation returns trashed item to original path");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -477,7 +626,22 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Open_Selected_Directory_Loads_Items'Access, "open directory loads and navigates");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Open_Action_Policy'Access, "open-action policy records its execution contract");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Open_Selected_File_Prepares_Action'Access, "open file executes configured action");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Multi_File_Open_Preflight'Access, "multi-file open preflights every action before spawning");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Open_Shell_Environment'Access, "open-action shell follows the host shell environment");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Item_Click_Selects_Without_Opening'Access, "item click selects without opening and keeps focus rules");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Explicit_Shell_Open_Actions'Access, "explicit shell open actions quote arguments and launch detached");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Open_Executable_Preflight'Access,
+         "open actions reject missing, directory and placeholder executables");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Return_And_Double_Click_Open'Access, "Return and double-click run the modifier-specific open action");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Missing_Open_Action_Reports_Error'Access, "missing open action reports localized error");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -487,7 +651,27 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Create_File_Does_Not_Overwrite'Access, "create-file refuses existing destination");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Advanced_Filesystem_Operations'Access, "advanced filesystem operations");
+        (T, Test_Recursive_Search'Access, "recursive search finds nested matches and routes through commands");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Directory_Change_Watcher'Access, "directory watcher detects changes and refreshes the model");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Drop_Import_Execution'Access, "drop import copies, moves and arms the conflict dialog");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Drop_Import_Guards'Access, "drop import handles same-directory, into-self and same-name sources");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Permanent_Delete_Guards'Access, "permanent delete refuses unsafe targets and unlinks symlinks");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Backslash_Executable_Lookup'Access, "a POSIX executable containing a backslash is found on PATH");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Thumbnail_Generation'Access, "thumbnail generation writes safe owner-only cache artifacts");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Png_Thumbnail_Decoding'Access, "PNG thumbnails decode, bound inflate and composite transparency");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Directory_Load_Thumbnails'Access, "directory loading auto-generates image thumbnails");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Thumbnail_Cache_Entries'Access, "thumbnail cache entries are validated when loaded");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Thumbnail_Command_Rendering'Access, "thumbnail command output reaches the large-icons atlas only");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Thumbnail_Cache_Is_Per_User'Access,
          "the thumbnail cache lands in this host's user cache, not the browsed folder");
@@ -504,7 +688,9 @@ package body Files_Suite.Operations is
         (T, Test_Explicit_Thumbnail_Survives_The_Listing'Access,
          "a thumbnail generated for a non-image item is still shown when the directory is listed");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Invalid_File_Operation_Names'Access, "file operation invalid names");
+        (T, Test_Invalid_Create_Names'Access, "create rejects invalid names without writing anything");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Invalid_Rename_Names'Access, "rename rejects invalid names and leaves the source in place");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Leaf_Name_Rules'Access, "leaf-name rules are host-gated");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -536,6 +722,18 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Metadata_Snapshot'Access, "info pane snapshot includes metadata");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Info_Pane_Type_Metadata'Access, "item snapshots localize per-filetype metadata");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Info_Pane_Localized_Extras'Access, "info pane localizes every extra-info token kind");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Info_Pane_Frame_Layout'Access, "info pane frame lays out heading, rows and permission matrix");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Info_Pane_Word_Wrap'Access, "info metadata wraps at word boundaries");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Info_Pane_Item_Field_Fallbacks'Access, "info pane reports metadata errors and item-field fallbacks");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Info_Pane_Multi_Selection_Snapshot'Access, "info snapshot covers every selected item, coalesced");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Section_Tooltips'Access, "info pane sections carry descriptive tooltips");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Coalesced_Multi'Access,
@@ -565,7 +763,13 @@ package body Files_Suite.Operations is
         (T, Test_Selection_Total_Counts_Folders'Access,
          "the selection total counts selected folders' recursive size");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Controller_Refresh_And_History_Loading'Access, "controller refresh and history load items");
+        (T, Test_Controller_Home_Loading'Access, "controller home loads items, and a failed home keeps the view");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Controller_Refresh_Loading'Access,
+         "controller refresh loads items, and a failed refresh keeps the view");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Controller_History_Loading'Access,
+         "controller back, forward and path input load items and roll back on failure");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Navigate_Parent_Operation'Access, "navigate parent moves up and records history");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -610,7 +814,16 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Detected_Terminal_Helper'Access, "detected terminal helper honors the TERMINAL override");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Available_Applications'Access, "open-with discovers and parses desktop applications");
+        (T, Test_Desktop_Application_Discovery'Access,
+         "open-with discovers valid desktop entries and rejects malformed or hidden ones");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Desktop_Exec_Expansion'Access, "desktop Exec templates expand into launch argument vectors");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Open_With_Palette_Launch'Access,
+         "the Open With palette launches per target and reports a missing executable");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Relative_Xdg_Application_Paths'Access,
+         "application discovery ignores relative XDG data paths");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Toggle_Hidden_Files'Access, "toggle hidden files persists and reloads with new visibility");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -733,7 +946,14 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Selection_Completion'Access, "keyboard selection and completed refresh populate info metadata");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Undo_Entry_Identity'Access, "Undo protects replaced files, folders and links across Redo cycles");
+        (T, Test_Duplicate_Undo_Identity'Access, "Undo protects replaced files, folders and links across Redo cycles");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Undo_Same_Size_Edits'Access, "Undo refuses copies changed by a same-size edit with restored mtime");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Undo_Admits_Verified_Identities'Access,
+         "history admits only entries with verifiable publication identities");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Paste_Undo_Identity'Access, "partial paste Undo never removes replacements of its entries");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Refresh_Keeps_Place'Access,
          "a refresh keeps the scroll and Quick Look, and waits while the palette is open");
@@ -817,7 +1037,25 @@ package body Files_Suite.Operations is
         (T, Test_Search_Limit_Errors'Access, "search limits fail without presenting incomplete or empty results");
    end Register_Tests;
 
-   procedure Test_Delete_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure With_Trash_Environment (Check : not null access procedure) is separate;
+
+   procedure Test_Trash_Deletion_Date (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Trash_Backend_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Native_Trash_Adapters (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Xdg_Trash_Move (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Trash_Name_Collisions (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Trash_Backspace_And_Encoding (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Multi_Selection_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Nested_Trash_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Macos_Home_Trash_Fallback (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Restore_From_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -833,7 +1071,21 @@ package body Files_Suite.Operations is
 
    procedure Test_Open_Selected_Directory_Loads_Items (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Open_Action_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Open_Selected_File_Prepares_Action (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Multi_File_Open_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Open_Shell_Environment (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Item_Click_Selects_Without_Opening (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Explicit_Shell_Open_Actions (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Open_Executable_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Return_And_Double_Click_Open (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Missing_Open_Action_Reports_Error (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -843,7 +1095,27 @@ package body Files_Suite.Operations is
 
    procedure Test_Create_File_Does_Not_Overwrite (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-   procedure Test_Advanced_Filesystem_Operations (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Recursive_Search (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Directory_Change_Watcher (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Drop_Import_Execution (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Drop_Import_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Permanent_Delete_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Backslash_Executable_Lookup (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Thumbnail_Generation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Png_Thumbnail_Decoding (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Directory_Load_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Thumbnail_Cache_Entries (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Thumbnail_Command_Rendering (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    --  Thumbnails are a regenerable per-user cache and belong in the user's cache
    --  area. The resolver consulted only XDG_CACHE_HOME and HOME, and on Windows
@@ -884,7 +1156,23 @@ package body Files_Suite.Operations is
 
    procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-   procedure Test_Invalid_File_Operation_Names (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   --  Names no host accepts, shared by the create and rename checks.
+   function Nul_Name return String is ("bad" & Character'Val (0) & "name.txt");
+   function Tab_Name return String is ("bad" & Character'Val (9) & "name.txt");
+   function C1_Name return String is ("bad" & Character'Val (133) & "name.txt");
+   function Encoded_C1_Name return String is ("bad" & Byte (16#C2#) & Byte (16#85#) & "name.txt");
+   function Truncated_UTF8_Name return String is ("bad" & Byte (16#E2#) & Byte (16#82#) & "name.txt");
+   function Overlong_UTF8_Name return String is ("bad" & Byte (16#C0#) & Byte (16#AF#) & "name.txt");
+   function NBSP_Name return String is
+     (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#)));
+   function Ideographic_Space_Name return String is
+     (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#3000#)));
+   function Trailing_NBSP_Name return String is ("trailing-nbsp" & NBSP_Name);
+   function Trailing_Ideographic_Name return String is ("trailing-wide" & Ideographic_Space_Name);
+
+   procedure Test_Invalid_Create_Names (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Invalid_Rename_Names (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Expand_User_Path (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -902,7 +1190,33 @@ package body Files_Suite.Operations is
 
    procedure Test_Commit_Multi_Rename (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   function Detail_Value (Prefix_Key : String; Value : String; Suffix_Key : String) return String is separate;
+
+   function Detail_Localized_Value (Prefix_Key : String; Value_Key : String; Suffix_Key : String) return String
+     is separate;
+
+   function Detail_Lines_Encoding
+     (Lines_Prefix_Key : String;
+      Lines            : String;
+      Lines_Suffix_Key : String;
+      Encoding_Key     : String)
+      return String is separate;
+
+   procedure Write_Info_Metadata_Fixtures is separate;
+
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Info_Pane_Type_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Info_Pane_Localized_Extras (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Info_Pane_Frame_Layout (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Info_Pane_Word_Wrap (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Info_Pane_Item_Field_Fallbacks (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Info_Pane_Multi_Selection_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    --  Each info-pane section label carries a descriptive hover tooltip drawn from
    --  its "<key>.tooltip" catalog entry.
@@ -954,7 +1268,13 @@ package body Files_Suite.Operations is
 
    procedure Test_Refresh_Keeps_Place (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-   procedure Test_Undo_Entry_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Duplicate_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Undo_Same_Size_Edits (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Undo_Admits_Verified_Identities (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Paste_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Copy_Access_Bits (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -1289,7 +1609,11 @@ package body Files_Suite.Operations is
    --  any selection, independent of the info pane.
    procedure Test_Selection_Total_Counts_Folders (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-   procedure Test_Controller_Refresh_And_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Controller_Home_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Controller_Refresh_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Controller_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Navigate_Parent_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -1519,7 +1843,20 @@ package body Files_Suite.Operations is
 
    procedure Test_Detected_Terminal_Helper (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-   procedure Test_Available_Applications (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure With_Desktop_Application_Fixture (Check : not null access procedure) is separate;
+
+   function Find_Application
+     (Apps : Files.Applications.Application_Vectors.Vector;
+      Name : String)
+      return Files.Applications.Application is separate;
+
+   procedure Test_Desktop_Application_Discovery (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Desktop_Exec_Expansion (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Open_With_Palette_Launch (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Relative_Xdg_Application_Paths (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Toggle_Hidden_Files (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -1614,7 +1951,32 @@ package body Files_Suite.Operations is
 
    procedure Test_Owed_Reloads (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   --  Drive a background operation to completion the way the UI does:
+   --  its progress overlay is open, and it is collected without blocking.
+   procedure Finish_Background_Operation
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Step     : in out Files.Operations.Operation_Result) is
+   begin
+      Assert (Files.Model.Paste_Execution_Is_Active (Model),
+              "a long operation returns with its progress overlay open");
+      for Attempt in Files_Suite.Support.Polling loop
+         Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
+         exit when not Files.Model.Paste_Execution_Is_Active (Model);
+      end loop;
+      Assert (not Files.Model.Paste_Execution_Is_Active (Model),
+              "the UI collects the helper result without blocking");
+      Files_Suite.Support.Assert_Equal
+        (Step.Status,
+         Files.Operations.Operation_Success,
+         "the background operation completes successfully");
+   end Finish_Background_Operation;
+
    procedure Test_Background_Operations (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Stale_Background_Results (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Background_Result_Mismatch (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Window_Job_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -1738,453 +2100,15 @@ package body Files_Suite.Operations is
          raise;
    end Test_Copy_Journal_Validation;
 
-   procedure Test_Job_Record_Validation
-     (T : in out AUnit.Test_Cases.Test_Case'Class)
-   is
-      pragma Unreferenced (T);
-      Path     : constant String := Join (Root, "invalid-job-items");
-      File     : Ada.Streams.Stream_IO.File_Type;
-      Items    : Files.File_System.Item_Vectors.Vector;
-      Item     : Files.File_System.Directory_Item;
-      Signature : Files.File_System.Directory_Signature;
-      Result   : Files.Operations.Operation_Result;
-      Transfer_Result : Files.Transfer_Jobs.Job_Result;
-      Transfer_Path   : constant String := Join (Root, "invalid-transfer-result");
-      Transfer_Target : constant String := Join (Root, "linked-transfer-result");
-      Transfer_Request_Path : constant String := Join (Root, "invalid-transfer-request");
-      Transfer_Request_Target : constant String := Join (Root, "linked-transfer-request");
-      Transfer_Action : Files.Paste.Resolved_Action;
-      Replacement_Backup : constant String := Join (Root, "replacement-backup");
-      Replacement_Record : constant String := Join (Root, "replacement-record");
-      Replacement_Target : constant String := Join (Root, "replacement-target");
-      Rejected : Boolean := False;
+   procedure Test_Job_Request_Path_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-      procedure Write_Replacement_Record (Record_Path : String) is
-      begin
-         Ada.Streams.Stream_IO.Create
-           (File, Ada.Streams.Stream_IO.Out_File, Record_Path);
-         String'Output
-           (Ada.Streams.Stream_IO.Stream (File), Replacement_Backup);
-         String'Output
-           (Ada.Streams.Stream_IO.Stream (File),
-            Files.File_Identities.Token (Replacement_Backup));
-         Ada.Streams.Stream_IO.Close (File);
-      end Write_Replacement_Record;
+   procedure Test_Job_Item_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-      procedure Write_Raw_Items
-        (Record_Path : String;
-         Value       : Files.File_System.Directory_Item)
-      is
-         Stream : Ada.Streams.Stream_IO.Stream_Access;
-      begin
-         Ada.Streams.Stream_IO.Create
-           (File, Ada.Streams.Stream_IO.Out_File, Record_Path);
-         Stream := Ada.Streams.Stream_IO.Stream (File);
-         Natural'Output (Stream, 1);
-         Files.Job_Records.Write_String
-           (Stream, To_String (Value.Name), Files.Job_Records.Max_Path_Length);
-         Files.Job_Records.Write_String
-           (Stream, To_String (Value.Full_Path), Files.Job_Records.Max_Path_Length);
-         Files.Job_Records.Write_String
-           (Stream, To_String (Value.Parent_Path), Files.Job_Records.Max_Path_Length);
-         Files.Types.Item_Kind'Output (Stream, Value.Kind);
-         Files.Job_Records.Write_String
-           (Stream, To_String (Value.Filetype), Files.Job_Records.Max_Text_Length);
-         Files.Job_Records.Write_String
-           (Stream, To_String (Value.Icon_Id), Files.Job_Records.Max_Text_Length);
-         Boolean'Output (Stream, Value.Size_Available);
-         Long_Long_Integer'Output (Stream, Value.Size);
-         Boolean'Output (Stream, Value.Creation_Available);
-         Ada.Calendar.Time'Output (Stream, Value.Creation_Time);
-         Boolean'Output (Stream, Value.Modified_Available);
-         Ada.Calendar.Time'Output (Stream, Value.Modified_Time);
-         Files.Job_Records.Write_String
-           (Stream, To_String (Value.Permissions), Files.Job_Records.Max_Text_Length);
-         Boolean'Output (Stream, Value.Mode_Available);
-         Natural'Output (Stream, Value.Mode_Bits);
-         Boolean'Output (Stream, Value.Ownership_Available);
-         Natural'Output (Stream, Value.Owner_Id);
-         Natural'Output (Stream, Value.Group_Id);
-         Files.Job_Records.Write_String
-           (Stream, To_String (Value.Filetype_Extra), Files.Job_Records.Max_Text_Length);
-         Boolean'Output (Stream, Value.Filetype_Extra_Loaded);
-         Boolean'Output (Stream, Value.Thumbnail_Available);
-         Files.Job_Records.Write_String
-           (Stream, To_String (Value.Thumbnail_Path), Files.Job_Records.Max_Path_Length);
-         Natural'Output (Stream, Value.Thumbnail_Width);
-         Natural'Output (Stream, Value.Thumbnail_Height);
-         Natural'Output (Stream, Files.Shared_Bytes.Length (Value.Thumbnail_Pixels));
-         for Byte of Files.Shared_Bytes.To_Vector (Value.Thumbnail_Pixels) loop
-            Interfaces.Unsigned_8'Output (Stream, Byte);
-         end loop;
-         Boolean'Output (Stream, Value.Metadata_Error);
-         Files.Job_Records.Write_String
-           (Stream, To_String (Value.Error_Key), Files.Job_Records.Max_Error_Length);
-         Ada.Streams.Stream_IO.Close (File);
-      end Write_Raw_Items;
+   procedure Test_Operation_Result_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-      procedure Write_Raw_Signature
-        (Record_Path : String;
-         Value       : Files.File_System.Directory_Signature)
-      is
-         Stream : Ada.Streams.Stream_IO.Stream_Access;
-      begin
-         Ada.Streams.Stream_IO.Create
-           (File, Ada.Streams.Stream_IO.Out_File, Record_Path);
-         Stream := Ada.Streams.Stream_IO.Stream (File);
-         Files.Job_Records.Write_String
-           (Stream, To_String (Value.Path), Files.Job_Records.Max_Path_Length);
-         Boolean'Output (Stream, Value.Exists);
-         Natural'Output (Stream, Value.Entry_Count);
-         Natural'Output (Stream, Value.Entry_State_Checksum);
-         Ada.Calendar.Time'Output (Stream, Value.Latest_Modified);
-         Boolean'Output (Stream, Value.Latest_Modified_Known);
-         Ada.Streams.Stream_IO.Close (File);
-      end Write_Raw_Signature;
-   begin
-      Reset_Root;
+   procedure Test_Transfer_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-      Assert
-        (Files.Refresh_Jobs.Testing.Request_Paths_Are_Valid
-           (Root, Root, Recent => False)
-         and then Files.Refresh_Jobs.Testing.Request_Paths_Are_Valid
-           ("", "", Recent => True),
-         "refresh requests accept real absolute roots and the synthetic Recent view");
-      Assert
-        (not Files.Refresh_Jobs.Testing.Request_Paths_Are_Valid
-           ("relative-root", Root, Recent => False)
-         and then not Files.Refresh_Jobs.Testing.Request_Paths_Are_Valid
-           (Root, "relative-signature", Recent => False)
-         and then not Files.Refresh_Jobs.Testing.Request_Paths_Are_Valid
-           (Root, Root, Recent => True),
-         "refresh requests reject relative or contradictory path state");
-      Assert
-        (Files.Operation_Jobs.Testing.Request_Path_Is_Valid
-           (Root, Recent => False)
-         and then Files.Operation_Jobs.Testing.Request_Path_Is_Valid
-           ("", Recent => True)
-         and then not Files.Operation_Jobs.Testing.Request_Path_Is_Valid
-           ("relative-root", Recent => False)
-         and then not Files.Operation_Jobs.Testing.Request_Path_Is_Valid
-           (Root, Recent => True),
-         "operation requests distinguish real roots from the synthetic Recent view");
-      Assert
-        (Files.Refresh_Jobs.Testing.Watch_Request_Path_Is_Valid (Root)
-         and then not Files.Refresh_Jobs.Testing.Watch_Request_Path_Is_Valid
-           ("relative-watch")
-         and then not Files.Refresh_Jobs.Testing.Watch_Request_Path_Is_Valid
-           (Root & Character'Val (0) & "ignored"),
-         "watch requests require absolute NUL-free paths");
-
-      Signature.Path := To_Unbounded_String ("relative-signature");
-      Write_Raw_Signature (Path, Signature);
-      Ada.Streams.Stream_IO.Open
-        (File, Ada.Streams.Stream_IO.In_File, Path);
-      Rejected := False;
-      begin
-         Signature := Files.Job_Records.Read_Signature
-           (Ada.Streams.Stream_IO.Stream (File));
-      exception
-         when Ada.IO_Exceptions.Data_Error => Rejected := True;
-      end;
-      Ada.Streams.Stream_IO.Close (File);
-      Assert
-        (Rejected,
-         "decoded directory signatures reject relative operational paths");
-
-      Signature.Path := To_Unbounded_String
-        (Root & Character'Val (0) & "ignored");
-      Ada.Streams.Stream_IO.Create
-        (File, Ada.Streams.Stream_IO.Out_File, Path);
-      Rejected := False;
-      begin
-         Files.Job_Records.Write_Signature
-           (Ada.Streams.Stream_IO.Stream (File), Signature);
-      exception
-         when Ada.Directories.Use_Error => Rejected := True;
-      end;
-      Ada.Streams.Stream_IO.Close (File);
-      Assert
-        (Rejected,
-         "directory signatures with NUL-containing paths are not serialized");
-
-      Item.Thumbnail_Available := True;
-      Item.Thumbnail_Width := Natural'Last;
-      Item.Thumbnail_Height := 1;
-      Item.Thumbnail_Pixels := Files.Shared_Bytes.To_Shared ([1 => 0]);
-      Items.Append (Item);
-      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
-      begin
-         Files.Job_Records.Write_Items
-           (Ada.Streams.Stream_IO.Stream (File), Items);
-      exception
-         when Ada.Directories.Use_Error => Rejected := True;
-      end;
-      Ada.Streams.Stream_IO.Close (File);
-      Assert (Rejected, "invalid thumbnail dimensions are not serialized");
-
-      Item := Files.File_System.Make_Item
-        (Root, "transport-item", Files.Types.Regular_File_Item);
-      Item.Full_Path := To_Unbounded_String ("relative-transport-item");
-      Write_Raw_Items (Path, Item);
-      Ada.Streams.Stream_IO.Open
-        (File, Ada.Streams.Stream_IO.In_File, Path);
-      Rejected := False;
-      begin
-         Items := Files.Job_Records.Read_Items
-           (Ada.Streams.Stream_IO.Stream (File));
-      exception
-         when Ada.IO_Exceptions.Data_Error => Rejected := True;
-      end;
-      Ada.Streams.Stream_IO.Close (File);
-      Assert
-        (Rejected,
-         "decoded job items reject relative operational paths");
-
-      Item.Full_Path := To_Unbounded_String (Join (Root, "transport-item"));
-      Item.Parent_Path := To_Unbounded_String
-        (Root & Character'Val (0) & "ignored");
-      Items.Clear;
-      Items.Append (Item);
-      Ada.Streams.Stream_IO.Create
-        (File, Ada.Streams.Stream_IO.Out_File, Path);
-      Rejected := False;
-      begin
-         Files.Job_Records.Write_Items
-           (Ada.Streams.Stream_IO.Stream (File), Items);
-      exception
-         when Ada.Directories.Use_Error => Rejected := True;
-      end;
-      Ada.Streams.Stream_IO.Close (File);
-      Assert
-        (Rejected,
-         "job items with NUL-containing parent paths are not serialized");
-
-      Result.Action.Executable := To_Unbounded_String ("viewer");
-      Result.Action_Executable := To_Unbounded_String ("different-viewer");
-      Rejected := False;
-      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
-      begin
-         Files.Job_Records.Write_Operation_Result
-           (Ada.Streams.Stream_IO.Stream (File), Result);
-      exception
-         when Ada.Directories.Use_Error => Rejected := True;
-      end;
-      Ada.Streams.Stream_IO.Close (File);
-      Assert (Rejected, "inconsistent action metadata is not serialized");
-
-      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
-      Files.Operations.Operation_Status'Output
-        (Ada.Streams.Stream_IO.Stream (File), Files.Operations.Operation_Success);
-      Files.Job_Records.Write_String
-        (Ada.Streams.Stream_IO.Stream (File), "", Files.Job_Records.Max_Error_Length);
-      Files.Job_Records.Write_String
-        (Ada.Streams.Stream_IO.Stream (File), "", Files.Job_Records.Max_Path_Length);
-      Files.Job_Records.Write_String
-        (Ada.Streams.Stream_IO.Stream (File), "viewer", Files.Job_Records.Max_Path_Length);
-      Natural'Output (Ada.Streams.Stream_IO.Stream (File), 1);
-      String'Output (Ada.Streams.Stream_IO.Stream (File), "file.txt");
-      Boolean'Output (Ada.Streams.Stream_IO.Stream (File), False);
-      Files.Job_Records.Write_String
-        (Ada.Streams.Stream_IO.Stream (File), "viewer", Files.Job_Records.Max_Path_Length);
-      Natural'Output (Ada.Streams.Stream_IO.Stream (File), 0);
-      Boolean'Output (Ada.Streams.Stream_IO.Stream (File), False);
-      Boolean'Output (Ada.Streams.Stream_IO.Stream (File), False);
-      Boolean'Output (Ada.Streams.Stream_IO.Stream (File), False);
-      Boolean'Output (Ada.Streams.Stream_IO.Stream (File), False);
-      Integer'Output (Ada.Streams.Stream_IO.Stream (File), 0);
-      Ada.Streams.Stream_IO.Close (File);
-      Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Path);
-      Rejected := False;
-      begin
-         Result := Files.Job_Records.Read_Operation_Result
-           (Ada.Streams.Stream_IO.Stream (File));
-      exception
-         when Ada.IO_Exceptions.Data_Error => Rejected := True;
-      end;
-      Ada.Streams.Stream_IO.Close (File);
-      Assert (Rejected, "inconsistent decoded action metadata is rejected");
-
-      Transfer_Result.Mutation :=
-        (Success => True, Error_Key => Null_Unbounded_String);
-      Files.Transfer_Jobs.Testing.Write_Result
-        (Transfer_Path, Transfer_Result);
-      Rejected := False;
-      begin
-         Transfer_Result := Files.Transfer_Jobs.Testing.Read_Result
-           (Transfer_Path);
-      exception
-         when Ada.IO_Exceptions.Data_Error => Rejected := True;
-      end;
-      Assert
-        (Rejected,
-         "a successful transfer result without a created identity is rejected");
-
-      Transfer_Result.Created_Identity := To_Unbounded_String ("created-token");
-      Transfer_Result.Cancelled := True;
-      Files.Transfer_Jobs.Testing.Write_Result
-        (Transfer_Path, Transfer_Result);
-      Rejected := False;
-      begin
-         Transfer_Result := Files.Transfer_Jobs.Testing.Read_Result
-           (Transfer_Path);
-      exception
-         when Ada.IO_Exceptions.Data_Error => Rejected := True;
-      end;
-      Assert
-        (Rejected,
-         "a transfer result cannot report success and cancellation together");
-
-      Transfer_Result.Cancelled := False;
-      Transfer_Result.Trashed := To_Unbounded_String ("backup-path");
-      Files.Transfer_Jobs.Testing.Write_Result
-        (Transfer_Path, Transfer_Result);
-      Rejected := False;
-      begin
-         Transfer_Result := Files.Transfer_Jobs.Testing.Read_Result
-           (Transfer_Path);
-      exception
-         when Ada.IO_Exceptions.Data_Error => Rejected := True;
-      end;
-      Assert
-        (Rejected,
-         "a transfer backup path without its identity is rejected");
-
-      Transfer_Result.Trashed_Identity :=
-        To_Unbounded_String ("backup-token");
-      Files.Transfer_Jobs.Testing.Write_Result
-        (Transfer_Path, Transfer_Result);
-      Rejected := False;
-      begin
-         Transfer_Result := Files.Transfer_Jobs.Testing.Read_Result
-           (Transfer_Path);
-      exception
-         when Ada.IO_Exceptions.Data_Error => Rejected := True;
-      end;
-      Assert
-        (Rejected,
-         "a transfer result rejects a relative replacement path");
-
-      Transfer_Result := (others => <>);
-      Files.Transfer_Jobs.Testing.Write_Result
-        (Transfer_Target, Transfer_Result);
-      Ada.Directories.Delete_File (Transfer_Path);
-      if Hostkit.Fs.Create_Hard_Link (Transfer_Target, Transfer_Path) then
-         Rejected := False;
-         begin
-            Transfer_Result := Files.Transfer_Jobs.Testing.Read_Result
-              (Transfer_Path);
-         exception
-            when Ada.IO_Exceptions.Data_Error => Rejected := True;
-         end;
-         Assert
-           (Rejected, "transfer result reads refuse a multiply-linked file");
-         Ada.Directories.Delete_File (Transfer_Path);
-      end if;
-
-      Transfer_Action :=
-        (Source_Path => To_Unbounded_String ("relative-source"),
-         Dest_Path   => To_Unbounded_String (Join (Root, "destination")),
-         Skip        => False,
-         Replaced    => False);
-      Files.Transfer_Jobs.Testing.Write_Request
-        (Transfer_Request_Path, Transfer_Action,
-         Files.File_System.Drop_Copy);
-      Rejected := False;
-      begin
-         Transfer_Action :=
-           Files.Transfer_Jobs.Testing.Read_Request_Action
-             (Transfer_Request_Path);
-      exception
-         when Ada.IO_Exceptions.Data_Error => Rejected := True;
-      end;
-      Assert
-        (Rejected,
-         "a transfer request rejects a relative source path");
-
-      Transfer_Action.Source_Path := To_Unbounded_String (Join (Root, "source"));
-      Files.Transfer_Jobs.Testing.Write_Request
-        (Transfer_Request_Path, Transfer_Action,
-         Files.File_System.Drop_Copy,
-         Batch_Directory => "/tmp/batch" & Character'Val (0) & "suffix");
-      Rejected := False;
-      begin
-         Transfer_Action :=
-           Files.Transfer_Jobs.Testing.Read_Request_Action
-             (Transfer_Request_Path);
-      exception
-         when Ada.IO_Exceptions.Data_Error => Rejected := True;
-      end;
-      Assert
-        (Rejected,
-         "a transfer request rejects a NUL-containing batch path");
-
-      Files.Transfer_Jobs.Testing.Write_Request
-        (Transfer_Request_Target, Transfer_Action,
-         Files.File_System.Drop_Copy);
-      Ada.Directories.Delete_File (Transfer_Request_Path);
-      if Hostkit.Fs.Create_Hard_Link
-        (Transfer_Request_Target, Transfer_Request_Path)
-      then
-         Rejected := False;
-         begin
-            Transfer_Action :=
-              Files.Transfer_Jobs.Testing.Read_Request_Action
-                (Transfer_Request_Path);
-         exception
-            when Ada.IO_Exceptions.Data_Error => Rejected := True;
-         end;
-         Assert
-           (Rejected, "transfer request reads refuse a multiply-linked file");
-         Ada.Directories.Delete_File (Transfer_Request_Path);
-      end if;
-
-      Write_Binary_File (Replacement_Backup, "preserved destination");
-      Write_Replacement_Record (Replacement_Record);
-      Assert
-        (Files.Transfer_Jobs.Testing.Replacement_Checkpoint_Is_Valid
-           (Replacement_Record),
-         "a complete replacement checkpoint with a live identity is accepted");
-      Ada.Streams.Stream_IO.Open
-        (File, Ada.Streams.Stream_IO.Append_File, Replacement_Record);
-      Boolean'Output (Ada.Streams.Stream_IO.Stream (File), True);
-      Ada.Streams.Stream_IO.Close (File);
-      Assert
-        (not Files.Transfer_Jobs.Testing.Replacement_Checkpoint_Is_Valid
-           (Replacement_Record),
-         "a replacement checkpoint rejects trailing fields");
-
-      Write_Replacement_Record (Replacement_Target);
-      Ada.Directories.Delete_File (Replacement_Record);
-      if Hostkit.Fs.Create_Link (Replacement_Target, Replacement_Record) then
-         Assert
-           (not Files.Transfer_Jobs.Testing.Replacement_Checkpoint_Is_Valid
-              (Replacement_Record),
-            "replacement recovery refuses a symlink checkpoint");
-         declare
-            Removed : constant Boolean :=
-              Hostkit.Fs.Delete_Link (Replacement_Record);
-            pragma Unreferenced (Removed);
-         begin
-            null;
-         end;
-      end if;
-      if Hostkit.Fs.Create_Hard_Link
-        (Replacement_Target, Replacement_Record)
-      then
-         Assert
-           (not Files.Transfer_Jobs.Testing.Replacement_Checkpoint_Is_Valid
-              (Replacement_Record),
-            "replacement recovery refuses a multiply-linked checkpoint");
-         Ada.Directories.Delete_File (Replacement_Record);
-      end if;
-   exception
-      when others =>
-         if Ada.Streams.Stream_IO.Is_Open (File) then
-            Ada.Streams.Stream_IO.Close (File);
-         end if;
-         raise;
-   end Test_Job_Record_Validation;
+   procedure Test_Replacement_Checkpoint_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Truncated_Persisted_Records
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -2415,9 +2339,31 @@ package body Files_Suite.Operations is
          raise;
    end Test_Helper_Lease_Survives_Parent;
 
-   procedure Test_Crash_Transport_Scavenging (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Create_Abandoned_Transport (Report : String; Path : out Files.Types.UString) is separate;
 
-   procedure Test_Stage_Ownership (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Remove_Transport_Fixture (Path : Files.Types.UString) is separate;
+
+   procedure Test_Exclusive_Stream_Hardlink (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Scavenger_Coordinator_Failures (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Transport_Lease_Claims (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Startup_Transport_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Unmarked_Transport_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Unsafe_Recovery_Report (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Private_Directory_Hardening (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Scavenger_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Transport_Cleanup_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Stage_Owner_Marker_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Stage_Record_Cleanup (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Failed_Replace_Rollback (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
 end Files_Suite.Operations;

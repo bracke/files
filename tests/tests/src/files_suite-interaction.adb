@@ -113,7 +113,9 @@ package body Files_Suite.Interaction is
    procedure Test_Settings_Tab_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Grid_Nav_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Zoom (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Targeted_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Scroll_Targets_Pane_Under_Cursor (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Controller_Scroll_Contained_By_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Overlays_Contain_Wheel_Input (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Hidden_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Sort_Persists (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -220,7 +222,13 @@ package body Files_Suite.Interaction is
         (T, Test_Keyboard_Zoom'Access,
          "Ctrl+plus/equal grows, Ctrl+minus shrinks and Ctrl+0 resets the font size through the key seam");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Targeted_Scroll'Access, "scroll targets the pane under the cursor");
+        (T, Test_Scroll_Targets_Pane_Under_Cursor'Access, "scroll targets the pane under the cursor");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Controller_Scroll_Contained_By_Overlay'Access,
+         "controller scroll entry points cannot move content behind a non-scrolling overlay");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Overlays_Contain_Wheel_Input'Access,
+         "non-scrolling overlays swallow wheel input; the folder tree scrolls within itself");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Hidden_Toggle'Access,
          "bottom-bar hidden-count click flips Show_Hidden_Files, persists, and reloads");
@@ -1835,53 +1843,87 @@ package body Files_Suite.Interaction is
       Files.Model.Close_Sort_Menu (Model);
    end Test_Keyboard_Zoom;
 
-   procedure Test_Targeted_Scroll (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
-      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+   --  The compact window of the targeted-scroll tests: small enough that both
+   --  the info pane and the detail view overflow.
+   Target_W : constant Natural := 600;
+   Target_H : constant Natural := 180;
+
+   --  Scroll down (negative GLFW offset) at (X, Y) through the real translator.
+   procedure Scroll_Down_At
+     (Model    : in out Files.Model.Window_Model;
+      Settings : in out Files.Settings.Settings_Model;
+      X        : Natural;
+      Y        : Natural)
+   is
+      Snapshot : constant Files.Rendering.View_Snapshot :=
+        Files.Rendering.Build_Snapshot (Model, Settings);
+      Action   : constant Files.Events.Input_Action :=
+        Files.Events.Translate_Scroll_At
+          (Snapshot, X, Y, Target_W, Target_H, Y_Offset => -1, Line_Height => Line);
       Result   : Files.Interaction.Interaction_Result;
-      Info_X, Info_Y : Natural;
-      Main_X, Main_Y : Natural;
-      Target_W : constant Natural := 600;
-      Target_H : constant Natural := 180;
+   begin
+      Files.Interaction.Apply_Input_Action
+        (Model             => Model,
+         Settings          => Settings,
+         Settings_Path     => "",
+         Action            => Action,
+         Current_Font_Size => Base_Font,
+         Modifiers         => Guikit.Input.No_Modifiers,
+         Result            => Result);
+   end Scroll_Down_At;
 
-      --  Scroll down (negative GLFW offset) at (X, Y) through the real translator.
-      procedure Scroll_At (X : Natural; Y : Natural) is
-         Snapshot : constant Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Model, Settings);
-         Action   : constant Files.Events.Input_Action :=
-           Files.Events.Translate_Scroll_At
-             (Snapshot, X, Y, Target_W, Target_H, Y_Offset => -1, Line_Height => Line);
-      begin
-         Files.Interaction.Apply_Input_Action
-           (Model             => Model,
-            Settings          => Settings,
-            Settings_Path     => "",
-            Action            => Action,
-            Current_Font_Size => Base_Font,
-            Modifiers         => Guikit.Input.No_Modifiers,
-            Result            => Result);
-      end Scroll_At;
-
-      procedure Assert_Overlay_Swallows_Scroll
-        (Snapshot : Files.Rendering.View_Snapshot;
-         Name     : String)
-      is
-         Action : constant Files.Events.Input_Action :=
-           Files.Events.Translate_Scroll_At
-             (Snapshot, Target_W - 1, Main_Y, Target_W, Target_H,
-              Y_Offset => -1, Line_Height => Line);
-      begin
-         Files_Suite.Support.Assert_Equal
-           (Action.Kind,
-            Files.Events.No_Input_Action,
-            Name & " swallows wheel input instead of scrolling the view behind it");
-      end Assert_Overlay_Swallows_Scroll;
-
+   --  The targeted-scroll fixture: detail view, Gamma.md selected, info pane open.
+   procedure Open_Targeted_Scroll_Fixture (Model : in out Files.Model.Window_Model) is
    begin
       Files.Model.Set_View_Mode (Model, Files.Types.Details);
       Files_Suite.Support.Select_Name (Model, "Gamma.md");
       Files.Model.Toggle_Info_Pane (Model);
+   end Open_Targeted_Scroll_Fixture;
+
+   --  Vertical centre of the main view in the compact targeted-scroll window.
+   function Targeted_Main_Y
+     (Model    : Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model) return Natural
+   is
+      Snapshot : constant Files.Rendering.View_Snapshot :=
+        Files.Rendering.Build_Snapshot (Model, Settings);
+      Layout   : constant Files.Rendering.Layout_Metrics :=
+        Files.Rendering.Calculate_Layout (Snapshot, Target_W, Target_H, Line);
+   begin
+      return Layout.Main_Y + Layout.Main_Height / 2;
+   end Targeted_Main_Y;
+
+   --  Reproduce the model state Test_Scroll_Targets_Pane_Under_Cursor leaves
+   --  behind: the fixture, one wheel step over the info pane and one over the
+   --  main view, then the main view returned to its top.
+   procedure Replay_Targeted_Scroll
+     (Model    : in out Files.Model.Window_Model;
+      Settings : in out Files.Settings.Settings_Model) is
+   begin
+      Open_Targeted_Scroll_Fixture (Model);
+      declare
+         Snapshot : constant Files.Rendering.View_Snapshot :=
+           Files.Rendering.Build_Snapshot (Model, Settings);
+         Layout   : constant Files.Rendering.Layout_Metrics :=
+           Files.Rendering.Calculate_Layout (Snapshot, Target_W, Target_H, Line);
+         Info     : constant Files.Rendering.Info_Pane_Layout :=
+           Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line);
+      begin
+         Scroll_Down_At (Model, Settings, Info.X + Info.Width / 2, Info.Y + Info.Height / 2);
+         Scroll_Down_At
+           (Model, Settings, Layout.Main_X + Layout.Main_Width / 2, Layout.Main_Y + Layout.Main_Height / 2);
+      end;
+      Files.Model.Set_Main_View_Scroll_Lines (Model, 0);
+   end Replay_Targeted_Scroll;
+
+   procedure Test_Scroll_Targets_Pane_Under_Cursor (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Info_X, Info_Y : Natural;
+      Main_X, Main_Y : Natural;
+   begin
+      Open_Targeted_Scroll_Fixture (Model);
       Assert (Files.Model.Info_Pane_Is_Open (Model), "the info pane is open for the scroll-target test");
 
       declare
@@ -1928,7 +1970,7 @@ package body Files_Suite.Interaction is
          end;
       end;
 
-      Scroll_At (Info_X, Info_Y);
+      Scroll_Down_At (Model, Settings, Info_X, Info_Y);
       Assert
         (Files.Model.Info_Pane_Scroll_Lines (Model) > 0,
          "scrolling over the info pane moves the info-pane offset");
@@ -1940,7 +1982,7 @@ package body Files_Suite.Interaction is
       declare
          Info_Before : constant Natural := Files.Model.Info_Pane_Scroll_Lines (Model);
       begin
-         Scroll_At (Main_X, Main_Y);
+         Scroll_Down_At (Model, Settings, Main_X, Main_Y);
          Assert
            (Files.Model.Main_View_Scroll_Lines (Model) > 0,
             "scrolling over the main view moves the main-view offset");
@@ -1968,6 +2010,14 @@ package body Files_Suite.Interaction is
             Files.Events.No_Input_Action,
             "wheel input is inert when the entire main view already fits");
       end;
+   end Test_Scroll_Targets_Pane_Under_Cursor;
+
+   procedure Test_Controller_Scroll_Contained_By_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+   begin
+      Replay_Targeted_Scroll (Model, Settings);
 
       --  Controller entry points must preserve the same overlay ownership rule
       --  when no pointer geometry is available (for example while minimized).
@@ -1992,6 +2042,31 @@ package body Files_Suite.Interaction is
             "direct targeted scrolling cannot move content behind an overlay");
          Files.Model.Close_Sort_Menu (Model);
       end;
+   end Test_Controller_Scroll_Contained_By_Overlay;
+
+   procedure Test_Overlays_Contain_Wheel_Input (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Main_Y   : Natural;
+
+      procedure Assert_Overlay_Swallows_Scroll
+        (Snapshot : Files.Rendering.View_Snapshot;
+         Name     : String)
+      is
+         Action : constant Files.Events.Input_Action :=
+           Files.Events.Translate_Scroll_At
+             (Snapshot, Target_W - 1, Main_Y, Target_W, Target_H,
+              Y_Offset => -1, Line_Height => Line);
+      begin
+         Files_Suite.Support.Assert_Equal
+           (Action.Kind,
+            Files.Events.No_Input_Action,
+            Name & " swallows wheel input instead of scrolling the view behind it");
+      end Assert_Overlay_Swallows_Scroll;
+   begin
+      Replay_Targeted_Scroll (Model, Settings);
+      Main_Y := Targeted_Main_Y (Model, Settings);
 
       --  Every non-scrolling pointer overlay must contain wheel input.  These
       --  flags are tested directly on the rendering snapshot so each overlay's
@@ -2150,7 +2225,7 @@ package body Files_Suite.Interaction is
          Overlay.Label_Picker_Open := True;
          Assert_Overlay_Swallows_Scroll (Overlay, "the label picker");
       end;
-   end Test_Targeted_Scroll;
+   end Test_Overlays_Contain_Wheel_Input;
 
    --  Open the settings pane through the real Ctrl+, shortcut so its draft is
    --  initialised exactly as the live app does.

@@ -97,7 +97,13 @@ package body Files_Suite.Rendering is
    procedure Test_Input_Scroll_Keeps_Caret_Visible (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Separators (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Floating_Menus_Have_Elevation (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Panels_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_And_Root_Selector_Close_Buttons (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Folder_Tree_Close_Button_Layering (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Scrolled_Tree_Rows_Map_To_Source (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Tree_Pick_Buttons_Hit_Test (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Dialog_Overlays_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Paste_Progress_Overlay_Bar (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Compact_Blocking_Dialogs_Fit (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Theme_Palette_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Column_Customization (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Group_Header_Rows (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -234,8 +240,26 @@ package body Files_Suite.Rendering is
         (T, Test_Floating_Menus_Have_Elevation'Access,
          "context and sort menus use the shared overlay surface and shadow");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Panels_Expose_Close_Button'Access,
-         "each open overlay panel emits a close-button accessibility node");
+        (T, Test_Info_And_Root_Selector_Close_Buttons'Access,
+         "the info pane and root selector each emit a close-button accessibility node");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Folder_Tree_Close_Button_Layering'Access,
+         "the folder tree emits a close button that modal layers above it cover");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Scrolled_Tree_Rows_Map_To_Source'Access,
+         "a scrolled destination tree maps clipped rows to their source rows above the picker footer");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Tree_Pick_Buttons_Hit_Test'Access,
+         "the folder-tree destination picker lays out and hit-tests its Choose/Cancel bar");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Dialog_Overlays_Expose_Close_Button'Access,
+         "quick look, label picker and paste-conflict overlays each emit a close-button node");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Paste_Progress_Overlay_Bar'Access,
+         "the paste-progress overlay exposes Cancel, a proportional bar and a modal backdrop");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Compact_Blocking_Dialogs_Fit'Access,
+         "blocking dialogs stay inside a short, narrow framebuffer");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Quick_Look_Overlay_Content'Access,
          "the quick look overlay emits its dialog panel and previewed content");
@@ -2855,7 +2879,7 @@ package body Files_Suite.Rendering is
       end;
    end Test_Floating_Menus_Have_Elevation;
 
-   procedure Test_Panels_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class) is
+   procedure Test_Info_And_Root_Selector_Close_Buttons (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Width  : constant Natural  := 1000;
       Height : constant Natural  := 800;
@@ -2923,239 +2947,257 @@ package body Files_Suite.Rendering is
             end loop;
          end;
       end;
+   end Test_Info_And_Root_Selector_Close_Buttons;
 
-      --  Folder-tree sidebar.
+   --  Folder-tree sidebar.
+   procedure Test_Folder_Tree_Close_Button_Layering (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Width  : constant Natural  := 1000;
+      Height : constant Natural  := 800;
+      LH     : constant Positive := 20;
+      Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Layout : Guikit.Draw.Layout_Metrics;
+      Panel  : Tree_Panel_Layout;
+      Rows   : Tree_Row_Layout_Vectors.Vector;
+      Close  : Close_Button_Layout;
+      Frame  : Frame_Commands;
+   begin
+      Snap.Tree_Panel_Open := True;
+      Snap.Tree_Rows.Append
+        (Files.Folder_Tree.Visible_Row'
+           (Node_Index   => 1,
+            Path         => To_Unbounded_String ("/deep"),
+            Name         => To_Unbounded_String ("deep"),
+            Depth        => 20,
+            Expanded     => False,
+            Loaded       => True,
+            Has_Children => True));
+      Layout := Calculate_Layout (Snap, Width, Height, LH);
+      Panel  := Calculate_Tree_Panel_Layout (Snap, Layout, LH);
+      Rows   := Calculate_Tree_Row_Layout (Snap, Panel, LH);
+      Close  := Panel_Close_Button (Panel.X, Panel.Y, Panel.Width, Panel.Height, LH);
+      Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
+      Assert (Close.Visible, "the folder tree hosts a close button");
+      Assert
+        (Has_Close_Button_Node (Frame, Close),
+         "the open folder tree emits a close-button accessibility node");
+      Assert
+        (not Rows.Is_Empty
+         and then Rows.First_Element.Triangle_W = 0,
+         "a deeply indented expander clipped outside the sidebar is not clickable");
+
+      --  The tree can remain visible beneath the modal settings pane. Its
+      --  close button must not receive a click through that overlay.
+      Snap.Settings_Pane_Open := True;
+      Frame := Build_Frame_Commands (Snap, Width, Height, LH);
       declare
-         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
-         Layout : Guikit.Draw.Layout_Metrics;
-         Panel  : Tree_Panel_Layout;
-         Rows   : Tree_Row_Layout_Vectors.Vector;
-         Close  : Close_Button_Layout;
-         Frame  : Frame_Commands;
+         Covered_Close : constant Files.Events.Input_Action :=
+           Files.Events.Translate_Click
+             (Snap, Frame,
+              Close.X + Close.Width / 2,
+              Close.Y + Close.Height / 2,
+              Width, Height, Line_Height => LH);
       begin
-         Snap.Tree_Panel_Open := True;
+         Assert
+           (Covered_Close.Kind /= Files.Events.Command_Input_Action
+            or else Covered_Close.Command /= Files.Commands.Toggle_Folder_Tree_Command,
+            "the modal settings pane owns clicks above the visible folder tree");
+      end;
+
+      --  Quick Look is a higher modal layer than the persistent tree. It
+      --  clears the tree from the active accessibility surface after the
+      --  tree has been drawn underneath it.
+      Snap.Settings_Pane_Open := False;
+      Snap.Quick_Look_Open := True;
+      Snap.Quick_Look_Name := To_Unbounded_String ("preview.txt");
+      Frame := Build_Frame_Commands (Snap, Width, Height, LH);
+      declare
+         Tree_Accessible : Boolean := False;
+      begin
+         for Node of Frame.Accessibility loop
+            Tree_Accessible :=
+              Tree_Accessible
+              or else To_String (Node.Name) =
+                Files.Localization.Text ("accessibility.tree_panel");
+         end loop;
+         Assert
+           (not Tree_Accessible,
+            "Quick Look hides the covered folder tree from accessibility");
+      end;
+   end Test_Folder_Tree_Close_Button_Layering;
+
+   --  A scrolled destination tree maps its clipped layout rows back to the
+   --  correct source rows and leaves the picker footer unobstructed.
+   procedure Test_Scrolled_Tree_Rows_Map_To_Source (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Width  : constant Natural  := 1000;
+      LH     : constant Positive := 20;
+      Snap       : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Layout     : Guikit.Draw.Layout_Metrics;
+      Panel      : Tree_Panel_Layout;
+      Buttons    : Tree_Pick_Button_Layout;
+      Rows       : Tree_Row_Layout_Vectors.Vector;
+      Frame      : Frame_Commands;
+      Fourth_Seen : Boolean := False;
+   begin
+      Snap.Tree_Panel_Open := True;
+      Snap.Tree_Pick_Active := True;
+      Snap.Tree_Panel_Scroll_Rows := 3;
+      for Index in 1 .. 12 loop
          Snap.Tree_Rows.Append
            (Files.Folder_Tree.Visible_Row'
-              (Node_Index   => 1,
-               Path         => To_Unbounded_String ("/deep"),
-               Name         => To_Unbounded_String ("deep"),
-               Depth        => 20,
+              (Node_Index   => Index,
+               Path         => To_Unbounded_String
+                 ("/tree/" & Natural'Image (Index)),
+               Name         => To_Unbounded_String
+                 ("tree-row" & Natural'Image (Index)),
+               Depth        => 0,
                Expanded     => False,
                Loaded       => True,
-               Has_Children => True));
-         Layout := Calculate_Layout (Snap, Width, Height, LH);
-         Panel  := Calculate_Tree_Panel_Layout (Snap, Layout, LH);
-         Rows   := Calculate_Tree_Row_Layout (Snap, Panel, LH);
-         Close  := Panel_Close_Button (Panel.X, Panel.Y, Panel.Width, Panel.Height, LH);
-         Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
-         Assert (Close.Visible, "the folder tree hosts a close button");
-         Assert
-           (Has_Close_Button_Node (Frame, Close),
-            "the open folder tree emits a close-button accessibility node");
-         Assert
-           (not Rows.Is_Empty
-            and then Rows.First_Element.Triangle_W = 0,
-            "a deeply indented expander clipped outside the sidebar is not clickable");
+               Has_Children => False));
+      end loop;
 
-         --  The tree can remain visible beneath the modal settings pane. Its
-         --  close button must not receive a click through that overlay.
-         Snap.Settings_Pane_Open := True;
-         Frame := Build_Frame_Commands (Snap, Width, Height, LH);
-         declare
-            Covered_Close : constant Files.Events.Input_Action :=
-              Files.Events.Translate_Click
-                (Snap, Frame,
-                 Close.X + Close.Width / 2,
-                 Close.Y + Close.Height / 2,
-                 Width, Height, Line_Height => LH);
-         begin
-            Assert
-              (Covered_Close.Kind /= Files.Events.Command_Input_Action
-               or else Covered_Close.Command /= Files.Commands.Toggle_Folder_Tree_Command,
-               "the modal settings pane owns clicks above the visible folder tree");
-         end;
+      Layout  := Calculate_Layout (Snap, Width, 200, LH);
+      Panel   := Calculate_Tree_Panel_Layout (Snap, Layout, LH);
+      Buttons := Tree_Pick_Buttons (Panel, LH);
+      Rows    := Calculate_Tree_Row_Layout (Snap, Panel, LH);
+      Frame   := Build_Frame_Commands (Snap, Width, 200, LH);
 
-         --  Quick Look is a higher modal layer than the persistent tree. It
-         --  clears the tree from the active accessibility surface after the
-         --  tree has been drawn underneath it.
-         Snap.Settings_Pane_Open := False;
-         Snap.Quick_Look_Open := True;
-         Snap.Quick_Look_Name := To_Unbounded_String ("preview.txt");
-         Frame := Build_Frame_Commands (Snap, Width, Height, LH);
-         declare
-            Tree_Accessible : Boolean := False;
-         begin
-            for Node of Frame.Accessibility loop
-               Tree_Accessible :=
-                 Tree_Accessible
-                 or else To_String (Node.Name) =
-                   Files.Localization.Text ("accessibility.tree_panel");
-            end loop;
-            Assert
-              (not Tree_Accessible,
-               "Quick Look hides the covered folder tree from accessibility");
-         end;
-      end;
-
-      --  A scrolled destination tree maps its clipped layout rows back to the
-      --  correct source rows and leaves the picker footer unobstructed.
-      declare
-         Snap       : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
-         Layout     : Guikit.Draw.Layout_Metrics;
-         Panel      : Tree_Panel_Layout;
-         Buttons    : Tree_Pick_Button_Layout;
-         Rows       : Tree_Row_Layout_Vectors.Vector;
-         Frame      : Frame_Commands;
-         Fourth_Seen : Boolean := False;
-      begin
-         Snap.Tree_Panel_Open := True;
-         Snap.Tree_Pick_Active := True;
-         Snap.Tree_Panel_Scroll_Rows := 3;
-         for Index in 1 .. 12 loop
-            Snap.Tree_Rows.Append
-              (Files.Folder_Tree.Visible_Row'
-                 (Node_Index   => Index,
-                  Path         => To_Unbounded_String
-                    ("/tree/" & Natural'Image (Index)),
-                  Name         => To_Unbounded_String
-                    ("tree-row" & Natural'Image (Index)),
-                  Depth        => 0,
-                  Expanded     => False,
-                  Loaded       => True,
-                  Has_Children => False));
-         end loop;
-
-         Layout  := Calculate_Layout (Snap, Width, 200, LH);
-         Panel   := Calculate_Tree_Panel_Layout (Snap, Layout, LH);
-         Buttons := Tree_Pick_Buttons (Panel, LH);
-         Rows    := Calculate_Tree_Row_Layout (Snap, Panel, LH);
-         Frame   := Build_Frame_Commands (Snap, Width, 200, LH);
-
-         Assert
-           (not Rows.Is_Empty
-            and then Rows.First_Element.Visible_Row_Index = 4
-            and then Rows.First_Element.Node_Index = 4,
-            "tree scrolling lays out the requested source row first");
-         Assert
-           (Panel.Scrollbar_Visible
-            and then Panel.Scrollbar_Height > 0
-            and then Panel.Scrollbar_Track_Height > Panel.Scrollbar_Height,
-            "an overflowing tree exposes a bounded scrollbar thumb");
+      Assert
+        (not Rows.Is_Empty
+         and then Rows.First_Element.Visible_Row_Index = 4
+         and then Rows.First_Element.Node_Index = 4,
+         "tree scrolling lays out the requested source row first");
+      Assert
+        (Panel.Scrollbar_Visible
+         and then Panel.Scrollbar_Height > 0
+         and then Panel.Scrollbar_Track_Height > Panel.Scrollbar_Height,
+         "an overflowing tree exposes a bounded scrollbar thumb");
+      Assert
+        (not Buttons.Visible
+         or else Panel.Scrollbar_Y + Panel.Scrollbar_Track_Height <= Buttons.Y,
+         "the tree scrollbar track stays above the destination-picker footer");
+      for Row of Rows loop
          Assert
            (not Buttons.Visible
-            or else Panel.Scrollbar_Y + Panel.Scrollbar_Track_Height <= Buttons.Y,
-            "the tree scrollbar track stays above the destination-picker footer");
-         for Row of Rows loop
-            Assert
-              (not Buttons.Visible
-               or else Row.Y + Row.Height <= Buttons.Y,
-               "scrolled destination rows stay above the picker button bar");
-         end loop;
-         for Node of Frame.Accessibility loop
-            if To_String (Node.Name) = "tree-row 4" then
-               Fourth_Seen := True;
-            end if;
-         end loop;
-         Assert
-           (Fourth_Seen,
-            "rendering and accessibility use the scrolled row's source data");
-      end;
+            or else Row.Y + Row.Height <= Buttons.Y,
+            "scrolled destination rows stay above the picker button bar");
+      end loop;
+      for Node of Frame.Accessibility loop
+         if To_String (Node.Name) = "tree-row 4" then
+            Fourth_Seen := True;
+         end if;
+      end loop;
+      Assert
+        (Fourth_Seen,
+         "rendering and accessibility use the scrolled row's source data");
+   end Test_Scrolled_Tree_Rows_Map_To_Source;
 
-      --  Folder-tree destination picker: the Choose/Cancel button bar. Covers the
-      --  Tree_Pick_Active render + hit-test path, which no other test exercises.
-      declare
-         Snap       : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
-         Layout     : Guikit.Draw.Layout_Metrics;
-         Panel      : Tree_Panel_Layout;
-         Buttons    : Tree_Pick_Button_Layout;
-         Frame      : Frame_Commands;
-         Choose_Hit : Files.Events.Input_Action;
-         Cancel_Hit : Files.Events.Input_Action;
-         Outside_Hit : Files.Events.Input_Action;
-         Backdrop_Seen : Boolean := False;
-         A11y_Count : Natural := 0;
-      begin
-         Snap.Tree_Panel_Open  := True;
-         Snap.Tree_Pick_Active := True;
-         Layout  := Calculate_Layout (Snap, Width, Height, LH);
-         Panel   := Calculate_Tree_Panel_Layout (Snap, Layout, LH);
-         Buttons := Tree_Pick_Buttons (Panel, LH);
-         Frame   := Build_Frame_Commands (Snap, Width, Height, LH);
+   --  Folder-tree destination picker: the Choose/Cancel button bar. Covers the
+   --  Tree_Pick_Active render + hit-test path, which no other test exercises.
+   procedure Test_Tree_Pick_Buttons_Hit_Test (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Width  : constant Natural  := 1000;
+      Height : constant Natural  := 800;
+      LH     : constant Positive := 20;
+      Snap       : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Layout     : Guikit.Draw.Layout_Metrics;
+      Panel      : Tree_Panel_Layout;
+      Buttons    : Tree_Pick_Button_Layout;
+      Frame      : Frame_Commands;
+      Choose_Hit : Files.Events.Input_Action;
+      Cancel_Hit : Files.Events.Input_Action;
+      Outside_Hit : Files.Events.Input_Action;
+      Backdrop_Seen : Boolean := False;
+      A11y_Count : Natural := 0;
+   begin
+      Snap.Tree_Panel_Open  := True;
+      Snap.Tree_Pick_Active := True;
+      Layout  := Calculate_Layout (Snap, Width, Height, LH);
+      Panel   := Calculate_Tree_Panel_Layout (Snap, Layout, LH);
+      Buttons := Tree_Pick_Buttons (Panel, LH);
+      Frame   := Build_Frame_Commands (Snap, Width, Height, LH);
 
-         Assert (Buttons.Visible, "the active tree destination picker shows a Choose/Cancel bar");
-         Assert
-           (Buttons.Button_Width > 0 and then Buttons.Height > 0,
-            "the pick buttons have a non-empty click area");
-         Assert (Buttons.Choose_X < Buttons.Cancel_X, "Choose sits left of Cancel");
-         Assert
-           (Buttons.Choose_X + Buttons.Button_Width <= Buttons.Cancel_X,
-            "the Choose and Cancel buttons do not overlap");
-         Assert
-           (Buttons.Choose_X >= Panel.X
-              and then Buttons.Cancel_X + Buttons.Button_Width <= Panel.X + Panel.Width,
-            "both pick buttons sit within the tree panel");
+      Assert (Buttons.Visible, "the active tree destination picker shows a Choose/Cancel bar");
+      Assert
+        (Buttons.Button_Width > 0 and then Buttons.Height > 0,
+         "the pick buttons have a non-empty click area");
+      Assert (Buttons.Choose_X < Buttons.Cancel_X, "Choose sits left of Cancel");
+      Assert
+        (Buttons.Choose_X + Buttons.Button_Width <= Buttons.Cancel_X,
+         "the Choose and Cancel buttons do not overlap");
+      Assert
+        (Buttons.Choose_X >= Panel.X
+           and then Buttons.Cancel_X + Buttons.Button_Width <= Panel.X + Panel.Width,
+         "both pick buttons sit within the tree panel");
 
-         --  Each button center is hit-testable and routes to the right action.
-         Choose_Hit :=
-           Files.Events.Translate_Click
-             (Snap, Frame,
-              X      => Buttons.Choose_X + Buttons.Button_Width / 2,
-              Y      => Buttons.Y + Buttons.Height / 2,
-              Width  => Width,
-              Height => Height);
-         Cancel_Hit :=
-           Files.Events.Translate_Click
-             (Snap, Frame,
-              X      => Buttons.Cancel_X + Buttons.Button_Width / 2,
-              Y      => Buttons.Y + Buttons.Height / 2,
-              Width  => Width,
-              Height => Height);
-         Outside_Hit :=
-           Files.Events.Translate_Click
-             (Snap, Frame,
-              X      => Panel.X + Panel.Width + 20,
-              Y      => Panel.Y + 20,
-              Width  => Width,
-              Height => Height);
-         Files_Suite.Support.Assert_Equal
-           (Choose_Hit.Kind,
-            Files.Events.Tree_Pick_Confirm_Input_Action,
-            "clicking Choose confirms the destination pick");
+      --  Each button center is hit-testable and routes to the right action.
+      Choose_Hit :=
+        Files.Events.Translate_Click
+          (Snap, Frame,
+           X      => Buttons.Choose_X + Buttons.Button_Width / 2,
+           Y      => Buttons.Y + Buttons.Height / 2,
+           Width  => Width,
+           Height => Height);
+      Cancel_Hit :=
+        Files.Events.Translate_Click
+          (Snap, Frame,
+           X      => Buttons.Cancel_X + Buttons.Button_Width / 2,
+           Y      => Buttons.Y + Buttons.Height / 2,
+           Width  => Width,
+           Height => Height);
+      Outside_Hit :=
+        Files.Events.Translate_Click
+          (Snap, Frame,
+           X      => Panel.X + Panel.Width + 20,
+           Y      => Panel.Y + 20,
+           Width  => Width,
+           Height => Height);
+      Files_Suite.Support.Assert_Equal
+        (Choose_Hit.Kind,
+         Files.Events.Tree_Pick_Confirm_Input_Action,
+         "clicking Choose confirms the destination pick");
+      Assert
+        (Cancel_Hit.Kind = Files.Events.Command_Input_Action
+           and then Cancel_Hit.Command = Files.Commands.Toggle_Folder_Tree_Command,
+         "clicking Cancel closes the picker");
+      Files_Suite.Support.Assert_Equal
+        (Outside_Hit.Kind,
+         Files.Events.No_Input_Action,
+         "a destination-picker click outside the tree cannot activate the background");
+
+      for Rect of Frame.Overlay_Rectangles loop
+         if Rect.Color = Modal_Backdrop_Color
+           and then Rect.X = 0
+           and then Rect.Y = 0
+           and then Rect.Width = Width
+           and then Rect.Height = Height
+         then
+            Backdrop_Seen := True;
+         end if;
+      end loop;
+      Assert (Backdrop_Seen, "the modal destination picker dims the inactive file view");
+
+      for Node of Frame.Accessibility loop
+         A11y_Count := A11y_Count + 1;
          Assert
-           (Cancel_Hit.Kind = Files.Events.Command_Input_Action
-              and then Cancel_Hit.Command = Files.Commands.Toggle_Folder_Tree_Command,
-            "clicking Cancel closes the picker");
-         Files_Suite.Support.Assert_Equal
-           (Outside_Hit.Kind,
-            Files.Events.No_Input_Action,
-            "a destination-picker click outside the tree cannot activate the background");
+           (Node.X >= Panel.X
+            and then Node.Y >= Panel.Y
+            and then Node.X + Node.Width <= Panel.X + Panel.Width
+            and then Node.Y + Node.Height <= Panel.Y + Panel.Height,
+            "the modal destination picker exposes no background accessibility nodes");
+      end loop;
+      Assert
+        (A11y_Count >= 3,
+         "the destination picker retains its tree and Choose/Cancel accessibility nodes");
+   end Test_Tree_Pick_Buttons_Hit_Test;
 
-         for Rect of Frame.Overlay_Rectangles loop
-            if Rect.Color = Modal_Backdrop_Color
-              and then Rect.X = 0
-              and then Rect.Y = 0
-              and then Rect.Width = Width
-              and then Rect.Height = Height
-            then
-               Backdrop_Seen := True;
-            end if;
-         end loop;
-         Assert (Backdrop_Seen, "the modal destination picker dims the inactive file view");
-
-         for Node of Frame.Accessibility loop
-            A11y_Count := A11y_Count + 1;
-            Assert
-              (Node.X >= Panel.X
-               and then Node.Y >= Panel.Y
-               and then Node.X + Node.Width <= Panel.X + Panel.Width
-               and then Node.Y + Node.Height <= Panel.Y + Panel.Height,
-               "the modal destination picker exposes no background accessibility nodes");
-         end loop;
-         Assert
-           (A11y_Count >= 3,
-            "the destination picker retains its tree and Choose/Cancel accessibility nodes");
-      end;
-
+   procedure Test_Dialog_Overlays_Expose_Close_Button (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Width  : constant Natural  := 1000;
+      Height : constant Natural  := 800;
+      LH     : constant Positive := 20;
+   begin
       --  Quick Look overlay.
       declare
          Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
@@ -3219,136 +3261,142 @@ package body Files_Suite.Rendering is
               Dialog.Button_Y + Dialog.Button_Height / 2).Kind = Conflict_Hit_Replace,
             "the replace button is hit-testable at its center");
       end;
+   end Test_Dialog_Overlays_Expose_Close_Button;
 
-      --  Paste-progress overlay: exposes a Cancel affordance and a proportional
-      --  progress bar while a long copy/move is in flight.
+   --  Paste-progress overlay: exposes a Cancel affordance and a proportional
+   --  progress bar while a long copy/move is in flight.
+   procedure Test_Paste_Progress_Overlay_Bar (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Width  : constant Natural  := 1000;
+      Height : constant Natural  := 800;
+      LH     : constant Positive := 20;
+      Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
+      Layout : Guikit.Draw.Layout_Metrics;
+      Panel  : Paste_Progress_Layout;
+      Frame  : Frame_Commands;
+      Expected_Fill : Natural;
+      Backdrop_Seen : Boolean := False;
+      Shadow_Count  : Natural := 0;
+      Accessibility_Count : Natural := 0;
+   begin
+      Snap.Paste_Progress_Open := True;
+      Snap.Paste_Progress_Done := 3;
+      Snap.Paste_Progress_Total := 10;
+      Snap.Paste_Progress_Name := To_Unbounded_String ("bigfile.bin");
+      Layout := Calculate_Layout (Snap, Width, Height, LH);
+      Panel  := Calculate_Paste_Progress_Layout (Snap, Layout, LH);
+      Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
+      Expected_Fill := (Panel.Bar_Width * Snap.Paste_Progress_Done) / Snap.Paste_Progress_Total;
+      Assert
+        (Conflict_Hit_At (Frame, Panel.Cancel_X + Panel.Cancel_Width / 2,
+           Panel.Cancel_Y + Panel.Cancel_Height / 2).Kind = Conflict_Hit_Progress_Cancel,
+         "the paste-progress overlay exposes a hit-testable Cancel button");
+      Assert (Expected_Fill > 0, "a partial progress produces a non-empty filled bar");
+      Assert
+        (Has_Overlay_Rect_At (Frame, Panel.Bar_X, Panel.Bar_Y, Expected_Fill, Panel.Bar_Height),
+         "the progress bar's filled width is proportional to Done / Total");
+      Assert
+        (Frame_Has_Text (Frame, "3 of 10"),
+         "the progress overlay keeps the completed and total item counts when no label is present");
+      for Rect of Frame.Overlay_Rectangles loop
+         if Rect.Color = Modal_Backdrop_Color
+           and then Rect.X = 0
+           and then Rect.Y = 0
+           and then Rect.Width = Width
+           and then Rect.Height = Height
+         then
+            Backdrop_Seen := True;
+         elsif Rect.Color = Shadow_Color then
+            Shadow_Count := Shadow_Count + 1;
+         end if;
+      end loop;
+      Assert (Backdrop_Seen, "blocking paste progress dims the inactive file view");
+      Files_Suite.Support.Assert_Equal
+        (Shadow_Count,
+         Shadow_Rectangles,
+         "paste progress uses the shared banded panel shadow");
+
+      for Node of Frame.Accessibility loop
+         Accessibility_Count := Accessibility_Count + 1;
+         Assert
+           (Node.X >= Panel.X
+            and then Node.Y >= Panel.Y
+            and then Node.X + Node.Width <= Panel.X + Panel.Width
+            and then Node.Y + Node.Height <= Panel.Y + Panel.Height,
+            "blocking paste progress exposes no background accessibility nodes");
+      end loop;
+      Assert
+        (Accessibility_Count > 0,
+         "blocking paste progress retains its dialog and Cancel accessibility nodes");
+   end Test_Paste_Progress_Overlay_Bar;
+
+   --  Blocking dialogs must remain fully operable in a short/narrow window:
+   --  previously their fixed desktop height left live controls below the
+   --  framebuffer even though the panel started at its top edge.
+   procedure Test_Compact_Blocking_Dialogs_Fit (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      LH     : constant Positive := 20;
+      Compact_W : constant Natural := 80;
+      Compact_H : constant Natural := 100;
+      Snap      : View_Snapshot := Sample_Snapshot (1, Files.Types.Small_Icons);
+      Layout    : Guikit.Draw.Layout_Metrics;
+   begin
+      Snap.Paste_Conflict_Open := True;
+      Snap.Paste_Conflict_Name := To_Unbounded_String ("conflict.txt");
+      Layout := Calculate_Layout (Snap, Compact_W, Compact_H, LH);
       declare
-         Snap   : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
-         Layout : Guikit.Draw.Layout_Metrics;
-         Panel  : Paste_Progress_Layout;
-         Frame  : Frame_Commands;
-         Expected_Fill : Natural;
-         Backdrop_Seen : Boolean := False;
-         Shadow_Count  : Natural := 0;
-         Accessibility_Count : Natural := 0;
+         Dialog : constant Conflict_Dialog_Layout :=
+           Calculate_Conflict_Dialog_Layout (Snap, Layout, LH);
+         Frame : constant Frame_Commands :=
+           Build_Frame_Commands (Snap, Compact_W, Compact_H, LH);
       begin
-         Snap.Paste_Progress_Open := True;
-         Snap.Paste_Progress_Done := 3;
-         Snap.Paste_Progress_Total := 10;
-         Snap.Paste_Progress_Name := To_Unbounded_String ("bigfile.bin");
-         Layout := Calculate_Layout (Snap, Width, Height, LH);
-         Panel  := Calculate_Paste_Progress_Layout (Snap, Layout, LH);
-         Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
-         Expected_Fill := (Panel.Bar_Width * Snap.Paste_Progress_Done) / Snap.Paste_Progress_Total;
          Assert
-           (Conflict_Hit_At (Frame, Panel.Cancel_X + Panel.Cancel_Width / 2,
-              Panel.Cancel_Y + Panel.Cancel_Height / 2).Kind = Conflict_Hit_Progress_Cancel,
-            "the paste-progress overlay exposes a hit-testable Cancel button");
-         Assert (Expected_Fill > 0, "a partial progress produces a non-empty filled bar");
+           (Dialog.X + Dialog.Width <= Compact_W
+            and then Dialog.Y + Dialog.Height <= Compact_H,
+            "the compact conflict dialog stays inside the framebuffer");
          Assert
-           (Has_Overlay_Rect_At (Frame, Panel.Bar_X, Panel.Bar_Y, Expected_Fill, Panel.Bar_Height),
-            "the progress bar's filled width is proportional to Done / Total");
-         Assert
-           (Frame_Has_Text (Frame, "3 of 10"),
-            "the progress overlay keeps the completed and total item counts when no label is present");
-         for Rect of Frame.Overlay_Rectangles loop
-            if Rect.Color = Modal_Backdrop_Color
-              and then Rect.X = 0
-              and then Rect.Y = 0
-              and then Rect.Width = Width
-              and then Rect.Height = Height
-            then
-               Backdrop_Seen := True;
-            elsif Rect.Color = Shadow_Color then
-               Shadow_Count := Shadow_Count + 1;
-            end if;
-         end loop;
-         Assert (Backdrop_Seen, "blocking paste progress dims the inactive file view");
-         Files_Suite.Support.Assert_Equal
-           (Shadow_Count,
-            Shadow_Rectangles,
-            "paste progress uses the shared banded panel shadow");
-
+           (Dialog.Cancel_X + Dialog.Button_Width <= Dialog.X + Dialog.Width
+            and then Dialog.Button_Y + Dialog.Button_Height <= Dialog.Y + Dialog.Height,
+            "the compact conflict action row stays inside its panel");
          for Node of Frame.Accessibility loop
-            Accessibility_Count := Accessibility_Count + 1;
+            Assert
+              (Node.X >= Dialog.X
+               and then Node.Y >= Dialog.Y
+               and then Node.X + Node.Width <= Dialog.X + Dialog.Width
+               and then Node.Y + Node.Height <= Dialog.Y + Dialog.Height,
+               "compact conflict accessibility controls stay inside the panel");
+         end loop;
+      end;
+
+      Snap.Paste_Conflict_Open := False;
+      Snap.Paste_Progress_Open := True;
+      Snap.Paste_Progress_Total := 2;
+      Snap.Paste_Progress_Done := 1;
+      Layout := Calculate_Layout (Snap, Compact_W, Compact_H, LH);
+      declare
+         Panel : constant Paste_Progress_Layout :=
+           Calculate_Paste_Progress_Layout (Snap, Layout, LH);
+         Frame : constant Frame_Commands :=
+           Build_Frame_Commands (Snap, Compact_W, Compact_H, LH);
+      begin
+         Assert
+           (Panel.X + Panel.Width <= Compact_W
+            and then Panel.Y + Panel.Height <= Compact_H,
+            "the compact paste-progress panel stays inside the framebuffer");
+         Assert
+           (Panel.Cancel_X + Panel.Cancel_Width <= Panel.X + Panel.Width
+            and then Panel.Cancel_Y + Panel.Cancel_Height <= Panel.Y + Panel.Height,
+            "the compact progress Cancel button stays inside its panel");
+         for Node of Frame.Accessibility loop
             Assert
               (Node.X >= Panel.X
                and then Node.Y >= Panel.Y
                and then Node.X + Node.Width <= Panel.X + Panel.Width
                and then Node.Y + Node.Height <= Panel.Y + Panel.Height,
-               "blocking paste progress exposes no background accessibility nodes");
+               "compact progress accessibility controls stay inside the panel");
          end loop;
-         Assert
-           (Accessibility_Count > 0,
-            "blocking paste progress retains its dialog and Cancel accessibility nodes");
       end;
-
-      --  Blocking dialogs must remain fully operable in a short/narrow window:
-      --  previously their fixed desktop height left live controls below the
-      --  framebuffer even though the panel started at its top edge.
-      declare
-         Compact_W : constant Natural := 80;
-         Compact_H : constant Natural := 100;
-         Snap      : View_Snapshot := Sample_Snapshot (1, Files.Types.Small_Icons);
-         Layout    : Guikit.Draw.Layout_Metrics;
-      begin
-         Snap.Paste_Conflict_Open := True;
-         Snap.Paste_Conflict_Name := To_Unbounded_String ("conflict.txt");
-         Layout := Calculate_Layout (Snap, Compact_W, Compact_H, LH);
-         declare
-            Dialog : constant Conflict_Dialog_Layout :=
-              Calculate_Conflict_Dialog_Layout (Snap, Layout, LH);
-            Frame : constant Frame_Commands :=
-              Build_Frame_Commands (Snap, Compact_W, Compact_H, LH);
-         begin
-            Assert
-              (Dialog.X + Dialog.Width <= Compact_W
-               and then Dialog.Y + Dialog.Height <= Compact_H,
-               "the compact conflict dialog stays inside the framebuffer");
-            Assert
-              (Dialog.Cancel_X + Dialog.Button_Width <= Dialog.X + Dialog.Width
-               and then Dialog.Button_Y + Dialog.Button_Height <= Dialog.Y + Dialog.Height,
-               "the compact conflict action row stays inside its panel");
-            for Node of Frame.Accessibility loop
-               Assert
-                 (Node.X >= Dialog.X
-                  and then Node.Y >= Dialog.Y
-                  and then Node.X + Node.Width <= Dialog.X + Dialog.Width
-                  and then Node.Y + Node.Height <= Dialog.Y + Dialog.Height,
-                  "compact conflict accessibility controls stay inside the panel");
-            end loop;
-         end;
-
-         Snap.Paste_Conflict_Open := False;
-         Snap.Paste_Progress_Open := True;
-         Snap.Paste_Progress_Total := 2;
-         Snap.Paste_Progress_Done := 1;
-         Layout := Calculate_Layout (Snap, Compact_W, Compact_H, LH);
-         declare
-            Panel : constant Paste_Progress_Layout :=
-              Calculate_Paste_Progress_Layout (Snap, Layout, LH);
-            Frame : constant Frame_Commands :=
-              Build_Frame_Commands (Snap, Compact_W, Compact_H, LH);
-         begin
-            Assert
-              (Panel.X + Panel.Width <= Compact_W
-               and then Panel.Y + Panel.Height <= Compact_H,
-               "the compact paste-progress panel stays inside the framebuffer");
-            Assert
-              (Panel.Cancel_X + Panel.Cancel_Width <= Panel.X + Panel.Width
-               and then Panel.Cancel_Y + Panel.Cancel_Height <= Panel.Y + Panel.Height,
-               "the compact progress Cancel button stays inside its panel");
-            for Node of Frame.Accessibility loop
-               Assert
-                 (Node.X >= Panel.X
-                  and then Node.Y >= Panel.Y
-                  and then Node.X + Node.Width <= Panel.X + Panel.Width
-                  and then Node.Y + Node.Height <= Panel.Y + Panel.Height,
-                  "compact progress accessibility controls stay inside the panel");
-            end loop;
-         end;
-      end;
-   end Test_Panels_Expose_Close_Button;
+   end Test_Compact_Blocking_Dialogs_Fit;
 
    --  True when the frame exposes an accessibility node with the given role.
    function Frame_Has_Role

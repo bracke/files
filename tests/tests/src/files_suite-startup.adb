@@ -115,14 +115,27 @@ package body Files_Suite.Startup is
    procedure Test_Startup_Loads_Settings_File (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Startup_Invalid_Settings_Diagnostic (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Startup_Settings_Path_Not_File (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Startup_Report (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Startup_And_Runtime_Smoke_Reports (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Runtime_Capabilities_And_Drop_Events (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Fractional_Scroll_Accumulation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Desktop_Input_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Live_Window_Smoke_Plan (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Desktop_Error_Report (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Startup_Report_Settings_Error (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Run_Configuration_Parsing (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Durable_Publication_Outcomes (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Localization_Catalog (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_System_Locale_Detection (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_First_Implementation_Feature_Policy (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Localization_Runtime_Labels (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Localization_Western_Translations (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Localization_Pane_Labels (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Localization_Error_And_Command_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Locale_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Locale_Variable_Precedence (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Detected_Locale_Catalogs (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Host_Locale_Fallbacks (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_First_Implementation_Features (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Helper_Tooling_Is_Ada (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Desktop_Packaging_Contents (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Crate_Project_Wiring (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Live_Smoke_Gate_Outcome (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Live_Smoke_Scenarios_Verdict (T : in out AUnit.Test_Cases.Test_Case'Class);
 
@@ -148,7 +161,18 @@ package body Files_Suite.Startup is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Startup_Settings_Path_Not_File'Access, "startup reports non-file settings path");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Startup_Report'Access, "startup report formats windows and errors");
+        (T, Test_Startup_And_Runtime_Smoke_Reports'Access,
+         "startup and runtime smoke reports use localized labels and verdicts");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Runtime_Capabilities_And_Drop_Events'Access, "runtime capabilities and the drop event source");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Fractional_Scroll_Accumulation'Access,
+         "fractional and pending scroll offsets accumulate and saturate");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Desktop_Input_Mapping'Access,
+         "desktop text input, coordinate scaling, scrollbar drag and cursor bounds");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Live_Window_Smoke_Plan'Access, "live window smoke plan and headless smoke evaluation");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Desktop_Error_Report'Access, "desktop startup error report");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -158,11 +182,33 @@ package body Files_Suite.Startup is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Durable_Publication_Outcomes'Access, "durable publication outcome taxonomy");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Localization_Catalog'Access, "localization uses default catalog");
+        (T, Test_Localization_Runtime_Labels'Access,
+         "default catalog localizes startup, runtime smoke and CLI help labels");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_System_Locale_Detection'Access, "system locale detection");
+        (T, Test_Localization_Western_Translations'Access,
+         "western locales translate command, error and status labels");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_First_Implementation_Feature_Policy'Access, "first implementation feature policy");
+        (T, Test_Localization_Pane_Labels'Access,
+         "default catalog localizes info pane, status and landmark labels with key fallback");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Localization_Error_And_Command_Keys'Access, "every error key and registered command is localized");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Locale_Normalization'Access, "locale names normalize, and hostile ones fall back to English");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Locale_Variable_Precedence'Access, "locale environment variables apply in POSIX precedence");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Detected_Locale_Catalogs'Access, "a detected locale loads its translated and date/time catalogs");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Host_Locale_Fallbacks'Access, "the system locale is asked of the host, falling back to KDE formats");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_First_Implementation_Features'Access, "first implementation feature set and desktop runtime wiring");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Helper_Tooling_Is_Ada'Access, "project helper tooling is implemented in Ada");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Desktop_Packaging_Contents'Access,
+         "desktop packaging ships its metadata, documentation and manifest entries");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Crate_Project_Wiring'Access, "crate manifests, project files and ignore lists are wired as expected");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Live_Smoke_Gate_Outcome'Access, "live smoke gate outcome taxonomy");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -882,7 +928,7 @@ package body Files_Suite.Startup is
          "startup report localizes settings directory diagnostics");
    end Test_Startup_Settings_Path_Not_File;
 
-   procedure Test_Startup_Report (T : in out AUnit.Test_Cases.Test_Case'Class) is
+   procedure Test_Startup_And_Runtime_Smoke_Reports (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Dir      : constant String := Join (Root, "report-dir");
       Missing  : constant String := Join (Root, "missing-report-dir");
@@ -891,11 +937,6 @@ package body Files_Suite.Startup is
       Startup  : Files.Application.Startup_Result;
       Report   : Unbounded_String;
       Smoke    : Unbounded_String;
-      Caps     : Files.Application.Windows.Desktop_Capabilities;
-      Plan     : Files.Application.Windows.Live_Smoke_Plan;
-      Live_Result : Files.Application.Windows.Live_Smoke_Result;
-      Scroll_Remainder : Long_Float := 0.0;
-      Scroll_Lines     : Integer;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Dir);
@@ -994,7 +1035,14 @@ package body Files_Suite.Startup is
             "headless render quality report catches missing glyphs");
          Assert (Quality.Passed, "headless render quality report passes for startup windows");
       end;
-      Caps := Files.Application.Windows.Runtime_Capabilities;
+   end Test_Startup_And_Runtime_Smoke_Reports;
+
+   procedure Test_Runtime_Capabilities_And_Drop_Events (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dir  : constant String := Join (Root, "report-dir");
+      Caps : constant Files.Application.Windows.Desktop_Capabilities :=
+        Files.Application.Windows.Runtime_Capabilities;
+   begin
       Assert (Caps.Headless_Rendering, "runtime capabilities advertise headless rendering");
       Files_Suite.Support.Assert_Equal
         (Caps.Live_Window_Smoke_Ready,
@@ -1066,6 +1114,13 @@ package body Files_Suite.Startup is
       end;
       Assert (Caps.Directory_Watch_Polling, "runtime capabilities expose directory watch polling");
       Assert (Caps.Native_File_Watching, "runtime capabilities expose native file watching");
+   end Test_Runtime_Capabilities_And_Drop_Events;
+
+   procedure Test_Fractional_Scroll_Accumulation (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Scroll_Remainder : Long_Float := 0.0;
+      Scroll_Lines     : Integer;
+   begin
       Scroll_Lines := Files.Application.Windows.Accumulate_Scroll_Offset (Scroll_Remainder, 0.40);
       Files_Suite.Support.Assert_Equal (Scroll_Lines, 0, "fractional scroll starts below one line");
       Assert (abs (Scroll_Remainder - 0.40) < 0.000_001, "fractional scroll remainder is retained");
@@ -1103,6 +1158,11 @@ package body Files_Suite.Startup is
         (Files.Application.Windows.Add_Pending_Scroll (4, -6),
          -2,
          "pending scroll addition preserves normal mixed-sign sums");
+   end Test_Fractional_Scroll_Accumulation;
+
+   procedure Test_Desktop_Input_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
       Files_Suite.Support.Assert_Equal
         (Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (Character'Pos ('A'))),
          "A",
@@ -1191,6 +1251,28 @@ package body Files_Suite.Startup is
         (not Files.Application.Windows.Cursor_Is_Inside_Window
            (20.0, 80.0, Glfw.Size (100), Glfw.Size (80)),
          "the bottom window extent is outside");
+   end Test_Desktop_Input_Mapping;
+
+   procedure Test_Live_Window_Smoke_Plan (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Dir      : constant String := Join (Root, "report-dir");
+      Missing  : constant String := Join (Root, "missing-report-dir");
+      Args     : Files.Types.String_Vectors.Vector;
+      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Startup  : Files.Application.Startup_Result;
+      Caps     : constant Files.Application.Windows.Desktop_Capabilities :=
+        Files.Application.Windows.Runtime_Capabilities;
+      Plan     : Files.Application.Windows.Live_Smoke_Plan;
+      Live_Result : Files.Application.Windows.Live_Smoke_Result;
+   begin
+      Reset_Root;
+      Ada.Directories.Create_Path (Dir);
+      Args.Append (To_Unbounded_String (Dir));
+      Args.Append (To_Unbounded_String (Missing));
+
+      --  The startup the runner sees once its path errors are cleared.
+      Startup := Files.Application.Resolve_Startup_Paths (Args, Settings);
+      Startup.Errors.Clear;
       Plan := Files.Application.Windows.Live_Window_Smoke_Plan (Width => 640, Height => 360);
       Files_Suite.Support.Assert_Equal (Plan.Width, 640, "live smoke plan records requested width");
       Files_Suite.Support.Assert_Equal (Plan.Height, 360, "live smoke plan records requested height");
@@ -1253,7 +1335,7 @@ package body Files_Suite.Startup is
       Assert
         (not Live_Result.Framebuffer_Readback_Ready,
          "skipped live smoke runner does not fake framebuffer readback");
-   end Test_Startup_Report;
+   end Test_Live_Window_Smoke_Plan;
 
    procedure Test_Desktop_Error_Report (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -1523,31 +1605,8 @@ package body Files_Suite.Startup is
          "journaled hosts without directory sync support are durable");
    end Test_Durable_Publication_Outcomes;
 
-   procedure Test_Localization_Catalog (T : in out AUnit.Test_Cases.Test_Case'Class) is
+   procedure Test_Localization_Runtime_Labels (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Error_Keys : Files.Types.String_Vectors.Vector;
-
-      procedure Add_Error_Key (Key : String) is
-      begin
-         Error_Keys.Append (To_Unbounded_String (Key));
-      end Add_Error_Key;
-
-      procedure Assert_Western_Translation
-        (Locale : String)
-      is
-         Small_Label : constant String := Files.Localization.Text ("command.view.small", Locale);
-         Missing     : constant String := Files.Localization.Text ("error.path.missing", Locale);
-      begin
-         Assert
-           (Small_Label /= "Small Icons" and then Small_Label /= "command.view.small",
-            Locale & " command label is translated");
-         Assert
-           (Missing /= "Path does not exist." and then Missing /= "error.path.missing",
-            Locale & " error message is translated");
-         Assert
-           (Files.Localization.Text ("status.items", Locale) /= "status.items",
-            Locale & " status label resolves from catalog");
-      end Assert_Western_Translation;
    begin
       Files_Suite.Support.Assert_Equal
         (Files.Localization.Text ("command.view.small"),
@@ -1664,6 +1723,28 @@ package body Files_Suite.Startup is
       Assert
         (Ada.Strings.Fixed.Index (Files.Localization.Text ("cli.help.option.help"), "--help, -h") > 0,
          "CLI help flag description is localized");
+   end Test_Localization_Runtime_Labels;
+
+   procedure Test_Localization_Western_Translations (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+
+      procedure Assert_Western_Translation
+        (Locale : String)
+      is
+         Small_Label : constant String := Files.Localization.Text ("command.view.small", Locale);
+         Missing     : constant String := Files.Localization.Text ("error.path.missing", Locale);
+      begin
+         Assert
+           (Small_Label /= "Small Icons" and then Small_Label /= "command.view.small",
+            Locale & " command label is translated");
+         Assert
+           (Missing /= "Path does not exist." and then Missing /= "error.path.missing",
+            Locale & " error message is translated");
+         Assert
+           (Files.Localization.Text ("status.items", Locale) /= "status.items",
+            Locale & " status label resolves from catalog");
+      end Assert_Western_Translation;
+   begin
       Assert_Western_Translation ("da-DK");
       Assert_Western_Translation ("de-DE");
       Assert_Western_Translation ("es-ES");
@@ -1674,6 +1755,11 @@ package body Files_Suite.Startup is
       Assert_Western_Translation ("sv-SE");
       Assert_Western_Translation ("nb-NO");
       Assert_Western_Translation ("fi-FI");
+   end Test_Localization_Western_Translations;
+
+   procedure Test_Localization_Pane_Labels (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
       Files_Suite.Support.Assert_Equal
         (Files.Localization.Text ("missing.test.key"),
          "missing.test.key",
@@ -1748,6 +1834,17 @@ package body Files_Suite.Startup is
         (Files.Localization.Text ("accessibility.favorite_toggle.off")
            /= "accessibility.favorite_toggle.off",
          "path-bar favorite-toggle off-state label is localized");
+   end Test_Localization_Pane_Labels;
+
+   procedure Test_Localization_Error_And_Command_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      Error_Keys : Files.Types.String_Vectors.Vector;
+
+      procedure Add_Error_Key (Key : String) is
+      begin
+         Error_Keys.Append (To_Unbounded_String (Key));
+      end Add_Error_Key;
+   begin
       Add_Error_Key ("error.path.missing");
       Add_Error_Key ("error.recovery.unsafe_transport");
       Add_Error_Key ("error.path.inaccessible");
@@ -1856,343 +1953,387 @@ package body Files_Suite.Startup is
             end if;
          end;
       end loop;
-   end Test_Localization_Catalog;
+   end Test_Localization_Error_And_Command_Keys;
 
-   procedure Test_System_Locale_Detection (T : in out AUnit.Test_Cases.Test_Case'Class) is
-      pragma Unreferenced (T);
-      Had_LC_All      : constant Boolean := Ada.Environment_Variables.Exists ("LC_ALL");
-      Had_LC_Messages : constant Boolean := Ada.Environment_Variables.Exists ("LC_MESSAGES");
-      Had_LC_Time     : constant Boolean := Ada.Environment_Variables.Exists ("LC_TIME");
-      Had_LC_Numeric  : constant Boolean := Ada.Environment_Variables.Exists ("LC_NUMERIC");
-      Had_Lang        : constant Boolean := Ada.Environment_Variables.Exists ("LANG");
-      Had_Home        : constant Boolean := Ada.Environment_Variables.Exists ("HOME");
-      Old_LC_All      : Unbounded_String;
-      Old_LC_Messages : Unbounded_String;
-      Old_LC_Time     : Unbounded_String;
-      Old_LC_Numeric  : Unbounded_String;
-      Old_Lang        : Unbounded_String;
-      Old_Home        : Unbounded_String;
+   --  Repository lookups that work whether the suite runs from the repository
+   --  root, tests/ or tests/tests/.
 
-      function Repository_File_Contains
-        (Path    : String;
-         Pattern : String)
-         return Boolean is
-      begin
-         return
-           (Project_Tools.Files.File_Exists (Path)
-            and then Project_Tools.Files.File_Contains (Path, Pattern))
-           or else
-           (Project_Tools.Files.File_Exists ("../" & Path)
-            and then Project_Tools.Files.File_Contains ("../" & Path, Pattern))
-           or else
-           (Project_Tools.Files.File_Exists ("../../" & Path)
-            and then Project_Tools.Files.File_Contains ("../../" & Path, Pattern));
-      end Repository_File_Contains;
-
-      function Repository_Source_Contains (Pattern : String) return Boolean is
-      begin
-         return Project_Tools.Files.Any_File_Contains ("src", Pattern)
-           or else Project_Tools.Files.Any_File_Contains ("../src", Pattern)
-           or else Project_Tools.Files.Any_File_Contains ("../../src", Pattern);
-      end Repository_Source_Contains;
-
-      procedure Restore_Environment is
-      begin
-         if Had_LC_All then
-            Ada.Environment_Variables.Set ("LC_ALL", To_String (Old_LC_All));
-         else
-            Ada.Environment_Variables.Clear ("LC_ALL");
-         end if;
-
-         if Had_LC_Messages then
-            Ada.Environment_Variables.Set ("LC_MESSAGES", To_String (Old_LC_Messages));
-         else
-            Ada.Environment_Variables.Clear ("LC_MESSAGES");
-         end if;
-
-         if Had_LC_Time then
-            Ada.Environment_Variables.Set ("LC_TIME", To_String (Old_LC_Time));
-         else
-            Ada.Environment_Variables.Clear ("LC_TIME");
-         end if;
-
-         if Had_LC_Numeric then
-            Ada.Environment_Variables.Set ("LC_NUMERIC", To_String (Old_LC_Numeric));
-         else
-            Ada.Environment_Variables.Clear ("LC_NUMERIC");
-         end if;
-
-         if Had_Lang then
-            Ada.Environment_Variables.Set ("LANG", To_String (Old_Lang));
-         else
-            Ada.Environment_Variables.Clear ("LANG");
-         end if;
-
-         if Had_Home then
-            Ada.Environment_Variables.Set ("HOME", To_String (Old_Home));
-         else
-            Ada.Environment_Variables.Clear ("HOME");
-         end if;
-      end Restore_Environment;
+   function Repository_File_Exists (Path : String) return Boolean is
    begin
-      if Had_LC_All then
-         Old_LC_All := To_Unbounded_String (Ada.Environment_Variables.Value ("LC_ALL"));
-      end if;
+      return Ada.Directories.Exists (Path)
+        or else Ada.Directories.Exists ("../" & Path)
+        or else Ada.Directories.Exists ("../../" & Path);
+   end Repository_File_Exists;
 
-      if Had_LC_Messages then
-         Old_LC_Messages := To_Unbounded_String (Ada.Environment_Variables.Value ("LC_MESSAGES"));
-      end if;
+   function Repository_File_Contains
+     (Path    : String;
+      Pattern : String)
+      return Boolean is
+   begin
+      return
+        (Project_Tools.Files.File_Exists (Path)
+         and then Project_Tools.Files.File_Contains (Path, Pattern))
+        or else
+        (Project_Tools.Files.File_Exists ("../" & Path)
+         and then Project_Tools.Files.File_Contains ("../" & Path, Pattern))
+        or else
+        (Project_Tools.Files.File_Exists ("../../" & Path)
+         and then Project_Tools.Files.File_Contains ("../../" & Path, Pattern));
+   end Repository_File_Contains;
 
-      if Had_LC_Time then
-         Old_LC_Time := To_Unbounded_String (Ada.Environment_Variables.Value ("LC_TIME"));
-      end if;
+   function Repository_Source_Contains (Pattern : String) return Boolean is
+   begin
+      return Project_Tools.Files.Any_File_Contains ("src", Pattern)
+        or else Project_Tools.Files.Any_File_Contains ("../src", Pattern)
+        or else Project_Tools.Files.Any_File_Contains ("../../src", Pattern);
+   end Repository_Source_Contains;
 
-      if Had_LC_Numeric then
-         Old_LC_Numeric := To_Unbounded_String (Ada.Environment_Variables.Value ("LC_NUMERIC"));
-      end if;
-
-      if Had_Lang then
-         Old_Lang := To_Unbounded_String (Ada.Environment_Variables.Value ("LANG"));
-      end if;
-
-      if Had_Home then
-         Old_Home := To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
-      end if;
-
-      begin
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Normalize_Locale ("da_DK.UTF-8"),
-            "da-DK",
-            "locale normalization removes encoding and converts separator");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Normalize_Locale ("en_us"),
-            "en-US",
-            "locale normalization canonicalizes language and region case");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Normalize_Locale ("zh_hant_tw.UTF-8"),
-            "zh-Hant-TW",
-            "locale normalization preserves script catalog casing");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Normalize_Locale ("es_419.UTF-8"),
-            "es-419",
-            "locale normalization preserves numeric region subtags");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Normalize_Locale ("sr_RS.UTF-8@latin"),
-            "sr-RS",
-            "locale normalization removes locale modifiers");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Normalize_Locale ("C"),
-            "en",
-            "C locale falls back to English");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Normalize_Locale ("POSIX"),
-            "en",
-            "POSIX locale falls back to English");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Normalize_Locale ("../../tmp/hostile"),
-            "en",
-            "path-bearing locale text falls back to English");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Normalize_Locale ("da" & Character'Val (0) & "DK"),
-            "en",
-            "a locale containing NUL falls back to English");
-         Assert
-           (Files.Localization.Normalize_Locale (String'(1 .. 65 => 'a')) = "en",
-            "an oversized locale falls back to English");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Normalize_Locale ("en--US"),
-            "en",
-            "an empty locale component falls back to English");
-
-         Ada.Environment_Variables.Set ("LC_ALL", "da_DK.UTF-8");
-         Ada.Environment_Variables.Set ("LC_MESSAGES", "en_US.UTF-8");
-         Ada.Environment_Variables.Set ("LC_TIME", "sv_SE.UTF-8");
-         Ada.Environment_Variables.Set ("LC_NUMERIC", "fr_FR.UTF-8");
-         Ada.Environment_Variables.Set ("LANG", "de_DE.UTF-8");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.System_Locale,
-            "da-DK",
-            "LC_ALL has locale detection precedence");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.System_Time_Locale,
-            "da-DK",
-            "LC_ALL has time-locale detection precedence");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.System_Number_Locale,
-            "da-DK",
-            "LC_ALL has numeric-locale detection precedence");
-
-         Ada.Environment_Variables.Clear ("LC_ALL");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.System_Locale,
-            "en-US",
-            "LC_MESSAGES is used after LC_ALL");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.System_Time_Locale,
-            "sv-SE",
-            "LC_TIME is used for date/time after LC_ALL");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.System_Number_Locale,
-            "fr-FR",
-            "LC_NUMERIC is used for numbers after LC_ALL");
-
-         Ada.Environment_Variables.Clear ("LC_MESSAGES");
-         Files_Suite.Support.Assert_Equal (Files.Localization.System_Locale, "de-DE", "LANG is used after LC_MESSAGES");
-         Ada.Environment_Variables.Clear ("LC_TIME");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.System_Time_Locale,
-            "de-DE",
-            "LANG is used for date/time after LC_TIME");
-         Ada.Environment_Variables.Clear ("LC_NUMERIC");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.System_Number_Locale,
-            "de-DE",
-            "LANG is used for numbers after LC_NUMERIC");
-
-         Ada.Environment_Variables.Set ("LC_ALL", "C");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.System_Locale,
-            "en",
-            "C in LC_ALL overrides lower-precedence locale variables");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.System_Time_Locale,
-            "en",
-            "C in LC_ALL overrides lower-precedence time locale");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.System_Number_Locale,
-            "en",
-            "C in LC_ALL overrides lower-precedence numeric locale");
-
-         Ada.Environment_Variables.Set ("LC_ALL", "da_DK.UTF-8");
-         Assert
-           (Files.Localization.Text ("command.view.small") /= "Small Icons"
-            and then Files.Localization.Text ("command.view.small") /= "command.view.small",
-            "detected Danish locale loads translated app catalog resources");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Text ("time.relative.today", Files.Localization.System_Time_Locale),
-            "I dag",
-            "detected Danish time locale uses date/time catalog resources");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Text ("time.format.locale_date", "da-DK"),
-            "%x",
-            "Danish catalog includes named utilada date format patterns");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Text ("time.month1.long", "sv-SE"),
-            "januari",
-            "regional locales fall back to generated base-language date resources");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Text ("time.relative.today", "de-DE"),
-            "Heute",
-            "German catalog includes date/time resources");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Text ("number.decimal", "de-DE"),
-            ",",
-            "German catalog has decimal symbol");
-         Files_Suite.Support.Assert_Equal
-           (Files.Localization.Text ("number.group", "de-DE"),
-            ".",
-            "German catalog has group symbol");
-         Assert
-           (Files.Localization.Text ("details.size.unit.mib", "de-DE") /= "details.size.unit.mib",
-            "German catalog has generated digital unit labels");
-         --  The host locale calls -- GetUserDefaultLocaleName, CFLocaleCopyCurrent
-         --  -- and the frameworks they need went to Hostkit.Host with the rest of
-         --  the per-OS bodies, and are asserted there. What files owns, and what
-         --  this checks, is that it asks one question instead of branching on the
-         --  host itself before it even gets to the environment.
-         Assert
-           (Repository_Source_Contains ("Hostkit.Host.Native_Locale"),
-            "the system locale is asked of the host, not detected per OS here");
-
-         declare
-            Fake_Home   : constant String := Join (Root, "locale-home");
-            Config_Dir  : constant String := Join (Fake_Home, ".config");
-            Config_Path : constant String := Join (Config_Dir, "plasma-localerc");
-         begin
-            Ada.Directories.Create_Path (Config_Dir);
-            Write_File
-              (Config_Path,
-               "[Formats]" & ASCII.LF &
-               "LC_NUMERIC=da_DK.UTF-8" & ASCII.LF &
-               "LANG=de_DE.UTF-8" & ASCII.LF);
-            Ada.Environment_Variables.Clear ("LC_ALL");
-            Ada.Environment_Variables.Clear ("LC_TIME");
-            Ada.Environment_Variables.Clear ("LC_NUMERIC");
-            Ada.Environment_Variables.Set ("LANG", "C.UTF-8");
-            Ada.Environment_Variables.Set ("HOME", Fake_Home);
-            Files_Suite.Support.Assert_Equal
-              (Files.Localization.System_Time_Locale,
-               "de-DE",
-               "portable process LANG falls back to KDE formats locale");
-            Files_Suite.Support.Assert_Equal
-              (Files.Localization.System_Number_Locale,
-               "da-DK",
-               "portable process LANG falls back to KDE numeric formats locale");
-
-            Ada.Environment_Variables.Set
-              ("HOME", Join (Root, "missing-locale-home"));
-            declare
-               Expected_Time : constant String :=
-                 Files.Localization.System_Time_Locale;
-               Expected_Number : constant String :=
-                 Files.Localization.System_Number_Locale;
-               File : Ada.Streams.Stream_IO.File_Type;
-            begin
-               Ada.Environment_Variables.Set ("HOME", Fake_Home);
-               Ada.Streams.Stream_IO.Create
-                 (File, Ada.Streams.Stream_IO.Out_File, Config_Path);
-               Ada.Streams.Stream_IO.Set_Index
-                 (File, Ada.Streams.Stream_IO.Count (256 * 1024 + 1));
-               Character'Write (Ada.Streams.Stream_IO.Stream (File), 'x');
-               Ada.Streams.Stream_IO.Close (File);
-               Assert
-                 (Files.Localization.System_Time_Locale = Expected_Time
-                  and then Files.Localization.System_Number_Locale =
-                    Expected_Number,
-                  "oversized locale configuration is ignored before parsing");
-            end;
-         end;
-
-         Restore_Environment;
-      exception
-         when others =>
-            Restore_Environment;
-            raise;
-      end;
-   end Test_System_Locale_Detection;
-
-   procedure Test_First_Implementation_Feature_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is
+   procedure Test_Locale_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+   begin
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("da_DK.UTF-8"),
+         "da-DK",
+         "locale normalization removes encoding and converts separator");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("en_us"),
+         "en-US",
+         "locale normalization canonicalizes language and region case");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("zh_hant_tw.UTF-8"),
+         "zh-Hant-TW",
+         "locale normalization preserves script catalog casing");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("es_419.UTF-8"),
+         "es-419",
+         "locale normalization preserves numeric region subtags");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("sr_RS.UTF-8@latin"),
+         "sr-RS",
+         "locale normalization removes locale modifiers");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("C"),
+         "en",
+         "C locale falls back to English");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("POSIX"),
+         "en",
+         "POSIX locale falls back to English");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("../../tmp/hostile"),
+         "en",
+         "path-bearing locale text falls back to English");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("da" & Character'Val (0) & "DK"),
+         "en",
+         "a locale containing NUL falls back to English");
+      Assert
+        (Files.Localization.Normalize_Locale (String'(1 .. 65 => 'a')) = "en",
+         "an oversized locale falls back to English");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("en--US"),
+         "en",
+         "an empty locale component falls back to English");
+   end Test_Locale_Normalization;
 
-      function Repository_File_Exists (Path : String) return Boolean is
-      begin
-         return Ada.Directories.Exists (Path)
-           or else Ada.Directories.Exists ("../" & Path)
-           or else Ada.Directories.Exists ("../../" & Path);
-      end Repository_File_Exists;
+   procedure Test_Locale_Variable_Precedence (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
+   begin
+      Files_Suite.Support.Save (Environment, "LC_ALL");
+      Files_Suite.Support.Save (Environment, "LC_MESSAGES");
+      Files_Suite.Support.Save (Environment, "LC_TIME");
+      Files_Suite.Support.Save (Environment, "LC_NUMERIC");
+      Files_Suite.Support.Save (Environment, "LANG");
+      Ada.Environment_Variables.Set ("LC_ALL", "da_DK.UTF-8");
+      Ada.Environment_Variables.Set ("LC_MESSAGES", "en_US.UTF-8");
+      Ada.Environment_Variables.Set ("LC_TIME", "sv_SE.UTF-8");
+      Ada.Environment_Variables.Set ("LC_NUMERIC", "fr_FR.UTF-8");
+      Ada.Environment_Variables.Set ("LANG", "de_DE.UTF-8");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.System_Locale,
+         "da-DK",
+         "LC_ALL has locale detection precedence");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.System_Time_Locale,
+         "da-DK",
+         "LC_ALL has time-locale detection precedence");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.System_Number_Locale,
+         "da-DK",
+         "LC_ALL has numeric-locale detection precedence");
 
-      function Repository_File_Contains
-        (Path    : String;
-         Pattern : String)
-         return Boolean is
-      begin
-         return
-           (Project_Tools.Files.File_Exists (Path)
-            and then Project_Tools.Files.File_Contains (Path, Pattern))
-           or else
-           (Project_Tools.Files.File_Exists ("../" & Path)
-            and then Project_Tools.Files.File_Contains ("../" & Path, Pattern))
-           or else
-           (Project_Tools.Files.File_Exists ("../../" & Path)
-            and then Project_Tools.Files.File_Contains ("../../" & Path, Pattern));
-      end Repository_File_Contains;
+      Ada.Environment_Variables.Clear ("LC_ALL");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.System_Locale,
+         "en-US",
+         "LC_MESSAGES is used after LC_ALL");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.System_Time_Locale,
+         "sv-SE",
+         "LC_TIME is used for date/time after LC_ALL");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.System_Number_Locale,
+         "fr-FR",
+         "LC_NUMERIC is used for numbers after LC_ALL");
 
-      function Repository_Source_Contains (Pattern : String) return Boolean is
+      Ada.Environment_Variables.Clear ("LC_MESSAGES");
+      Files_Suite.Support.Assert_Equal (Files.Localization.System_Locale, "de-DE", "LANG is used after LC_MESSAGES");
+      Ada.Environment_Variables.Clear ("LC_TIME");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.System_Time_Locale,
+         "de-DE",
+         "LANG is used for date/time after LC_TIME");
+      Ada.Environment_Variables.Clear ("LC_NUMERIC");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.System_Number_Locale,
+         "de-DE",
+         "LANG is used for numbers after LC_NUMERIC");
+
+      Ada.Environment_Variables.Set ("LC_ALL", "C");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.System_Locale,
+         "en",
+         "C in LC_ALL overrides lower-precedence locale variables");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.System_Time_Locale,
+         "en",
+         "C in LC_ALL overrides lower-precedence time locale");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.System_Number_Locale,
+         "en",
+         "C in LC_ALL overrides lower-precedence numeric locale");
+   end Test_Locale_Variable_Precedence;
+
+   procedure Test_Detected_Locale_Catalogs (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
+   begin
+      Files_Suite.Support.Save (Environment, "LC_ALL");
+      Files_Suite.Support.Save (Environment, "LC_MESSAGES");
+      Files_Suite.Support.Save (Environment, "LC_TIME");
+      Files_Suite.Support.Save (Environment, "LC_NUMERIC");
+      Files_Suite.Support.Save (Environment, "LANG");
+      --  The environment the precedence walk leaves behind: only LANG set.
+      Ada.Environment_Variables.Clear ("LC_MESSAGES");
+      Ada.Environment_Variables.Clear ("LC_TIME");
+      Ada.Environment_Variables.Clear ("LC_NUMERIC");
+      Ada.Environment_Variables.Set ("LANG", "de_DE.UTF-8");
+      Ada.Environment_Variables.Set ("LC_ALL", "da_DK.UTF-8");
+      Assert
+        (Files.Localization.Text ("command.view.small") /= "Small Icons"
+         and then Files.Localization.Text ("command.view.small") /= "command.view.small",
+         "detected Danish locale loads translated app catalog resources");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("time.relative.today", Files.Localization.System_Time_Locale),
+         "I dag",
+         "detected Danish time locale uses date/time catalog resources");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("time.format.locale_date", "da-DK"),
+         "%x",
+         "Danish catalog includes named utilada date format patterns");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("time.month1.long", "sv-SE"),
+         "januari",
+         "regional locales fall back to generated base-language date resources");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("time.relative.today", "de-DE"),
+         "Heute",
+         "German catalog includes date/time resources");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("number.decimal", "de-DE"),
+         ",",
+         "German catalog has decimal symbol");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Text ("number.group", "de-DE"),
+         ".",
+         "German catalog has group symbol");
+      Assert
+        (Files.Localization.Text ("details.size.unit.mib", "de-DE") /= "details.size.unit.mib",
+         "German catalog has generated digital unit labels");
+   end Test_Detected_Locale_Catalogs;
+
+   procedure Test_Host_Locale_Fallbacks (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+      --  Restores what the test changes, on failure too.
+      Environment : Files_Suite.Support.Environment_Guard;
+   begin
+      Files_Suite.Support.Save (Environment, "LC_ALL");
+      Files_Suite.Support.Save (Environment, "LC_MESSAGES");
+      Files_Suite.Support.Save (Environment, "LC_TIME");
+      Files_Suite.Support.Save (Environment, "LC_NUMERIC");
+      Files_Suite.Support.Save (Environment, "LANG");
+      Files_Suite.Support.Save (Environment, "HOME");
+      --  The host locale calls -- GetUserDefaultLocaleName, CFLocaleCopyCurrent
+      --  -- and the frameworks they need went to Hostkit.Host with the rest of
+      --  the per-OS bodies, and are asserted there. What files owns, and what
+      --  this checks, is that it asks one question instead of branching on the
+      --  host itself before it even gets to the environment.
+      Assert
+        (Repository_Source_Contains ("Hostkit.Host.Native_Locale"),
+         "the system locale is asked of the host, not detected per OS here");
+
+      --  LC_MESSAGES unset, as the precedence walk leaves it.
+      Ada.Environment_Variables.Clear ("LC_MESSAGES");
+      declare
+         Fake_Home   : constant String := Join (Root, "locale-home");
+         Config_Dir  : constant String := Join (Fake_Home, ".config");
+         Config_Path : constant String := Join (Config_Dir, "plasma-localerc");
       begin
-         return Project_Tools.Files.Any_File_Contains ("src", Pattern)
-           or else Project_Tools.Files.Any_File_Contains ("../src", Pattern)
-           or else Project_Tools.Files.Any_File_Contains ("../../src", Pattern);
-      end Repository_Source_Contains;
+         Ada.Directories.Create_Path (Config_Dir);
+         Write_File
+           (Config_Path,
+            "[Formats]" & ASCII.LF &
+            "LC_NUMERIC=da_DK.UTF-8" & ASCII.LF &
+            "LANG=de_DE.UTF-8" & ASCII.LF);
+         Ada.Environment_Variables.Clear ("LC_ALL");
+         Ada.Environment_Variables.Clear ("LC_TIME");
+         Ada.Environment_Variables.Clear ("LC_NUMERIC");
+         Ada.Environment_Variables.Set ("LANG", "C.UTF-8");
+         Ada.Environment_Variables.Set ("HOME", Fake_Home);
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.System_Time_Locale,
+            "de-DE",
+            "portable process LANG falls back to KDE formats locale");
+         Files_Suite.Support.Assert_Equal
+           (Files.Localization.System_Number_Locale,
+            "da-DK",
+            "portable process LANG falls back to KDE numeric formats locale");
+
+         Ada.Environment_Variables.Set
+           ("HOME", Join (Root, "missing-locale-home"));
+         declare
+            Expected_Time : constant String :=
+              Files.Localization.System_Time_Locale;
+            Expected_Number : constant String :=
+              Files.Localization.System_Number_Locale;
+            File : Ada.Streams.Stream_IO.File_Type;
+         begin
+            Ada.Environment_Variables.Set ("HOME", Fake_Home);
+            Ada.Streams.Stream_IO.Create
+              (File, Ada.Streams.Stream_IO.Out_File, Config_Path);
+            Ada.Streams.Stream_IO.Set_Index
+              (File, Ada.Streams.Stream_IO.Count (256 * 1024 + 1));
+            Character'Write (Ada.Streams.Stream_IO.Stream (File), 'x');
+            Ada.Streams.Stream_IO.Close (File);
+            Assert
+              (Files.Localization.System_Time_Locale = Expected_Time
+               and then Files.Localization.System_Number_Locale =
+                 Expected_Number,
+               "oversized locale configuration is ignored before parsing");
+         end;
+      end;
+   end Test_Host_Locale_Fallbacks;
+
+   procedure Test_First_Implementation_Features (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Drag_And_Drop),
+         "drag-and-drop import belongs to the implementation");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Thumbnail_Generation),
+         "thumbnail generation belongs to the implementation");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Recursive_Search),
+         "recursive search belongs to the implementation");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.File_Watching),
+         "file watching belongs to the implementation");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Permanent_Delete),
+         "permanent deletion belongs to the implementation");
+      Assert
+        (Repository_Source_Contains ("glfwSetDropCallback")
+         and then Repository_Source_Contains ("Handle_Drop_Input"),
+         "native file-drop callbacks are connected to controller import routing");
+      Assert
+        (Repository_Source_Contains ("glfwSetWindowIcon")
+         and then Repository_Source_Contains ("Glfw.Windows.Icon.Set_Files_Icon"),
+         "native desktop windows receive the packaged application icon");
+      Assert
+        (Repository_Source_Contains ("Guikit.Vulkan.Wait_For_Events")
+         and then Repository_Source_Contains ("Handle_File_Watch_Poll"),
+         "directory file watching is polled from the desktop event loop");
+      --  Native watching is connected to the event loop through a per-host
+      --  seam, not by calling a kernel facility from window code: inotify is
+      --  Linux-only, and naming it here once made the application impossible to
+      --  link on macOS or Windows. That seam is now Hostkit.Watch, so the
+      --  per-host bodies -- and the assertion that each host supplies its own
+      --  inotify/kqueue/FindFirstChangeNotification -- live in hostkit with
+      --  them. What files still owns, and what this checks, is the wiring.
+      Assert
+        (Repository_Source_Contains ("Hostkit.Watch.Poll")
+         and then Repository_Source_Contains ("Drain_Native_Watch"),
+         "native file watching is connected to the desktop event loop");
+      --  "window code must not name inotify directly" is now a family-aware
+      --  guardrail in check_all (Check_Desktop_Runtime_Contract), so it covers
+      --  the window body and every one of its subunits, not just one file.
+      Assert
+        (Files.Features.Included_In_First_Implementation
+           (Files.Features.Network_Filesystem_Special_Handling),
+         "network filesystem special handling belongs to the implementation");
+      Assert
+        (Repository_Source_Contains ("Root_Network_Mount")
+         and then Repository_File_Contains ("share/files.catalog", "en.root.network_mount.prefix = "),
+         "root discovery includes network-specific root handling");
+      Assert
+        (not Files.Features.Included_In_First_Implementation (Files.Features.Shell_Open_By_Default),
+         "shell open actions remain opt-in");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Gpu_Screenshot_Tests),
+         "GPU screenshot comparison tests belong to the implementation");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Platform_Trash),
+         "platform trash belongs to the first implementation");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Root_Discovery),
+         "root discovery belongs to the first implementation");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Open_Action_Execution),
+         "open-action execution belongs to the first implementation");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Settings_Editing),
+         "settings editing belongs to the first implementation");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Desktop_Packaging),
+         "desktop packaging metadata belongs to the first implementation");
+      Assert
+        (Files.Features.Included_In_First_Implementation (Files.Features.Permanent_Delete),
+         "permanent deletion is explicitly available only through its advanced API");
+      declare
+         Display_Available : constant Boolean := Files.Application.Windows.Live_Display_Available;
+         Vulkan_Available  : constant Boolean := Files.Application.Windows.Vulkan_Runtime_Available;
+         Capabilities      : constant Files.Application.Windows.Desktop_Capabilities :=
+           Files.Application.Windows.Runtime_Capabilities;
+      begin
+         Assert
+           (Display_Available or else not Display_Available,
+            "live display capability query returns deterministic boolean");
+         Assert
+           (Vulkan_Available or else not Vulkan_Available,
+            "Vulkan capability query returns deterministic boolean");
+         Files_Suite.Support.Assert_Equal
+           (Capabilities.Display_Available,
+            Display_Available,
+            "desktop capability report includes display state");
+         Files_Suite.Support.Assert_Equal
+           (Capabilities.Vulkan_Available,
+            Vulkan_Available,
+            "desktop capability report includes Vulkan state");
+         Assert
+           (Capabilities.Native_Drop_Callbacks,
+            "desktop capability report includes native drop callbacks");
+         Assert
+           (Capabilities.Native_Drop_Automation,
+            "desktop capability report exposes drop event-source automation");
+      end;
+   end Test_First_Implementation_Features;
+
+   procedure Test_Helper_Tooling_Is_Ada (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
 
       function Repository_Root return String is
       begin
@@ -2287,83 +2428,15 @@ package body Files_Suite.Startup is
             return Count;
       end Forbidden_Helper_Script_Count;
    begin
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Drag_And_Drop),
-         "drag-and-drop import belongs to the implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Thumbnail_Generation),
-         "thumbnail generation belongs to the implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Recursive_Search),
-         "recursive search belongs to the implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.File_Watching),
-         "file watching belongs to the implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Permanent_Delete),
-         "permanent deletion belongs to the implementation");
-      Assert
-        (Repository_Source_Contains ("glfwSetDropCallback")
-         and then Repository_Source_Contains ("Handle_Drop_Input"),
-         "native file-drop callbacks are connected to controller import routing");
-      Assert
-        (Repository_Source_Contains ("glfwSetWindowIcon")
-         and then Repository_Source_Contains ("Glfw.Windows.Icon.Set_Files_Icon"),
-         "native desktop windows receive the packaged application icon");
-      Assert
-        (Repository_Source_Contains ("Guikit.Vulkan.Wait_For_Events")
-         and then Repository_Source_Contains ("Handle_File_Watch_Poll"),
-         "directory file watching is polled from the desktop event loop");
-      --  Native watching is connected to the event loop through a per-host
-      --  seam, not by calling a kernel facility from window code: inotify is
-      --  Linux-only, and naming it here once made the application impossible to
-      --  link on macOS or Windows. That seam is now Hostkit.Watch, so the
-      --  per-host bodies -- and the assertion that each host supplies its own
-      --  inotify/kqueue/FindFirstChangeNotification -- live in hostkit with
-      --  them. What files still owns, and what this checks, is the wiring.
-      Assert
-        (Repository_Source_Contains ("Hostkit.Watch.Poll")
-         and then Repository_Source_Contains ("Drain_Native_Watch"),
-         "native file watching is connected to the desktop event loop");
-      --  "window code must not name inotify directly" is now a family-aware
-      --  guardrail in check_all (Check_Desktop_Runtime_Contract), so it covers
-      --  the window body and every one of its subunits, not just one file.
-      Assert
-        (Files.Features.Included_In_First_Implementation
-           (Files.Features.Network_Filesystem_Special_Handling),
-         "network filesystem special handling belongs to the implementation");
-      Assert
-        (Repository_Source_Contains ("Root_Network_Mount")
-         and then Repository_File_Contains ("share/files.catalog", "en.root.network_mount.prefix = "),
-         "root discovery includes network-specific root handling");
-      Assert
-        (not Files.Features.Included_In_First_Implementation (Files.Features.Shell_Open_By_Default),
-         "shell open actions remain opt-in");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Gpu_Screenshot_Tests),
-         "GPU screenshot comparison tests belong to the implementation");
       Files_Suite.Support.Assert_Equal
         (Forbidden_Helper_Script_Count (Repository_Root),
          0,
          "all project helper tooling remains implemented in Ada");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Platform_Trash),
-         "platform trash belongs to the first implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Root_Discovery),
-         "root discovery belongs to the first implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Open_Action_Execution),
-         "open-action execution belongs to the first implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Settings_Editing),
-         "settings editing belongs to the first implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Desktop_Packaging),
-         "desktop packaging metadata belongs to the first implementation");
-      Assert
-        (Files.Features.Included_In_First_Implementation (Files.Features.Permanent_Delete),
-         "permanent deletion is explicitly available only through its advanced API");
+   end Test_Helper_Tooling_Is_Ada;
+
+   procedure Test_Desktop_Packaging_Contents (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
       Assert
         (Repository_File_Exists ("share/applications/files.desktop"),
          "desktop packaging includes a desktop entry");
@@ -2403,6 +2476,29 @@ package body Files_Suite.Startup is
       Assert
         (Repository_File_Exists ("share/files/icons/markdown.icon"),
          "desktop packaging includes the complete bundled icon set");
+      Assert
+        (Repository_File_Contains ("share/files/package.manifest", "share/files.catalog"),
+         "release manifest includes localization catalog");
+      Assert
+        (Repository_File_Contains ("share/files/package.manifest", "share/doc/files/quick-start.md"),
+         "release manifest includes quick-start guide");
+      Assert
+        (Repository_File_Contains ("share/files/package.manifest", "share/doc/files/settings-format.md"),
+         "release manifest includes settings format documentation");
+      Assert
+        (Repository_File_Contains ("share/files/package.manifest", "share/doc/files/platform-support.md"),
+         "release manifest includes platform support documentation");
+      Assert
+        (Repository_File_Contains ("share/files/package.manifest", "share/doc/files/release-notes.md"),
+         "release manifest includes release notes");
+      Assert
+        (Repository_File_Contains ("share/files/package.manifest", "share/files/icons/markdown.icon"),
+         "release manifest includes bundled icon assets");
+   end Test_Desktop_Packaging_Contents;
+
+   procedure Test_Crate_Project_Wiring (T : in out AUnit.Test_Cases.Test_Case'Class) is
+      pragma Unreferenced (T);
+   begin
       Assert
         (Repository_File_Contains ("alire.toml", "guikit = ""^0.1.0""")
          and then Repository_File_Contains ("alire.toml", "guikit = { path = ""../guikit"" }"),
@@ -2478,52 +2574,7 @@ package body Files_Suite.Startup is
          and then Repository_File_Contains ("tools/.gitignore", "/alire/")
          and then Repository_File_Contains ("tools/.gitignore", "/config/"),
          "checker tooling crate ignores generated build artifacts");
-      Assert
-        (Repository_File_Contains ("share/files/package.manifest", "share/files.catalog"),
-         "release manifest includes localization catalog");
-      Assert
-        (Repository_File_Contains ("share/files/package.manifest", "share/doc/files/quick-start.md"),
-         "release manifest includes quick-start guide");
-      Assert
-        (Repository_File_Contains ("share/files/package.manifest", "share/doc/files/settings-format.md"),
-         "release manifest includes settings format documentation");
-      Assert
-        (Repository_File_Contains ("share/files/package.manifest", "share/doc/files/platform-support.md"),
-         "release manifest includes platform support documentation");
-      Assert
-        (Repository_File_Contains ("share/files/package.manifest", "share/doc/files/release-notes.md"),
-         "release manifest includes release notes");
-      Assert
-        (Repository_File_Contains ("share/files/package.manifest", "share/files/icons/markdown.icon"),
-         "release manifest includes bundled icon assets");
-      declare
-         Display_Available : constant Boolean := Files.Application.Windows.Live_Display_Available;
-         Vulkan_Available  : constant Boolean := Files.Application.Windows.Vulkan_Runtime_Available;
-         Capabilities      : constant Files.Application.Windows.Desktop_Capabilities :=
-           Files.Application.Windows.Runtime_Capabilities;
-      begin
-         Assert
-           (Display_Available or else not Display_Available,
-            "live display capability query returns deterministic boolean");
-         Assert
-           (Vulkan_Available or else not Vulkan_Available,
-            "Vulkan capability query returns deterministic boolean");
-         Files_Suite.Support.Assert_Equal
-           (Capabilities.Display_Available,
-            Display_Available,
-            "desktop capability report includes display state");
-         Files_Suite.Support.Assert_Equal
-           (Capabilities.Vulkan_Available,
-            Vulkan_Available,
-            "desktop capability report includes Vulkan state");
-         Assert
-           (Capabilities.Native_Drop_Callbacks,
-            "desktop capability report includes native drop callbacks");
-         Assert
-           (Capabilities.Native_Drop_Automation,
-            "desktop capability report exposes drop event-source automation");
-      end;
-   end Test_First_Implementation_Feature_Policy;
+   end Test_Crate_Project_Wiring;
 
    procedure Test_Live_Smoke_Gate_Outcome (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
