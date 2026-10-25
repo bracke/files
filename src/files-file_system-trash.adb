@@ -3,6 +3,7 @@ with Files.Job_Context;
 with Files.File_System.Support;
 with Files.File_System.Recovery;
 with Files.Private_Directories;
+with Files.Io_Errors;
 with Ada.Strings.Unbounded;
 with Ada.Directories;
 with Files.Platform;
@@ -702,6 +703,7 @@ package body Trash is
             Files.Diagnostics.Note (Swallowed, "Files.File_System.Trash");
       end Delete_Info_File_If_Present;
    begin
+      Files.Io_Errors.Reset;
       Trashed_Path := Null_Unbounded_String;
       declare
          Preflight : constant Mutation_Result := Move_To_Trash_Preflight (Path);
@@ -744,7 +746,14 @@ package body Trash is
       --  Create only the generic parent with the process umask. The trash root
       --  and both payload directories are owner-only before any name or
       --  metadata is placed in them.
-      Ada.Directories.Create_Path (Ada.Directories.Containing_Directory (Base));
+      begin
+         Files.Io_Errors.Clear_Os_Error;
+         Ada.Directories.Create_Path (Ada.Directories.Containing_Directory (Base));
+      exception
+         when others =>
+            Files.Io_Errors.Capture;
+            raise;
+      end;
       Files.Private_Directories.Ensure (Base);
       if Files_Dir /= Base then
          Files.Private_Directories.Ensure (Files_Dir);
@@ -761,17 +770,19 @@ package body Trash is
          Info_Path := To_Unbounded_String (Join_Path (Info_Dir, To_String (Name) & ".trashinfo"));
          declare
             use type GNAT.OS_Lib.File_Descriptor;
-            Descriptor : GNAT.OS_Lib.File_Descriptor :=
-              GNAT.OS_Lib.Create_New_File (To_String (Info_Path), GNAT.OS_Lib.Binary);
             Metadata : constant String :=
               "[Trash Info]" & ASCII.LF
               & "Path=" & Trash_Info_Path_Value (GNAT.OS_Lib.Normalize_Pathname (Path, Resolve_Links => False))
               & ASCII.LF & "DeletionDate=" & Trash_Deletion_Date (Ada.Calendar.Clock) & ASCII.LF;
+            --  Created last, so nothing runs between a refusal and Capture.
+            Descriptor : GNAT.OS_Lib.File_Descriptor :=
+              GNAT.OS_Lib.Create_New_File (To_String (Info_Path), GNAT.OS_Lib.Binary);
             Written : Integer;
             Next    : Positive := Metadata'First;
             Closed  : Boolean;
          begin
             if Descriptor = GNAT.OS_Lib.Invalid_FD then
+               Files.Io_Errors.Capture;
                raise Ada.Directories.Use_Error;
             end if;
             Info_Owned := True;
@@ -779,6 +790,7 @@ package body Trash is
             while Next <= Metadata'Last loop
                Written := GNAT.OS_Lib.Write (Descriptor, Metadata (Next)'Address, Metadata'Last - Next + 1);
                if Written <= 0 then
+                  Files.Io_Errors.Capture;
                   raise Ada.Directories.Use_Error;
                end if;
                Next := Next + Written;
@@ -786,6 +798,7 @@ package body Trash is
             GNAT.OS_Lib.Close (Descriptor, Closed);
             Descriptor := GNAT.OS_Lib.Invalid_FD;
             if not Closed then
+               Files.Io_Errors.Capture;
                raise Ada.Directories.Use_Error;
             end if;
          exception
@@ -809,10 +822,13 @@ package body Trash is
          end;
          if Outcome /= Hostkit.Fs.Moved and then not Support.Copy_May_Replace_Move (Outcome) then
             --  Refused for a reason a copy would meet too: no copy and delete.
-            Delete_Info_File_If_Present;
-            return
-              (Success   => False,
-               Error_Key => To_Unbounded_String ("error.trash.failed"));
+            declare
+               Failed : constant Mutation_Result :=
+                 (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.failed"));
+            begin
+               Delete_Info_File_If_Present;
+               return Failed;
+            end;
          elsif Outcome /= Hostkit.Fs.Moved then
             --  Cross-device (EXDEV): rename cannot move across filesystems, so
             --  the home trash is on a different mount than the file. Fall back
@@ -845,10 +861,13 @@ package body Trash is
                when others =>
                   --  Copy_Tree owns cleanup; an existing payload belongs to
                   --  another operation and must be left intact.
-                  Delete_Info_File_If_Present;
-                  return
-                    (Success   => False,
-                     Error_Key => To_Unbounded_String ("error.trash.failed"));
+                  declare
+                     Failed : constant Mutation_Result :=
+                       (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.failed"));
+                  begin
+                     Delete_Info_File_If_Present;
+                     return Failed;
+                  end;
             end;
          end if;
       end;
@@ -857,10 +876,13 @@ package body Trash is
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when others =>
-         Delete_Info_File_If_Present;
-         return
-           (Success   => False,
-            Error_Key => To_Unbounded_String ("error.trash.failed"));
+         declare
+            Failed : constant Mutation_Result :=
+              (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.failed"));
+         begin
+            Delete_Info_File_If_Present;
+            return Failed;
+         end;
    end Move_To_Trash;
 
    function Move_To_Trash

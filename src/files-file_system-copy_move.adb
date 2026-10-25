@@ -5,6 +5,7 @@ with Files.Fs;
 with Files.Job_Context;
 with Files.File_System.Recovery;
 with Files.File_Identities;
+with Files.Io_Errors;
 
 separate (Files.File_System)
 package body Copy_Move is
@@ -15,13 +16,14 @@ package body Copy_Move is
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result is
    begin
+      Files.Io_Errors.Reset;
       Support.Copy_To_New_Path (Source_Path, Destination_Path, Batch => Batch);
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when others =>
          return
            (Success   => False,
-            Error_Key => To_Unbounded_String ("error.copy.failed"));
+            Error_Key => Files.Io_Errors.Error_Key ("error.copy.failed"));
    end Copy_Tree;
 
    function Copy_Tree
@@ -30,6 +32,7 @@ package body Copy_Move is
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result is
    begin
+      Files.Io_Errors.Reset;
       Support.Copy_To_New_Path
         (Source_Path, Destination_Path, Identity, Tree_Revision_Value, Batch => Batch);
       return (Success => True, Error_Key => Null_Unbounded_String);
@@ -37,7 +40,7 @@ package body Copy_Move is
       when others =>
          Identity := Null_Unbounded_String;
          Tree_Revision_Value := Null_Unbounded_String;
-         return (Success => False, Error_Key => To_Unbounded_String ("error.copy.failed"));
+         return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.copy.failed"));
    end Copy_Tree;
 
    function Delete_Permanently
@@ -96,6 +99,7 @@ package body Copy_Move is
             return True;
       end Unsafe_Target;
    begin
+      Files.Io_Errors.Reset;
       if Unsafe_Target then
          return
            (Success   => False,
@@ -111,13 +115,17 @@ package body Copy_Move is
       --  link (or a folder that merely contains one) can never reach through
       --  into the link target's real contents. Ada.Directories.Delete_Tree,
       --  used previously via Files.Fs, follows links and would.
+      Files.Io_Errors.Clear_Os_Error;
       Support.Delete_Tree (Path);
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when others =>
+         --  The delete raises straight from the refused unlink or rmdir, so
+         --  errno still says why.
+         Files.Io_Errors.Capture;
          return
            (Success   => False,
-            Error_Key => To_Unbounded_String ("error.permanent_delete.failed"));
+            Error_Key => Files.Io_Errors.Error_Key ("error.permanent_delete.failed"));
    end Delete_Permanently;
 
    function Plan_Drop_Import
@@ -340,6 +348,7 @@ package body Copy_Move is
             Published_Identity, Published_Tree_Revision : UString;
 
          begin
+            Files.Io_Errors.Reset;
             if Source_Path = Destination_Path and then Plan.Mode = Drop_Copy then
                return (Success => False, Error_Key => To_Unbounded_String ("error.drop.into_self"));
             end if;
@@ -373,7 +382,7 @@ package body Copy_Move is
                         --  too, or do what the rename would not.
                         return
                           (Success   => False,
-                           Error_Key => To_Unbounded_String ("error.drop.failed"));
+                           Error_Key => Files.Io_Errors.Error_Key ("error.drop.failed"));
                      elsif Outcome = Hostkit.Fs.Moved then
                         --  The move is committed. Only a cross-device rename may
                         --  use the copy/delete fallback. A rename needs no content
@@ -433,10 +442,14 @@ package body Copy_Move is
             when others =>
                --  A copy raised partway (e.g. out of space); remove the partial
                --  destination before reporting failure. The source is untouched.
-               --  Copy_Tree cleans up only destinations it created.
+               --  Copy_Tree cleans up only destinations it created. A cancelled
+               --  copy keeps the generic key: the helper reads it as cancelled.
                return
                  (Success   => False,
-                  Error_Key => To_Unbounded_String ("error.drop.failed"));
+                  Error_Key =>
+                    (if Cancel /= null and then Cancel.all
+                     then To_Unbounded_String ("error.drop.failed")
+                     else Files.Io_Errors.Error_Key ("error.drop.failed")));
          end;
       end loop;
 

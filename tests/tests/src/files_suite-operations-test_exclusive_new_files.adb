@@ -35,9 +35,9 @@ separate (Files_Suite.Operations)
             if Available and then User_Id /= 0 then
                Assert (Files.File_System.Set_Permissions (Parent, 8#555#).Success, "prepare a read-only parent");
                Mutation := Files.File_System.Create_Empty_File (Join (Parent, "child"));
-               Assert (not Mutation.Success and then To_String (Mutation.Error_Key) = "error.file.create"
+               Assert (not Mutation.Success and then To_String (Mutation.Error_Key) = "error.io.denied"
                        and then not Ada.Directories.Exists (Join (Parent, "child")),
-                       "a creation access failure reports creation failure without claiming a collision");
+                       "a creation access failure reports permission denied without claiming a collision");
             end if;
             Mutation := Files.File_System.Set_Permissions (Parent, 8#755#);
          exception

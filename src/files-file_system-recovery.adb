@@ -1,5 +1,6 @@
 with Files.Diagnostics;
 with Files.File_Identities;
+with Files.Io_Errors;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Directories;
 with Ada.Environment_Variables;
@@ -607,6 +608,7 @@ package body Files.File_System.Recovery is
             return Failed;
       end Put_Back;
    begin
+      Files.Io_Errors.Reset;
       Backup := Null_Unbounded_String;
       if not Valid_Absolute_Path (Original) then
          raise Ada.Directories.Use_Error;
@@ -681,25 +683,31 @@ package body Files.File_System.Recovery is
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when others =>
-         Files.Exclusive_Streams.Close_Safely (File);
-         if Length (Stage) > 0 and then Length (Backup) = 0 then
-            if Ada.Directories.Exists (Join_Path (To_String (Stage), "payload"))
-              or else Hostkit.Fs.Is_Link (Join_Path (To_String (Stage), "payload"))
-            then
-               Backup := To_Unbounded_String (Join_Path (To_String (Stage), "payload"));
-               return Put_Back;
+         declare
+            --  Why, before the cleanup below can record a cause of its own.
+            Failed : constant Mutation_Result :=
+              (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.failed"));
+         begin
+            Files.Exclusive_Streams.Close_Safely (File);
+            if Length (Stage) > 0 and then Length (Backup) = 0 then
+               if Ada.Directories.Exists (Join_Path (To_String (Stage), "payload"))
+                 or else Hostkit.Fs.Is_Link (Join_Path (To_String (Stage), "payload"))
+               then
+                  Backup := To_Unbounded_String (Join_Path (To_String (Stage), "payload"));
+                  return Put_Back;
+               end if;
+               begin
+                  Delete_Tree (To_String (Stage));
+               exception
+                  when Swallowed : others =>
+                     Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+               end;
+               if Length (Registry_Entry) > 0 then
+                  Delete_Registry_Record (To_String (Registry_Entry));
+               end if;
             end if;
-            begin
-               Delete_Tree (To_String (Stage));
-            exception
-               when Swallowed : others =>
-                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
-            end;
-            if Length (Registry_Entry) > 0 then
-               Delete_Registry_Record (To_String (Registry_Entry));
-            end if;
-         end if;
-         return (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
+            return Failed;
+         end;
    end Preserve;
 
    function Original_Path (Path : String) return String is

@@ -65,6 +65,7 @@ with Files.Exclusive_Streams;
 with Files.Drop_Events;
 with Files.Events;
 with Files.File_System;
+with Files.Io_Errors;
 with Files.File_Types;
 with Files.Features;
 with Files.Folder_Size;
@@ -176,6 +177,53 @@ package body Files_Suite.Operations is
       Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the background filesystem operation completes");
       return Result;
    end Complete_Operation;
+
+   --  Make Directory read-only and say whether that refuses a new entry: as
+   --  root, or on a host whose mode bits this suite does not drive, a create
+   --  still succeeds and a refused write has nothing to observe.
+   --  @param Directory Existing directory to lock.
+   --  @return True when a file can no longer be created in Directory.
+   function Lock_Directory (Directory : String) return Boolean;
+
+   --  Give Directory its owner's write access back.
+   --  @param Directory Directory Lock_Directory locked.
+   procedure Unlock_Directory (Directory : String);
+
+   procedure Unlock_Directory (Directory : String) is
+      Unlocked : constant Files.File_System.Mutation_Result :=
+        Files.File_System.Set_Permissions (Directory, 8#755#);
+      pragma Unreferenced (Unlocked);
+   begin
+      null;
+   end Unlock_Directory;
+
+   function Lock_Directory (Directory : String) return Boolean is
+      use type GNAT.OS_Lib.File_Descriptor;
+      Probe : constant String := Join (Directory, ".write-probe");
+      Descriptor : GNAT.OS_Lib.File_Descriptor;
+   begin
+      if Hostkit.Host.Current /= Hostkit.Host.Linux
+        or else Hostkit.Host.Is_Elevated
+        or else not Files.File_System.Set_Permissions (Directory, 8#555#).Success
+      then
+         return False;
+      end if;
+      Descriptor := GNAT.OS_Lib.Create_New_File (Probe, GNAT.OS_Lib.Binary);
+      if Descriptor = GNAT.OS_Lib.Invalid_FD then
+         return True;
+      end if;
+      GNAT.OS_Lib.Close (Descriptor);
+      Unlock_Directory (Directory);
+      Ada.Directories.Delete_File (Probe);
+      return False;
+   end Lock_Directory;
+
+   procedure Test_Io_Error_Classifier (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Create_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Copy_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Paste_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Rename_Trash_Delete_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Save_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    procedure Test_Archive_Completeness (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recent_Archive_Destinations (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -1044,6 +1092,22 @@ package body Files_Suite.Operations is
         (T, Test_Empty_Trash_Hidden'Access, "Empty Trash purges hidden payloads regardless of display preferences");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Search_Limit_Errors'Access, "search limits fail without presenting incomplete or empty results");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Io_Error_Classifier'Access,
+         "each errno a user can act on names its cause; others keep the generic key");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Create_Read_Only_Cause'Access, "creating in a read-only folder reports permission denied");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Copy_Read_Only_Cause'Access, "copying into a read-only folder reports permission denied");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Paste_Read_Only_Cause'Access,
+         "a paste into a read-only folder reports permission denied, in a helper too");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Rename_Trash_Delete_Read_Only_Cause'Access,
+         "rename, trash and delete in a read-only folder report permission denied");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Save_Read_Only_Cause'Access,
+         "saving settings into a read-only folder reports permission denied");
    end Register_Tests;
 
    procedure With_Trash_Environment (Check : not null access procedure) is separate;
@@ -2376,5 +2440,17 @@ package body Files_Suite.Operations is
 
    procedure Test_Stage_Record_Cleanup (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Failed_Replace_Rollback (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Io_Error_Classifier (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Create_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Copy_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Paste_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Rename_Trash_Delete_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Settings_Save_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
 end Files_Suite.Operations;

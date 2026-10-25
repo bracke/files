@@ -1839,6 +1839,11 @@ package body Files_Suite.Startup is
    procedure Test_Localization_Error_And_Command_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Error_Keys : Files.Types.String_Vectors.Vector;
+      Western_Locales : constant Files.Types.String_Vectors.Vector :=
+        [To_Unbounded_String ("da-DK"), To_Unbounded_String ("de-DE"), To_Unbounded_String ("es-ES"),
+         To_Unbounded_String ("fr-FR"), To_Unbounded_String ("it-IT"), To_Unbounded_String ("nl-NL"),
+         To_Unbounded_String ("pt-PT"), To_Unbounded_String ("sv-SE"), To_Unbounded_String ("nb-NO"),
+         To_Unbounded_String ("fi-FI")];
 
       procedure Add_Error_Key (Key : String) is
       begin
@@ -1881,6 +1886,11 @@ package body Files_Suite.Startup is
       Add_Error_Key ("error.drop.failed");
       Add_Error_Key ("error.drop.into_self");
       Add_Error_Key ("error.copy.failed");
+      Add_Error_Key ("error.io.no_space");
+      Add_Error_Key ("error.io.denied");
+      Add_Error_Key ("error.io.read_only");
+      Add_Error_Key ("error.io.busy");
+      Add_Error_Key ("error.io.name_too_long");
       Add_Error_Key ("error.duplicate.failed");
       Add_Error_Key ("error.link.failed");
       Add_Error_Key ("error.terminal.unavailable");
@@ -1935,6 +1945,21 @@ package body Files_Suite.Startup is
             Text_Key : constant String := To_String (Key);
          begin
             Assert (Files.Localization.Text (Text_Key) /= Text_Key, "error localization exists for " & Text_Key);
+         end;
+      end loop;
+      --  Why an operation failed is shown in every locale that translates
+      --  the generic failure it replaces.
+      for Key of Error_Keys loop
+         declare
+            Text_Key : constant String := To_String (Key);
+         begin
+            if Text_Key'Length > 9 and then Text_Key (Text_Key'First .. Text_Key'First + 8) = "error.io." then
+               for Locale of Western_Locales loop
+                  Assert
+                    (Files.Localization.Text (Text_Key, To_String (Locale)) /= Files.Localization.Text (Text_Key),
+                     To_String (Locale) & " translates " & Text_Key);
+               end loop;
+            end if;
          end;
       end loop;
       for Id in Files.Commands.Registered_Command_Id loop

@@ -1,4 +1,5 @@
 with Ada.Directories;
+with Files.Io_Errors;
 with Hostkit.Fs;
 
 package body Files.Durable_Writes is
@@ -29,13 +30,18 @@ package body Files.Durable_Writes is
       Replaced  : Boolean := False;
    begin
       Step := Raised;
+      Files.Io_Errors.Clear_Os_Error;
       File_Sync := Hostkit.Durability.Sync_File (Temporary);
       if File_Sync /= Hostkit.Durability.Synced then
+         --  A full disk often shows only here, when the data is flushed.
+         Files.Io_Errors.Capture;
          Step := File_Sync_Failed;
          return Not_Published;
       end if;
+      Files.Io_Errors.Clear_Os_Error;
       Replaced := Hostkit.Fs.Replace_File (Temporary, Target);
       if not Replaced then
+         Files.Io_Errors.Capture;
          Step := Replace_Failed;
          return Not_Published;
       end if;

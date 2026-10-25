@@ -2,6 +2,7 @@ with Files.Diagnostics;
 with Files.File_System.Support;
 with Files.File_System.Recovery;
 with Files.File_Identities;
+with Files.Io_Errors;
 with Ada.Strings.Unbounded;
 with Ada.Directories;
 with Ada.Text_IO;
@@ -53,6 +54,7 @@ package body Create is
       Parent : constant String := Parent_Directory;
       Name   : constant String := Mutation_Leaf_Name (Path);
    begin
+      Files.Io_Errors.Reset;
       if Path = "" then
          return
            (Success   => False,
@@ -76,6 +78,8 @@ package body Create is
 
       Descriptor := GNAT.OS_Lib.Create_New_File (Path, GNAT.OS_Lib.Binary);
       if Descriptor = GNAT.OS_Lib.Invalid_FD then
+         --  Before the existence check, whose own calls overwrite errno.
+         Files.Io_Errors.Capture;
          if Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path) then
             return (Success => False, Error_Key => To_Unbounded_String ("error.file.exists"));
          end if;
@@ -85,26 +89,31 @@ package body Create is
       GNAT.OS_Lib.Close (Descriptor, Closed);
       Descriptor := GNAT.OS_Lib.Invalid_FD;
       if not Closed then
+         Files.Io_Errors.Capture;
          raise Ada.Directories.Use_Error;
       end if;
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when others =>
-         if Descriptor /= GNAT.OS_Lib.Invalid_FD then
-            GNAT.OS_Lib.Close (Descriptor);
-         end if;
-         if Length (Identity) > 0 then
-            declare
-               Removed : constant Mutation_Result := Delete_Created_Entry
-                 (Path, To_String (Identity), Tree_Revision (Path));
-               pragma Unreferenced (Removed);
-            begin
-               null;
-            end;
-         end if;
-         return
-           (Success   => False,
-            Error_Key => To_Unbounded_String ("error.file.create"));
+         declare
+            --  Chosen before the cleanup below can record a cause of its own.
+            Failed : constant Mutation_Result :=
+              (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.file.create"));
+         begin
+            if Descriptor /= GNAT.OS_Lib.Invalid_FD then
+               GNAT.OS_Lib.Close (Descriptor);
+            end if;
+            if Length (Identity) > 0 then
+               declare
+                  Removed : constant Mutation_Result := Delete_Created_Entry
+                    (Path, To_String (Identity), Tree_Revision (Path));
+                  pragma Unreferenced (Removed);
+               begin
+                  null;
+               end;
+            end if;
+            return Failed;
+         end;
    end Create_Empty_File;
 
    function Create_Directory
@@ -122,6 +131,7 @@ package body Create is
       Parent : constant String := Parent_Directory;
       Name   : constant String := Mutation_Leaf_Name (Path);
    begin
+      Files.Io_Errors.Reset;
       if Path = "" then
          return
            (Success   => False,
@@ -143,13 +153,20 @@ package body Create is
             Error_Key => To_Unbounded_String ("error.file.parent_missing"));
       end if;
 
-      Ada.Directories.Create_Directory (Path);
+      begin
+         Files.Io_Errors.Clear_Os_Error;
+         Ada.Directories.Create_Directory (Path);
+      exception
+         when others =>
+            Files.Io_Errors.Capture;
+            raise;
+      end;
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when others =>
          return
            (Success   => False,
-            Error_Key => To_Unbounded_String ("error.file.create"));
+            Error_Key => Files.Io_Errors.Error_Key ("error.file.create"));
    end Create_Directory;
 
    function Rename_Item
@@ -240,7 +257,7 @@ package body Create is
          if not Support.Move_No_Replace (From_Path, To_String (Temp)) then
             return
               (Success   => False,
-               Error_Key => To_Unbounded_String ("error.rename.failed"));
+               Error_Key => Files.Io_Errors.Error_Key ("error.rename.failed"));
          end if;
 
          begin
@@ -250,23 +267,28 @@ package body Create is
             return (Success => True, Error_Key => Null_Unbounded_String);
          exception
             when others =>
-               --  Second hop failed: restore the original name if it is still
-               --  free. A competing entry must never be overwritten.
+               declare
+                  --  Why the second hop failed, before the restore can say
+                  --  something else.
+                  Failed : constant Mutation_Result :=
+                    (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.rename.failed"));
                begin
-                  declare
-                     Restored : constant Boolean :=
-                       Support.Move_No_Replace (To_String (Temp), From_Path);
-                     pragma Unreferenced (Restored);
+                  --  Second hop failed: restore the original name if it is
+                  --  still free. A competing entry must never be overwritten.
                   begin
-                     null;
+                     declare
+                        Restored : constant Boolean :=
+                          Support.Move_No_Replace (To_String (Temp), From_Path);
+                        pragma Unreferenced (Restored);
+                     begin
+                        null;
+                     end;
+                  exception
+                     when Swallowed : others =>
+                        Files.Diagnostics.Note (Swallowed, "Files.File_System.Create");
                   end;
-               exception
-                  when Swallowed : others =>
-                     Files.Diagnostics.Note (Swallowed, "Files.File_System.Create");
+                  return Failed;
                end;
-               return
-                 (Success   => False,
-                  Error_Key => To_Unbounded_String ("error.rename.failed"));
          end;
       exception
          when others =>
@@ -294,6 +316,10 @@ package body Create is
            (Success => False, Error_Key => To_Unbounded_String ("error.rename.failed"));
          Committed : Boolean := False;
 
+         --  Failed, or the cause Step was refused for when one is known.
+         function Failed_By (Step : Mutation_Result) return Mutation_Result is
+           (if Files.Io_Errors.Is_Cause_Key (Step.Error_Key) then Step else Failed);
+
          procedure Restore_Source is
             Restored : constant Mutation_Result := Recovery.Restore (To_String (Backup));
             pragma Unreferenced (Restored);
@@ -307,19 +333,27 @@ package body Create is
          if Same_Existing_Path then
             return (Success => True, Error_Key => Null_Unbounded_String);
          end if;
-         if not Recovery.Preserve (From_Path, Backup).Success then
-            return Failed;
-         end if;
+         declare
+            Preserved : constant Mutation_Result := Recovery.Preserve (From_Path, Backup);
+         begin
+            if not Preserved.Success then
+               return Failed_By (Preserved);
+            end if;
+         end;
          --  The source is now private. A substituted entry must be restored,
          --  never moved to the history target or deleted by a copy fallback.
          if Files.File_Identities.Token (To_String (Backup)) /= Expected_Identity then
             Restore_Source;
             return Failed;
          end if;
-         if not Rename_Item (To_String (Backup), To_Path).Success then
-            Restore_Source;
-            return Failed;
-         end if;
+         declare
+            Renamed : constant Mutation_Result := Rename_Item (To_String (Backup), To_Path);
+         begin
+            if not Renamed.Success then
+               Restore_Source;
+               return Failed_By (Renamed);
+            end if;
+         end;
          Committed := True;
          declare
             Stage : constant String := Ada.Directories.Containing_Directory (To_String (Backup));
@@ -344,6 +378,7 @@ package body Create is
       --  filesystem without no-replace rename; nothing else may fall back.
       May_Copy : Boolean := False;
    begin
+      Files.Io_Errors.Reset;
       if Expected_Identity /= "" then
          return Rename_Recorded;
       end if;
@@ -395,7 +430,7 @@ package body Create is
             --  vanished source, occupied target): no copy and delete.
             return
               (Success   => False,
-               Error_Key => To_Unbounded_String ("error.rename.failed"));
+               Error_Key => Files.Io_Errors.Error_Key ("error.rename.failed"));
          end if;
          May_Copy := True;
          raise Ada.Directories.Use_Error;
@@ -405,7 +440,7 @@ package body Create is
          if not May_Copy then
             return
               (Success   => False,
-               Error_Key => To_Unbounded_String ("error.rename.failed"));
+               Error_Key => Files.Io_Errors.Error_Key ("error.rename.failed"));
          end if;
          --  A rename cannot move across filesystems (EXDEV). Fall
          --  back to copy + delete, exactly as Execute_Drop_Import and
@@ -446,10 +481,14 @@ package body Create is
             return (Success => True, Error_Key => Null_Unbounded_String);
          exception
             when others =>
-               Discard_Destination;
-               return
-                 (Success   => False,
-                  Error_Key => To_Unbounded_String ("error.rename.failed"));
+               declare
+                  --  Why the copy failed, before discarding it can say otherwise.
+                  Failed : constant Mutation_Result :=
+                    (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.rename.failed"));
+               begin
+                  Discard_Destination;
+                  return Failed;
+               end;
          end;
    end Rename_Item;
 

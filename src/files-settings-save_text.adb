@@ -1,4 +1,5 @@
 with Files.Diagnostics;
+with Files.Io_Errors;
 separate (Files.Settings)
    function Save_Text
      (Path : String;
@@ -43,6 +44,7 @@ separate (Files.Settings)
             Files.Diagnostics.Note (Swallowed, "Files.Settings.Save_Text");
       end Remove_Owned_Temp;
    begin
+      Files.Io_Errors.Reset;
       if Path = ""
         or else Contains_Nul (Path)
         or else Contains_Nul (Text)
@@ -73,7 +75,14 @@ separate (Files.Settings)
                   Error_Key => To_Unbounded_String ("error.settings.not_file"));
             end if;
          else
-            Ada.Directories.Create_Path (Parent);
+            begin
+               Files.Io_Errors.Clear_Os_Error;
+               Ada.Directories.Create_Path (Parent);
+            exception
+               when others =>
+                  Files.Io_Errors.Capture;
+                  raise;
+            end;
          end if;
       end if;
 
@@ -103,6 +112,8 @@ separate (Files.Settings)
          end;
       end loop;
       if Descriptor = GNAT.OS_Lib.Invalid_FD or else Length (Temp_Identity) = 0 then
+         --  errno still holds why the last candidate was refused.
+         Files.Io_Errors.Capture;
          raise Ada.Directories.Use_Error;
       end if;
 
@@ -114,6 +125,7 @@ separate (Files.Settings)
             Written := GNAT.OS_Lib.Write
               (Descriptor, Text (Next)'Address, Text'Last - Next + 1);
             if Written <= 0 then
+               Files.Io_Errors.Capture;
                raise Ada.Directories.Use_Error;
             end if;
             Next := Next + Written;
@@ -125,6 +137,7 @@ separate (Files.Settings)
          GNAT.OS_Lib.Close (Descriptor, Closed);
          Descriptor := GNAT.OS_Lib.Invalid_FD;
          if not Closed then
+            Files.Io_Errors.Capture;
             raise Ada.Directories.Use_Error;
          end if;
       end;
@@ -148,15 +161,20 @@ separate (Files.Settings)
             else To_Unbounded_String ("warning.settings.not_durable")));
    exception
       when others =>
-         if Descriptor /= GNAT.OS_Lib.Invalid_FD then
-            GNAT.OS_Lib.Close (Descriptor);
-            Descriptor := GNAT.OS_Lib.Invalid_FD;
-         end if;
-         Remove_Owned_Temp;
+         declare
+            --  Why, before the cleanup below can record a cause of its own.
+            Key : constant Unbounded_String := Files.Io_Errors.Error_Key ("error.settings.save");
+         begin
+            if Descriptor /= GNAT.OS_Lib.Invalid_FD then
+               GNAT.OS_Lib.Close (Descriptor);
+               Descriptor := GNAT.OS_Lib.Invalid_FD;
+            end if;
+            Remove_Owned_Temp;
 
-         return
-           (Success   => False,
-            Durable   => False,
-            Path      => To_Unbounded_String (Path),
-            Error_Key => To_Unbounded_String ("error.settings.save"));
+            return
+              (Success   => False,
+               Durable   => False,
+               Path      => To_Unbounded_String (Path),
+               Error_Key => Key);
+         end;
    end Save_Text;

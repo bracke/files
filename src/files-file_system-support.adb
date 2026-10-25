@@ -11,6 +11,7 @@ with Files.Job_Context;
 with Files.Directory_Rename_Access;
 with Files.File_Identities;
 with Files.Platform_Regular_Files;
+with Files.Io_Errors;
 with Files_Config;
 with CryptoLib.Hashes;
 
@@ -455,8 +456,13 @@ package body Files.File_System.Support is
       if not Files.Directory_Rename_Access.Prepare (Source, Context) then
          return Hostkit.Fs.Move_Refused;
       end if;
+      Files.Io_Errors.Clear_Os_Error;
       Outcome := Hostkit.Fs.Move_No_Replace_Outcome (Source, Destination);
       Moved := Outcome = Hostkit.Fs.Moved;
+      if not Moved then
+         --  Before restoring access below, which makes calls of its own.
+         Files.Io_Errors.Capture;
+      end if;
       Restored := Files.Directory_Rename_Access.Finish (Context);
       if not Restored then
          --  Restore the original pathname before reporting a refused operation.
@@ -974,6 +980,7 @@ package body Files.File_System.Support is
                  (Output, Buffer (Next)'Address,
                   Integer (Buffer_Last - Next + 1));
                if Wrote <= 0 then
+                  Files.Io_Errors.Capture;
                   raise Ada.Directories.Use_Error;
                end if;
                Next := Next + Stream_Element_Offset (Wrote);
@@ -989,15 +996,24 @@ package body Files.File_System.Support is
             Input_Descriptor := Files.Platform_Regular_Files.Open_Read
               (Source_Path, False, Supported);
             if Supported and then Input_Descriptor = GNAT.OS_Lib.Invalid_FD then
+               Files.Io_Errors.Capture;
                raise Ada.Directories.Use_Error;
             end if;
          end;
          if Input_Descriptor = GNAT.OS_Lib.Invalid_FD then
-            Ada.Streams.Stream_IO.Open
-              (Input, Ada.Streams.Stream_IO.In_File, Source_Path);
+            begin
+               Files.Io_Errors.Clear_Os_Error;
+               Ada.Streams.Stream_IO.Open
+                 (Input, Ada.Streams.Stream_IO.In_File, Source_Path);
+            exception
+               when others =>
+                  Files.Io_Errors.Capture;
+                  raise;
+            end;
          end if;
          Output := GNAT.OS_Lib.Create_New_File (Destination_Path, GNAT.OS_Lib.Binary);
          if Output = GNAT.OS_Lib.Invalid_FD then
+            Files.Io_Errors.Capture;
             raise Ada.Directories.Use_Error;
          end if;
          Owned := True;
@@ -1007,6 +1023,7 @@ package body Files.File_System.Support is
                Bytes_Read := GNAT.OS_Lib.Read
                  (Input_Descriptor, Buffer'Address, Integer (Buffer'Length));
                if Bytes_Read < 0 then
+                  Files.Io_Errors.Capture;
                   raise Ada.Directories.Use_Error;
                end if;
                exit when Bytes_Read = 0;
@@ -1024,11 +1041,15 @@ package body Files.File_System.Support is
             Ada.Streams.Stream_IO.Close (Input);
          end if;
          if Sparse and then not Files.Platform_Regular_Files.Finish_Sparse (Output) then
+            Files.Io_Errors.Capture;
             raise Ada.Directories.Use_Error;
          end if;
          GNAT.OS_Lib.Close (Output, Closed);
          Output := GNAT.OS_Lib.Invalid_FD;
          if not Closed then
+            --  A network or quota-limited filesystem may report a full disk
+            --  only here.
+            Files.Io_Errors.Capture;
             raise Ada.Directories.Use_Error;
          end if;
          if Root_File_Digest /= null then
@@ -1091,7 +1112,11 @@ package body Files.File_System.Support is
             Created : Boolean := False;
          begin
             if Hostkit.Fs.Read_Link_Target (Source_Path, Target) then
+               Files.Io_Errors.Clear_Os_Error;
                Created := Hostkit.Fs.Create_Link (To_String (Target), Destination_Path);
+               if not Created then
+                  Files.Io_Errors.Capture;
+               end if;
             end if;
 
             --  If the link cannot be recreated (unreadable target, or a host
@@ -1120,7 +1145,14 @@ package body Files.File_System.Support is
 
       case Ada.Directories.Kind (Source_Path) is
          when Ada.Directories.Directory =>
-            Ada.Directories.Create_Directory (Destination_Path);
+            begin
+               Files.Io_Errors.Clear_Os_Error;
+               Ada.Directories.Create_Directory (Destination_Path);
+            exception
+               when others =>
+                  Files.Io_Errors.Capture;
+                  raise;
+            end;
             Owned := True;
             For_Each_Entry (Source_Path, Copy_Entry'Access);
          when Ada.Directories.Ordinary_File =>
