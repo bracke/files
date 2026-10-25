@@ -1,3 +1,4 @@
+with Files.Shared_Bytes;
 with Files.Types;
 with Guikit.Draw;
 
@@ -13,7 +14,7 @@ package Files.Extension_Labels is
    type Label is record
       Width  : Natural := 0;
       Height : Natural := 0;
-      Pixels : Files.Types.Byte_Vectors.Vector;   --  RGBA, row-major, top-left
+      Pixels : Files.Shared_Bytes.Bytes;   --  RGBA, row-major, top-left; shared, not copied per frame
    end record;
 
    --  Return a cached label for Ext rendered about Height pixels tall in Theme's

@@ -111,7 +111,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             Asset_Path => To_Unbounded_String ("share/files/icons/" & Icon_Name & ".icon"),
             Thumbnail_Width  => 0,
             Thumbnail_Height => 0,
-            Thumbnail_Pixels => Files.Types.Byte_Vectors.Empty_Vector,
+            Thumbnail_Pixels => Files.Shared_Bytes.Empty,
             Overlay          => False,
             Draw_Width       => 0,
             Draw_Height      => 0,

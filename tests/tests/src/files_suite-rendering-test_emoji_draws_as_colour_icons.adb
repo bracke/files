@@ -71,7 +71,7 @@ separate (Files_Suite.Rendering)
                  "and names an identity so repeats share one atlas tile");
          if not Icon.Thumbnail_Pixels.Is_Empty then
             Files_Suite.Support.Assert_Equal
-              (Natural (Icon.Thumbnail_Pixels.Length),
+              (Icon.Thumbnail_Pixels.Length,
                Icon.Thumbnail_Width * Icon.Thumbnail_Height * 4,
                "the carried picture has four bytes per pixel");
             Carried_Pictures := Carried_Pictures + 1;
