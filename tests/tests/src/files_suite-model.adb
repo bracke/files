@@ -109,6 +109,7 @@ package body Files_Suite.Model is
    procedure Test_Snapshot_Labels_And_Favorites_At_Scale (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Snapshot_Owner_Names_From_Model (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Overlay_Queries (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_History_Move_Leaves_View (T : in out AUnit.Test_Cases.Test_Case'Class);
    overriding function Name (T : Model_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
    begin
@@ -241,6 +242,9 @@ package body Files_Suite.Model is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Overlay_Queries'Access,
          "the overlay queries read one list of input-owning overlays");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_History_Move_Leaves_View'Access,
+         "going back closes Quick Look and recording Undo redraws");
    end Register_Tests;
 
    procedure Test_Directory_Sorting (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -356,6 +360,8 @@ package body Files_Suite.Model is
    procedure Test_Snapshot_Owner_Names_From_Model (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Overlay_Queries (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_History_Move_Leaves_View (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

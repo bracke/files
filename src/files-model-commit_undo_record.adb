@@ -14,6 +14,8 @@ begin
    --  operations layer deletes them when it drains Take_Retired_History.
    Retire_Payloads (Model.Retired_Discards, Model.Redo_Stack);
    Model.Redo_Stack.Clear;
+   --  Undo and Redo availability is drawn and enables commands.
+   Model.Revision_Value := Model.Revision_Value + 1;
    Model.History_Journal_Dirty := True;
    if Action.From.Is_Empty then
       return False;

@@ -227,6 +227,28 @@ package body Files.Interaction is
       return True;
    end Sync_Global_UI_State;
 
+   --  After a command (from a click, a shortcut or the palette) that changed
+   --  a setting the open settings pane edits: the pane shows the new value,
+   --  and its next save cannot write the old one back.
+   procedure Refresh_Open_Pane
+     (Model    : in out Files.Model.Window_Model;
+      Before   : Files.Settings.Settings_Model;
+      Settings : Files.Settings.Settings_Model) is
+   begin
+      if Files.Model.Settings_Pane_Is_Open (Model) then
+         declare
+            use type Files.Settings.Settings_Draft;
+            Shown     : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+            Refreshed : constant Files.Settings.Settings_Draft :=
+              Files.Settings.Refresh_Draft (Shown, Before, Settings);
+         begin
+            if Refreshed /= Shown then
+               Files.Model.Set_Settings_Draft (Model, Refreshed);
+            end if;
+         end;
+      end if;
+   end Refresh_Open_Pane;
+
    procedure Execute_Command
      (Model             : in out Files.Model.Window_Model;
       Settings          : in out Files.Settings.Settings_Model;
@@ -268,21 +290,7 @@ package body Files.Interaction is
             Result.Settings_Changed := True;
          end if;
 
-         --  A command that changed a setting the open pane edits: the pane
-         --  shows the new value, and its next save cannot write the old
-         --  one back.
-         if Files.Model.Settings_Pane_Is_Open (Model) then
-            declare
-               use type Files.Settings.Settings_Draft;
-               Shown     : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
-               Refreshed : constant Files.Settings.Settings_Draft :=
-                 Files.Settings.Refresh_Draft (Shown, Before, Settings);
-            begin
-               if Refreshed /= Shown then
-                  Files.Model.Set_Settings_Draft (Model, Refreshed);
-               end if;
-            end;
-         end if;
+         Refresh_Open_Pane (Model, Before, Settings);
       end;
 
       Result.Status := Outcome.Status;
@@ -438,6 +446,7 @@ package body Files.Interaction is
          then
             Result.Settings_Changed := True;
          end if;
+         Refresh_Open_Pane (Model, Before, Settings);
       end;
 
       --  A keyboard Enter on the open label picker applies the highlighted

@@ -231,6 +231,9 @@ package Files.Commands is
    procedure Set_Shortcut_Override (Id : Command_Id; Value : Shortcut);
 
    --  Clear a command's override so it reverts to its built-in default shortcut.
+   --  Its built-in secondary comes back too -- unless another command now
+   --  holds that chord, which then stays the other's: Id keeps its default
+   --  primary alone (as an override equal to it).
    --
    --  @param Id Command identifier.
    procedure Clear_Shortcut_Override (Id : Command_Id);

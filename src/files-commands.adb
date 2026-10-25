@@ -256,8 +256,19 @@ package body Files.Commands is
    end Set_Shortcut_Override;
 
    procedure Clear_Shortcut_Override (Id : Command_Id) is
+      Secondary : constant Shortcut := Traits (Id).Secondary;
    begin
       Override_Set (Id) := False;
+      if Secondary.Present then
+         for Other in Registered_Command_Id loop
+            if Other /= Id
+              and then (Shortcut_For (Other) = Secondary or else Secondary_Shortcut_For (Other) = Secondary)
+            then
+               Set_Shortcut_Override (Id, Traits (Id).Primary);
+               return;
+            end if;
+         end loop;
+      end if;
    end Clear_Shortcut_Override;
 
    procedure Reset_Shortcut_Overrides is

@@ -854,12 +854,6 @@ package Files.Model is
    procedure Go_Forward
      (Model : in out Window_Model);
 
-   --  Navigate to the home directory and update history.
-   --
-   --  @param Model Model to update.
-   procedure Go_Home
-     (Model : in out Window_Model);
-
    --  Focus the path input field.
    --
    --  @param Model Model to update.

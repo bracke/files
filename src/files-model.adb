@@ -891,14 +891,44 @@ package body Files.Model is
       Model.Forward_History.Clear;
    end Push_Back_History;
 
+   --  Leave the current view for New_Path ("" for the virtual recent view):
+   --  what belongs to a view -- its selection, edits in progress, search,
+   --  filter, scroll, folder sizes, overlays and Quick Look -- does not carry
+   --  over. History and the listing are each caller's.
+   procedure Leave_View (Model : in out Window_Model; New_Path : UString) is
+   begin
+      Clear_Folder_Size (Model);
+      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
+      Model.Search_Scope_Value := Files.Types.Filter_Here;
+      Model.Search_Results_Active := False;
+      Set_Current_Path (Model, New_Path);
+      Model.Path_Input_Value := New_Path;
+      Model.Path_Input_Cursor := Length (New_Path);
+      Model.Path_Input_Valid := True;
+      Model.Path_Input_Error := Null_Unbounded_String;
+      Model.Selected_Item_Index := 0;
+      Model.Selected_Item_Indexes.Clear;
+      Reset_Rename_State (Model);
+      Model.Temporary_Active := False;
+      Model.Temporary_Is_Directory := False;
+      Model.Temporary_Name_Value := Null_Unbounded_String;
+      Clear_Root_Selector_State (Model);
+      Model.Info_Pane_Scroll := 0;
+      Model.Main_View_Scroll := 0;
+      Model.Filter_Value := Null_Unbounded_String;
+      Model.Filter_Cursor := 0;
+      Model.Command_Palette_Open := False;
+      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
+      Model.Focus_Value := Files.Types.Focus_None;
+      Reset_Quick_Look (Model);
+   end Leave_View;
+
    procedure Navigate_To
      (Model          : in out Window_Model;
       Directory_Path : String;
       Items          : Files.File_System.Item_Vectors.Vector) is
    begin
-      Clear_Folder_Size (Model);
       Model.Revision_Value := Model.Revision_Value + 1;
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       --  Leaving the virtual recent view does not preserve it in history (its
       --  path is synthetic); an ordinary directory change pushes back history as
       --  usual.
@@ -907,43 +937,20 @@ package body Files.Model is
       end if;
 
       Model.Recent_View_Active := False;
-      Model.Search_Scope_Value := Files.Types.Filter_Here;
-      Model.Search_Results_Active := False;
-      Set_Current_Path (Model, To_Unbounded_String (Directory_Path));
+      Leave_View (Model, To_Unbounded_String (Directory_Path));
       Model.Items := Items;
       --  The model's order is the displayed order: keyboard and range
       --  selection walk it, so it must already be sorted by the model's field.
       Files.File_System.Sort_Items
         (Model.Items, Model.Sort_Field_Value, Model.Sort_Ascending);
       Model.Directory_Signature := Signature_From_Items (Directory_Path, Items);
-      Model.Selected_Item_Index := 0;
-      Model.Selected_Item_Indexes.Clear;
-      Model.Path_Input_Value := To_Unbounded_String (Directory_Path);
-      Model.Path_Input_Cursor := Directory_Path'Length;
-      Model.Path_Input_Valid := True;
-      Model.Path_Input_Error := Null_Unbounded_String;
-      Reset_Rename_State (Model);
-      Model.Temporary_Active := False;
-      Model.Temporary_Is_Directory := False;
-      Model.Temporary_Name_Value := Null_Unbounded_String;
-      Clear_Root_Selector_State (Model);
-      Model.Info_Pane_Scroll := 0;
-      Model.Main_View_Scroll := 0;
-      Model.Filter_Value := Null_Unbounded_String;
-      Model.Filter_Cursor := 0;
-      Model.Command_Palette_Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
-      Model.Focus_Value := Files.Types.Focus_None;
-      Reset_Quick_Look (Model);
    end Navigate_To;
 
    procedure Navigate_Recent
      (Model : in out Window_Model;
       Items : Files.File_System.Item_Vectors.Vector) is
    begin
-      Clear_Folder_Size (Model);
       Model.Revision_Value := Model.Revision_Value + 1;
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       --  Only the initial entry into the view records the departure point; a
       --  refresh or clear re-enters while already active and just swaps items.
       if not Model.Recent_View_Active then
@@ -951,29 +958,10 @@ package body Files.Model is
       end if;
 
       Model.Recent_View_Active := True;
-      Set_Current_Path (Model, Null_Unbounded_String);
+      Leave_View (Model, Null_Unbounded_String);
       --  Recent keeps its recency order, which is also the order drawn.
       Model.Items := Items;
       Model.Directory_Signature := Signature_From_Items ("", Items);
-      Model.Selected_Item_Index := 0;
-      Model.Selected_Item_Indexes.Clear;
-      Model.Path_Input_Value := Null_Unbounded_String;
-      Model.Path_Input_Cursor := 0;
-      Model.Path_Input_Valid := True;
-      Model.Path_Input_Error := Null_Unbounded_String;
-      Reset_Rename_State (Model);
-      Model.Temporary_Active := False;
-      Model.Temporary_Is_Directory := False;
-      Model.Temporary_Name_Value := Null_Unbounded_String;
-      Clear_Root_Selector_State (Model);
-      Model.Info_Pane_Scroll := 0;
-      Model.Main_View_Scroll := 0;
-      Model.Filter_Value := Null_Unbounded_String;
-      Model.Filter_Cursor := 0;
-      Model.Command_Palette_Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
-      Model.Focus_Value := Files.Types.Focus_None;
-      Reset_Quick_Look (Model);
    end Navigate_Recent;
 
    procedure Go_Back
@@ -985,13 +973,6 @@ package body Files.Model is
          return;
       end if;
 
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
-      --  Leave the current view as Navigate_To does: a search result list or
-      --  folder sizes from it must not carry over to the history entry.
-      Clear_Folder_Size (Model);
-      Model.Search_Scope_Value := Files.Types.Filter_Here;
-      Model.Search_Results_Active := False;
-
       Previous := Model.Back_History.Last_Element;
       Model.Back_History.Delete_Last;
       --  The synthetic recent view is never preserved in forward history.
@@ -999,25 +980,7 @@ package body Files.Model is
          Model.Forward_History.Append (Model.Current_Path_Value);
       end if;
       Model.Recent_View_Active := False;
-      Set_Current_Path (Model, Previous);
-      Model.Path_Input_Value := Previous;
-      Model.Path_Input_Cursor := Length (Previous);
-      Model.Path_Input_Valid := True;
-      Model.Path_Input_Error := Null_Unbounded_String;
-      Model.Selected_Item_Index := 0;
-      Model.Selected_Item_Indexes.Clear;
-      Reset_Rename_State (Model);
-      Model.Temporary_Active := False;
-      Model.Temporary_Is_Directory := False;
-      Model.Temporary_Name_Value := Null_Unbounded_String;
-      Clear_Root_Selector_State (Model);
-      Model.Info_Pane_Scroll := 0;
-      Model.Main_View_Scroll := 0;
-      Model.Filter_Value := Null_Unbounded_String;
-      Model.Filter_Cursor := 0;
-      Model.Command_Palette_Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
-      Model.Focus_Value := Files.Types.Focus_None;
+      Leave_View (Model, Previous);
    end Go_Back;
 
    procedure Go_Forward
@@ -1029,13 +992,6 @@ package body Files.Model is
          return;
       end if;
 
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
-      --  Leave the current view as Navigate_To does: a search result list or
-      --  folder sizes from it must not carry over to the history entry.
-      Clear_Folder_Size (Model);
-      Model.Search_Scope_Value := Files.Types.Filter_Here;
-      Model.Search_Results_Active := False;
-
       Next := Model.Forward_History.Last_Element;
       Model.Forward_History.Delete_Last;
       --  The synthetic recent view is never preserved in back history.
@@ -1046,35 +1002,8 @@ package body Files.Model is
          end loop;
       end if;
       Model.Recent_View_Active := False;
-      Set_Current_Path (Model, Next);
-      Model.Path_Input_Value := Next;
-      Model.Path_Input_Cursor := Length (Next);
-      Model.Path_Input_Valid := True;
-      Model.Path_Input_Error := Null_Unbounded_String;
-      Model.Selected_Item_Index := 0;
-      Model.Selected_Item_Indexes.Clear;
-      Reset_Rename_State (Model);
-      Model.Temporary_Active := False;
-      Model.Temporary_Is_Directory := False;
-      Model.Temporary_Name_Value := Null_Unbounded_String;
-      Clear_Root_Selector_State (Model);
-      Model.Info_Pane_Scroll := 0;
-      Model.Main_View_Scroll := 0;
-      Model.Filter_Value := Null_Unbounded_String;
-      Model.Filter_Cursor := 0;
-      Model.Command_Palette_Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
-      Model.Focus_Value := Files.Types.Focus_None;
+      Leave_View (Model, Next);
    end Go_Forward;
-
-   procedure Go_Home
-     (Model : in out Window_Model)
-   is
-      Empty_Items : Files.File_System.Item_Vectors.Vector;
-   begin
-      Model.Revision_Value := Model.Revision_Value + 1;
-      Navigate_To (Model, Home_Path (Model), Empty_Items);
-   end Go_Home;
 
    procedure Focus_Path_Input
      (Model : in out Window_Model) is separate;

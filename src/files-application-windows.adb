@@ -563,6 +563,7 @@ package body Files.Application.Windows is
          Runtime.Current_Slot := (if Runtime.Drawn_Slot = 1 then 2 else 1);
       end if;
       Runtime.Snapshots (Runtime.Current_Slot) := Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+      Runtime.Slot_Listings (Runtime.Current_Slot) := Files.Model.Listing_Revision (Runtime.Model);
       Runtime.Cached_Model_Revision := Files.Model.Revision (Runtime.Model);
       Runtime.Cached_Settings_Key := Files.Settings.Snapshot_Settings_Key_Of (Runtime.Settings);
       Runtime.Snapshot_Minute := Minute;
@@ -1106,6 +1107,33 @@ package body Files.Application.Windows is
       return Runtime.Drawn_Slot;
    end Hit_Slot;
 
+   --  The model's visible index of the item drawn at Index in Slot. The
+   --  frame on screen can be older than the listing (a watched change, a key
+   --  that navigated): an index into it then names a different item, so the
+   --  drawn item is found again by name, and a click on one that is gone
+   --  lands nowhere (0).
+   function Current_Item_Index
+     (Runtime : Runtime_Window;
+      Slot    : Snapshot_Slot;
+      Index   : Natural)
+      return Natural is
+   begin
+      if Index = 0 or else Runtime.Slot_Listings (Slot) = Files.Model.Listing_Revision (Runtime.Model) then
+         return Index;
+      end if;
+      for Drawn of Runtime.Snapshots (Slot).Items loop
+         if Drawn.Visible_Index = Index then
+            for Current in 1 .. Files.Model.Visible_Count (Runtime.Model) loop
+               if Files.Model.Visible_Item (Runtime.Model, Current).Name = Drawn.Name then
+                  return Current;
+               end if;
+            end loop;
+            return 0;
+         end if;
+      end loop;
+      return 0;
+   end Current_Item_Index;
+
    function Current_Click_Action
      (Runtime   : in out Runtime_Window;
       Window_W  : Glfw.Size;
@@ -1129,8 +1157,7 @@ package body Files.Application.Windows is
          Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
          Slot     : constant Snapshot_Slot := Hit_Slot (Runtime);
          Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Slot);
-      begin
-         return
+         Action   : Files.Events.Input_Action :=
            Files.Events.Translate_Click
              (Snapshot    => Snapshot,
               Frame       => Runtime.Cached_Frame,
@@ -1140,6 +1167,14 @@ package body Files.Application.Windows is
               Height      => Natural (Frame_H),
               Modifiers   => Modifiers,
               Line_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
+      begin
+         if Action.Kind = Files.Events.Item_Click_Input_Action then
+            Action.Item_Index := Current_Item_Index (Runtime, Slot, Action.Item_Index);
+            if Action.Item_Index = 0 then
+               return (Kind => Files.Events.No_Input_Action, others => <>);
+            end if;
+         end if;
+         return Action;
       end;
    end Current_Click_Action;
 
@@ -1464,6 +1499,7 @@ package body Files.Application.Windows is
             Last_Present_Settings_Open => False,
             Present_Grace              => 0,
             Snapshots            => <>,
+            Slot_Listings        => [others => 0],
             Current_Slot         => 1,
             Drawn_Slot           => 1,
             Snapshot_Valid       => False,

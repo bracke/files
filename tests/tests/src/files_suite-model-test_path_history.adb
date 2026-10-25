@@ -91,9 +91,8 @@ separate (Files_Suite.Model)
         (Files.Model.Current_Path (Model),
          "/tmp/files_aunit/branch",
          "forward is exhausted after branch path");
-      Files.Model.Go_Home (Model);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Current_Path (Model),
+        (Files.Model.Home_Path (Model),
          "/home/test",
-         "home navigates to model home path");
+         "the model keeps the home path it was given");
    end Test_Path_History;

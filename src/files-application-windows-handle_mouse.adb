@@ -27,7 +27,8 @@ separate (Files.Application.Windows)
          declare
             X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
             Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-            Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Hit_Slot (Runtime));
+            Slot     : constant Snapshot_Slot := Hit_Slot (Runtime);
+            Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Slot);
             Layout   : constant Files.Rendering.Layout_Metrics :=
               Files.Rendering.Calculate_Layout
                 (Snapshot, Natural (Frame_W), Natural (Frame_H),
@@ -39,7 +40,9 @@ separate (Files.Application.Windows)
               X >= Layout.Main_X and then X < Layout.Main_X + Layout.Main_Width
               and then Y >= Layout.Main_Y and then Y < Layout.Main_Y + Layout.Main_Height;
             Item_Index : constant Natural :=
-              (if In_Main then Files.Rendering.Hit.Item_At (Item_Layout, X, Y) else 0);
+              (if In_Main
+               then Current_Item_Index (Runtime, Slot, Files.Rendering.Hit.Item_At (Item_Layout, X, Y))
+               else 0);
             In_Details_Header : constant Boolean :=
               Files.Rendering.Hit.Details_Header_Cell_At
                 (Snapshot, Layout, X, Y, Cell_Height_For (Runtime.Font_Pixel_Size)).Present;

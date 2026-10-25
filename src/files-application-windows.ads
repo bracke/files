@@ -323,6 +323,7 @@ private
    --  A window keeps two view snapshots (see Runtime_Window.Snapshots).
    type Snapshot_Slot is range 1 .. 2;
    type Snapshot_Slot_Array is array (Snapshot_Slot) of Files.Rendering.View_Snapshot;
+   type Slot_Listing_Array is array (Snapshot_Slot) of Natural;
 
    type Runtime_Window is record
       Handle          : Window_Access;
@@ -441,6 +442,9 @@ private
       --  Snapshot_Valid is False until the first build and after any change
       --  the keys below do not see (a replaced model).
       Snapshots       : Snapshot_Slot_Array;
+      --  The model's listing revision each slot was built at: a click on a
+      --  drawn item whose listing has changed since is matched by name.
+      Slot_Listings   : Slot_Listing_Array := [others => 0];
       Current_Slot    : Snapshot_Slot := 1;
       Drawn_Slot      : Snapshot_Slot := 1;
       Snapshot_Valid  : Boolean := False;

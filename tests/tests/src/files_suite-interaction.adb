@@ -159,6 +159,7 @@ package body Files_Suite.Interaction is
    procedure Test_Descending_Grid_Arrows_Follow_Display (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Column_And_Group_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Command_Updates_Open_Pane (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Shortcut_Settings_Command_Updates_Open_Pane (T : in out AUnit.Test_Cases.Test_Case'Class);
    --  Gap #3 -- clickable breadcrumbs and the folder-tree sidebar.
    procedure Test_Breadcrumb_Segments_And_Elide (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Breadcrumb_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -350,6 +351,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Command_Updates_Open_Pane'Access,
          "a settings command run with the settings pane open updates the pane, so its save keeps the change");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Shortcut_Settings_Command_Updates_Open_Pane'Access,
+         "a settings command run by its shortcut with the settings pane open updates the pane too");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Breadcrumb_Segments_And_Elide'Access,
          "a path segments into (label, ancestor) pairs and a long path elides to root plus tail");
@@ -845,6 +849,8 @@ package body Files_Suite.Interaction is
    procedure Test_Column_And_Group_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Settings_Command_Updates_Open_Pane (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Shortcut_Settings_Command_Updates_Open_Pane (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Breadcrumb_Segments_And_Elide (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
