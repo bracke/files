@@ -381,6 +381,13 @@ jobs:
           FILES_TEST_PROGRESS: ${{ runner.os == 'Windows' && '1' || '' }}
         run: |
           alr --non-interactive build
+          # The runners keep UTC, where local and UTC time format alike, so a
+          # time shown in the wrong zone would pass. A half-hour offset makes
+          # the local-time tests able to fail. Windows is left on its own zone
+          # rules: an empty or POSIX TZ means something else to its runtime.
+          if [ "$RUNNER_OS" != "Windows" ]; then
+            export TZ=America/St_Johns
+          fi
           # The binary is tests.exe on Windows, and bash will not find it under
           # the Unix name.
           if [ -f ./bin/tests.exe ]; then

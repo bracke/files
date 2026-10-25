@@ -3831,13 +3831,15 @@ procedure Check_All is
          end if;
       end Require_Tests;
    begin
-      Require_Tests ("settings", 10);
-      Require_Tests ("startup", 10);
-      Require_Tests ("commands", 10);
-      Require_Tests ("model", 20);
-      Require_Tests ("interaction", 50);
-      Require_Tests ("rendering", 50);
-      Require_Tests ("operations", 150);
+      --  The floors are the counts as of the last change to a suite, so a
+      --  lost test fails here; raise a floor when a suite grows.
+      Require_Tests ("settings", 33);
+      Require_Tests ("startup", 29);
+      Require_Tests ("commands", 36);
+      Require_Tests ("model", 47);
+      Require_Tests ("interaction", 71);
+      Require_Tests ("rendering", 78);
+      Require_Tests ("operations", 231);
    end Check_Test_Subsystem_Coverage;
 
 begin
