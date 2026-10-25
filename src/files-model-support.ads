@@ -263,12 +263,6 @@ private package Files.Model.Support is
       Items          : Files.File_System.Item_Vectors.Vector)
       return Files.File_System.Directory_Signature;
 
-   --  Map the model's sort field onto the persisted settings sort-field enum.
-   --
-   --  @param Field Model sort field.
-   --  @return Equivalent Files.Settings sort field.
-   function Settings_Sort_Field (Field : Sort_Field) return Files.Settings.Sort_Field;
-
    --  Reorder the stored items to match the model's current sort field and
    --  direction. Keyboard navigation walks the stored item order, so it must be
    --  identical to the displayed order the renderer sorts with -- otherwise a

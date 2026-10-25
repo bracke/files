@@ -85,6 +85,52 @@ package Files.Commands is
    subtype Registered_Command_Id is Command_Id range
      Select_Small_Icons_Command .. Clear_Recent_Command;
 
+   --  The commands that sort the listing by one field, one per Sort_Field.
+   subtype Sort_Command_Id is Command_Id range
+     Sort_By_Name_Command .. Sort_By_Changed_Command;
+
+   --  How each command is executed. Files.Controller.Execute_Command owns the
+   --  dispatch and switches over these two subtypes and the remaining ids with
+   --  no others choice, so the compiler checks that every id is handled once.
+   --
+   --  Commands whose whole effect is window-model state, run by Execute below.
+   subtype Pure_Command_Id is Command_Id
+     with Static_Predicate =>
+       Pure_Command_Id in No_Command
+         | Select_Small_Icons_Command
+         | Select_Large_Icons_Command
+         | Select_Details_Command
+         | Toggle_Info_Pane_Command
+         | Toggle_Sort_Menu_Command
+         | Sort_Command_Id
+         | Focus_Path_Input_Command
+         | Rename_Selected_Items_Command
+         | Focus_Filter_Input_Command
+         | Open_Command_Palette_Command
+         | Clear_Filter_Command
+         | Select_All_Command
+         | Invert_Selection_Command
+         | Deselect_All_Command
+         | Copy_Path_Command
+         | Set_Color_Label_Command;
+
+   --  Commands that change the settings file: the controller applies them
+   --  only when it is given the settings path (Requires_Settings_Path).
+   subtype Settings_Command_Id is Command_Id
+     with Static_Predicate =>
+       Settings_Command_Id in Save_Settings_Command
+         | Toggle_Hidden_Files_Command
+         | Toggle_Show_Extensions_Command
+         | Toggle_Free_Space_Display_Command
+         | Toggle_Column_Modified_Command
+         | Toggle_Column_Size_Command
+         | Toggle_Column_Type_Command
+         | Toggle_Column_Created_Command
+         | Toggle_Column_Permissions_Command
+         | Cycle_Group_By_Command
+         | Toggle_Favorite_Command
+         | Clear_Recent_Command;
+
    type Command_Placement is
      (No_Placement,
       Toolbar_Left,
@@ -365,16 +411,39 @@ package Files.Commands is
       Modifiers : Guikit.Input.Modifier_Set)
       return Command_Id;
 
-   --  Execute a pure model command without filesystem access.
+   --  The command that sorts by a field. Its Name_Key is also the field's
+   --  label (the sort button, the sort menu rows).
    --
-   --  Commands that require loading directories, opening files, discovering
-   --  roots, or creating deterministic filesystem names are routed by
-   --  Files.Controller.Execute_Command instead.
+   --  @param Field Sort field.
+   --  @return The Sort_By_* command for Field.
+   function Sort_Command
+     (Field : Files.Types.Sort_Field)
+      return Sort_Command_Id;
+
+   --  The field a sort command sorts by: the inverse of Sort_Command.
    --
-   --  @param Id Command identifier.
+   --  @param Id Sort command.
+   --  @return The field Id sorts by.
+   function Sort_Field_For
+     (Id : Sort_Command_Id)
+      return Files.Types.Sort_Field;
+
+   --  The localization key of a sort field's label.
+   --
+   --  @param Field Sort field.
+   --  @return Name_Key of the field's sort command.
+   function Sort_Label_Key
+     (Field : Files.Types.Sort_Field)
+      return String;
+
+   --  Run a pure model command: one whose whole effect is window-model state.
+   --  Only Files.Controller.Execute_Command calls this, after its modal and
+   --  Is_Enabled checks; every other command is executed there.
+   --
+   --  @param Id Pure command identifier.
    --  @param Model Window model to mutate.
    procedure Execute
-     (Id    : Command_Id;
+     (Id    : Pure_Command_Id;
       Model : in out Files.Model.Window_Model);
 
 end Files.Commands;

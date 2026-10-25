@@ -17,16 +17,8 @@ begin
          return;
       elsif Key = Guikit.Input.Key_Return and then Modifiers = Guikit.Input.No_Modifiers then
          declare
-            use type Files.Model.Sort_Field;
-            Field   : constant Files.Model.Sort_Field :=
-              Files.Model.Sort_Menu_Highlight_Field (Model);
             Command : constant Files.Commands.Command_Id :=
-              (case Field is
-                  when Files.Model.Sort_Name    => Files.Commands.Sort_By_Name_Command,
-                  when Files.Model.Sort_Size    => Files.Commands.Sort_By_Size_Command,
-                  when Files.Model.Sort_Type    => Files.Commands.Sort_By_Type_Command,
-                  when Files.Model.Sort_Created => Files.Commands.Sort_By_Created_Command,
-                  when Files.Model.Sort_Changed => Files.Commands.Sort_By_Changed_Command);
+              Files.Commands.Sort_Command (Files.Model.Sort_Menu_Highlight_Field (Model));
          begin
             Files.Model.Close_Sort_Menu (Model);
             Result := Execute_Command (Command, Model, Settings, Modifiers);

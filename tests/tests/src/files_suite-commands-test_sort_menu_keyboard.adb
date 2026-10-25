@@ -34,6 +34,6 @@ separate (Files_Suite.Commands)
       Assert (not Files.Model.Sort_Menu_Is_Open (Model), "Enter closes the sort menu");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Field_Of (Model),
-         Files.Model.Sort_Size,
+         Files.Types.Sort_Size,
          "Enter applies the highlighted sort field");
    end Test_Sort_Menu_Keyboard;

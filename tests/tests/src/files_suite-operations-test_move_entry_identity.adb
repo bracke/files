@@ -53,7 +53,7 @@ separate (Files_Suite.Operations)
                   Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
                else
                   Select_Name (Model, "original");
-                  Files.Commands.Execute (Files.Commands.Rename_Selected_Items_Command, Model);
+                  Files_Suite.Support.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
                   Files.Model.Set_Rename_Text (Model, "renamed");
                   Step := Files.Operations.Commit_Rename (Model, Settings);
                end if;

@@ -84,7 +84,7 @@ separate (Files_Suite.Operations)
          "recursive name search sets the Search_Names scope");
 
       --  Clearing the filter returns to Filter_Here and drops search-results state.
-      Files.Commands.Execute (Files.Commands.Clear_Filter_Command, Model);
+      Files_Suite.Support.Run_Command (Files.Commands.Clear_Filter_Command, Model);
       Assert
         (Files.Model.Search_Scope_Of (Model) = Files.Types.Filter_Here,
          "clearing the filter returns to the Filter_Here scope");

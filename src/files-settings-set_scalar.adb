@@ -66,19 +66,14 @@ separate (Files.Settings)
          when Show_Space_Bar_Setting =>
             Parse_Boolean (Lower, Settings.Show_Space_Bar, Valid);
          when Sort_Field_Setting =>
-            if Lower = "name" then
-               Settings.Sort_Field_Value := Sort_By_Name;
-            elsif Lower = "filetype" then
-               Settings.Sort_Field_Value := Sort_By_Filetype;
-            elsif Lower = "size" then
-               Settings.Sort_Field_Value := Sort_By_Size;
-            elsif Lower = "created" then
-               Settings.Sort_Field_Value := Sort_By_Created;
-            elsif Lower = "modified" then
-               Settings.Sort_Field_Value := Sort_By_Modified;
-            else
-               Valid := False;
-            end if;
+            --  Read back exactly the tokens Sort_Field_Name writes.
+            Valid := False;
+            for Field in Files.Types.Sort_Field loop
+               if Lower = Sort_Field_Name (Field) then
+                  Settings.Sort_Field_Value := Field;
+                  Valid := True;
+               end if;
+            end loop;
          when Sort_Ascending_Setting =>
             Parse_Boolean (Lower, Settings.Sort_Ascending, Valid);
          when Theme_Setting =>

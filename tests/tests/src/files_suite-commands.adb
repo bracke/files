@@ -83,8 +83,7 @@ package body Files_Suite.Commands is
    use type Interfaces.Unsigned_8;
    use type Interfaces.C.int;
    use type Textrender.Fonts.Load_Result;
-   use type Files.Model.Sort_Field;
-   use type Files.Settings.Sort_Field;
+   use type Files.Types.Sort_Field;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
    use type Guikit.Input.Key_Code;
@@ -103,6 +102,7 @@ package body Files_Suite.Commands is
    procedure Test_Clear_Filter_And_No_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commands_Disabled_Without_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Pure_Command_Execution (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Command_Table_Complete (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Pane_Toggle_Commands (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Close_Command_Closes_Settings_Pane (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Field_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -152,6 +152,9 @@ package body Files_Suite.Commands is
          "commands without a selection or history are disabled and report why");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Pure_Command_Execution'Access, "pure command execution touches neither filesystem nor history");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Command_Table_Complete'Access,
+         "every command has a unique identifier and a name key, and pure commands run through the one path");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Pane_Toggle_Commands'Access, "the settings pane toggles, seeds a draft, and resets");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -246,6 +249,8 @@ package body Files_Suite.Commands is
    procedure Test_Commands_Disabled_Without_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Pure_Command_Execution (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Command_Table_Complete (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Settings_Pane_Toggle_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

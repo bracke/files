@@ -3916,13 +3916,13 @@ procedure Check_All is
    begin
       --  The floors are the counts as of the last change to a suite, so a
       --  lost test fails here; raise a floor when a suite grows.
-      Require_Tests ("settings", 33);
+      Require_Tests ("settings", 34);
       Require_Tests ("startup", 27);
-      Require_Tests ("commands", 36);
-      Require_Tests ("model", 47);
+      Require_Tests ("commands", 37);
+      Require_Tests ("model", 50);
       Require_Tests ("interaction", 71);
-      Require_Tests ("rendering", 78);
-      Require_Tests ("operations", 231);
+      Require_Tests ("rendering", 79);
+      Require_Tests ("operations", 238);
    end Check_Test_Subsystem_Coverage;
 
 begin

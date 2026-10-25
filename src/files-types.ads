@@ -45,6 +45,17 @@ package Files.Types is
       Large_Icons,
       Details);
 
+   --  The field items are sorted by: the one enumeration the model, the
+   --  settings file and the sort commands share. This declaration order is
+   --  the sort menu's row order. The settings file stores each field as its
+   --  own token (Files.Settings owns that mapping), never as a position.
+   type Sort_Field is
+     (Sort_Name,
+      Sort_Size,
+      Sort_Type,
+      Sort_Created,
+      Sort_Changed);
+
    --  Selectable detail-view columns. The name column is always shown and
    --  cannot be hidden; the remaining columns are individually toggleable and,
    --  when visible, laid out left to right in this declaration order.

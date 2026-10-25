@@ -68,7 +68,7 @@ separate (Files_Suite.Settings)
       Assert (Loaded.Settings.Show_Hidden_Files, "show-hidden setting loads from disk");
       Files_Suite.Support.Assert_Equal
         (Loaded.Settings.Sort_Field_Value,
-         Files.Settings.Sort_By_Modified,
+         Files.Types.Sort_Changed,
          "sort field loads from disk");
       Assert (not Loaded.Settings.Sort_Ascending, "sort direction loads from disk");
       Assert

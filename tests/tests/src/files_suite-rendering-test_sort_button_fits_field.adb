@@ -9,7 +9,7 @@ separate (Files_Suite.Rendering)
             declare
                Bar : constant Guikit.Layout.Bottom_Bar_Layout :=
                  Files.UI.Calculate_Bottom_Bar_Layout
-                   (Width, Files.Model.Sort_Name, 20);
+                   (Width, Files.Types.Sort_Name, 20);
             begin
                if Bar.Sort_Button_Width > 0
                  and then Bar.Sort_Button_X + Files.UI.Sort_Menu_Width (20) > Width
@@ -22,9 +22,9 @@ separate (Files_Suite.Rendering)
       end Find_Clipped_Width;
 
       Name_Bar : constant Guikit.Layout.Bottom_Bar_Layout :=
-        Files.UI.Calculate_Bottom_Bar_Layout (1000, Files.Model.Sort_Name, 20);
+        Files.UI.Calculate_Bottom_Bar_Layout (1000, Files.Types.Sort_Name, 20);
       Chg_Bar  : constant Guikit.Layout.Bottom_Bar_Layout :=
-        Files.UI.Calculate_Bottom_Bar_Layout (1000, Files.Model.Sort_Changed, 20);
+        Files.UI.Calculate_Bottom_Bar_Layout (1000, Files.Types.Sort_Changed, 20);
       Menu_W   : constant Natural := Files.UI.Sort_Menu_Width (20);
       Compact_W : constant Natural := Find_Clipped_Width;
    begin
@@ -50,10 +50,10 @@ separate (Files_Suite.Rendering)
             Row_Y    : constant Natural := Rows_Y + Row_H / 2;
             Bar      : constant Guikit.Layout.Bottom_Bar_Layout :=
               Files.UI.Calculate_Bottom_Bar_Layout
-                (Compact_W, Files.Model.Sort_Name, 20);
+                (Compact_W, Files.Types.Sort_Name, 20);
             Visible_W : constant Natural :=
               Files.UI.Sort_Menu_Visible_Width
-                (Compact_W, Files.Model.Sort_Name, 20);
+                (Compact_W, Files.Types.Sort_Name, 20);
          begin
             Files_Suite.Support.Assert_Equal
               (Bar.Sort_Button_X + Visible_W,
@@ -65,12 +65,12 @@ separate (Files_Suite.Rendering)
             Assert
               (Files.UI.Bottom_Bar_Sort_Menu_Command_At
                  (Compact_W, Row_Y, Compact_W, Height,
-                  Files.Model.Sort_Name, 20) = Files.Commands.No_Command,
+                  Files.Types.Sort_Name, 20) = Files.Commands.No_Command,
                "the clipped sort-menu edge cannot select a row");
             Assert
               (not Files.UI.Bottom_Bar_Sort_Menu_Contains
                  (Compact_W, Row_Y, Compact_W, Height,
-                  Files.Model.Sort_Name, 20),
+                  Files.Types.Sort_Name, 20),
                "the clipped sort-menu edge is outside the menu");
          end;
       end if;
@@ -79,16 +79,16 @@ separate (Files_Suite.Rendering)
          Short_H : constant Natural := 20;
          Bar     : constant Guikit.Layout.Bottom_Bar_Layout :=
            Files.UI.Calculate_Bottom_Bar_Layout
-             (1000, Files.Model.Sort_Name, 20);
+             (1000, Files.Types.Sort_Name, 20);
       begin
          Files_Suite.Support.Assert_Equal
-           (Files.UI.Bottom_Bar_Sort_Menu_Command_At (Bar.Sort_Button_X, 0, 1000, Short_H, Files.Model.Sort_Name, 20),
+           (Files.UI.Bottom_Bar_Sort_Menu_Command_At (Bar.Sort_Button_X, 0, 1000, Short_H, Files.Types.Sort_Name, 20),
             Files.Commands.No_Command,
             "compact sort-menu padding does not select a row");
          Assert
            (Files.UI.Bottom_Bar_Sort_Menu_Contains
               (Bar.Sort_Button_X, 0, 1000, Short_H,
-               Files.Model.Sort_Name, 20),
+               Files.Types.Sort_Name, 20),
             "visible compact sort-menu padding remains inside the clipped panel");
       end;
    end Test_Sort_Button_Fits_Field;

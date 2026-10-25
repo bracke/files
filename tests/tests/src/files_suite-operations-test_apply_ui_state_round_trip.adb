@@ -3,9 +3,9 @@ separate (Files_Suite.Operations)
       pragma Unreferenced (T);
 
       procedure Check
-        (Field        : Files.Settings.Sort_Field;
+        (Field        : Files.Types.Sort_Field;
          Ascending    : Boolean;
-         Expect_Model : Files.Model.Sort_Field;
+         Expect_Model : Files.Types.Sort_Field;
          Label        : String)
       is
          Model    : Files.Model.Window_Model := Sample_Model;
@@ -33,8 +33,8 @@ separate (Files_Suite.Operations)
       --  the default field (name) ascending: the previous toggle-based apply flipped
       --  it to descending, leaving the model out of step with the settings so a later
       --  user toggle merely undid the discrepancy and never persisted.
-      Check (Files.Settings.Sort_By_Name, True,  Files.Model.Sort_Name, "name ascending");
-      Check (Files.Settings.Sort_By_Name, False, Files.Model.Sort_Name, "name descending");
-      Check (Files.Settings.Sort_By_Size, True,  Files.Model.Sort_Size, "size ascending");
-      Check (Files.Settings.Sort_By_Size, False, Files.Model.Sort_Size, "size descending");
+      Check (Files.Types.Sort_Name, True,  Files.Types.Sort_Name, "name ascending");
+      Check (Files.Types.Sort_Name, False, Files.Types.Sort_Name, "name descending");
+      Check (Files.Types.Sort_Size, True,  Files.Types.Sort_Size, "size ascending");
+      Check (Files.Types.Sort_Size, False, Files.Types.Sort_Size, "size descending");
    end Test_Apply_Ui_State_Round_Trip;

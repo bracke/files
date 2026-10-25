@@ -101,6 +101,16 @@ package Files_Suite.Support is
    --  @param Message What the check is about.
    procedure Assert_Between (Value, Low, High : Float; Message : String);
 
+   --  Run a command the way the application does, through the one dispatch
+   --  path (Files.Controller.Execute_Command) with default settings, for a
+   --  test that checks the command's effect on the model and not its result.
+   --
+   --  @param Id Command to run.
+   --  @param Model Window model the command acts on.
+   procedure Run_Command
+     (Id    : Files.Commands.Command_Id;
+      Model : in out Files.Model.Window_Model);
+
    --  Assert_Equal for the enumerations the suite compares most.
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Operations.Operation_Status);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Commands.Command_Id);
@@ -113,9 +123,8 @@ package Files_Suite.Support is
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Account_Id);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.View_Mode);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Detail_Column);
-   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Model.Sort_Field);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Sort_Field);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Group_Mode);
-   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Settings.Sort_Field);
 
    --  A point on the monotonic clock (Ada.Real_Time): timing assertions
    --  measure with it rather than with Ada.Calendar's wall clock, which an

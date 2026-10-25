@@ -9,10 +9,14 @@ separate (Files_Suite.Commands)
       Assert
         (Files.Commands.Is_Enabled (Files.Commands.Toggle_Settings_Pane_Command, Model),
          "settings pane command is enabled in the normal model state");
-      Files.Commands.Execute (Files.Commands.Toggle_Settings_Pane_Command, Model);
+      --  Opening needs a draft seeded from the settings, so the model-only
+      --  executor cannot own this command: only the controller runs it.
+      Assert
+        (Files.Commands.Toggle_Settings_Pane_Command not in Files.Commands.Pure_Command_Id,
+         "the settings toggle is not a pure model command");
       Assert
         (not Files.Model.Settings_Pane_Is_Open (Model),
-         "pure settings command does not open unseeded settings pane");
+         "the settings pane starts closed");
       Assert
         (not Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model),
          "save settings is disabled without settings pane");
@@ -29,7 +33,8 @@ separate (Files_Suite.Commands)
         (Files.Model.Focus (Model),
          Files.Types.Focus_Settings_Input,
          "settings pane receives editable settings focus");
-      Files.Commands.Execute (Files.Commands.Toggle_Settings_Pane_Command, Model);
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Assert (not Files.Model.Settings_Pane_Is_Open (Model), "the settings toggle closes the open pane");
       Files.Model.Begin_Create_File (Model, "settings-pending.txt");
       Files.Model.Open_Command_Palette (Model);
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
@@ -46,10 +51,10 @@ separate (Files_Suite.Commands)
         (Files.Model.Focus (Model),
          Files.Types.Focus_Settings_Input,
          "settings pane opening focuses settings after clearing edit state");
-      Files.Commands.Execute (Files.Commands.Toggle_Settings_Pane_Command, Model);
+      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert
         (not Files.Model.Settings_Pane_Is_Open (Model),
-         "pure settings command can close seeded settings pane");
+         "the settings toggle closes the seeded settings pane");
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "controller reopens settings pane with editable draft");
       Assert (Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model), "save settings is enabled");

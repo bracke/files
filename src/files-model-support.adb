@@ -504,17 +504,6 @@ package body Files.Model.Support is
       return Result;
    end Signature_From_Items;
 
-   function Settings_Sort_Field (Field : Sort_Field) return Files.Settings.Sort_Field is
-   begin
-      case Field is
-         when Sort_Name    => return Files.Settings.Sort_By_Name;
-         when Sort_Size    => return Files.Settings.Sort_By_Size;
-         when Sort_Type    => return Files.Settings.Sort_By_Filetype;
-         when Sort_Created => return Files.Settings.Sort_By_Created;
-         when Sort_Changed => return Files.Settings.Sort_By_Modified;
-      end case;
-   end Settings_Sort_Field;
-
    package Label_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
       Element_Type    => Files.Types.Color_Label,
@@ -646,7 +635,7 @@ package body Files.Model.Support is
       if Field_Sort then
          Files.File_System.Sort_Items
            (Model.Items,
-            Settings_Sort_Field (Model.Sort_Field_Value),
+            Model.Sort_Field_Value,
             Model.Sort_Ascending);
       end if;
       Group_Items (Model);

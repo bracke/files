@@ -136,7 +136,7 @@ package Files.Rendering is
       In_Recent_View       : Boolean := False;
       View_Mode            : Files.Types.View_Mode := Files.Types.Small_Icons;
       Show_Extensions      : Boolean := True;
-      Sort_Field           : Files.Model.Sort_Field := Files.Model.Sort_Name;
+      Sort_Field           : Files.Types.Sort_Field := Files.Types.Sort_Name;
       Sort_Ascending       : Boolean := True;
       Sort_Menu_Open       : Boolean := False;
       Sort_Menu_Highlight  : Natural := 0;

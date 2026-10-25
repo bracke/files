@@ -262,13 +262,13 @@ separate (Files.Rendering.Build_Frame_Commands)
             Row_X     : constant Natural := Saturating_Add (Menu_X, 1);
             Row_W     : constant Natural := (if Menu_W > 2 then Menu_W - 2 else 0);
 
-            type Sort_Field_Array is array (Positive range <>) of Files.Model.Sort_Field;
+            type Sort_Field_Array is array (Positive range <>) of Files.Types.Sort_Field;
             Fields : constant Sort_Field_Array :=
-              [Files.Model.Sort_Name,
-               Files.Model.Sort_Size,
-               Files.Model.Sort_Type,
-               Files.Model.Sort_Created,
-               Files.Model.Sort_Changed];
+              [Files.Types.Sort_Name,
+               Files.Types.Sort_Size,
+               Files.Types.Sort_Type,
+               Files.Types.Sort_Created,
+               Files.Types.Sort_Changed];
          begin
             --  Keyboard and pointer routing are confined to the open menu;
             --  publish the same scope to assistive technology.
@@ -301,7 +301,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             begin
                for Row in Fields'Range loop
                   declare
-                     Field    : constant Files.Model.Sort_Field := Fields (Row);
+                     Field    : constant Files.Types.Sort_Field := Fields (Row);
                      Row_Y    : constant Natural :=
                        Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H));
                      Selected : constant Boolean := Field = Snapshot.Sort_Field;
@@ -348,7 +348,7 @@ separate (Files.Rendering.Build_Frame_Commands)
 
                for Row in Fields'Range loop
                   declare
-                     Field : constant Files.Model.Sort_Field := Fields (Row);
+                     Field : constant Files.Types.Sort_Field := Fields (Row);
                      Row_Y : constant Natural :=
                        Saturating_Add (Rows_Y, Saturating_Multiply (Natural (Row - 1), Row_H));
                      Selected : constant Boolean := Field = Snapshot.Sort_Field;

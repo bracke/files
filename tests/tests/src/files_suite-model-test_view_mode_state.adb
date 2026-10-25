@@ -8,12 +8,12 @@ separate (Files_Suite.Model)
         (Files.Model.View_Mode_Of (Model),
          Files.Types.Large_Icons,
          "large icons can be selected");
-      Files.Commands.Execute (Files.Commands.Select_Details_Command, Model);
+      Files_Suite.Support.Run_Command (Files.Commands.Select_Details_Command, Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Model),
          Files.Types.Details,
          "details command selects details");
-      Files.Commands.Execute (Files.Commands.Select_Small_Icons_Command, Model);
+      Files_Suite.Support.Run_Command (Files.Commands.Select_Small_Icons_Command, Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Model),
          Files.Types.Small_Icons,

@@ -135,10 +135,9 @@ package body Files_Suite.Operations is
    use type Interfaces.C.long_long;
    use type Hostkit.Lease_Files.Open_Outcome;
    use type Textrender.Fonts.Load_Result;
-   use type Files.Model.Sort_Field;
+   use type Files.Types.Sort_Field;
    use type Files.Model.Tree_Pick_Mode;
    use type Files.Model.Undo_Action_Kind;
-   use type Files.Settings.Sort_Field;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
    use type Files.Types.String_Vectors.Vector;

@@ -1,6 +1,6 @@
 separate (Files.Controller)
 function Apply_Settings_Command
-  (Id            : Files.Commands.Command_Id;
+  (Id            : Files.Commands.Settings_Command_Id;
    Model         : in out Files.Model.Window_Model;
    Settings      : in out Files.Settings.Settings_Model;
    Settings_Path : String)
@@ -126,7 +126,5 @@ begin
                 (Controller_Command_Executed, Id, Files.Operations.Navigate_Recent (Model, Settings));
          end if;
          return Executed;
-      when others =>
-         return Make_Result (Controller_Ignored, Id);
    end case;
 end Apply_Settings_Command;

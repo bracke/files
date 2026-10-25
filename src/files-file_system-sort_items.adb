@@ -1,7 +1,7 @@
 separate (Files.File_System)
 procedure Sort_Items
   (Items     : in out Item_Vectors.Vector;
-   Field     : Files.Settings.Sort_Field;
+   Field     : Files.Types.Sort_Field;
    Ascending : Boolean)
 is
    Count : constant Natural := Natural (Items.Length);
@@ -54,27 +54,27 @@ begin
          Reverse_Order : Boolean := False;
       begin
          case Field is
-            when Files.Settings.Sort_By_Name =>
+            when Files.Types.Sort_Name =>
                Forward_Order := Name_Less (Left => Left, Right => Right);
                Reverse_Order := Name_Less (Left => Right, Right => Left);
-            when Files.Settings.Sort_By_Filetype =>
+            when Files.Types.Sort_Type =>
                Forward_Order := Text_Less (Left => Left, Right => Right);
                Reverse_Order := Text_Less (Left => Right, Right => Left);
-            when Files.Settings.Sort_By_Size =>
+            when Files.Types.Sort_Size =>
                if Items (Left).Size_Available /= Items (Right).Size_Available then
                   return Items (Left).Size_Available;
                elsif Items (Left).Size /= Items (Right).Size then
                   Forward_Order := Items (Left).Size < Items (Right).Size;
                   Reverse_Order := Items (Right).Size < Items (Left).Size;
                end if;
-            when Files.Settings.Sort_By_Created =>
+            when Files.Types.Sort_Created =>
                if Items (Left).Creation_Available /= Items (Right).Creation_Available then
                   return Items (Left).Creation_Available;
                elsif Items (Left).Creation_Time /= Items (Right).Creation_Time then
                   Forward_Order := Items (Left).Creation_Time < Items (Right).Creation_Time;
                   Reverse_Order := Items (Right).Creation_Time < Items (Left).Creation_Time;
                end if;
-            when Files.Settings.Sort_By_Modified =>
+            when Files.Types.Sort_Changed =>
                if Items (Left).Modified_Available /= Items (Right).Modified_Available then
                   return Items (Left).Modified_Available;
                elsif Items (Left).Modified_Time /= Items (Right).Modified_Time then
@@ -83,7 +83,7 @@ begin
                end if;
          end case;
 
-         if Field /= Files.Settings.Sort_By_Name
+         if Field /= Files.Types.Sort_Name
            and then not Forward_Order
            and then not Reverse_Order
          then
@@ -107,7 +107,7 @@ begin
          begin
             Key.Name_Lower :=
               To_Unbounded_String (Files.Types.Fold_For_Sort (To_String (Items (Index).Name)));
-            if Field = Files.Settings.Sort_By_Filetype then
+            if Field = Files.Types.Sort_Type then
                Key.Filetype_Lower :=
                  To_Unbounded_String
                    (Files.Types.Fold_For_Sort (To_String (Items (Index).Filetype)));

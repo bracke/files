@@ -6,11 +6,11 @@ separate (Files_Suite.Commands)
       Result   : Files.Controller.Controller_Result;
    begin
       Assert (not Files.Commands.Is_Enabled (Files.Commands.Navigate_Back_Command, Model), "back disabled initially");
-      Files.Commands.Execute (Files.Commands.Navigate_Back_Command, Model);
+      Files_Suite.Support.Run_Command (Files.Commands.Navigate_Back_Command, Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
          Root,
-         "direct disabled back command does not change path");
+         "a disabled back command does not change path");
       Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

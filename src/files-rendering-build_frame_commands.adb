@@ -758,40 +758,12 @@ separate (Files.Rendering)
       end Bottom_Command_Label;
 
       function Sort_Field_Label
-        (Field : Files.Model.Sort_Field)
-         return String is
-      begin
-         case Field is
-            when Files.Model.Sort_Name =>
-               return Files.Localization.Text ("command.sort.name");
-            when Files.Model.Sort_Size =>
-               return Files.Localization.Text ("command.sort.size");
-            when Files.Model.Sort_Type =>
-               return Files.Localization.Text ("command.sort.type");
-            when Files.Model.Sort_Created =>
-               return Files.Localization.Text ("command.sort.created");
-            when Files.Model.Sort_Changed =>
-               return Files.Localization.Text ("command.sort.changed");
-         end case;
-      end Sort_Field_Label;
+        (Field : Files.Types.Sort_Field)
+         return String is (Files.Localization.Text (Files.Commands.Sort_Label_Key (Field)));
 
       function Sort_Field_Command
-        (Field : Files.Model.Sort_Field)
-         return Files.Commands.Registered_Command_Id is
-      begin
-         case Field is
-            when Files.Model.Sort_Name =>
-               return Files.Commands.Sort_By_Name_Command;
-            when Files.Model.Sort_Size =>
-               return Files.Commands.Sort_By_Size_Command;
-            when Files.Model.Sort_Type =>
-               return Files.Commands.Sort_By_Type_Command;
-            when Files.Model.Sort_Created =>
-               return Files.Commands.Sort_By_Created_Command;
-            when Files.Model.Sort_Changed =>
-               return Files.Commands.Sort_By_Changed_Command;
-         end case;
-      end Sort_Field_Command;
+        (Field : Files.Types.Sort_Field)
+         return Files.Commands.Registered_Command_Id is (Files.Commands.Sort_Command (Field));
 
       function Direction_Text return String is
       begin

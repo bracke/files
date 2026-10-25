@@ -1005,18 +1005,20 @@ package body Files.Settings is
       end case;
    end View_Mode_Name;
 
-   function Sort_Field_Name (Field : Sort_Field) return String is
+   --  The settings file's token for each sort field: the persisted format, and
+   --  the one place it is spelled. Set_Scalar reads a value back through it.
+   function Sort_Field_Name (Field : Files.Types.Sort_Field) return String is
    begin
       case Field is
-         when Sort_By_Name =>
+         when Files.Types.Sort_Name =>
             return "name";
-         when Sort_By_Filetype =>
+         when Files.Types.Sort_Type =>
             return "filetype";
-         when Sort_By_Size =>
+         when Files.Types.Sort_Size =>
             return "size";
-         when Sort_By_Created =>
+         when Files.Types.Sort_Created =>
             return "created";
-         when Sort_By_Modified =>
+         when Files.Types.Sort_Changed =>
             return "modified";
       end case;
    end Sort_Field_Name;

@@ -9,418 +9,241 @@ package body Files.Commands is
    use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;
 
-   function Control_Modifier return Guikit.Input.Modifier_Set is
-      Result : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-   begin
-      Result (Guikit.Input.Control_Key) := True;
-      return Result;
-   end Control_Modifier;
+   package GI renames Guikit.Input;
 
-   function Alt_Modifier return Guikit.Input.Modifier_Set is
-      Result : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-   begin
-      Result (Guikit.Input.Alt_Key) := True;
-      return Result;
-   end Alt_Modifier;
+   None       : GI.Modifier_Set renames GI.No_Modifiers;
+   Ctrl       : constant GI.Modifier_Set := [GI.Control_Key => True, others => False];
+   Alt        : constant GI.Modifier_Set := [GI.Alt_Key => True, others => False];
+   Shift      : constant GI.Modifier_Set := [GI.Shift_Key => True, others => False];
+   Ctrl_Shift : constant GI.Modifier_Set := [GI.Control_Key | GI.Shift_Key => True, others => False];
 
-   function Control_Shift_Modifier return Guikit.Input.Modifier_Set is
-      Result : Guikit.Input.Modifier_Set := Control_Modifier;
-   begin
-      Result (Guikit.Input.Shift_Key) := True;
-      return Result;
-   end Control_Shift_Modifier;
+   function "+" (Text : String) return Unbounded_String renames To_Unbounded_String;
 
-   function Allowed_With_Root_Selector (Id : Command_Id) return Boolean is
-   begin
-      case Id is
-         when Select_Drive_Command
-            | Open_Selected_Root_Command
-            | Eject_Selected_Root_Command
-            | Open_Command_Palette_Command
-            | Close_Command_Palette_Command =>
-            return True;
-         when others =>
-            return False;
-      end case;
-   end Allowed_With_Root_Selector;
+   --  Everything about a command that is a per-command constant, in one row
+   --  per command. The functions below read this table instead of keeping
+   --  their own case statements over Command_Id.
+   type Command_Traits is record
+      --  Stable identifier: the palette search token and the [shortcuts] key.
+      Identifier         : Unbounded_String;
+      --  Localization key of the display name, set only where it is not the
+      --  default (Name_Key_Prefix & Identifier): a few older keys predate it.
+      Name_Key           : Unbounded_String;
+      Placement          : Command_Placement := Command_Palette_Only;
+      --  Built-in primary shortcut (user overrides replace it at run time),
+      --  and a fixed alternative accelerator.
+      Primary            : Shortcut;
+      Secondary          : Shortcut;
+      --  May run while the root selector / the settings pane is open.
+      With_Root_Selector : Boolean := False;
+      With_Settings_Pane : Boolean := False;
+      --  Its shortcut may run while a text field owns the keyboard.
+      With_Text_Focus    : Boolean := False;
+      --  Changes view, sort or info-pane state that is mirrored into settings.
+      Persists_UI_State  : Boolean := False;
+      --  Reorders the listing, so the model's item order must be re-listed.
+      Reloads_Listing    : Boolean := False;
+   end record;
 
-   function Allowed_With_Settings_Pane (Id : Command_Id) return Boolean is
-   begin
-      case Id is
-         when Toggle_Settings_Pane_Command
-            | Save_Settings_Command
-            | Reset_Settings_Command
-            | Toggle_Hidden_Files_Command
-            | Toggle_Show_Extensions_Command
-            | Toggle_Free_Space_Display_Command
-            | Open_Command_Palette_Command
-            | Close_Command_Palette_Command
-            | Toggle_Column_Modified_Command
-            | Toggle_Column_Size_Command
-            | Toggle_Column_Type_Command
-            | Toggle_Column_Created_Command
-            | Toggle_Column_Permissions_Command
-            | Cycle_Group_By_Command
-            | Toggle_Favorite_Command
-            | Clear_Recent_Command =>
-            return True;
-         when others =>
-            return False;
-      end case;
-   end Allowed_With_Settings_Pane;
+   Traits : constant array (Command_Id) of Command_Traits :=
+     [No_Command =>
+        (Identifier => +"", Placement => No_Placement, others => <>),
+      Select_Small_Icons_Command =>
+        (Identifier => +"view.small", Placement => Bottom_Bar, Primary => (True, GI.Key_1, Ctrl),
+         With_Text_Focus | Persists_UI_State => True, others => <>),
+      Select_Large_Icons_Command =>
+        (Identifier => +"view.large", Placement => Bottom_Bar, Primary => (True, GI.Key_2, Ctrl),
+         With_Text_Focus | Persists_UI_State => True, others => <>),
+      Select_Details_Command =>
+        (Identifier => +"view.details", Placement => Bottom_Bar, Primary => (True, GI.Key_3, Ctrl),
+         With_Text_Focus | Persists_UI_State => True, others => <>),
+      Toggle_Info_Pane_Command =>
+        (Identifier => +"info.toggle", Placement => Bottom_Bar, Primary => (True, GI.Key_4, Ctrl),
+         With_Text_Focus | Persists_UI_State => True, others => <>),
+      Toggle_Hidden_Files_Command =>
+        (Identifier => +"view.toggle_hidden", With_Settings_Pane | With_Text_Focus => True, others => <>),
+      Toggle_Show_Extensions_Command =>
+        (Identifier => +"view.toggle_extensions", With_Settings_Pane | With_Text_Focus => True, others => <>),
+      Toggle_Free_Space_Display_Command =>
+        (Identifier => +"status.free_space_toggle", With_Settings_Pane | With_Text_Focus => True, others => <>),
+      Toggle_Settings_Pane_Command =>
+        (Identifier => +"settings.toggle", Primary => (True, GI.Key_Comma, Ctrl),
+         With_Settings_Pane | With_Text_Focus => True, others => <>),
+      Toggle_Sort_Menu_Command =>
+        (Identifier => +"sort.menu.toggle", Name_Key => +"command.sort.menu", Placement => Bottom_Bar, others => <>),
+      Sort_By_Name_Command =>
+        (Identifier => +"sort.name", Persists_UI_State | Reloads_Listing => True, others => <>),
+      Sort_By_Size_Command =>
+        (Identifier => +"sort.size", Persists_UI_State | Reloads_Listing => True, others => <>),
+      Sort_By_Type_Command =>
+        (Identifier => +"sort.type", Persists_UI_State | Reloads_Listing => True, others => <>),
+      Sort_By_Created_Command =>
+        (Identifier => +"sort.created", Persists_UI_State | Reloads_Listing => True, others => <>),
+      Sort_By_Changed_Command =>
+        (Identifier => +"sort.changed", Persists_UI_State | Reloads_Listing => True, others => <>),
+      Focus_Path_Input_Command =>
+        (Identifier => +"path.focus", Placement => Toolbar_Middle, Primary => (True, GI.Key_L, Ctrl),
+         With_Text_Focus => True, others => <>),
+      Navigate_Home_Command =>
+        (Identifier => +"navigate.home", Placement => Toolbar_Left, Primary => (True, GI.Key_Home, Alt),
+         With_Text_Focus => True, others => <>),
+      Navigate_Back_Command =>
+        (Identifier => +"navigate.back", Placement => Toolbar_Left, Primary => (True, GI.Key_Left, Alt),
+         With_Text_Focus => True, others => <>),
+      Navigate_Forward_Command =>
+        (Identifier => +"navigate.forward", Placement => Toolbar_Left, Primary => (True, GI.Key_Right, Alt),
+         With_Text_Focus => True, others => <>),
+      Navigate_Parent_Command =>
+        (Identifier => +"navigate.parent", Placement => Toolbar_Left, Primary => (True, GI.Key_Up, Alt),
+         With_Text_Focus => True, others => <>),
+      Create_File_Command =>
+        (Identifier => +"file.create", Placement => Toolbar_Left, Primary => (True, GI.Key_N, Ctrl), others => <>),
+      New_Folder_Command =>
+        (Identifier => +"file.new_folder", Placement => Toolbar_Left, Primary => (True, GI.Key_N, Ctrl_Shift),
+         others => <>),
+      Delete_Selected_Items_Command =>
+        (Identifier => +"file.delete_selected", Name_Key => +"command.file.delete", Placement => Toolbar_Left,
+         Primary => (True, GI.Key_Delete, None), Secondary => (True, GI.Key_Backspace, None), others => <>),
+      Delete_Selected_Permanently_Command =>
+        (Identifier => +"file.delete_permanently", Primary => (True, GI.Key_Delete, Shift), others => <>),
+      Rename_Selected_Items_Command =>
+        (Identifier => +"file.rename", Primary => (True, GI.Key_F2, None), others => <>),
+      Copy_Selected_Items_Command =>
+        (Identifier => +"file.copy", Primary => (True, GI.Key_C, Ctrl), others => <>),
+      Cut_Selected_Items_Command =>
+        (Identifier => +"file.cut", Primary => (True, GI.Key_X, Ctrl), others => <>),
+      Duplicate_Selected_Command =>
+        (Identifier => +"file.duplicate", others => <>),
+      Paste_Items_Command =>
+        (Identifier => +"file.paste", Primary => (True, GI.Key_V, Ctrl), others => <>),
+      Open_Selected_Items_Command =>
+        (Identifier => +"file.open_selected", Name_Key => +"command.file.open",
+         Primary => (True, GI.Key_Return, None), others => <>),
+      Open_With_Command =>
+        (Identifier => +"file.open_with", others => <>),
+      Compress_Zip_Command =>
+        (Identifier => +"file.compress_zip", others => <>),
+      Compress_7z_Command =>
+        (Identifier => +"file.compress_7z", others => <>),
+      Extract_Archive_Command =>
+        (Identifier => +"file.extract", others => <>),
+      Generate_Thumbnails_Command =>
+        (Identifier => +"file.generate_thumbnails", others => <>),
+      Focus_Filter_Input_Command =>
+        (Identifier => +"filter.focus", Placement => Toolbar_Right, Primary => (True, GI.Key_F, Ctrl),
+         With_Text_Focus => True, others => <>),
+      Open_Command_Palette_Command =>
+        (Identifier => +"palette.open", Primary => (True, GI.Key_P, Ctrl),
+         With_Root_Selector | With_Settings_Pane | With_Text_Focus => True, others => <>),
+      Close_Command_Palette_Command =>
+        (Identifier => +"palette.close", Primary => (True, GI.Key_Escape, None),
+         With_Root_Selector | With_Settings_Pane | With_Text_Focus => True, others => <>),
+      Select_Drive_Command =>
+        (Identifier => +"drive.select", Placement => Toolbar_Left, Primary => (True, GI.Key_D, Ctrl),
+         With_Root_Selector => True, others => <>),
+      Open_Selected_Root_Command =>
+        (Identifier => +"drive.open_selected", With_Root_Selector => True, others => <>),
+      Eject_Selected_Root_Command =>
+        (Identifier => +"drive.eject_selected", With_Root_Selector => True, others => <>),
+      Clear_Filter_Command =>
+        (Identifier => +"filter.clear", Placement => Toolbar_Right, Primary => (True, GI.Key_F, Ctrl_Shift),
+         With_Text_Focus => True, others => <>),
+      Select_All_Command =>
+        (Identifier => +"selection.select_all", Primary => (True, GI.Key_A, Ctrl), others => <>),
+      Invert_Selection_Command =>
+        (Identifier => +"selection.invert", Primary => (True, GI.Key_I, Ctrl), others => <>),
+      Deselect_All_Command =>
+        (Identifier => +"selection.deselect_all", Primary => (True, GI.Key_A, Ctrl_Shift), others => <>),
+      Search_Recursive_Command =>
+        (Identifier => +"directory.search_recursive", Primary => (True, GI.Key_S, Ctrl_Shift),
+         With_Text_Focus => True, others => <>),
+      Search_Contents_Command =>
+        (Identifier => +"search.contents", With_Text_Focus => True, others => <>),
+      Refresh_Directory_Command =>
+        (Identifier => +"directory.refresh", Primary => (True, GI.Key_R, Ctrl),
+         Secondary => (True, GI.Key_F5, None), With_Text_Focus => True, others => <>),
+      Save_Settings_Command =>
+        (Identifier => +"settings.save", Primary => (True, GI.Key_S, Ctrl),
+         With_Settings_Pane | With_Text_Focus => True, others => <>),
+      Reset_Settings_Command =>
+        (Identifier => +"settings.reset", With_Settings_Pane => True, others => <>),
+      Toggle_Favorite_Command =>
+        (Identifier => +"favorite.toggle", Primary => (True, GI.Key_B, Ctrl), With_Settings_Pane => True,
+         others => <>),
+      Navigate_Trash_Command =>
+        (Identifier => +"trash.open", others => <>),
+      Restore_From_Trash_Command =>
+        (Identifier => +"trash.restore", others => <>),
+      Empty_Trash_Command =>
+        (Identifier => +"trash.empty", others => <>),
+      Open_Terminal_Command =>
+        (Identifier => +"terminal.open", others => <>),
+      Create_Symlink_Command =>
+        (Identifier => +"link.symbolic", others => <>),
+      Create_Hardlink_Command =>
+        (Identifier => +"link.hard", others => <>),
+      Undo_Command =>
+        (Identifier => +"edit.undo", Primary => (True, GI.Key_Z, Ctrl), others => <>),
+      Redo_Command =>
+        (Identifier => +"edit.redo", Primary => (True, GI.Key_Z, Ctrl_Shift), Secondary => (True, GI.Key_Y, Ctrl),
+         others => <>),
+      Toggle_Column_Modified_Command =>
+        (Identifier => +"columns.toggle_modified", With_Settings_Pane => True, others => <>),
+      Toggle_Column_Size_Command =>
+        (Identifier => +"columns.toggle_size", With_Settings_Pane => True, others => <>),
+      Toggle_Column_Type_Command =>
+        (Identifier => +"columns.toggle_type", With_Settings_Pane => True, others => <>),
+      Toggle_Column_Created_Command =>
+        (Identifier => +"columns.toggle_created", With_Settings_Pane => True, others => <>),
+      Toggle_Column_Permissions_Command =>
+        (Identifier => +"columns.toggle_permissions", With_Settings_Pane => True, others => <>),
+      Cycle_Group_By_Command =>
+        (Identifier => +"columns.cycle_group_by", With_Settings_Pane => True, others => <>),
+      Toggle_Folder_Tree_Command =>
+        (Identifier => +"tree.toggle", With_Text_Focus => True, others => <>),
+      Copy_To_Command =>
+        (Identifier => +"file.copy_to", Name_Key => +"command.copy_to", others => <>),
+      Move_To_Command =>
+        (Identifier => +"file.move_to", Name_Key => +"command.move_to", others => <>),
+      Copy_Path_Command =>
+        (Identifier => +"edit.copy_path", Primary => (True, GI.Key_C, Ctrl_Shift), others => <>),
+      Open_Containing_Folder_Command =>
+        (Identifier => +"navigate.containing", others => <>),
+      Toggle_Quick_Look_Command =>
+        (Identifier => +"view.quick_look", Primary => (True, GI.Key_Space, None), others => <>),
+      Set_Color_Label_Command =>
+        (Identifier => +"label.set", others => <>),
+      Navigate_Recent_Command =>
+        (Identifier => +"navigate.recent", others => <>),
+      Clear_Recent_Command =>
+        (Identifier => +"recent.clear", With_Settings_Pane => True, others => <>)];
 
-   function Allowed_With_Text_Focus (Id : Command_Id) return Boolean is
-   begin
-      case Id is
-         when Select_Small_Icons_Command
-            | Select_Large_Icons_Command
-            | Select_Details_Command
-            | Toggle_Info_Pane_Command
-            | Toggle_Hidden_Files_Command
-            | Toggle_Show_Extensions_Command
-            | Toggle_Free_Space_Display_Command
-            | Toggle_Settings_Pane_Command
-            | Toggle_Folder_Tree_Command
-            | Focus_Path_Input_Command
-            | Focus_Filter_Input_Command
-            | Open_Command_Palette_Command
-            | Close_Command_Palette_Command
-            | Clear_Filter_Command
-            | Search_Recursive_Command
-            | Search_Contents_Command
-            | Refresh_Directory_Command
-            | Save_Settings_Command
-            | Navigate_Home_Command
-            | Navigate_Back_Command
-            | Navigate_Forward_Command
-            | Navigate_Parent_Command =>
-            return True;
-         when others =>
-            return False;
-      end case;
-   end Allowed_With_Text_Focus;
+   --  Name_Key's default prefix. Spelled in two parts because check_all reads
+   --  every literal in this file that starts with the prefix as a catalog key.
+   Name_Key_Prefix : constant String := "command" & '.';
+
+   function Allowed_With_Root_Selector (Id : Command_Id) return Boolean is (Traits (Id).With_Root_Selector);
+
+   function Allowed_With_Settings_Pane (Id : Command_Id) return Boolean is (Traits (Id).With_Settings_Pane);
+
+   function Allowed_With_Text_Focus (Id : Command_Id) return Boolean is (Traits (Id).With_Text_Focus);
 
    function Identifier
      (Id : Command_Id)
-      return String is
-   begin
-      case Id is
-         when No_Command =>
-            return "";
-         when Select_Small_Icons_Command =>
-            return "view.small";
-         when Select_Large_Icons_Command =>
-            return "view.large";
-         when Select_Details_Command =>
-            return "view.details";
-         when Toggle_Info_Pane_Command =>
-            return "info.toggle";
-         when Toggle_Hidden_Files_Command =>
-            return "view.toggle_hidden";
-         when Toggle_Show_Extensions_Command =>
-            return "view.toggle_extensions";
-         when Toggle_Free_Space_Display_Command =>
-            return "status.free_space_toggle";
-         when Toggle_Settings_Pane_Command =>
-            return "settings.toggle";
-         when Toggle_Sort_Menu_Command =>
-            return "sort.menu.toggle";
-         when Sort_By_Name_Command =>
-            return "sort.name";
-         when Sort_By_Size_Command =>
-            return "sort.size";
-         when Sort_By_Type_Command =>
-            return "sort.type";
-         when Sort_By_Created_Command =>
-            return "sort.created";
-         when Sort_By_Changed_Command =>
-            return "sort.changed";
-         when Focus_Path_Input_Command =>
-            return "path.focus";
-         when Navigate_Home_Command =>
-            return "navigate.home";
-         when Navigate_Back_Command =>
-            return "navigate.back";
-         when Navigate_Forward_Command =>
-            return "navigate.forward";
-         when Navigate_Parent_Command =>
-            return "navigate.parent";
-         when Create_File_Command =>
-            return "file.create";
-         when New_Folder_Command =>
-            return "file.new_folder";
-         when Delete_Selected_Items_Command =>
-            return "file.delete_selected";
-         when Delete_Selected_Permanently_Command =>
-            return "file.delete_permanently";
-         when Rename_Selected_Items_Command =>
-            return "file.rename";
-         when Copy_Selected_Items_Command =>
-            return "file.copy";
-         when Cut_Selected_Items_Command =>
-            return "file.cut";
-         when Duplicate_Selected_Command =>
-            return "file.duplicate";
-         when Paste_Items_Command =>
-            return "file.paste";
-         when Open_Selected_Items_Command =>
-            return "file.open_selected";
-         when Open_With_Command =>
-            return "file.open_with";
-         when Compress_Zip_Command =>
-            return "file.compress_zip";
-         when Compress_7z_Command =>
-            return "file.compress_7z";
-         when Extract_Archive_Command =>
-            return "file.extract";
-         when Generate_Thumbnails_Command =>
-            return "file.generate_thumbnails";
-         when Focus_Filter_Input_Command =>
-            return "filter.focus";
-         when Open_Command_Palette_Command =>
-            return "palette.open";
-         when Close_Command_Palette_Command =>
-            return "palette.close";
-         when Select_Drive_Command =>
-            return "drive.select";
-         when Open_Selected_Root_Command =>
-            return "drive.open_selected";
-         when Eject_Selected_Root_Command =>
-            return "drive.eject_selected";
-         when Clear_Filter_Command =>
-            return "filter.clear";
-         when Select_All_Command =>
-            return "selection.select_all";
-         when Invert_Selection_Command =>
-            return "selection.invert";
-         when Deselect_All_Command =>
-            return "selection.deselect_all";
-         when Search_Recursive_Command =>
-            return "directory.search_recursive";
-         when Search_Contents_Command =>
-            return "search.contents";
-         when Refresh_Directory_Command =>
-            return "directory.refresh";
-         when Save_Settings_Command =>
-            return "settings.save";
-         when Reset_Settings_Command =>
-            return "settings.reset";
-         when Toggle_Favorite_Command =>
-            return "favorite.toggle";
-         when Navigate_Trash_Command =>
-            return "trash.open";
-         when Restore_From_Trash_Command =>
-            return "trash.restore";
-         when Empty_Trash_Command =>
-            return "trash.empty";
-         when Open_Terminal_Command =>
-            return "terminal.open";
-         when Create_Symlink_Command =>
-            return "link.symbolic";
-         when Create_Hardlink_Command =>
-            return "link.hard";
-         when Undo_Command =>
-            return "edit.undo";
-         when Redo_Command =>
-            return "edit.redo";
-         when Toggle_Column_Modified_Command =>
-            return "columns.toggle_modified";
-         when Toggle_Column_Size_Command =>
-            return "columns.toggle_size";
-         when Toggle_Column_Type_Command =>
-            return "columns.toggle_type";
-         when Toggle_Column_Created_Command =>
-            return "columns.toggle_created";
-         when Toggle_Column_Permissions_Command =>
-            return "columns.toggle_permissions";
-         when Cycle_Group_By_Command =>
-            return "columns.cycle_group_by";
-         when Toggle_Folder_Tree_Command =>
-            return "tree.toggle";
-         when Copy_To_Command =>
-            return "file.copy_to";
-         when Move_To_Command =>
-            return "file.move_to";
-         when Copy_Path_Command =>
-            return "edit.copy_path";
-         when Open_Containing_Folder_Command =>
-            return "navigate.containing";
-         when Toggle_Quick_Look_Command =>
-            return "view.quick_look";
-         when Set_Color_Label_Command =>
-            return "label.set";
-         when Navigate_Recent_Command =>
-            return "navigate.recent";
-         when Clear_Recent_Command =>
-            return "recent.clear";
-      end case;
-   end Identifier;
+      return String is (To_String (Traits (Id).Identifier));
 
    function Name_Key
      (Id : Command_Id)
       return String is
-   begin
-      case Id is
-         when No_Command =>
-            return "";
-         when Select_Small_Icons_Command =>
-            return "command.view.small";
-         when Select_Large_Icons_Command =>
-            return "command.view.large";
-         when Select_Details_Command =>
-            return "command.view.details";
-         when Toggle_Info_Pane_Command =>
-            return "command.info.toggle";
-         when Toggle_Hidden_Files_Command =>
-            return "command.view.toggle_hidden";
-         when Toggle_Show_Extensions_Command =>
-            return "command.view.toggle_extensions";
-         when Toggle_Free_Space_Display_Command =>
-            return "command.status.free_space_toggle";
-         when Toggle_Settings_Pane_Command =>
-            return "command.settings.toggle";
-         when Toggle_Sort_Menu_Command =>
-            return "command.sort.menu";
-         when Sort_By_Name_Command =>
-            return "command.sort.name";
-         when Sort_By_Size_Command =>
-            return "command.sort.size";
-         when Sort_By_Type_Command =>
-            return "command.sort.type";
-         when Sort_By_Created_Command =>
-            return "command.sort.created";
-         when Sort_By_Changed_Command =>
-            return "command.sort.changed";
-         when Focus_Path_Input_Command =>
-            return "command.path.focus";
-         when Navigate_Home_Command =>
-            return "command.navigate.home";
-         when Navigate_Back_Command =>
-            return "command.navigate.back";
-         when Navigate_Forward_Command =>
-            return "command.navigate.forward";
-         when Navigate_Parent_Command =>
-            return "command.navigate.parent";
-         when Create_File_Command =>
-            return "command.file.create";
-         when New_Folder_Command =>
-            return "command.file.new_folder";
-         when Delete_Selected_Items_Command =>
-            return "command.file.delete";
-         when Delete_Selected_Permanently_Command =>
-            return "command.file.delete_permanently";
-         when Rename_Selected_Items_Command =>
-            return "command.file.rename";
-         when Copy_Selected_Items_Command =>
-            return "command.file.copy";
-         when Cut_Selected_Items_Command =>
-            return "command.file.cut";
-         when Duplicate_Selected_Command =>
-            return "command.file.duplicate";
-         when Paste_Items_Command =>
-            return "command.file.paste";
-         when Open_Selected_Items_Command =>
-            return "command.file.open";
-         when Open_With_Command =>
-            return "command.file.open_with";
-         when Compress_Zip_Command =>
-            return "command.file.compress_zip";
-         when Compress_7z_Command =>
-            return "command.file.compress_7z";
-         when Extract_Archive_Command =>
-            return "command.file.extract";
-         when Generate_Thumbnails_Command =>
-            return "command.file.generate_thumbnails";
-         when Focus_Filter_Input_Command =>
-            return "command.filter.focus";
-         when Open_Command_Palette_Command =>
-            return "command.palette.open";
-         when Close_Command_Palette_Command =>
-            return "command.palette.close";
-         when Select_Drive_Command =>
-            return "command.drive.select";
-         when Open_Selected_Root_Command =>
-            return "command.drive.open_selected";
-         when Eject_Selected_Root_Command =>
-            return "command.drive.eject_selected";
-         when Clear_Filter_Command =>
-            return "command.filter.clear";
-         when Select_All_Command =>
-            return "command.selection.select_all";
-         when Invert_Selection_Command =>
-            return "command.selection.invert";
-         when Deselect_All_Command =>
-            return "command.selection.deselect_all";
-         when Search_Recursive_Command =>
-            return "command.directory.search_recursive";
-         when Search_Contents_Command =>
-            return "command.search.contents";
-         when Refresh_Directory_Command =>
-            return "command.directory.refresh";
-         when Save_Settings_Command =>
-            return "command.settings.save";
-         when Reset_Settings_Command =>
-            return "command.settings.reset";
-         when Toggle_Favorite_Command =>
-            return "command.favorite.toggle";
-         when Navigate_Trash_Command =>
-            return "command.trash.open";
-         when Restore_From_Trash_Command =>
-            return "command.trash.restore";
-         when Empty_Trash_Command =>
-            return "command.trash.empty";
-         when Open_Terminal_Command =>
-            return "command.terminal.open";
-         when Create_Symlink_Command =>
-            return "command.link.symbolic";
-         when Create_Hardlink_Command =>
-            return "command.link.hard";
-         when Undo_Command =>
-            return "command.edit.undo";
-         when Redo_Command =>
-            return "command.edit.redo";
-         when Toggle_Column_Modified_Command =>
-            return "command.columns.toggle_modified";
-         when Toggle_Column_Size_Command =>
-            return "command.columns.toggle_size";
-         when Toggle_Column_Type_Command =>
-            return "command.columns.toggle_type";
-         when Toggle_Column_Created_Command =>
-            return "command.columns.toggle_created";
-         when Toggle_Column_Permissions_Command =>
-            return "command.columns.toggle_permissions";
-         when Cycle_Group_By_Command =>
-            return "command.columns.cycle_group_by";
-         when Toggle_Folder_Tree_Command =>
-            return "command.tree.toggle";
-         when Copy_To_Command =>
-            return "command.copy_to";
-         when Move_To_Command =>
-            return "command.move_to";
-         when Copy_Path_Command =>
-            return "command.edit.copy_path";
-         when Open_Containing_Folder_Command =>
-            return "command.navigate.containing";
-         when Toggle_Quick_Look_Command =>
-            return "command.view.quick_look";
-         when Set_Color_Label_Command =>
-            return "command.label.set";
-         when Navigate_Recent_Command =>
-            return "command.navigate.recent";
-         when Clear_Recent_Command =>
-            return "command.recent.clear";
-      end case;
-   end Name_Key;
+     (if Id = No_Command then ""
+      elsif Length (Traits (Id).Name_Key) > 0 then To_String (Traits (Id).Name_Key)
+      else Name_Key_Prefix & Identifier (Id));
 
    function Description_Key
      (Id : Command_Id)
       return String is
      (if Name_Key (Id) = "" then "" else Name_Key (Id) & ".description");
 
-   function Default_Shortcut_For
-     (Id : Command_Id)
-      return Shortcut
- is separate;
+   function Default_Shortcut_For (Id : Command_Id) return Shortcut is (Traits (Id).Primary);
 
    --  ----- shortcut overrides (user-editable keymap) ---------------------------
 
@@ -462,24 +285,7 @@ package body Files.Commands is
 
    function Secondary_Shortcut_For
      (Id : Command_Id)
-      return Shortcut is
-      Ctrl : constant Guikit.Input.Modifier_Set := Control_Modifier;
-   begin
-      case Id is
-         when Delete_Selected_Items_Command =>
-            return (True, Guikit.Input.Key_Backspace, Guikit.Input.No_Modifiers);
-         when Refresh_Directory_Command =>
-            --  F5 is the universal refresh accelerator, offered in addition to
-            --  the displayed Control+R primary shortcut.
-            return (True, Guikit.Input.Key_F5, Guikit.Input.No_Modifiers);
-         when Redo_Command =>
-            --  Control+Y is the Windows/Office redo accelerator, offered
-            --  alongside the displayed Control+Shift+Z primary shortcut.
-            return (True, Guikit.Input.Key_Y, Ctrl);
-         when others =>
-            return (False, Guikit.Input.Key_Unknown, Guikit.Input.No_Modifiers);
-      end case;
-   end Secondary_Shortcut_For;
+      return Shortcut is (Traits (Id).Secondary);
 
    function Key_Text
      (Key : Guikit.Input.Key_Code)
@@ -517,7 +323,7 @@ package body Files.Commands is
 
    function Placement_For
      (Id : Command_Id)
-      return Command_Placement is separate;
+      return Command_Placement is (Traits (Id).Placement);
 
    function Command_Palette_Visible
      (Id : Command_Id)
@@ -526,46 +332,7 @@ package body Files.Commands is
       return Id /= No_Command;
    end Command_Palette_Visible;
 
-   --  What running a command does beyond its own effect, in one place: the
-   --  interaction layer reads these instead of keeping its own command lists.
-   type Command_Traits is record
-      --  Changes the settings file, so it needs the settings path.
-      Needs_Settings_Path : Boolean := False;
-      --  Changes view, sort or info-pane state that is mirrored into settings.
-      Persists_UI_State   : Boolean := False;
-      --  Reorders the listing, so the model's item order must be re-listed.
-      Reloads_Listing     : Boolean := False;
-   end record;
-
-   Settings_Writer : constant Command_Traits := (Needs_Settings_Path => True, others => False);
-   UI_State        : constant Command_Traits := (Persists_UI_State => True, others => False);
-   Sort_Order      : constant Command_Traits := (Persists_UI_State | Reloads_Listing => True, others => False);
-
-   Traits : constant array (Command_Id) of Command_Traits :=
-     [Save_Settings_Command
-      | Toggle_Hidden_Files_Command
-      | Toggle_Show_Extensions_Command
-      | Toggle_Free_Space_Display_Command
-      | Toggle_Column_Modified_Command
-      | Toggle_Column_Size_Command
-      | Toggle_Column_Type_Command
-      | Toggle_Column_Created_Command
-      | Toggle_Column_Permissions_Command
-      | Cycle_Group_By_Command
-      | Toggle_Favorite_Command
-      | Clear_Recent_Command      => Settings_Writer,
-      Select_Small_Icons_Command
-      | Select_Large_Icons_Command
-      | Select_Details_Command
-      | Toggle_Info_Pane_Command  => UI_State,
-      Sort_By_Name_Command
-      | Sort_By_Size_Command
-      | Sort_By_Type_Command
-      | Sort_By_Created_Command
-      | Sort_By_Changed_Command   => Sort_Order,
-      others                      => (others => False)];
-
-   function Requires_Settings_Path (Id : Command_Id) return Boolean is (Traits (Id).Needs_Settings_Path);
+   function Requires_Settings_Path (Id : Command_Id) return Boolean is (Id in Settings_Command_Id);
 
    function Persists_Global_Ui_State (Id : Command_Id) return Boolean is (Traits (Id).Persists_UI_State);
 
@@ -683,8 +450,38 @@ package body Files.Commands is
       return No_Command;
    end Find_By_Shortcut;
 
+   --  The one table from a sort field to its command; Sort_Field_For, the
+   --  label key and every caller that maps a field to a command read it.
+   Sort_Commands : constant array (Files.Types.Sort_Field) of Sort_Command_Id :=
+     [Files.Types.Sort_Name    => Sort_By_Name_Command,
+      Files.Types.Sort_Size    => Sort_By_Size_Command,
+      Files.Types.Sort_Type    => Sort_By_Type_Command,
+      Files.Types.Sort_Created => Sort_By_Created_Command,
+      Files.Types.Sort_Changed => Sort_By_Changed_Command];
+
+   function Sort_Command
+     (Field : Files.Types.Sort_Field)
+      return Sort_Command_Id is (Sort_Commands (Field));
+
+   function Sort_Field_For
+     (Id : Sort_Command_Id)
+      return Files.Types.Sort_Field is
+   begin
+      for Field in Sort_Commands'Range loop
+         if Sort_Commands (Field) = Id then
+            return Field;
+         end if;
+      end loop;
+      --  Unreachable: Sort_Commands names every Sort_Command_Id.
+      raise Program_Error;
+   end Sort_Field_For;
+
+   function Sort_Label_Key
+     (Field : Files.Types.Sort_Field)
+      return String is (Name_Key (Sort_Commands (Field)));
+
    procedure Execute
-     (Id    : Command_Id;
+     (Id    : Pure_Command_Id;
       Model : in out Files.Model.Window_Model)
  is separate;
 

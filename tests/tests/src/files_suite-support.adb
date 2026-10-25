@@ -137,8 +137,7 @@ package body Files_Suite.Support is
    use type Guikit.Vulkan.Vulkan_Status;
    use type Interfaces.Unsigned_8;
    use type Textrender.Fonts.Load_Result;
-   use type Files.Model.Sort_Field;
-   use type Files.Settings.Sort_Field;
+   use type Files.Types.Sort_Field;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
    use type Guikit.Input.Key_Code;
@@ -174,6 +173,17 @@ package body Files_Suite.Support is
       --  that -- Windows needs Developer Mode or a privilege to create one.
       return Hostkit.Fs.Create_Link (Target, Linkpath);
    end Create_Symlink;
+
+   procedure Run_Command
+     (Id    : Files.Commands.Command_Id;
+      Model : in out Files.Model.Window_Model)
+   is
+      Result : constant Files.Controller.Controller_Result :=
+        Files.Controller.Execute_Command (Id, Model, Files.Settings.Default_Settings);
+      pragma Unreferenced (Result);
+   begin
+      null;
+   end Run_Command;
 
    procedure Reset_Root is
       Removed : Files.File_System.Mutation_Result;

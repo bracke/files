@@ -9,29 +9,18 @@ package body Files.UI is
 
    function Calculate_Bottom_Bar_Layout
      (Width       : Natural;
-      Sort_Field  : Files.Model.Sort_Field;
+      Sort_Field  : Files.Types.Sort_Field;
       Line_Height : Positive := 20)
       return Guikit.Layout.Bottom_Bar_Layout
    is
       Cell_W : constant Natural := Caret_Advance_Width (Line_Height);
-
-      function Sort_Field_Key return String is
-      begin
-         case Sort_Field is
-            when Files.Model.Sort_Name    => return "command.sort.name";
-            when Files.Model.Sort_Size    => return "command.sort.size";
-            when Files.Model.Sort_Type    => return "command.sort.type";
-            when Files.Model.Sort_Created => return "command.sort.created";
-            when Files.Model.Sort_Changed => return "command.sort.changed";
-         end case;
-      end Sort_Field_Key;
 
       --  Size the sort button to the active field's label only (plus the
       --  direction indicator), not the widest field, so it is never wider than
       --  the text it shows.
       Sort_Label_W : constant Natural :=
         Label_Pixel_Width
-          (Files.Localization.Text (Sort_Field_Key)
+          (Files.Localization.Text (Files.Commands.Sort_Label_Key (Sort_Field))
            & " "
            & Files.Localization.Text ("sort.direction.ascending"),
            Cell_W);
@@ -85,7 +74,7 @@ package body Files.UI is
 
    function Sort_Menu_Visible_Width
      (Width       : Natural;
-      Sort_Field  : Files.Model.Sort_Field;
+      Sort_Field  : Files.Types.Sort_Field;
       Line_Height : Positive := 20)
       return Natural
    is
@@ -252,7 +241,7 @@ package body Files.UI is
       Y                : Natural;
       Width            : Natural;
       Height           : Natural;
-      Sort_Field       : Files.Model.Sort_Field;
+      Sort_Field       : Files.Types.Sort_Field;
       Free_Label_Width : Natural := 0;
       Line_Height      : Positive := 20)
       return Files.Commands.Command_Id
@@ -311,7 +300,7 @@ package body Files.UI is
       Y           : Natural;
       Width       : Natural;
       Height      : Natural;
-      Sort_Field  : Files.Model.Sort_Field;
+      Sort_Field  : Files.Types.Sort_Field;
       Line_Height : Positive := 20)
       return Files.Commands.Command_Id
    is
@@ -364,7 +353,7 @@ package body Files.UI is
       Y           : Natural;
       Width       : Natural;
       Height      : Natural;
-      Sort_Field  : Files.Model.Sort_Field;
+      Sort_Field  : Files.Types.Sort_Field;
       Line_Height : Positive := 20)
       return Boolean
    is

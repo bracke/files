@@ -58,13 +58,6 @@ package Files.Settings is
       Hash            => Ada.Strings.Hash,
       Equivalent_Keys => "=");
 
-   type Sort_Field is
-     (Sort_By_Name,
-      Sort_By_Filetype,
-      Sort_By_Size,
-      Sort_By_Created,
-      Sort_By_Modified);
-
    --  Selectable color theme. Theme_Dark is the default. The chosen value maps
    --  directly onto the renderer's palette (Guikit.Draw.Theme_Kind).
    type Theme_Choice is (Theme_Dark, Theme_Light, Theme_High_Contrast);
@@ -80,7 +73,7 @@ package Files.Settings is
       --  When True the free-space status field shows a graphical used/free bar,
       --  taking precedence over Show_Used_Space (free -> used -> bar cycle).
       Show_Space_Bar         : Boolean := False;
-      Sort_Field_Value       : Sort_Field := Sort_By_Name;
+      Sort_Field_Value       : Files.Types.Sort_Field := Files.Types.Sort_Name;
       Sort_Ascending         : Boolean := True;
       --  Selected color theme applied to the rendering palette.
       Theme                  : Theme_Choice := Theme_Dark;

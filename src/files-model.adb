@@ -475,7 +475,7 @@ package body Files.Model is
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
       Model.View_Value := Default_View_Mode;
-      Model.Sort_Field_Value := Sort_Name;
+      Model.Sort_Field_Value := Files.Types.Sort_Name;
       Model.Sort_Ascending := True;
       Model.Sort_Menu_Open := False;
       Model.Back_History.Clear;
@@ -608,7 +608,7 @@ package body Files.Model is
 
    function Sort_Field_Of
      (Model : Window_Model)
-      return Sort_Field is separate;
+      return Files.Types.Sort_Field is separate;
 
    function Sort_Is_Ascending
      (Model : Window_Model)
@@ -616,11 +616,11 @@ package body Files.Model is
 
    procedure Select_Sort_Field
      (Model : in out Window_Model;
-      Field : Sort_Field) is separate;
+      Field : Files.Types.Sort_Field) is separate;
 
    procedure Apply_Sort
      (Model     : in out Window_Model;
-      Field     : Sort_Field;
+      Field     : Files.Types.Sort_Field;
       Ascending : Boolean) is separate;
 
    procedure Sync_Grouping
@@ -641,7 +641,7 @@ package body Files.Model is
 
    function Sort_Menu_Highlight_Field
      (Model : Window_Model)
-      return Sort_Field is separate;
+      return Files.Types.Sort_Field is separate;
 
    procedure Close_Sort_Menu
      (Model : in out Window_Model) is separate;
@@ -860,7 +860,7 @@ package body Files.Model is
       --  The model's order is the displayed order: keyboard and range
       --  selection walk it, so it must already be sorted by the model's field.
       Files.File_System.Sort_Items
-        (Model.Items, Settings_Sort_Field (Model.Sort_Field_Value), Model.Sort_Ascending);
+        (Model.Items, Model.Sort_Field_Value, Model.Sort_Ascending);
       Model.Directory_Signature := Signature_From_Items (Directory_Path, Items);
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
@@ -1772,7 +1772,7 @@ package body Files.Model is
       --  Load_Directory cannot know the model's current sort direction.
       Files.File_System.Sort_Items
         (Model.Items,
-         Settings_Sort_Field (Model.Sort_Field_Value),
+         Model.Sort_Field_Value,
          Model.Sort_Ascending);
       Model.Directory_Signature := Signature_From_Items (Current_Path (Model), Items);
       Model.Main_View_Scroll := 0;

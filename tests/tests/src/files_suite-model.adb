@@ -87,9 +87,8 @@ package body Files_Suite.Model is
    use type Interfaces.Unsigned_8;
    use type Interfaces.C.int;
    use type Textrender.Fonts.Load_Result;
-   use type Files.Model.Sort_Field;
+   use type Files.Types.Sort_Field;
    use type Files.Model.Undo_Entry;
-   use type Files.Settings.Sort_Field;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
    use type Guikit.Input.Key_Code;

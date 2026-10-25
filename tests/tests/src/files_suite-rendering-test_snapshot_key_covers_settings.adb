@@ -25,7 +25,7 @@ separate (Files_Suite.Rendering)
 
       function Changed (Field : Setting_Field) return Files.Settings.Settings_Model is
          use type Files.Settings.Theme_Choice;
-         use type Files.Settings.Sort_Field;
+         use type Files.Types.Sort_Field;
          use type Files.Types.View_Mode;
          use type Files.Types.Group_Mode;
          Result : Files.Settings.Settings_Model := Base;
@@ -53,9 +53,9 @@ separate (Files_Suite.Rendering)
                Result.Show_Space_Bar := not Base.Show_Space_Bar;
             when Sort_Field_Value =>
                Result.Sort_Field_Value :=
-                 (if Base.Sort_Field_Value = Files.Settings.Sort_By_Size
-                  then Files.Settings.Sort_By_Name
-                  else Files.Settings.Sort_By_Size);
+                 (if Base.Sort_Field_Value = Files.Types.Sort_Size
+                  then Files.Types.Sort_Name
+                  else Files.Types.Sort_Size);
             when Sort_Ascending =>
                Result.Sort_Ascending := not Base.Sort_Ascending;
             when Theme =>

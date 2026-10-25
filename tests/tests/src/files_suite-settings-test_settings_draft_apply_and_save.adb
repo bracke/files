@@ -56,7 +56,7 @@ separate (Files_Suite.Settings)
          Assert (Draft_Load.Settings.Show_Hidden_Files, "draft applies hidden-file flag");
          Files_Suite.Support.Assert_Equal
            (Draft_Load.Settings.Sort_Field_Value,
-            Files.Settings.Sort_By_Size,
+            Files.Types.Sort_Size,
             "draft applies sort field");
          Assert
            (Draft_Load.Settings.Theme = Files.Settings.Theme_High_Contrast,

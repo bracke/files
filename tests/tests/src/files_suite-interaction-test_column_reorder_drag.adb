@@ -3,7 +3,7 @@ separate (Files_Suite.Interaction)
       pragma Unreferenced (T);
       use type Files.Types.Detail_Column;
       use type Files.Types.Detail_Column_Order;
-      use type Files.Model.Sort_Field;
+      use type Files.Types.Sort_Field;
 
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
@@ -90,7 +90,7 @@ separate (Files_Suite.Interaction)
       declare
          Fresh    : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Order_Before : constant Files.Types.Detail_Column_Order := Fresh.Column_Order;
-         Sort_Before  : constant Files.Model.Sort_Field := Files.Model.Sort_Field_Of (Model);
+         Sort_Before  : constant Files.Types.Sort_Field := Files.Model.Sort_Field_Of (Model);
          Sort_Action  : constant Files.Events.Input_Action :=
            (Kind    => Files.Events.Command_Input_Action,
             Command => Files.Commands.Sort_By_Size_Command,

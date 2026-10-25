@@ -1,5 +1,5 @@
 with Files.Commands;
-with Files.Model;
+with Files.Types;
 with Guikit.Layout;
 with Guikit.Segmented;
 
@@ -23,7 +23,7 @@ package Files.UI is
    --    only this field's label (plus the direction indicator), not the widest.
    function Calculate_Bottom_Bar_Layout
      (Width       : Natural;
-      Sort_Field  : Files.Model.Sort_Field;
+      Sort_Field  : Files.Types.Sort_Field;
       Line_Height : Positive := 20)
       return Guikit.Layout.Bottom_Bar_Layout;
 
@@ -47,7 +47,7 @@ package Files.UI is
    --  @return Visible dropdown width in pixels.
    function Sort_Menu_Visible_Width
      (Width       : Natural;
-      Sort_Field  : Files.Model.Sort_Field;
+      Sort_Field  : Files.Types.Sort_Field;
       Line_Height : Positive := 20)
       return Natural;
 
@@ -140,7 +140,7 @@ package Files.UI is
       Y                : Natural;
       Width            : Natural;
       Height           : Natural;
-      Sort_Field       : Files.Model.Sort_Field;
+      Sort_Field       : Files.Types.Sort_Field;
       Free_Label_Width : Natural := 0;
       Line_Height      : Positive := 20)
       return Files.Commands.Command_Id;
@@ -159,7 +159,7 @@ package Files.UI is
       Y           : Natural;
       Width       : Natural;
       Height      : Natural;
-      Sort_Field  : Files.Model.Sort_Field;
+      Sort_Field  : Files.Types.Sort_Field;
       Line_Height : Positive := 20)
       return Files.Commands.Command_Id;
 
@@ -178,7 +178,7 @@ package Files.UI is
       Y           : Natural;
       Width       : Natural;
       Height      : Natural;
-      Sort_Field  : Files.Model.Sort_Field;
+      Sort_Field  : Files.Types.Sort_Field;
       Line_Height : Positive := 20)
       return Boolean;
 

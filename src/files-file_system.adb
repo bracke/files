@@ -58,7 +58,7 @@ package body Files.File_System is
    use type Ada.Streams.Stream_Element_Offset;
 
    use type System.Address;
-   use type Files.Settings.Sort_Field;
+   use type Files.Types.Sort_Field;
    use type Files.Types.Item_Kind;
 
    Max_Source_Side   : constant := 4096;
@@ -610,7 +610,7 @@ package body Files.File_System is
 
    procedure Sort_Items
      (Items     : in out Item_Vectors.Vector;
-      Field     : Files.Settings.Sort_Field;
+      Field     : Files.Types.Sort_Field;
       Ascending : Boolean)
    is separate;
 

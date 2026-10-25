@@ -7,7 +7,7 @@ separate (Files_Suite.Rendering)
       Layout   : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snapshot, 1000, 800, 20);
       Frame    : constant Frame_Commands := Build_Frame_Commands (Snapshot, 1000, 800, 20);
       Bar      : constant Guikit.Layout.Bottom_Bar_Layout :=
-        Files.UI.Calculate_Bottom_Bar_Layout (1000, Files.Model.Sort_Name, 20);
+        Files.UI.Calculate_Bottom_Bar_Layout (1000, Files.Types.Sort_Name, 20);
       Bottom_Y : constant Natural := Layout.Height - Layout.Bottom_Bar_Height;
       Cell_W   : constant Natural := Natural'Max (1, 20 * 12 / 20);
       Field    : constant String := Files.Localization.Text ("command.sort.name");

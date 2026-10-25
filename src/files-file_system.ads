@@ -473,7 +473,7 @@ package Files.File_System is
    --  @param Ascending Ascending order when True, descending when False.
    procedure Sort_Items
      (Items     : in out Item_Vectors.Vector;
-      Field     : Files.Settings.Sort_Field;
+      Field     : Files.Types.Sort_Field;
       Ascending : Boolean);
 
    --  Search a directory tree recursively for item names matching Query.

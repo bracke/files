@@ -44,7 +44,7 @@ package body Files.Rendering is
    use type Ada.Containers.Count_Type;
    use type Ada.Calendar.Time;
    use type Files.Commands.Registered_Command_Id;
-   use type Files.Model.Sort_Field;
+   use type Files.Types.Sort_Field;
    use type Files.Model.Tree_Pick_Mode;
    use type Files.Quick_Look.Content_Kind;
    use type Files.Types.Color_Label;

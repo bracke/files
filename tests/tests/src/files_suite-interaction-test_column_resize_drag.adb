@@ -2,7 +2,7 @@ separate (Files_Suite.Interaction)
    procedure Test_Column_Resize_Drag (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Files.Types.Detail_Column;
-      use type Files.Model.Sort_Field;
+      use type Files.Types.Sort_Field;
 
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
@@ -34,7 +34,7 @@ separate (Files_Suite.Interaction)
          Base_W   : Natural;
          Header_Y : Natural;
          Action   : Files.Events.Input_Action;
-         Sort_Before : Files.Model.Sort_Field;
+         Sort_Before : Files.Types.Sort_Field;
       begin
          for Cell of Rows loop
             if Cell.Visible_Index = 1 then

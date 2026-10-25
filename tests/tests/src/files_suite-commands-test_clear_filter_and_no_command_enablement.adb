@@ -41,13 +41,13 @@ separate (Files_Suite.Commands)
          "enabled clear-filter reports successful state-only operation");
       Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "", "clear-filter command clears filter text");
       Model := Sample_Model;
-      Files.Commands.Execute (Files.Commands.No_Command, Model);
+      Files_Suite.Support.Run_Command (Files.Commands.No_Command, Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
          Root,
-         "direct no-command execution does not change path");
+         "no-command execution does not change path");
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Model),
          Files.Types.Small_Icons,
-         "direct no-command execution preserves view");
+         "no-command execution preserves view");
    end Test_Clear_Filter_And_No_Command_Enablement;

@@ -40,11 +40,7 @@ package body Files.Interaction is
          return Command in Files.Commands.Select_Drive_Command
                            | Files.Commands.Close_Command_Palette_Command;
       elsif Files.Model.Sort_Menu_Is_Open (Model) then
-         return Command in Files.Commands.Sort_By_Name_Command
-                           | Files.Commands.Sort_By_Size_Command
-                           | Files.Commands.Sort_By_Type_Command
-                           | Files.Commands.Sort_By_Created_Command
-                           | Files.Commands.Sort_By_Changed_Command
+         return Command in Files.Commands.Sort_Command_Id
                            | Files.Commands.Close_Command_Palette_Command;
       elsif Files.Model.Context_Menu_Is_Open (Model) then
          return Command = Files.Commands.Close_Command_Palette_Command;
@@ -54,19 +50,6 @@ package body Files.Interaction is
 
       return True;
    end Command_Action_Is_Current;
-
-   --  Map the model's runtime sort enum onto the settings enum.
-   function Settings_Sort_Of
-     (Field : Files.Model.Sort_Field) return Files.Settings.Sort_Field is
-   begin
-      case Field is
-         when Files.Model.Sort_Name     => return Files.Settings.Sort_By_Name;
-         when Files.Model.Sort_Type     => return Files.Settings.Sort_By_Filetype;
-         when Files.Model.Sort_Size     => return Files.Settings.Sort_By_Size;
-         when Files.Model.Sort_Created  => return Files.Settings.Sort_By_Created;
-         when Files.Model.Sort_Changed  => return Files.Settings.Sort_By_Modified;
-      end case;
-   end Settings_Sort_Of;
 
    --  Copy the common controller observations into the public interaction
    --  result. Keeping this mapping in one place prevents non-command input
@@ -216,12 +199,12 @@ package body Files.Interaction is
       return Boolean
    is
       use type Files.Types.View_Mode;
-      use type Files.Settings.Sort_Field;
+      use type Files.Types.Sort_Field;
 
       New_View  : constant Files.Types.View_Mode :=
         Files.Model.View_Mode_Of (Model);
-      New_Sort  : constant Files.Settings.Sort_Field :=
-        Settings_Sort_Of (Files.Model.Sort_Field_Of (Model));
+      New_Sort  : constant Files.Types.Sort_Field :=
+        Files.Model.Sort_Field_Of (Model);
       New_Asc   : constant Boolean :=
         Files.Model.Sort_Is_Ascending (Model);
       New_Info  : constant Boolean :=

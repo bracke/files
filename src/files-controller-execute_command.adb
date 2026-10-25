@@ -248,22 +248,19 @@ separate (Files.Controller)
             else
                Files.Model.Cancel_Focus_Or_Edit (Model);
             end if;
-         when others =>
-            if Id = Files.Commands.Toggle_Settings_Pane_Command
-              and then not Files.Model.Settings_Pane_Is_Open (Model)
-            then
-               Files.Model.Begin_Settings_Edit (Model, Files.Settings.Make_Draft (Settings));
+         when Files.Commands.Toggle_Settings_Pane_Command =>
+            if Files.Model.Settings_Pane_Is_Open (Model) then
+               Files.Model.Toggle_Settings_Pane (Model);
             else
-               Files.Commands.Execute (Id, Model);
+               Files.Model.Begin_Settings_Edit (Model, Files.Settings.Make_Draft (Settings));
             end if;
-            case Id is
-               when Files.Commands.Focus_Path_Input_Command
-                  | Files.Commands.Focus_Filter_Input_Command
-                  | Files.Commands.Open_Command_Palette_Command =>
-                  Files.Model.Set_Error (Model, "");
-               when others =>
-                  null;
-            end case;
+         when Files.Commands.Settings_Command_Id =>
+            --  Reported, not applied: changing the settings file needs its
+            --  path, so the Settings_Path overload runs these through
+            --  Apply_Settings_Command instead of calling this one.
+            null;
+         when Files.Commands.Pure_Command_Id =>
+            Files.Commands.Execute (Id, Model);
       end case;
 
       if Operation.Status = Files.Operations.Operation_Disabled

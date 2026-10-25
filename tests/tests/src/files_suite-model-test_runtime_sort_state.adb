@@ -62,13 +62,13 @@ separate (Files_Suite.Model)
       Files.Model.Initialize (Model, Root, Items, Root);
       --  Startup applies the persisted sort right after Initialize
       --  (Apply_Persisted_UI_State); the drawn order is the model's order.
-      Files.Model.Apply_Sort (Model, Files.Model.Sort_Name, Ascending => True);
+      Files.Model.Apply_Sort (Model, Files.Types.Sort_Name, Ascending => True);
 
       Files_Suite.Support.Assert_Equal
 
         (Files.Model.Sort_Field_Of (Model),
 
-         Files.Model.Sort_Name,
+         Files.Types.Sort_Name,
 
          "default runtime sort field is name");
       Assert (Files.Model.Sort_Is_Ascending (Model), "default runtime sort direction is ascending");
@@ -92,7 +92,7 @@ separate (Files_Suite.Model)
          "sort-by-size command is routed");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Field_Of (Model),
-         Files.Model.Sort_Size,
+         Files.Types.Sort_Size,
          "sort-by-size selects size field");
       Assert (Files.Model.Sort_Is_Ascending (Model), "new sort field starts ascending");
       Assert (not Files.Model.Sort_Menu_Is_Open (Model), "selecting a sort field closes the menu");
@@ -105,7 +105,7 @@ separate (Files_Suite.Model)
       Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Type_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Field_Of (Model),
-         Files.Model.Sort_Type,
+         Files.Types.Sort_Type,
          "sort-by-type selects type field");
       Assert (Files.Model.Sort_Is_Ascending (Model), "different sort field resets to ascending");
       Files_Suite.Support.Assert_Equal (Snapshot_Name (1), "charlie.bin", "type ascending sorts by filetype token");
@@ -113,7 +113,7 @@ separate (Files_Suite.Model)
       Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Created_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Field_Of (Model),
-         Files.Model.Sort_Created,
+         Files.Types.Sort_Created,
          "sort-by-created selects creation field");
       Files_Suite.Support.Assert_Equal
         (Snapshot_Name (1),
@@ -123,7 +123,7 @@ separate (Files_Suite.Model)
       Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Changed_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Field_Of (Model),
-         Files.Model.Sort_Changed,
+         Files.Types.Sort_Changed,
          "sort-by-changed selects modified field");
       Files_Suite.Support.Assert_Equal
         (Snapshot_Name (1),

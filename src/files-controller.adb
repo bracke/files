@@ -491,7 +491,7 @@ package body Files.Controller is
    end Persist_Settings;
 
    function Apply_Settings_Command
-     (Id            : Files.Commands.Command_Id;
+     (Id            : Files.Commands.Settings_Command_Id;
       Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
       Settings_Path : String)

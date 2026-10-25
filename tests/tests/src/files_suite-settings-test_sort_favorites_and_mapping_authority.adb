@@ -11,11 +11,11 @@ separate (Files_Suite.Settings)
          Assert (Created_Parsed.Success, "settings parser accepts the created sort field");
          Files_Suite.Support.Assert_Equal
            (Created_Parsed.Settings.Sort_Field_Value,
-            Files.Settings.Sort_By_Created,
+            Files.Types.Sort_Created,
             "created sort field round-trips distinctly from modified");
          Files_Suite.Support.Assert_Equal
            (Modified_Parsed.Settings.Sort_Field_Value,
-            Files.Settings.Sort_By_Modified,
+            Files.Types.Sort_Changed,
             "modified sort field still round-trips to modified");
       end;
       declare

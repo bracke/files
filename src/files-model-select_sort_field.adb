@@ -1,7 +1,9 @@
 separate (Files.Model)
 procedure Select_Sort_Field
   (Model : in out Window_Model;
-   Field : Sort_Field) is
+   Field : Files.Types.Sort_Field)
+is
+   use type Files.Types.Sort_Field;
 begin
    Model.Revision_Value := Model.Revision_Value + 1;
    if Model.Sort_Field_Value = Field then

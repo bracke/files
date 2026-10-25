@@ -32,7 +32,7 @@ separate (Files_Suite.Model)
          "zdir",
          "directory follows file when name sort wins");
 
-      Settings.Sort_Field_Value := Files.Settings.Sort_By_Filetype;
+      Settings.Sort_Field_Value := Files.Types.Sort_Type;
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Files_Suite.Support.Assert_Equal
         (To_String (Load.Items.Element (1).Name),
@@ -47,7 +47,7 @@ separate (Files_Suite.Model)
          "afile.txt",
          "text file sorts after inode/filetype entries");
 
-      Settings.Sort_Field_Value := Files.Settings.Sort_By_Size;
+      Settings.Sort_Field_Value := Files.Types.Sort_Size;
       Settings.Sort_Ascending := False;
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Files_Suite.Support.Assert_Equal
@@ -60,7 +60,7 @@ separate (Files_Suite.Model)
          "smaller file follows larger file");
 
       Settings.Show_Hidden_Files := True;
-      Settings.Sort_Field_Value := Files.Settings.Sort_By_Name;
+      Settings.Sort_Field_Value := Files.Types.Sort_Name;
       Settings.Sort_Ascending := True;
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Files_Suite.Support.Assert_Equal (Natural (Load.Items.Length), 5, "show-hidden setting exposes dot files");
@@ -104,7 +104,7 @@ separate (Files_Suite.Model)
       Write_File (Join (Tie_Dir, "later.txt"), "larger");
 
       Settings.Show_Hidden_Files := False;
-      Settings.Sort_Field_Value := Files.Settings.Sort_By_Size;
+      Settings.Sort_Field_Value := Files.Types.Sort_Size;
       Settings.Sort_Ascending := True;
       Load := Files.File_System.Load_Directory (Tie_Dir, Settings);
       Files_Suite.Support.Assert_Equal
@@ -135,7 +135,7 @@ separate (Files_Suite.Model)
          "B_equal.txt",
          "descending size tie fallback remains stable");
 
-      Settings.Sort_Field_Value := Files.Settings.Sort_By_Modified;
+      Settings.Sort_Field_Value := Files.Types.Sort_Changed;
       Settings.Sort_Ascending := True;
       Ada.Directories.Create_Path (Modified_Dir);
       Write_File (Join (Modified_Dir, "old.txt"), "older");

@@ -8,7 +8,7 @@ separate (Files_Suite.Settings)
       Assert (Parsed.Settings.Show_Hidden_Files, "setting keys parse case-insensitively");
       Files_Suite.Support.Assert_Equal
         (Parsed.Settings.Sort_Field_Value,
-         Files.Settings.Sort_By_Size,
+         Files.Types.Sort_Size,
          "sort field setting parses");
       Assert (not Parsed.Settings.Sort_Ascending, "sort direction setting parses");
       Assert
@@ -39,7 +39,7 @@ separate (Files_Suite.Settings)
             "duplicate hidden-file setting uses the last value");
          Files_Suite.Support.Assert_Equal
            (Duplicate_Settings.Settings.Sort_Field_Value,
-            Files.Settings.Sort_By_Modified,
+            Files.Types.Sort_Changed,
             "duplicate sort field setting uses the last value");
       end;
    end Test_Settings_Text_Scalar_Values;

@@ -59,34 +59,34 @@ separate (Files.Rendering.Build_Frame_Commands)
 
             function Column_Sort_Field
               (Column : Files.Types.Detail_Column;
-               Field  : out Files.Model.Sort_Field)
+               Field  : out Files.Types.Sort_Field)
                return Boolean is
             begin
                case Column is
                   when Files.Types.Name_Column =>
-                     Field := Files.Model.Sort_Name;
+                     Field := Files.Types.Sort_Name;
                      return True;
                   when Files.Types.Modified_Column =>
-                     Field := Files.Model.Sort_Changed;
+                     Field := Files.Types.Sort_Changed;
                      return True;
                   when Files.Types.Size_Column =>
-                     Field := Files.Model.Sort_Size;
+                     Field := Files.Types.Sort_Size;
                      return True;
                   when Files.Types.Filetype_Column =>
-                     Field := Files.Model.Sort_Type;
+                     Field := Files.Types.Sort_Type;
                      return True;
                   when Files.Types.Created_Column =>
-                     Field := Files.Model.Sort_Created;
+                     Field := Files.Types.Sort_Created;
                      return True;
                   when Files.Types.Permissions_Column =>
-                     Field := Files.Model.Sort_Name;
+                     Field := Files.Types.Sort_Name;
                      return False;
                end case;
             end Column_Sort_Field;
 
             function Header_Text (Column : Files.Types.Detail_Column) return UString is
                Label : constant String := Files.Localization.Text (Header_Label (Column));
-               Field : Files.Model.Sort_Field;
+               Field : Files.Types.Sort_Field;
             begin
                if Column_Sort_Field (Column, Field) and then Snapshot.Sort_Field = Field then
                   return To_Unbounded_String (Label & " " & Direction_Text);

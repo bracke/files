@@ -22,13 +22,6 @@ with Files.Transfer_Jobs;
 package Files.Model is
    subtype UString is Files.Types.UString;
 
-   type Sort_Field is
-     (Sort_Name,
-      Sort_Size,
-      Sort_Type,
-      Sort_Created,
-      Sort_Changed);
-
    type Window_Model is private;
 
    --  Initialize a window model for a loaded directory.
@@ -190,7 +183,7 @@ package Files.Model is
    --  @return Active sort field.
    function Sort_Field_Of
      (Model : Window_Model)
-      return Sort_Field;
+      return Files.Types.Sort_Field;
 
    --  Return whether item sorting is ascending.
    --
@@ -209,7 +202,7 @@ package Files.Model is
    --  @param Field Sort field to select.
    procedure Select_Sort_Field
      (Model : in out Window_Model;
-      Field : Sort_Field);
+      Field : Files.Types.Sort_Field);
 
    --  Set the sort field and direction to absolute values and re-sort. Unlike
    --  Select_Sort_Field (which toggles direction when re-selecting the current
@@ -221,7 +214,7 @@ package Files.Model is
    --  @param Ascending True to sort ascending, False for descending.
    procedure Apply_Sort
      (Model     : in out Window_Model;
-      Field     : Sort_Field;
+      Field     : Files.Types.Sort_Field;
       Ascending : Boolean);
 
    --  Keep the items in the Details view's group order (Settings.Group_By;
@@ -293,7 +286,7 @@ package Files.Model is
    --  @return Sort field under the highlight.
    function Sort_Menu_Highlight_Field
      (Model : Window_Model)
-      return Sort_Field;
+      return Files.Types.Sort_Field;
 
    --  Return the number of loaded directory items.
    --
@@ -3208,7 +3201,7 @@ private
       Selection_Columns   : Positive := 1;
       Selection_Page_Rows_Value : Positive := 10;
       View_Value           : Files.Types.View_Mode := Files.Types.Small_Icons;
-      Sort_Field_Value     : Sort_Field := Sort_Name;
+      Sort_Field_Value     : Files.Types.Sort_Field := Files.Types.Sort_Name;
       Sort_Ascending       : Boolean := True;
       Sort_Menu_Open       : Boolean := False;
       Sort_Menu_Highlight_Value : Natural := 0;

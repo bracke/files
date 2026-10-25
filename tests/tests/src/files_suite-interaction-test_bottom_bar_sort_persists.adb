@@ -1,8 +1,7 @@
 separate (Files_Suite.Interaction)
    procedure Test_Bottom_Bar_Sort_Persists (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Model.Sort_Field;
-      use type Files.Settings.Sort_Field;
+      use type Files.Types.Sort_Field;
       Path : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "sort-persist.conf");
 
       function Items return Files.File_System.Item_Vectors.Vector is
@@ -44,16 +43,16 @@ separate (Files_Suite.Interaction)
       --  must apply live and persist the field to the settings file.
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Field_Of (Model),
-         Files.Model.Sort_Name,
+         Files.Types.Sort_Name,
          "the model starts sorted by name");
       Dispatch (Files.Commands.Sort_By_Size_Command);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Field_Of (Model),
-         Files.Model.Sort_Size,
+         Files.Types.Sort_Size,
          "the sort command applies live");
       Files_Suite.Support.Assert_Equal
         (Settings.Sort_Field_Value,
-         Files.Settings.Sort_By_Size,
+         Files.Types.Sort_Size,
          "the sort field is written to settings");
       Assert (Result.Settings_Changed, "the sort command reports a settings change");
       Assert (Ada.Directories.Exists (Path), "the sort command persists the settings file");
@@ -72,7 +71,7 @@ separate (Files_Suite.Interaction)
          Assert (Reloaded.Success, "the persisted settings file reloads cleanly");
          Files_Suite.Support.Assert_Equal
            (Reloaded.Settings.Sort_Field_Value,
-            Files.Settings.Sort_By_Size,
+            Files.Types.Sort_Size,
             "the reloaded settings keep the chosen sort field");
          Assert (not Reloaded.Settings.Sort_Ascending,
                  "the reloaded settings keep the descending direction");

@@ -39,7 +39,7 @@ separate (Files_Suite.Commands)
       Assert
         (not Files.Model.System_Clipboard_Request_Pending (Model),
          "no clipboard request is pending before copy-path runs");
-      Files.Commands.Execute (Files.Commands.Copy_Path_Command, Model);
+      Files_Suite.Support.Run_Command (Files.Commands.Copy_Path_Command, Model);
       Assert
         (Files.Model.System_Clipboard_Request_Pending (Model),
          "copy-path records a pending system-clipboard request");

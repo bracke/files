@@ -15,7 +15,7 @@ separate (Files_Suite.Commands)
          "model starts in small-icons view");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Field_Of (Model),
-         Files.Model.Sort_Name,
+         Files.Types.Sort_Name,
          "model starts sorted by name");
       Assert (Files.Model.Sort_Is_Ascending (Model), "model starts sorted ascending");
 
@@ -48,7 +48,7 @@ separate (Files_Suite.Commands)
          "the saved view mode is applied live");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Field_Of (Model),
-         Files.Model.Sort_Size,
+         Files.Types.Sort_Size,
          "the saved sort field is applied live");
       Assert (not Files.Model.Sort_Is_Ascending (Model), "the saved sort direction is applied live");
    end Test_Save_Settings_Applies_Live;
