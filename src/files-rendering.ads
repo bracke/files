@@ -42,10 +42,6 @@ package Files.Rendering is
 
    type Item_Snapshot is record
       Name               : UString;
-      --  Case-folded Name, precomputed once at snapshot build so the sort
-      --  comparator never re-lowercases the same names across its O(N log N)
-      --  comparisons. Always derived from Name; carries no independent state.
-      Name_Lower         : UString;
       Filetype           : UString;
       Filetype_Detail    : UString;
       Icon_Id            : UString;
@@ -57,7 +53,6 @@ package Files.Rendering is
       Modified_Available : Boolean := False;
       Modified_Time      : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
       Permissions        : UString;
-      Filetype_Extra     : UString;
       Thumbnail_Available : Boolean := False;
       Thumbnail_Path      : UString;
       Thumbnail_Width     : Natural := 0;
@@ -263,7 +258,7 @@ package Files.Rendering is
       Quick_Look_Text_Truncated      : Boolean := False;
       Quick_Look_Image_Width         : Natural := 0;
       Quick_Look_Image_Height        : Natural := 0;
-      Quick_Look_Image_Pixels        : Files.Types.Byte_Vectors.Vector;
+      Quick_Look_Image_Pixels        : Files.Shared_Bytes.Bytes;
       --  Color-label swatch picker overlay: open when the user is choosing a
       --  label for the current selection.
       Label_Picker_Open              : Boolean := False;

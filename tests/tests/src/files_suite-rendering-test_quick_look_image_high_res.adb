@@ -1,3 +1,5 @@
+with Ada.Containers;
+with Files.Shared_Bytes;
 separate (Files_Suite.Rendering)
    procedure Test_Quick_Look_Image_High_Res (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -16,9 +18,8 @@ separate (Files_Suite.Rendering)
       Snap.Quick_Look_Icon_Id := To_Unbounded_String ("image");
       Snap.Quick_Look_Image_Width := IW;
       Snap.Quick_Look_Image_Height := IH;
-      for I in 1 .. IW * IH * 4 loop
-         Snap.Quick_Look_Image_Pixels.Append (0);
-      end loop;
+      Snap.Quick_Look_Image_Pixels :=
+        Files.Shared_Bytes.To_Shared (Files.Types.Byte_Vectors.To_Vector (0, Ada.Containers.Count_Type (IW * IH * 4)));
 
       Frame := Build_Frame_Commands (Snap, Width, Height, LH);
       for Icon of Frame.Icons loop

@@ -11,6 +11,7 @@ with Files_Config;
 with Files.Folder_Size;
 with Files.Fs_Primitives;
 with Files.Paste;
+with Files.Shared_Bytes;
 with Files.Transfer_Jobs;
 with Files.Process_Jobs;
 with Files.Operation_Jobs;
@@ -730,7 +731,7 @@ package body Files.Operations is
               Files.File_System.Decode_Image_To_Pixels (Path, Preview_Size);
          begin
             if Decoded.Available then
-               Content.Image_Pixels := Decoded.Pixels;
+               Content.Image_Pixels := Files.Shared_Bytes.To_Shared (Decoded.Pixels);
                Content.Image_Width := Decoded.Width;
                Content.Image_Height := Decoded.Height;
             end if;

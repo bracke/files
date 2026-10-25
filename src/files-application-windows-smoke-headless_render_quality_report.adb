@@ -77,7 +77,6 @@ separate (Files.Application.Windows.Smoke)
                   Drag_Snapshot.Items.Append
                     (Files.Rendering.Item_Snapshot'
                        (Name               => To_Unbounded_String ("quality-drag.txt"),
-                        Name_Lower         => To_Unbounded_String ("quality-drag.txt"),
                         Filetype           => To_Unbounded_String ("text/plain"),
                         Filetype_Detail    => To_Unbounded_String ("text"),
                         Icon_Id            => To_Unbounded_String ("text"),
@@ -89,7 +88,6 @@ separate (Files.Application.Windows.Smoke)
                         Modified_Available => False,
                         Modified_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
                         Permissions        => Null_Unbounded_String,
-                        Filetype_Extra     => Null_Unbounded_String,
                         Thumbnail_Available => False,
                         Thumbnail_Path      => Null_Unbounded_String,
                         Thumbnail_Width     => 0,

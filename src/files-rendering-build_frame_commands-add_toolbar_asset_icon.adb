@@ -21,7 +21,7 @@ separate (Files.Rendering.Build_Frame_Commands)
            when Files.Commands.Create_File_Command => "toolbar-create",
            when Files.Commands.Delete_Selected_Items_Command => "toolbar-delete",
            when others => "unknown");
-      Asset     : constant Icon_Asset := Parse_Icon_Asset (Icon_Asset_Text (Icon_Name, Icon_Theme_Name));
+      Asset     : constant Icon_Asset := Parsed_Icon_Asset (Icon_Name, Icon_Theme_Name);
       Color     : constant Render_Color := (if Enabled then Text_Color else Disabled_Text_Color);
 
       function SX (Numerator : Natural) return Float is

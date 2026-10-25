@@ -92,7 +92,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       end Add_Asset_Tri;
 
       function Add_Named_Asset (Name : String) return Boolean is
-         Asset : constant Icon_Asset := Parse_Icon_Asset (Icon_Asset_Text (Name, Icon_Theme_Name));
+         Asset : constant Icon_Asset := Parsed_Icon_Asset (Name, Icon_Theme_Name);
       begin
          if not Asset.Valid then
             return False;

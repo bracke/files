@@ -292,16 +292,6 @@ package Files.Commands is
      (Id : Command_Id)
       return Boolean;
 
-   --  Return whether a command reorders the listing. The renderer re-sorts its
-   --  snapshot, but keyboard navigation walks the model's load order, so the
-   --  interaction layer re-lists the directory after such a command.
-   --
-   --  @param Id Command identifier.
-   --  @return True when the directory must be re-listed after the command.
-   function Reloads_Listing
-     (Id : Command_Id)
-      return Boolean;
-
    --  Return number of registered commands.
    --
    --  @return Registered command count.

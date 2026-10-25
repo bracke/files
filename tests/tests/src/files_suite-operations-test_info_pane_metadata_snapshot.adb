@@ -48,7 +48,7 @@ separate (Files_Suite.Operations)
         (Snapshot.Items.Element (1).Modified_Time = Ada.Directories.Modification_Time (Join (Root, "meta.txt")),
          "item snapshot captures modified time value");
       Assert
-        (To_String (Snapshot.Items.Element (1).Filetype_Extra) =
+        (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra) =
          Detail_Lines_Encoding
            ("info.extra.text.lines.prefix",
             "1",

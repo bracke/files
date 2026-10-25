@@ -168,7 +168,7 @@ separate (Files.Rendering)
             if Content.Kind = Files.Quick_Look.Image_Content
               and then Complete_RGBA_Image
                 (Content.Image_Width, Content.Image_Height,
-                 Content.Image_Pixels.Length)
+                 Ada.Containers.Count_Type (Files.Shared_Bytes.Length (Content.Image_Pixels)))
             then
                Snapshot.Quick_Look_Image_Width  := Content.Image_Width;
                Snapshot.Quick_Look_Image_Height := Content.Image_Height;
@@ -178,7 +178,7 @@ separate (Files.Rendering)
             then
                Snapshot.Quick_Look_Image_Width  := Item.Thumbnail_Width;
                Snapshot.Quick_Look_Image_Height := Item.Thumbnail_Height;
-               Snapshot.Quick_Look_Image_Pixels := Files.Shared_Bytes.To_Vector (Item.Thumbnail_Pixels);
+               Snapshot.Quick_Look_Image_Pixels := Item.Thumbnail_Pixels;
             end if;
          end;
       end if;
@@ -260,8 +260,6 @@ separate (Files.Rendering)
                Snapshot.Items.Append
                  (Item_Snapshot'
                     (Name               => Item.Name,
-                     Name_Lower         =>
-                       To_Unbounded_String (Files.Types.To_Lower (To_String (Item.Name))),
                      Filetype           => Item.Filetype,
                      Filetype_Detail    => Filetype_Detail (Item),
                      Icon_Id            => Item.Icon_Id,
@@ -273,7 +271,6 @@ separate (Files.Rendering)
                      Modified_Available => Item.Modified_Available,
                      Modified_Time      => Item.Modified_Time,
                      Permissions        => Item.Permissions,
-                     Filetype_Extra     => Filetype_Extra (Item),
                      Thumbnail_Available => Item.Thumbnail_Available,
                      Thumbnail_Path      => Item.Thumbnail_Path,
                      Thumbnail_Width     => Item.Thumbnail_Width,

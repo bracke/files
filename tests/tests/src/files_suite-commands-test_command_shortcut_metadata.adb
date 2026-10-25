@@ -50,19 +50,11 @@ separate (Files_Suite.Commands)
         (Files.Commands.Requires_Settings_Path (Files.Commands.Reset_Settings_Command),
          "settings reset saves the defaults, so it requires a settings path");
       Assert
-        (Files.Commands.Reloads_Listing (Files.Commands.Sort_By_Size_Command)
-         and then Files.Commands.Persists_Global_Ui_State (Files.Commands.Sort_By_Size_Command),
-         "a sort command re-lists and persists its UI state");
+        (Files.Commands.Persists_Global_Ui_State (Files.Commands.Sort_By_Size_Command),
+         "a sort command persists its UI state");
       Assert
-        (Files.Commands.Persists_Global_Ui_State (Files.Commands.Select_Details_Command)
-         and then not Files.Commands.Reloads_Listing (Files.Commands.Select_Details_Command),
-         "a view-mode command persists its UI state without re-listing");
-      for Id in Files.Commands.Command_Id loop
-         Assert
-           (not Files.Commands.Reloads_Listing (Id) or else Files.Commands.Persists_Global_Ui_State (Id),
-            "every re-listing command also syncs the settings sort it re-lists by: "
-            & Files.Commands.Command_Id'Image (Id));
-      end loop;
+        (Files.Commands.Persists_Global_Ui_State (Files.Commands.Select_Details_Command),
+         "a view-mode command persists its UI state");
       Empty_Shortcut := Files.Commands.Shortcut_For (Files.Commands.No_Command);
       Assert (not Empty_Shortcut.Present, "no-command exposes absent shortcut metadata");
       Empty_Secondary := Files.Commands.Secondary_Shortcut_For (Files.Commands.No_Command);

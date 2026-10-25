@@ -14,11 +14,13 @@ separate (Files_Suite.Operations)
       Files.Model.Toggle_Info_Pane (Model);
       --  Visit each item so its lazy extra info is computed and cached (as
       --  happens when the selection lands on it with the info pane open), then
-      --  rebuild the snapshot so it carries every item's localized extra.
+      --  select them all, so the info pane's snapshot carries every item's
+      --  localized extra.
       for Idx in 1 .. Files.Model.Visible_Count (Model) loop
          Files.Model.Select_Visible (Model, Idx);
          Files.Model.Ensure_Selected_Item_Extra (Model);
       end loop;
+      Files.Model.Select_All_Visible (Model);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       declare
          Found_Utf8_Metadata   : Boolean := False;
@@ -29,7 +31,7 @@ separate (Files_Suite.Operations)
          Found_Json_Metadata   : Boolean := False;
          Found_Xml_Metadata    : Boolean := False;
       begin
-         for Item of Snapshot.Items loop
+         for Item of Snapshot.Selected_Info loop
             if To_String (Item.Name) = "zutf8.txt" then
                Found_Utf8_Metadata :=
                  To_String (Item.Filetype_Extra) =
@@ -93,12 +95,12 @@ separate (Files_Suite.Operations)
             end if;
          end loop;
 
-         Assert (Found_Utf8_Metadata, "item snapshot localizes UTF-8 text metadata");
-         Assert (Found_Binary_Metadata, "item snapshot localizes binary text metadata");
-         Assert (Found_Markdown_Metadata, "item snapshot localizes Markdown metadata");
-         Assert (Found_Xlsx_Metadata, "item snapshot localizes XLSX metadata");
-         Assert (Found_Ada_Metadata, "item snapshot localizes Ada source metadata");
-         Assert (Found_Json_Metadata, "item snapshot localizes JSON source metadata");
-         Assert (Found_Xml_Metadata, "item snapshot localizes XML source metadata");
+         Assert (Found_Utf8_Metadata, "the info pane localizes UTF-8 text metadata");
+         Assert (Found_Binary_Metadata, "the info pane localizes binary text metadata");
+         Assert (Found_Markdown_Metadata, "the info pane localizes Markdown metadata");
+         Assert (Found_Xlsx_Metadata, "the info pane localizes XLSX metadata");
+         Assert (Found_Ada_Metadata, "the info pane localizes Ada source metadata");
+         Assert (Found_Json_Metadata, "the info pane localizes JSON source metadata");
+         Assert (Found_Xml_Metadata, "the info pane localizes XML source metadata");
       end;
    end Test_Info_Pane_Type_Metadata;

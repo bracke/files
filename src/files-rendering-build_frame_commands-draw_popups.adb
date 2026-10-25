@@ -29,7 +29,7 @@ separate (Files.Rendering.Build_Frame_Commands)
 
             case Snapshot.Quick_Look_Kind is
                when Files.Quick_Look.Image_Content =>
-                  if Natural (Snapshot.Quick_Look_Image_Pixels.Length) > 0
+                  if not Files.Shared_Bytes.Is_Empty (Snapshot.Quick_Look_Image_Pixels)
                     and then Snapshot.Quick_Look_Image_Width > 0
                     and then Snapshot.Quick_Look_Image_Height > 0
                   then
@@ -64,7 +64,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                                  Asset_Path       => Null_Unbounded_String,
                                  Thumbnail_Width  => IW,
                                  Thumbnail_Height => IH,
-                                 Thumbnail_Pixels => Snapshot.Quick_Look_Image_Pixels,
+                                 Thumbnail_Pixels => Files.Shared_Bytes.To_Vector (Snapshot.Quick_Look_Image_Pixels),
                                  Overlay          => True,
                                  Draw_Width       => Draw_W,
                                  Draw_Height      => Draw_H,

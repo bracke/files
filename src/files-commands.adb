@@ -41,7 +41,6 @@ package body Files.Commands is
       --  Changes view, sort or info-pane state that is mirrored into settings.
       Persists_UI_State  : Boolean := False;
       --  Reorders the listing, so the model's item order must be re-listed.
-      Reloads_Listing    : Boolean := False;
    end record;
 
    Traits : constant array (Command_Id) of Command_Traits :=
@@ -71,15 +70,15 @@ package body Files.Commands is
       Toggle_Sort_Menu_Command =>
         (Identifier => +"sort.menu.toggle", Name_Key => +"command.sort.menu", Placement => Bottom_Bar, others => <>),
       Sort_By_Name_Command =>
-        (Identifier => +"sort.name", Persists_UI_State | Reloads_Listing => True, others => <>),
+        (Identifier => +"sort.name", Persists_UI_State => True, others => <>),
       Sort_By_Size_Command =>
-        (Identifier => +"sort.size", Persists_UI_State | Reloads_Listing => True, others => <>),
+        (Identifier => +"sort.size", Persists_UI_State => True, others => <>),
       Sort_By_Type_Command =>
-        (Identifier => +"sort.type", Persists_UI_State | Reloads_Listing => True, others => <>),
+        (Identifier => +"sort.type", Persists_UI_State => True, others => <>),
       Sort_By_Created_Command =>
-        (Identifier => +"sort.created", Persists_UI_State | Reloads_Listing => True, others => <>),
+        (Identifier => +"sort.created", Persists_UI_State => True, others => <>),
       Sort_By_Changed_Command =>
-        (Identifier => +"sort.changed", Persists_UI_State | Reloads_Listing => True, others => <>),
+        (Identifier => +"sort.changed", Persists_UI_State => True, others => <>),
       Focus_Path_Input_Command =>
         (Identifier => +"path.focus", Placement => Toolbar_Middle, Primary => (True, GI.Key_L, Ctrl),
          With_Text_Focus => True, others => <>),
@@ -335,8 +334,6 @@ package body Files.Commands is
    function Requires_Settings_Path (Id : Command_Id) return Boolean is (Id in Settings_Command_Id);
 
    function Persists_Global_Ui_State (Id : Command_Id) return Boolean is (Traits (Id).Persists_UI_State);
-
-   function Reloads_Listing (Id : Command_Id) return Boolean is (Traits (Id).Reloads_Listing);
 
    function Command_Count return Natural is
    begin

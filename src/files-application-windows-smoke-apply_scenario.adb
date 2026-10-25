@@ -1,5 +1,6 @@
 with Files.Folder_Tree;
 with Files.Quick_Look;
+with Files.Shared_Bytes;
 
 separate (Files.Application.Windows.Smoke)
    procedure Apply_Scenario
@@ -138,18 +139,20 @@ separate (Files.Application.Windows.Smoke)
                declare
                   Dim     : constant := 256;
                   Content : Files.Quick_Look.Quick_Look_Content;
+                  Pixels  : Files.Types.Byte_Vectors.Vector;
                begin
                   Content.Kind := Files.Quick_Look.Image_Content;
                   Content.Image_Width := Dim;
                   Content.Image_Height := Dim;
                   for Y in 0 .. Dim - 1 loop
                      for X in 0 .. Dim - 1 loop
-                        Content.Image_Pixels.Append (Interfaces.Unsigned_8 (X mod 256));
-                        Content.Image_Pixels.Append (Interfaces.Unsigned_8 (Y mod 256));
-                        Content.Image_Pixels.Append (128);
-                        Content.Image_Pixels.Append (255);
+                        Pixels.Append (Interfaces.Unsigned_8 (X mod 256));
+                        Pixels.Append (Interfaces.Unsigned_8 (Y mod 256));
+                        Pixels.Append (128);
+                        Pixels.Append (255);
                      end loop;
                   end loop;
+                  Content.Image_Pixels := Files.Shared_Bytes.To_Shared (Pixels);
                   Files.Model.Open_Quick_Look (Runtime.Model, Content);
                end;
             end if;

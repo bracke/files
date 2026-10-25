@@ -162,6 +162,7 @@ separate (Files.Application.Windows)
             Runtime.Cached_Marquee_W := Runtime.Marquee_Rect_W;
             Runtime.Cached_Marquee_H := Runtime.Marquee_Rect_H;
             Runtime.Cached_Minute := Current_Minute;
+            Runtime.Cached_Frame_Text_Key := Frame_Text_Key (Runtime.Cached_Frame);
             Runtime.Frame_Cache_Valid := True;
          end Rebuild_Frame;
       begin
@@ -202,7 +203,7 @@ separate (Files.Application.Windows)
         or else Files.Model.Settings_Pane_Is_Open (Runtime.Model)
         or else Runtime.Last_Present_Palette_Open
         or else Runtime.Last_Present_Settings_Open
-        or else not Runtime.Text_Ready
+        or else (not Runtime.Text_Ready and then Runtime.Text_Failed_Size /= Runtime.Font_Pixel_Size)
       then
          Runtime.Present_Grace := Present_Grace_Frames;
       end if;
@@ -219,220 +220,237 @@ separate (Files.Application.Windows)
       end if;
 
       declare
-         --  A working copy of the cached frame so the palette overlay (whose
-         --  state lives in the component and changes every frame) can be merged
-         --  in fresh without polluting the cache.
-         Frame : Files.Rendering.Frame_Commands := Runtime.Cached_Frame;
          Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Drawn_Slot);
-      begin
-         if Files.Model.Command_Palette_Is_Open (Runtime.Model) then
-            declare
-               Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-               Layout : constant Files.Rendering.Layout_Metrics :=
-                 Files.Rendering.Calculate_Layout
-                   (Snapshot, Natural (Width), Natural (Height), Line_Height);
-               P_Rects : Guikit.Draw.Rectangle_Command_Vectors.Vector;
-               P_Text  : Guikit.Draw.Text_Command_Vectors.Vector;
-               P_Icons : Guikit.Draw.Icon_Command_Vectors.Vector;
-               P_Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
-            begin
-               Append_Modal_Backdrop (Frame, Natural (Width), Natural (Height));
-               Files.Model.Palette_Build_Frame
-                 (Model         => Runtime.Model,
-                  Region_X      => Layout.Command_X,
-                  Region_Y      => Layout.Command_Y,
-                  Region_Width  => Layout.Command_Width,
-                  Region_Height => Layout.Command_Height,
-                  Clip_Width    => Natural (Width),
-                  Clip_Height   => Natural (Height),
-                  Line_Height   => Line_Height,
-                  Focused       =>
-                    Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Command_Palette,
-                  Rectangles    => P_Rects,
-                  Text          => P_Text,
-                  Icons         => P_Icons,
-                  Accessibility => P_Nodes);
-               Append_Overlay (Frame, P_Rects, P_Text, P_Nodes, P_Icons);
-            end;
-         end if;
+         --  Whether an overlay is merged in below, so the frame shown differs
+         --  from the cached one.
+         Overlay_Merged : constant Boolean :=
+           Files.Model.Command_Palette_Is_Open (Runtime.Model)
+           or else Files.Model.Settings_Pane_Is_Open (Runtime.Model);
 
-         --  Settings remains logically open when Commands is invoked from it,
-         --  but Commands is the active top-level modal and owns the pixels until
-         --  it closes. Rendering both would interleave their batched text layers.
-         if Files.Model.Settings_Pane_Is_Open (Runtime.Model)
-           and then not Files.Model.Command_Palette_Is_Open (Runtime.Model)
-         then
-            declare
-               Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-               Layout : constant Files.Rendering.Layout_Metrics :=
-                 Files.Rendering.Calculate_Layout
-                   (Snapshot, Natural (Width), Natural (Height), Line_Height);
-               Pane : constant Guikit.Layout.Settings_Pane_Layout :=
-                 Guikit.Layout.Calculate_Settings_Pane_Layout
-                   (Natural (Width), Natural (Height), Layout.Toolbar_Height, Line_Height);
-               S_Rects : Guikit.Draw.Rectangle_Command_Vectors.Vector;
-               S_Text  : Guikit.Draw.Text_Command_Vectors.Vector;
-               S_Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
-            begin
-               Append_Modal_Backdrop (Frame, Natural (Width), Natural (Height));
-               Files.Model.Settings_Build_Frame
-                 (Model         => Runtime.Model,
-                  Region_X      => Pane.X,
-                  Region_Y      => Pane.Y,
-                  Region_Width  => Pane.Width,
-                  Region_Height => Pane.Height,
-                  Clip_Width    => Natural (Width),
-                  Clip_Height   => Natural (Height),
-                  Line_Height   => Line_Height,
-                  Focused       =>
-                    Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Settings_Input,
-                  Hover_X       =>
-                    (if Runtime.Cached_Has_Hover then Integer (Runtime.Cached_Hover_X) else -1),
-                  Hover_Y       =>
-                    (if Runtime.Cached_Has_Hover then Integer (Runtime.Cached_Hover_Y) else -1),
-                  Rectangles    => S_Rects,
-                  Text          => S_Text,
-                  Accessibility => S_Nodes);
-               Append_Overlay (Frame, S_Rects, S_Text, S_Nodes);
-            end;
-         end if;
-
-         --  The screen reader gets the frame as shown, overlays included --
-         --  the command palette and settings panel are merged in just above,
-         --  not into the cached frame -- when it changed or an overlay (whose
-         --  state changes from frame to frame) is up. The provider announces
-         --  only what differs from its last tree.
-         if Frame_Rebuilt
-           or else Files.Model.Command_Palette_Is_Open (Runtime.Model)
-           or else Files.Model.Settings_Pane_Is_Open (Runtime.Model)
-         then
-            Files.Accessibility.Publish (Runtime.A11y_Key, Frame);
-         end if;
-         Runtime.Shown_Accessibility := Frame.Accessibility;
-         Glfw.Windows.Set_Title (As_Window (Runtime.Handle), To_String (Snapshot.Current_Path));
-
-         Guikit.Vulkan.Ensure_Ready
-           (Renderer => Runtime.Vulkan,
-            Window   => As_Window (Runtime.Handle),
-            Width    => Natural (Width),
-            Height   => Natural (Height));
-
-         declare
-            Current_Text_Key : constant Unbounded_String := Frame_Text_Key (Frame);
-            Frame_Font_Path  : Unbounded_String;
+         procedure Present (Frame : Files.Rendering.Frame_Commands) is
          begin
-            if Current_Text_Key = Runtime.Text_Content_Key
-              and then Length (Runtime.Text_Content_Font_Path) > 0
+            --  The screen reader gets the frame as shown, overlays included --
+            --  the command palette and settings panel are merged in by the
+            --  caller, not into the cached frame -- when it changed, an
+            --  overlay (whose state changes from frame to frame) is up, or one
+            --  just closed. The provider announces only what differs from its
+            --  last tree.
+            if Frame_Rebuilt
+              or else Overlay_Merged
+              or else Runtime.Last_Present_Palette_Open
+              or else Runtime.Last_Present_Settings_Open
             then
-               Frame_Font_Path := Runtime.Text_Content_Font_Path;
-            else
-               Frame_Font_Path := To_Unbounded_String (Files.Rendering.Font_Path_For_Frame (Frame));
-               Runtime.Text_Content_Key := Current_Text_Key;
-               Runtime.Text_Content_Font_Path := Frame_Font_Path;
-               Runtime.Text_Ready := False;
-               Runtime.Text_Glyph_Key := Null_Unbounded_String;
-               Process_Text_Font_Ready := False;
+               Files.Accessibility.Publish (Runtime.A11y_Key, Frame);
+               Runtime.Shown_Accessibility := Frame.Accessibility;
+            end if;
+            --  A title change is a round trip to the window system.
+            if Snapshot.Current_Path /= Runtime.Shown_Title then
+               Glfw.Windows.Set_Title (As_Window (Runtime.Handle), To_String (Snapshot.Current_Path));
+               Runtime.Shown_Title := Snapshot.Current_Path;
             end if;
 
-            if Runtime.Text_Ready
-              and then
-                (Runtime.Text_Font_Path /= Frame_Font_Path
-                 or else not Process_Text_Font_Ready
-                 or else Process_Text_Font_Path /= Frame_Font_Path)
-            then
-               Runtime.Text_Ready := False;
-               Runtime.Text_Glyph_Key := Null_Unbounded_String;
-            end if;
+            Guikit.Vulkan.Ensure_Ready
+              (Renderer => Runtime.Vulkan,
+               Window   => As_Window (Runtime.Handle),
+               Width    => Natural (Width),
+               Height   => Natural (Height));
 
-            if not Runtime.Text_Ready then
-               declare
-                  Status : constant Files.Rendering.Text_Render_Status :=
-                    Files.Rendering.Initialize_Text
-                      (Renderer    => Runtime.Text,
-                       Font_Path   => To_String (Frame_Font_Path),
-                       Pixel_Size  => Runtime.Font_Pixel_Size,
-                       Cell_Width  => Cell_Width_For (Runtime.Font_Pixel_Size),
-                       Cell_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
-               begin
-                  Runtime.Text_Ready := Status = Files.Rendering.Text_Render_Success;
-                  Runtime.Text_Font_Path :=
-                    (if Runtime.Text_Ready then Frame_Font_Path else Null_Unbounded_String);
+            declare
+               --  What the glyph cache is keyed on. A change in it re-lays the
+               --  glyphs out; the fonts and atlas stay loaded.
+               Current_Text_Key : constant Unbounded_String :=
+                 (if Overlay_Merged then Frame_Text_Key (Frame) else Runtime.Cached_Frame_Text_Key);
+               Frame_Font_Path  : constant Unbounded_String :=
+                 To_Unbounded_String (Files.Rendering.Font_Path_For_Frame (Frame));
+            begin
+               if Runtime.Text_Ready
+                 and then
+                   (Runtime.Text_Font_Path /= Frame_Font_Path
+                    or else not Process_Text_Font_Ready
+                    or else Process_Text_Font_Path /= Frame_Font_Path)
+               then
+                  Runtime.Text_Ready := False;
                   Runtime.Text_Glyph_Key := Null_Unbounded_String;
-                  Process_Text_Font_Ready := Runtime.Text_Ready;
-                  Process_Text_Font_Path :=
-                    (if Runtime.Text_Ready then Frame_Font_Path else Null_Unbounded_String);
-                  Process_Text_Font_Size := (if Runtime.Text_Ready then Runtime.Font_Pixel_Size else 0);
-               end;
-            end if;
+               end if;
 
-            if Runtime.Text_Ready then
-               declare
-                  Glyphs : Files.Rendering.Text_Render_Result;
-               begin
-                  if Runtime.Text_Glyph_Key = Current_Text_Key
-                    and then Runtime.Text_Glyphs.Status = Files.Rendering.Text_Render_Success
-                  then
-                     Glyphs := Runtime.Text_Glyphs;
-                     Glyphs.Atlas_Dirty := False;
-                  else
-                     --  Another window may have re-initialized the shared
-                     --  renderer at its own size since; rasterizing now would
-                     --  put that size's glyphs into this window's cells.
-                     if Process_Text_Font_Size /= Runtime.Font_Pixel_Size
-                       or else not Process_Text_Font_Ready
-                       or else Process_Text_Font_Path /= Frame_Font_Path
-                     then
-                        declare
-                           Status : constant Files.Rendering.Text_Render_Status :=
-                             Files.Rendering.Initialize_Text
-                               (Renderer    => Runtime.Text,
-                                Font_Path   => To_String (Frame_Font_Path),
-                                Pixel_Size  => Runtime.Font_Pixel_Size,
-                                Cell_Width  => Cell_Width_For (Runtime.Font_Pixel_Size),
-                                Cell_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
-                           Ready : constant Boolean := Status = Files.Rendering.Text_Render_Success;
-                        begin
-                           Process_Text_Font_Ready := Ready;
-                           Process_Text_Font_Path :=
-                             (if Ready then Frame_Font_Path else Null_Unbounded_String);
-                           Process_Text_Font_Size := (if Ready then Runtime.Font_Pixel_Size else 0);
-                        end;
-                     end if;
-                     Glyphs := Files.Rendering.Build_Text_Glyphs (Runtime.Text, Frame);
-                     Runtime.Text_Glyphs := Glyphs;
-                     Runtime.Text_Glyph_Key := Current_Text_Key;
-                  end if;
-
+               if not Runtime.Text_Ready and then Runtime.Text_Failed_Size /= Runtime.Font_Pixel_Size then
                   declare
-                     Batch : constant Guikit.Vulkan.Submission_Batch :=
-                       Guikit.Vulkan.Build_Submission
-                         (Rectangles         => Frame.Rectangles,
-                          Triangles          => Frame.Triangles,
-                          Icons              => Frame.Icons,
-                          Overlay_Rectangles => Frame.Overlay_Rectangles,
-                          Layout             => Frame.Layout,
-                          Theme              => Frame.Theme_Palette,
-                          Text               => Glyphs);
+                     Status : constant Files.Rendering.Text_Render_Status :=
+                       Files.Rendering.Initialize_Text
+                         (Renderer    => Runtime.Text,
+                          Font_Path   => To_String (Frame_Font_Path),
+                          Pixel_Size  => Runtime.Font_Pixel_Size,
+                          Cell_Width  => Cell_Width_For (Runtime.Font_Pixel_Size),
+                          Cell_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
                   begin
-                     Runtime.Last_Glyph_Count := Natural (Glyphs.Glyphs.Length);
-                     Runtime.Last_Missing_Glyph_Count := Glyphs.Missing_Glyph_Count;
-                     Runtime.Last_Present_Status :=
-                       Guikit.Vulkan.Present_Frame
-                         (Renderer => Runtime.Vulkan,
-                          Batch    => Batch,
-                          Width    => Natural (Width),
-                          Height   => Natural (Height));
-
-                     if Runtime.Last_Present_Status /= Guikit.Vulkan.Vulkan_Presented then
-                        Runtime.Fallback_Frames := Runtime.Fallback_Frames + 1;
-                     end if;
+                     Runtime.Text_Ready := Status = Files.Rendering.Text_Render_Success;
+                     Runtime.Text_Font_Path :=
+                       (if Runtime.Text_Ready then Frame_Font_Path else Null_Unbounded_String);
+                     Runtime.Text_Glyph_Key := Null_Unbounded_String;
+                     Process_Text_Font_Ready := Runtime.Text_Ready;
+                     Process_Text_Font_Path :=
+                       (if Runtime.Text_Ready then Frame_Font_Path else Null_Unbounded_String);
+                     Process_Text_Font_Size := (if Runtime.Text_Ready then Runtime.Font_Pixel_Size else 0);
+                     Runtime.Text_Failed_Size := (if Runtime.Text_Ready then 0 else Runtime.Font_Pixel_Size);
                   end;
-               end;
-            else
-               Runtime.Last_Glyph_Count := 0;
-               Runtime.Last_Missing_Glyph_Count := 0;
-            end if;
-         end;
+               end if;
+
+               if Runtime.Text_Ready then
+                  declare
+                     Glyphs : Files.Rendering.Text_Render_Result;
+                  begin
+                     if Runtime.Text_Glyph_Key = Current_Text_Key
+                       and then Runtime.Text_Glyphs.Status = Files.Rendering.Text_Render_Success
+                     then
+                        Glyphs := Runtime.Text_Glyphs;
+                        Glyphs.Atlas_Dirty := False;
+                     else
+                        --  Another window may have re-initialized the shared
+                        --  renderer at its own size since; rasterizing now would
+                        --  put that size's glyphs into this window's cells.
+                        if Process_Text_Font_Size /= Runtime.Font_Pixel_Size
+                          or else not Process_Text_Font_Ready
+                          or else Process_Text_Font_Path /= Frame_Font_Path
+                        then
+                           declare
+                              Status : constant Files.Rendering.Text_Render_Status :=
+                                Files.Rendering.Initialize_Text
+                                  (Renderer    => Runtime.Text,
+                                   Font_Path   => To_String (Frame_Font_Path),
+                                   Pixel_Size  => Runtime.Font_Pixel_Size,
+                                   Cell_Width  => Cell_Width_For (Runtime.Font_Pixel_Size),
+                                   Cell_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
+                              Ready : constant Boolean := Status = Files.Rendering.Text_Render_Success;
+                           begin
+                              Process_Text_Font_Ready := Ready;
+                              Process_Text_Font_Path :=
+                                (if Ready then Frame_Font_Path else Null_Unbounded_String);
+                              Process_Text_Font_Size := (if Ready then Runtime.Font_Pixel_Size else 0);
+                           end;
+                        end if;
+                        Glyphs := Files.Rendering.Build_Text_Glyphs (Runtime.Text, Frame);
+                        Runtime.Text_Glyphs := Glyphs;
+                        Runtime.Text_Glyph_Key := Current_Text_Key;
+                     end if;
+
+                     declare
+                        Batch : constant Guikit.Vulkan.Submission_Batch :=
+                          Guikit.Vulkan.Build_Submission
+                            (Rectangles         => Frame.Rectangles,
+                             Triangles          => Frame.Triangles,
+                             Icons              => Frame.Icons,
+                             Overlay_Rectangles => Frame.Overlay_Rectangles,
+                             Layout             => Frame.Layout,
+                             Theme              => Frame.Theme_Palette,
+                             Text               => Glyphs);
+                     begin
+                        Runtime.Last_Glyph_Count := Natural (Glyphs.Glyphs.Length);
+                        Runtime.Last_Missing_Glyph_Count := Glyphs.Missing_Glyph_Count;
+                        Runtime.Last_Present_Status :=
+                          Guikit.Vulkan.Present_Frame
+                            (Renderer => Runtime.Vulkan,
+                             Batch    => Batch,
+                             Width    => Natural (Width),
+                             Height   => Natural (Height));
+
+                        if Runtime.Last_Present_Status /= Guikit.Vulkan.Vulkan_Presented then
+                           Runtime.Fallback_Frames := Runtime.Fallback_Frames + 1;
+                        end if;
+                     end;
+                  end;
+               else
+                  Runtime.Last_Glyph_Count := 0;
+                  Runtime.Last_Missing_Glyph_Count := 0;
+               end if;
+            end;
+
+         end Present;
+      begin
+         if Overlay_Merged then
+            declare
+               --  A working copy of the cached frame, so an overlay (whose state
+               --  lives in its component and changes every frame) is merged in
+               --  fresh without polluting the cache.
+               Frame : Files.Rendering.Frame_Commands := Runtime.Cached_Frame;
+            begin
+               if Files.Model.Command_Palette_Is_Open (Runtime.Model) then
+                  declare
+                     Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+                     Layout : constant Files.Rendering.Layout_Metrics :=
+                       Files.Rendering.Calculate_Layout
+                         (Snapshot, Natural (Width), Natural (Height), Line_Height);
+                     P_Rects : Guikit.Draw.Rectangle_Command_Vectors.Vector;
+                     P_Text  : Guikit.Draw.Text_Command_Vectors.Vector;
+                     P_Icons : Guikit.Draw.Icon_Command_Vectors.Vector;
+                     P_Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
+                  begin
+                     Append_Modal_Backdrop (Frame, Natural (Width), Natural (Height));
+                     Files.Model.Palette_Build_Frame
+                       (Model         => Runtime.Model,
+                        Region_X      => Layout.Command_X,
+                        Region_Y      => Layout.Command_Y,
+                        Region_Width  => Layout.Command_Width,
+                        Region_Height => Layout.Command_Height,
+                        Clip_Width    => Natural (Width),
+                        Clip_Height   => Natural (Height),
+                        Line_Height   => Line_Height,
+                        Focused       =>
+                          Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Command_Palette,
+                        Rectangles    => P_Rects,
+                        Text          => P_Text,
+                        Icons         => P_Icons,
+                        Accessibility => P_Nodes);
+                     Append_Overlay (Frame, P_Rects, P_Text, P_Nodes, P_Icons);
+                  end;
+               end if;
+
+               --  Settings remains logically open when Commands is invoked from it,
+               --  but Commands is the active top-level modal and owns the pixels until
+               --  it closes. Rendering both would interleave their batched text layers.
+               if Files.Model.Settings_Pane_Is_Open (Runtime.Model)
+                 and then not Files.Model.Command_Palette_Is_Open (Runtime.Model)
+               then
+                  declare
+                     Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+                     Layout : constant Files.Rendering.Layout_Metrics :=
+                       Files.Rendering.Calculate_Layout
+                         (Snapshot, Natural (Width), Natural (Height), Line_Height);
+                     Pane : constant Guikit.Layout.Settings_Pane_Layout :=
+                       Guikit.Layout.Calculate_Settings_Pane_Layout
+                         (Natural (Width), Natural (Height), Layout.Toolbar_Height, Line_Height);
+                     S_Rects : Guikit.Draw.Rectangle_Command_Vectors.Vector;
+                     S_Text  : Guikit.Draw.Text_Command_Vectors.Vector;
+                     S_Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
+                  begin
+                     Append_Modal_Backdrop (Frame, Natural (Width), Natural (Height));
+                     Files.Model.Settings_Build_Frame
+                       (Model         => Runtime.Model,
+                        Region_X      => Pane.X,
+                        Region_Y      => Pane.Y,
+                        Region_Width  => Pane.Width,
+                        Region_Height => Pane.Height,
+                        Clip_Width    => Natural (Width),
+                        Clip_Height   => Natural (Height),
+                        Line_Height   => Line_Height,
+                        Focused       =>
+                          Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Settings_Input,
+                        Hover_X       =>
+                          (if Runtime.Cached_Has_Hover then Integer (Runtime.Cached_Hover_X) else -1),
+                        Hover_Y       =>
+                          (if Runtime.Cached_Has_Hover then Integer (Runtime.Cached_Hover_Y) else -1),
+                        Rectangles    => S_Rects,
+                        Text          => S_Text,
+                        Accessibility => S_Nodes);
+                     Append_Overlay (Frame, S_Rects, S_Text, S_Nodes);
+                  end;
+               end if;
+
+               Present (Frame);
+            end;
+         else
+            --  Nothing to merge: present the cached frame itself, uncopied.
+            Present (Runtime.Cached_Frame);
+         end if;
 
          --  Remember what we just put on screen so the next render's present gate
          --  can tell whether an overlay closed (a change that must be presented).

@@ -2,10 +2,12 @@ with Ada.Calendar.Formatting;
 with Ada.Calendar.Time_Zones;
 with Ada.Containers;
 with Ada.Containers.Hashed_Sets;
+with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Characters.Handling;
 with Ada.Strings;
 with Ada.Numerics.Elementary_Functions;
 with Ada.Strings.Fixed;
+with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
 
@@ -39,6 +41,38 @@ package body Files.Rendering is
    --  Text rendering is provided by the guikit toolkit; this process-wide
    --  renderer holds the shared font/atlas the whole app draws through.
    The_Renderer : Guikit.Text.Renderer;
+
+   --  Parsed icon assets by their text: every icon drawn was parsed again on
+   --  every frame rebuild. Keyed by the text itself, so a theme switch or
+   --  another asset source (the tests install their own) never reuses a
+   --  stale parse. A theme has a few dozen icons; the bound only guards
+   --  against an unbounded source.
+   package Parsed_Asset_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => Icon_Asset,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+   Parsed_Assets     : Parsed_Asset_Maps.Map;
+   Max_Parsed_Assets : constant := 512;
+
+   --  The icon Name of Theme, parsed.
+   function Parsed_Icon_Asset (Name, Theme : String) return Icon_Asset is
+      Text     : constant String := Icon_Asset_Text (Name, Theme);
+      Position : constant Parsed_Asset_Maps.Cursor := Parsed_Assets.Find (Text);
+   begin
+      if Parsed_Asset_Maps.Has_Element (Position) then
+         return Parsed_Asset_Maps.Element (Position);
+      end if;
+      declare
+         Asset : constant Icon_Asset := Parse_Icon_Asset (Text);
+      begin
+         if Natural (Parsed_Assets.Length) >= Max_Parsed_Assets then
+            Parsed_Assets.Clear;
+         end if;
+         Parsed_Assets.Insert (Text, Asset);
+         return Asset;
+      end;
+   end Parsed_Icon_Asset;
 
    use Ada.Strings.Unbounded;
    use type Ada.Containers.Count_Type;

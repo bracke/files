@@ -285,17 +285,6 @@ package body Files.Interaction is
          end if;
       end;
 
-      --  Sync above has already updated the settings sort field that Refresh uses.
-      if Files.Commands.Reloads_Listing (Command) then
-         declare
-            Reloaded : constant Files.Operations.Operation_Result :=
-              Files.Operations.Refresh (Model, Settings);
-            pragma Unreferenced (Reloaded);
-         begin
-            Result.Directory_Reloaded := True;
-         end;
-      end if;
-
       Result.Status := Outcome.Status;
       Result.Command_Executed := Outcome.Status = Files.Controller.Controller_Command_Executed;
       Result.Directory_Reloaded :=

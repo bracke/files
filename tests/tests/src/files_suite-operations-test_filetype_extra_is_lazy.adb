@@ -5,18 +5,16 @@ separate (Files_Suite.Operations)
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
 
-      --  The generic fallback shown when the child count has not been computed.
+      --  The generic fallback shown while the child count is not computed.
       Fallback : constant String := Files.Localization.Text ("info.extra.directory");
 
+      --  The detail the info pane shows for the selected folder.
       function Folder_Extra return String is
          Snap : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model);
       begin
-         for Idx in 1 .. Natural (Snap.Items.Length) loop
-            if Snap.Items.Element (Idx).Name = To_Unbounded_String ("sub") then
-               return To_String (Snap.Items.Element (Idx).Filetype_Extra);
-            end if;
-         end loop;
-         return "";
+         return
+           (if Snap.Selected_Info.Is_Empty then ""
+            else To_String (Snap.Selected_Info.First_Element.Filetype_Extra));
       end Folder_Extra;
    begin
       Reset_Root;
@@ -26,13 +24,12 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "sub");
 
-      --  Info pane closed: the child count is not computed (no subfolder opened),
-      --  so the snapshot shows the cheap generic fallback rather than a count.
+      --  Info pane closed: the child count is not computed (no subfolder opened).
       Files.Model.Ensure_Selected_Item_Extra (Model);
       Files_Suite.Support.Assert_Equal
-        (Folder_Extra,
-         Fallback,
-         "folder shows the generic fallback, not a child count, while the info pane is closed");
+        (Length (Files.Model.Selected_Item (Model).Filetype_Extra),
+         0,
+         "the folder's child count is not computed while the info pane is closed");
 
       --  Info pane open: the selected folder's child count is computed lazily,
       --  replacing the fallback with the actual count detail.

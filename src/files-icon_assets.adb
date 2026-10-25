@@ -69,9 +69,13 @@ package body Files.Icon_Assets is
          if Root = "" then
             return "";
          end if;
-         if Cache.Contains (Key) then
-            return Cache.Element (Key);
-         end if;
+         declare
+            Position : constant Text_Maps.Cursor := Cache.Find (Key);
+         begin
+            if Text_Maps.Has_Element (Position) then
+               return Text_Maps.Element (Position);
+            end if;
+         end;
 
          declare
             Text : constant String := Read_File (Path);

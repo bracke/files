@@ -151,13 +151,25 @@ package body Files.Accessibility is
    end Combined;
 
    procedure Publish (Window : Window_Key; Frame : Files.Rendering.Frame_Commands) is
+      use type A11ykit.Tree.Accessibility_Tree;
+      Tree  : constant A11ykit.Tree.Accessibility_Tree := To_A11ykit_Tree (Frame);
+      First : constant Boolean := not Trees.Contains (Window);
    begin
-      Trees.Include (Window, To_A11ykit_Tree (Frame));
+      --  An overlay is republished every frame it is up; an unchanged tree
+      --  costs no combining, no provider diff and no native attach.
+      if not First and then Trees.Element (Window) = Tree then
+         return;
+      end if;
+      Trees.Include (Window, Tree);
       --  Native providers establish their host registration from the first
       --  tree, because only then is the application root known.  Available is
       --  therefore an outcome of Publish, not a precondition for calling it.
       A11ykit.Provider.Publish (Combined);
-      Attach_Windows;
+      --  The windows' order, which their attachment follows, changes only
+      --  when one comes or goes (Attach_Window and Forget attach too).
+      if First then
+         Attach_Windows;
+      end if;
    end Publish;
 
    procedure Forget (Window : Window_Key) is

@@ -1,3 +1,4 @@
+with Files.Shared_Bytes;
 with Files.Types;
 
 --  Pure Quick Look content preparation. Given an item's metadata plus a bounded
@@ -37,8 +38,9 @@ package Files.Quick_Look is
       --  For Image_Content: the original image decoded to RGBA at preview
       --  resolution, filled by the caller after classification (this package is
       --  pure). Empty when decoding was unavailable; the renderer then falls back
-      --  to the item's small thumbnail.
-      Image_Pixels   : Files.Types.Byte_Vectors.Vector;
+      --  to the item's small thumbnail. Shared, so the snapshot rebuilt on
+      --  every change does not copy the image.
+      Image_Pixels   : Files.Shared_Bytes.Bytes;
       Image_Width    : Natural := 0;
       Image_Height   : Natural := 0;
    end record;
