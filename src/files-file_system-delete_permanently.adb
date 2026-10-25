@@ -63,7 +63,7 @@ begin
    elsif not (Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path)) then
       return
         (Success   => False,
-         Error_Key => To_Unbounded_String ("error.rename.source_missing"));
+         Error_Key => To_Unbounded_String ("error.path.missing"));
    end if;
 
    --  Symlink-aware recursive delete: a symlink -- even one whose target is

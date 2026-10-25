@@ -1007,10 +1007,14 @@ package Files.File_System is
    --
    --  @param Path Entry to move to trash.
    --  @param Trashed_Path Set to the payload's location in the trash on success.
+   --  @param Recorded_Path Where the trash says the item came from, so a
+   --    restore puts it back there; empty means Path. A recovery payload
+   --    names its original location this way, not its hidden stage.
    --  @return Mutation result with a localized error key on failure.
    function Move_To_Trash
-     (Path         : String;
-      Trashed_Path : out Files.Types.UString)
+     (Path          : String;
+      Trashed_Path  : out Files.Types.UString;
+      Recorded_Path : String := "")
       return Mutation_Result;
 
    --  Permanently remove a file or empty directory.

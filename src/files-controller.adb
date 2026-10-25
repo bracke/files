@@ -157,6 +157,15 @@ package body Files.Controller is
             others    => <>));
    end Settings_Closed_Result;
 
+   --  Open root Root_Index of the root selector: what a click on it and the
+   --  open-selected command both do. The command may come from the palette,
+   --  open over the selector, so the overlay checks are the caller's.
+   function Open_Root
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Root_Index : Positive)
+      return Controller_Result;
+
    function Disabled_Command_Result
      (Id    : Files.Commands.Command_Id;
       Model : in out Files.Model.Window_Model)
@@ -625,33 +634,17 @@ package body Files.Controller is
       end;
    end Reveal_Selected_Item;
 
-   function Handle_Root_Click
+   function Open_Root
      (Model      : in out Files.Model.Window_Model;
       Settings   : Files.Settings.Settings_Model;
-      Root_Index : Natural)
+      Root_Index : Positive)
       return Controller_Result is
    begin
-      if not Files.Model.Root_Selector_Is_Open (Model)
-        or else Files.Model.Command_Palette_Is_Open (Model)
-        or else Files.Model.Settings_Pane_Is_Open (Model)
-        or else Files.Model.Sort_Menu_Is_Open (Model)
-        or else Files.Model.Context_Menu_Is_Open (Model)
-        or else Files.Model.Label_Picker_Is_Open (Model)
-        or else Files.Model.Quick_Look_Is_Open (Model)
-        or else Files.Model.Tree_Pick_Is_Active (Model)
-        or else Files.Model.Paste_Conflict_Is_Active (Model)
-        or else Files.Model.Paste_Execution_Is_Active (Model)
-        or else Root_Index = 0
-        or else Root_Index > Files.Model.Root_Count (Model)
-      then
-         return Make_Result (Controller_Ignored);
-      end if;
-
       Files.Model.Set_Root_Selected_Index (Model, Root_Index);
       declare
-         Path : constant String := Files.Model.Root_Path (Model, Positive (Root_Index));
+         Path : constant String := Files.Model.Root_Path (Model, Root_Index);
          Kind : constant Files.File_System.Root_Kind :=
-           Files.Model.Root_Kind (Model, Positive (Root_Index));
+           Files.Model.Root_Kind (Model, Root_Index);
       begin
          --  A favorite may target a file or a stale path; ordinary roots are
          --  always directories and take the direct navigation path.
@@ -675,6 +668,31 @@ package body Files.Controller is
             return Make_Result (Controller_Command_Executed, Files.Commands.Open_Selected_Root_Command, Operation);
          end;
       end;
+   end Open_Root;
+
+   function Handle_Root_Click
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Root_Index : Natural)
+      return Controller_Result is
+   begin
+      if not Files.Model.Root_Selector_Is_Open (Model)
+        or else Files.Model.Command_Palette_Is_Open (Model)
+        or else Files.Model.Settings_Pane_Is_Open (Model)
+        or else Files.Model.Sort_Menu_Is_Open (Model)
+        or else Files.Model.Context_Menu_Is_Open (Model)
+        or else Files.Model.Label_Picker_Is_Open (Model)
+        or else Files.Model.Quick_Look_Is_Open (Model)
+        or else Files.Model.Tree_Pick_Is_Active (Model)
+        or else Files.Model.Paste_Conflict_Is_Active (Model)
+        or else Files.Model.Paste_Execution_Is_Active (Model)
+        or else Root_Index = 0
+        or else Root_Index > Files.Model.Root_Count (Model)
+      then
+         return Make_Result (Controller_Ignored);
+      end if;
+
+      return Open_Root (Model, Settings, Positive (Root_Index));
    end Handle_Root_Click;
 
    function Handle_Breadcrumb_Click
@@ -834,7 +852,7 @@ package body Files.Controller is
       if Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Open_With then
          declare
             Apps : constant Files.Desktop_Applications.Application_Vectors.Vector :=
-              Files.Desktop_Applications.Available_Applications;
+              Files.Model.Open_With_Applications (Model);
          begin
             if Id in 1 .. Natural (Apps.Length) then
                return Launch_Application_Result (Model, Apps.Element (Id));

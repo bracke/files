@@ -119,6 +119,7 @@ package Files.Commands is
    subtype Settings_Command_Id is Command_Id
      with Static_Predicate =>
        Settings_Command_Id in Save_Settings_Command
+         | Reset_Settings_Command
          | Toggle_Hidden_Files_Command
          | Toggle_Show_Extensions_Command
          | Toggle_Free_Space_Display_Command

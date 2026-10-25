@@ -78,7 +78,7 @@ package body Files.Interaction is
       Result            : in out Interaction_Result) is
    begin
       case Command is
-         when Files.Commands.Save_Settings_Command =>
+         when Files.Commands.Save_Settings_Command | Files.Commands.Reset_Settings_Command =>
             Result.Settings_Changed := True;
             --  Apply a font-size change made in the settings pane live, the same
             --  way Ctrl+scroll / Ctrl+= zoom does: signal the shell to sync the
@@ -261,13 +261,29 @@ package body Files.Interaction is
          if Files.Commands.Requires_Settings_Path (Command) then
             Observe_Settings_Command (Command, Before, Settings, Current_Font_Size, Result);
          end if;
-      end;
 
-      if Files.Commands.Persists_Global_Ui_State (Command)
-        and then Sync_Global_UI_State (Model, Settings, Settings_Path)
-      then
-         Result.Settings_Changed := True;
-      end if;
+         if Files.Commands.Persists_Global_Ui_State (Command)
+           and then Sync_Global_UI_State (Model, Settings, Settings_Path)
+         then
+            Result.Settings_Changed := True;
+         end if;
+
+         --  A command that changed a setting the open pane edits: the pane
+         --  shows the new value, and its next save cannot write the old
+         --  one back.
+         if Files.Model.Settings_Pane_Is_Open (Model) then
+            declare
+               use type Files.Settings.Settings_Draft;
+               Shown     : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+               Refreshed : constant Files.Settings.Settings_Draft :=
+                 Files.Settings.Refresh_Draft (Shown, Before, Settings);
+            begin
+               if Refreshed /= Shown then
+                  Files.Model.Set_Settings_Draft (Model, Refreshed);
+               end if;
+            end;
+         end if;
+      end;
 
       --  Sync above has already updated the settings sort field that Refresh uses.
       if Files.Commands.Reloads_Listing (Command) then

@@ -1,5 +1,6 @@
 with Ada.Calendar;
 with Files.Copy_Context;
+with Files.Desktop_Applications;
 with Files.Process_Jobs;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
@@ -1717,6 +1718,25 @@ package Files.Model is
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector;
 
+   --  Store the applications the "Open With" picker lists. The caller scans
+   --  once when the picker opens; the list drawn and the one a choice is
+   --  resolved against are then the same, however the installed set changes.
+   --
+   --  @param Model Model to update.
+   --  @param Applications Installed applications, in picker order.
+   procedure Set_Open_With_Applications
+     (Model        : in out Window_Model;
+      Applications : Files.Desktop_Applications.Application_Vectors.Vector);
+
+   --  Return the applications the "Open With" picker lists.
+   --
+   --  @param Model Model to inspect.
+   --  @return The list stored when the picker opened; empty otherwise. A
+   --    picker Id is a one-based index into it.
+   function Open_With_Applications
+     (Model : Window_Model)
+      return Files.Desktop_Applications.Application_Vectors.Vector;
+
    --  Open the Quick Look overlay with prepared preview content, capturing the
    --  currently selected item's path as the previewed identity.
    --
@@ -3243,6 +3263,10 @@ private
       Label_Picker_Active      : Boolean := False;
       Label_Picker_Swatch_Value : Positive := 8;
       Open_With_Targets_Value  : Files.Types.String_Vectors.Vector;
+      Open_With_Applications_Value : Files.Desktop_Applications.Application_Vectors.Vector;
+      --  The model revision the palette's command list was built at, so a
+      --  frame rebuilds it (every command's enablement) only after a change.
+      Palette_Listed_Revision  : Natural := Natural'Last;
       Rename_Active            : Boolean := False;
       Rename_Fields            : Rename_Field_Vectors.Vector;
       Temporary_Active     : Boolean := False;

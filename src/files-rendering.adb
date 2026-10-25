@@ -843,9 +843,10 @@ package body Files.Rendering is
    end Calculate_Layout;
 
    function Calculate_Item_Layout
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+     (Snapshot      : View_Snapshot;
+      Layout        : Layout_Metrics;
+      Line_Height   : Positive := 20;
+      Whole_Content : Boolean := False)
       return Item_Layout_Vectors.Vector
  is separate;
 

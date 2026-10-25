@@ -107,6 +107,7 @@ package body Files_Suite.Rendering is
    procedure Test_Detail_Group_Header_Rows (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Header_Separator_Hit_Test (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Separators_Within_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Whole_Content_Item_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Text_Baseline (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sort_Button_Fits_Field (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sort_Label_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -289,6 +290,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Detail_Separators_Within_Content'Access,
          "an overflowing details view keeps its column dividers inside the content, out of the bottom bar");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Whole_Content_Item_Layout'Access,
+         "the whole-content item layout places scrolled-off rows where a scrolling marquee finds them");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Text_Baseline'Access,
          "the view-mode chooser labels share the bottom bar's text baseline");
@@ -672,6 +676,8 @@ package body Files_Suite.Rendering is
    procedure Test_Detail_Column_Customization (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Detail_Separators_Within_Content (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Whole_Content_Item_Layout (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Bottom_Bar_Text_Baseline (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

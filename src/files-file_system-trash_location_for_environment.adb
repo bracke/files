@@ -21,7 +21,14 @@ begin
         (Backend => Trash_Xdg_Data_Home,
          Base    => To_Unbounded_String (Join_Path (Xdg_Data_Home, "Trash")));
    elsif Home /= "" and then GNAT.OS_Lib.Is_Absolute_Path (Home) then
-      if Ada.Directories.Exists (Join_Path (Home, ".Trash")) then
+      --  ~/.Trash is the macOS layout (no info files), taken only on macOS
+      --  or when asked for: on Linux a stray ~/.Trash is just a folder, and
+      --  trashing into it would leave items nothing can restore.
+      if Environment_Equals ("FILES_TRASH_BACKEND", "macos-home")
+        or else (Files_Config.Alire_Host_OS = "macos"
+                 and then not Environment_Equals ("FILES_TRASH_BACKEND", "xdg")
+                 and then Ada.Directories.Exists (Join_Path (Home, ".Trash")))
+      then
          Result :=
            (Backend => Trash_Macos_Home,
             Base    => To_Unbounded_String (Join_Path (Home, ".Trash")));

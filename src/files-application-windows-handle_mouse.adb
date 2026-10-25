@@ -24,11 +24,10 @@ separate (Files.Application.Windows)
 
       while Runtime.Handle.Pending_Right_Clicks > 0 loop
          Runtime.Handle.Pending_Right_Clicks := Runtime.Handle.Pending_Right_Clicks - 1;
-         Refresh_Snapshot (Runtime);
          declare
             X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
             Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-            Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Current_Slot);
+            Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Hit_Slot (Runtime));
             Layout   : constant Files.Rendering.Layout_Metrics :=
               Files.Rendering.Calculate_Layout
                 (Snapshot, Natural (Frame_W), Natural (Frame_H),
@@ -71,11 +70,13 @@ separate (Files.Application.Windows)
          Runtime.Handle.Pending_Left_Clicks := Runtime.Handle.Pending_Left_Clicks - 1;
 
          if Files.Model.Context_Menu_Is_Open (Runtime.Model) then
-            Refresh_Snapshot (Runtime);
             declare
-               X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
-               Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-               Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Current_Slot);
+               --  Where the button went down, as for any other click.
+               Press_X  : constant Glfw.Input.Mouse.Coordinate := Runtime.Handle.Drag_Start_X;
+               Press_Y  : constant Glfw.Input.Mouse.Coordinate := Runtime.Handle.Drag_Start_Y;
+               X        : constant Natural := Scale_Coordinate (Press_X, Window_W, Frame_W);
+               Y        : constant Natural := Scale_Coordinate (Press_Y, Window_H, Frame_H);
+               Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Hit_Slot (Runtime));
                Menu     : constant Files.Rendering.Context_Menu_Layout :=
                  Files.Rendering.Calculate_Context_Menu_Layout
                    (Snapshot, Natural (Frame_W), Natural (Frame_H),
@@ -88,7 +89,7 @@ separate (Files.Application.Windows)
                   else Files.Commands.No_Command);
                Result   : Files.Interaction.Interaction_Result;
             begin
-               if Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H)
+               if Cursor_Is_Inside_Window (Press_X, Press_Y, Window_W, Window_H)
                  and then Frame_W > 0 and then Frame_H > 0
                  and then X < Natural (Frame_W) and then Y < Natural (Frame_H)
                then

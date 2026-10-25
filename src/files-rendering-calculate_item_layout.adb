@@ -1,8 +1,9 @@
 separate (Files.Rendering)
    function Calculate_Item_Layout
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+     (Snapshot      : View_Snapshot;
+      Layout        : Layout_Metrics;
+      Line_Height   : Positive := 20;
+      Whole_Content : Boolean := False)
       return Item_Layout_Vectors.Vector
    is
       Content : constant Content_Rectangle := Main_Content_Rect (Layout);
@@ -59,8 +60,11 @@ separate (Files.Rendering)
          Content_X     => Content_X,
          Content_Y     => Content_Y,
          Content_W     => Content_W,
-         Content_H     => Content_H,
+         Content_H     =>
+           --  The whole content below the header: the viewport plus all
+           --  that scrolls, whatever the header takes.
+           (if Whole_Content then Content_H + Main_View.Content_Height else Content_H),
          Columns       => Columns,
-         Scroll_Pixels => Main_View.Scroll_Pixels,
+         Scroll_Pixels => (if Whole_Content then 0 else Main_View.Scroll_Pixels),
          Line_Height   => Line_Height);
    end Calculate_Item_Layout;

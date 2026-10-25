@@ -288,6 +288,7 @@ package body Files_Suite.Operations is
    procedure Test_Multi_Selection_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Nested_Trash_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Macos_Home_Trash_Fallback (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Stray_Home_Trash_Stays_Freedesktop (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_From_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_From_Trash_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_Url_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -659,6 +660,9 @@ package body Files_Suite.Operations is
         (T, Test_Nested_Trash_Preflight'Access, "trash refuses to move a directory into its own trash");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Macos_Home_Trash_Fallback'Access, "a macOS-style ~/.Trash is used directly as a fallback");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Stray_Home_Trash_Stays_Freedesktop'Access,
+         "a stray ~/.Trash outside macOS leaves the freedesktop trash in use");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Restore_From_Trash'Access, "restore operation returns trashed item to original path");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1128,6 +1132,8 @@ package body Files_Suite.Operations is
    procedure Test_Nested_Trash_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Macos_Home_Trash_Fallback (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Stray_Home_Trash_Stays_Freedesktop (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Restore_From_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

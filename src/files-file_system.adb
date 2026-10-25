@@ -878,8 +878,9 @@ package body Files.File_System is
    is separate;
 
    function Move_To_Trash
-     (Path         : String;
-      Trashed_Path : out Files.Types.UString)
+     (Path          : String;
+      Trashed_Path  : out Files.Types.UString;
+      Recorded_Path : String := "")
       return Mutation_Result
    is separate;
 
@@ -929,8 +930,11 @@ package body Files.File_System is
      renames Recovery.Recognizes;
 
    function Release_Recovery_Payload (Path : String) return Mutation_Result is
-      function To_Trash (Entry_Path : String) return Mutation_Result is
-        (Move_To_Trash (Entry_Path));
+      function To_Trash (Entry_Path, Original : String) return Mutation_Result is
+         Ignored : Files.Types.UString;
+      begin
+         return Move_To_Trash (Entry_Path, Ignored, Recorded_Path => Original);
+      end To_Trash;
    begin
       return Recovery.Release (Path, To_Trash'Access);
    end Release_Recovery_Payload;

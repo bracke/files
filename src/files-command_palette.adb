@@ -25,7 +25,7 @@ package body Files.Command_Palette is
       if Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Open_With then
          declare
             Apps : constant Files.Desktop_Applications.Application_Vectors.Vector :=
-              Files.Desktop_Applications.Available_Applications;
+              Files.Model.Open_With_Applications (Model);
             Index : Natural := 0;
          begin
             for App of Apps loop

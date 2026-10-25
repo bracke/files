@@ -18,6 +18,13 @@ package Files.Settings_Form is
      (Model : Files.Model.Window_Model)
       return Guikit.Settings_Panel.Field_Vectors.Vector;
 
+   --  Return the settings pane's draft to the defaults and drop every
+   --  shortcut override: what the pane's Reset button and the reset command
+   --  both do before saving.
+   --
+   --  @param Model Model whose settings draft is reset.
+   procedure Reset_To_Defaults (Model : in out Files.Model.Window_Model);
+
    --  Apply a change emitted by the panel to the model's draft.
    --
    --  @param Model Model whose draft is updated.

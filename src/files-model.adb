@@ -1659,6 +1659,14 @@ package body Files.Model is
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector is separate;
 
+   procedure Set_Open_With_Applications
+     (Model        : in out Window_Model;
+      Applications : Files.Desktop_Applications.Application_Vectors.Vector) is separate;
+
+   function Open_With_Applications
+     (Model : Window_Model)
+      return Files.Desktop_Applications.Application_Vectors.Vector is separate;
+
    procedure Open_Label_Picker
      (Model : in out Window_Model) is separate;
 

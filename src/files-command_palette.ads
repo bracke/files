@@ -12,7 +12,7 @@ package Files.Command_Palette is
    --  every visible registered command (Commands mode), or every installed
    --  application (Open-With mode). Each command's Id is the Files.Commands
    --  enumeration position (Commands mode) or the one-based index into
-   --  Files.Desktop_Applications.Available_Applications (Open-With mode).
+   --  Files.Model.Open_With_Applications (Open-With mode).
    --
    --  @param Model Current model, for the mode and command enablement.
    --  @return The commands to hand to Guikit.Command_Palette.

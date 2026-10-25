@@ -66,4 +66,18 @@ separate (Files_Suite.Model)
         (Files.Model.Current_Path (Model),
          Ada.Directories.Full_Name (Target),
          "root-open loads selected root");
+
+      --  Chosen from the palette, opened over the selector, it opens too.
+      Files.Model.Navigate_To (Model, Root, Files.File_System.Item_Vectors.Empty_Vector);
+      Files.Model.Open_Root_Selector (Model, Entries);
+      Files.Model.Open_Command_Palette (Model);
+      Result := Files.Controller.Execute_Command (Files.Commands.Open_Selected_Root_Command, Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Navigated,
+         "root-open from the palette over the selector navigates");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model),
+         Ada.Directories.Full_Name (Target),
+         "root-open from the palette loads the selected root");
    end Test_Root_Selector_Eject_And_Open;

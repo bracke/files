@@ -640,6 +640,21 @@ package Files.Settings is
      (Settings : Settings_Model)
       return Settings_Draft;
 
+   --  Bring the pane-edited scalars of Draft up to date with a change made
+   --  outside the pane (a command run while it is open), so the pane shows
+   --  the change and its next save keeps it. A setting that did not change
+   --  between Before and After keeps what the pane holds, an edit included.
+   --
+   --  @param Draft The pane's draft.
+   --  @param Before Settings before the change.
+   --  @param After Settings after it.
+   --  @return Draft with each changed pane setting taken from After.
+   function Refresh_Draft
+     (Draft  : Settings_Draft;
+      Before : Settings_Model;
+      After  : Settings_Model)
+      return Settings_Draft;
+
    --  Validate a settings draft without changing a settings model.
    --
    --  @param Draft Draft to validate.

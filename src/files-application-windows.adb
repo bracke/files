@@ -958,7 +958,10 @@ package body Files.Application.Windows is
          elsif Scaled >= Long_Float (Target) then
             return Natural (Target);
          else
-            return Natural (Scaled);
+            --  The pixel the point lies in: truncate, as the framebuffer's
+            --  pixel grid does. A conversion would round, putting the right
+            --  half of every pixel in the next one.
+            return Natural (Long_Float'Floor (Scaled));
          end if;
       end;
    exception
@@ -1090,6 +1093,19 @@ package body Files.Application.Windows is
       Apply_Interaction_Result (Runtime, Result);
    end Dispatch_Click_Action;
 
+   --  The snapshot to hit-test pointer input against: the one the frame on
+   --  screen was built from, not the model as a refresh since may have
+   --  changed it, so a clicked index names the item drawn under the pointer.
+   --  Before the first frame there is nothing drawn; the model is used as is.
+   function Hit_Slot (Runtime : in out Runtime_Window) return Snapshot_Slot is
+   begin
+      if not Runtime.Frame_Cache_Valid then
+         Refresh_Snapshot (Runtime);
+         return Runtime.Current_Slot;
+      end if;
+      return Runtime.Drawn_Slot;
+   end Hit_Slot;
+
    function Current_Click_Action
      (Runtime   : in out Runtime_Window;
       Window_W  : Glfw.Size;
@@ -1108,19 +1124,10 @@ package body Files.Application.Windows is
          return (Kind => Files.Events.No_Input_Action, others => <>);
       end if;
 
-      --  Hit-test against what is on screen: the snapshot Cached_Frame was
-      --  built from, not the model as a refresh since may have changed it, so
-      --  the clicked index names the item that was drawn under the pointer.
-      --  Before the first frame there is nothing drawn; use the model as is.
-      if not Runtime.Frame_Cache_Valid then
-         Refresh_Snapshot (Runtime);
-      end if;
-
       declare
          X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
          Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-         Slot     : constant Snapshot_Slot :=
-           (if Runtime.Frame_Cache_Valid then Runtime.Drawn_Slot else Runtime.Current_Slot);
+         Slot     : constant Snapshot_Slot := Hit_Slot (Runtime);
          Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Slot);
       begin
          return
@@ -1605,11 +1612,10 @@ package body Files.Application.Windows is
       end if;
 
       if Runtime.Column_Reorder_Started then
-         Refresh_Snapshot (Runtime);
          declare
             Y_Frame  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
             Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-            Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Current_Slot);
+            Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Hit_Slot (Runtime));
             Layout   : constant Files.Rendering.Layout_Metrics :=
               Files.Rendering.Calculate_Layout
                 (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);

@@ -75,38 +75,23 @@ begin
                      Files.Job_Context.Record_Moved (Destination_Path, Source_Path, Identity);
                   else
                      declare
-                        Expected : constant Support.Source_Snapshot := Support.Snapshot (Source_Path);
                         Copied_Identity, Copied_Tree_Revision : UString;
+                        Copy_Kept : Boolean;
+                        Moved : constant Mutation_Result :=
+                          Recovery.Move_By_Copy
+                            (Source_Path, Destination_Path, "error.drop.failed",
+                             Copied_Identity, Copied_Tree_Revision, Copy_Kept, Cancel, Context);
                      begin
-                        Support.Copy_To_New_Path
-                          (Source_Path, Destination_Path, Copied_Identity, Copied_Tree_Revision,
-                           Cancel, Expected.Times,
-                           Preserve_Ownership => True, Batch => Context);
-                        declare
-                           Delete_Result : constant Mutation_Result :=
-                             Recovery.Remove_Move_Source (Source_Path, Expected);
-                        begin
-                           if not Delete_Result.Success then
-                              --  Source removal is atomic. A failure leaves it
-                              --  intact, so discard our complete copy and allow
-                              --  paste-replace to restore its original destination.
-                              declare
-                                 --  Against the revision published, so anything
-                                 --  added to the copy since is never deleted.
-                                 Removed : constant Mutation_Result := Delete_Created_Entry
-                                   (Destination_Path, To_String (Copied_Identity),
-                                    To_String (Copied_Tree_Revision));
-                                 pragma Unreferenced (Removed);
-                              begin
-                                 null;
-                              end;
-                              return Delete_Result;
-                           end if;
-                           Files.Job_Context.Record_Moved
-                             (Destination_Path, Source_Path, To_String (Copied_Identity));
-                           Published_Identity := Copied_Identity;
-                           Published_Tree_Revision := Copied_Tree_Revision;
-                        end;
+                        if not Moved.Success then
+                           --  The source stays canonical (unless set aside),
+                           --  so paste-replace can restore its original
+                           --  destination.
+                           return Moved;
+                        end if;
+                        Files.Job_Context.Record_Moved
+                          (Destination_Path, Source_Path, To_String (Copied_Identity));
+                        Published_Identity := Copied_Identity;
+                        Published_Tree_Revision := Copied_Tree_Revision;
                      end;
                   end if;
                end;

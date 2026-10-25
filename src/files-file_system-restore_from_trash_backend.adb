@@ -6,6 +6,7 @@ is
    Backend   : constant Trash_Backend := Trash_Backend_For_Base;
    Base      : constant String := Trash_Base_Path;
 begin
+   Files.Io_Errors.Reset;
    if Base = ""
      or else Backend not in Trash_Xdg_Data_Home | Trash_Home_Data
      or else not Is_Trash_Payload (Trashed_Path, Trash_Files_Directory)
@@ -53,19 +54,34 @@ begin
       end if;
 
       if Expected_Identity /= "" then
-         if not Rename_Item (Trashed_Path, To_String (Original), Expected_Identity).Success then
-            return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
-         end if;
-      else
+         declare
+            Moved : constant Mutation_Result :=
+              Rename_Item (Trashed_Path, To_String (Original), Expected_Identity);
          begin
-            if not Support.Move_No_Replace (Trashed_Path, To_String (Original)) then
-               raise Ada.Directories.Use_Error;
+            if not Moved.Success then
+               return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
             end if;
-         exception
-            when others =>
-               --  Copy on the destination filesystem before publishing the
-               --  restored path. A failed copy leaves Original absent, even
-               --  when cleanup of the staging directory cannot finish.
+         end;
+      else
+         declare
+            use type Hostkit.Fs.Move_Outcome;
+            Outcome : Hostkit.Fs.Move_Outcome := Hostkit.Fs.Move_Refused;
+         begin
+            begin
+               Outcome := Support.Move_No_Replace_Outcome (Trashed_Path, To_String (Original));
+            exception
+               when others =>
+                  Outcome := Hostkit.Fs.Move_Refused;
+            end;
+            if Outcome /= Hostkit.Fs.Moved and then not Support.Copy_May_Replace_Move (Outcome) then
+               --  Refused for a reason a copy would meet too (the name was
+               --  taken meanwhile, no permission): no copy.
+               return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
+            elsif Outcome /= Hostkit.Fs.Moved then
+               --  The trash is on another device. Copy into a private stage
+               --  on the destination's filesystem, then publish; a failed copy
+               --  leaves Original absent, even when cleanup of the stage
+               --  cannot finish.
                declare
                   Stage : Unbounded_String;
 
@@ -82,40 +98,36 @@ begin
                      end if;
                   end Clean_Stage;
                begin
-                  Stage := To_Unbounded_String
-                    (Files.Job_Context.Create_Stage (To_String (Parent)));
-                  --  Cancellation stops new work, but must not interrupt rollback.
-                  Copy_Tree (Trashed_Path, Join_Path (To_String (Stage), "payload"),
-                             Check_Job_Cancellation => False, Preserve_Ownership => True);
-                  if Ada.Directories.Exists (To_String (Original))
-                    or else Hostkit.Fs.Is_Link (To_String (Original))
-                  then
-                     raise Ada.Directories.Use_Error;
-                  end if;
-                  if not Support.Move_No_Replace
-                    (Join_Path (To_String (Stage), "payload"), To_String (Original))
+                  Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (To_String (Parent)));
+                  --  Cancellation stops new work, but must not interrupt
+                  --  recovery.
+                  Support.Copy_Tree
+                    (Trashed_Path, Join_Path (To_String (Stage), "payload"),
+                     Check_Job_Cancellation => False, Preserve_Ownership => True);
+                  if not Support.Move_No_Replace (Join_Path (To_String (Stage), "payload"), To_String (Original))
                   then
                      raise Ada.Directories.Use_Error;
                   end if;
                   Clean_Stage;
                exception
                   when others =>
-                     Clean_Stage;
-                     return
-                       (Success   => False,
-                        Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
+                     declare
+                        --  Why it failed, before cleanup can say otherwise.
+                        Failed : constant Mutation_Result :=
+                          (Success   => False,
+                           Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
+                     begin
+                        Clean_Stage;
+                        return Failed;
+                     end;
                end;
-               --  The restore itself is done (the copy succeeded); removing the
-               --  now-redundant trash copy is best-effort. Reporting failure here
-               --  told the user the restore failed when their file is actually
-               --  back, and skipped the sidecar cleanup below, leaving a stale
-               --  trash entry. At worst we now leave a rare orphaned payload.
-               declare
-                  Removed : constant Mutation_Result := Delete_Permanently (Trashed_Path);
-                  pragma Unreferenced (Removed);
-               begin
-                  null;
-               end;
+               --  The restore is done; the trash copy is now redundant. If it
+               --  cannot be removed, its info file stays with it, so it is
+               --  still listed in the trash rather than hidden there for good.
+               if not Delete_Permanently (Trashed_Path).Success then
+                  return (Success => True, Error_Key => Null_Unbounded_String);
+               end if;
+            end if;
          end;
       end if;
 

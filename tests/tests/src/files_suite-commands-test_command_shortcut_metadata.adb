@@ -47,8 +47,8 @@ separate (Files_Suite.Commands)
         (Files.Commands.Requires_Settings_Path (Files.Commands.Save_Settings_Command),
          "settings save requires a settings path");
       Assert
-        (not Files.Commands.Requires_Settings_Path (Files.Commands.Reset_Settings_Command),
-         "settings reset does not require a settings path");
+        (Files.Commands.Requires_Settings_Path (Files.Commands.Reset_Settings_Command),
+         "settings reset saves the defaults, so it requires a settings path");
       Assert
         (Files.Commands.Reloads_Listing (Files.Commands.Sort_By_Size_Command)
          and then Files.Commands.Persists_Global_Ui_State (Files.Commands.Sort_By_Size_Command),

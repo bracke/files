@@ -1106,6 +1106,28 @@ package body Files.Settings is
      (Settings : Settings_Model)
       return Settings_Draft is separate;
 
+   function Refresh_Draft
+     (Draft  : Settings_Draft;
+      Before : Settings_Model;
+      After  : Settings_Model)
+      return Settings_Draft
+   is
+      Result : Settings_Draft := Draft;
+   begin
+      for Setting in Scalar_Setting loop
+         if Is_Pane_Setting (Setting) then
+            declare
+               Now : constant String := Scalar_Text (After, Setting);
+            begin
+               if Scalar_Text (Before, Setting) /= Now then
+                  Result.Scalars (Setting) := To_Unbounded_String (Now);
+               end if;
+            end;
+         end if;
+      end loop;
+      return Result;
+   end Refresh_Draft;
+
    function Draft_Mapping_Vectors_Are_Aligned
      (Draft : Settings_Draft)
       return Boolean is

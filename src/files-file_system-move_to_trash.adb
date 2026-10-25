@@ -1,7 +1,8 @@
 separate (Files.File_System)
 function Move_To_Trash
-  (Path         : String;
-   Trashed_Path : out Files.Types.UString)
+  (Path          : String;
+   Trashed_Path  : out Files.Types.UString;
+   Recorded_Path : String := "")
    return Mutation_Result
 is
    function Image_No_Space (Value : Natural) return String is
@@ -162,7 +163,10 @@ begin
          use type GNAT.OS_Lib.File_Descriptor;
          Metadata : constant String :=
            "[Trash Info]" & ASCII.LF
-           & "Path=" & Trash_Info_Path_Value (GNAT.OS_Lib.Normalize_Pathname (Path, Resolve_Links => False))
+           & "Path="
+           & Trash_Info_Path_Value
+               (GNAT.OS_Lib.Normalize_Pathname
+                  ((if Recorded_Path = "" then Path else Recorded_Path), Resolve_Links => False))
            & ASCII.LF & "DeletionDate=" & Trash_Deletion_Date (Ada.Calendar.Clock) & ASCII.LF;
          --  Created last, so nothing runs between a refusal and Capture.
          Descriptor : GNAT.OS_Lib.File_Descriptor :=
@@ -223,41 +227,22 @@ begin
          --  Cross-device (EXDEV): rename cannot move across filesystems, so
          --  the home trash is on a different mount than the file. Fall back
          --  to copy-then-delete into the trash.
+         declare
+            Identity, Revision : UString;
+            Copy_Kept : Boolean;
+            Moved : constant Mutation_Result :=
+              Recovery.Move_By_Copy (Path, To_String (Target), "error.trash.failed", Identity, Revision, Copy_Kept);
          begin
-            declare
-               Expected : constant Support.Source_Snapshot := Support.Snapshot (Path);
-               Identity, Revision : UString;
-               Removed : Mutation_Result;
-            begin
-               Support.Copy_To_New_Path
-                 (Path, To_String (Target), Identity, Revision, Times => Expected.Times, Preserve_Ownership => True);
-               Trashed_Path := Target;
-               Removed := Recovery.Remove_Move_Source (Path, Expected);
-               if not Removed.Success then
-                  declare
-                     Rolled_Back : constant Mutation_Result :=
-                       Delete_Created_Entry
-                         (To_String (Target), To_String (Identity), To_String (Revision));
-                  begin
-                     if Rolled_Back.Success then
-                        Trashed_Path := Null_Unbounded_String;
-                        Delete_Info_File_If_Present;
-                     end if;
-                  end;
-                  return Removed;
-               end if;
-            end;
-         exception
-            when others =>
-               --  Copy_Tree owns cleanup; an existing payload belongs to
-               --  another operation and must be left intact.
-               declare
-                  Failed : constant Mutation_Result :=
-                    (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.failed"));
-               begin
+            if not Moved.Success then
+               --  A copy left in the trash keeps its info file, so it stays
+               --  listed and restorable.
+               if Copy_Kept then
+                  Trashed_Path := Target;
+               else
                   Delete_Info_File_If_Present;
-                  return Failed;
-               end;
+               end if;
+               return Moved;
+            end if;
          end;
       end if;
    end;

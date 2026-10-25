@@ -66,6 +66,10 @@ separate (Files_Suite.Operations)
          Mutation := Files.File_System.Execute_Drop_Import (Paths, Change_Source'Unrestricted_Access);
          Assert (not Mutation.Success,
                  "a changed move source is kept and only the owned destination copy is rolled back: refused");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Mutation.Error_Key),
+            "error.move.source_changed",
+            "the refusal says the item changed while it was moved, case" & Kind'Image);
          Assert (Ada.Directories.Exists (Source),
                  "a changed move source is kept and only the owned destination copy is rolled back: source kept");
          Assert (not Ada.Directories.Exists (Join (Remote.Path, "destination")),

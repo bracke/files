@@ -67,8 +67,8 @@ separate (Files_Suite.Commands)
          "reset settings command is reported");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
-         "reset settings reports success");
+         Files.Operations.Operation_Disabled,
+         "reset settings saves, so without the settings path it keeps the path-resolution sentinel");
       Result := Files.Controller.Execute_Command (Files.Commands.Save_Settings_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,

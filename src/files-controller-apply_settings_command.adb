@@ -11,6 +11,19 @@ begin
    case Id is
       when Files.Commands.Save_Settings_Command =>
          return Save_Settings (Model, Settings, Settings_Path);
+      when Files.Commands.Reset_Settings_Command =>
+         --  The pane's Reset button: back to defaults, shortcuts included,
+         --  and saved.
+         if not Files.Model.Settings_Pane_Is_Open (Model) then
+            return Settings_Closed_Result (Id, Model, Settings_Path);
+         end if;
+         Files.Settings_Form.Reset_To_Defaults (Model);
+         declare
+            Saved : Controller_Result := Save_Settings (Model, Settings, Settings_Path);
+         begin
+            Saved.Command := Id;
+            return Saved;
+         end;
       when Files.Commands.Toggle_Hidden_Files_Command =>
          return Toggle_Hidden_Files (Model, Settings, Settings_Path);
       when Files.Commands.Toggle_Show_Extensions_Command =>

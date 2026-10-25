@@ -430,6 +430,15 @@ package body Files.Settings_Form is
       end;
    end Apply_Shortcut;
 
+   procedure Reset_To_Defaults (Model : in out Files.Model.Window_Model) is
+   begin
+      Files.Model.Set_Settings_Draft (Model, Files.Settings.Reset_Draft_To_Defaults);
+      --  A full return to defaults drops the keyboard shortcut overrides too;
+      --  the save that follows persists the default keymap (no [shortcuts]
+      --  section).
+      Files.Commands.Reset_Shortcut_Overrides;
+   end Reset_To_Defaults;
+
    function Apply
      (Model  : in out Files.Model.Window_Model;
       Change : Guikit.Settings_Panel.Change)
@@ -529,11 +538,8 @@ package body Files.Settings_Form is
             begin
                if Key = "form.actions" then
                   if Button = "reset" then
-                     D := Files.Settings.Reset_Draft_To_Defaults;
-                     --  Reset is a full return to defaults, so drop the keyboard
-                     --  shortcut overrides too; the save that follows persists the
-                     --  now-default keymap (no [shortcuts] section).
-                     Files.Commands.Reset_Shortcut_Overrides;
+                     Reset_To_Defaults (Model);
+                     D := Files.Model.Settings_Draft_Of (Model);
                   end if;
                elsif Key = "form.filetype.buttons" then
                   Group_Button (D.Filetype_Keys, D.Filetype_Values, D.Filetype_Index,

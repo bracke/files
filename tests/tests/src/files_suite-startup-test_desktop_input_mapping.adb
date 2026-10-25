@@ -31,6 +31,10 @@ separate (Files_Suite.Startup)
          100,
          "runtime coordinate scaling maps proportional positions");
       Files_Suite.Support.Assert_Equal
+        (Files.Application.Windows.Scale_Coordinate (99.8, Glfw.Size (100), Glfw.Size (100)),
+         99,
+         "a point in the last pixel's right half is still in that pixel, not past the edge");
+      Files_Suite.Support.Assert_Equal
         (Files.Application.Windows.Scale_Coordinate (-1.0, Glfw.Size (100), Glfw.Size (200)),
          0,
          "runtime coordinate scaling clamps negative cursor positions");

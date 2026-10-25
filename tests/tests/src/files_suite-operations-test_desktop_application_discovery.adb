@@ -26,10 +26,14 @@ separate (Files_Suite.Operations)
            Files.Desktop_Applications.Available_Applications;
          Editor : constant Files.Desktop_Applications.Application := Find (Apps, "Text Editor");
          Viewer : constant Files.Desktop_Applications.Application := Find (Apps, "Image Viewer");
+         --  The fixture links one entry in; a host that refuses the link has
+         --  nothing to list for it.
+         Linked : constant Boolean :=
+           Hostkit.Fs.Is_Link (Join (Join (Join (Root, "xdg_apps"), "applications"), "linked-application.desktop"));
       begin
          Files_Suite.Support.Assert_Equal
            (Natural (Apps.Length),
-            13,
+            (if Linked then 14 else 13),
             "valid desktop IDs are returned without collapsing shared display names");
          Files_Suite.Support.Assert_Equal
            (To_String (Apps.First_Element.Name),
@@ -51,10 +55,14 @@ separate (Files_Suite.Operations)
            (To_String (Find (Apps, "Oversized Entry").Exec),
             "",
             "oversized desktop entries are rejected before line allocation");
-         Files_Suite.Support.Assert_Equal
-           (To_String (Find (Apps, "Linked Application").Exec),
-            "",
-            "application discovery refuses linked desktop entries");
+         if Linked then
+            Files_Suite.Support.Assert_Equal
+              (To_String (Find (Apps, "Linked Application").Exec),
+               "viewer %F",
+               "a linked desktop entry is listed, as Flatpak and NixOS install them");
+         else
+            Files_Suite.Support.Skip ("Test_Desktop_Application_Discovery", "this host could not create a link");
+         end if;
          Files_Suite.Support.Assert_Equal
            (To_String (Find (Apps, "Excessive Exec").Exec),
             "",

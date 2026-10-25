@@ -6,7 +6,7 @@ separate (Files_Suite.Operations)
       procedure Check is
          Mutation     : Files.File_System.Mutation_Result;
       begin
-         Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
+         Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "macos-home");
          Project_Tools.Files.Delete_Tree (Mac_Home);
          Ada.Directories.Create_Path (Join (Mac_Home, ".Trash"));
          Ada.Environment_Variables.Clear ("XDG_DATA_HOME");

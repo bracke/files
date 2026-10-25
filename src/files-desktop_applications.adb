@@ -875,7 +875,7 @@ package body Files.Desktop_Applications is
       --  found either way.
       File_Content := To_Unbounded_String
         (Files.Capped_Files.Read_Capped
-           (Path, Max_Desktop_File_Bytes, Files.Capped_Files.Refuse_Links, Content_Status));
+           (Path, Max_Desktop_File_Bytes, Files.Capped_Files.Follow_Links, Content_Status));
       if Content_Status /= Files.Capped_Files.Read_Complete then
          return;
       end if;
@@ -1019,8 +1019,10 @@ package body Files.Desktop_Applications is
          begin
             --  Ada.Directories.Kind follows links. Descending through one can
             --  revisit an ancestor forever (or scan outside the configured
-            --  application tree), so links are never traversal edges here.
-            if Hostkit.Fs.Is_Link (Full) then
+            --  application tree), so a linked folder is never a traversal
+            --  edge here. A linked .desktop file is an ordinary entry: Flatpak
+            --  exports and every NixOS entry are links to their package.
+            if Kind = Ada.Directories.Directory and then Hostkit.Fs.Is_Link (Full) then
                null;
             elsif Kind = Ada.Directories.Directory then
                if Simple /= "." and then Simple /= ".." then

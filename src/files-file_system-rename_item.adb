@@ -278,46 +278,10 @@ exception
       --  of one (Move_Back routes through here) -- still succeeds instead of
       --  failing and stranding the file at the destination.
       declare
-         Expected : Support.Source_Snapshot;
          Copied_Identity, Copied_Tree_Revision : UString;
-
-         --  On any failure once the copy has started, drop whatever it left at
-         --  the destination so the source stays the single canonical copy: no
-         --  partial tree stranded, and no duplicate if the source delete fails.
-         procedure Discard_Destination is
-            --  Against the revision published, so anything added to the
-            --  copy since is never deleted.
-            Removed : constant Mutation_Result := Delete_Created_Entry
-              (To_Path, To_String (Copied_Identity), To_String (Copied_Tree_Revision));
-            pragma Unreferenced (Removed);
-         begin
-            null;
-         end Discard_Destination;
+         Copy_Kept : Boolean;
       begin
-         Expected := Support.Snapshot (From_Path);
-         Support.Copy_To_New_Path
-           (From_Path, To_Path, Copied_Identity, Copied_Tree_Revision, Times => Expected.Times,
-            Preserve_Ownership => True);
-
-         declare
-            Deleted : constant Mutation_Result := Recovery.Remove_Move_Source (From_Path, Expected);
-         begin
-            if not Deleted.Success then
-               Discard_Destination;
-               return Deleted;
-            end if;
-         end;
-
-         return (Success => True, Error_Key => Null_Unbounded_String);
-      exception
-         when others =>
-            declare
-               --  Why the copy failed, before discarding it can say otherwise.
-               Failed : constant Mutation_Result :=
-                 (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.rename.failed"));
-            begin
-               Discard_Destination;
-               return Failed;
-            end;
+         return Recovery.Move_By_Copy
+           (From_Path, To_Path, "error.rename.failed", Copied_Identity, Copied_Tree_Revision, Copy_Kept);
       end;
 end Rename_Item;

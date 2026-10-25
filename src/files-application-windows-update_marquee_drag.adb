@@ -110,8 +110,17 @@ separate (Files.Application.Windows)
          end if;
 
          declare
+            --  Hit-tested in unscrolled content coordinates, against every
+            --  item: a row the auto-scroll moved off screen has no area on
+            --  screen but is still inside the band.
             Items  : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-              Files.Rendering.Calculate_Item_Layout (Runtime.Snapshots (Runtime.Current_Slot), Layout, Line_Height);
+              Files.Rendering.Calculate_Item_Layout
+                (Runtime.Snapshots (Runtime.Current_Slot), Layout, Line_Height, Whole_Content => True);
+            Scroll : constant Integer := Integer (Main_View.Scroll_Pixels);
+            Band_X : Natural;
+            Band_Y : Natural;
+            Band_W : Natural;
+            Band_H : Natural;
             Rect_X : Natural;
             Rect_Y : Natural;
             Rect_W : Natural;
@@ -126,10 +135,19 @@ separate (Files.Application.Windows)
                Y         => Rect_Y,
                Width     => Rect_W,
                Height    => Rect_H);
+            Files.Rendering.Marquee_Rect
+              (Start_X   => Natural'Max (0, Runtime.Marquee_Origin_X),
+               Start_Y   => Natural'Max (0, Runtime.Marquee_Origin_Y + Scroll),
+               Current_X => Natural'Max (0, X_Frame),
+               Current_Y => Natural'Max (0, Y_Frame + Scroll),
+               X         => Band_X,
+               Y         => Band_Y,
+               Width     => Band_W,
+               Height    => Band_H);
             Files.Interaction.Apply_Marquee_Selection
               (Model    => Runtime.Model,
                Hits     =>
-                 Files.Rendering.Hit.Items_In_Rect (Items, Rect_X, Rect_Y, Rect_W, Rect_H),
+                 Files.Rendering.Hit.Items_In_Rect (Items, Band_X, Band_Y, Band_W, Band_H),
                Additive => Runtime.Marquee_Additive,
                Base     => Runtime.Marquee_Base);
             Runtime.Marquee_Rect_X := Rect_X;

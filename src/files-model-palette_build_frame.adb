@@ -15,12 +15,16 @@ procedure Palette_Build_Frame
    Icons         : out Guikit.Draw.Icon_Command_Vectors.Vector;
    Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector) is
 begin
-   --  Refresh the config (line height) and the command list (fresh enablement)
-   --  each frame; the component preserves the query and selection.
+   --  Refresh the config (line height) each frame, and the command list (its
+   --  enablement) after any model change; the component preserves the query
+   --  and selection.
    Guikit.Command_Palette.Set_Configuration
      (Model.Command_Palette_View, Palette_Config (Line_Height, Model.Command_Palette_Mode));
-   Guikit.Command_Palette.Set_Commands
-     (Model.Command_Palette_View, Files.Command_Palette.Commands (Model));
+   if Model.Palette_Listed_Revision /= Model.Revision_Value then
+      Guikit.Command_Palette.Set_Commands
+        (Model.Command_Palette_View, Files.Command_Palette.Commands (Model));
+      Model.Palette_Listed_Revision := Model.Revision_Value;
+   end if;
    Guikit.Command_Palette.Build_Frame
      (P             => Model.Command_Palette_View,
       Region_X      => Region_X,

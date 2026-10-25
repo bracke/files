@@ -56,6 +56,7 @@ separate (Files.Controller)
                --  capture the selection into the model only afterwards.
                Files.Model.Open_Command_Palette (Model);
                Files.Model.Set_Open_With_Targets (Model, Targets);
+               Files.Model.Set_Open_With_Applications (Model, Files.Desktop_Applications.Available_Applications);
                Files.Model.Set_Command_Palette_Mode (Model, Files.Model.Palette_Open_With);
                Files.Model.Set_Error (Model, "");
                Operation.Status := Files.Operations.Operation_Success;
@@ -140,7 +141,12 @@ separate (Files.Controller)
          when Files.Commands.Open_Containing_Folder_Command =>
             return Reveal_Selected_Item (Model, Settings);
          when Files.Commands.Open_Selected_Root_Command =>
-            return Handle_Root_Click (Model, Settings, Files.Model.Root_Selected_Index (Model));
+            if not Files.Model.Root_Selector_Is_Open (Model)
+              or else Files.Model.Root_Selected_Index (Model) not in 1 .. Files.Model.Root_Count (Model)
+            then
+               return Make_Result (Controller_Ignored);
+            end if;
+            return Open_Root (Model, Settings, Files.Model.Root_Selected_Index (Model));
          when Files.Commands.Eject_Selected_Root_Command =>
             Operation := Files.Operations.Eject_Selected_Root (Model);
          when Files.Commands.Create_File_Command =>
@@ -225,10 +231,6 @@ separate (Files.Controller)
                Files.Model.Open_Quick_Look
                  (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selected_Item (Model)));
             end if;
-            Files.Model.Set_Error (Model, "");
-            Operation.Status := Files.Operations.Operation_Success;
-         when Files.Commands.Reset_Settings_Command =>
-            Files.Model.Set_Settings_Draft (Model, Files.Settings.Reset_Draft_To_Defaults);
             Files.Model.Set_Error (Model, "");
             Operation.Status := Files.Operations.Operation_Success;
          when Files.Commands.Close_Command_Palette_Command =>

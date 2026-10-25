@@ -41,7 +41,8 @@ separate (Files_Suite.Operations)
       Mutation := Files.File_System.Rename_Item (Join (Locked, "absent.txt"), Join (Locked, "other.txt"));
       Assert_Equal (To_String (Mutation.Error_Key), "error.rename.source_missing", "a missing source keeps its key");
       Mutation := Files.File_System.Delete_Permanently (Join (Locked, "absent.txt"));
-      Assert_Equal (To_String (Mutation.Error_Key), "error.rename.source_missing", "a missing item keeps its key");
+      Assert_Equal (To_String (Mutation.Error_Key), "error.path.missing",
+                    "deleting a vanished item says the path is missing, not a rename error");
    exception
       when others =>
          Unlock_Directory (Locked);

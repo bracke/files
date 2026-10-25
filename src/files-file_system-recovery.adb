@@ -453,15 +453,55 @@ package body Files.File_System.Recovery is
          end if;
    end Unregister;
 
+   --  Release moves the payload into release/<its original name> before
+   --  trashing it. Stopped between the two (a crash, or a failed trash whose
+   --  move back failed too), the stage holds no payload, which nothing would
+   --  recognize again: move the held entry back so the stage is whole.
+   procedure Resume_Interrupted_Release (Path : String) is
+      Holder : constant String := Join_Path (Ada.Directories.Containing_Directory (Path), "release");
+      Search : Ada.Directories.Search_Type;
+      Item   : Ada.Directories.Directory_Entry_Type;
+      Held   : UString;
+      Count  : Natural := 0;
+   begin
+      if Ada.Directories.Exists (Path)
+        or else Hostkit.Fs.Is_Link (Path)
+        or else Hostkit.Fs.Is_Link (Holder)
+        or else not Ada.Directories.Exists (Holder)
+        or else Ada.Directories.Kind (Holder) /= Ada.Directories.Directory
+      then
+         return;
+      end if;
+      Ada.Directories.Start_Search (Search, Holder, "");
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Item);
+         if Ada.Directories.Simple_Name (Item) not in "." | ".." then
+            Count := Count + 1;
+            Held := To_Unbounded_String (Ada.Directories.Full_Name (Item));
+         end if;
+      end loop;
+      Ada.Directories.End_Search (Search);
+      if Count = 0 then
+         Ada.Directories.Delete_Directory (Holder);
+      elsif Count = 1 and then Support.Move_No_Replace (To_String (Held), Path) then
+         Ada.Directories.Delete_Directory (Holder);
+      end if;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+   end Resume_Interrupted_Release;
+
    function Release
      (Path     : String;
-      To_Trash : not null access function (Path : String) return Mutation_Result) return Mutation_Result
+      To_Trash : not null access function (Path, Original : String) return Mutation_Result)
+      return Mutation_Result
    is
       Stage  : constant String := Ada.Directories.Containing_Directory (Path);
       Holder : constant String := Join_Path (Stage, "release");
       Failed : constant Mutation_Result :=
         (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
    begin
+      Resume_Interrupted_Release (Path);
       if not Recognizes (Path) or else not Contains_Only_Owned_Entries (Stage) then
          return Failed;
       end if;
@@ -478,7 +518,7 @@ package body Files.File_System.Recovery is
             Ada.Directories.Delete_Directory (Holder);
             return Failed;
          end if;
-         if not To_Trash (Named).Success then
+         if not To_Trash (Named, (if Valid_Absolute_Path (Original) then Original else "")).Success then
             if Support.Move_No_Replace (Named, Path) then
                Ada.Directories.Delete_Directory (Holder);
             end if;
@@ -494,19 +534,29 @@ package body Files.File_System.Recovery is
    end Release;
 
    function Remove_Move_Source
-     (Path : String; Expected : Support.Source_Snapshot) return Mutation_Result is
+     (Path         : String;
+      Expected     : Support.Source_Snapshot;
+      Fallback_Key : String;
+      Set_Aside    : out Boolean) return Mutation_Result
+   is
       use type Files.Types.String_Vectors.Vector;
       use type Support.Source_Snapshot;
       Backup : UString;
       Committed : Boolean := False;
       Failed : constant Mutation_Result :=
-        (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
+        (Success => False, Error_Key => To_Unbounded_String (Fallback_Key));
+      Changed : constant Mutation_Result :=
+        (Success => False, Error_Key => To_Unbounded_String ("error.move.source_changed"));
    begin
+      Set_Aside := False;
+      if Expected.Entries.Is_Empty then
+         return Failed;
+      end if;
       --  A metadata-only early check: the full content check below runs on
       --  the privately renamed source, which nothing else can then replace,
       --  so reading every file here as well only doubled the cost.
-      if Expected.Entries.Is_Empty or else not Same_Shape (Snapshot (Path, Content => False), Expected) then
-         return Failed;
+      if not Same_Shape (Snapshot (Path, Content => False), Expected) then
+         return Changed;
       end if;
       declare
          Saved : constant Mutation_Result := Preserve (Path, Backup);
@@ -523,12 +573,14 @@ package body Files.File_System.Recovery is
          end if;
       exception
          when others =>
-            declare
-               Restored : constant Mutation_Result := Restore (To_String (Backup));
-               pragma Unreferenced (Restored);
-            begin
-               return Failed;
-            end;
+            --  Changed since the copy. Put it back; if that fails too, it is
+            --  safe only in its stage, and the copy must not be dropped.
+            if Restore (To_String (Backup)).Success then
+               return Changed;
+            end if;
+            Set_Aside := True;
+            return
+              (Success => False, Error_Key => To_Unbounded_String ("error.move.source_set_aside"));
       end;
       Committed := True;
       --  Once the source pathname is vacated the move is committed. Refused
@@ -547,8 +599,67 @@ package body Files.File_System.Recovery is
    exception
       when others =>
          return (Success => Committed,
-                 Error_Key => (if Committed then Null_Unbounded_String else To_Unbounded_String ("error.drop.failed")));
+                 Error_Key => (if Committed then Null_Unbounded_String else To_Unbounded_String (Fallback_Key)));
    end Remove_Move_Source;
+
+   function Move_By_Copy
+     (Source, Destination : String;
+      Fallback_Key        : String;
+      Identity, Revision  : out Files.Types.UString;
+      Copy_Kept           : out Boolean;
+      Cancel              : Cancellation_Check := null;
+      Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      return Mutation_Result
+   is
+      Copied : Boolean := False;
+
+      --  Against the revision published, so anything added to the copy
+      --  since is never deleted.
+      procedure Discard_Copy is
+      begin
+         Copy_Kept :=
+           not Delete_Created_Entry (Destination, To_String (Identity), To_String (Revision)).Success;
+      end Discard_Copy;
+   begin
+      Identity := Null_Unbounded_String;
+      Revision := Null_Unbounded_String;
+      Copy_Kept := False;
+      declare
+         Expected : constant Support.Source_Snapshot := Support.Snapshot (Source);
+         Set_Aside : Boolean;
+      begin
+         Support.Copy_To_New_Path
+           (Source, Destination, Identity, Revision, Cancel, Expected.Times,
+            Preserve_Ownership => True, Batch => Batch);
+         Copied := True;
+         declare
+            Removed : constant Mutation_Result :=
+              Remove_Move_Source (Source, Expected, Fallback_Key, Set_Aside);
+         begin
+            if not Removed.Success then
+               if Set_Aside then
+                  Copy_Kept := True;
+               else
+                  Discard_Copy;
+               end if;
+            end if;
+            return Removed;
+         end;
+      end;
+   exception
+      when others =>
+         declare
+            --  Why it failed, before discarding the copy can say otherwise.
+            Failed : constant Mutation_Result :=
+              (Success => False, Error_Key => Files.Io_Errors.Error_Key (Fallback_Key));
+         begin
+            --  A failed copy cleans up after itself; one that completed is ours.
+            if Copied then
+               Discard_Copy;
+            end if;
+            return Failed;
+         end;
+   end Move_By_Copy;
 
    function Recognizes (Path : String) return Boolean is
       Parent : constant String := Ada.Directories.Containing_Directory (Path);
@@ -568,6 +679,7 @@ package body Files.File_System.Recovery is
    function Discard (Path : String) return Mutation_Result is
       Parent : constant String := Ada.Directories.Containing_Directory (Path);
    begin
+      Resume_Interrupted_Release (Path);
       if not Recognizes (Path) then
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
       end if;
@@ -772,6 +884,7 @@ package body Files.File_System.Recovery is
             if Is_Stale_Record (Directory) then
                Delete_Registry_Record (Directory);
             elsif Read_Registry_Record (Directory, Payload, Expected) then
+               Resume_Interrupted_Release (To_String (Payload));
                if Seen.Contains (To_String (Payload)) then
                   --  A duplicate left by a reused stage name (see Register);
                   --  one record per payload is all Unregister and recovery need.
@@ -811,6 +924,7 @@ package body Files.File_System.Recovery is
       Parent : constant String := Ada.Directories.Containing_Directory (Path);
       Target : UString;
    begin
+      Resume_Interrupted_Release (Path);
       if not Recognizes (Path) or else not Contains_Only_Owned_Entries (Parent) then
          return
            (Success => False,

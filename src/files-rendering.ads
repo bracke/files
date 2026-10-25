@@ -747,11 +747,16 @@ package Files.Rendering is
    --  @param Snapshot View snapshot to lay out.
    --  @param Layout High-level window layout metrics.
    --  @param Line_Height Text line height in pixels.
+   --  @param Whole_Content False for the rectangles on screen, where items
+   --    scrolled out of view have no area; True for every item at its place
+   --    in the unscrolled content (on-screen Y plus the scroll in pixels), as
+   --    a marquee that scrolls the view needs.
    --  @return Item layout rectangles in visible-item order.
    function Calculate_Item_Layout
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+     (Snapshot      : View_Snapshot;
+      Layout        : Layout_Metrics;
+      Line_Height   : Positive := 20;
+      Whole_Content : Boolean := False)
       return Item_Layout_Vectors.Vector;
 
    --  Calculate main-view scroll metrics for the current view snapshot.

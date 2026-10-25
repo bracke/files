@@ -42,5 +42,34 @@ separate (Files_Suite.Operations)
          "the trash holds the original under its own name");
       Assert (not Ada.Directories.Exists (Ada.Directories.Containing_Directory (To_String (Backup))),
               "the hidden recovery folder is gone");
+      Files_Suite.Support.Assert_Equal
+        (Files.File_System.Trash_Original_Path (Trashed),
+         Dest,
+         "the trash records where the original lived, not the hidden folder it was kept in");
+
+      --  A release stopped after its first move leaves the payload under
+      --  release/; the next look at the stage puts it back.
+      Write_Binary_File (Dest, "second");
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
+      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
+      Assert (Result.Success and then Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+              "a second original is kept for recovery");
+      declare
+         Stage  : constant String := Ada.Directories.Containing_Directory (To_String (Backup));
+         Holder : constant String := Join (Stage, "release");
+      begin
+         Ada.Directories.Create_Directory (Holder);
+         Ada.Directories.Rename (To_String (Backup), Join (Holder, "replaced.txt"));
+         Assert (Files.File_System.Registered_Recovery_Payloads.Contains (Backup),
+                 "an interrupted release is still a registered payload");
+         Files_Suite.Support.Assert_Equal
+           (Project_Tools.Files.Read_Raw_File (To_String (Backup)),
+            "second",
+            "the held original is back in its payload slot");
+         Assert (not Ada.Directories.Exists (Holder), "the release folder is gone again");
+      end;
+      Result := Files.File_System.Release_Recovery_Payload (To_String (Backup));
+      Assert (Result.Success, "the resumed payload can be released");
       Project_Tools.Files.Delete_Tree (Trash_Home);
    end Test_Released_Recovery_Goes_To_Trash;

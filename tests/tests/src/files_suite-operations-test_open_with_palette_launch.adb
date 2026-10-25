@@ -17,6 +17,8 @@ separate (Files_Suite.Operations)
               (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
             Files.Model.Open_Command_Palette (Model);
             Files.Model.Set_Open_With_Targets (Model, Targets);
+            --  What the Open With command does: list the applications once.
+            Files.Model.Set_Open_With_Applications (Model, Files.Desktop_Applications.Available_Applications);
             Files.Model.Set_Command_Palette_Mode (Model, Files.Model.Palette_Open_With);
             Files.Model.Palette_Set_Query (Model, "Multi Target Marker");
             Files.Model.Palette_Select_First (Model);
@@ -81,12 +83,14 @@ separate (Files_Suite.Operations)
             Targets.Append (To_Unbounded_String ("/tmp/a file.txt"));
             Files.Model.Open_Command_Palette (Model);
             Files.Model.Set_Open_With_Targets (Model, Targets);
+            --  What the Open With command does: list the applications once.
+            Files.Model.Set_Open_With_Applications (Model, Files.Desktop_Applications.Available_Applications);
             Files.Model.Set_Command_Palette_Mode (Model, Files.Model.Palette_Open_With);
             Files.Model.Palette_Select_Last (Model);
             Files_Suite.Support.Assert_Equal
               (Files.Model.Palette_Selected_Id (Model),
-               13,
-               "the missing executable fixture is selected from the Open With palette");
+               Natural (Files.Model.Open_With_Applications (Model).Length),
+               "the missing executable fixture, listed last, is selected from the Open With palette");
 
             Routed := Files.Controller.Activate_Palette_Command
               (Model, Files.Settings.Default_Settings);

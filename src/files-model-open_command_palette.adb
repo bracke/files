@@ -7,6 +7,7 @@ begin
    Model.Command_Palette_Open := True;
    Model.Command_Palette_Mode := Palette_Commands;
    Model.Open_With_Targets_Value.Clear;
+   Model.Open_With_Applications_Value.Clear;
    Claim_Overlay_Input (Model);
    Guikit.Command_Palette.Set_Configuration
      (Model.Command_Palette_View, Palette_Config (20, Palette_Commands));
