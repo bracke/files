@@ -7,9 +7,10 @@ procedure Begin_Paste_Execution
 is
    Writes : Natural := 0;
 begin
-   Files.Transfer_Jobs.Reset (Model.Paste_Exec_Job);
-   Files.Process_Jobs.Reset (Model.Operation_Job);
-   Files.Process_Jobs.Reset (Model.Refresh_Job);
+   --  The previous helpers' handles are released (see Clear_Paste_Execution).
+   Model.Paste_Exec_Job := Released_Transfer;
+   Model.Operation_Job := Released_Process;
+   Model.Refresh_Job := Released_Process;
    Model.Operation_Label_Key := Null_Unbounded_String;
    Model.Revision_Value := Model.Revision_Value + 1;
    Claim_Overlay_Input (Model);

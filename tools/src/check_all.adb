@@ -2354,6 +2354,29 @@ procedure Check_All is
         (Events_Body,
          "Files.Model.",
          "event translation must not mutate or inspect live model state");
+
+      --  The model holds its background jobs' handles as data; starting,
+      --  polling, cancelling and stepping them is Files.Operations' work.
+      declare
+         Model_Body : constant String := Root & "/src/files-model.adb";
+      begin
+         for Call of Project_Tools.Ada_Source.String_List'
+           [To_Unbounded_String ("Files.Transfer_Jobs.Start"),
+            To_Unbounded_String ("Files.Transfer_Jobs.Poll"),
+            To_Unbounded_String ("Files.Transfer_Jobs.Cancel"),
+            To_Unbounded_String ("Files.Transfer_Jobs.Reset"),
+            To_Unbounded_String ("Files.Process_Jobs.Cancel"),
+            To_Unbounded_String ("Files.Process_Jobs.Reset"),
+            To_Unbounded_String ("Files.Process_Jobs.Launch"),
+            To_Unbounded_String ("Files.Folder_Size.Set_Targets"),
+            To_Unbounded_String ("Files.Folder_Size.Step"),
+            To_Unbounded_String ("Files.Folder_Size.Take"),
+            To_Unbounded_String ("Files.Folder_Size.Cancel")]
+         loop
+            Require_Not_Contains_In_Unit
+              (Model_Body, To_String (Call), "the model drives no background job (" & To_String (Call) & ")");
+         end loop;
+      end;
    end Check_Event_Translation_Contract;
 
    procedure Check_Crate_Structure is

@@ -11,7 +11,7 @@ separate (Files_Suite.Operations)
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "sub");
-      Files.Model.Cancel_Folder_Scan (Model);
+      Files.Operations.Cancel_Folder_Scan (Model);
       declare
          Path      : constant String := To_String (Files.Model.Selected_Item (Model).Full_Path);
          Reference : constant Files.File_System.Directory_Size_Result :=

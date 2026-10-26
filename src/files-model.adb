@@ -13,6 +13,26 @@ with Files.UTF8;
 with Files.Model.Support;
 
 package body Files.Model is
+
+   --  An idle session of each kind, to release a held one by assignment:
+   --  the model only holds the job handles; Files.Operations drives them.
+   function Released_Transfer return Files.Transfer_Jobs.Session is
+      Idle : Files.Transfer_Jobs.Session;
+   begin
+      return Idle;
+   end Released_Transfer;
+
+   function Released_Process return Files.Process_Jobs.Session is
+      Idle : Files.Process_Jobs.Session;
+   begin
+      return Idle;
+   end Released_Process;
+
+   function Released_Scan return Files.Folder_Size.Session is
+      Idle : Files.Folder_Size.Session;
+   begin
+      return Idle;
+   end Released_Scan;
    use Ada.Strings.Unbounded;
 
    package UString_Sets is new Ada.Containers.Ordered_Sets
@@ -315,31 +335,21 @@ package body Files.Model is
 
    function Background_Refresh (Model : Window_Model) return Files.Process_Jobs.Session is (Model.Refresh_Job);
 
-   procedure Advance_Background_Paste
-     (Model : in out Window_Model; Finished : out Boolean; Result : out Files.Transfer_Jobs.Job_Result)
-   is
+   function Paste_Job (Model : Window_Model) return Files.Transfer_Jobs.Session is (Model.Paste_Exec_Job);
+
+   procedure Set_Paste_Job (Model : in out Window_Model; Job : Files.Transfer_Jobs.Session) is
    begin
-      if not Files.Transfer_Jobs.Active (Model.Paste_Exec_Job) then
-         if Model.Paste_Exec.Cancelled then
-            Finished := True;
-            Result := (Cancelled => True, others => <>);
-            return;
-         end if;
-         Files.Transfer_Jobs.Start
-           (Model.Paste_Exec_Job,
-            Model.Paste_Exec.Actions.Element (Model.Paste_Exec.Cursor + 1),
-            Model.Paste_Exec.Mode, Model.Paste_Exec.Copy_Context);
-         Model.Paste_Exec.Current :=
-           To_Unbounded_String
-             (Ada.Directories.Simple_Name
-                (To_String (Model.Paste_Exec.Actions.Element (Model.Paste_Exec.Cursor + 1).Source_Path)));
-         Model.Revision_Value := Model.Revision_Value + 1;
-      end if;
-      Files.Transfer_Jobs.Poll (Model.Paste_Exec_Job, Finished, Result);
-      if Finished then
-         Files.Transfer_Jobs.Reset (Model.Paste_Exec_Job);
-      end if;
-   end Advance_Background_Paste;
+      Model.Paste_Exec_Job := Job;
+   end Set_Paste_Job;
+
+   procedure Note_Paste_Action_Started (Model : in out Window_Model) is
+   begin
+      Model.Paste_Exec.Current :=
+        To_Unbounded_String
+          (Ada.Directories.Simple_Name
+             (To_String (Model.Paste_Exec.Actions.Element (Model.Paste_Exec.Cursor + 1).Source_Path)));
+      Model.Revision_Value := Model.Revision_Value + 1;
+   end Note_Paste_Action_Started;
 
    use type Ada.Calendar.Time;
    use type Files.File_System.Path_Status;
@@ -566,7 +576,7 @@ package body Files.Model is
       Model.Revision_Value := Model.Revision_Value + 1;
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Set_Current_Path (Model, To_Unbounded_String (Directory_Path));
-      Files.Process_Jobs.Reset (Model.Refresh_Job);
+      Model.Refresh_Job := Released_Process;
       Model.Home_Path_Value := To_Unbounded_String (Home_Path);
       Model.Items := Items;
       Model.Directory_Signature := Signature_From_Items (Directory_Path, Items);
@@ -2110,8 +2120,13 @@ package body Files.Model is
    function Paste_Execution_Write_Extends_Verified
      (Model : Window_Model) return Boolean is separate;
 
-   procedure Cancel_Paste_Execution
-     (Model : in out Window_Model) is separate;
+   procedure Set_Paste_Cancelled
+     (Model     : in out Window_Model;
+      Requested : Boolean) is
+   begin
+      Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Paste_Exec.Cancelled := Requested;
+   end Set_Paste_Cancelled;
 
    procedure Clear_Paste_Execution
      (Model : in out Window_Model) is separate;
@@ -2119,37 +2134,22 @@ package body Files.Model is
    function Paste_Execution_Copy_Context (Model : Window_Model) return Files.Copy_Context.Session is
      (Model.Paste_Exec.Copy_Context);
 
-   procedure Set_Folder_Size_Targets (Model : in out Window_Model; Paths : Files.Folder_Size.Path_Vectors.Vector) is
-   begin
-      Files.Folder_Size.Set_Targets (Model.Folder_Scan, Paths);
-   end Set_Folder_Size_Targets;
+   function Folder_Scan (Model : Window_Model) return Files.Folder_Size.Session is (Model.Folder_Scan);
 
-   procedure Cancel_Folder_Scan (Model : in out Window_Model) is
-      Path : UString;
-      Result : Files.File_System.Directory_Size_Result;
-      Available : Boolean;
+   procedure Set_Folder_Scan (Model : in out Window_Model; Scan : Files.Folder_Size.Session) is
    begin
-      Files.Folder_Size.Cancel (Model.Folder_Scan);
-      loop
-         Files.Folder_Size.Take (Model.Folder_Scan, Path, Result, Available);
-         exit when not Available;
-      end loop;
-   end Cancel_Folder_Scan;
+      Model.Folder_Scan := Scan;
+   end Set_Folder_Scan;
 
-   procedure Poll_Folder_Sizes (Model : in out Window_Model) is
-      Path : UString;
-      Result : Files.File_System.Directory_Size_Result;
-      Available : Boolean;
+   procedure Note_Folder_Size
+     (Model  : in out Window_Model;
+      Path   : String;
+      Result : Files.File_System.Directory_Size_Result) is
    begin
-      Files.Folder_Size.Step (Model.Folder_Scan);
-      loop
-         Files.Folder_Size.Take (Model.Folder_Scan, Path, Result, Available);
-         exit when not Available;
-         if Is_Selected_Directory (Model, To_String (Path)) then
-            Set_Folder_Size (Model, To_String (Path), Result);
-         end if;
-      end loop;
-   end Poll_Folder_Sizes;
+      if Is_Selected_Directory (Model, Path) then
+         Set_Folder_Size (Model, Path, Result);
+      end if;
+   end Note_Folder_Size;
 
    function Folder_Scan_Is_Active (Model : Window_Model) return Boolean is
      (Files.Folder_Size.Is_Active (Model.Folder_Scan));

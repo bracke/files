@@ -566,6 +566,35 @@ package body Files.Operations is
       end;
    end Focus_Ownership_Input;
 
+   procedure Poll_Folder_Sizes (Model : in out Files.Model.Window_Model) is
+      Scan      : Files.Folder_Size.Session := Files.Model.Folder_Scan (Model);
+      Path      : Unbounded_String;
+      Result    : Files.File_System.Directory_Size_Result;
+      Available : Boolean;
+   begin
+      Files.Folder_Size.Step (Scan);
+      loop
+         Files.Folder_Size.Take (Scan, Path, Result, Available);
+         exit when not Available;
+         Files.Model.Note_Folder_Size (Model, To_String (Path), Result);
+      end loop;
+      Files.Model.Set_Folder_Scan (Model, Scan);
+   end Poll_Folder_Sizes;
+
+   procedure Cancel_Folder_Scan (Model : in out Files.Model.Window_Model) is
+      Scan      : Files.Folder_Size.Session := Files.Model.Folder_Scan (Model);
+      Path      : Unbounded_String;
+      Result    : Files.File_System.Directory_Size_Result;
+      Available : Boolean;
+   begin
+      Files.Folder_Size.Cancel (Scan);
+      loop
+         Files.Folder_Size.Take (Scan, Path, Result, Available);
+         exit when not Available;
+      end loop;
+      Files.Model.Set_Folder_Scan (Model, Scan);
+   end Cancel_Folder_Scan;
+
    procedure Update_Folder_Size
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
@@ -577,7 +606,7 @@ package body Files.Operations is
       if Files.Model.Paste_Execution_Is_Active (Model)
         or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model))
       then
-         Files.Model.Cancel_Folder_Scan (Model);
+         Cancel_Folder_Scan (Model);
          return;
       end if;
       --  The helper process performs the recursive subtree walk. Here we only
@@ -603,11 +632,16 @@ package body Files.Operations is
                   end;
                end if;
             end loop;
-            Files.Model.Set_Folder_Size_Targets (Model, Targets);
+            declare
+               Scan : Files.Folder_Size.Session := Files.Model.Folder_Scan (Model);
+            begin
+               Files.Folder_Size.Set_Targets (Scan, Targets);
+               Files.Model.Set_Folder_Scan (Model, Scan);
+            end;
          end;
       else
+         Cancel_Folder_Scan (Model);
          Files.Model.Clear_Folder_Size (Model);
-         Files.Model.Cancel_Folder_Scan (Model);
       end if;
    end Update_Folder_Size;
 

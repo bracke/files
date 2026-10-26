@@ -688,6 +688,18 @@ package Files.Operations is
      (Model         : in out Files.Model.Window_Model;
       Editing_Group : Boolean);
 
+   --  Publish the folder sizes the window's measurement helper has finished,
+   --  for its current selection, after letting it make progress.
+   --
+   --  @param Model Window model whose measurements to poll.
+   procedure Poll_Folder_Sizes (Model : in out Files.Model.Window_Model);
+
+   --  Stop the window's folder-size measurement and discard what it had not
+   --  yet published.
+   --
+   --  @param Model Window model whose measurements to cancel.
+   procedure Cancel_Folder_Scan (Model : in out Files.Model.Window_Model);
+
    --  Refresh the cached recursive folder size for the current selection.
    --
    --  Request uncached selected directories from a helper process and prune

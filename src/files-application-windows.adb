@@ -844,7 +844,7 @@ package body Files.Application.Windows is
      (Model : in out Files.Model.Window_Model;
       Watch : in out Files.Refresh_Jobs.Watch_Session) is
    begin
-      Files.Model.Cancel_Folder_Scan (Model);
+      Files.Operations.Cancel_Folder_Scan (Model);
       Files.Model.Clear_Paste_Execution (Model);
       Files.Refresh_Jobs.Cancel (Model);
       Files.Refresh_Jobs.Release_Watch (Watch);
@@ -919,7 +919,7 @@ package body Files.Application.Windows is
       begin
          if Runtime.Handle /= null then
             Files.Operations.Update_Folder_Size (Runtime.Model, Runtime.Settings);
-            Files.Model.Poll_Folder_Sizes (Runtime.Model);
+            Files.Operations.Poll_Folder_Sizes (Runtime.Model);
          end if;
       end Poll;
    begin

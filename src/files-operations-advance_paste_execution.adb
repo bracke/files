@@ -6,6 +6,35 @@ function Advance_Paste_Execution
    return Operation_Result
 is
    Processed : Natural := 0;
+   --  Start the current action in a helper when none runs, then poll it:
+   --  the model holds the transfer handle, this drives it.
+   procedure Advance_Background_Paste
+     (Model    : in out Files.Model.Window_Model;
+      Finished : out Boolean;
+      Result   : out Files.Transfer_Jobs.Job_Result)
+   is
+      Job : Files.Transfer_Jobs.Session := Files.Model.Paste_Job (Model);
+   begin
+      if not Files.Transfer_Jobs.Active (Job) then
+         if Files.Model.Paste_Execution_Cancelled (Model) then
+            Finished := True;
+            Result := (Cancelled => True, others => <>);
+            return;
+         end if;
+         Files.Transfer_Jobs.Start
+           (Job,
+            Files.Model.Paste_Execution_Action (Model, Files.Model.Paste_Execution_Cursor (Model) + 1),
+            Files.Model.Paste_Execution_Mode (Model), Files.Model.Paste_Execution_Copy_Context (Model));
+         Files.Model.Set_Paste_Job (Model, Job);
+         Files.Model.Note_Paste_Action_Started (Model);
+      end if;
+      Files.Transfer_Jobs.Poll (Job, Finished, Result);
+      if Finished then
+         Files.Transfer_Jobs.Reset (Job);
+         Files.Model.Set_Paste_Job (Model, Job);
+      end if;
+   end Advance_Background_Paste;
+
 begin
    if Files.Process_Jobs.Active (Files.Model.Background_Operation (Model)) then
       return Files.Operation_Jobs.Advance (Model, Settings);
@@ -32,7 +61,7 @@ begin
                Finished : Boolean;
                Result   : Files.Transfer_Jobs.Job_Result;
             begin
-               Files.Model.Advance_Background_Paste (Model, Finished, Result);
+               Advance_Background_Paste (Model, Finished, Result);
                if not Finished then
                   return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
                end if;

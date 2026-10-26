@@ -143,7 +143,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "tree");
       Files.Model.Toggle_Info_Pane (Model);
-      Files.Model.Cancel_Folder_Scan (Model);
+      Files.Operations.Cancel_Folder_Scan (Model);
       Files.Operations.Update_Folder_Size (Model, Settings);
 
       --  The measurement now runs in a helper off the UI path; drive it to

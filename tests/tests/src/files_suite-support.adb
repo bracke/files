@@ -621,7 +621,7 @@ package body Files_Suite.Support is
    procedure Drain_Folder_Sizes (Model : in out Files.Model.Window_Model) is
    begin
       for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
-         Files.Model.Poll_Folder_Sizes (Model);
+         Files.Operations.Poll_Folder_Sizes (Model);
          exit when not Files.Model.Folder_Scan_Is_Active (Model);
       end loop;
       Assert (not Files.Model.Folder_Scan_Is_Active (Model), "the background folder-size walks finish");

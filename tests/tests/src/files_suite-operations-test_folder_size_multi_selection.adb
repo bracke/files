@@ -16,7 +16,7 @@ separate (Files_Suite.Operations)
       Write_Binary_File (Join (Dir_B, "two.bin"), "0123456789");    --  10 bytes
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Model.Cancel_Folder_Scan (Model);
+      Files.Operations.Cancel_Folder_Scan (Model);
 
       --  Select both folders with the info pane open, then request their sizes.
       Files.Model.Toggle_Info_Pane (Model);

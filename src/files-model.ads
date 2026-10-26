@@ -2399,15 +2399,29 @@ package Files.Model is
       Created_Tree_Revisions : Files.Types.String_Vectors.Vector;
    end record;
 
-   --  @param Model Window owning these measurements.
-   --  @param Paths Selected uncached directory paths.
-   procedure Set_Folder_Size_Targets (Model : in out Window_Model; Paths : Files.Folder_Size.Path_Vectors.Vector);
+   --  The window's folder-size measurements: a handle the model holds as
+   --  data, which Files.Operations drives (targets, steps, cancels). The
+   --  model only releases it, when the view it measures is left.
+   --
+   --  @param Model Window to inspect.
+   --  @return Its folder-size session.
+   function Folder_Scan (Model : Window_Model) return Files.Folder_Size.Session;
 
-   --  @param Model Window whose size helper to cancel and pending results to discard.
-   procedure Cancel_Folder_Scan (Model : in out Window_Model);
+   --  Store the window's folder-size session after driving it.
+   --
+   --  @param Model Window to update.
+   --  @param Scan Its folder-size session.
+   procedure Set_Folder_Scan (Model : in out Window_Model; Scan : Files.Folder_Size.Session);
 
-   --  @param Model Window whose completed sizes to publish for its current selection.
-   procedure Poll_Folder_Sizes (Model : in out Window_Model);
+   --  Record a finished measurement, if Path is still a selected directory.
+   --
+   --  @param Model Window to update.
+   --  @param Path Measured directory.
+   --  @param Result Its size.
+   procedure Note_Folder_Size
+     (Model  : in out Window_Model;
+      Path   : String;
+      Result : Files.File_System.Directory_Size_Result);
 
    --  @param Model Window whose measurement to inspect.
    --  @return True when its size helper is active.
@@ -2753,12 +2767,23 @@ package Files.Model is
    --  @return True when background transfers are enabled.
    function Background_Transfers (Model : Window_Model) return Boolean;
 
-   --  Start or poll the current paste action without blocking on filesystem I/O.
-   --  @param Model Model owning the helper and current action.
-   --  @param Finished True when Result can be consumed.
-   --  @param Result Current action's filesystem result.
-   procedure Advance_Background_Paste
-     (Model : in out Window_Model; Finished : out Boolean; Result : out Files.Transfer_Jobs.Job_Result);
+   --  The helper running the current paste action: a handle the model holds
+   --  as data, which Files.Operations starts, polls and cancels.
+   --
+   --  @param Model Window to inspect.
+   --  @return Its transfer session (inactive between actions).
+   function Paste_Job (Model : Window_Model) return Files.Transfer_Jobs.Session;
+
+   --  Store the transfer session after driving it.
+   --
+   --  @param Model Window to update.
+   --  @param Job Its transfer session.
+   procedure Set_Paste_Job (Model : in out Window_Model; Job : Files.Transfer_Jobs.Session);
+
+   --  The current paste action has been handed to a helper: show its name.
+   --
+   --  @param Model Window to update.
+   procedure Note_Paste_Action_Started (Model : in out Window_Model);
 
    --  @param Model Window owning a general background operation.
    --  @param Job Helper session to attach while the progress overlay is open.
@@ -2987,12 +3012,16 @@ package Files.Model is
    function Paste_Execution_Write_Extends_Verified
      (Model : Window_Model) return Boolean;
 
-   --  Request cancellation of the armed execution; the next advance finalizes
-   --  over the items completed so far (already-written files are kept).
+   --  Record how a cancellation of the armed execution went: when every
+   --  helper was told (Files.Operations.Cancel_Paste_Execution tells them),
+   --  the next advance finalizes over the items completed so far
+   --  (already-written files are kept); otherwise it stays cancellable.
    --
    --  @param Model Model to update.
-   procedure Cancel_Paste_Execution
-     (Model : in out Window_Model);
+   --  @param Requested Whether every helper accepted the request.
+   procedure Set_Paste_Cancelled
+     (Model     : in out Window_Model;
+      Requested : Boolean);
 
    --  Clear the resumable paste execution, discarding its state.
    --
