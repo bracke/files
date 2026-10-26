@@ -45,7 +45,8 @@ begin
                   if not Marked then
                      Action.Forward_Completed.Append (Action.From.Element (Index));
                      Forwarded.Include (To_String (Action.From.Element (Index)));
-                     Files.History_Journal.Checkpoint (Model, Action, True);
+                     --  Recognised again by a retry (Completed_Creation_Matches).
+                     Files.History_Journal.Checkpoint (Model, Action, True, Force => False);
                   end if;
                else
                   if Marked then
@@ -106,6 +107,8 @@ begin
                            Action.Forward_Completed.Append (Action.From.Element (Index));
                            Forwarded.Include (To_String (Action.From.Element (Index)));
                            Action.Copy_Records := Files.Copy_Context.Records (Copy_Batch);
+                           --  Written now: only the journal knows this entry's
+                           --  identity, which is what tells a retry it is ours.
                            Files.History_Journal.Checkpoint (Model, Action, True);
                         else
                            Succeeded := False;

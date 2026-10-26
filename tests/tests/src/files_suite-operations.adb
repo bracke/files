@@ -356,6 +356,7 @@ package body Files_Suite.Operations is
    procedure Test_Undo_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Undo_Redo_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_History_Save_Replaces_Leftover (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_History_Journal_Fits_Large_Actions (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Symlink_Creation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Set_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Set_Ownership_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -474,6 +475,7 @@ package body Files_Suite.Operations is
    procedure Test_Stale_Click_Matches_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Overlay_Order_Is_Drawing_Order (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Change_Policy (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Commit_When_Already_Unloadable (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Persist_Applied_Settings (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sort_Is_Total_Order (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Select_Visible_Set (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -842,6 +844,9 @@ package body Files_Suite.Operations is
         (T, Test_History_Save_Replaces_Leftover'Access,
          "A leftover history.tmp does not block saves");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_History_Journal_Fits_Large_Actions'Access,
+         "The history journal leaves out the oldest entries to fit");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Redo_Symlink_Creation'Access, "a created symlink undoes and redoes symmetrically");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Redo_Set_Permissions'Access, "chmod undoes to the old mode and redoes to the new mode");
@@ -986,6 +991,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Change_Policy'Access,
          "Every settings change follows one save policy");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Commit_When_Already_Unloadable'Access,
+         "Settings that already do not load still take a small change");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Persist_Applied_Settings'Access,
          "Settings applied by a drag or the wheel are saved as they stand");
@@ -1610,6 +1618,8 @@ package body Files_Suite.Operations is
 
    procedure Test_History_Save_Replaces_Leftover (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_History_Journal_Fits_Large_Actions (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Partial_Redo_Creation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Partial_Redo_Move (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -1703,6 +1713,8 @@ package body Files_Suite.Operations is
    procedure Test_Overlay_Order_Is_Drawing_Order (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Settings_Change_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Commit_When_Already_Unloadable (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Persist_Applied_Settings (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

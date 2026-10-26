@@ -39,20 +39,4 @@ separate (Files_Suite.Operations)
               "without a session gvfs directory its old path is not a root");
       Assert (not Files.File_System.Is_User_Visible_Mount_Point ("/x", ""),
               "an empty gvfs directory does not make every path a root");
-
-      --  A volume trash remembered on a network mount is not looked at.
-      declare
-         Roots : Files.File_System.Root_Entry_Vectors.Vector;
-      begin
-         Roots.Append
-           (Files.File_System.Root_Entry'
-              (Path => To_Unbounded_String ("/mnt/share"), Kind => Files.File_System.Root_Network_Mount, others => <>));
-         Roots.Append
-           (Files.File_System.Root_Entry'
-              (Path => To_Unbounded_String ("/media/stick"), Kind => Files.File_System.Root_Mount, others => <>));
-         Assert (Files.File_System.On_Network_Mount ("/mnt/share/.Trash-1000", Roots), "below a share");
-         Assert (Files.File_System.On_Network_Mount ("/mnt/share", Roots), "a share's top");
-         Assert (not Files.File_System.On_Network_Mount ("/mnt/shared/.Trash-1000", Roots), "not a lookalike");
-         Assert (not Files.File_System.On_Network_Mount ("/media/stick/.Trash-1000", Roots), "not a local mount");
-      end;
    end Test_User_Visible_Mount_Points;

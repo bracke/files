@@ -39,11 +39,11 @@ begin
             end;
          end if;
       end loop;
+      --  Network shares included: a server that is gone stalls this as it
+      --  stalls opening the share itself, which beats an item trashed there
+      --  that can never be seen, restored or emptied again.
       for Base of Remembered_Volume_Trashes loop
-         --  A server that is gone would stall the listing.
-         if not On_Network_Mount (To_String (Base), Roots) then
-            Consider (To_String (Base));
-         end if;
+         Consider (To_String (Base));
       end loop;
    end;
    return Result;

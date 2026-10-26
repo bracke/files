@@ -912,11 +912,6 @@ package body Files.File_System is
       return "";
    end Relative_To_Top;
 
-   function On_Network_Mount (Path : String; Roots : Root_Entry_Vectors.Vector) return Boolean is
-     (for some Root of Roots =>
-        Root.Kind = Root_Network_Mount
-        and then (Path = To_String (Root.Path) or else Relative_To_Top (Path, To_String (Root.Path)) /= ""));
-
    function Volume_Trash_Top (Base : String) return String is
      (if Ada.Directories.Simple_Name (Base) (1 .. Natural'Min (7, Ada.Directories.Simple_Name (Base)'Length))
            = ".Trash-"

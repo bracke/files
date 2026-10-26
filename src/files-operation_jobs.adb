@@ -587,8 +587,8 @@ package body Files.Operation_Jobs is
          --  while an old job cannot disturb a newer view.
          begin
             Work := Read_Request (Files.Process_Jobs.Path (Job, "request"));
-            Same_View := Matches_Current_View (Work);
             Known_Kind := True;
+            Same_View := Matches_Current_View (Work);
          exception
             when others =>
                Same_View := False;

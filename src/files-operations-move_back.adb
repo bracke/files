@@ -8,7 +8,10 @@ is
    Targets : constant Files.Types.String_Vectors.Vector := (if Forward then Action.From else Action.To);
    Succeeded : Boolean := True;
    Done : Path_Sets.Set := To_Set (if Forward then Action.Forward_Completed else Action.Reverse_Completed);
-   procedure Completed (Path : Files.Types.UString) is
+   --  Recognisable means a retry finds the step done by its recorded
+   --  identity; one a cross-device copy gave a new identity is not, until
+   --  the journal holds that identity.
+   procedure Completed (Path : Files.Types.UString; Recognisable : Boolean := True) is
    begin
       Done.Include (To_String (Path));
       if Forward then
@@ -17,7 +20,7 @@ is
          Action.Reverse_Completed.Append (Path);
       end if;
       --  A retry finds a finished move by its identity at the target.
-      Files.History_Journal.Checkpoint (Model, Action, Forward, Force => False);
+      Files.History_Journal.Checkpoint (Model, Action, Forward, Force => not Recognisable);
    end Completed;
 begin
    for Step in 0 .. Natural (Sources.Length) - 1 loop
@@ -55,9 +58,12 @@ begin
                if Files.File_System.Rename_Item (Source, Target, Identity).Success then
                   Files.Model.Note_Path_Move (Model, Source, Target);
                   --  A cross-device copy gives the moved entry a new identity.
-                  Action.Created_Identities.Replace_Element
-                    (Index, To_Unbounded_String (Files.File_Identities.Token (Target)));
-                  Completed (Sources (Index));
+                  declare
+                     Now_Identity : constant String := Files.File_Identities.Token (Target);
+                  begin
+                     Action.Created_Identities.Replace_Element (Index, To_Unbounded_String (Now_Identity));
+                     Completed (Sources (Index), Recognisable => Now_Identity = Identity);
+                  end;
                else
                   Succeeded := False;
                end if;

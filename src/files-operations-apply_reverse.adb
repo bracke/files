@@ -7,6 +7,13 @@ function Apply_Reverse
 is
    Succeeded : Boolean := True;
    Reversed  : Path_Sets.Set := To_Set (Action.Reverse_Completed);
+
+   --  Whether the item restored to Targets (Index) is the trashed one itself
+   --  (a rename keeps its identity), so a retry recognises it there.
+   function Restored_In_Place
+     (Targets, Identities : Files.Types.String_Vectors.Vector; Index : Positive) return Boolean is
+     (Index <= Targets.Last_Index and then Index <= Identities.Last_Index
+      and then Files.File_Identities.Token (To_String (Targets (Index))) = To_String (Identities (Index)));
    Restored  : Path_Sets.Set := To_Set (Action.Restores_Completed);
 begin
    case Action.Kind is
@@ -32,8 +39,11 @@ begin
                Action.Reverse_Completed.Append (Action.From.Element (Index));
                Reversed.Include (To_String (Action.From.Element (Index)));
                --  A retry finds a finished restore by its identity at the
-               --  original path (Restore_Recorded_Trash).
-               Files.History_Journal.Checkpoint (Model, Action, False, Force => False);
+               --  original path (Restore_Recorded_Trash) -- unless it was a
+               --  copy across devices, which has a new one: written now.
+               Files.History_Journal.Checkpoint
+                 (Model, Action, False,
+                  Force => not Restored_In_Place (Action.To, Action.Created_Identities, Index));
             end if;
          end loop;
 
@@ -165,7 +175,9 @@ begin
       else
          Action.Restores_Completed.Append (Action.Restore_Trash.Element (Index));
          Restored.Include (To_String (Action.Restore_Trash.Element (Index)));
-         Files.History_Journal.Checkpoint (Model, Action, False, Force => False);
+         Files.History_Journal.Checkpoint
+           (Model, Action, False,
+            Force => not Restored_In_Place (Action.Restore_Targets, Action.Restore_Identities, Index));
       end if;
    end loop;
 

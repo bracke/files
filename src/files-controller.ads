@@ -93,8 +93,9 @@ package Files.Controller is
    --  is reported in the window's error line and the result, never by
    --  dropping the change -- unless the file could not hold it (it would not
    --  load again): then the change is refused whole, Settings stays as it
-   --  was, and the error line says the settings are full. An Updated equal to
-   --  Settings writes nothing.
+   --  was, and the error line says the settings are full. (Settings that
+   --  already would not load take the change in memory, unsaved.) An
+   --  Updated equal to Settings writes nothing.
    --
    --  @param Model Window whose error line reports a refused change or a failed write.
    --  @param Settings Live settings model, replaced by Updated when it is accepted.

@@ -411,9 +411,9 @@ package body Files.Interaction is
             if New_Size /= Old_Size then
                Files.Controller.Commit_Settings
                  (Model, Settings, (Settings with delta Font_Pixel_Size => New_Size), Settings_Path);
-               Result.Settings_Changed    := True;
-               Result.Font_Size_Changed   := True;
-               Result.Needs_Glyph_Rebuild := True;
+               Result.Settings_Changed    := Settings.Font_Pixel_Size = New_Size;
+               Result.Font_Size_Changed   := Result.Settings_Changed;
+               Result.Needs_Glyph_Rebuild := Result.Settings_Changed;
             end if;
             --  Drop any parallel '=' / '-' / '0' character event so a zoomed
             --  keystroke never leaks a glyph into a focused text field.
@@ -1012,19 +1012,15 @@ package body Files.Interaction is
    is
       --  The base (when additive), then the hits; the model drops repeats and
       --  indexes a stale base names past the listing's end.
-      Combined : Files.Model.Visible_Index_List
-        (1 .. (if Additive then Natural (Base.Length) else 0) + Natural (Hits.Length));
-      Last     : Natural := 0;
+      Combined : Files.Model.Visible_Index_List;
    begin
       if Additive then
          for Index of Base loop
-            Last := Last + 1;
-            Combined (Last) := Index;
+            Combined.Append (Index);
          end loop;
       end if;
       for Index of Hits loop
-         Last := Last + 1;
-         Combined (Last) := Index;
+         Combined.Append (Index);
       end loop;
       Files.Model.Select_Visible_Set (Model, Combined);
    end Apply_Marquee_Selection;

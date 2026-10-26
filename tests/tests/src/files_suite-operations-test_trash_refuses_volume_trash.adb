@@ -49,8 +49,19 @@ separate (Files_Suite.Operations)
          --  user-private group) stays one; under one anyone can write to, not.
          Assert (Files.File_System.Is_Volume_Trash_Item (Item), "the volume trash holds the item");
          Assert (Files.File_System.Set_Permissions (Top, 8#775#).Success, "the top becomes group-writable");
-         Assert (Files.File_System.Is_Volume_Trash_Item (Item),
-                 "an existing trash under a group-writable top stays listed and restorable");
+         --  Only where that group is the user's own (named as the user):
+         --  a group others share could swap the trash for a folder of the
+         --  user's and have Empty Trash delete its contents.
+         declare
+            Top_Revision : constant Hostkit.Metadata.Entry_Revision := Hostkit.Metadata.Entry_Revision_Of (Top);
+            Private_Group : constant Boolean :=
+              Files.File_System.Group_Name_For_Id (Files.Types.Account_Id (Top_Revision.Group_Id))
+              = Files.File_System.User_Name_For_Id (Files.Types.Account_Id (Uid));
+         begin
+            Assert (Files.File_System.Is_Volume_Trash_Item (Item) = Private_Group,
+                    "an existing trash under a group-writable top stays when the group is the user's own"
+                    & (if Private_Group then "" else " (it is shared here, so the trash is not trusted)"));
+         end;
          Assert (Files.File_System.Set_Permissions (Top, 8#777#).Success, "the top becomes writable by all");
          Assert (not Files.File_System.Is_Volume_Trash_Item (Item),
                  "a trash under a top anyone can write to is not trusted");

@@ -1124,21 +1124,23 @@ package body Files.Model is
      (Model   : in out Window_Model;
       Indexes : Visible_Index_List)
    is
-      --  Each visible index's item, worked out once.
-      Visible_Items : array (1 .. Natural (Model.Items.Length) + 1) of Natural;
+      package Flag_Vectors is new Ada.Containers.Vectors (Positive, Boolean);
+      --  Each visible index's item, worked out once (on the heap: a folder
+      --  can be too big for the stack).
+      Visible_Items : Visible_Index_Lists.Vector;
       Visible_Count : Natural := 0;
-      Taken         : array (1 .. Natural (Model.Items.Length)) of Boolean := [others => False];
+      Taken         : Flag_Vectors.Vector := Flag_Vectors.To_Vector (False, Model.Items.Length);
       Temporary_Taken : Boolean := False;
    begin
       for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
          if Support.Item_Is_Visible (Model, Model.Items (Index)) then
             Visible_Count := Visible_Count + 1;
-            Visible_Items (Visible_Count) := Index;
+            Visible_Items.Append (Index);
          end if;
       end loop;
       if Temporary_Is_Visible (Model) then
          Visible_Count := Visible_Count + 1;
-         Visible_Items (Visible_Count) := Temporary_Item_Index;
+         Visible_Items.Append (Temporary_Item_Index);
       end if;
       Clear_Selection (Model);
       for Visible of Indexes loop
@@ -1152,7 +1154,7 @@ package body Files.Model is
                      Model.Selected_Item_Indexes.Append (Item);
                   end if;
                   Model.Selected_Item_Index := Item;
-               elsif Item in Taken'Range then
+               elsif Item in 1 .. Natural (Taken.Length) then
                   if not Taken (Item) then
                      Taken (Item) := True;
                      Model.Selected_Item_Indexes.Append (Item);
@@ -2280,7 +2282,9 @@ package body Files.Model is
    begin
       return Length (Model.Volume_Path) > 0
         and then To_String (Model.Volume_Path) = Current_Path (Model)
-        and then Now - Model.Volume_Sampled <= Volume_Space_Refresh_Interval;
+        --  A clock set back since the sample is no reason to keep it.
+        and then Now >= Model.Volume_Sampled
+        and then Now <= Model.Volume_Sampled + Volume_Space_Refresh_Interval;
    end Volume_Space_Is_Current;
 
    function Volume_Space_Of

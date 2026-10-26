@@ -86,6 +86,7 @@ package body Files_Suite.Rendering is
    procedure Test_Bottom_Bar_Hidden_Count (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Modified_Time_Is_Local (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Far_Future_Modified_Time (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_A11y_Stop_Is_Final (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Item_Icons_Drawn_Once (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -215,6 +216,9 @@ package body Files_Suite.Rendering is
          "bottom bar shows filesystem free space when known and omits it when unknown");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Modified_Time_Is_Local'Access, "the Modified column shows local time, not UTC");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Far_Future_Modified_Time'Access,
+         "A far-future file date does not break the frame");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_A11ykit_Tree_Mapping'Access,
          "a frame's accessibility nodes map into a well-formed hierarchical a11ykit tree");
@@ -585,6 +589,8 @@ package body Files_Suite.Rendering is
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Modified_Time_Is_Local (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Far_Future_Modified_Time (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

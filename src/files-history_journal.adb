@@ -171,11 +171,74 @@ package body Files.History_Journal is
       return Result;
    end Read_Stack;
 
+   --  What Value adds to the journal, counted as Write_Entry counts it.
+   procedure Add_Cost (Value : Files.Model.Undo_Entry; Bytes, Fields : in out Long_Long_Integer) is
+      procedure Add (Vector : Files.Types.String_Vectors.Vector) is
+      begin
+         Bytes := Bytes + 16;
+         Fields := Fields + Long_Long_Integer (Vector.Length);
+         for Item of Vector loop
+            Bytes := Bytes + Long_Long_Integer (Length (Item)) + 16;
+         end loop;
+      end Add;
+   begin
+      Bytes := Bytes + 32;
+      Add (Value.From);
+      Add (Value.To);
+      Add (Value.Forward);
+      Add (Value.Restore_Trash);
+      Add (Value.Restore_Identities);
+      Add (Value.Restore_Targets);
+      Add (Value.Reverse_Completed);
+      Add (Value.Restores_Completed);
+      Add (Value.Forward_Completed);
+      Add (Value.Copy_Records);
+      Add (Value.Created_Identities);
+      Add (Value.Created_Tree_Revisions);
+   end Add_Cost;
+
+   --  The stacks less their oldest entries, as many as the journal's caps
+   --  need: one very large action (a move of a hundred thousand files) must
+   --  not make every later save fail -- and with it every operation's start
+   --  and every Undo. The newest entry of each stack (the one in progress)
+   --  is kept; the window keeps the whole history in memory, the journal
+   --  only what a crash could recover.
+   procedure Fit
+     (Undo, Redo : in out Files.Model.Undo_Entry_Vectors.Vector;
+      Header     : Natural)
+   is
+      Margin : constant Long_Long_Integer := 1024;
+      function Over return Boolean is
+         Bytes  : Long_Long_Integer := Long_Long_Integer (Header) + Margin;
+         Fields : Long_Long_Integer := 0;
+      begin
+         for Item of Undo loop
+            Add_Cost (Item, Bytes, Fields);
+         end loop;
+         for Item of Redo loop
+            Add_Cost (Item, Bytes, Fields);
+         end loop;
+         return Bytes > Max_Journal_Bytes or else Fields > Max_Journal_Fields;
+      end Over;
+   begin
+      while Over loop
+         if Undo.Length > 1 then
+            Undo.Delete_First;
+         elsif Redo.Length > 1 then
+            Redo.Delete_First;
+         else
+            exit;
+         end if;
+      end loop;
+   end Fit;
+
    procedure Save_Stacks
      (Directory : String;
       Undo, Redo : Files.Model.Undo_Entry_Vectors.Vector;
       Required : Boolean := False)
    is
+      Kept_Undo : Files.Model.Undo_Entry_Vectors.Vector := Undo;
+      Kept_Redo : Files.Model.Undo_Entry_Vectors.Vector := Redo;
       Published : Files.Durable_Writes.Publication_Result;
       Total : Natural := Journal_Header'Length + 32;
       Fields : Natural := 0;
@@ -232,8 +295,9 @@ package body Files.History_Journal is
       end if;
       Files.Private_Directories.Make_File_Private (Output.Descriptor);
       String'Output (Output'Access, Journal_Header);
-      Write_Stack (Output'Access, Undo, Total, Fields);
-      Write_Stack (Output'Access, Redo, Total, Fields);
+      Fit (Kept_Undo, Kept_Redo, Total);
+      Write_Stack (Output'Access, Kept_Undo, Total, Fields);
+      Write_Stack (Output'Access, Kept_Redo, Total, Fields);
       declare
          Closed : Boolean;
       begin

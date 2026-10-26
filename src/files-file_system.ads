@@ -461,15 +461,6 @@ package Files.File_System is
    --  @return True when the mount is listed as a root.
    function Is_User_Visible_Mount_Point (Mount_Point : String; Runtime_Gvfs : String) return Boolean;
 
-   --  Whether Path is on one of Roots' network mounts (a share, the session's
-   --  gvfs): a server that is gone stalls every look there, so a volume
-   --  trash remembered there is not looked at when the trash is listed.
-   --
-   --  @param Path Absolute path.
-   --  @param Roots Root entries, as Available_Root_Entries lists them.
-   --  @return True when Path is a network mount's top or below one.
-   function On_Network_Mount (Path : String; Roots : Root_Entry_Vectors.Vector) return Boolean;
-
    --  Return available filesystem root locations in deterministic order.
    --
    --  @return Root paths available on the host platform.

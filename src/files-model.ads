@@ -552,8 +552,10 @@ package Files.Model is
      (Model         : in out Window_Model;
       Visible_Index : Positive);
 
-   --  Visible indexes, in the order they are taken.
-   type Visible_Index_List is array (Positive range <>) of Positive;
+   --  Visible indexes, in the order they are taken. On the heap: a marquee
+   --  over a large folder names thousands, too many for a stack array.
+   package Visible_Index_Lists is new Ada.Containers.Vectors (Positive, Positive);
+   subtype Visible_Index_List is Visible_Index_Lists.Vector;
 
    --  Select exactly Indexes (out of range ones are skipped, repeats count
    --  once), the last one primary: what Clear_Selection and a

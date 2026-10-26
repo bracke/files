@@ -178,7 +178,10 @@ package body Files.Controller is
       if Files.Settings.Same_Content (Updated, Settings) then
          return (Success => True, Durable => True, Path => To_Unbounded_String (Settings_Path),
                  Error_Key => Null_Unbounded_String);
-      elsif not Files.Settings.Loadable (Updated) then
+      --  Refused when it is this change that makes them unloadable: if they
+      --  already were, refusing every later change (a zoom, a toggle) would
+      --  only lock the user out; Persisted then still writes nothing.
+      elsif not Files.Settings.Loadable (Updated) and then Files.Settings.Loadable (Settings) then
          Files.Model.Set_Error (Model, "error.settings.full");
          return
            (Success   => False,

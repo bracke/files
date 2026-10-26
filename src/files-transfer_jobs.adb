@@ -353,6 +353,8 @@ package body Files.Transfer_Jobs is
             Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
       end Recover;
    begin
+      --  Set first: if Process_Jobs.Poll raises, the handler below reads it.
+      Finished := False;
       Result := (others => <>);
       Files.Process_Jobs.Poll (Job.Process, Finished, Cancelled);
       if Finished then

@@ -270,69 +270,90 @@ package body Files.Rendering is
       return Ada.Calendar.Time_Of (Year, Month, Day);
    end Day_Start;
 
+   --  A time the calendar cannot handle around Now (a modification time
+   --  centuries away: "-" overflows Duration past about 292 years, a split
+   --  past the year range) is shown as its full date, or not at all: one
+   --  file's odd stamp must not raise out of the frame being built.
    function Humanized_Time_Text
      (Value : Ada.Calendar.Time;
       Now   : Ada.Calendar.Time := Ada.Calendar.Clock)
       return String
    is
-      Today    : constant Ada.Calendar.Time := Day_Start (Now);
-      Date     : constant Ada.Calendar.Time := Day_Start (Value);
-      Locale   : constant String := Files.Localization.System_Time_Locale;
-   begin
-      if abs (Now - Value) < 60.0 then
-         return Files.Localization.Text ("time.relative.now", Locale);
-      elsif Files.Localization.Humanize_Available then
-         --  CLDR's wording in every locale: "today 2:30 PM", "gestern 09:05",
-         --  the weekday within a week, the date beyond it, the time in the
-         --  region's own hour cycle.
-         declare
-            use type Humanize.Status.Status_Code;
+      function Within_A_Minute return Boolean is
+        (Value > Now - 60.0 and then Value < Now + 60.0);
 
-            --  Local time, at the offset in force on that date.
-            function Civil (Moment : Ada.Calendar.Time) return Humanize.Datetimes.Civil_Date_Time is
-               Year       : Ada.Calendar.Year_Number;
-               Month      : Ada.Calendar.Month_Number;
-               Day        : Ada.Calendar.Day_Number;
-               Hour       : Ada.Calendar.Formatting.Hour_Number;
-               Minute     : Ada.Calendar.Formatting.Minute_Number;
-               Second     : Ada.Calendar.Formatting.Second_Number;
-               Sub_Second : Ada.Calendar.Formatting.Second_Duration;
+      function Relative return String;
+
+      function Relative return String is
+         Today    : constant Ada.Calendar.Time := Day_Start (Now);
+         Date     : constant Ada.Calendar.Time := Day_Start (Value);
+         Locale   : constant String := Files.Localization.System_Time_Locale;
+      begin
+         if Within_A_Minute then
+            return Files.Localization.Text ("time.relative.now", Locale);
+         elsif Files.Localization.Humanize_Available then
+            --  CLDR's wording in every locale: "today 2:30 PM", "gestern 09:05",
+            --  the weekday within a week, the date beyond it, the time in the
+            --  region's own hour cycle.
+            declare
+               use type Humanize.Status.Status_Code;
+
+               --  Local time, at the offset in force on that date.
+               function Civil (Moment : Ada.Calendar.Time) return Humanize.Datetimes.Civil_Date_Time is
+                  Year       : Ada.Calendar.Year_Number;
+                  Month      : Ada.Calendar.Month_Number;
+                  Day        : Ada.Calendar.Day_Number;
+                  Hour       : Ada.Calendar.Formatting.Hour_Number;
+                  Minute     : Ada.Calendar.Formatting.Minute_Number;
+                  Second     : Ada.Calendar.Formatting.Second_Number;
+                  Sub_Second : Ada.Calendar.Formatting.Second_Duration;
+               begin
+                  Ada.Calendar.Formatting.Split
+                    (Moment, Year, Month, Day, Hour, Minute, Second, Sub_Second,
+                     Time_Zone => Ada.Calendar.Time_Zones.UTC_Time_Offset (Moment));
+                  return
+                    (Year => Year, Month => Month, Day => Day,
+                     Hour => Humanize.Datetimes.Hour_Number (Hour),
+                     Minute => Humanize.Datetimes.Minute_Number (Minute),
+                     Second => Humanize.Datetimes.Second_Number (Second));
+               end Civil;
+
+               Result : constant Humanize.Status.Text_Result :=
+                 Humanize.Datetimes.Calendar_Clock_Label
+                   (Files.Localization.Humanize_Context (Locale), Civil (Value), Civil (Now));
             begin
-               Ada.Calendar.Formatting.Split
-                 (Moment, Year, Month, Day, Hour, Minute, Second, Sub_Second,
-                  Time_Zone => Ada.Calendar.Time_Zones.UTC_Time_Offset (Moment));
-               return
-                 (Year => Year, Month => Month, Day => Day,
-                  Hour => Humanize.Datetimes.Hour_Number (Hour),
-                  Minute => Humanize.Datetimes.Minute_Number (Minute),
-                  Second => Humanize.Datetimes.Second_Number (Second));
-            end Civil;
+               if Result.Status = Humanize.Status.Ok then
+                  return To_String (Result.Text);
+               end if;
+            end;
+         end if;
 
-            Result : constant Humanize.Status.Text_Result :=
-              Humanize.Datetimes.Calendar_Clock_Label
-                (Files.Localization.Humanize_Context (Locale), Civil (Value), Civil (Now));
+         if Date = Today then
+            return Files.Localization.Text ("time.relative.today", Locale) & " " & Clock_Time_Text (Value);
+         elsif Date = Today - 86_400.0 then
+            return Files.Localization.Text ("time.relative.yesterday", Locale) & " " & Clock_Time_Text (Value);
+         else
+            for Days_Ago in 2 .. 6 loop
+               if Date = Today - Duration (Days_Ago) * 86_400.0 then
+                  return Files.Localization.Text (Weekday_Key (Value), Locale) & " " & Clock_Time_Text (Value);
+               end if;
+            end loop;
+         end if;
+
+         --  Older than a week: fall back to the full absolute date. Computed here
+         --  (lazily) so recent files, which return above, never build it.
+         return Full_Time_Text (Value);
+      end Relative;
+   begin
+      return Relative;
+   exception
+      when Ada.Calendar.Time_Error | Constraint_Error =>
          begin
-            if Result.Status = Humanize.Status.Ok then
-               return To_String (Result.Text);
-            end if;
+            return Full_Time_Text (Value);
+         exception
+            when Ada.Calendar.Time_Error | Constraint_Error =>
+               return "";
          end;
-      end if;
-
-      if Date = Today then
-         return Files.Localization.Text ("time.relative.today", Locale) & " " & Clock_Time_Text (Value);
-      elsif Date = Today - 86_400.0 then
-         return Files.Localization.Text ("time.relative.yesterday", Locale) & " " & Clock_Time_Text (Value);
-      else
-         for Days_Ago in 2 .. 6 loop
-            if Date = Today - Duration (Days_Ago) * 86_400.0 then
-               return Files.Localization.Text (Weekday_Key (Value), Locale) & " " & Clock_Time_Text (Value);
-            end if;
-         end loop;
-      end if;
-
-      --  Older than a week: fall back to the full absolute date. Computed here
-      --  (lazily) so recent files, which return above, never build it.
-      return Full_Time_Text (Value);
    end Humanized_Time_Text;
 
    function Contains_Rectangle_Point

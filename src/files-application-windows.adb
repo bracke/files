@@ -779,7 +779,11 @@ package body Files.Application.Windows is
             Files.Model.Sync_Grouping (Runtime.Model, Runtime.Settings);
             Step (Runtime);
          exception
-            when others =>
+            --  One window's step failing must not stop the others; it is
+            --  rebuilt next pass. Recorded (FILES_DIAGNOSTICS): a step that
+            --  fails every pass leaves that window undrawn.
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Application.Windows");
                Runtime.Frame_Cache_Valid := False;
                Runtime.Snapshot_Valid := False;
          end;
