@@ -24,7 +24,9 @@ package body Files.Diagnostics is
    begin
       if Ada.Environment_Variables.Exists ("FILES_DIAGNOSTICS") then
          Ada.Text_IO.Put_Line
-           (Ada.Text_IO.Standard_Error, "files-diagnostics" & ':' & ' ' & Where & ':' & ' ' & Message);
+           --  Its own marker: a trace is no failure, and CI fails on the
+           --  exception marker (files-diagnostics:) alone.
+           (Ada.Text_IO.Standard_Error, "files-trace" & ':' & ' ' & Where & ':' & ' ' & Message);
       end if;
    exception
       when others =>

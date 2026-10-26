@@ -617,9 +617,18 @@ jobs:
           # that never draws again, which the smoke above does not reach.
           mkdir -p "$RUNNER_TEMP/loop-folder"
           touch "$RUNNER_TEMP/loop-folder/alpha.txt" "$RUNNER_TEMP/loop-folder/beta.txt"
+          # timeout inside xvfb-run, so it is files the timer stops: 124 says
+          # files was still running then; anything else (no window, a crash)
+          # means the loop never ran its ten seconds.
           set +e
-          FILES_DIAGNOSTICS=1 timeout 10 xvfb-run -a ./bin/files "$RUNNER_TEMP/loop-folder" > "$RUNNER_TEMP/loop.txt" 2>&1
+          FILES_DIAGNOSTICS=1 xvfb-run -a timeout 10 ./bin/files "$RUNNER_TEMP/loop-folder" > "$RUNNER_TEMP/loop.txt" 2>&1
+          code=$?
           set -e
+          if [ "$code" -ne 124 ]; then
+            echo "::error::files stopped before its ten seconds were up (exit $code)"
+            cat "$RUNNER_TEMP/loop.txt"
+            exit 1
+          fi
           if grep -q "files-diagnostics: Files.Application.Windows" "$RUNNER_TEMP/loop.txt"; then
             echo "::error::files' event loop raised while running"
             grep -m 5 -A 4 "files-diagnostics: Files.Application.Windows" "$RUNNER_TEMP/loop.txt"

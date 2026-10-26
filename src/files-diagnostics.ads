@@ -17,7 +17,8 @@ package Files.Diagnostics is
 
    --  Record a step worth following when something goes missing on a host
    --  that cannot be debugged directly (a screen reader's request on a CI
-   --  runner). Silent unless FILES_DIAGNOSTICS is set.
+   --  runner). Silent unless FILES_DIAGNOSTICS is set; marked files-trace:,
+   --  apart from Note's files-diagnostics:, which reports a failure.
    --
    --  @param Where The unit the step is in.
    --  @param Message What happened.
