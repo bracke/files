@@ -205,7 +205,12 @@ package body Files.File_System.Support is
         or else Revision.Changed_Nanoseconds = 0;
    end Weak_Change_Times;
 
-   function Snapshot (Path : String; Content : Boolean := True) return Source_Snapshot is
+   function Snapshot
+     (Path                   : String;
+      Content                : Boolean := True;
+      Check_Job_Cancellation : Boolean := True)
+      return Source_Snapshot
+   is
       Result : Source_Snapshot;
       Weak_Change_Time : constant Boolean := Content and then Weak_Change_Times (Path);
       package Sorting is new Files.Types.String_Vectors.Generic_Sorting;
@@ -227,7 +232,8 @@ package body Files.File_System.Support is
          end Child;
       begin
          if Identity = "" or else Revision = "" or else Depth > 1_024
-           or else Natural (Result.Entries.Length) >= Max_Directory_Entries or else Files.Job_Context.Cancelled
+           or else Natural (Result.Entries.Length) >= Max_Directory_Entries
+           or else (Check_Job_Cancellation and then Files.Job_Context.Cancelled)
          then
             raise Ada.Directories.Use_Error;
          end if;
@@ -390,7 +396,9 @@ package body Files.File_System.Support is
          raise;
    end Regular_File_Digest;
 
-   function Tree_Revision (Path : String) return String is
+   function Tree_Revision (Path : String) return String is (Tree_Revision_Of (Path, Check_Job_Cancellation => True));
+
+   function Tree_Revision_Of (Path : String; Check_Job_Cancellation : Boolean) return String is
       use Ada.Streams;
       State : Source_Snapshot;
       Context : CryptoLib.Hashes.SHA256_Context;
@@ -469,7 +477,7 @@ package body Files.File_System.Support is
       elsif Ada.Directories.Kind (Path) /= Ada.Directories.Directory then
          return "";
       end if;
-      State := Snapshot (Path);
+      State := Snapshot (Path, Check_Job_Cancellation => Check_Job_Cancellation);
       CryptoLib.Hashes.Initialize_SHA256 (Context);
       for Item of State.Entries loop
          declare
@@ -485,7 +493,7 @@ package body Files.File_System.Support is
          Result ((Index - Digest'First) * 2 + 2) := Hex (Natural (Digest (Index)) mod 16 + 1);
       end loop;
       return Result;
-   end Tree_Revision;
+   end Tree_Revision_Of;
 
    function Move_No_Replace (Source, Destination : String) return Boolean is
      (Move_No_Replace_Outcome (Source, Destination) = Hostkit.Fs.Moved);
@@ -720,7 +728,8 @@ package body Files.File_System.Support is
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
       Preserve_Ownership : Boolean := False;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
-      Root_Digest : access Files.Types.UString := null)
+      Root_Digest : access Files.Types.UString := null;
+      Check_Job_Cancellation : Boolean := True)
    is
       Stage : UString;
       Links : Copied_File_Maps.Map := Load_Links (Batch);
@@ -733,7 +742,7 @@ package body Files.File_System.Support is
       Tree_Revision_Value := Null_Unbounded_String;
       Check_Copy_Destination (Source_Path, Destination_Path);
       Stage := To_Unbounded_String (Create_Stage (Ada.Directories.Containing_Directory (Destination_Path)));
-      Copy_Node_Deep (Source_Path, Join_Path (To_String (Stage), "payload"), 0, Cancel, True, Times,
+      Copy_Node_Deep (Source_Path, Join_Path (To_String (Stage), "payload"), 0, Cancel, Check_Job_Cancellation, Times,
                       Preserve_Ownership, Links, Files.Copy_Context.Directory (Batch) /= "",
                       Copied_Digest'Access);
       Identity := To_Unbounded_String (Files.File_Identities.Token (Join_Path (To_String (Stage), "payload")));
@@ -755,7 +764,7 @@ package body Files.File_System.Support is
                end if;
             end;
          else
-            Tree_Revision_Value := To_Unbounded_String (Tree_Revision (Payload));
+            Tree_Revision_Value := To_Unbounded_String (Tree_Revision_Of (Payload, Check_Job_Cancellation));
          end if;
       end;
       --  Never publish an unidentifiable payload: Undo and crash recovery

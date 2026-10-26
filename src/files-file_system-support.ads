@@ -173,6 +173,7 @@ private package Files.File_System.Support is
    --  @param Batch Shared journal for hard links across copied roots.
    --  @param Root_Digest When given, set to the SHA-256 of the bytes copied
    --    for a regular-file root, as read during the copy; empty otherwise.
+   --  @param Check_Job_Cancellation False for recovery that must finish after cancellation.
    procedure Copy_To_New_Path
      (Source_Path, Destination_Path : String;
       Identity, Tree_Revision_Value : out Files.Types.UString;
@@ -180,7 +181,8 @@ private package Files.File_System.Support is
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
       Preserve_Ownership : Boolean := False;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
-      Root_Digest : access Files.Types.UString := null);
+      Root_Digest : access Files.Types.UString := null;
+      Check_Job_Cancellation : Boolean := True);
 
    --  Whether the change times of the filesystem holding Path cannot pin an
    --  edit: a DOS-family one (FAT, exFAT), where setting the modification
@@ -205,7 +207,12 @@ private package Files.File_System.Support is
    --    full one, or With_Root_Content.
    --  @return Sorted identities, revisions, and the root file's content
    --    digest, raising if any entry cannot be verified.
-   function Snapshot (Path : String; Content : Boolean := True) return Source_Snapshot;
+   --  @param Check_Job_Cancellation False for recovery that must finish after cancellation.
+   function Snapshot
+     (Path                   : String;
+      Content                : Boolean := True;
+      Check_Job_Cancellation : Boolean := True)
+      return Source_Snapshot;
 
    --  Where files keeps its own data (the recovery index, the volume-trash
    --  list): the per-user application data directory, or FILES_TEST_TEMP's
@@ -234,6 +241,14 @@ private package Files.File_System.Support is
    --    empty for a link or unsupported or unreadable entry.
    --    Raises when a directory cannot be completely verified.
    function Tree_Revision (Path : String) return String;
+
+   --  As Tree_Revision, optionally for recovery that must finish after
+   --  cancellation.
+   --
+   --  @param Path Existing entry to inspect without following symbolic links.
+   --  @param Check_Job_Cancellation False to keep going once the job is cancelled.
+   --  @return As Tree_Revision.
+   function Tree_Revision_Of (Path : String; Check_Job_Cancellation : Boolean) return String;
 
    --  Recursively copy a file or directory tree from Source_Path to
    --  Destination_Path (Depth guards against symlink cycles). The shared

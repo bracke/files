@@ -183,6 +183,11 @@ package body Files.Accessibility is
          if not Trees.Is_Empty then
             A11ykit.Provider.Publish (Combined);
             Attach_Windows;
+         else
+            --  The last window closed: unregister now, so the screen reader is
+            --  not left reading it until the session's own Stop (Stop is
+            --  idempotent; a new window's first Publish registers again).
+            A11ykit.Provider.Stop;
          end if;
       end if;
    end Forget;
