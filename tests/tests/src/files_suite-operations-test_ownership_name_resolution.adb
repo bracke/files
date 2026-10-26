@@ -11,8 +11,7 @@ separate (Files_Suite.Operations)
          return;
       end if;
 
-      if Files.Platform.Current_API_Profile.Adapter
-           = Files.File_System.Native_Adapter_Windows
+      if Hostkit.Host.Current = Hostkit.Host.Windows
       then
          --  There is no "root" on Windows and no uid 0: an account is a SID, and
          --  the number the interface hands out is that SID's relative identifier.
@@ -60,8 +59,7 @@ separate (Files_Suite.Operations)
       --  Reverse resolution: uid 0 is root on any normal Linux system; gid 0 is
       --  "root" or "wheel" depending on distribution, so only assert non-empty.
       --  Neither number means anything on Windows.
-      if Files.Platform.Current_API_Profile.Adapter
-           /= Files.File_System.Native_Adapter_Windows
+      if Hostkit.Host.Current /= Hostkit.Host.Windows
       then
          Files_Suite.Support.Assert_Equal (Files.File_System.User_Name_For_Id (0), "root", "uid 0 resolves to root");
          Assert (Files.File_System.Group_Name_For_Id (0) /= "", "gid 0 resolves to a group name");

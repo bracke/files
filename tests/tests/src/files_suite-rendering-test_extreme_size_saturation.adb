@@ -46,7 +46,7 @@ separate (Files_Suite.Rendering)
       begin
          Overlay.Quick_Look_Open := True;
          Overlay.Context_Menu_Open := True;
-         Overlay.Context_Menu_Target := Files.Model.Context_Menu_Item;
+         Overlay.Context_Menu_Target := Files.Types.Context_Menu_Item;
          Overlay.Context_Menu_X := Natural'Last;
          Overlay.Context_Menu_Y := Natural'Last;
          declare

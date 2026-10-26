@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Settings_Pane_Toggle_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -7,7 +8,7 @@ separate (Files_Suite.Commands)
    begin
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Toggle_Settings_Pane_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Toggle_Settings_Pane_Command, Model),
          "settings pane command is enabled in the normal model state");
       --  Opening needs a draft seeded from the settings, so the model-only
       --  executor cannot own this command: only the controller runs it.
@@ -18,10 +19,10 @@ separate (Files_Suite.Commands)
         (not Files.Model.Settings_Pane_Is_Open (Model),
          "the settings pane starts closed");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Save_Settings_Command, Model),
          "save settings is disabled without settings pane");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Reset_Settings_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Reset_Settings_Command, Model),
          "reset settings is disabled without settings pane");
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "controller opens settings pane with editable draft");
@@ -57,8 +58,10 @@ separate (Files_Suite.Commands)
          "the settings toggle closes the seeded settings pane");
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "controller reopens settings pane with editable draft");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model), "save settings is enabled");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Reset_Settings_Command, Model), "reset settings is enabled");
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Save_Settings_Command, Model),
+              "save settings is enabled");
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Reset_Settings_Command, Model),
+              "reset settings is enabled");
       Files.Controller.Replace_Focused_Text (Model, "details");
       Result := Files.Controller.Execute_Command (Files.Commands.Reset_Settings_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal

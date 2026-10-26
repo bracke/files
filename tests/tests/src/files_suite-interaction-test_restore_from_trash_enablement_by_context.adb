@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Interaction)
    procedure Test_Restore_From_Trash_Enablement_By_Context (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -29,7 +30,7 @@ separate (Files_Suite.Interaction)
       Open_Item_Context_Menu (Model, Settings, Result);
       Assert (Menu_Offers (Model, Settings, Files.Commands.Restore_From_Trash_Command),
               "Restore From Trash is listed even in a normal directory");
-      Assert (not Files.Commands.Is_Enabled (Files.Commands.Restore_From_Trash_Command, Model),
+      Assert (not Files.Commands.Status.Is_Enabled (Files.Commands.Restore_From_Trash_Command, Model),
               "Restore From Trash is disabled in a normal directory");
 
       --  After trashing and navigating into the trash files directory, a selected
@@ -42,7 +43,7 @@ separate (Files_Suite.Interaction)
       Files.Operations.Settle_Current_Is_Trash (Model);
       Files_Suite.Support.Select_Name (Model, "doomed.txt");
       Assert (Files.Model.Selected_Count (Model) > 0, "the trashed item is selected in the trash view");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Restore_From_Trash_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Restore_From_Trash_Command, Model),
               "Restore From Trash is enabled with a selection inside the trash directory");
 
       Project_Tools.Files.Delete_Tree (Trash_Home);

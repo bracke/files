@@ -15,7 +15,7 @@ separate (Files_Suite.Commands)
 
       --  Context menu: Escape closes it; and while it is open a non-Escape key is
       --  consumed rather than moving the grid hidden behind it.
-      Files.Model.Open_Context_Menu (Model, 10, 10, Files.Model.Context_Menu_Empty);
+      Files.Model.Open_Context_Menu (Model, 10, 10, Files.Types.Context_Menu_Empty);
       Assert (Files.Model.Context_Menu_Is_Open (Model), "context menu opens");
       declare
          Before : constant Natural := Files.Model.Selected_Index (Model);

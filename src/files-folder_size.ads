@@ -48,49 +48,11 @@ package Files.Folder_Size is
    --  @return Active directory, or empty when idle.
    function Target_For_Test (Scan : Session) return String;
 
-   --  Set the directories to measure. The walk already in progress keeps running
-   --  when its directory is still in Paths; otherwise it is abandoned. Every
-   --  other path in Paths is queued and measured one at a time, so a multi-item
-   --  selection produces one result per directory. Finished-but-untaken results
-   --  are preserved.
+   --  Set_Targets with the one directory Path.
    --
-   --  @param Paths Absolute paths of the directories to measure.
-   procedure Set_Targets (Paths : Path_Vectors.Vector);
-
-   --  Convenience wrapper for measuring a single directory.
-   --
+   --  @param Scan The window's scan.
    --  @param Path Absolute path of the directory to measure.
-   procedure Request (Path : String);
-
-   --  Abandon the walk in progress and the queue, if any. Finished-but-untaken
-   --  results are left intact so pending measurements can still be collected.
-   procedure Cancel;
-
-   --  Poll the helper without waiting and collect a completed result.
-   --  @param Budget Retained for callers; zero skips polling, nonzero polls once.
-   procedure Step (Budget : Natural := 4000);
-
-   --  Collect one finished measurement. When one is available it is returned and
-   --  removed so it is delivered exactly once; call repeatedly to drain several.
-   --
-   --  @param Path Directory the measurement is for (valid when Available).
-   --  @param Result The measured totals (valid when Available).
-   --  @param Available True when a finished measurement was returned.
-   procedure Take
-     (Path      : out Ada.Strings.Unbounded.Unbounded_String;
-      Result    : out Files.File_System.Directory_Size_Result;
-      Available : out Boolean);
-
-   --  Return whether a measurement is currently in progress. For tests.
-   --
-   --  @return True when a walk is active (requested and not yet finished).
-   function Is_Active return Boolean;
-
-   --  Return the path of the measurement in progress, or "" when idle. For
-   --  tests.
-   --
-   --  @return The active target path, or the empty string when idle.
-   function Target_For_Test return String;
+   procedure Request (Scan : in out Session; Path : String);
 
    --  Internal helper entry point, dispatched before application startup.
    --  @param Directory Private transport directory containing the requested path.

@@ -14,42 +14,42 @@ separate (Files_Suite.Operations)
             --  The shell family follows the host, so a SHELL left over from
             --  MSYS2 or Cygwin does not switch Windows away from cmd.
             Files_Suite.Support.Assert_Equal
-              (Files.Operations.Shell_Executable,
+              (Hostkit.Shell.Executable,
                "cmd.exe",
                "Windows without COMSPEC falls back to cmd");
             Files_Suite.Support.Assert_Equal
-              (Files.Operations.Shell_Command_Option,
+              (Hostkit.Shell.Command_Option,
                "/C",
                "the cmd fallback uses the Windows command option");
          else
             Files_Suite.Support.Assert_Equal
-              (Files.Operations.Shell_Executable,
+              (Hostkit.Shell.Executable,
                "/bin/custom-sh",
                "explicit shell uses SHELL fallback");
             Files_Suite.Support.Assert_Equal
-              (Files.Operations.Shell_Command_Option,
+              (Hostkit.Shell.Command_Option,
                "-c",
                "SHELL fallback uses POSIX command option");
          end if;
          Ada.Environment_Variables.Set ("COMSPEC", "C:\Windows\System32\cmd.exe");
          if Hostkit.Host.Current = Hostkit.Host.Windows then
             Files_Suite.Support.Assert_Equal
-              (Files.Operations.Shell_Executable,
+              (Hostkit.Shell.Executable,
                "C:\Windows\System32\cmd.exe",
                "explicit shell uses COMSPEC on Windows");
             Files_Suite.Support.Assert_Equal
-              (Files.Operations.Shell_Command_Option,
+              (Hostkit.Shell.Command_Option,
                "/C",
                "COMSPEC shell uses Windows command option");
          else
             --  COMSPEC is set on Linux machines that run Wine; it must not
             --  switch a POSIX host to cmd and its quoting.
             Files_Suite.Support.Assert_Equal
-              (Files.Operations.Shell_Executable,
+              (Hostkit.Shell.Executable,
                "/bin/custom-sh",
                "a COMSPEC in a POSIX environment does not replace the POSIX shell");
             Files_Suite.Support.Assert_Equal
-              (Files.Operations.Shell_Command_Option,
+              (Hostkit.Shell.Command_Option,
                "-c",
                "a POSIX host keeps the POSIX command option");
          end if;

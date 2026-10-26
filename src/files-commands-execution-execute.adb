@@ -1,4 +1,4 @@
-separate (Files.Commands)
+separate (Files.Commands.Execution)
    procedure Execute
      (Id    : Pure_Command_Id;
       Model : in out Files.Model.Window_Model)

@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Context_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -46,7 +47,7 @@ separate (Files_Suite.Commands)
                     (Rows.Rows (Highlight).Kind = Files.Commands.Menu_Command,
                      "the highlight lands on a command row, never a separator");
                   Assert
-                    (Files.Commands.Is_Enabled (Rows.Rows (Highlight).Command, Model),
+                    (Files.Commands.Status.Is_Enabled (Rows.Rows (Highlight).Command, Model),
                      "the highlight lands only on an enabled command");
                   Previous := Highlight;
                end if;

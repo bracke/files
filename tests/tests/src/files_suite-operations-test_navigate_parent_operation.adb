@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Navigate_Parent_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -27,7 +28,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Full_Child, Load.Items, Full_Child);
 
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Navigate_Parent_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Parent_Command, Model),
          "navigate-parent is enabled in a nested directory");
 
       Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Parent_Command, Model, Settings);
@@ -71,7 +72,7 @@ separate (Files_Suite.Operations)
          Files.Model.Initialize
            (Root_Model, "/", Files.File_System.Item_Vectors.Empty_Vector, Full_Child);
          Assert
-           (not Files.Commands.Is_Enabled (Files.Commands.Navigate_Parent_Command, Root_Model),
+           (not Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Parent_Command, Root_Model),
             "navigate-parent is disabled at the filesystem root");
          Root_Op := Files.Operations.Navigate_Parent (Root_Model, Settings);
          Files_Suite.Support.Assert_Equal
@@ -106,7 +107,7 @@ separate (Files_Suite.Operations)
                Files.Operations.Settle_Current_Is_Trash (Trash_Model);
                Files.Model.Select_Visible (Trash_Model, 1);
                Assert
-                 (not Files.Commands.Is_Enabled (Files.Commands.Navigate_Parent_Command, Trash_Model),
+                 (not Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Parent_Command, Trash_Model),
                   "navigate-parent is disabled in the trash view");
                Assert
                  (Files.File_System.Is_Trash_Files_Directory
@@ -126,28 +127,28 @@ separate (Files_Suite.Operations)
                Files.Model.Set_Clipboard
                  (Trash_Model, Trash_Sources, Files.Model.Clipboard_Copy);
                Assert
-                 (not Files.Commands.Is_Enabled (Files.Commands.Create_File_Command, Trash_Model),
+                 (not Files.Commands.Status.Is_Enabled (Files.Commands.Create_File_Command, Trash_Model),
                   "create and paste commands are disabled in the trash payload view: create file disabled");
                Assert
-                 (not Files.Commands.Is_Enabled (Files.Commands.New_Folder_Command, Trash_Model),
+                 (not Files.Commands.Status.Is_Enabled (Files.Commands.New_Folder_Command, Trash_Model),
                   "create and paste commands are disabled in the trash payload view: new folder disabled");
                Assert
-                 (not Files.Commands.Is_Enabled (Files.Commands.Paste_Items_Command, Trash_Model),
+                 (not Files.Commands.Status.Is_Enabled (Files.Commands.Paste_Items_Command, Trash_Model),
                   "create and paste commands are disabled in the trash payload view: paste disabled");
                Assert
-                 (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Trash_Model),
+                 (not Files.Commands.Status.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Trash_Model),
                   "commands that would desynchronize trash metadata are disabled: delete disabled");
                Assert
-                 (not Files.Commands.Is_Enabled (Files.Commands.Cut_Selected_Items_Command, Trash_Model),
+                 (not Files.Commands.Status.Is_Enabled (Files.Commands.Cut_Selected_Items_Command, Trash_Model),
                   "commands that would desynchronize trash metadata are disabled: cut disabled");
                Assert
-                 (not Files.Commands.Is_Enabled (Files.Commands.Duplicate_Selected_Command, Trash_Model),
+                 (not Files.Commands.Status.Is_Enabled (Files.Commands.Duplicate_Selected_Command, Trash_Model),
                   "commands that would desynchronize trash metadata are disabled: duplicate disabled");
                Assert
-                 (not Files.Commands.Is_Enabled (Files.Commands.Compress_Zip_Command, Trash_Model),
+                 (not Files.Commands.Status.Is_Enabled (Files.Commands.Compress_Zip_Command, Trash_Model),
                   "commands that would desynchronize trash metadata are disabled: compress disabled");
                Assert
-                 (not Files.Commands.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Trash_Model),
+                 (not Files.Commands.Status.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Trash_Model),
                   "commands that would desynchronize trash metadata are disabled: rename disabled");
                Files.Model.Set_Background_Transfers (Trash_Model, True);
                Trash_Result := Files.Operations.Delete_Selected (Trash_Model, Settings);

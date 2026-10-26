@@ -5,8 +5,6 @@ with Ada.Strings.Fixed;
 with GNAT.OS_Lib;
 
 with Files.Command_Palette;
-with Files.Localization;
-with Files.Settings_Form;
 with Files.Type_Ahead;
 with Files.UTF8;
 
@@ -1090,6 +1088,38 @@ package body Files.Model is
       Leave_View (Model, Mark.Path);
    end Return_To;
 
+   procedure Visit_Settings_Panel
+     (Model  : in out Window_Model;
+      Config : Guikit.Settings_Panel.Configuration;
+      Fields : Guikit.Settings_Panel.Field_Vectors.Vector;
+      Visit  : not null access procedure (Panel : in out Guikit.Settings_Panel.Panel)) is
+   begin
+      Guikit.Settings_Panel.Set_Configuration (Model.Settings_Panel_View, Config);
+      Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Fields);
+      Visit (Model.Settings_Panel_View);
+   end Visit_Settings_Panel;
+
+   function Settings_Panel_Capturing (Model : Window_Model) return Boolean is
+     (Guikit.Settings_Panel.Is_Capturing (Model.Settings_Panel_View));
+
+   procedure Visit_Command_Palette
+     (Model       : in out Window_Model;
+      Line_Height : Positive;
+      Title       : String;
+      Empty_State : String;
+      Visit       : not null access procedure (Palette : in out Guikit.Command_Palette.Palette)) is
+   begin
+      --  The component keeps the query and selection across these.
+      Guikit.Command_Palette.Set_Configuration
+        (Model.Command_Palette_View, Support.Palette_Config (Line_Height, Title, Empty_State));
+      if Model.Palette_Listed_Revision /= Model.Revision_Value then
+         Guikit.Command_Palette.Set_Commands
+           (Model.Command_Palette_View, Files.Command_Palette.Commands (Model));
+         Model.Palette_Listed_Revision := Model.Revision_Value;
+      end if;
+      Visit (Model.Command_Palette_View);
+   end Visit_Command_Palette;
+
    procedure Select_Visible_Set
      (Model   : in out Window_Model;
       Indexes : Visible_Index_List)
@@ -1192,21 +1222,6 @@ package body Files.Model is
    function Palette_Selected_Id (Model : Window_Model) return Natural is separate;
 
    function Palette_Result_Count (Model : Window_Model) return Natural is separate;
-
-   procedure Palette_Build_Frame
-     (Model         : in out Window_Model;
-      Region_X      : Natural;
-      Region_Y      : Natural;
-      Region_Width  : Natural;
-      Region_Height : Natural;
-      Clip_Width    : Natural;
-      Clip_Height   : Natural;
-      Line_Height   : Positive;
-      Focused       : Boolean;
-      Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
-      Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
-      Icons         : out Guikit.Draw.Icon_Command_Vectors.Vector;
-      Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector) is separate;
 
    function Command_Palette_Mode_Of
      (Model : Window_Model)
@@ -1725,23 +1740,6 @@ package body Files.Model is
    procedure Settings_Set_Captured_Shortcut (Model : in out Window_Model; Text : String) is separate;
 
    procedure Settings_Cancel_Capture (Model : in out Window_Model) is separate;
-
-   procedure Settings_Build_Frame
-     (Model         : in out Window_Model;
-      Region_X      : Natural;
-      Region_Y      : Natural;
-      Region_Width  : Natural;
-      Region_Height : Natural;
-      Clip_Width    : Natural;
-      Clip_Height   : Natural;
-      Line_Height   : Positive;
-      Focused       : Boolean;
-      Hover_X       : Integer := -1;
-      Hover_Y       : Integer := -1;
-      Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
-      Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
-      Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector)
-   is separate;
 
    procedure Scroll_Info_Pane
      (Model : in out Window_Model;

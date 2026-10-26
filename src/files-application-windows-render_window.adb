@@ -1,3 +1,4 @@
+with Files.Overlays;
 separate (Files.Application.Windows)
    procedure Render_Window
      (Runtime : in out Runtime_Window)
@@ -365,7 +366,7 @@ separate (Files.Application.Windows)
                      P_Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
                   begin
                      Append_Modal_Backdrop (Frame, Natural (Width), Natural (Height));
-                     Files.Model.Palette_Build_Frame
+                     Files.Overlays.Build_Palette_Frame
                        (Model         => Runtime.Model,
                         Region_X      => Layout.Command_X,
                         Region_Y      => Layout.Command_Y,
@@ -401,7 +402,7 @@ separate (Files.Application.Windows)
                      S_Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
                   begin
                      Append_Modal_Backdrop (Frame, Natural (Width), Natural (Height));
-                     Files.Model.Settings_Build_Frame
+                     Files.Overlays.Build_Settings_Frame
                        (Model         => Runtime.Model,
                         Region_X      => Pane.X,
                         Region_Y      => Pane.Y,

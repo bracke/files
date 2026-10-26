@@ -64,10 +64,6 @@ package body Files.Operations is
       Path  : String)
       return Operation_Result is separate;
 
-   function Shell_Executable return String is separate;
-
-   function Shell_Command_Option return String is separate;
-
    function Host_Arguments
      (Arguments : Files.Types.String_Vectors.Vector)
       return Hostkit.String_Vectors.Vector

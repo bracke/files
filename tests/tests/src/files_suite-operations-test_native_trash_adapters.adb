@@ -32,8 +32,7 @@ separate (Files_Suite.Operations)
             Assert (not Request.Can_Use_Current_Process, "native trash request does not claim local fallback");
             --  "here" was always Linux, where the Windows adapter is of course not
             --  the target. On Windows it IS, and the binding is genuinely available.
-            if Files.Platform.Current_API_Profile.Adapter
-                 = Files.File_System.Native_Adapter_Windows
+            if Hostkit.Host.Current = Hostkit.Host.Windows
             then
                Assert (Native_Result.Supported,
                        "on Windows the native recycle-bin adapter is supported");
@@ -82,8 +81,7 @@ separate (Files_Suite.Operations)
             --  An evaluation carries a diagnostic only when it has something to
             --  report. On Windows the adapter is right here and working, so there is
             --  nothing to say; everywhere else the "unavailable" key IS the finding.
-            if Files.Platform.Current_API_Profile.Adapter
-                 = Files.File_System.Native_Adapter_Windows
+            if Hostkit.Host.Current = Hostkit.Host.Windows
             then
                Files_Suite.Support.Assert_Equal
                  (To_String (Native_Result.Error_Key),
@@ -143,8 +141,7 @@ separate (Files_Suite.Operations)
             Write_File (Victim, "bin me");
             Mutation := Files.File_System.Move_To_Trash (Victim);
 
-            if Files.Platform.Current_API_Profile.Adapter
-                 = Files.File_System.Native_Adapter_Windows
+            if Hostkit.Host.Current = Hostkit.Host.Windows
             then
                Assert (Mutation.Success,
                        "on Windows the Recycle Bin takes the item; error was "

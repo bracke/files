@@ -99,7 +99,7 @@ separate (Files_Suite.Interaction)
 
       --  A click that misses every menu row still closes the menu and must not
       --  leak follow-up flags from an earlier result stored in the same object.
-      Files.Model.Open_Context_Menu (Model, X, Y, Files.Model.Context_Menu_Empty);
+      Files.Model.Open_Context_Menu (Model, X, Y, Files.Types.Context_Menu_Empty);
       Files.Interaction.Apply_Context_Menu_Command
         (Model             => Model,
          Settings          => Settings,

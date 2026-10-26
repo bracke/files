@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Command_Table_Complete (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -35,7 +36,7 @@ separate (Files_Suite.Commands)
             Result : Files.Controller.Controller_Result;
          begin
             Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
-            if Files.Commands.Is_Enabled (Id, Model) then
+            if Files.Commands.Status.Is_Enabled (Id, Model) then
                Result := Files.Controller.Execute_Command (Id, Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Result.Status,

@@ -219,7 +219,7 @@ package Files.Rendering is
       Context_Menu_X                 : Natural := 0;
       Context_Menu_Y                 : Natural := 0;
       Context_Menu_Target            : Files.Model.Context_Menu_Target :=
-        Files.Model.Context_Menu_None;
+        Files.Types.Context_Menu_None;
       Context_Menu_Item_Index        : Natural := 0;
       --  Detail-view column customization mirrored from settings so the pure
       --  layout functions can lay out only the visible columns, honour custom
@@ -437,7 +437,7 @@ package Files.Rendering is
    --  @return The color label the swatch assigns.
    function Label_For_Swatch
      (Index : Positive)
-      return Files.Types.Color_Label;
+      return Files.Types.Color_Label renames Files.Types.Label_For_Swatch;
 
    subtype Command_Result_Layout is Guikit.Layout.Palette_Result_Row;
 

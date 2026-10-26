@@ -25,7 +25,6 @@ with Files.File_Types;
 with Files.Localization;
 with Files.Model;
 with Files.Operations;
-with Files.Platform;
 with Files.Quick_Look;
 with Files.Rendering;
 with Files.Settings;
@@ -42,8 +41,6 @@ package body Files_Suite.Model is
    use type Ada.Directories.File_Kind;
    use type Hostkit.Host.Kind;
    use type Files.Commands.Command_Id;
-   use type Files.File_System.Native_API_Binding_Status;
-   use type Files.File_System.Native_Platform_Adapter;
    use type Files.File_System.Path_Status;
    use type Files.File_System.Root_Kind;
    use type Files.File_System.Root_Readiness;
@@ -64,7 +61,6 @@ package body Files_Suite.Model is
    procedure Test_History_Retire_Drain (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_History_Restore_Admission (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Directory_Projection_Settings (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Filetype_Metadata_Policy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Executable_And_Symlink_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Encoding_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Document_Media_And_Source_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -78,7 +74,6 @@ package body Files_Suite.Model is
    procedure Test_Path_Input_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Runtime_Sort_State (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Discovery (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Root_Volume_Capabilities_And_Platform_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Discovery_Environment_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_Open_And_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Volume_Details_By_Mount_Kind (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -133,9 +128,6 @@ package body Files_Suite.Model is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Directory_Projection_Settings'Access, "directory projection settings");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Filetype_Metadata_Policy'Access,
-         "filetype metadata policy names what the current implementation parses");
-      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Executable_And_Symlink_Metadata'Access, "directory metadata permissions for executables and symlinks");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Text_Encoding_Metadata'Access, "directory metadata reports text line counts and encodings");
@@ -162,9 +154,6 @@ package body Files_Suite.Model is
         (T, Test_Runtime_Sort_State'Access, "runtime sort state");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Root_Discovery'Access, "root discovery is deterministic, duplicate-free and describes each root");
-      AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Root_Volume_Capabilities_And_Platform_Profiles'Access,
-         "root volume capabilities and native platform API profiles");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Root_Discovery_Environment_Profiles'Access,
          "root discovery honours HOMEDRIVE/HOMEPATH and collapses HOME/USERPROFILE");
@@ -267,8 +256,6 @@ package body Files_Suite.Model is
      (Files.File_System.Extra_Info_Token
         (To_String (I.Full_Path), I.Kind, To_String (I.Filetype)));
 
-   procedure Test_Filetype_Metadata_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
-
    procedure Test_Executable_And_Symlink_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Text_Encoding_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -294,9 +281,6 @@ package body Files_Suite.Model is
    procedure Test_Runtime_Sort_State (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Root_Discovery (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
-
-   procedure Test_Root_Volume_Capabilities_And_Platform_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class)
-     is separate;
 
    procedure Test_Root_Discovery_Environment_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

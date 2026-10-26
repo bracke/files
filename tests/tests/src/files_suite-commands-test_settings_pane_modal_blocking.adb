@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Settings_Pane_Modal_Blocking (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -49,16 +50,16 @@ separate (Files_Suite.Commands)
         (not Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Delete_Selected_Items_Command),
          "settings pane allowlist excludes background delete");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
          "settings pane disables background delete command");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Model),
          "settings pane disables background open command");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Save_Settings_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Save_Settings_Command, Model),
          "settings pane keeps save command enabled");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Open_Command_Palette_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Open_Command_Palette_Command, Model),
          "settings pane keeps palette command enabled");
       Files.Model.Set_Error (Model, "error.path.missing");
       Result := Files.Controller.Execute_Command (Files.Commands.Delete_Selected_Items_Command, Model, Settings);

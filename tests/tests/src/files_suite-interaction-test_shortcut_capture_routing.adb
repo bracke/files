@@ -1,3 +1,4 @@
+with Files.Overlays;
 separate (Files_Suite.Interaction)
    --  With a settings Shortcut row armed, the key seam routes the next physical
    --  chord to capture (rebinding the live keymap) rather than acting on it, and
@@ -29,7 +30,7 @@ separate (Files_Suite.Interaction)
            (Model => Model, Settings => Settings, Settings_Path => Path,
             Key => Guikit.Input.Key_Comma, Modifiers => Ctrl,
             Current_Font_Size => Base_Font, Result => Result);
-         Files.Model.Settings_Build_Frame
+         Files.Overlays.Build_Settings_Frame
            (Model => Model, Region_X => 0, Region_Y => 0, Region_Width => 600, Region_Height => 500,
             Clip_Width => 600, Clip_Height => 500, Line_Height => 20, Focused => True,
             Rectangles => Rects, Text => Text, Accessibility => Nodes);

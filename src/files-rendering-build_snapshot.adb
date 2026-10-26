@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 with Files.Grouping;
 separate (Files.Rendering)
    function Build_Snapshot
@@ -180,7 +181,7 @@ separate (Files.Rendering)
       end if;
 
       for Id in Files.Commands.Registered_Command_Id loop
-         Snapshot.Command_Enabled (Id) := Files.Commands.Is_Enabled (Id, Model);
+         Snapshot.Command_Enabled (Id) := Files.Commands.Status.Is_Enabled (Id, Model);
       end loop;
 
       for Index in 1 .. Files.Model.Root_Count (Model) loop

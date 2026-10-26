@@ -776,17 +776,6 @@ package body Files.Rendering is
       end case;
    end Label_Render_Color;
 
-   function Label_For_Swatch
-     (Index : Positive)
-      return Files.Types.Color_Label is
-   begin
-      if Index in 1 .. 7 then
-         return Files.Types.Color_Label'Val (Index);
-      else
-         return Files.Types.No_Label;
-      end if;
-   end Label_For_Swatch;
-
    type Render_Theme is record
       Name             : UString;
       High_Contrast    : Boolean := False;

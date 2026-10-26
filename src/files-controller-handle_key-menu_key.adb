@@ -11,9 +11,9 @@ begin
    then
       if Files.Model.Selected_Count (Model) > 0 then
          Files.Model.Open_Context_Menu
-           (Model, 0, 0, Files.Model.Context_Menu_Item, Files.Model.Selected_Index (Model));
+           (Model, 0, 0, Files.Types.Context_Menu_Item, Files.Model.Selected_Index (Model));
       else
-         Files.Model.Open_Context_Menu (Model, 0, 0, Files.Model.Context_Menu_Empty);
+         Files.Model.Open_Context_Menu (Model, 0, 0, Files.Types.Context_Menu_Empty);
       end if;
       Result := Make_Result (Controller_Selection_Moved);
       return;

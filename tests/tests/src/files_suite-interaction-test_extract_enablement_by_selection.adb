@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Interaction)
    procedure Test_Extract_Enablement_By_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -26,13 +27,13 @@ separate (Files_Suite.Interaction)
       Open_Item_Context_Menu (Model, Settings, Result);
       Assert (Menu_Offers (Model, Settings, Files.Commands.Extract_Archive_Command),
               "Extract is listed for a plain-file selection");
-      Assert (not Files.Commands.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
+      Assert (not Files.Commands.Status.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
               "Extract is disabled when the selection holds no archive");
 
       --  An archive selection: Extract is enabled.
       Model := Loaded_Model (Dir);
       Files_Suite.Support.Select_Name (Model, "bundle.zip");
       Open_Item_Context_Menu (Model, Settings, Result);
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
               "Extract is enabled when the selection includes an archive");
    end Test_Extract_Enablement_By_Selection;

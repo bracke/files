@@ -1,3 +1,5 @@
+with Files.Commands.Execution;
+with Files.Commands.Status;
 separate (Files.Controller)
    function Execute_Command
      (Id        : Files.Commands.Command_Id;
@@ -26,7 +28,7 @@ separate (Files.Controller)
         and then not Files.Commands.Allowed_With_Settings_Pane (Id)
       then
          return Make_Result (Controller_Ignored, Id);
-      elsif not Files.Commands.Is_Enabled (Id, Model) then
+      elsif not Files.Commands.Status.Is_Enabled (Id, Model) then
          return Disabled_Command_Result (Id, Model);
       end if;
 
@@ -212,7 +214,7 @@ separate (Files.Controller)
             --  Apply_Settings_Command instead of calling this one.
             null;
          when Files.Commands.Pure_Command_Id =>
-            Files.Commands.Execute (Id, Model);
+            Files.Commands.Execution.Execute (Id, Model);
       end case;
 
       if Operation.Status = Files.Operations.Operation_Disabled

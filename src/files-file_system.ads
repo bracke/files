@@ -171,27 +171,6 @@ package Files.File_System is
       Native_API_Binding_Missing,
       Native_API_Binding_Available);
 
-   type Native_Platform_Adapter is
-     (Native_Adapter_None,
-      Native_Adapter_Linux,
-      Native_Adapter_Windows,
-      Native_Adapter_Macos);
-
-   type Native_Platform_API_Profile is record
-      Adapter                 : Native_Platform_Adapter := Native_Adapter_None;
-      Trash_Binding_Status    : Native_API_Binding_Status := Native_API_Not_Target;
-      Volume_Binding_Status   : Native_API_Binding_Status := Native_API_Not_Target;
-      Trash_API_Name          : UString;
-      Volume_API_Name         : UString;
-      Trash_Binding_Unit      : UString;
-      Volume_Binding_Unit     : UString;
-      Required_Library        : UString;
-      Required_Framework      : UString;
-      Current_Target          : Boolean := False;
-      Trash_Can_Execute       : Boolean := False;
-      Volume_Can_Query        : Boolean := False;
-   end record;
-
    type Trash_Capabilities is record
       Backend             : Trash_Backend := Trash_Unavailable;
       Native_Platform     : Boolean := False;
@@ -264,38 +243,6 @@ package Files.File_System is
       Network_Mount_Count     : Natural := 0;
    end record;
 
-   type Root_Volume_Capabilities is record
-      Labels_From_Platform_Api    : Boolean := False;
-      Readiness_From_Platform_Api : Boolean := False;
-      Removable_From_Platform_Api : Boolean := False;
-      Capacity_From_Platform_Api  : Boolean := False;
-      Filesystem_Type_Available   : Boolean := False;
-      Eject_Available             : Boolean := False;
-      Native_Api_Name             : UString;
-      Native_Binding_Status       : Native_API_Binding_Status := Native_API_Not_Target;
-      Binding_Unit                : UString;
-      Source_Device_Available     : Boolean := False;
-      Mount_Options_Available     : Boolean := False;
-      Network_Metadata_Available  : Boolean := False;
-      Removable_Status_Available  : Boolean := False;
-      Capacity_Bytes_Known        : Boolean := False;
-      Free_Bytes_Known            : Boolean := False;
-      Inode_Count_Known           : Boolean := False;
-      Read_Only_Available         : Boolean := False;
-      Name_Max_Available          : Boolean := False;
-   end record;
-
-   type Filesystem_Edge_Case_Profile is record
-      Permission_Errors_Recoverable : Boolean := True;
-      Symlink_Items_Represented     : Boolean := True;
-      Special_File_Items_Represented : Boolean := True;
-      Cross_Device_Rename_Recoverable : Boolean := True;
-      Trash_Preflight               : Boolean := True;
-      Metadata_Partial_Items        : Boolean := True;
-      Removable_Root_Metadata       : Boolean := True;
-      Native_Root_Volume_Details    : Boolean := True;
-   end record;
-
    type Root_Volume_Details is record
       Path                 : UString;
       Label                : UString;
@@ -325,17 +272,6 @@ package Files.File_System is
       Latency_Sensitive    : Boolean := False;
       Special_Error_Recovery : Boolean := False;
       Uses_Platform_Detail : Boolean := False;
-   end record;
-
-   type Filetype_Metadata_Policy is record
-      Uses_Extension_Mapping     : Boolean := True;
-      Uses_Mime_Sniffing         : Boolean := False;
-      Parses_Image_Dimensions    : Boolean := True;
-      Parses_Text_Encoding       : Boolean := True;
-      Parses_Archive_Entry_Count : Boolean := True;
-      Parses_Pdf_Page_Markers    : Boolean := True;
-      Parses_Media_Codecs        : Boolean := False;
-      Parses_Office_Package_Info : Boolean := True;
    end record;
 
    --  Normalize an existing filesystem path to a directory path.
@@ -558,26 +494,6 @@ package Files.File_System is
    --  @return Root discovery counts and policy flags.
    function Root_Discovery_Status return Root_Discovery_Diagnostics;
 
-   --  Return root volume metadata capabilities for the current implementation.
-   --
-   --  @return Platform volume metadata capability flags.
-   function Root_Volume_Capabilities_Of_Current_Environment
-      return Root_Volume_Capabilities;
-
-   --  Return filesystem edge-case handling metadata for the current implementation.
-   --
-   --  @return Recoverable filesystem edge-case behavior flags.
-   function Filesystem_Edge_Case_Profile_Of_Current_Environment
-      return Filesystem_Edge_Case_Profile;
-
-   --  Return native filesystem adapter capabilities for the selected platform.
-   --
-   --  @param Adapter Platform adapter to inspect.
-   --  @return Native trash and volume API binding status for Adapter.
-   function Native_Platform_API_Profile_For
-     (Adapter : Native_Platform_Adapter)
-      return Native_Platform_API_Profile;
-
    --  Return best-effort volume details for a discovered root.
    --
    --  @param Root Root entry to describe.
@@ -585,12 +501,6 @@ package Files.File_System is
    function Root_Volume_Details_For
      (Root : Root_Entry)
       return Root_Volume_Details;
-
-   --  Return filetype metadata extraction policy for the current implementation.
-   --
-   --  @return Metadata extraction capability flags.
-   function Filetype_Metadata_Policy_Of_Current_Implementation
-      return Filetype_Metadata_Policy;
 
    --  Build an item value for tests and pure model setup.
    --

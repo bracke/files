@@ -36,7 +36,7 @@ separate (Files_Suite.Rendering)
                   Snap.Settings_Pane_Open := True;
                when 8 =>
                   Snap.Context_Menu_Open := True;
-                  Snap.Context_Menu_Target := Files.Model.Context_Menu_Item;
+                  Snap.Context_Menu_Target := Files.Types.Context_Menu_Item;
                   Snap.Context_Menu_X := 10;
                   Snap.Context_Menu_Y := 10;
                when 9 =>

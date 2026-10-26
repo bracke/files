@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Clear_Filter_And_No_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5,13 +6,14 @@ separate (Files_Suite.Commands)
       Model    : Files.Model.Window_Model := Sample_Model;
       Result   : Files.Controller.Controller_Result;
    begin
-      Assert (not Files.Commands.Is_Enabled (Files.Commands.No_Command, Model), "no-command is never enabled");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Create_File_Command, Model), "create is enabled initially");
+      Assert (not Files.Commands.Status.Is_Enabled (Files.Commands.No_Command, Model), "no-command is never enabled");
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Create_File_Command, Model),
+              "create is enabled initially");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Focus_Filter_Input_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Focus_Filter_Input_Command, Model),
          "filter focus is enabled initially");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
          "clear filter is disabled without filter text");
       Result := Files.Controller.Execute_Command (Files.Commands.Clear_Filter_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -28,7 +30,7 @@ separate (Files_Suite.Commands)
          "disabled clear-filter records error");
       Files.Model.Set_Filter (Model, "alpha");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
          "clear filter is enabled with filter text");
       Result := Files.Controller.Execute_Command (Files.Commands.Clear_Filter_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal

@@ -1,3 +1,4 @@
+with Files.Fs_Primitives;
 with Ada.Real_Time;
 with Files.Diagnostics;
 with Ada.Containers;
@@ -32,20 +33,7 @@ package body Files.History_Journal is
    Max_Field_Length : constant := 32 * 1024;
 
    function Valid_Directory (Directory : String) return Boolean is
-   begin
-      if Directory = "" or else Directory'Length > Max_Field_Length then
-         return False;
-      end if;
-      for Item of Directory loop
-         if Item = ASCII.NUL then
-            return False;
-         end if;
-      end loop;
-      return GNAT.OS_Lib.Is_Absolute_Path (Directory);
-   exception
-      when others =>
-         return False;
-   end Valid_Directory;
+     (Files.Fs_Primitives.Valid_Absolute_Path (Directory, Max_Field_Length));
 
    procedure Write_Vector
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;

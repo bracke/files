@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Operations)
    --  Typing the trash's path into the path bar opens the trash view, as
    --  navigating to it any other way does.
@@ -20,7 +21,7 @@ separate (Files_Suite.Operations)
          Files_Suite.Support.Assert_Equal
            (Result.Status, Files.Operations.Operation_Navigated, "the typed path is opened");
          Assert (Files.Model.Current_Is_Trash (Model), "the folder typed in is shown as the trash");
-         Assert (Files.Commands.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
+         Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
                  "so Empty Trash is offered there");
       end Check;
    begin

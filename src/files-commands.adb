@@ -380,36 +380,6 @@ package body Files.Commands is
       return No_Command;
    end Id_For_Identifier;
 
-   --  Return whether a simple file name ends, case-insensitively, in a
-   --  recognized archive extension (.zip or .7z).
-   function Name_Is_Archive (Name : String) return Boolean is
-      Lower : constant String := Ada.Characters.Handling.To_Lower (Name);
-   begin
-      return Ada.Strings.Fixed.Tail (Lower, 4) = ".zip"
-        or else Ada.Strings.Fixed.Tail (Lower, 3) = ".7z";
-   end Name_Is_Archive;
-
-   --  Return whether at least one selected item is a recognized archive.
-   function Selection_Has_Archive (Model : Files.Model.Window_Model) return Boolean is
-      Items : constant Files.File_System.Item_Vectors.Vector :=
-        Files.Model.Selected_Items (Model);
-   begin
-      for Item of Items loop
-         if Name_Is_Archive (To_String (Item.Name)) then
-            return True;
-         end if;
-      end loop;
-
-      return False;
-   end Selection_Has_Archive;
-
-   --  Return whether the model currently shows the platform trash payload
-   --  directory rather than an ordinary directory.
-   function In_Trash_View (Model : Files.Model.Window_Model) return Boolean is
-   begin
-      return Files.Model.Current_Is_Trash (Model);
-   end In_Trash_View;
-
    function Joined_Full_Paths
      (Items : Files.File_System.Item_Vectors.Vector)
       return String
@@ -448,16 +418,6 @@ package body Files.Commands is
    function Reason_Key
      (Reason : Disabled_Reason)
       return String is (To_String (Reason_Keys (Reason)));
-
-   function Status_Of
-     (Id    : Command_Id;
-      Model : Files.Model.Window_Model)
-      return Command_Status is separate;
-
-   function Is_Enabled
-     (Id    : Command_Id;
-      Model : Files.Model.Window_Model)
-      return Boolean is (Status_Of (Id, Model).Enabled);
 
    function Find_By_Shortcut
      (Key       : Guikit.Input.Key_Code;
@@ -515,13 +475,8 @@ package body Files.Commands is
      (Field : Files.Types.Sort_Field)
       return String is (Name_Key (Sort_Commands (Field)));
 
-   procedure Execute
-     (Id    : Pure_Command_Id;
-      Model : in out Files.Model.Window_Model)
- is separate;
-
    function Context_Menu_Rows_For
-     (Target : Files.Model.Context_Menu_Target)
+     (Target : Files.Types.Context_Menu_Target)
       return Context_Menu_Rows
    is
       Result : Context_Menu_Rows;
@@ -539,7 +494,7 @@ package body Files.Commands is
       end Separator;
    begin
       case Target is
-         when Files.Model.Context_Menu_Item =>
+         when Files.Types.Context_Menu_Item =>
             Add (Open_Selected_Items_Command);
             Add (Open_With_Command);
             Add (Open_Containing_Folder_Command);
@@ -564,7 +519,7 @@ package body Files.Commands is
             Add (Rename_Selected_Items_Command);
             Add (Delete_Selected_Items_Command);
             Add (Restore_From_Trash_Command);
-         when Files.Model.Context_Menu_Empty =>
+         when Files.Types.Context_Menu_Empty =>
             Add (Create_File_Command);
             Add (New_Folder_Command);
             Add (Paste_Items_Command);
@@ -574,7 +529,7 @@ package body Files.Commands is
             Separator;
             Add (Empty_Trash_Command);
             Add (Clear_Recent_Command);
-         when Files.Model.Context_Menu_Header =>
+         when Files.Types.Context_Menu_Header =>
             Add (Toggle_Column_Modified_Command);
             Add (Toggle_Column_Size_Command);
             Add (Toggle_Column_Type_Command);
@@ -582,7 +537,7 @@ package body Files.Commands is
             Add (Toggle_Column_Permissions_Command);
             Separator;
             Add (Cycle_Group_By_Command);
-         when Files.Model.Context_Menu_None =>
+         when Files.Types.Context_Menu_None =>
             null;
       end case;
 

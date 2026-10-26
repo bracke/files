@@ -19,7 +19,6 @@ with Project_Tools.Files;
 with GNAT.OS_Lib;
 with GNAT.CRC32;
 
-with Files.Platform;
 with Hostkit.Fs;
 with Hostkit.Host;
 
@@ -95,7 +94,6 @@ package body Files_Suite.Support is
    --  Bit masking in Chunk's CRC bytes, and the adapter check in
    --  Honours_Executable_Bit.
    use type Interfaces.Unsigned_32;
-   use type Files.File_System.Native_Platform_Adapter;
 
    function Click_Action
      (Snapshot    : Files.Rendering.View_Snapshot;
@@ -464,9 +462,9 @@ package body Files_Suite.Support is
    end Companion_Program;
 
    function Honours_Executable_Bit return Boolean is
+      use type Hostkit.Host.Kind;
    begin
-      return Files.Platform.Current_API_Profile.Adapter
-               /= Files.File_System.Native_Adapter_Windows;
+      return Hostkit.Host.Current /= Hostkit.Host.Windows;
    end Honours_Executable_Bit;
 
    function No_Op_Executable return String is

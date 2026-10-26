@@ -95,15 +95,7 @@ package body Files.Job_Context is
    end Nul_Free;
 
    function Valid_Absolute_Path (Path : String) return Boolean is
-   begin
-      if Path = "" or else Path'Length > Max_Record_Path_Length then
-         return False;
-      end if;
-      return Nul_Free (Path) and then GNAT.OS_Lib.Is_Absolute_Path (Path);
-   exception
-      when others =>
-         return False;
-   end Valid_Absolute_Path;
+     (Files.Fs_Primitives.Valid_Absolute_Path (Path, Max_Record_Path_Length));
 
    procedure Sync_Journal (Path : String);
 

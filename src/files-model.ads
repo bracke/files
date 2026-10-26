@@ -1622,44 +1622,47 @@ package Files.Model is
    --  @param Text The formatted chord text, or "" to unbind.
    procedure Settings_Set_Captured_Shortcut (Model : in out Window_Model; Text : String);
 
+   --  Configure the settings panel (Config, built by the window layer with its
+   --  localized texts, and the form's Fields) and hand it to Visit, which
+   --  draws it: the model holds the panel's state, the window layer renders.
+   --
+   --  @param Model Model whose panel to visit.
+   --  @param Config The panel's configuration this frame.
+   --  @param Fields The form's fields this frame.
+   --  @param Visit Draws the panel.
+   procedure Visit_Settings_Panel
+     (Model  : in out Window_Model;
+      Config : Guikit.Settings_Panel.Configuration;
+      Fields : Guikit.Settings_Panel.Field_Vectors.Vector;
+      Visit  : not null access procedure (Panel : in out Guikit.Settings_Panel.Panel));
+
+   --  Whether the settings panel is capturing a shortcut chord.
+   --
+   --  @param Model Model to inspect.
+   --  @return True while a chord is being captured.
+   function Settings_Panel_Capturing (Model : Window_Model) return Boolean;
+
+   --  Refresh the command palette for this frame -- its line height, and its
+   --  command list (their enablement) after a model change -- and hand it to
+   --  Visit, which draws it: the model holds the palette's state (query,
+   --  selection, scroll), the window layer renders.
+   --
+   --  @param Model Model whose palette to visit.
+   --  @param Line_Height Row height in pixels.
+   --  @param Title The palette's heading, in the current language.
+   --  @param Empty_State What it shows when no command matches.
+   --  @param Visit Draws the palette.
+   procedure Visit_Command_Palette
+     (Model       : in out Window_Model;
+      Line_Height : Positive;
+      Title       : String;
+      Empty_State : String;
+      Visit       : not null access procedure (Palette : in out Guikit.Command_Palette.Palette));
+
    --  Disarm capture without changing any field.
    --
    --  @param Model Model to update.
    procedure Settings_Cancel_Capture (Model : in out Window_Model);
-
-   --  Render the settings panel within a region, rebuilding its field list from
-   --  the current draft first. Emits draw commands and accessibility nodes.
-   --
-   --  @param Model Model to render from (updates the panel's cached layout).
-   --  @param Region_X Left edge of the panel region in pixels.
-   --  @param Region_Y Top edge of the panel region in pixels.
-   --  @param Region_Width Panel region width in pixels.
-   --  @param Region_Height Panel region height in pixels.
-   --  @param Clip_Width Drawable window width in pixels.
-   --  @param Clip_Height Drawable window height in pixels.
-   --  @param Line_Height Row height in pixels.
-   --  @param Focused Whether the panel has keyboard focus.
-   --  @param Hover_X Cursor X in pixels, or negative when off-window (drives the
-   --    tab-switcher hover tooltip).
-   --  @param Hover_Y Cursor Y in pixels.
-   --  @param Rectangles Out: rectangle commands.
-   --  @param Text Out: text commands.
-   --  @param Accessibility Out: accessibility nodes.
-   procedure Settings_Build_Frame
-     (Model         : in out Window_Model;
-      Region_X      : Natural;
-      Region_Y      : Natural;
-      Region_Width  : Natural;
-      Region_Height : Natural;
-      Clip_Width    : Natural;
-      Clip_Height   : Natural;
-      Line_Height   : Positive;
-      Focused       : Boolean;
-      Hover_X       : Integer := -1;
-      Hover_Y       : Integer := -1;
-      Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
-      Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
-      Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector);
 
    --  Scroll the info pane by logical text lines.
    --
@@ -1794,38 +1797,6 @@ package Files.Model is
    --  @param Model Model to inspect.
    --  @return The result count.
    function Palette_Result_Count (Model : Window_Model) return Natural;
-
-   --  Render the command palette within a region, refreshing its command list
-   --  (fresh enablement) and line height first. Emits draw commands and
-   --  accessibility nodes for the caller to submit.
-   --
-   --  @param Model Model to render from (updates the palette's cached layout).
-   --  @param Region_X Left edge of the palette region in pixels.
-   --  @param Region_Y Top edge of the palette region in pixels.
-   --  @param Region_Width Palette region width in pixels.
-   --  @param Region_Height Palette region height in pixels.
-   --  @param Clip_Width Drawable window width in pixels.
-   --  @param Clip_Height Drawable window height in pixels.
-   --  @param Line_Height Row height in pixels.
-   --  @param Focused Whether the search box has keyboard focus.
-   --  @param Rectangles Out: rectangle commands.
-   --  @param Text Out: text commands.
-   --  @param Icons Out: icon commands.
-   --  @param Accessibility Out: accessibility nodes.
-   procedure Palette_Build_Frame
-     (Model         : in out Window_Model;
-      Region_X      : Natural;
-      Region_Y      : Natural;
-      Region_Width  : Natural;
-      Region_Height : Natural;
-      Clip_Width    : Natural;
-      Clip_Height   : Natural;
-      Line_Height   : Positive;
-      Focused       : Boolean;
-      Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
-      Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
-      Icons         : out Guikit.Draw.Icon_Command_Vectors.Vector;
-      Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector);
 
    type Palette_Mode is (Palette_Commands, Palette_Open_With);
 
@@ -2250,11 +2221,7 @@ package Files.Model is
       Name  : String)
       return Boolean;
 
-   type Context_Menu_Target is
-     (Context_Menu_None,
-      Context_Menu_Item,
-      Context_Menu_Empty,
-      Context_Menu_Header);
+   subtype Context_Menu_Target is Files.Types.Context_Menu_Target;
 
    --  Open the right-click context menu at the given window position.
    --
@@ -3318,7 +3285,7 @@ private
       Open       : Boolean := False;
       X          : Natural := 0;
       Y          : Natural := 0;
-      Target     : Context_Menu_Target := Context_Menu_None;
+      Target     : Context_Menu_Target := Files.Types.Context_Menu_None;
       Item_Index : Natural := 0;
       Highlight  : Natural := 0;
    end record;

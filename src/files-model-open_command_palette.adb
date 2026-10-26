@@ -10,7 +10,7 @@ begin
    Model.Open_With_Applications_Value.Clear;
    Claim_Overlay_Input (Model);
    Guikit.Command_Palette.Set_Configuration
-     (Model.Command_Palette_View, Palette_Config (20, Palette_Commands));
+     (Model.Command_Palette_View, Palette_Config (20));
    Guikit.Command_Palette.Reset (Model.Command_Palette_View);
    Guikit.Command_Palette.Set_Commands
      (Model.Command_Palette_View, Files.Command_Palette.Commands (Model));

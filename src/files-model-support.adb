@@ -4,7 +4,6 @@ with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
 
 with Files.Grouping;
-with Files.Localization;
 with Files.Settings_Form;
 with Files.UTF8;
 
@@ -840,22 +839,16 @@ package body Files.Model.Support is
 
    function Palette_Config
      (Line_Height : Positive;
-      Mode        : Palette_Mode) return Guikit.Command_Palette.Configuration is
-   begin
-      return
-        (Line_Height    => Line_Height,
-         Show_Icons     => False,
-         Show_Shortcuts => True,
-         Overlay        => True,
-         Wrap_Selection => True,
-         Placeholder    => Null_Unbounded_String,
-         Empty_State    => To_Unbounded_String (Files.Localization.Text ("command.palette.empty")),
-         Title          => To_Unbounded_String
-                             (Files.Localization.Text
-                                (if Mode = Palette_Open_With
-                                 then "command_palette.title.open_with"
-                                 else "command_palette.title")));
-   end Palette_Config;
+      Title       : String := "";
+      Empty_State : String := "") return Guikit.Command_Palette.Configuration is
+     (Line_Height    => Line_Height,
+      Show_Icons     => False,
+      Show_Shortcuts => True,
+      Overlay        => True,
+      Wrap_Selection => True,
+      Placeholder    => Null_Unbounded_String,
+      Empty_State    => To_Unbounded_String (Empty_State),
+      Title          => To_Unbounded_String (Title));
 
    function Selected_Loaded_Indexes
      (Model : Window_Model)

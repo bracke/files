@@ -7,7 +7,7 @@ separate (Files_Suite.Operations)
 
       --  How this host's shell separates two commands: cmd uses "&", sh uses ";".
       Shell_Command_Separator : constant String :=
-        (if Files.Platform.Current_API_Profile.Adapter = Files.File_System.Native_Adapter_Windows
+        (if Hostkit.Host.Current = Hostkit.Host.Windows
          then "&"
          else ";");
       Model     : Files.Model.Window_Model := Sample_Model;

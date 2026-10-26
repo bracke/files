@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Interaction)
    procedure Test_Paste_Enablement_Reflects_Clipboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,7 +18,7 @@ separate (Files_Suite.Interaction)
       Assert (Menu_Offers (Model, Settings, Files.Commands.Paste_Items_Command),
               "the empty-area menu lists Paste");
       Assert (not Files.Model.Clipboard_Has_Items (Model), "the clipboard starts empty");
-      Assert (not Files.Commands.Is_Enabled (Files.Commands.Paste_Items_Command, Model),
+      Assert (not Files.Commands.Status.Is_Enabled (Files.Commands.Paste_Items_Command, Model),
               "Paste is disabled before anything is copied");
       Files.Model.Close_Context_Menu (Model);
 
@@ -28,6 +29,6 @@ separate (Files_Suite.Interaction)
         (Model, Settings, "", Files.Commands.Copy_Selected_Items_Command, Result, Found);
       Assert (Found, "the item menu offers the copy command");
       Assert (Files.Model.Clipboard_Has_Items (Model), "copy populates the clipboard");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Paste_Items_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Paste_Items_Command, Model),
               "Paste is enabled once the clipboard holds items");
    end Test_Paste_Enablement_Reflects_Clipboard;

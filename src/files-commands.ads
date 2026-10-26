@@ -1,5 +1,4 @@
 with Files.File_System;
-with Files.Model;
 with Guikit.Input;
 with Files.Types;
 
@@ -366,28 +365,6 @@ package Files.Commands is
      (Reason : Disabled_Reason)
       return String;
 
-   --  Return whether a command is executable in the current model state and,
-   --  when it is not, why. This is the one set of enablement rules: Is_Enabled
-   --  and the controller's disabled-command report both read it.
-   --
-   --  @param Id Command identifier.
-   --  @param Model Current window model.
-   --  @return Enablement and the reason a disabled command cannot run.
-   function Status_Of
-     (Id    : Command_Id;
-      Model : Files.Model.Window_Model)
-      return Command_Status;
-
-   --  Return whether a command is executable in the current model state.
-   --
-   --  @param Id Command identifier.
-   --  @param Model Current window model.
-   --  @return True when command can execute (Status_Of (Id, Model).Enabled).
-   function Is_Enabled
-     (Id    : Command_Id;
-      Model : Files.Model.Window_Model)
-      return Boolean;
-
    --  The rows the right-click context menu shows for a target, in order --
    --  command rows interleaved with separator dividers. Shared by the renderer
    --  (which lays them out and hit-tests them) and the controller (which
@@ -414,7 +391,7 @@ package Files.Commands is
    --  @param Target Which context menu (item / empty area / column header).
    --  @return The rows for that target (Count is zero for Context_Menu_None).
    function Context_Menu_Rows_For
-     (Target : Files.Model.Context_Menu_Target)
+     (Target : Files.Types.Context_Menu_Target)
       return Context_Menu_Rows;
 
    --  Return whether a command may execute while the root selector is open.
@@ -480,15 +457,5 @@ package Files.Commands is
    function Sort_Label_Key
      (Field : Files.Types.Sort_Field)
       return String;
-
-   --  Run a pure model command: one whose whole effect is window-model state.
-   --  Only Files.Controller.Execute_Command calls this, after its modal and
-   --  Is_Enabled checks; every other command is executed there.
-   --
-   --  @param Id Pure command identifier.
-   --  @param Model Window model to mutate.
-   procedure Execute
-     (Id    : Pure_Command_Id;
-      Model : in out Files.Model.Window_Model);
 
 end Files.Commands;

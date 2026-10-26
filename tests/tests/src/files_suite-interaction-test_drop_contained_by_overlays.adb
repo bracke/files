@@ -70,7 +70,7 @@ separate (Files_Suite.Interaction)
       Files.Model.Close_Sort_Menu (Model);
 
       Seed_Type_Ahead;
-      Files.Model.Open_Context_Menu (Model, 10, 10, Files.Model.Context_Menu_Empty);
+      Files.Model.Open_Context_Menu (Model, 10, 10, Files.Types.Context_Menu_Empty);
       Assert_Contained ("the context menu");
       Files.Model.Close_Context_Menu (Model);
 

@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Duplicate_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -19,7 +20,7 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "report.txt");
 
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Duplicate_Selected_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Duplicate_Selected_Command, Model),
          "duplicate command is enabled with a selection");
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Duplicate_Selected_Command, Model, Settings);

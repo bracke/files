@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Create_Hardlink_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -19,7 +20,7 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "report.txt");
 
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Create_Hardlink_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Create_Hardlink_Command, Model),
          "create-hard-link command is enabled with a selection");
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Create_Hardlink_Command, Model, Settings);

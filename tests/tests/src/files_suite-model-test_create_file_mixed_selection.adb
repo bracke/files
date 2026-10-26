@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Model)
    procedure Test_Create_File_Mixed_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -27,10 +28,10 @@ separate (Files_Suite.Model)
         (not Files.Model.Selected_Item_Is_Temporary (Mixed_Model),
          "primary selected item need not be temporary in a mixed selection");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Mixed_Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Mixed_Model),
          "mixed temporary selection does not enable delete");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Mixed_Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Mixed_Model),
          "mixed temporary selection does not enable open");
       Operation := Files.Operations.Open_Selected (Mixed_Model, Settings);
       Files_Suite.Support.Assert_Equal

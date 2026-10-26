@@ -5,7 +5,7 @@ function Open_Action_Executable_Is_Available
 begin
    if Action.Use_Shell then
       return To_String (Action.Executable) /= ""
-        and then Executable_Is_Available (Shell_Executable);
+        and then Executable_Is_Available (Hostkit.Shell.Executable);
    else
       return Executable_Is_Available (To_String (Action.Executable));
    end if;

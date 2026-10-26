@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Empty_Trash_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -30,7 +31,7 @@ separate (Files_Suite.Operations)
       Assert (Load.Success, "empty-trash setup loads the ordinary directory");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
          "empty trash is disabled in an ordinary directory");
 
       --  Trash two files so both a payload and its .trashinfo sidecar exist.
@@ -53,7 +54,7 @@ separate (Files_Suite.Operations)
       Files.Operations.Settle_Current_Is_Trash (Model);
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "the trash view lists both trashed items");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
          "empty trash is enabled in the non-empty trash view");
 
       --  Emptying purges every payload and sidecar and reloads an empty view.
@@ -71,7 +72,7 @@ separate (Files_Suite.Operations)
       Assert (not Ada.Directories.Exists (Join (Trash_File, "empty-b.txt")), "payload b is purged");
       Assert (not Ada.Directories.Exists (Join (Trash_Info, "empty-b.txt.trashinfo")), "sidecar b is purged");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
          "empty trash is disabled once the trash view is empty");
 
       Project_Tools.Files.Delete_Tree (Trash_Home);

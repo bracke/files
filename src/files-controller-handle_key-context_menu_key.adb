@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files.Controller.Handle_Key)
 procedure Context_Menu_Key (Handled : out Boolean; Result : out Controller_Result) is
 begin
@@ -28,7 +29,7 @@ begin
                Index := Index + Direction;
                exit when Index < 1 or else Index > Rows.Count;
                if Rows.Rows (Index).Kind = Files.Commands.Menu_Command
-                 and then Files.Commands.Is_Enabled (Rows.Rows (Index).Command, Model)
+                 and then Files.Commands.Status.Is_Enabled (Rows.Rows (Index).Command, Model)
                then
                   Landed := Index;
                   exit;

@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Content_Search_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -40,12 +41,12 @@ separate (Files_Suite.Operations)
         (Files.Model.Search_Scope_Of (Model) = Files.Types.Filter_Here,
          "a freshly loaded directory defaults to the Filter_Here scope");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Search_Contents_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Search_Contents_Command, Model),
          "content search is disabled without filter text");
 
       Files.Model.Set_Filter (Model, "needle");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Search_Contents_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Search_Contents_Command, Model),
          "content search is enabled once the filter has text");
 
       Routed :=

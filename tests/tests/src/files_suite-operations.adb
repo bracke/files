@@ -44,6 +44,7 @@ with Textrender.Fonts;
 with Zlib;
 
 with Hostkit.Host;
+with Hostkit.Shell;
 with Hostkit.Lease_Files;
 with Hostkit.Process;
 with Hostkit.Signals;
@@ -70,7 +71,6 @@ with Files.Operation_Jobs.Testing;
 with Files.Icon_Assets;
 with Files.Operations;
 with Files.Paste;
-with Files.Platform;
 with Hostkit.Fs;
 with Hostkit.Metadata;
 with Hostkit.Metadata_Copy;
@@ -98,7 +98,6 @@ package body Files_Suite.Operations is
    use type Files.Job_Transports.Claim_Outcome;
    use type Files.Events.Input_Action_Kind;
    use type Files.File_System.Native_API_Binding_Status;
-   use type Files.File_System.Native_Platform_Adapter;
    use type Files.File_System.Drop_Import_Mode;
    use type Files.File_System.Thumbnail_Status;
    use type Files.File_System.Trash_Backend;

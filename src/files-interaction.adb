@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 with Ada.Strings.Unbounded;
 
 with Guikit.Settings_Panel;
@@ -273,7 +274,7 @@ package body Files.Interaction is
       Result := (others => <>);
       Result.Command := Command;
 
-      if not Files.Commands.Is_Enabled (Command, Model) then
+      if not Files.Commands.Status.Is_Enabled (Command, Model) then
          Outcome := Files.Controller.Execute_Command (Command, Model, Settings, Modifiers);
          Result.Status := Outcome.Status;
          Result.Command_Executed := Outcome.Status = Files.Controller.Controller_Command_Executed;
@@ -653,7 +654,7 @@ package body Files.Interaction is
                   if Command /= Files.Commands.No_Command
                     and then (Files.Commands.Requires_Settings_Path (Command)
                               or else Files.Commands.Persists_Global_Ui_State (Command))
-                    and then Files.Commands.Is_Enabled (Command, Model)
+                    and then Files.Commands.Status.Is_Enabled (Command, Model)
                   then
                      Execute_Command
                        (Model, Settings, Settings_Path, Command,
@@ -885,7 +886,7 @@ package body Files.Interaction is
       if In_Details_Header and then not Overlay_Open then
          --  A right-click on the details-view column header opens the column
          --  configuration menu regardless of any item under the header band.
-         Files.Model.Open_Context_Menu (Model, X, Y, Files.Model.Context_Menu_Header);
+         Files.Model.Open_Context_Menu (Model, X, Y, Files.Types.Context_Menu_Header);
       elsif In_Main and then not Overlay_Open then
          if Item_Index > Files.Model.Visible_Count (Model) then
             --  A queued pointer action can outlive the snapshot that produced
@@ -914,9 +915,9 @@ package body Files.Interaction is
                end;
             end if;
             Files.Model.Open_Context_Menu
-              (Model, X, Y, Files.Model.Context_Menu_Item, Item_Index);
+              (Model, X, Y, Files.Types.Context_Menu_Item, Item_Index);
          else
-            Files.Model.Open_Context_Menu (Model, X, Y, Files.Model.Context_Menu_Empty);
+            Files.Model.Open_Context_Menu (Model, X, Y, Files.Types.Context_Menu_Empty);
          end if;
       else
          Files.Model.Close_Context_Menu (Model);

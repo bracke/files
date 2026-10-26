@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Model)
    procedure Test_Root_Selector_Eject_And_Open (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -21,7 +22,7 @@ separate (Files_Suite.Model)
             Removable => True));
       Files.Model.Open_Root_Selector (Model, Entries);
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Eject_Selected_Root_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Eject_Selected_Root_Command, Model),
          "eject command is enabled for removable roots");
       Result := Files.Controller.Execute_Command (Files.Commands.Eject_Selected_Root_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -51,7 +52,7 @@ separate (Files_Suite.Model)
             Removable => False));
       Files.Model.Open_Root_Selector (Model, Entries);
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Eject_Selected_Root_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Eject_Selected_Root_Command, Model),
          "eject command is disabled for non-removable roots");
       Result := Files.Controller.Execute_Command (Files.Commands.Open_Selected_Root_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal

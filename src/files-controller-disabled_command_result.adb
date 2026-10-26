@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files.Controller)
    function Disabled_Command_Result
      (Id    : Files.Commands.Command_Id;
@@ -7,7 +8,7 @@ separate (Files.Controller)
       --  The reason comes from the enablement rules themselves, so the message
       --  always names the check that actually failed.
       Error_Key : constant String :=
-        Files.Commands.Reason_Key (Files.Commands.Status_Of (Id, Model).Reason);
+        Files.Commands.Reason_Key (Files.Commands.Status.Status_Of (Id, Model).Reason);
    begin
       if Error_Key = "" then
          --  Nothing worth saying (no history to undo, nothing to close).

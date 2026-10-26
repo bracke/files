@@ -1,4 +1,4 @@
-separate (Files.Commands)
+separate (Files.Commands.Status)
    function Status_Of
      (Id    : Command_Id;
       Model : Files.Model.Window_Model)

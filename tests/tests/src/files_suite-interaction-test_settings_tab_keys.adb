@@ -1,3 +1,4 @@
+with Files.Overlays;
 separate (Files_Suite.Interaction)
    --  Ctrl+Tab / Ctrl+Shift+Tab move between the settings section tabs through the
    --  key seam -- the only keyboard route across sections -- and wrap at the ends.
@@ -32,7 +33,7 @@ separate (Files_Suite.Interaction)
          Key => Guikit.Input.Key_Comma, Modifiers => Ctrl,
          Current_Font_Size => Base_Font, Result => Result);
       Revision_Before := Files.Model.Revision (Model);
-      Files.Model.Settings_Build_Frame
+      Files.Overlays.Build_Settings_Frame
         (Model => Model, Region_X => 0, Region_Y => 0, Region_Width => 600, Region_Height => 500,
          Clip_Width => 600, Clip_Height => 500, Line_Height => 20, Focused => True,
          Rectangles => Rects, Text => Text, Accessibility => Nodes);

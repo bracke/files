@@ -80,19 +80,6 @@ package Files.Operations is
      (Result : Operation_Result)
       return Open_Action_Lifecycle;
 
-   --  Return the executable used for explicit shell open actions.
-   --
-   --  COMSPEC is preferred when present. Otherwise SHELL is used, falling back
-   --  to /bin/sh.
-   --
-   --  @return Shell executable path or command name.
-   function Shell_Executable return String;
-
-   --  Return the first argument used to ask the selected shell to run a command.
-   --
-   --  @return /C for COMSPEC shells and -c otherwise.
-   function Shell_Command_Option return String;
-
    --  Check an open action's effective executable using the same host-aware
    --  PATH and executable-file policy used immediately before spawning it.
    --

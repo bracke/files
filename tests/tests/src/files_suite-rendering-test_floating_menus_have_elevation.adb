@@ -14,7 +14,7 @@ separate (Files_Suite.Rendering)
          Snap : View_Snapshot := Sample_Snapshot (6, Files.Types.Small_Icons);
       begin
          Snap.Context_Menu_Open := True;
-         Snap.Context_Menu_Target := Files.Model.Context_Menu_Item;
+         Snap.Context_Menu_Target := Files.Types.Context_Menu_Item;
          Snap.Context_Menu_X := 100;
          Snap.Context_Menu_Y := 100;
 

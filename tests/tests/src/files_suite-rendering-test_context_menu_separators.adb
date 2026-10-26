@@ -27,7 +27,7 @@ separate (Files_Suite.Rendering)
          Files.Commands.Restore_From_Trash_Command];
    begin
       Snapshot.Context_Menu_Open := True;
-      Snapshot.Context_Menu_Target := Files.Model.Context_Menu_Item;
+      Snapshot.Context_Menu_Target := Files.Types.Context_Menu_Item;
       Snapshot.Context_Menu_X := 100;
       Snapshot.Context_Menu_Y := 100;
 

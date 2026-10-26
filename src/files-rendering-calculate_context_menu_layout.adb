@@ -12,7 +12,7 @@ separate (Files.Rendering)
       use type Files.Model.Context_Menu_Target;
    begin
       if not Snapshot.Context_Menu_Open
-        or else Snapshot.Context_Menu_Target = Files.Model.Context_Menu_None
+        or else Snapshot.Context_Menu_Target = Files.Types.Context_Menu_None
       then
          return Result;
       end if;

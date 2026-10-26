@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Interaction)
    procedure Test_Item_Menu_Contents_And_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -52,40 +53,40 @@ separate (Files_Suite.Interaction)
               "the item menu lists Restore From Trash");
 
       --  Selection-driven enablement (rule b: semantic Is_Enabled, not geometry).
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Copy_Selected_Items_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Copy_Selected_Items_Command, Model),
               "Copy is enabled with a selection");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Cut_Selected_Items_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Cut_Selected_Items_Command, Model),
               "Cut is enabled with a selection");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Duplicate_Selected_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Duplicate_Selected_Command, Model),
               "Duplicate is enabled with a selection");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Copy_To_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Copy_To_Command, Model),
               "Copy to is enabled with a selection");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Move_To_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Move_To_Command, Model),
               "Move to is enabled with a selection");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Create_Symlink_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Create_Symlink_Command, Model),
               "Create Symlink is enabled with a selection");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Create_Hardlink_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Create_Hardlink_Command, Model),
               "Create Hardlink is enabled with a selection");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Compress_Zip_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Compress_Zip_Command, Model),
               "Compress Zip is enabled with a selection");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Compress_7z_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Compress_7z_Command, Model),
               "Compress 7z is enabled with a selection");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Open_With_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Open_With_Command, Model),
               "Open With is enabled with a selection");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Model),
               "Open is enabled with a selection");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
               "Delete is enabled with a selection");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
               "Rename is enabled for a single real selection");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Set_Color_Label_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Set_Color_Label_Command, Model),
               "Set Color Label is enabled with a selection");
 
       --  Context-sensitive commands are present but disabled in a normal
       --  directory on a plain file: Extract needs an archive, Restore needs trash.
-      Assert (not Files.Commands.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
+      Assert (not Files.Commands.Status.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
               "Extract is disabled on a non-archive selection");
-      Assert (not Files.Commands.Is_Enabled (Files.Commands.Restore_From_Trash_Command, Model),
+      Assert (not Files.Commands.Status.Is_Enabled (Files.Commands.Restore_From_Trash_Command, Model),
               "Restore From Trash is disabled outside the trash directory");
 
       --  Enter on Copy to belongs to the context menu that was open at the

@@ -1,3 +1,4 @@
+with Files.Fs_Primitives;
 with Files.Diagnostics;
 with Ada.Directories;
 with Ada.IO_Exceptions;
@@ -27,20 +28,7 @@ package body Files.Transfer_Jobs is
    Result_Header : constant String := "files-transfer-result-1";
 
    function Valid_Absolute_Path (Path : String) return Boolean is
-   begin
-      if Path = "" then
-         return False;
-      end if;
-      for Value of Path loop
-         if Value = ASCII.NUL then
-            return False;
-         end if;
-      end loop;
-      return GNAT.OS_Lib.Is_Absolute_Path (Path);
-   exception
-      when others =>
-         return False;
-   end Valid_Absolute_Path;
+     (Files.Fs_Primitives.Valid_Absolute_Path (Path));
 
    function Request_Is_Consistent
      (Action : Files.Paste.Resolved_Action;

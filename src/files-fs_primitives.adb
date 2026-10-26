@@ -7,6 +7,17 @@ package body Files.Fs_Primitives is
    use type Ada.Directories.File_Kind;
    use type Hostkit.Fs.Delete_Tree_Outcome;
 
+   function Valid_Absolute_Path (Path : String; Max_Length : Natural := Natural'Last) return Boolean is
+   begin
+      return Path /= ""
+        and then Path'Length <= Max_Length
+        and then (for all Value of Path => Value /= ASCII.NUL)
+        and then GNAT.OS_Lib.Is_Absolute_Path (Path);
+   exception
+      when others =>
+         return False;
+   end Valid_Absolute_Path;
+
    function Exists (Path : String) return Boolean is
    begin
       return Ada.Directories.Exists (Path);

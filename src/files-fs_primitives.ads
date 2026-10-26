@@ -8,6 +8,15 @@ with GNAT.OS_Lib;
 --  than a private child of Files.File_System.
 package Files.Fs_Primitives is
 
+   --  Whether Path is fit to hand to a helper or write into a record: not
+   --  empty, at most Max_Length bytes, no NUL, absolute. One rule, so the
+   --  job transports' checks cannot drift apart.
+   --
+   --  @param Path Candidate path.
+   --  @param Max_Length The record's bound.
+   --  @return True when Path is such a path.
+   function Valid_Absolute_Path (Path : String; Max_Length : Natural := Natural'Last) return Boolean;
+
    --  @param Path Filesystem path to test.
    --  @return True when Path exists (file or directory).
    function Exists (Path : String) return Boolean;

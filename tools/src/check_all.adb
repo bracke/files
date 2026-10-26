@@ -2496,7 +2496,7 @@ procedure Check_All is
          "event translation's spec must not name operation execution");
       Require_Not_Contains_In_Unit
         (Events_Body,
-         "Files.Commands.Execute",
+         "Files.Commands.Execution",
          "event translation must not directly execute commands");
       Require_Not_Contains_In_Unit
         (Events_Body,
@@ -2535,6 +2535,27 @@ procedure Check_All is
    --  (no volume trash, its scratch area). The shipped program reads them
    --  too, so they stay in the units listed here: a new one is a decision,
    --  not a convenience.
+   --  The commands are named without the model (Files.Commands), so input
+   --  translation does not depend on it; what needs the model is in
+   --  Files.Commands.Status and .Execution. The model holds the palette's and
+   --  the settings panel's state; the window layer (Files.Overlays) draws
+   --  and localizes them.
+   procedure Check_Command_And_Overlay_Layers is
+   begin
+      Require_Not_Contains
+        (Root & "/src/files-commands.ads", "with Files.Model", "Files.Commands must not depend on the model");
+      Require_Not_Contains
+        (Root & "/src/files-commands.adb", "Files.Model.", "Files.Commands must not read the model");
+      for Pattern of String_List'
+        [To_Unbounded_String ("Build_Frame"),
+         To_Unbounded_String ("Files.Localization")]
+      loop
+         Require_Not_Contains_In_Unit
+           (Root & "/src/files-model.adb", To_String (Pattern),
+            "the model holds overlay state; Files.Overlays draws and localizes it (" & To_String (Pattern) & ")");
+      end loop;
+   end Check_Command_And_Overlay_Layers;
+
    procedure Check_Test_Hooks is
       Unexpected : constant String :=
         Project_Tools.Ada_Source.First_Source_File_Containing
@@ -2891,7 +2912,7 @@ procedure Check_All is
             Label & " must not call application startup logic");
          Require_Not_Contains_In_Unit
            (Path,
-            "Files.Commands.Execute",
+            "Files.Commands.Execution",
             Label & " must not dispatch commands");
          Require_Not_Contains_In_Unit
            (Path,
@@ -4067,6 +4088,7 @@ begin
    Check_Filetype_Detection_Order;
    Check_Event_Translation_Contract;
    Check_Test_Hooks;
+   Check_Command_And_Overlay_Layers;
    Check_Crate_Structure;
    Check_Application_CLI_Surface;
    Check_Rendering_Architecture;

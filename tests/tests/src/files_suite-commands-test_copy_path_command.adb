@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Copy_Path_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -28,11 +29,11 @@ separate (Files_Suite.Commands)
 
       --  Enablement follows the selection.
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Copy_Path_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Copy_Path_Command, Model),
          "copy-path is disabled with no selection");
       Files.Model.Select_All_Visible (Model);
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Copy_Path_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Copy_Path_Command, Model),
          "copy-path is enabled with a real selection");
 
       --  Executing records the system-clipboard request without touching disk.

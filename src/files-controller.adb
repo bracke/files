@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
@@ -583,7 +584,7 @@ package body Files.Controller is
       Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result is
    begin
-      if Files.Commands.Requires_Settings_Path (Id) and then Files.Commands.Is_Enabled (Id, Model) then
+      if Files.Commands.Requires_Settings_Path (Id) and then Files.Commands.Status.Is_Enabled (Id, Model) then
          return Apply_Settings_Command (Id, Model, Settings, Settings_Path);
       end if;
       return Execute_Command (Id, Model, Settings, Modifiers);

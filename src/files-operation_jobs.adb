@@ -1,3 +1,4 @@
+with Files.Fs_Primitives;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
 with Files.Diagnostics;
@@ -119,14 +120,7 @@ package body Files.Operation_Jobs is
    end Nul_Free;
 
    function Valid_Absolute_Path (Path : String) return Boolean is
-   begin
-      return Path /= ""
-        and then Nul_Free (Path)
-        and then GNAT.OS_Lib.Is_Absolute_Path (Path);
-   exception
-      when others =>
-         return False;
-   end Valid_Absolute_Path;
+     (Files.Fs_Primitives.Valid_Absolute_Path (Path));
 
    function Request_Path_Is_Consistent
      (Root   : String;

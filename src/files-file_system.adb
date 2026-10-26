@@ -39,7 +39,6 @@ with CryptoLib.Hashes;
 with GNAT.CRC32;
 with Files.Job_Context;
 with Files.Io_Errors;
-with Files.Platform;
 with Hostkit.Trash;
 with Files.Bounded_Text_IO;
 
@@ -1161,8 +1160,6 @@ package body Files.File_System is
       return Recursive_Search_Result
    is separate;
 
-   Max_Mount_Record_Length : constant Positive := 64 * 1024;
-
    type Volume_Size_Info is record
       Capacity_Bytes   : Long_Long_Integer := 0;
       Free_Bytes       : Long_Long_Integer := 0;
@@ -1189,22 +1186,6 @@ package body Files.File_System is
      (Path : String;
       Info : out Volume_Size_Info);
 
-   function Mount_Field
-     (Line  : String;
-      Index : Positive)
-      return String;
-
-   function Simple_Device_Name (Source : String) return String;
-
-   function Parent_Block_Device_Name (Device : String) return String;
-
-   function Read_First_Line (Path : String) return String;
-
-   function Removable_Status_For
-     (Source : String;
-      Known  : out Boolean)
-      return Boolean;
-
    function Mount_Metadata_For_Root (Path : String) return Mount_Metadata;
 
    function Root_Label (Path : String; Kind : Root_Kind) return String is separate;
@@ -1215,38 +1196,9 @@ package body Files.File_System is
 
    function Root_Discovery_Status return Root_Discovery_Diagnostics is separate;
 
-   function Root_Volume_Capabilities_Of_Current_Environment
-      return Root_Volume_Capabilities is separate;
-
-   function Filesystem_Edge_Case_Profile_Of_Current_Environment
-      return Filesystem_Edge_Case_Profile is separate;
-
-   function Native_Platform_API_Profile_For
-     (Adapter : Native_Platform_Adapter)
-      return Native_Platform_API_Profile
-   is separate;
-
    procedure Volume_Size_For
      (Path : String;
       Info : out Volume_Size_Info)
-   is separate;
-
-   function Mount_Field
-     (Line  : String;
-      Index : Positive)
-      return String
-   is separate;
-
-   function Simple_Device_Name (Source : String) return String is separate;
-
-   function Parent_Block_Device_Name (Device : String) return String is separate;
-
-   function Read_First_Line (Path : String) return String is separate;
-
-   function Removable_Status_For
-     (Source : String;
-      Known  : out Boolean)
-      return Boolean
    is separate;
 
    function Mount_Metadata_For_Root (Path : String) return Mount_Metadata is separate;
@@ -1255,9 +1207,6 @@ package body Files.File_System is
      (Root : Root_Entry)
       return Root_Volume_Details
    is separate;
-
-   function Filetype_Metadata_Policy_Of_Current_Implementation
-      return Filetype_Metadata_Policy is separate;
 
    function Mutation_Leaf_Name (Path : String) return String;
 

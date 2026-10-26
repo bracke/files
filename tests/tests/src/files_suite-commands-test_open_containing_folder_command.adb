@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Open_Containing_Folder_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -18,11 +19,11 @@ separate (Files_Suite.Commands)
 
       --  Disabled without a selection, enabled with a single result selected.
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Open_Containing_Folder_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Open_Containing_Folder_Command, Model),
          "reveal is disabled with no selection");
       Select_Name (Model, "found.txt");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Open_Containing_Folder_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Open_Containing_Folder_Command, Model),
          "reveal is enabled for a single selected result");
 
       Result :=

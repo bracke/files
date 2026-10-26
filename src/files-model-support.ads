@@ -347,11 +347,14 @@ private package Files.Model.Support is
    --  the component owns the filtering).
    --
    --  @param Line_Height Row height in pixels.
-   --  @param Mode Which palette (commands or the alternate mode) to configure.
+   --  @param Title The heading, in the current language ("" for none yet:
+   --    Files.Overlays supplies it when it draws).
+   --  @param Empty_State What shows when no command matches.
    --  @return Command-palette component configuration.
    function Palette_Config
      (Line_Height : Positive;
-      Mode        : Palette_Mode) return Guikit.Command_Palette.Configuration;
+      Title       : String := "";
+      Empty_State : String := "") return Guikit.Command_Palette.Configuration;
 
    --  Return the loaded-item indexes of the current real (non-temporary)
    --  selection, in loaded order, for populating rename fields.

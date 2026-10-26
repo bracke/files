@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Compress_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -34,7 +35,7 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "report.txt");
 
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Compress_Zip_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Compress_Zip_Command, Model),
          "compress-zip command is enabled with a selection");
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Compress_Zip_Command, Model, Settings);

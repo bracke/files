@@ -1,3 +1,4 @@
+with Hostkit.Process;
 with Ada.Environment_Variables;
 with Ada.Strings.Unbounded;
 
@@ -69,7 +70,6 @@ package body Files.Operations.Support is
       return Boolean
    is
       use type Hostkit.Host.Kind;
-      Located : GNAT.OS_Lib.String_Access := null;
    begin
       if Executable = "" then
          return False;
@@ -94,18 +94,9 @@ package body Files.Operations.Support is
          end if;
       end loop;
 
-      Located := GNAT.OS_Lib.Locate_Exec_On_Path (Executable);
-      if Located = null then
-         return False;
-      end if;
-
-      GNAT.OS_Lib.Free (Located);
-      return True;
+      return Hostkit.Process.Locate (Executable) /= "";
    exception
       when others =>
-         if Located /= null then
-            GNAT.OS_Lib.Free (Located);
-         end if;
          return False;
    end Executable_Is_Available;
 

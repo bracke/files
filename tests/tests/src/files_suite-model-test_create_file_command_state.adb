@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Model)
    procedure Test_Create_File_Command_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -52,7 +53,7 @@ separate (Files_Suite.Model)
          Files.Types.Focus_Rename_Input,
          "create command focuses rename input");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Create_File_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Create_File_Command, Model),
          "create command is disabled while a temporary item exists");
       Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal

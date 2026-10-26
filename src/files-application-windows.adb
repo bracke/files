@@ -1348,7 +1348,7 @@ package body Files.Application.Windows is
 
    procedure Release_All (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
-      Files.Folder_Size.Cancel;
+      --  Each window's scan ends with the window (Release_Window).
       for Runtime of Runtime_Windows loop
          Release_Window (Runtime);
       end loop;

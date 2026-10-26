@@ -48,7 +48,7 @@ separate (Files_Suite.Interaction)
          --  A tree action queued before another overlay opens must not navigate
          --  through that top-most surface.
          Files.Model.Open_Context_Menu
-           (Model, X, Y, Files.Model.Context_Menu_Empty);
+           (Model, X, Y, Files.Types.Context_Menu_Empty);
          declare
             Path_Before : constant String := Files.Model.Current_Path (Model);
             Revision    : constant Natural := Files.Model.Revision (Model);

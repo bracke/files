@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 with Ada.Strings.Unbounded;
 
 with Files.Desktop_Applications;
@@ -52,7 +53,7 @@ package body Files.Command_Palette is
                      Shortcut    =>
                        To_Unbounded_String
                          (Files.Commands.Shortcut_Display_Text (Files.Commands.Shortcut_For (Id))),
-                     Enabled     => Files.Commands.Is_Enabled (Id, Model),
+                     Enabled     => Files.Commands.Status.Is_Enabled (Id, Model),
                      Icon        => Guikit.Command_Palette.No_Icon));
             end if;
          end loop;

@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Recursive_Search (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -32,11 +33,11 @@ separate (Files_Suite.Operations)
       Load := Files.File_System.Load_Directory (Join (Root, "search"), Settings);
       Files.Model.Initialize (Model, Join (Root, "search"), Load.Items, Root);
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Search_Recursive_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Search_Recursive_Command, Model),
          "recursive search command is disabled without filter text");
       Files.Model.Set_Filter (Model, "match");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Search_Recursive_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Search_Recursive_Command, Model),
          "recursive search command is enabled with filter text");
       Routed :=
         Files.Controller.Execute_Command (Files.Commands.Search_Recursive_Command, Model, Settings);

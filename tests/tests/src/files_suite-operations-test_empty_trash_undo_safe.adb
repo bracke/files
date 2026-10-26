@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Empty_Trash_Undo_Safe (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -42,7 +43,7 @@ separate (Files_Suite.Operations)
          Files.Operations.Operation_Navigated,
          "undo-safe setup opens the trash view");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
          "the trashed item is visible in the trash view");
       Result := Files.Controller.Execute_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal

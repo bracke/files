@@ -1,6 +1,5 @@
 separate (Files.Model)
---  Swatch 8 is the clear/None swatch; swatches 1 .. 7 are Color_Label'Val
---  1 .. 7 (Red .. Gray). Mirrors Files.Rendering.Label_For_Swatch.
+--  Swatch 8 is the clear/None swatch (Files.Types.Label_For_Swatch).
 procedure Open_Label_Picker
   (Model : in out Window_Model) is
 begin

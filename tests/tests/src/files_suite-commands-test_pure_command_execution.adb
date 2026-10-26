@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Pure_Command_Execution (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -33,30 +34,31 @@ separate (Files_Suite.Commands)
         (not Files.Model.Root_Selector_Is_Open (Model),
          "context cancel can close root selector");
       Files.Model.Navigate_To (Model, "/tmp/files_aunit/direct-next", Empty);
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Navigate_Back_Command, Model), "direct back can be enabled");
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Back_Command, Model),
+              "direct back can be enabled");
       Model := Sample_Model;
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
          "delete enabled with selection");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Toggle_Info_Pane_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Toggle_Info_Pane_Command, Model),
          "info toggle enabled with selection");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Create_Symlink_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Create_Symlink_Command, Model),
          "create-symlink enabled with a selection in a real directory");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Create_Hardlink_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Create_Hardlink_Command, Model),
          "create-hard-link enabled with a selection in a real directory");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Open_Terminal_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Open_Terminal_Command, Model),
          "open-terminal enabled in a real directory");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
          "rename enabled with one selected item");
       Files_Suite.Support.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
          "context cancel enabled while rename is active");
       Files.Model.Cancel_Focus_Or_Edit (Model);
    end Test_Pure_Command_Execution;

@@ -27,7 +27,7 @@ separate (Files_Suite.Operations)
          --  And with nothing selected, each platform falls back to its own desktop
          --  trash: the Recycle Bin on Windows, the freedesktop layout elsewhere.
          Ada.Environment_Variables.Clear ("FILES_TRASH_BACKEND");
-         if Files.Platform.Current_API_Profile.Adapter = Files.File_System.Native_Adapter_Windows then
+         if Hostkit.Host.Current = Hostkit.Host.Windows then
             Assert
               (Files.File_System.Trash_Backend_Of_Current_Environment
                  = Files.File_System.Trash_Windows_Recycle_Bin,

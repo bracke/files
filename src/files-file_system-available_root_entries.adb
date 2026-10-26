@@ -1,3 +1,4 @@
+with Hostkit.Mounts;
 separate (Files.File_System)
 function Available_Root_Entries return Root_Entry_Vectors.Vector is
    Roots : Root_Entry_Vectors.Vector;
@@ -102,42 +103,14 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
         and then not Is_Pseudo_Mount_Type (Filesystem_Type);
    end Is_Displayable_Root_Mount;
 
+   --  The host's mount table, read once for the whole discovery.
+   Mounts : constant Hostkit.Mounts.Mount_Vectors.Vector := Hostkit.Mounts.Table;
+
    function Filesystem_Type_For (Path : String) return String is
-      File     : Ada.Text_IO.File_Type;
-      Line     : Unbounded_String;
-      Complete : Boolean;
+      Found : Boolean;
+      Mount : constant Hostkit.Mounts.Mount := Hostkit.Mounts.Find (Mounts, Path, Found);
    begin
-      if not Ada.Directories.Exists ("/proc/mounts") then
-         return "";
-      end if;
-
-      Ada.Text_IO.Open (File, Ada.Text_IO.In_File, "/proc/mounts", Form => "shared=no");
-      while not Ada.Text_IO.End_Of_File (File) loop
-         Files.Bounded_Text_IO.Read_Line
-           (File, Max_Mount_Record_Length, Line, Complete);
-         if Complete then
-            declare
-               Text        : constant String := To_String (Line);
-               --  Decode the mount point's octal escapes (/proc/mounts stores a
-               --  space as \040 etc.); comparing the raw field against a real
-               --  Full_Name path never matched for mounts under paths with
-               --  spaces, so those shares lost their network/type classification.
-               Mount_Point : constant String := Mount_Field (Text, 2);
-            begin
-               if Mount_Point = Path then
-                  Ada.Text_IO.Close (File);
-                  return Mount_Field (Text, 3);
-               end if;
-            end;
-         end if;
-      end loop;
-
-      Ada.Text_IO.Close (File);
-      return "";
-   exception
-      when others =>
-         Safe_Close (File);
-         return "";
+      return (if Found then To_String (Mount.Filesystem_Type) else "");
    end Filesystem_Type_For;
 
    function Contains_Root (Path : String) return Boolean is
@@ -262,35 +235,17 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
    end Append_Children;
 
    procedure Append_Proc_Mounts is
-      File     : Ada.Text_IO.File_Type;
-      Line     : Unbounded_String;
-      Complete : Boolean;
    begin
-      if not Ada.Directories.Exists ("/proc/mounts") then
-         return;
-      end if;
-
-      Ada.Text_IO.Open (File, Ada.Text_IO.In_File, "/proc/mounts", Form => "shared=no");
-      while not Ada.Text_IO.End_Of_File (File) loop
-         Files.Bounded_Text_IO.Read_Line
-           (File, Max_Mount_Record_Length, Line, Complete);
-         if Complete then
-            declare
-               Text            : constant String := To_String (Line);
-               Mount_Point     : constant String := Mount_Field (Text, 2);
-               Filesystem_Type : constant String := Mount_Field (Text, 3);
-            begin
-               if Is_Displayable_Root_Mount (Mount_Point, Filesystem_Type) then
-                  Append_If_Directory
-                    (Mount_Point, Root_Kind_For_Mount (Mount_Point, Filesystem_Type));
-               end if;
-            end;
-         end if;
+      for Mount of Mounts loop
+         declare
+            Mount_Point     : constant String := To_String (Mount.Mount_Point);
+            Filesystem_Type : constant String := To_String (Mount.Filesystem_Type);
+         begin
+            if Is_Displayable_Root_Mount (Mount_Point, Filesystem_Type) then
+               Append_If_Directory (Mount_Point, Root_Kind_For_Mount (Mount_Point, Filesystem_Type));
+            end if;
+         end;
       end loop;
-      Ada.Text_IO.Close (File);
-   exception
-      when others =>
-         Safe_Close (File);
    end Append_Proc_Mounts;
 begin
    --  "/" is the filesystem root only where it names one. On Windows it is

@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Interaction)
    procedure Test_Favorite_Toggle_On_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -90,7 +91,7 @@ separate (Files_Suite.Interaction)
         (Files.Model.Selection_Includes_Temporary (Model),
          "the pending create row is selected before the favorite command");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Toggle_Favorite_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Toggle_Favorite_Command, Model),
          "favorite is disabled for a temporary selection");
       Files.Interaction.Apply_Input_Action
         (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);

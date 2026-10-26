@@ -1,3 +1,4 @@
+with Files.Fs_Primitives;
 with Ada.Directories;
 with Ada.Containers.Hashed_Sets;
 with Ada.IO_Exceptions;
@@ -24,23 +25,8 @@ package body Files.Folder_Size is
    Request_Header : constant String := "files-folder-size-request-1";
    Result_Header : constant String := "files-folder-size-result-1";
 
-   Default_Scan : Session;
-
    function Request_Path_Is_Valid (Path : String) return Boolean is
-   begin
-      if Path = "" or else Path'Length > Max_Request_Path_Length then
-         return False;
-      end if;
-      for Value of Path loop
-         if Value = ASCII.NUL then
-            return False;
-         end if;
-      end loop;
-      return GNAT.OS_Lib.Is_Absolute_Path (Path);
-   exception
-      when others =>
-         return False;
-   end Request_Path_Is_Valid;
+     (Files.Fs_Primitives.Valid_Absolute_Path (Path, Max_Request_Path_Length));
 
    procedure Close (File : in out Files.Exclusive_Streams.Output_Stream) is
    begin
@@ -274,38 +260,12 @@ package body Files.Folder_Size is
       return To_String (Scan.Target_Path);
    end Target_For_Test;
 
-   procedure Set_Targets (Paths : Path_Vectors.Vector) is
-   begin
-      Set_Targets (Default_Scan, Paths);
-   end Set_Targets;
-
-   procedure Request (Path : String) is
+   procedure Request (Scan : in out Session; Path : String) is
       Paths : Path_Vectors.Vector;
    begin
       Paths.Append (To_Unbounded_String (Path));
-      Set_Targets (Default_Scan, Paths);
+      Set_Targets (Scan, Paths);
    end Request;
-
-   procedure Cancel is
-   begin
-      Cancel (Default_Scan);
-   end Cancel;
-
-   procedure Step (Budget : Natural := 4000) is
-   begin
-      Step (Default_Scan, Budget);
-   end Step;
-
-   procedure Take
-     (Path : out Unbounded_String;
-      Result : out Files.File_System.Directory_Size_Result;
-      Available : out Boolean) is
-   begin
-      Take (Default_Scan, Path, Result, Available);
-   end Take;
-
-   function Is_Active return Boolean is (Is_Active (Default_Scan));
-   function Target_For_Test return String is (Target_For_Test (Default_Scan));
 
    procedure Run_Helper (Directory : String) is
       File : aliased Files.Exclusive_Streams.Output_Stream;

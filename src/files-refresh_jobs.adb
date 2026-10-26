@@ -1,3 +1,4 @@
+with Files.Fs_Primitives;
 with Files.Diagnostics;
 with Ada.Directories;
 with Ada.IO_Exceptions;
@@ -56,14 +57,7 @@ package body Files.Refresh_Jobs is
    end Nul_Free;
 
    function Valid_Absolute_Path (Path : String) return Boolean is
-   begin
-      return Path /= ""
-        and then Nul_Free (Path)
-        and then GNAT.OS_Lib.Is_Absolute_Path (Path);
-   exception
-      when others =>
-         return False;
-   end Valid_Absolute_Path;
+     (Files.Fs_Primitives.Valid_Absolute_Path (Path));
 
    function Request_Paths_Are_Consistent
      (Root, Previous_Path : String;

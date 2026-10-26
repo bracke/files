@@ -1,3 +1,4 @@
+with Files.Overlays;
 separate (Files_Suite.Interaction)
    --  Open the command palette, derive its close (X) button from the real
    --  palette layout, click the button's center through the shell's
@@ -34,7 +35,7 @@ separate (Files_Suite.Interaction)
          P_Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
          Revision : constant Natural := Files.Model.Revision (Model);
       begin
-         Files.Model.Palette_Build_Frame
+         Files.Overlays.Build_Palette_Frame
            (Model         => Model,
             Region_X      => Palette.X,
             Region_Y      => Palette.Y,

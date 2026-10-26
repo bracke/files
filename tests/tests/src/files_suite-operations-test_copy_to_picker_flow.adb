@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Copy_To_Picker_Flow (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -24,7 +25,7 @@ separate (Files_Suite.Operations)
       Files.Model.Select_All_Visible (Model);
 
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Copy_To_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Copy_To_Command, Model),
          "copy-to is enabled with a real selection");
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);

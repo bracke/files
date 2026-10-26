@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Permanent_Delete_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -109,7 +110,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "command-delete.txt");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Permanently_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Delete_Selected_Permanently_Command, Model),
          "permanent delete command is enabled for selected items");
       Routed :=
         Files.Controller.Execute_Command

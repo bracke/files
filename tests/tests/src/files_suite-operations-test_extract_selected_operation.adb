@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Extract_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -127,7 +128,7 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "bundle.zip");
 
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
          "extract command is enabled when an archive is selected");
 
       Routed := Files.Controller.Execute_Command (Files.Commands.Extract_Archive_Command, Model, Settings);

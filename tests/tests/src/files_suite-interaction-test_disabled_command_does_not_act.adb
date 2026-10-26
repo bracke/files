@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Interaction)
    procedure Test_Disabled_Command_Does_Not_Act (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -18,7 +19,7 @@ separate (Files_Suite.Interaction)
       --  real menu seam must be gated by Execute_Command (Is_Enabled) and act on
       --  nothing.
       Open_Item_Context_Menu (Model, Settings, Result);
-      Assert (not Files.Commands.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
+      Assert (not Files.Commands.Status.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
               "Extract is disabled for the plain-file selection");
       Dispatch_Menu_Command (Model, Settings, "", Files.Commands.Extract_Archive_Command, Result, Found);
       Assert (Found, "the disabled command is still offered by the menu");

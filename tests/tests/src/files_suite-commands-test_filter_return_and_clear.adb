@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Filter_Return_And_Clear (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -51,6 +52,6 @@ separate (Files_Suite.Commands)
          "Beta.txt",
          "clear-filter preserves selected visible item");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
          "clear-filter disables after clearing");
    end Test_Filter_Return_And_Clear;

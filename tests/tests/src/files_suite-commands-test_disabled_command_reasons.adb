@@ -1,5 +1,6 @@
+with Files.Commands.Status;
 separate (Files_Suite.Commands)
-   --  Files.Commands.Status_Of is the one set of enablement rules; the
+   --  Files.Commands.Status.Status_Of is the one set of enablement rules; the
    --  controller's disabled-command report names the check that failed instead
    --  of a misleading "...failed" key.
    procedure Test_Disabled_Command_Reasons (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -9,10 +10,10 @@ separate (Files_Suite.Commands)
       Result   : Files.Controller.Controller_Result;
 
       procedure Expect (Id : Files.Commands.Command_Id; Key : String; Context : String) is
-         Status : constant Files.Commands.Command_Status := Files.Commands.Status_Of (Id, Model);
+         Status : constant Files.Commands.Command_Status := Files.Commands.Status.Status_Of (Id, Model);
       begin
          Assert (not Status.Enabled, Context & ": the command is disabled");
-         Assert (Status.Enabled = Files.Commands.Is_Enabled (Id, Model), Context & ": Is_Enabled agrees");
+         Assert (Status.Enabled = Files.Commands.Status.Is_Enabled (Id, Model), Context & ": Is_Enabled agrees");
          Files_Suite.Support.Assert_Equal (Files.Commands.Reason_Key (Status.Reason), Key, Context & ": reason");
          Files.Model.Set_Error (Model, "");
          Result := Files.Controller.Execute_Command (Id, Model, Settings);
@@ -40,7 +41,7 @@ separate (Files_Suite.Commands)
       --  Nothing to say: a disabled undo stays silent.
       declare
          Status : constant Files.Commands.Command_Status :=
-           Files.Commands.Status_Of (Files.Commands.Undo_Command, Model);
+           Files.Commands.Status.Status_Of (Files.Commands.Undo_Command, Model);
       begin
          Assert (not Status.Enabled, "undo is disabled without history");
          Files_Suite.Support.Assert_Equal
@@ -53,6 +54,6 @@ separate (Files_Suite.Commands)
       Expect (Files.Commands.Search_Recursive_Command, "error.command.recent_view", "search in the recent view");
 
       --  An enabled command has no reason.
-      Assert (Files.Commands.Status_Of (Files.Commands.Navigate_Recent_Command, Model).Enabled,
+      Assert (Files.Commands.Status.Status_Of (Files.Commands.Navigate_Recent_Command, Model).Enabled,
               "the recent view stays reachable");
    end Test_Disabled_Command_Reasons;

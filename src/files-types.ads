@@ -168,6 +168,23 @@ package Files.Types is
    --  state. Used to iterate the color swatches and label bands in order.
    subtype Real_Color_Label is Color_Label range Red .. Gray;
 
+   --  Which right-click context menu is open: on an item, on the empty area
+   --  of a folder, on a column header -- or none.
+   type Context_Menu_Target is
+     (Context_Menu_None,
+      Context_Menu_Item,
+      Context_Menu_Empty,
+      Context_Menu_Header);
+
+   --  The label picker's swatches in order: one per real color, then the
+   --  clear swatch (No_Label). The one mapping the renderer, the hit-test
+   --  and the model's keyboard highlight share.
+   --
+   --  @param Index One-based swatch index.
+   --  @return The label that swatch sets.
+   function Label_For_Swatch (Index : Positive) return Color_Label is
+     (if Index <= Real_Color_Label'Pos (Real_Color_Label'Last) then Color_Label'Val (Index) else No_Label);
+
    --  Detail-view row grouping mode. When it is not No_Grouping the detail list
    --  gains non-selectable group header rows composed with the active sort.
    type Group_Mode is

@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Commands_Disabled_Without_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5,7 +6,8 @@ separate (Files_Suite.Commands)
       Model    : Files.Model.Window_Model := Sample_Model;
       Result   : Files.Controller.Controller_Result;
    begin
-      Assert (not Files.Commands.Is_Enabled (Files.Commands.Navigate_Back_Command, Model), "back disabled initially");
+      Assert (not Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Back_Command, Model),
+              "back disabled initially");
       Files_Suite.Support.Run_Command (Files.Commands.Navigate_Back_Command, Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
@@ -38,35 +40,35 @@ separate (Files_Suite.Commands)
          Files.Operations.Operation_Disabled,
          "disabled back click returns operation data");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
          "delete disabled with no selection");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Create_Symlink_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Create_Symlink_Command, Model),
          "create-symlink disabled with no selection");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Create_Hardlink_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Create_Hardlink_Command, Model),
          "create-hard-link disabled with no selection");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Deselect_All_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Deselect_All_Command, Model),
          "deselect-all disabled with nothing selected");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Invert_Selection_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Invert_Selection_Command, Model),
          "invert-selection enabled with visible items");
       Files.Model.Select_All_Visible (Model);
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Deselect_All_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Deselect_All_Command, Model),
          "deselect-all enabled with a non-empty selection");
       Files.Model.Clear_Selection (Model);
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Undo_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Undo_Command, Model),
          "undo disabled with no recorded history");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Redo_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Redo_Command, Model),
          "redo disabled with no recorded history");
       --  The info pane can always be toggled, even with nothing selected: an
       --  empty selection simply shows an empty pane.
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Toggle_Info_Pane_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Toggle_Info_Pane_Command, Model),
          "info toggle enabled with no selection");
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -104,11 +106,11 @@ separate (Files_Suite.Commands)
          "error.rename.disabled",
          "disabled rename records error");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
          "context cancel disabled with no transient state");
       Files.Model.Focus_Path_Input (Model);
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
          "context cancel enabled while path input has focus");
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
@@ -125,7 +127,7 @@ separate (Files_Suite.Commands)
          "",
          "drive selector clears stale error state");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
          "context cancel enabled while root selector is open");
       Files.Model.Cancel_Focus_Or_Edit (Model);
    end Test_Commands_Disabled_Without_Selection;

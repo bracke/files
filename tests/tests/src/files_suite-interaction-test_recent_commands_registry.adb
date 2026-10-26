@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Interaction)
    procedure Test_Recent_Commands_Registry (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -34,9 +35,9 @@ separate (Files_Suite.Interaction)
       Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
 
       --  Outside the recent view: Navigate Recent is enabled, Clear Recent is not.
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Navigate_Recent_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Recent_Command, Model),
               "Navigate Recent is enabled in an ordinary view");
-      Assert (not Files.Commands.Is_Enabled (Files.Commands.Clear_Recent_Command, Model),
+      Assert (not Files.Commands.Status.Is_Enabled (Files.Commands.Clear_Recent_Command, Model),
               "Clear Recent is disabled outside the recent view");
 
       Files.Interaction.Apply_Input_Action
@@ -49,7 +50,7 @@ separate (Files_Suite.Interaction)
          Result            => Result);
       Assert (Files.Model.In_Recent_View (Model), "the reducer enters the recent view");
       Assert (Files.Model.Item_Count (Model) > 0, "the recent view lists the stored path");
-      Assert (Files.Commands.Is_Enabled (Files.Commands.Clear_Recent_Command, Model),
+      Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Clear_Recent_Command, Model),
               "Clear Recent is enabled in a non-empty recent view");
 
       --  The empty-area context menu offers Clear Recent (alongside Empty Trash).
@@ -79,7 +80,7 @@ separate (Files_Suite.Interaction)
       begin
          Assert
            (Files.Model.Item_Count (Model) = 0
-            and then Files.Commands.Is_Enabled
+            and then Files.Commands.Status.Is_Enabled
               (Files.Commands.Clear_Recent_Command, Model),
             "Clear Recent remains enabled when every persisted path is stale");
          Files.Interaction.Apply_Input_Action

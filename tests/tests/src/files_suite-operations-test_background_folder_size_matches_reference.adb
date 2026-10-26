@@ -3,6 +3,8 @@ separate (Files_Suite.Operations)
      (T : in out AUnit.Test_Cases.Test_Case'Class)
    is
       pragma Unreferenced (T);
+      --  A window's scan, as the model holds one.
+      Scan : Files.Folder_Size.Session;
       Tree      : constant String := Join (Root, "tree");
       Deep      : constant String := Join (Join (Tree, "a"), "b");
       Reference : Files.File_System.Directory_Size_Result;
@@ -21,12 +23,12 @@ separate (Files_Suite.Operations)
 
       Reference := Files.File_System.Directory_Size (Tree);
 
-      Files.Folder_Size.Cancel;
-      Files.Folder_Size.Request (Tree);
+      Files.Folder_Size.Cancel (Scan);
+      Files.Folder_Size.Request (Scan, Tree);
       for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
-         Files.Folder_Size.Step (Budget => 100_000);
-         Files.Folder_Size.Take (Path, Result, Available);
-         exit when Available or else not Files.Folder_Size.Is_Active;
+         Files.Folder_Size.Step (Scan, Budget => 100_000);
+         Files.Folder_Size.Take (Scan, Path, Result, Available);
+         exit when Available or else not Files.Folder_Size.Is_Active (Scan);
       end loop;
 
       Assert (Available, "background scan produced a finished result");

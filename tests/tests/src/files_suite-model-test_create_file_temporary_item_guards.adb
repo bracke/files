@@ -1,3 +1,4 @@
+with Files.Commands.Status;
 separate (Files_Suite.Model)
    procedure Test_Create_File_Temporary_Item_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -42,13 +43,13 @@ separate (Files_Suite.Model)
       Assert (Files.Model.Selected_Item_Is_Temporary (Model), "model identifies selected temporary item");
       Assert (not Files.Model.Rename_Is_Enabled (Model), "temporary item is not a real rename target");
       Assert
-        (Files.Commands.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
          "active temporary rename can still be cancelled through the command");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
          "selected temporary item does not enable delete");
       Assert
-        (not Files.Commands.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Open_Selected_Items_Command, Model),
          "selected temporary item does not enable open");
       Operation := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
