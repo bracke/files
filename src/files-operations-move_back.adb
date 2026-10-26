@@ -7,14 +7,17 @@ is
    Sources : constant Files.Types.String_Vectors.Vector := (if Forward then Action.To else Action.From);
    Targets : constant Files.Types.String_Vectors.Vector := (if Forward then Action.From else Action.To);
    Succeeded : Boolean := True;
+   Done : Path_Sets.Set := To_Set (if Forward then Action.Forward_Completed else Action.Reverse_Completed);
    procedure Completed (Path : Files.Types.UString) is
    begin
+      Done.Include (To_String (Path));
       if Forward then
          Action.Forward_Completed.Append (Path);
       else
          Action.Reverse_Completed.Append (Path);
       end if;
-      Files.History_Journal.Checkpoint (Model, Action, Forward);
+      --  A retry finds a finished move by its identity at the target.
+      Files.History_Journal.Checkpoint (Model, Action, Forward, Force => False);
    end Completed;
 begin
    for Step in 0 .. Natural (Sources.Length) - 1 loop
@@ -31,10 +34,7 @@ begin
          Identity : constant String :=
            (if Index <= Action.Created_Identities.Last_Index
             then To_String (Action.Created_Identities (Index)) else "");
-         Marked : constant Boolean :=
-           (if Forward
-            then Action.Forward_Completed.Contains (Sources (Index))
-            else Action.Reverse_Completed.Contains (Sources (Index)));
+         Marked : constant Boolean := Done.Contains (To_String (Sources (Index)));
          Matches : constant Boolean :=
            Identity /= "" and then Files.File_Identities.Token (Target) = Identity;
       begin
@@ -43,6 +43,7 @@ begin
          else
             if Marked then
                Remove_Completion (Action, Sources (Index), Forward);
+               Done.Exclude (To_String (Sources (Index)));
                Files.History_Journal.Checkpoint (Model, Action, Forward);
             end if;
             if Identity = "" then

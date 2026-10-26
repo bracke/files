@@ -370,7 +370,7 @@ jobs:
       # device than the suite's scratch root, and read its path from
       # FILES_TEST_OTHER_VOLUME (Linux needs none: /dev/shm is its own tmpfs).
       # A failure here is not fatal by itself: those tests then skip, and the
-      # FILES_TEST_MAX_SKIPS ceiling on the test step turns that into a red job.
+      # FILES_TEST_EXPECTED_SKIPS list on the test step turns that into a red job.
       - name: Mount a second volume for cross-device tests (macOS)
         if: runner.os == 'macOS'
         continue-on-error: true
@@ -431,24 +431,15 @@ jobs:
           # Multiplies the suite's "returns promptly" timing bounds: the shared
           # macOS and Windows runners spawn helper processes far more slowly.
           FILES_TEST_TIME_SCALE: ${{ (runner.os == 'macOS' || runner.os == 'Windows') && '2' || '1' }}
-          # How many tests may skip on each host before the run fails: a test that
-          # quietly stops running here passes in AUnit's count. Linux skips only
-          # the case-insensitive-volume test; macOS and Windows also skip the
-          # Linux-only tests (25), the read-only-directory causes (5), the Noto
-          # emoji font path (2), invalid UTF-8 names (1) and the
-          # stopped-cleanup-worker half that reads /proc (1): 34; and on
-          # Windows the mode-bit (3), reserve, FIFO and backslash-in-a-name
-          # lookup tests, the volume trash, its trashing guard and the stray
-          # ~/.Trash test (no freedesktop or home trash there): 34 + 9 = 43.
-          # The tests that need a second volume (Test_Volume_Trash,
-          # Test_Move_Source_Changes_Off_Volume and the cross-device moves)
-          # skip without one; the mount steps above provide it on macOS and
-          # Windows and /dev/shm does on Linux, so none of those is budgeted --
-          # a failed mount turns red here. A fixture link that cannot be made
-          # fails on Linux and skips elsewhere (Link_Not_Made); none is expected
-          # to on these runners, so none is budgeted. Raise a ceiling only
-          # together with the Skip that needs it.
-          FILES_TEST_MAX_SKIPS: ${{ runner.os == 'Linux' && '1' || runner.os == 'macOS' && '34' || '43' }}
+          # The tests that skip on each host, by name (tests/expected-skips-*.txt):
+          # a skip passes in AUnit's count, so a test that quietly stopped
+          # running here would go unseen. Another test skipping fails the run,
+          # and so does a listed one that ran. The tests that need a second
+          # volume skip without one; the mount steps above provide it on macOS
+          # and Windows and /dev/shm does on Linux, so none of those is listed
+          # -- a failed mount turns red here. Change a list only together with
+          # the Skip that needs it.
+          FILES_TEST_EXPECTED_SKIPS: expected-skips-${{ runner.os == 'Linux' && 'linux' || runner.os == 'macOS' && 'macos' || 'windows' }}.txt
         run: |
           alr --non-interactive build
           # The runners keep UTC, where local and UTC time format alike, so a
@@ -528,11 +519,19 @@ jobs:
           FILES_LDFLAGS: -fsanitize=undefined -fno-sanitize-recover=all
           FILES_TEST_PROGRESS: '1'
           FILES_DIAGNOSTICS: '1'
-          # The same Linux ceiling as the main test step: a test that starts
-          # skipping under the sanitizer build must not pass unseen.
-          FILES_TEST_MAX_SKIPS: '1'
+          # The same Linux list as the main test step: a test that starts
+          # skipping under the sanitizer build must not pass unseen. The same
+          # zone too (the local-time test skips where local time is UTC).
+          FILES_TEST_EXPECTED_SKIPS: expected-skips-linux.txt
+          TZ: America/St_Johns
         run: |
-          alr --non-interactive build
+          # -f: changed C flags alone need not recompile or relink, and an
+          # uninstrumented binary would pass here without checking anything.
+          alr --non-interactive build -- -f
+          if ! nm bin/tests | grep -q __ubsan_handle; then
+            echo "::error::the test binary is not instrumented with UBSan"
+            exit 1
+          fi
           ./bin/tests
 
       - name: Run the test suite instrumented for coverage (Linux)
@@ -543,7 +542,8 @@ jobs:
         shell: bash
         working-directory: files/tests
         env:
-          FILES_TEST_MAX_SKIPS: '1'
+          FILES_TEST_EXPECTED_SKIPS: expected-skips-linux.txt
+          TZ: America/St_Johns
           # The instrumented build is slower; give the timing bounds room.
           FILES_TEST_TIME_SCALE: '2'
         run: |

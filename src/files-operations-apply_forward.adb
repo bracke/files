@@ -7,6 +7,7 @@ function Apply_Forward
 is
    Succeeded : Boolean := True;
    Copy_Batch : Files.Copy_Context.Session;
+   Forwarded  : Path_Sets.Set := To_Set (Action.Forward_Completed);
 begin
    if Action.Kind = Files.Model.Undo_Delete_Created and then Action.Create_Kind = Files.Model.Create_Copy
      and then Natural (Action.From.Length) > 1
@@ -34,7 +35,7 @@ begin
                   then To_String (Action.Forward.Element (Index))
                   else "");
                Marked : constant Boolean :=
-                 Action.Forward_Completed.Contains (Action.From.Element (Index));
+                 Forwarded.Contains (To_String (Action.From.Element (Index)));
                Matches : constant Boolean :=
                  Completed_Creation_Matches (Action, Index, Dest);
             begin
@@ -43,6 +44,7 @@ begin
                   --  completion marker reached the history journal.
                   if not Marked then
                      Action.Forward_Completed.Append (Action.From.Element (Index));
+                     Forwarded.Include (To_String (Action.From.Element (Index)));
                      Files.History_Journal.Checkpoint (Model, Action, True);
                   end if;
                else
@@ -51,6 +53,7 @@ begin
                      --  recreate a missing publication. A crash must not
                      --  revive a marker that no longer describes Path.
                      Remove_Completion (Action, Action.From.Element (Index), True);
+                     Forwarded.Exclude (To_String (Action.From.Element (Index)));
                      Files.History_Journal.Checkpoint (Model, Action, True);
                   end if;
                   if Source = "" or else not Exists_Safely (Source)
@@ -101,6 +104,7 @@ begin
                            Action.Created_Tree_Revisions.Replace_Element
                              (Index, Revision);
                            Action.Forward_Completed.Append (Action.From.Element (Index));
+                           Forwarded.Include (To_String (Action.From.Element (Index)));
                            Action.Copy_Records := Files.Copy_Context.Records (Copy_Batch);
                            Files.History_Journal.Checkpoint (Model, Action, True);
                         else

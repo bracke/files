@@ -91,7 +91,10 @@ separate (Files.Rendering)
       Snapshot.Temporary_Item_Active := Files.Model.Temporary_Item_Is_Active (Model);
       Snapshot.Temporary_Item_Name := To_Unbounded_String (Files.Model.Temporary_Item_Name (Model));
       Snapshot.Info_Pane_Open := Files.Model.Info_Pane_Is_Open (Model);
-      Snapshot.Settings_Pane_Open := Files.Model.Settings_Pane_Is_Open (Model);
+      --  As the window layer draws it (Window_Overlay_Shown): not under the
+      --  palette or a paste dialog, so the frame does not leave a hole for it.
+      Snapshot.Settings_Pane_Open :=
+        Files.Model.Window_Overlay_Shown (Model, Files.Model.Settings_Pane_Overlay);
       Snapshot.Settings_Icon_Theme := Settings.Icon_Theme_Name;
       Snapshot.Info_Pane_Scroll_Lines := Files.Model.Info_Pane_Scroll_Lines (Model);
       Snapshot.Main_View_Scroll_Lines := Files.Model.Main_View_Scroll_Lines (Model);
@@ -127,7 +130,8 @@ separate (Files.Rendering)
       --  The command palette owns its query/selection/results and renders itself
       --  (Guikit.Command_Palette, merged at the window layer); the snapshot only
       --  records that it is open, for overlay hit-testing.
-      Snapshot.Command_Palette_Open := Files.Model.Command_Palette_Is_Open (Model);
+      Snapshot.Command_Palette_Open :=
+        Files.Model.Window_Overlay_Shown (Model, Files.Model.Command_Palette_Overlay);
       --  The root selector remains logically open while the palette temporarily
       --  takes focus, but must not be painted underneath it: overlay rectangles
       --  and overlay text are separate GPU passes, so its text would otherwise

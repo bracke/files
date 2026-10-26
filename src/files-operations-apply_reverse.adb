@@ -6,6 +6,8 @@ function Apply_Reverse
    return Boolean
 is
    Succeeded : Boolean := True;
+   Reversed  : Path_Sets.Set := To_Set (Action.Reverse_Completed);
+   Restored  : Path_Sets.Set := To_Set (Action.Restores_Completed);
 begin
    case Action.Kind is
       when Files.Model.Undo_Rename | Files.Model.Undo_Move =>
@@ -16,7 +18,7 @@ begin
             if Files.Job_Context.Cancelled then
                return False;
             end if;
-            if Action.Reverse_Completed.Contains (Action.From.Element (Index)) then
+            if Reversed.Contains (To_String (Action.From.Element (Index))) then
                null;
             elsif not Restore_Recorded_Trash (Action.From (Index), Action.Created_Identities, Action.To, Index)
             then
@@ -28,7 +30,10 @@ begin
                     (Model, To_String (Action.From (Index)), To_String (Action.To (Index)));
                end if;
                Action.Reverse_Completed.Append (Action.From.Element (Index));
-               Files.History_Journal.Checkpoint (Model, Action, False);
+               Reversed.Include (To_String (Action.From.Element (Index)));
+               --  A retry finds a finished restore by its identity at the
+               --  original path (Restore_Recorded_Trash).
+               Files.History_Journal.Checkpoint (Model, Action, False, Force => False);
             end if;
          end loop;
 
@@ -49,7 +54,7 @@ begin
                if Index <= Action.Created_Tree_Revisions.Last_Index then
                   Expected_Tree_Revision := Action.Created_Tree_Revisions (Index);
                end if;
-               if Action.Reverse_Completed.Contains (Action.From.Element (Index)) then
+               if Reversed.Contains (To_String (Action.From.Element (Index))) then
                   null;
                elsif Exists_Safely (Target)
                  and then (Length (Expected_Identity) = 0
@@ -63,7 +68,9 @@ begin
                   Succeeded := False;
                else
                   Action.Reverse_Completed.Append (Action.From.Element (Index));
-                  Files.History_Journal.Checkpoint (Model, Action, False);
+                  Reversed.Include (To_String (Action.From.Element (Index)));
+                  --  A retry treats a path already gone as removed.
+                  Files.History_Journal.Checkpoint (Model, Action, False, Force => False);
                end if;
             end;
          end loop;
@@ -149,7 +156,7 @@ begin
       if Files.Job_Context.Cancelled then
          return False;
       end if;
-      if Action.Restores_Completed.Contains (Action.Restore_Trash.Element (Index)) then
+      if Restored.Contains (To_String (Action.Restore_Trash.Element (Index))) then
          null;
       elsif not Restore_Recorded_Trash
                  (Action.Restore_Trash (Index), Action.Restore_Identities, Action.Restore_Targets, Index)
@@ -157,7 +164,8 @@ begin
          Succeeded := False;
       else
          Action.Restores_Completed.Append (Action.Restore_Trash.Element (Index));
-         Files.History_Journal.Checkpoint (Model, Action, False);
+         Restored.Include (To_String (Action.Restore_Trash.Element (Index)));
+         Files.History_Journal.Checkpoint (Model, Action, False, Force => False);
       end if;
    end loop;
 

@@ -552,6 +552,20 @@ package Files.Model is
      (Model         : in out Window_Model;
       Visible_Index : Positive);
 
+   --  Visible indexes, in the order they are taken.
+   type Visible_Index_List is array (Positive range <>) of Positive;
+
+   --  Select exactly Indexes (out of range ones are skipped, repeats count
+   --  once), the last one primary: what Clear_Selection and a
+   --  Toggle_Visible_Selection per index do, in one pass over the items
+   --  rather than one per index (a marquee drag does this on every move).
+   --
+   --  @param Model Model to update.
+   --  @param Indexes One-based visible indexes to select.
+   procedure Select_Visible_Set
+     (Model   : in out Window_Model;
+      Indexes : Visible_Index_List);
+
    --  Toggle a visible item in the deterministic multi-selection set.
    --
    --  @param Model Model to update.

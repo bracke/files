@@ -37,10 +37,10 @@ begin
          and then Absent_Or_Own (Join_Path (Base, "info")));
    begin
       if Name = ".Trash-" & Id then
-         return Safe_Trash_Parent (Parent, Shared => False) and then Owned_Tree;
+         return Safe_Trash_Parent (Parent, Shared => False, Existing => True) and then Owned_Tree;
       elsif Name = Id and then Ada.Directories.Simple_Name (Parent) = ".Trash" then
          return Safe_Trash_Parent (Parent, Shared => True)
-           and then Safe_Trash_Parent (Ada.Directories.Containing_Directory (Parent), Shared => False)
+           and then Safe_Trash_Parent (Ada.Directories.Containing_Directory (Parent), Shared => False, Existing => True)
            and then Owned_Tree;
       end if;
       return False;

@@ -649,6 +649,22 @@ package body Files.Operations is
 
    function Hard_Link_Snapshot (Source : String) return String is separate;
 
+   --  An action's completed paths, for a membership test per step that does
+   --  not scan the whole list (Undo_Entry keeps them as a list).
+   package Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+     (Element_Type        => String,
+      Hash                => Ada.Strings.Hash,
+      Equivalent_Elements => "=");
+
+   function To_Set (Paths : Files.Types.String_Vectors.Vector) return Path_Sets.Set is
+      Result : Path_Sets.Set;
+   begin
+      for Path of Paths loop
+         Result.Include (To_String (Path));
+      end loop;
+      return Result;
+   end To_Set;
+
    procedure Remove_Completion
      (Action : in out Files.Model.Undo_Entry;
       Path : Files.Types.UString;

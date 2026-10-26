@@ -1,3 +1,4 @@
+with Ada.Real_Time;
 with Files.Diagnostics;
 with Ada.Containers;
 with Ada.Streams;
@@ -288,10 +289,22 @@ package body Files.History_Journal is
          Files.Model.Redo_History (Model), Required);
    end Save;
 
-   procedure Checkpoint (Model : Files.Model.Window_Model; Action : Files.Model.Undo_Entry; Redo : Boolean) is
-      Undo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.Undo_History (Model);
-      Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.Redo_History (Model);
+   --  When the journal was last written by Checkpoint.
+   Last_Checkpoint     : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+   Checkpoint_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
+
+   procedure Checkpoint
+     (Model : Files.Model.Window_Model; Action : Files.Model.Undo_Entry; Redo : Boolean; Force : Boolean := True)
+   is
+      use type Ada.Real_Time.Time;
+      Undo_Stack : Files.Model.Undo_Entry_Vectors.Vector;
+      Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector;
    begin
+      if not Force and then Ada.Real_Time.Clock < Last_Checkpoint + Checkpoint_Interval then
+         return;
+      end if;
+      Undo_Stack := Files.Model.Undo_History (Model);
+      Redo_Stack := Files.Model.Redo_History (Model);
       if Redo then
          Redo_Stack.Append (Action);
       else
@@ -300,6 +313,7 @@ package body Files.History_Journal is
       Save_Stacks
         (Files.Job_Context.Directory, Undo_Stack, Redo_Stack,
          Required => True);
+      Last_Checkpoint := Ada.Real_Time.Clock;
    end Checkpoint;
 
    function Restore (Directory : String; Model : in out Files.Model.Window_Model) return Boolean is

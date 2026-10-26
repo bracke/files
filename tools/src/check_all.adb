@@ -783,6 +783,18 @@ procedure Check_All is
       Index     : Positive := Text'First;
    begin
       while Index <= Text'Last loop
+         --  A character literal ('"', '-') is copied whole: its quote is not a
+         --  string's, its dash not a comment's.
+         if not In_String
+           and then Text (Index) = '''
+           and then Index + 2 <= Text'Last
+           and then Text (Index + 2) = '''
+         then
+            Result (Last + 1 .. Last + 3) := Text (Index .. Index + 2);
+            Last := Last + 3;
+            Index := Index + 3;
+            goto Next;
+         end if;
          if Text (Index) = ASCII.LF then
             In_String := False;
          elsif Text (Index) = '"' then
@@ -802,9 +814,97 @@ procedure Check_All is
          Last := Last + 1;
          Result (Last) := Text (Index);
          Index := Index + 1;
+         <<Next>>
       end loop;
       return Result (Text'First .. Last);
    end Code_Of;
+
+   --  Require the sources in src/ whose names start with Prefix (".ads" and
+   --  ".adb": a unit, its children and subunits) to name nothing from
+   --  Package_Name but Allowed: qualified (Files.Folder_Size.Cancel) or not
+   --  (Folder_Size.Cancel, legal in a child of Files), comments ignored, and
+   --  never through a use clause or a renaming of the package, which would
+   --  let a name go unqualified. An allow-list: a new name is caught without
+   --  being listed.
+   procedure Require_Only_Names_From
+     (Prefix       : String;
+      Package_Name : String;
+      Allowed      : String_List;
+      Message      : String)
+   is
+      Short  : constant String :=
+        Package_Name (Ada.Strings.Fixed.Index (Package_Name, ".", Ada.Strings.Backward) + 1 .. Package_Name'Last);
+      Search : Ada.Directories.Search_Type;
+      Item   : Ada.Directories.Directory_Entry_Type;
+
+      function Identifier_Char (C : Character) return Boolean is
+        (C in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_');
+
+      procedure Refuse (Path, What : String) is
+      begin
+         Put_Line (Standard_Error, Path & ": " & Message & " (" & What & ")");
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         raise Program_Error;
+      end Refuse;
+
+      procedure Check (Path : String) is
+         Code : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
+         From : Positive := Code'First;
+         At_Name : Natural;
+      begin
+         if Ada.Strings.Fixed.Index (Code, "use " & Package_Name) > 0
+           or else Ada.Strings.Fixed.Index (Code, "renames " & Package_Name) > 0
+         then
+            Refuse (Path, "uses or renames " & Package_Name);
+         end if;
+         loop
+            At_Name := Ada.Strings.Fixed.Index (Code (From .. Code'Last), Short & ".");
+            exit when At_Name = 0;
+            declare
+               First : constant Positive := At_Name + Short'Length + 1;
+               Last  : Natural := First - 1;
+               Parent : constant String := Package_Name (Package_Name'First .. Package_Name'Last - Short'Length);
+               --  Standing alone: not the tail of a longer identifier or of
+               --  another package's name.
+               function Alone (Position : Positive) return Boolean is
+                 (Position = Code'First
+                  or else (not Identifier_Char (Code (Position - 1)) and then Code (Position - 1) /= '.'));
+               --  Package_Name in full (Files.Folder_Size.), or the short
+               --  name alone (Folder_Size.).
+               Relevant : constant Boolean :=
+                 Alone (At_Name)
+                 or else (At_Name - Code'First >= Parent'Length
+                          and then Code (At_Name - Parent'Length .. At_Name - 1) = Parent
+                          and then Alone (At_Name - Parent'Length));
+            begin
+               while Last < Code'Last and then Identifier_Char (Code (Last + 1)) loop
+                  Last := Last + 1;
+               end loop;
+               if Relevant
+                 and then Last >= First
+                 and then not (for some Name of Allowed => To_String (Name) = Code (First .. Last))
+               then
+                  Refuse (Path, Package_Name & "." & Code (First .. Last));
+               end if;
+               From := Natural'Max (Last, At_Name) + 1;
+            end;
+         end loop;
+      end Check;
+   begin
+      Ada.Directories.Start_Search
+        (Search, Root & "/src", Prefix & "*", [Ada.Directories.Ordinary_File => True, others => False]);
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Item);
+         declare
+            Name : constant String := Ada.Directories.Simple_Name (Item);
+         begin
+            if Ends_With (Name, ".ads") or else Ends_With (Name, ".adb") then
+               Check (Ada.Directories.Full_Name (Item));
+            end if;
+         end;
+      end loop;
+      Ada.Directories.End_Search (Search);
+   end Require_Only_Names_From;
 
    procedure Require_Registered_Routine (Routine : String; Message : String) is
       Code : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Combined_Suite)));
@@ -2413,90 +2513,45 @@ procedure Check_All is
 
       --  The model holds its background jobs' handles as data; starting,
       --  polling, cancelling and stepping them is Files.Operations' work. So
-      --  model code (files-model*.adb, children and subunits) names only the
-      --  handle type and the queries below in the job packages -- an
-      --  allow-list, so a new driving call is caught without being listed --
-      --  and never uses or renames a job package (which would let a call go
-      --  unqualified).
-      declare
-         Job_Packages : constant String_List :=
-           [To_Unbounded_String ("Files.Transfer_Jobs"),
-            To_Unbounded_String ("Files.Process_Jobs"),
-            To_Unbounded_String ("Files.Folder_Size")];
-         Allowed_Names : constant String_List :=
-           [To_Unbounded_String ("Session"),
-            To_Unbounded_String ("Active"),
-            To_Unbounded_String ("Is_Active"),
-            To_Unbounded_String ("Target_For_Test")];
-         Search : Ada.Directories.Search_Type;
-         Item   : Ada.Directories.Directory_Entry_Type;
-
-         procedure Refuse (Path, Message : String) is
-         begin
-            Put_Line (Standard_Error, Path & ": the model drives no background job (" & Message & ")");
-            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-            raise Program_Error;
-         end Refuse;
-
-         procedure Check_Line (Path, Line : String) is
-            Cut  : constant Natural := Ada.Strings.Fixed.Index (Line, "--");
-            Code : constant String := (if Cut = 0 then Line else Line (Line'First .. Cut - 1));
-         begin
-            for Package_Name of Job_Packages loop
-               declare
-                  Name : constant String := To_String (Package_Name);
-                  From : Natural := Code'First;
-                  At_Name : Natural;
-               begin
-                  if Ada.Strings.Fixed.Index (Code, "use " & Name) > 0
-                    or else Ada.Strings.Fixed.Index (Code, "renames " & Name) > 0
-                  then
-                     Refuse (Path, "uses or renames " & Name);
-                  end if;
-                  loop
-                     At_Name := Ada.Strings.Fixed.Index (Code (From .. Code'Last), Name & ".");
-                     exit when At_Name = 0;
-                     declare
-                        First : constant Positive := At_Name + Name'Length + 1;
-                        Last  : Natural := First - 1;
-                     begin
-                        while Last < Code'Last and then Code (Last + 1) in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_'
-                        loop
-                           Last := Last + 1;
-                        end loop;
-                        if not (for some Allowed of Allowed_Names => To_String (Allowed) = Code (First .. Last)) then
-                           Refuse (Path, Name & "." & Code (First .. Last));
-                        end if;
-                        From := Last + 1;
-                     end;
-                  end loop;
-               end;
-            end loop;
-         end Check_Line;
-      begin
-         Ada.Directories.Start_Search
-           (Search, Root & "/src", "files-model*.adb", [Ada.Directories.Ordinary_File => True, others => False]);
-         while Ada.Directories.More_Entries (Search) loop
-            Ada.Directories.Get_Next_Entry (Search, Item);
-            declare
-               Path    : constant String := Ada.Directories.Full_Name (Item);
-               Content : constant String := To_String (Project_Tools.Text.Read_Text_File (Path));
-               Start   : Positive := Content'First;
-            begin
-               for Index in Content'Range loop
-                  if Content (Index) = ASCII.LF then
-                     Check_Line (Path, Content (Start .. Index - 1));
-                     Start := Index + 1;
-                  end if;
-               end loop;
-               if Start <= Content'Last then
-                  Check_Line (Path, Content (Start .. Content'Last));
-               end if;
-            end;
-         end loop;
-         Ada.Directories.End_Search (Search);
-      end;
+      --  model code names only the handle type and the queries below.
+      for Job_Package of String_List'
+        [To_Unbounded_String ("Files.Transfer_Jobs"),
+         To_Unbounded_String ("Files.Process_Jobs"),
+         To_Unbounded_String ("Files.Folder_Size")]
+      loop
+         Require_Only_Names_From
+           ("files-model",
+            To_String (Job_Package),
+            [To_Unbounded_String ("Session"),
+             To_Unbounded_String ("Active"),
+             To_Unbounded_String ("Is_Active"),
+             To_Unbounded_String ("Target_For_Test"),
+             To_Unbounded_String ("Path_Vectors")],
+            "the model drives no background job");
+      end loop;
    end Check_Event_Translation_Contract;
+
+   --  The test suite steers a few behaviours through FILES_TEST_* variables
+   --  (no volume trash, its scratch area). The shipped program reads them
+   --  too, so they stay in the units listed here: a new one is a decision,
+   --  not a convenience.
+   procedure Check_Test_Hooks is
+      Unexpected : constant String :=
+        Project_Tools.Ada_Source.First_Source_File_Containing
+          (Root & "/src",
+           "FILES_TEST_",
+           [To_Unbounded_String (Root & "/src/files-file_system-support.ads"),
+            To_Unbounded_String (Root & "/src/files-file_system-support.adb"),
+            To_Unbounded_String (Root & "/src/files-file_system-volume_trash_supported.adb"),
+            To_Unbounded_String (Root & "/src/files-file_system-volume_trash_bases.adb"),
+            To_Unbounded_String (Root & "/src/files-file_system-volume_trash_for.adb")]);
+   begin
+      if Unexpected /= "" then
+         Put_Line (Standard_Error, Unexpected & ": reads a FILES_TEST_* variable outside the listed test hooks");
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         raise Program_Error;
+      end if;
+   end Check_Test_Hooks;
 
    procedure Check_Crate_Structure is
       Main_Manifest  : constant String := Root & "/alire.toml";
@@ -2840,14 +2895,6 @@ procedure Check_All is
             Label & " must not dispatch commands");
          Require_Not_Contains_In_Unit
            (Path,
-            "Files.Commands.Execute_If_Enabled",
-            Label & " must not dispatch commands");
-         Require_Not_Contains_In_Unit
-           (Path,
-            "Files.Commands.Execute (",
-            Label & " must not execute command handlers");
-         Require_Not_Contains_In_Unit
-           (Path,
             "Files.Commands.Find_By_Shortcut",
             Label & " must not translate input shortcuts");
          Require_Not_Contains_In_Unit
@@ -2888,10 +2935,6 @@ procedure Check_All is
             Label & " must not apply settings drafts");
          Require_Not_Contains_In_Unit
            (Path,
-            "Files.Settings.Save_Draft",
-            Label & " must not save settings drafts");
-         Require_Not_Contains_In_Unit
-           (Path,
             "Files.Settings.Ensure_Default_File",
             Label & " must not create settings files");
          Require_Not_Contains_In_Unit
@@ -2904,35 +2947,7 @@ procedure Check_All is
             Label & " must not load settings files");
          Require_Not_Contains_In_Unit
            (Path,
-            "Files.File_System.Create_Empty_File",
-            Label & " must not invoke filesystem mutations");
-         Require_Not_Contains_In_Unit
-           (Path,
-            "Files.File_System.Load_Directory",
-            Label & " must not load directories");
-         Require_Not_Contains_In_Unit
-           (Path,
-            "Files.File_System.Normalize_Path",
-            Label & " must not validate or normalize paths");
-         Require_Not_Contains_In_Unit
-           (Path,
-            "Files.File_System.Resolve_Startup",
-            Label & " must not resolve startup paths");
-         Require_Not_Contains_In_Unit
-           (Path,
-            "Files.File_System.Rename_Item",
-            Label & " must not invoke filesystem mutations");
-         Require_Not_Contains_In_Unit
-           (Path,
-            "Files.File_System.Move_To_Trash",
-            Label & " must not invoke filesystem mutations");
-         Require_Not_Contains_In_Unit
-           (Path,
             "Files.Model.Set_",
-            Label & " must not mutate model state");
-         Require_Not_Contains_In_Unit
-           (Path,
-            "Files.Model.Add_",
             Label & " must not mutate model state");
          Require_Not_Contains_In_Unit
            (Path,
@@ -2968,10 +2983,6 @@ procedure Check_All is
             Label & " must not mutate model state");
          Require_Not_Contains_In_Unit
            (Path,
-            "Files.Model.Remove_",
-            Label & " must not mutate model state");
-         Require_Not_Contains_In_Unit
-           (Path,
             "Files.Model.Replace_",
             Label & " must not mutate model state");
          Require_Not_Contains_In_Unit
@@ -2996,6 +3007,19 @@ procedure Check_All is
             Label & " must not mutate model state");
       end Check_Rendering_Unit;
    begin
+      --  Rendering reads the file system's types and two capability queries;
+      --  every call that lists, writes or validates is someone else's.
+      Require_Only_Names_From
+        ("files-rendering",
+         "Files.File_System",
+         [To_Unbounded_String ("Directory_Item"),
+          To_Unbounded_String ("Item_Vectors"),
+          To_Unbounded_String ("Supports_Permissions"),
+          To_Unbounded_String ("Supports_Ownership"),
+          To_Unbounded_String ("Drop_Move"),
+          To_Unbounded_String ("Drop_Import_Mode"),
+          To_Unbounded_String ("Directory_Size_Result")],
+         "rendering must not list, write or validate files");
       Check_Rendering_Unit (Rendering_Spec, "rendering spec");
       Check_Rendering_Unit (Rendering_Body, "rendering body");
       Check_Rendering_Unit (Hit_Spec, "hit-testing spec");
@@ -4042,6 +4066,7 @@ begin
    Check_Localization_Usage;
    Check_Filetype_Detection_Order;
    Check_Event_Translation_Contract;
+   Check_Test_Hooks;
    Check_Crate_Structure;
    Check_Application_CLI_Surface;
    Check_Rendering_Architecture;

@@ -1,3 +1,5 @@
+with Ada.Containers.Indefinite_Hashed_Maps;
+with Ada.Strings.Hash;
 with Files.Diagnostics;
 with Ada.Directories;
 with Ada.IO_Exceptions;
@@ -56,15 +58,38 @@ package body Files.Operation_Jobs is
 
    Max_Moves : constant := 100_000;
 
+   package Index_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => Positive,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
+
+   --  At most Max_Moves, as Read_Paths accepts: past that the labels of the
+   --  rest do not follow, but the operation's outcome still reads back.
    procedure Write_Paths
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Paths  : Files.Types.String_Vectors.Vector) is
+      Count : constant Natural := Natural'Min (Natural (Paths.Length), Max_Moves);
    begin
-      Natural'Output (Stream, Natural (Paths.Length));
-      for Path of Paths loop
-         Files.Job_Records.Write_String (Stream, To_String (Path), Files.Job_Records.Max_Path_Length);
+      Natural'Output (Stream, Count);
+      for Index in 1 .. Count loop
+         Files.Job_Records.Write_String (Stream, To_String (Paths (Index)), Files.Job_Records.Max_Path_Length);
       end loop;
    end Write_Paths;
+
+   --  The message for a job of Kind that failed without saying why.
+   function Failure_Key (Kind : Operation_Kind) return String is
+     (case Kind is
+         when Duplicate                          => "error.duplicate.failed",
+         when Compress_Zip | Compress_Seven_Zip  => "error.compress.failed",
+         when Extract                            => "error.extract.failed",
+         when Search_Names | Search_Contents     => "error.search.failed",
+         when Trash                              => "error.trash.failed",
+         when Delete_Permanently                 => "error.permanent_delete.failed",
+         when Restore                            => "error.trash.restore_failed",
+         when Empty_Trash                        => "error.trash.empty_failed",
+         when Undo                               => "error.undo.failed",
+         when Redo                               => "error.redo.failed");
 
    function Read_Paths
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
@@ -342,6 +367,11 @@ package body Files.Operation_Jobs is
       Same_View       : Boolean := False;
       Context_Matches : Boolean := False;
       Reload_Owed     : Boolean := False;
+      --  Whether the failure handler could read which operation this was.
+      Known_Kind      : Boolean := False;
+
+      function Failed_Key return String is
+        (if Known_Kind then Failure_Key (Work.Kind) else "error.operation.failed");
 
       --  The view the job started from is still on screen: no navigation since
       --  (not even away and back), so it may refresh that view and report its
@@ -376,7 +406,8 @@ package body Files.Operation_Jobs is
          Untracked, Untracked_Identities, Untracked_Tree_Revisions : Files.Types.String_Vectors.Vector;
          Undo_Stack : constant Files.Model.Undo_Entry_Vectors.Vector := Files.Model.Undo_History (Model);
          Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.Redo_History (Model);
-         Tracked : Boolean;
+         --  Every path the undo history already records as created.
+         Recorded : Files.Settings.Path_Sets.Set;
       begin
          Work := Read_Request (Files.Process_Jobs.Path (Job, "request"));
          Files.Job_Context.Read_Created
@@ -384,27 +415,40 @@ package body Files.Operation_Jobs is
          if Work.Kind = Redo and then not Redo_Stack.Is_Empty then
             declare
                Action : Files.Model.Undo_Entry := Redo_Stack.Last_Element;
+               --  Each destination's place in From, and what is completed:
+               --  looked up per created entry, not scanned for.
+               Places    : Index_Maps.Map;
+               Completed : Files.Settings.Path_Sets.Set;
             begin
+               for Index in Action.From.First_Index .. Action.From.Last_Index loop
+                  if not Places.Contains (To_String (Action.From (Index))) then
+                     Places.Insert (To_String (Action.From (Index)), Index);
+                  end if;
+               end loop;
+               for Path of Action.Forward_Completed loop
+                  Completed.Include (To_String (Path));
+               end loop;
                for Created_Index in Destinations.First_Index .. Destinations.Last_Index loop
                   declare
-                     Dest : constant Files.Types.UString := Destinations (Created_Index);
+                     Dest : constant String := To_String (Destinations (Created_Index));
                   begin
-                     if Action.From.Contains (Dest) and then not Action.Forward_Completed.Contains (Dest) then
-                        for Index in Action.From.First_Index .. Action.From.Last_Index loop
-                           if Action.From (Index) = Dest then
-                              while Action.Created_Identities.Last_Index < Index loop
-                                 Action.Created_Identities.Append (Null_Unbounded_String);
-                              end loop;
-                              Action.Created_Identities.Replace_Element
-                                (Index, Identities (Created_Index));
-                              while Action.Created_Tree_Revisions.Last_Index < Index loop
-                                 Action.Created_Tree_Revisions.Append (Null_Unbounded_String);
-                              end loop;
-                              Action.Created_Tree_Revisions.Replace_Element
-                                (Index, Tree_Revisions (Created_Index));
-                           end if;
-                        end loop;
-                        Action.Forward_Completed.Append (Dest);
+                     if Places.Contains (Dest) and then not Completed.Contains (Dest) then
+                        declare
+                           Index : constant Positive := Places.Element (Dest);
+                        begin
+                           while Action.Created_Identities.Last_Index < Index loop
+                              Action.Created_Identities.Append (Null_Unbounded_String);
+                           end loop;
+                           Action.Created_Identities.Replace_Element
+                             (Index, Identities (Created_Index));
+                           while Action.Created_Tree_Revisions.Last_Index < Index loop
+                              Action.Created_Tree_Revisions.Append (Null_Unbounded_String);
+                           end loop;
+                           Action.Created_Tree_Revisions.Replace_Element
+                             (Index, Tree_Revisions (Created_Index));
+                        end;
+                        Action.Forward_Completed.Append (Destinations (Created_Index));
+                        Completed.Include (Dest);
                      end if;
                   end;
                end loop;
@@ -412,12 +456,13 @@ package body Files.Operation_Jobs is
                Files.Model.Set_History (Model, Undo_Stack, Redo_Stack);
             end;
          elsif Work.Kind in Duplicate | Compress_Zip | Compress_Seven_Zip | Extract then
-            for Index in Destinations.First_Index .. Destinations.Last_Index loop
-               Tracked := False;
-               for Action of Undo_Stack loop
-                  Tracked := Tracked or else Action.From.Contains (Destinations (Index));
+            for Action of Undo_Stack loop
+               for Path of Action.From loop
+                  Recorded.Include (To_String (Path));
                end loop;
-               if not Tracked then
+            end loop;
+            for Index in Destinations.First_Index .. Destinations.Last_Index loop
+               if not Recorded.Contains (To_String (Destinations (Index))) then
                   Untracked.Append (Destinations (Index));
                   Untracked_Identities.Append (Identities (Index));
                   Untracked_Tree_Revisions.Append (Tree_Revisions (Index));
@@ -549,6 +594,7 @@ package body Files.Operation_Jobs is
          begin
             Work := Read_Request (Files.Process_Jobs.Path (Job, "request"));
             Same_View := Matches_Current_View (Work);
+            Known_Kind := True;
          exception
             when others =>
                Same_View := False;
@@ -566,14 +612,14 @@ package body Files.Operation_Jobs is
          --  original view, but it must not refresh a different current view.
          if Same_View then
             Files.Model.Set_Error
-              (Model, (if Cancelled then "" else "error.drop.failed"));
+              (Model, (if Cancelled then "" else Failed_Key));
             Reload_Current_View;
          end if;
          if Cancelled then
             return (Status => Files.Operations.Operation_Success, others => <>);
          end if;
          return (Status => Files.Operations.Operation_Failed,
-                 Error_Key => To_Unbounded_String ("error.drop.failed"), others => <>);
+                 Error_Key => To_Unbounded_String (Failed_Key), others => <>);
    end Advance;
 
    procedure Run_Helper (Directory : String) is

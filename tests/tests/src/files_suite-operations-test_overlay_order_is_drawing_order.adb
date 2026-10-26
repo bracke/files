@@ -25,6 +25,15 @@ separate (Files_Suite.Operations)
               "and Escape closes it first");
       Assert (Files.Model.Window_Overlay_Shown (Model, Files.Model.Command_Palette_Overlay),
               "the window layer draws it");
+      --  The pane under the palette is not drawn, and the frame leaves no
+      --  hole for it.
+      Files.Model.Begin_Settings_Edit (Model, Files.Settings.Make_Draft (Settings));
+      Files.Model.Open_Command_Palette (Model);
+      Assert (Files.Model.Settings_Pane_Is_Open (Model) and then Files.Model.Command_Palette_Is_Open (Model),
+              "the palette is opened over the settings pane");
+      Assert (not Files.Rendering.Build_Snapshot (Model, Settings).Settings_Pane_Open,
+              "a settings pane under the palette is not in the drawn snapshot");
+      Assert (Files.Rendering.Build_Snapshot (Model, Settings).Command_Palette_Open, "the palette is");
       Files.Model.Close_Overlay (Model, Overlay);
       Assert (Files.Model.Quick_Look_Is_Open (Model), "Quick Look is still open below");
       Reset_Root;

@@ -1214,6 +1214,13 @@ package Files.Rendering is
    --  @return True when Glyphs may be drawn and uploaded as they are.
    function Text_Glyphs_Current (Renderer : Text_Renderer; Glyphs : Text_Render_Result) return Boolean;
 
+   --  Whether Renderer has its fonts: False after an initialization, or a
+   --  reload when its pooled renderer went to another size, failed.
+   --
+   --  @param Renderer The window's text renderer.
+   --  @return True when Build_Text_Glyphs can draw with it.
+   function Text_Loaded (Renderer : Text_Renderer) return Boolean;
+
    --  Rasterize frame text commands into glyph draw commands.
    --
    --  This uses textrender glyph metrics and atlas coordinates. Text commands

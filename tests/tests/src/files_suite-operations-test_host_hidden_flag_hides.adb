@@ -38,6 +38,12 @@ separate (Files_Suite.Operations)
       Write_Binary_File (Join (Dir, ".dotted"), "x");
       Write_Binary_File (Flagged, "x");
       Marked := Mark;
+      --  Where the host has a hidden flag, the test marks one: a missing tool
+      --  must fail here, not leave the host-flag half untested. (Linux has
+      --  only dot files.)
+      if Hostkit.Host.Current in Hostkit.Host.Windows | Hostkit.Host.MacOS then
+         Assert (Marked, "the host's tool marks the file hidden");
+      end if;
 
       Settings.Show_Hidden_Files := False;
       Load := Files.File_System.Load_Directory (Dir, Settings);

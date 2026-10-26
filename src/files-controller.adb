@@ -486,6 +486,7 @@ package body Files.Controller is
       return Controller_Result
    is
       Operation : Files.Operations.Operation_Result := Empty_Operation;
+      Changes   : constant Boolean := not Files.Settings.Same_Content (Settings, Updated);
       Saved     : constant Files.Settings.Settings_Write_Result :=
         Commit_Settings (Model, Settings, Updated, Settings_Path);
    begin
@@ -497,7 +498,9 @@ package body Files.Controller is
          return Make_Result (Controller_Command_Executed, Id, Operation);
       end if;
 
-      if Saved.Success and then Saved.Durable then
+      --  A write that went through clears what an earlier one reported; a
+      --  change that wrote nothing leaves the error line alone.
+      if Changes and then Saved.Success and then Saved.Durable then
          Files.Model.Set_Error (Model, "");
       end if;
       Operation.Status :=

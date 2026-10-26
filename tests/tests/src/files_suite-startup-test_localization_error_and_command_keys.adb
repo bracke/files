@@ -68,6 +68,8 @@ separate (Files_Suite.Startup)
       Add_Error_Key ("error.compress.unportable_name");
       Add_Error_Key ("error.extract.failed");
       Add_Error_Key ("error.undo.failed");
+      Add_Error_Key ("error.redo.failed");
+      Add_Error_Key ("error.operation.failed");
       Add_Error_Key ("error.thumbnail.source_missing");
       Add_Error_Key ("error.thumbnail.unsupported");
       Add_Error_Key ("error.thumbnail.failed");

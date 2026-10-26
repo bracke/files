@@ -237,10 +237,10 @@ package body Files.Model.Support is
       Item  : Files.File_System.Directory_Item)
       return Boolean
    is
-      Filter : constant String := To_String (Model.Filter_Value);
    begin
-      return Model.Search_Results_Active or else Filter = ""
-        or else Files.Types.Contains_Case_Insensitive (To_String (Item.Name), Filter);
+      --  No filter (the common case): no copy of it, nor of the name.
+      return Model.Search_Results_Active or else Length (Model.Filter_Value) = 0
+        or else Files.Types.Contains_Case_Insensitive (To_String (Item.Name), To_String (Model.Filter_Value));
    end Item_Is_Visible;
 
    function Temporary_Is_Visible (Model : Window_Model) return Boolean is
@@ -257,7 +257,7 @@ package body Files.Model.Support is
    begin
       if not Model.Items.Is_Empty then
          for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-            if Item_Is_Visible (Model, Model.Items.Element (Index)) then
+            if Item_Is_Visible (Model, Model.Items (Index)) then
                Seen := Seen + 1;
                if Seen = Visible_Index then
                   return Natural (Index);
@@ -281,7 +281,7 @@ package body Files.Model.Support is
       end if;
 
       for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-         if Item_Is_Visible (Model, Model.Items.Element (Index)) then
+         if Item_Is_Visible (Model, Model.Items (Index)) then
             Seen := Seen + 1;
             if Index = Item_Index then
                return Seen;
@@ -445,7 +445,7 @@ package body Files.Model.Support is
 
       if not Model.Items.Is_Empty then
          for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-            if Item_Is_Visible (Model, Model.Items.Element (Index)) then
+            if Item_Is_Visible (Model, Model.Items (Index)) then
                Model.Selected_Item_Index := Natural (Index);
                Add_Selected_Index (Model, Model.Selected_Item_Index);
                Reconcile_Rename_With_Selection (Model);

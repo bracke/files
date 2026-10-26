@@ -92,6 +92,9 @@ separate (Files_Suite.Operations)
       Record_Linked := Hostkit.Fs.Create_Hard_Link
         (Join (Join (Join (Transport, "stages"), "stage-unrelated"), "data"),
          Record_Alias);
+      if not Record_Linked then
+         Files_Suite.Support.Link_Not_Made ("Test_Stage_Record_Cleanup", Files_Suite.Support.Hard_Link);
+      end if;
       Add_Stage_Record ("stage-unowned", Unowned, Files.File_Identities.Token (Unowned));
       Add_Stage_Record ("stage-absent", Join (Root, ".files-work-8000"), "");
       Add_Stage_Record ("stage-relative", ".files-work-relative", "");

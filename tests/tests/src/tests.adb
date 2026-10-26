@@ -26,7 +26,9 @@ with Files.Refresh_Jobs.Testing;
 with Files.Transfer_Jobs;
 with Files.Transfer_Jobs.Testing;
 with Files.Paste;
+with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
+with Files.Types;
 with Hostkit.Fs;
 with Hostkit.Host;
 with Hostkit.Lease_Files;
@@ -112,6 +114,21 @@ begin
         ("FILES_TEST_ROOT",
          Hostkit.Fs.Join (Ada.Environment_Variables.Value ("FILES_TEST_TEMP"), "fixtures"));
    end if;
+   --  Nor the user's caches and configuration: every listing reads the
+   --  thumbnail cache, and background refreshes write to it (it follows
+   --  XDG_CACHE_HOME on every host). Helper processes inherit the same.
+   declare
+      procedure Private_Folder (Variable, Name : String) is
+         Folder : constant String :=
+           Hostkit.Fs.Join (Ada.Environment_Variables.Value ("FILES_TEST_TEMP"), Name);
+      begin
+         Ada.Directories.Create_Path (Folder);
+         Ada.Environment_Variables.Set (Variable, Folder);
+      end Private_Folder;
+   begin
+      Private_Folder ("XDG_CACHE_HOME", "cache");
+      Private_Folder ("XDG_CONFIG_HOME", "config");
+   end;
 
    if Ada.Command_Line.Argument_Count in 2 .. 3
      and then Ada.Command_Line.Argument (1) in
@@ -721,22 +738,51 @@ begin
          Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
       end if;
       --  A skip passes, so a test that quietly stops running here would go
-      --  unnoticed: CI names how many may skip on each host, and more fails.
+      --  unnoticed: CI names, per host, the tests that skip there (one per
+      --  line in FILES_TEST_EXPECTED_SKIPS; "--" starts a comment). Another
+      --  test skipping fails the run, and so does a listed one that ran -- a
+      --  count alone let one take the other's place. A run of selected tests
+      --  (FILES_TEST_ONLY) checks only the first.
       declare
-         Ceiling : constant String := Ada.Environment_Variables.Value ("FILES_TEST_MAX_SKIPS", "");
-         Skipped : constant Natural := Files_Suite.Support.Skip_Count;
+         List_Path : constant String := Ada.Environment_Variables.Value ("FILES_TEST_EXPECTED_SKIPS", "");
+         Expected  : Files.Types.String_Vectors.Vector;
+         File      : Ada.Text_IO.File_Type;
       begin
-         if Ceiling /= "" then
-            if (for some C of Ceiling => C not in '0' .. '9') or else Ceiling'Length > 9 then
-               Ada.Text_IO.Put_Line
-                 (Ada.Text_IO.Standard_Error, "FILES_TEST_MAX_SKIPS=" & Ceiling & " is not a decimal count");
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-            elsif Skipped > Natural'Value (Ceiling) then
-               Ada.Text_IO.Put_Line
-                 (Ada.Text_IO.Standard_Error,
-                  "FAILED:" & Skipped'Image & " tests skipped, more than FILES_TEST_MAX_SKIPS=" & Ceiling
-                  & "; the SKIP lines above name them");
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         if List_Path /= "" then
+            Ada.Text_IO.Open (File, Ada.Text_IO.In_File, List_Path);
+            while not Ada.Text_IO.End_Of_File (File) loop
+               declare
+                  Line    : constant String := Ada.Text_IO.Get_Line (File);
+                  Comment : constant Natural := Ada.Strings.Fixed.Index (Line, "--");
+                  Name    : constant String :=
+                    Ada.Strings.Fixed.Trim
+                      ((if Comment = 0 then Line else Line (Line'First .. Comment - 1)), Ada.Strings.Both);
+               begin
+                  if Name /= "" then
+                     Expected.Append (Ada.Strings.Unbounded.To_Unbounded_String (Name));
+                  end if;
+               end;
+            end loop;
+            Ada.Text_IO.Close (File);
+            for Name of Files_Suite.Support.Skipped_Tests loop
+               if not Expected.Contains (Name) then
+                  Ada.Text_IO.Put_Line
+                    (Ada.Text_IO.Standard_Error,
+                     "FAILED: " & Ada.Strings.Unbounded.To_String (Name) & " skipped, and " & List_Path
+                     & " does not list it");
+                  Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+               end if;
+            end loop;
+            if Test_Progress.Only = "" then
+               for Name of Expected loop
+                  if not Files_Suite.Support.Skipped_Test (Ada.Strings.Unbounded.To_String (Name)) then
+                     Ada.Text_IO.Put_Line
+                       (Ada.Text_IO.Standard_Error,
+                        "FAILED: " & Ada.Strings.Unbounded.To_String (Name) & " is listed in " & List_Path
+                        & " but ran: take it off the list");
+                     Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+                  end if;
+               end loop;
             end if;
          end if;
       end;

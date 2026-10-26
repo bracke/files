@@ -72,7 +72,10 @@ package Files.Controller is
       Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result;
 
-   --  Persist the already-applied settings model to the central settings file.
+   --  Persist the already-applied settings model to the central settings file:
+   --  for a scalar applied as the user drags or scrolls (a column width, the
+   --  zoom by wheel, the window's size), which cannot make the file too big.
+   --  A change that can (a list, a path) goes through Commit_Settings.
    --  A no-op when the path is empty; a write that fails, or is not durable, or
    --  is refused because the settings file could not be loaded, is reported in
    --  the window's error line while the change stays applied for the session.

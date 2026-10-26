@@ -364,6 +364,7 @@ package body Files_Suite.Operations is
    procedure Test_Partial_Redo_Creation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Partial_Redo_Move (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Undo_Paste_Replace (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Release_History_Trashes_Originals (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_Symlink_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_Hardlink_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Hardlink_Dangling_Symlink (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -474,6 +475,10 @@ package body Files_Suite.Operations is
    procedure Test_Stale_Click_Matches_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Overlay_Order_Is_Drawing_Order (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Change_Policy (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Persist_Applied_Settings (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Sort_Is_Total_Order (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Select_Visible_Set (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Undo_Trash_Already_Restored (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Content_Search_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Operation_Test_Case) return AUnit.Message_String is
@@ -853,6 +858,9 @@ package body Files_Suite.Operations is
         (T, Test_Undo_Paste_Replace'Access,
          "undo of a replace paste restores the overwritten original and is not redoable");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Release_History_Trashes_Originals'Access,
+         "A closing window sends originals kept for Undo to the trash");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Create_Symlink_Operation'Access, "create-symlink links the selected item and undo removes it");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Create_Hardlink_Operation'Access, "create-hard-link links the selected file and undo removes it");
@@ -979,6 +987,18 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Change_Policy'Access,
          "Every settings change follows one save policy");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Persist_Applied_Settings'Access,
+         "Settings applied by a drag or the wheel are saved as they stand");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Sort_Is_Total_Order'Access,
+         "Equal names sort the same whatever their input order");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Select_Visible_Set'Access,
+         "Selecting a set of visible rows at once");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Undo_Trash_Already_Restored'Access,
+         "Undo of a trash whose item is already back succeeds");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Content_Search_Operation'Access,
          "content search matches file contents case-insensitively, skips binary and capped files, "
@@ -1605,6 +1625,8 @@ package body Files_Suite.Operations is
 
    procedure Test_Undo_Paste_Replace (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Release_History_Trashes_Originals (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Detected_Terminal_Helper (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure With_Desktop_Application_Fixture (Check : not null access procedure) is separate;
@@ -1682,6 +1704,14 @@ package body Files_Suite.Operations is
    procedure Test_Overlay_Order_Is_Drawing_Order (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Settings_Change_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Persist_Applied_Settings (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Sort_Is_Total_Order (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Select_Visible_Set (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Undo_Trash_Already_Restored (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Recent_View_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

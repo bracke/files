@@ -126,13 +126,15 @@ begin
             Saved := Apply_Settings_Change (Id, Model, Settings, Updated, Settings_Path);
             --  Rebuild the (now empty) recent view in place so it reflects the
             --  cleared list without leaving the view or touching history.
+            --  Listing clears the error line; the save's report stays on it.
             if Files.Model.In_Recent_View (Model) then
                declare
-                  Listed : constant Files.Operations.Operation_Result :=
+                  Reported : constant String := Files.Model.Last_Error_Key (Model);
+                  Listed   : constant Files.Operations.Operation_Result :=
                     Files.Operations.Navigate_Recent (Model, Settings);
                   pragma Unreferenced (Listed);
                begin
-                  null;
+                  Files.Model.Set_Error (Model, Reported);
                end;
             end if;
             return Saved;

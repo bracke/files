@@ -122,6 +122,7 @@ package body Files_Suite.Interaction is
    procedure Test_Favorite_Group_Toggle_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Label_Picker_Applies_To_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Labels_Follow_Moves_And_Stay_Loadable (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Path_Moves_Refused_When_Full (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Writes_Report_Failure (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Label_Picker_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Selector_Star_And_Clicks (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -252,6 +253,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Labels_Follow_Moves_And_Stay_Loadable'Access,
          "labels and favorites follow a rename, a folder move and Undo, and never outgrow the settings file");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Path_Moves_Refused_When_Full'Access,
+         "Labels do not follow a move the settings file cannot hold");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Writes_Report_Failure'Access,
          "settings toggles apply without a settings file, and a failed write is reported");
@@ -701,9 +705,8 @@ package body Files_Suite.Interaction is
             Target_Row := Row;
          end if;
       end loop;
+      --  No row for it: Found stays False, and the caller's assertion says so.
       if Target_Row = 0 then
-         Files_Suite.Support.Skip
-           ("Test_Bottom_Bar_Sort_Persists", "the sort menu has no row for the command under test");
          return;
       end if;
       Row_X := Menu.X + Menu.Width / 2;
@@ -967,6 +970,8 @@ package body Files_Suite.Interaction is
    procedure Test_Settings_Writes_Report_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Labels_Follow_Moves_And_Stay_Loadable (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Path_Moves_Refused_When_Full (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Color_Label_Picker_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

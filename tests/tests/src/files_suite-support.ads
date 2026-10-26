@@ -27,6 +27,17 @@ package Files_Suite.Support is
    --  @return The number of Skip calls.
    function Skip_Count return Natural;
 
+   --  Whether Test called Skip in this run.
+   --
+   --  @param Test A test routine's name, as passed to Skip.
+   --  @return True when it skipped.
+   function Skipped_Test (Test : String) return Boolean;
+
+   --  The tests that skipped, each once, in the order they first did.
+   --
+   --  @return Their names.
+   function Skipped_Tests return Files.Types.String_Vectors.Vector;
+
    --  Assert Actual = Expected; a failure says both values, not only what
    --  was expected to hold.
    --

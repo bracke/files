@@ -136,6 +136,7 @@ package body Files.Interaction is
    is
       From, To : Files.Types.String_Vectors.Vector;
       Changed  : Boolean := False;
+      Updated  : Files.Settings.Settings_Model := Settings;
    begin
       Files.Model.Take_Path_Moves (Model, From, To);
       for Index in From.First_Index .. From.Last_Index loop
@@ -143,18 +144,20 @@ package body Files.Interaction is
             Moved : Boolean;
          begin
             if Length (To (Index)) = 0 then
-               Files.Settings.Forget_Path_References (Settings, To_String (From (Index)), Moved);
+               Files.Settings.Forget_Path_References (Updated, To_String (From (Index)), Moved);
             else
                Files.Settings.Move_Path_References
-                 (Settings, To_String (From (Index)), To_String (To (Index)), Moved);
+                 (Updated, To_String (From (Index)), To_String (To (Index)), Moved);
             end if;
             Changed := Changed or else Moved;
          end;
       end loop;
+      --  Longer paths can make the file too big to load again: then the
+      --  labels stay where they were, and the error line says why.
       if Changed then
-         Persist_Settings (Model, Settings, Settings_Path);
+         Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path);
       end if;
-      return Changed;
+      return Changed and then Files.Settings.Same_Content (Settings, Updated);
    end Follow_Path_Moves;
 
    --  Fold any paths the model queued while opening items into the persisted
@@ -176,11 +179,15 @@ package body Files.Interaction is
       if Opened.Is_Empty then
          return;
       end if;
-      for Path of Opened loop
-         Files.Settings.Note_Recent (Settings, To_String (Path));
-      end loop;
-      Persist_Settings (Model, Settings, Settings_Path);
-      Result.Settings_Changed := True;
+      declare
+         Updated : Files.Settings.Settings_Model := Settings;
+      begin
+         for Path of Opened loop
+            Files.Settings.Note_Recent (Updated, To_String (Path));
+         end loop;
+         Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path);
+         Result.Settings_Changed := Files.Settings.Same_Content (Settings, Updated);
+      end;
    end Persist_Recent_Opens;
 
    --  Copy the user-visible global UI state from the model into the settings
@@ -213,12 +220,19 @@ package body Files.Interaction is
          return False;
       end if;
 
-      Settings.Default_View := New_View;
-      Settings.Sort_Field_Value := New_Sort;
-      Settings.Sort_Ascending := New_Asc;
-      Settings.Info_Pane_Open := New_Info;
-      Persist_Settings (Model, Settings, Settings_Path);
-      return True;
+      Files.Controller.Commit_Settings
+        (Model, Settings,
+         (Settings with delta
+            Default_View     => New_View,
+            Sort_Field_Value => New_Sort,
+            Sort_Ascending   => New_Asc,
+            Info_Pane_Open   => New_Info),
+         Settings_Path);
+      --  Written, unless refused (Commit_Settings).
+      return Settings.Default_View = New_View
+        and then Settings.Sort_Field_Value = New_Sort
+        and then Settings.Sort_Ascending = New_Asc
+        and then Settings.Info_Pane_Open = New_Info;
    end Sync_Global_UI_State;
 
    --  After a command (from a click, a shortcut or the palette) that changed
@@ -394,8 +408,8 @@ package body Files.Interaction is
                      Files.Settings.Default_Font_Pixel_Size);
          begin
             if New_Size /= Old_Size then
-               Settings.Font_Pixel_Size := New_Size;
-               Persist_Settings (Model, Settings, Settings_Path);
+               Files.Controller.Commit_Settings
+                 (Model, Settings, (Settings with delta Font_Pixel_Size => New_Size), Settings_Path);
                Result.Settings_Changed    := True;
                Result.Font_Size_Changed   := True;
                Result.Needs_Glyph_Rebuild := True;
@@ -969,7 +983,7 @@ package body Files.Interaction is
       Result := (others => <>);
       if Updated.Column_Order /= Settings.Column_Order then
          Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path);
-         Result.Settings_Changed := True;
+         Result.Settings_Changed := Files.Settings.Same_Content (Settings, Updated);
       end if;
    end Apply_Column_Reorder;
 
@@ -995,32 +1009,23 @@ package body Files.Interaction is
       Additive : Boolean;
       Base     : Files.Rendering.Visible_Index_Vectors.Vector)
    is
-      Count    : constant Natural := Files.Model.Visible_Count (Model);
-      Combined : Files.Rendering.Visible_Index_Vectors.Vector;
-
-      --  Collect a unique, in-range visible index into the target set. Bounding
-      --  by Count keeps a stale Base snapshot (e.g. after a listing shrank)
-      --  from toggling a no-longer-visible index.
-      procedure Add (Index : Positive) is
-      begin
-         if Index <= Count and then not Combined.Contains (Index) then
-            Combined.Append (Index);
-         end if;
-      end Add;
+      --  The base (when additive), then the hits; the model drops repeats and
+      --  indexes a stale base names past the listing's end.
+      Combined : Files.Model.Visible_Index_List
+        (1 .. (if Additive then Natural (Base.Length) else 0) + Natural (Hits.Length));
+      Last     : Natural := 0;
    begin
       if Additive then
          for Index of Base loop
-            Add (Index);
+            Last := Last + 1;
+            Combined (Last) := Index;
          end loop;
       end if;
       for Index of Hits loop
-         Add (Index);
+         Last := Last + 1;
+         Combined (Last) := Index;
       end loop;
-
-      Files.Model.Clear_Selection (Model);
-      for Index of Combined loop
-         Files.Model.Toggle_Visible_Selection (Model, Index);
-      end loop;
+      Files.Model.Select_Visible_Set (Model, Combined);
    end Apply_Marquee_Selection;
 
 end Files.Interaction;

@@ -305,6 +305,15 @@ separate (Files.Application.Windows)
                         Runtime.Glyph_Text := Frame.Text;
                         Runtime.Glyph_Overlay_Text := Frame.Overlay_Text;
                         Runtime.Glyph_Text_Valid := True;
+                        --  Its pooled fonts went to another size and did not
+                        --  load again: a failure like the first, retried after
+                        --  the same pause, not on every frame (nor never).
+                        if not Files.Rendering.Text_Loaded (Runtime.Text) then
+                           Runtime.Text_Ready := False;
+                           Runtime.Glyph_Text_Valid := False;
+                           Runtime.Text_Failed_Size := Runtime.Font_Pixel_Size;
+                           Runtime.Text_Failed_At := Ada.Real_Time.Clock;
+                        end if;
                      end if;
                   end if;
 

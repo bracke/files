@@ -67,7 +67,11 @@ is
    --  An item on another volume goes to that volume's own trash: a rename,
    --  not a copy of everything into home.
    Volume     : constant String :=
-     (if Backend in Trash_Xdg_Data_Home | Trash_Home_Data then Volume_Trash_For (Path) else "");
+     --  Only for an item the preflight below accepts: choosing a volume's
+     --  trash makes it there, which a refused request must not do.
+     (if Backend in Trash_Xdg_Data_Home | Trash_Home_Data and then Move_To_Trash_Preflight (Path).Success
+      then Volume_Trash_For (Path)
+      else "");
    Base       : constant String := (if Volume /= "" then Volume else Trash_Base_Path);
    --  macOS ~/.Trash stores items at the top level, without the freedesktop
    --  files/info split or .trashinfo sidecars, so Finder recognizes them.

@@ -723,11 +723,20 @@ package body Files_Suite.Support is
 
    Skipped : Natural := 0;
 
+   Skipped_Names : Files.Types.String_Vectors.Vector;
+
    procedure Skip (Test : String; Reason : String) is
    begin
       Skipped := Skipped + 1;
+      if not Skipped_Names.Contains (To_Unbounded_String (Test)) then
+         Skipped_Names.Append (To_Unbounded_String (Test));
+      end if;
       Ada.Text_IO.Put_Line ("SKIP" & ':' & ' ' & Test & ':' & ' ' & Reason);
    end Skip;
 
    function Skip_Count return Natural is (Skipped);
+
+   function Skipped_Test (Test : String) return Boolean is (Skipped_Names.Contains (To_Unbounded_String (Test)));
+
+   function Skipped_Tests return Files.Types.String_Vectors.Vector is (Skipped_Names);
 end Files_Suite.Support;

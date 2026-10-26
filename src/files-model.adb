@@ -1090,6 +1090,51 @@ package body Files.Model is
       Leave_View (Model, Mark.Path);
    end Return_To;
 
+   procedure Select_Visible_Set
+     (Model   : in out Window_Model;
+      Indexes : Visible_Index_List)
+   is
+      --  Each visible index's item, worked out once.
+      Visible_Items : array (1 .. Natural (Model.Items.Length) + 1) of Natural;
+      Visible_Count : Natural := 0;
+      Taken         : array (1 .. Natural (Model.Items.Length)) of Boolean := [others => False];
+      Temporary_Taken : Boolean := False;
+   begin
+      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+         if Support.Item_Is_Visible (Model, Model.Items (Index)) then
+            Visible_Count := Visible_Count + 1;
+            Visible_Items (Visible_Count) := Index;
+         end if;
+      end loop;
+      if Temporary_Is_Visible (Model) then
+         Visible_Count := Visible_Count + 1;
+         Visible_Items (Visible_Count) := Temporary_Item_Index;
+      end if;
+      Clear_Selection (Model);
+      for Visible of Indexes loop
+         if Visible <= Visible_Count then
+            declare
+               Item : constant Natural := Visible_Items (Visible);
+            begin
+               if Item = Temporary_Item_Index then
+                  if not Temporary_Taken then
+                     Temporary_Taken := True;
+                     Model.Selected_Item_Indexes.Append (Item);
+                  end if;
+                  Model.Selected_Item_Index := Item;
+               elsif Item in Taken'Range then
+                  if not Taken (Item) then
+                     Taken (Item) := True;
+                     Model.Selected_Item_Indexes.Append (Item);
+                  end if;
+                  Model.Selected_Item_Index := Item;
+               end if;
+            end;
+         end if;
+      end loop;
+      Reconcile_Rename_With_Selection (Model);
+   end Select_Visible_Set;
+
    procedure Focus_Path_Input
      (Model : in out Window_Model) is separate;
 

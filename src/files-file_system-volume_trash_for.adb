@@ -135,6 +135,15 @@ begin
          end;
       end loop;
 
+      --  Not on a network mount: the trash view does not look there (a
+      --  server that is gone would stall it), so an item trashed there
+      --  could not be seen again. The home trash's copy is used instead.
+      --  Under the test suite the mounts are not read.
+      if not Ada.Environment_Variables.Exists ("FILES_TEST_VOLUME_TRASH")
+        and then On_Network_Mount (To_String (Top), Available_Root_Entries)
+      then
+         return "";
+      end if;
       declare
          Shared : constant String := Join_Path (To_String (Top), ".Trash");
          Chosen : Unbounded_String;

@@ -1901,6 +1901,8 @@ package body Files.Rendering is
       return 0;
    end Item_Now;
 
+   function Text_Loaded (Renderer : Text_Renderer) return Boolean is (Renderer.Loaded);
+
    function Text_Glyphs_Current (Renderer : Text_Renderer; Glyphs : Text_Render_Result) return Boolean is
      (Renderer.Loaded
       and then Renderer.Slot in Pool'Range

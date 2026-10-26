@@ -486,6 +486,11 @@ private
       Last_Present_Status : Guikit.Vulkan.Vulkan_Status :=
         Guikit.Vulkan.Vulkan_Not_Initialized;
       Last_Watch_Poll : Ada.Real_Time.Time := Never;
+      --  The model revision and transfer state Update_Folder_Size last ran
+      --  for: the loop wakes about 60 times a second, and the selection's
+      --  targets change only with the model.
+      Folder_Size_Revision : Natural := Natural'Last;
+      Folder_Size_Busy     : Boolean := False;
       Watch : Files.Refresh_Jobs.Watch_Session;
    end record;
 

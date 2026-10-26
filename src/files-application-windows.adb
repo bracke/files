@@ -19,6 +19,7 @@ with Files.Folder_Size;
 with Files.Interaction;
 with Files.Job_Scavenger;
 with Files.Operations;
+with Files.Process_Jobs;
 with Files.Rendering.Hit;
 with Guikit.Layout;
 with Guikit.Settings_Panel;
@@ -918,7 +919,19 @@ package body Files.Application.Windows is
       procedure Poll (Runtime : in out Runtime_Window) is
       begin
          if Runtime.Handle /= null then
-            Files.Operations.Update_Folder_Size (Runtime.Model, Runtime.Settings);
+            declare
+               Busy : constant Boolean :=
+                 Files.Model.Paste_Execution_Is_Active (Runtime.Model)
+                 or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Runtime.Model));
+            begin
+               if Files.Model.Revision (Runtime.Model) /= Runtime.Folder_Size_Revision
+                 or else Busy /= Runtime.Folder_Size_Busy
+               then
+                  Files.Operations.Update_Folder_Size (Runtime.Model, Runtime.Settings);
+                  Runtime.Folder_Size_Revision := Files.Model.Revision (Runtime.Model);
+                  Runtime.Folder_Size_Busy := Busy;
+               end if;
+            end;
             Files.Operations.Poll_Folder_Sizes (Runtime.Model);
          end if;
       end Poll;
@@ -1473,6 +1486,8 @@ package body Files.Application.Windows is
             Last_Missing_Glyph_Count => 0,
             Last_Present_Status => Guikit.Vulkan.Vulkan_Not_Initialized,
             Last_Watch_Poll => Never,
+            Folder_Size_Revision => Natural'Last,
+            Folder_Size_Busy     => False,
             Watch => <>));
       Files.Model.Set_Background_Transfers
         (Runtime_Windows.Reference (Runtime_Windows.Last_Index).Model, True);
@@ -1950,6 +1965,8 @@ package body Files.Application.Windows is
       Runtime_Windows : Runtime_Window_Vectors.Vector;
       Initialized     : Boolean := False;
       Recovery_Reported : Boolean := False;
+      Last_Recovery_Check : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+      use type Ada.Real_Time.Time_Span;
    begin
       if Startup.Windows.Is_Empty then
          return;
@@ -2029,18 +2046,23 @@ package body Files.Application.Windows is
             Handle_All_Drop_Input (Runtime_Windows);
             Handle_All_Scroll_Input (Runtime_Windows);
             Sync_Settings_Across_Windows (Runtime_Windows);
+            --  A report file appears rarely: looked for once a second, not on
+            --  every wake-up.
             if not Recovery_Reported
-              and then Files.Job_Scavenger.Has_Unrecoverable
+              and then Ada.Real_Time.Clock - Last_Recovery_Check >= Ada.Real_Time.Seconds (1)
             then
-               for Runtime of Runtime_Windows loop
-                  if Runtime.Handle /= null then
-                     Files.Model.Set_Error
-                       (Runtime.Model, "error.recovery.unsafe_transport");
-                     Runtime.Frame_Cache_Valid := False;
-                     Runtime.Snapshot_Valid := False;
-                  end if;
-               end loop;
-               Recovery_Reported := True;
+               Last_Recovery_Check := Ada.Real_Time.Clock;
+               if Files.Job_Scavenger.Has_Unrecoverable then
+                  for Runtime of Runtime_Windows loop
+                     if Runtime.Handle /= null then
+                        Files.Model.Set_Error
+                          (Runtime.Model, "error.recovery.unsafe_transport");
+                        Runtime.Frame_Cache_Valid := False;
+                        Runtime.Snapshot_Valid := False;
+                     end if;
+                  end loop;
+                  Recovery_Reported := True;
+               end if;
             end if;
             Render_All (Runtime_Windows);
             Handle_All_File_Watch_Poll (Runtime_Windows);

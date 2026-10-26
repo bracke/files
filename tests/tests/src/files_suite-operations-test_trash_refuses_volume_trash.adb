@@ -10,6 +10,8 @@ separate (Files_Suite.Operations)
       --  folder of ours to guard).
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
+      Files_Suite.Support.Save (Environment, "FILES_TEST_VOLUME_TRASH");
+      Ada.Environment_Variables.Set ("FILES_TEST_VOLUME_TRASH", "on");
       if Hostkit.Host.Current = Hostkit.Host.Windows or else not Hostkit.Process.Current_User_Id (Uid) then
          Files_Suite.Support.Skip ("Test_Trash_Refuses_Volume_Trash", "Windows has no freedesktop volume trash");
          return;
@@ -42,6 +44,17 @@ separate (Files_Suite.Operations)
          Refused (Item);
          Assert (Files.File_System.Move_To_Trash_Preflight (Plain).Success,
                  "a folder that only looks like one is trashed as usual");
+
+         --  A trash made earlier under a top its group can write to (a
+         --  user-private group) stays one; under one anyone can write to, not.
+         Assert (Files.File_System.Is_Volume_Trash_Item (Item), "the volume trash holds the item");
+         Assert (Files.File_System.Set_Permissions (Top, 8#775#).Success, "the top becomes group-writable");
+         Assert (Files.File_System.Is_Volume_Trash_Item (Item),
+                 "an existing trash under a group-writable top stays listed and restorable");
+         Assert (Files.File_System.Set_Permissions (Top, 8#777#).Success, "the top becomes writable by all");
+         Assert (not Files.File_System.Is_Volume_Trash_Item (Item),
+                 "a trash under a top anyone can write to is not trusted");
+         Assert (Files.File_System.Set_Permissions (Top, 8#755#).Success, "the top is its owner's again");
       end;
       Reset_Root;
    end Test_Trash_Refuses_Volume_Trash;

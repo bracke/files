@@ -13,7 +13,8 @@ separate (Files.Settings)
       for Index in
         Settings.Labels.First_Index .. Settings.Labels.Last_Index
       loop
-         if To_String (Settings.Labels.Element (Index).Path) = Path then
+         --  Compared in place: no copy of the label nor of its path.
+         if Settings.Labels (Index).Path = Path then
             Existing := Index;
             exit;
          end if;

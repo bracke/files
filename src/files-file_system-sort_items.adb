@@ -35,8 +35,14 @@ begin
       begin
          if Keys (Left).Name_Lower /= Keys (Right).Name_Lower then
             return Keys (Left).Name_Lower < Keys (Right).Name_Lower;
-         else
+         elsif Items (Left).Name /= Items (Right).Name then
             return Items (Left).Name < Items (Right).Name;
+         --  One name in several folders (search results): by path, and the
+         --  listing's own order last, so the order never depends on the sort.
+         elsif Items (Left).Full_Path /= Items (Right).Full_Path then
+            return Items (Left).Full_Path < Items (Right).Full_Path;
+         else
+            return Left < Right;
          end if;
       end Name_Less;
 
@@ -117,9 +123,9 @@ begin
          Order.Append (Index);
       end loop;
 
-      --  Generic_Sorting is stable and Order starts ascending, so items that
-      --  compare equal keep their original relative order -- matching the old
-      --  in-place sort of Items exactly.
+      --  Generic_Sorting is not stable (GNAT's is a heapsort): Less is a total
+      --  order, ending in the listing's own order, so no two items compare
+      --  equal.
       Sorting.Sort (Order);
 
       Sorted.Reserve_Capacity (Ada.Containers.Count_Type (Count));
