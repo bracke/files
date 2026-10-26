@@ -58,6 +58,7 @@ with Files.Commands;
 with Files.Controller;
 with Files.Copy_Context;
 with Files.Exclusive_Streams;
+with Files.Lease_Streams;
 with Files.Events;
 with Files.File_System;
 with Files.Io_Errors;
@@ -447,6 +448,7 @@ package body Files_Suite.Operations is
    --  Deletes the transport directory Path when it is set and exists.
    procedure Remove_Transport_Fixture (Path : Files.Types.UString);
    procedure Test_Exclusive_Stream_Hardlink (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Transport_Stream_Blocks (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scavenger_Coordinator_Failures (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transport_Lease_Claims (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Startup_Transport_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -587,6 +589,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Exclusive_Stream_Hardlink'Access,
          "exclusive transport streams refuse hardlinks without truncating their target");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Transport_Stream_Blocks'Access,
+         "transport streams buffer in blocks and read back exactly what was written");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Scavenger_Coordinator_Failures'Access,
          "startup recovery completes when its coordinator cannot launch or fails");
@@ -1831,6 +1836,8 @@ package body Files_Suite.Operations is
    procedure Remove_Transport_Fixture (Path : Files.Types.UString) is separate;
 
    procedure Test_Exclusive_Stream_Hardlink (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Transport_Stream_Blocks (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Scavenger_Coordinator_Failures (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

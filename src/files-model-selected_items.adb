@@ -1,6 +1,7 @@
 separate (Files.Model)
 function Selected_Items
-  (Model : Window_Model)
+  (Model : Window_Model;
+   Limit : Natural := Natural'Last)
    return Files.File_System.Item_Vectors.Vector
 is
    Result : Files.File_System.Item_Vectors.Vector;
@@ -13,6 +14,7 @@ begin
       Selected : constant Selection_Flags := Selected_Flags (Model);
    begin
       for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+         exit when Natural (Result.Length) >= Limit;
          if Selected (Index) then
             Result.Append (Model.Items (Index));
          end if;

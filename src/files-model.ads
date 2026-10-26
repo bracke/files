@@ -766,12 +766,14 @@ package Files.Model is
      (Model : Window_Model)
       return Files.File_System.Directory_Item;
 
-   --  Return all selected items in deterministic loaded-item order.
+   --  Return the selected items in deterministic loaded-item order.
    --
    --  @param Model Model to inspect.
+   --  @param Limit At most this many, the first in that order.
    --  @return Selected directory items, excluding transient create-file items.
    function Selected_Items
-     (Model : Window_Model)
+     (Model : Window_Model;
+      Limit : Natural := Natural'Last)
       return Files.File_System.Item_Vectors.Vector;
 
    --  Restore the loaded, visible items present in a previous selection. Item

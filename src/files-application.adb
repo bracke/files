@@ -397,16 +397,14 @@ package body Files.Application is
       --  The same items Build_Snapshot lists in the info pane.
       if Files.Model.Info_Pane_Is_Open (Model) and then Files.Model.Selected_Count (Model) > 0 then
          declare
-            Items : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
-            Count : Natural := 0;
+            Items : constant Files.File_System.Item_Vectors.Vector :=
+              Files.Model.Selected_Items (Model, Limit => Files.Rendering.Max_Info_Items);
          begin
             if Items.Is_Empty then
                Sample (Files.Model.Selected_Item (Model));
             end if;
             for Item of Items loop
-               exit when Count >= Files.Rendering.Max_Info_Items;
                Sample (Item);
-               Count := Count + 1;
             end loop;
          end;
       end if;

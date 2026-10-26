@@ -529,6 +529,7 @@ package body Files.Refresh_Jobs is
    begin
       Files.Process_Jobs.Reset (Job.Process);
       Job.Path := Null_Unbounded_String;
+      Job.Claim_Left := False;
    end Release_Watch;
 
    Watch_Retry_Delay : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (5);
@@ -634,8 +635,10 @@ package body Files.Refresh_Jobs is
          then
             Ada.Directories.Delete_File (Claimed);
          end if;
+         Job.Claim_Left := False;
       exception
          when Swallowed : others =>
+            Job.Claim_Left := True;
             Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
       end Remove_Claim;
    begin
@@ -654,7 +657,9 @@ package body Files.Refresh_Jobs is
       --  Clear an acknowledgement left by a transient unlink failure, then
       --  atomically claim the current marker.  A marker published after this
       --  rename remains at "changed" for the next poll.
-      Remove_Claim;
+      if Job.Claim_Left then
+         Remove_Claim;
+      end if;
       if Claim_Watch_Notification (Directory) then
          Remove_Claim;
          return True;

@@ -894,7 +894,8 @@ package body Files.Model is
    is separate;
 
    function Selected_Items
-     (Model : Window_Model)
+     (Model : Window_Model;
+      Limit : Natural := Natural'Last)
       return Files.File_System.Item_Vectors.Vector
    is separate;
 

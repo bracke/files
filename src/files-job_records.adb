@@ -15,6 +15,7 @@ with Files.Types;
 package body Files.Job_Records is
    use Ada.Strings.Unbounded;
    use type Ada.Containers.Count_Type;
+   use type Ada.Streams.Stream_Element_Offset;
 
    Max_Settings_Length : constant := 1 * 1024 * 1024;
    --  Matches the per-directory listing cap; the transport byte limit bounds
@@ -173,6 +174,9 @@ package body Files.Job_Records is
       return Result;
    end Read_Signature;
 
+   --  Thumbnail bytes move through the stream this many at a time.
+   Byte_Chunk : constant := 4096;
+
    procedure Write_Bytes
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Value : Files.Types.Byte_Vectors.Vector)
@@ -182,9 +186,24 @@ package body Files.Job_Records is
          raise Ada.Directories.Use_Error;
       end if;
       Natural'Output (Stream, Natural (Value.Length));
-      for Byte of Value loop
-         Interfaces.Unsigned_8'Output (Stream, Byte);
-      end loop;
+      --  A chunk per call instead of an element per call; the bytes are the
+      --  same as Unsigned_8'Output would write.
+      declare
+         Chunk : Ada.Streams.Stream_Element_Array (1 .. Byte_Chunk);
+         Used  : Ada.Streams.Stream_Element_Offset := 0;
+      begin
+         for Byte of Value loop
+            Used := Used + 1;
+            Chunk (Used) := Ada.Streams.Stream_Element (Byte);
+            if Used = Chunk'Last then
+               Stream.Write (Chunk);
+               Used := 0;
+            end if;
+         end loop;
+         if Used > 0 then
+            Stream.Write (Chunk (1 .. Used));
+         end if;
+      end;
    end Write_Bytes;
 
    function Read_Bytes
@@ -198,9 +217,31 @@ package body Files.Job_Records is
          raise Ada.IO_Exceptions.Data_Error;
       end if;
       Result.Reserve_Capacity (Ada.Containers.Count_Type (Count));
-      for Index in 1 .. Count loop
-         Result.Append (Interfaces.Unsigned_8'Input (Stream));
-      end loop;
+      declare
+         Chunk : Ada.Streams.Stream_Element_Array (1 .. Byte_Chunk);
+         Left  : Natural := Count;
+      begin
+         while Left > 0 loop
+            declare
+               Wanted : constant Ada.Streams.Stream_Element_Offset :=
+                 Ada.Streams.Stream_Element_Offset (Natural'Min (Left, Byte_Chunk));
+               Filled : Ada.Streams.Stream_Element_Offset := 0;
+               Last   : Ada.Streams.Stream_Element_Offset;
+            begin
+               while Filled < Wanted loop
+                  Stream.Read (Chunk (Filled + 1 .. Wanted), Last);
+                  if Last <= Filled then
+                     raise Ada.IO_Exceptions.End_Error;
+                  end if;
+                  Filled := Last;
+               end loop;
+               for Element of Chunk (1 .. Wanted) loop
+                  Result.Append (Interfaces.Unsigned_8 (Element));
+               end loop;
+               Left := Left - Natural (Wanted);
+            end;
+         end loop;
+      end;
       return Result;
    end Read_Bytes;
 

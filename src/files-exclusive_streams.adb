@@ -6,12 +6,15 @@ package body Files.Exclusive_Streams is
    use type Ada.Streams.Stream_Element_Offset;
    use type GNAT.OS_Lib.File_Descriptor;
 
+   procedure Flush (Stream : in out Output_Stream);
+
    procedure Create (Stream : in out Output_Stream; Path : String) is
    begin
       if Is_Open (Stream) then
          raise Ada.IO_Exceptions.Status_Error;
       end if;
       Stream.Length := 0;
+      Stream.Pending := 0;
       Stream.Descriptor :=
         GNAT.OS_Lib.Create_New_File (Path, GNAT.OS_Lib.Binary);
       if Stream.Descriptor = GNAT.OS_Lib.Invalid_FD then
@@ -30,6 +33,13 @@ package body Files.Exclusive_Streams is
       if not Is_Open (Stream) then
          return;
       end if;
+      begin
+         Flush (Stream);
+      exception
+         when others =>
+            Close_Safely (Stream);
+            raise Ada.IO_Exceptions.Use_Error;
+      end;
       GNAT.OS_Lib.Close (Stream.Descriptor, Closed);
       Stream.Descriptor := GNAT.OS_Lib.Invalid_FD;
       if not Closed then
@@ -39,6 +49,7 @@ package body Files.Exclusive_Streams is
 
    procedure Close_Safely (Stream : in out Output_Stream) is
    begin
+      Stream.Pending := 0;
       if Is_Open (Stream) then
          GNAT.OS_Lib.Close (Stream.Descriptor);
          Stream.Descriptor := GNAT.OS_Lib.Invalid_FD;
@@ -64,19 +75,14 @@ package body Files.Exclusive_Streams is
       raise Program_Error;
    end Read;
 
-   overriding procedure Write
-     (Stream : in out Output_Stream;
+   --  Write all of Item to the descriptor.
+   procedure Write_Through
+     (Stream : Output_Stream;
       Item   : Ada.Streams.Stream_Element_Array)
    is
       Next : Ada.Streams.Stream_Element_Offset := Item'First;
       Written : Integer;
    begin
-      if not Is_Open (Stream)
-        or else Long_Long_Integer (Item'Length) >
-          Long_Long_Integer'Last - Stream.Length
-      then
-         raise Ada.IO_Exceptions.Use_Error;
-      end if;
       while Next <= Item'Last loop
          declare
             Remaining : constant Ada.Streams.Stream_Element_Offset :=
@@ -93,7 +99,37 @@ package body Files.Exclusive_Streams is
             raise Ada.IO_Exceptions.Use_Error;
          end if;
          Next := Next + Ada.Streams.Stream_Element_Offset (Written);
-         Stream.Length := Stream.Length + Long_Long_Integer (Written);
       end loop;
+   end Write_Through;
+
+   procedure Flush (Stream : in out Output_Stream) is
+   begin
+      if Stream.Pending > 0 then
+         Write_Through (Stream, Stream.Block (1 .. Stream.Pending));
+         Stream.Pending := 0;
+      end if;
+   end Flush;
+
+   overriding procedure Write
+     (Stream : in out Output_Stream;
+      Item   : Ada.Streams.Stream_Element_Array)
+   is
+   begin
+      if not Is_Open (Stream)
+        or else Long_Long_Integer (Item'Length) >
+          Long_Long_Integer'Last - Stream.Length
+      then
+         raise Ada.IO_Exceptions.Use_Error;
+      end if;
+      if Item'Length > Block_Size - Stream.Pending then
+         Flush (Stream);
+      end if;
+      if Item'Length >= Block_Size then
+         Write_Through (Stream, Item);
+      else
+         Stream.Block (Stream.Pending + 1 .. Stream.Pending + Item'Length) := Item;
+         Stream.Pending := Stream.Pending + Item'Length;
+      end if;
+      Stream.Length := Stream.Length + Long_Long_Integer (Item'Length);
    end Write;
 end Files.Exclusive_Streams;

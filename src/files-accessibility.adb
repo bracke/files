@@ -167,8 +167,9 @@ package body Files.Accessibility is
       First : constant Boolean := not Trees.Contains (Window);
    begin
       --  An overlay is republished every frame it is up; an unchanged tree
-      --  costs no combining, no provider diff and no native attach.
-      if Stopped or else (not First and then Trees.Element (Window) = Tree) then
+      --  costs no combining, no provider diff and no native attach (and is
+      --  compared in place, not copied out first).
+      if Stopped or else (not First and then Trees.Constant_Reference (Window) = Tree) then
          return;
       end if;
       Trees.Include (Window, Tree);

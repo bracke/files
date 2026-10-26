@@ -29,6 +29,7 @@ package body Files.Lease_Streams is
       end if;
       Item.Position := 0;
       Item.Length := Ada.Streams.Stream_Element_Offset (Length);
+      Item.Block_Count := 0;
       return Hostkit.Lease_Files.Opened;
    exception
       when others =>
@@ -41,6 +42,7 @@ package body Files.Lease_Streams is
       Hostkit.Lease_Files.Release (Item.Handle);
       Item.Position := 0;
       Item.Length := 0;
+      Item.Block_Count := 0;
    end Release;
 
    function Size (Item : Input_Stream) return Long_Long_Integer is
@@ -67,11 +69,37 @@ package body Files.Lease_Streams is
         or else Count > Stream.Length - Stream.Position
       then
          raise Ada.IO_Exceptions.End_Error;
-      elsif not Hostkit.Lease_Files.Read_At
-        (Stream.Handle, Item, Stream.Position)
-      then
-         raise Ada.IO_Exceptions.Data_Error;
+      elsif Count >= Block_Size then
+         --  A large read goes straight to the file.
+         if not Hostkit.Lease_Files.Read_At (Stream.Handle, Item, Stream.Position) then
+            raise Ada.IO_Exceptions.Data_Error;
+         end if;
+         Stream.Position := Stream.Position + Count;
+         Last := Item'Last;
       else
+         if Stream.Position < Stream.Block_Start
+           or else Stream.Position + Count > Stream.Block_Start + Stream.Block_Count
+         then
+            --  Refill from Position: as much as the file still holds, at most
+            --  a block (the Count bytes asked for are within it).
+            declare
+               Fill : constant Ada.Streams.Stream_Element_Offset :=
+                 Ada.Streams.Stream_Element_Offset'Min (Block_Size, Stream.Length - Stream.Position);
+            begin
+               if not Hostkit.Lease_Files.Read_At
+                 (Stream.Handle, Stream.Block (1 .. Fill), Stream.Position)
+               then
+                  raise Ada.IO_Exceptions.Data_Error;
+               end if;
+               Stream.Block_Start := Stream.Position;
+               Stream.Block_Count := Fill;
+            end;
+         end if;
+         declare
+            From : constant Ada.Streams.Stream_Element_Offset := Stream.Position - Stream.Block_Start + 1;
+         begin
+            Item := Stream.Block (From .. From + Count - 1);
+         end;
          Stream.Position := Stream.Position + Count;
          Last := Item'Last;
       end if;

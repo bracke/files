@@ -104,9 +104,7 @@ package body Files.Job_Context is
       Write_Record : not null access procedure
         (Stream : not null access Ada.Streams.Root_Stream_Type'Class))
    is
-      Output : aliased Files.Descriptor_Streams.Output_Stream :=
-        (Ada.Streams.Root_Stream_Type with
-         Descriptor => GNAT.OS_Lib.Invalid_FD);
+      Output : aliased Files.Descriptor_Streams.Output_Stream;
       Temporary_Identity : Files.Types.UString;
 
       procedure Remove_Owned_Temporary is
@@ -145,6 +143,7 @@ package body Files.Job_Context is
       declare
          Closed : Boolean;
       begin
+         Files.Descriptor_Streams.Flush (Output);
          GNAT.OS_Lib.Close (Output.Descriptor, Closed);
          Output.Descriptor := GNAT.OS_Lib.Invalid_FD;
          if not Closed then

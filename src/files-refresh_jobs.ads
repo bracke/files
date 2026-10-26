@@ -84,5 +84,8 @@ private
       --  not relaunch it for that path before Retry_At (polling covers it).
       Failed_Path : Files.Types.UString;
       Retry_At    : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+      --  A claimed notification could not be removed; retry before the next
+      --  claim. Otherwise a poll is only the claiming rename.
+      Claim_Left  : Boolean := False;
    end record;
 end Files.Refresh_Jobs;

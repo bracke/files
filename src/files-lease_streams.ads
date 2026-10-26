@@ -38,9 +38,17 @@ package Files.Lease_Streams is
    function End_Of_Stream (Item : Input_Stream) return Boolean;
 
 private
+   --  Read ahead in blocks: a record is decoded a field (often a byte) at a
+   --  time, and a read per field was a syscall per field.
+   Block_Size : constant := 16 * 1024;
+
    type Input_Stream is new Ada.Streams.Root_Stream_Type with record
       Handle   : Hostkit.Lease_Files.Lease;
       Position : Ada.Streams.Stream_Element_Offset := 0;
       Length   : Ada.Streams.Stream_Element_Offset := 0;
+      --  The file's bytes from Block_Start, Block_Count of them.
+      Block       : Ada.Streams.Stream_Element_Array (1 .. Block_Size);
+      Block_Start : Ada.Streams.Stream_Element_Offset := 0;
+      Block_Count : Ada.Streams.Stream_Element_Offset := 0;
    end record;
 end Files.Lease_Streams;

@@ -244,9 +244,7 @@ package body Files.History_Journal is
       Fields : Natural := 0;
       Temporary : constant String := Hostkit.Fs.Join (Directory, "history.tmp");
       Target : constant String := Hostkit.Fs.Join (Directory, "history");
-      Output : aliased Files.Descriptor_Streams.Output_Stream :=
-        (Ada.Streams.Root_Stream_Type with
-         Descriptor => GNAT.OS_Lib.Invalid_FD);
+      Output : aliased Files.Descriptor_Streams.Output_Stream;
       Temporary_Identity : Unbounded_String;
 
       procedure Remove_Owned_Temporary is
@@ -301,6 +299,7 @@ package body Files.History_Journal is
       declare
          Closed : Boolean;
       begin
+         Files.Descriptor_Streams.Flush (Output);
          GNAT.OS_Lib.Close (Output.Descriptor, Closed);
          Output.Descriptor := GNAT.OS_Lib.Invalid_FD;
          if not Closed then

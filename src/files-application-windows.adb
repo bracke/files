@@ -1349,13 +1349,29 @@ package body Files.Application.Windows is
 
    procedure Release_Closed_Windows (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
    begin
-      for Runtime of Runtime_Windows loop
-         if Runtime.Handle /= null
-           and then (not Glfw.Windows.Initialized (As_Window (Runtime.Handle))
-                     or else Glfw.Windows.Should_Close (As_Window (Runtime.Handle)))
-         then
-            Release_Window (Runtime);
-         end if;
+      --  A released window leaves the vector, so its model (listing,
+      --  thumbnails, history) is freed instead of kept until exit. Nothing
+      --  holds a window by index across passes of the loop.
+      for Index in reverse Runtime_Windows.First_Index .. Runtime_Windows.Last_Index loop
+         declare
+            Released : Boolean;
+         begin
+            --  The reference must end before Delete, which tampers.
+            declare
+               Runtime : Runtime_Window renames Runtime_Windows (Index);
+            begin
+               if Runtime.Handle /= null
+                 and then (not Glfw.Windows.Initialized (As_Window (Runtime.Handle))
+                           or else Glfw.Windows.Should_Close (As_Window (Runtime.Handle)))
+               then
+                  Release_Window (Runtime);
+               end if;
+               Released := Runtime.Handle = null;
+            end;
+            if Released then
+               Runtime_Windows.Delete (Index);
+            end if;
+         end;
       end loop;
    end Release_Closed_Windows;
 
