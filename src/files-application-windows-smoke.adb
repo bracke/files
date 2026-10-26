@@ -43,7 +43,7 @@ package body Files.Application.Windows.Smoke is
             Text_Status : constant Files.Rendering.Text_Render_Status :=
               Files.Rendering.Initialize_Text
                 (Renderer    => Text,
-                 Font_Path   => Files.Rendering.Font_Path_For_Frame (Frame),
+                 Font_Path   => Files.Rendering.Default_Font_Path,
                  Pixel_Size  => 16,
                  Cell_Width  => 12,
                  Cell_Height => 20);
@@ -255,7 +255,7 @@ package body Files.Application.Windows.Smoke is
       Runtime.Synced_Settings := Base.Settings;
       Runtime.Font_Pixel_Size := Base.Font;
       Runtime.Text_Ready := False;
-      Runtime.Text_Glyph_Key := Null_Unbounded_String;
+      Runtime.Glyph_Text_Valid := False;
       Runtime.Frame_Cache_Valid := False;
       Runtime.Snapshot_Valid := False;
       Apply_Scenario (Runtime, Scenario);

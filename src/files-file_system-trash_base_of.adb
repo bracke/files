@@ -13,9 +13,11 @@ begin
       Files_Directory : constant String := Ada.Directories.Containing_Directory (Trashed_Path);
       Base            : constant String := Ada.Directories.Containing_Directory (Files_Directory);
    begin
+      --  Files_Directory is the item's own parent, so only the base needs
+      --  checking (Valid_Volume_Trash_Base refuses a linked files/).
       if Ada.Directories.Simple_Name (Files_Directory) = "files"
+        and then Valid_Original_Path (Trashed_Path)
         and then Valid_Volume_Trash_Base (Base)
-        and then Is_Trash_Payload (Trashed_Path, Files_Directory)
       then
          return Base;
       end if;

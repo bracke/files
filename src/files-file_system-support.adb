@@ -140,15 +140,7 @@ package body Files.File_System.Support is
         and then Value (Value'First .. Value'First + Prefix'Length - 1) = Prefix;
    end Starts_With;
 
-   function Natural_Text (Value : Natural) return String is
-      Image : constant String := Natural'Image (Value);
-   begin
-      if Image'Length > 0 and then Image (Image'First) = ' ' then
-         return Image (Image'First + 1 .. Image'Last);
-      end if;
-
-      return Image;
-   end Natural_Text;
+   function Natural_Text (Value : Natural) return String renames Files.Types.Natural_Text;
 
    function Create_Stage (Parent : String) return String renames Files.Job_Context.Create_Stage;
 
@@ -208,11 +200,17 @@ package body Files.File_System.Support is
    function Snapshot
      (Path                   : String;
       Content                : Boolean := True;
-      Check_Job_Cancellation : Boolean := True)
+      Check_Job_Cancellation : Boolean := True;
+      Change_Times           : Change_Time_Trust := Decide_Change_Times)
       return Source_Snapshot
    is
       Result : Source_Snapshot;
-      Weak_Change_Time : constant Boolean := Content and then Weak_Change_Times (Path);
+      Weak_Change_Time : constant Boolean :=
+        Content
+        and then (case Change_Times is
+                     when Decide_Change_Times   => Weak_Change_Times (Path),
+                     when Trust_Change_Times    => False,
+                     when Distrust_Change_Times => True);
       package Sorting is new Files.Types.String_Vectors.Generic_Sorting;
       procedure Visit (Full_Path, Relative : String; Depth : Natural) is
          Saved_Times : Copy_Times;
@@ -262,6 +260,7 @@ package body Files.File_System.Support is
          end if;
       end Visit;
    begin
+      Result.Weak_Change_Times := Weak_Change_Time;
       Result.Root_Revision := To_Unbounded_String (Files.File_Identities.Revision (Path));
       if Length (Result.Root_Revision) = 0 then
          raise Ada.Directories.Use_Error;

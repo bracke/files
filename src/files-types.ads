@@ -33,6 +33,12 @@ package Files.Types is
    function Account_Image (Id : Account_Id) return String
      renames Hostkit.Metadata.Account_Image;
 
+   --  A count in decimal, without the leading blank Natural'Image gives it.
+   --
+   --  @param Value Count to print.
+   --  @return Its decimal digits.
+   function Natural_Text (Value : Natural) return String;
+
    --  Read a decimal id: ASCII digits only, at most 4294967295. Never raises.
    --
    --  @param Text Candidate decimal id.

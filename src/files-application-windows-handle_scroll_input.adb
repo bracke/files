@@ -39,7 +39,7 @@ separate (Files.Application.Windows)
                      Runtime.Font_Pixel_Size := New_Size;
                      Runtime.Settings.Font_Pixel_Size := Runtime.Font_Pixel_Size;
                      Runtime.Text_Ready := False;
-                     Runtime.Text_Glyph_Key := Null_Unbounded_String;
+                     Runtime.Glyph_Text_Valid := False;
                      Persist_Settings (Runtime);
                   end if;
                end;

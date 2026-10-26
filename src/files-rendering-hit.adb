@@ -461,12 +461,11 @@ package body Files.Rendering.Hit is
       Line_Height : Positive := 20)
       return Files.Commands.Command_Id
    is
-      Bottom : constant Bottom_Bar_Layout :=
-        Files.UI.Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
+      --  No sort button, no menu: its width is then 0.
       Menu   : constant Files.UI.Sort_Menu_Layout :=
         Files.UI.Calculate_Sort_Menu_Layout (Width, Height, Sort_Field, Line_Height);
    begin
-      if Bottom.Sort_Button_Width = 0
+      if Menu.Width = 0
         or else X >= Width
         or else Y >= Height
         or else X < Menu.X
@@ -490,14 +489,12 @@ package body Files.Rendering.Hit is
       Line_Height : Positive := 20)
       return Boolean
    is
-      Bottom      : constant Bottom_Bar_Layout :=
-        Files.UI.Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
       Menu        : constant Files.UI.Sort_Menu_Layout :=
         Files.UI.Calculate_Sort_Menu_Layout (Width, Height, Sort_Field, Line_Height);
       Menu_Bottom : constant Natural :=
         Natural'Min (Height, Saturating_Add (Menu.Y, Menu.Height));
    begin
-      return Bottom.Sort_Button_Width > 0
+      return Menu.Width > 0
         and then X < Width
         and then Y < Height
         and then X >= Menu.X

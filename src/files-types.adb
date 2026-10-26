@@ -25,6 +25,12 @@ package body Files.Types is
       end case;
    end Next_Scope;
 
+   function Natural_Text (Value : Natural) return String is
+      Image : constant String := Natural'Image (Value);
+   begin
+      return Image (Image'First + 1 .. Image'Last);
+   end Natural_Text;
+
    function To_Lower (Text : String) return String is
       Result : String (Text'Range);
       Index  : Integer := Text'First;

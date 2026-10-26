@@ -139,6 +139,10 @@ package Files.Model is
    --  The overlays with their own text-entry surface.
    subtype Text_Input_Overlay is Input_Overlay range Settings_Pane_Overlay .. Command_Palette_Overlay;
 
+   --  The overlays Escape (the close command) closes; the others have their
+   --  own way out.
+   subtype Escape_Closable_Overlay is Input_Overlay range Settings_Pane_Overlay .. Label_Picker_Overlay;
+
    --  Return whether one input-owning overlay is open.
    --
    --  @param Model Model to inspect.
@@ -185,7 +189,7 @@ package Files.Model is
    --
    --  @param Model Model to update.
    --  @param Overlay The overlay to close.
-   procedure Close_Overlay (Model : in out Window_Model; Overlay : Input_Overlay);
+   procedure Close_Overlay (Model : in out Window_Model; Overlay : Escape_Closable_Overlay);
 
    --  Return whether an input-owning overlay other than Except is open: what
    --  an overlay's own click handler asks so it ignores clicks while another

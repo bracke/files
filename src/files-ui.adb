@@ -73,22 +73,6 @@ package body Files.UI is
    function Bottom_Bar_Height (Line_Height : Positive) return Natural is
      (Saturating_Add (Line_Height, Saturating_Multiply (Guikit.Layout.Bottom_Bar_Padding, 2)));
 
-   function Sort_Menu_Visible_Width
-     (Width       : Natural;
-      Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := 20)
-      return Natural
-   is
-      Bottom : constant Bottom_Bar_Layout :=
-        Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
-   begin
-      if Bottom.Sort_Button_Width = 0 or else Bottom.Sort_Button_X >= Width then
-         return 0;
-      end if;
-      return Natural'Min
-        (Sort_Menu_Width (Line_Height), Width - Bottom.Sort_Button_X);
-   end Sort_Menu_Visible_Width;
-
    function Calculate_Sort_Menu_Layout
      (Width       : Natural;
       Height      : Natural;
@@ -103,20 +87,29 @@ package body Files.UI is
       Row_H     : constant Natural := Bottom_Bar_Height (Line_Height);
       Menu_H    : constant Natural :=
         Saturating_Add (Saturating_Multiply (Row_H, Row_Count), Saturating_Multiply (Sort_Menu_Padding, 2));
-      Bottom_H  : constant Natural := Bottom_Bar_Height (Line_Height);
-      Bottom_Y  : constant Natural := (if Height > Bottom_H then Height - Bottom_H else 0);
+      Bottom_Y  : constant Natural := (if Height > Row_H then Height - Row_H else 0);
       Menu_Y    : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
    begin
       return
         (X          => Bottom.Sort_Button_X,
          Y          => Menu_Y,
-         --  The dropdown is as wide as the widest field, not the (snug) sort button.
-         Width      => Sort_Menu_Visible_Width (Width, Sort_Field, Line_Height),
+         --  The dropdown is as wide as the widest field, not the (snug) sort
+         --  button (Sort_Menu_Visible_Width, from the layout already made).
+         Width      =>
+           (if Bottom.Sort_Button_Width = 0 or else Bottom.Sort_Button_X >= Width then 0
+            else Natural'Min (Sort_Menu_Width (Line_Height), Width - Bottom.Sort_Button_X)),
          Height     => Menu_H,
          Rows_Y     => Saturating_Add (Menu_Y, Sort_Menu_Padding),
          Row_Height => Row_H,
          Row_Count  => Row_Count);
    end Calculate_Sort_Menu_Layout;
+
+   function Sort_Menu_Visible_Width
+     (Width       : Natural;
+      Sort_Field  : Files.Types.Sort_Field;
+      Line_Height : Positive := 20)
+      return Natural is
+     (Calculate_Sort_Menu_Layout (Width, 0, Sort_Field, Line_Height).Width);
 
    function Sort_Menu_Row_Field
      (Row : Positive)

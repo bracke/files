@@ -7,15 +7,7 @@ separate (Files.Rendering)
    is
       Snapshot : View_Snapshot;
 
-      function Natural_Text (Value : Natural) return String is
-         Image : constant String := Natural'Image (Value);
-      begin
-         if Image'Length > 0 and then Image (Image'First) = ' ' then
-            return Image (Image'First + 1 .. Image'Last);
-         end if;
-
-         return Image;
-      end Natural_Text;
+      function Natural_Text (Value : Natural) return String renames Files.Types.Natural_Text;
 
       function Complete_RGBA_Image
         (Width, Height : Natural;

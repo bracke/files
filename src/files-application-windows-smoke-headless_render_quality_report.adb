@@ -52,7 +52,7 @@ separate (Files.Application.Windows.Smoke)
                Text_Status : constant Files.Rendering.Text_Render_Status :=
                  Files.Rendering.Initialize_Text
                    (Renderer    => Text,
-                    Font_Path   => Files.Rendering.Font_Path_For_Frame (Frame),
+                    Font_Path   => Files.Rendering.Default_Font_Path,
                     Pixel_Size  => 16,
                     Cell_Width  => 12,
                     Cell_Height => 20);

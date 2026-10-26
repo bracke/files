@@ -573,15 +573,7 @@ package body Files.Application is
       Report     : Unbounded_String := Null_Unbounded_String;
       First_Line : Boolean := True;
 
-      function Natural_Text (Value : Natural) return String is
-         Image : constant String := Natural'Image (Value);
-      begin
-         if Image'Length > 0 and then Image (Image'First) = ' ' then
-            return Image (Image'First + 1 .. Image'Last);
-         end if;
-
-         return Image;
-      end Natural_Text;
+      function Natural_Text (Value : Natural) return String renames Files.Types.Natural_Text;
 
       procedure Append_Line (Line : String) is
       begin
@@ -652,7 +644,7 @@ package body Files.Application is
                  Hover_Y     => 5,
                  Has_Hover   => Width > 0 and then Height > 0);
             Text_Renderer : Files.Rendering.Text_Renderer;
-            Frame_Font_Path : constant String := Files.Rendering.Font_Path_For_Frame (Frame);
+            Frame_Font_Path : constant String := Files.Rendering.Default_Font_Path;
             Text_Status   : constant Files.Rendering.Text_Render_Status :=
               Files.Rendering.Initialize_Text
                 (Renderer    => Text_Renderer,

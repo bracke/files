@@ -53,38 +53,56 @@ function Volume_Trash_For (Path : String) return String is
       Data : constant String := Support.Application_Data_Directory;
       App  : constant String := (if Data = "" then "" else Join_Path (Data, "files"));
       List : constant String := (if App = "" then "" else Join_Path (App, "volume-trashes"));
-      Known : constant Files.Types.String_Vectors.Vector := Remembered_Volume_Trashes;
       --  This process's own temporary file: background jobs trash too.
       Partial : constant String :=
         List & ".partial-" & Natural_Text (Natural (abs Hostkit.Host.Own_Process_Id));
-      File : Ada.Text_IO.File_Type;
-      Renamed : Boolean;
+
+      --  Replace the list with Known and Base.
+      procedure Write (Known : Files.Types.String_Vectors.Vector) is
+         File    : Ada.Text_IO.File_Type;
+         Renamed : Boolean;
+      begin
+         Ada.Directories.Create_Path (App);
+         Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Partial);
+         for Item of Known loop
+            --  Bounded: the oldest are dropped first.
+            if Natural (Known.Length) < Max_Remembered_Volume_Trashes
+              or else Item /= Known.First_Element
+            then
+               Ada.Text_IO.Put_Line (File, To_String (Item));
+            end if;
+         end loop;
+         Ada.Text_IO.Put_Line (File, Base);
+         Ada.Text_IO.Close (File);
+         --  One step that replaces the list, so it is never missing.
+         GNAT.OS_Lib.Rename_File (Partial, List, Renamed);
+         if not Renamed then
+            Ada.Directories.Delete_File (Partial);
+         end if;
+      exception
+         when others =>
+            if Ada.Text_IO.Is_Open (File) then
+               Ada.Text_IO.Close (File);
+            end if;
+            raise;
+      end Write;
    begin
-      if List = "" or else Known.Contains (To_Unbounded_String (Base)) then
+      if List = "" then
          return;
       end if;
-      Ada.Directories.Create_Path (App);
-      Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Partial);
-      for Item of Known loop
-         --  Bounded: the oldest are dropped first.
-         if Natural (Known.Length) < Max_Remembered_Volume_Trashes
-           or else Item /= Known.First_Element
-         then
-            Ada.Text_IO.Put_Line (File, To_String (Item));
-         end if;
+      --  Another process (a background job) may replace the list between
+      --  this one's read and its rename, and one of the two additions is
+      --  lost: read it back, and write again while Base is missing.
+      for Attempt in 1 .. 3 loop
+         declare
+            Known : constant Files.Types.String_Vectors.Vector := Remembered_Volume_Trashes;
+         begin
+            exit when Known.Contains (To_Unbounded_String (Base));
+            Write (Known);
+         end;
       end loop;
-      Ada.Text_IO.Put_Line (File, Base);
-      Ada.Text_IO.Close (File);
-      --  One step that replaces the list, so it is never missing.
-      GNAT.OS_Lib.Rename_File (Partial, List, Renamed);
-      if not Renamed then
-         Ada.Directories.Delete_File (Partial);
-      end if;
    exception
       when Swallowed : others =>
-         if Ada.Text_IO.Is_Open (File) then
-            Ada.Text_IO.Close (File);
-         end if;
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Trash");
    end Remember;
 

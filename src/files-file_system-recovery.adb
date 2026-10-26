@@ -560,7 +560,7 @@ package body Files.File_System.Recovery is
       --  Check the private source too. Its rename changes the root's ctime;
       --  descendants and all identities, sizes, modes and mtimes must match.
       begin
-         if Snapshot (To_String (Backup)).Entries /= Expected.Entries then
+         if Snapshot (To_String (Backup), Change_Times => Trust_Of (Expected)).Entries /= Expected.Entries then
             raise Ada.Directories.Use_Error;
          end if;
       exception
@@ -623,7 +623,11 @@ package body Files.File_System.Recovery is
          --  Support.Snapshot), which only a full snapshot taken now can do.
          Weak_Change_Time : constant Boolean := Support.Weak_Change_Times (Source);
          Shape     : constant Support.Source_Snapshot :=
-           Support.Snapshot (Source, Content => Weak_Change_Time);
+           Support.Snapshot
+             (Source,
+              Content      => Weak_Change_Time,
+              Change_Times =>
+                (if Weak_Change_Time then Support.Distrust_Change_Times else Support.Trust_Change_Times));
          Digest    : aliased Files.Types.UString;
          Set_Aside : Boolean;
       begin

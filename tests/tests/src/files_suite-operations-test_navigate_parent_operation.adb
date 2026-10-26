@@ -9,8 +9,17 @@ separate (Files_Suite.Operations)
       Result      : Files.Controller.Controller_Result;
       Full_Parent : constant String := Ada.Directories.Full_Name (Parent_Dir);
       Full_Child  : constant String := Ada.Directories.Full_Name (Child_Dir);
+      --  Its own trash, not whichever an earlier test left configured.
+      Trash_Home  : constant String := Root & "_nav_parent_xdg";
+      Environment : Files_Suite.Support.Environment_Guard;
    begin
+      Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
+      Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
+      Project_Tools.Files.Delete_Tree (Trash_Home);
+      Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
+      Ada.Directories.Create_Path (Files.File_System.Trash_Files_Directory);
       Ada.Directories.Create_Path (Child_Dir);
       Write_File (Join (Child_Dir, "leaf.txt"));
       Write_File (Join (Parent_Dir, "sibling.txt"));
@@ -41,6 +50,17 @@ separate (Files_Suite.Operations)
         (Files.Model.Current_Path (Model),
          Full_Child,
          "back restores the origin child directory");
+      Assert (Files.Model.Can_Go_Forward (Model), "back leaves the way forward");
+
+      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Forward_Command, Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Result.Operation.Status,
+         Files.Operations.Operation_Success,
+         "forward goes where back came from");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Current_Path (Model), Full_Parent, "forward returns to the parent");
+      Assert (not Files.Model.Can_Go_Forward (Model), "and nothing is ahead of it");
+      Assert (Files.Model.Can_Go_Back (Model), "and the child is behind it again");
 
       --  At a filesystem root the command is disabled and navigating up is a
       --  safe no-op that leaves the current path untouched.
@@ -78,6 +98,7 @@ separate (Files_Suite.Operations)
             Trash_Sources : Files.Types.String_Vectors.Vector;
             Trash_Result  : Files.Operations.Operation_Result;
          begin
+            Assert (Trash_Load.Success and then Source_Load.Success, "the test's trash and item load");
             if Trash_Load.Success and then Source_Load.Success then
                Trash_Items.Append (Source_Load.Item);
                Files.Model.Initialize
@@ -196,4 +217,5 @@ separate (Files_Suite.Operations)
       end if;
 
       Project_Tools.Files.Delete_Tree (Parent_Dir);
+      Project_Tools.Files.Delete_Tree (Trash_Home);
    end Test_Navigate_Parent_Operation;

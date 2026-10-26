@@ -1184,14 +1184,6 @@ package Files.Rendering is
    --  @return Font path, or an empty string when no known font is present.
    function Default_Font_Path return String;
 
-   --  Return a font path selected for all text currently present in a frame.
-   --
-   --  @param Frame Frame commands whose text should render directly.
-   --  @return Font path, or an empty string when no known font is present.
-   function Font_Path_For_Frame
-     (Frame : Frame_Commands)
-      return String;
-
    --  Load the text renderer font and initialize the textrender atlas.
    --
    --  @param Renderer Renderer state to initialize.
@@ -1239,8 +1231,9 @@ private
    --  Layout seams shared by the body and the Files.Rendering.Hit child, so
    --  the renderer and the click hit-tests compute the same geometry.
 
-   --  Vertical padding above and below a details-view row (and the header).
-   Details_Row_Padding : constant Natural := 4;
+   --  Vertical padding above and below a details-view row (and the header):
+   --  the grid's own.
+   Details_Row_Padding : constant Natural := Guikit.Item_Grid.Details_Row_Padding;
 
    --  The main content rectangle: the main-view region inset on all sides by the
    --  content padding, dropping the inset when the region is too small to hold

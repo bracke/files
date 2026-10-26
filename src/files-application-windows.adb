@@ -161,7 +161,7 @@ package body Files.Application.Windows is
       end if;
       if Result.Needs_Glyph_Rebuild then
          Runtime.Text_Ready := False;
-         Runtime.Text_Glyph_Key := Null_Unbounded_String;
+         Runtime.Glyph_Text_Valid := False;
       end if;
       Flush_System_Clipboard (Runtime);
    end Apply_Interaction_Result;
@@ -1285,32 +1285,6 @@ package body Files.Application.Windows is
       For_Each_Window (Runtime_Windows, Handle_Mouse'Access);
    end Handle_All_Mouse;
 
-   function Text_Commands_Key
-     (Commands : Guikit.Draw.Text_Command_Vectors.Vector)
-      return Unbounded_String
-   is
-      Result : Unbounded_String;
-   begin
-      for Command of Commands loop
-         Append (Result, Natural'Image (Command.X));
-         Append (Result, ":");
-         Append (Result, Natural'Image (Command.Y));
-         Append (Result, ":");
-         Append (Result, Natural'Image (Command.Width));
-         Append (Result, ":");
-         Append (Result, Natural'Image (Command.Height));
-         Append (Result, ":");
-         Append (Result, Guikit.Draw.Render_Color'Image (Command.Color));
-         Append (Result, ":");
-         Append (Result, (if Command.Italic then "i" else "r"));
-         Append (Result, (if Command.Scale_To_Box then "s" else "f"));
-         Append (Result, ":");
-         Append (Result, Command.Text);
-         Append (Result, ASCII.LF);
-      end loop;
-      return Result;
-   end Text_Commands_Key;
-
    procedure Release_Window (Runtime : in out Runtime_Window) is
    begin
       --  Stop helpers before settings writes or graphics shutdown can delay
@@ -1456,12 +1430,12 @@ package body Files.Application.Windows is
             Text            => <>,
             Text_Ready      => False,
             Font_Pixel_Size => Settings.Font_Pixel_Size,
-            Cached_Frame_Text_Key => Null_Unbounded_String,
-            Cached_Main_Text_Key => Null_Unbounded_String,
             Shown_Title => Null_Unbounded_String,
             Text_Failed_Size => 0,
             Text_Failed_At   => Ada.Real_Time.Time_First,
-            Text_Glyph_Key => Null_Unbounded_String,
+            Glyph_Text => <>,
+            Glyph_Overlay_Text => <>,
+            Glyph_Text_Valid => False,
             Text_Glyphs => <>,
             Vulkan          => <>,
             Shown           => True,

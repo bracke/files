@@ -773,10 +773,47 @@ procedure Check_All is
    --
    --  @param Routine Test procedure name, as registered with 'Access.
    --  @param Message What the routine tests, as a noun phrase.
-   procedure Require_Registered_Routine (Routine : String; Message : String) is
+   --  Text with its Ada comments removed (a "--" outside a string literal
+   --  to the end of its line), so a registration that is only mentioned in a
+   --  comment, or commented out, does not count as one.
+   function Code_Of (Text : String) return String is
+      Result    : String (Text'Range);
+      Last      : Natural := Text'First - 1;
+      In_String : Boolean := False;
+      Index     : Positive := Text'First;
    begin
-      Project_Tools.Files.Require_Contains
-        (Combined_Suite, "(T, " & Routine & "'Access", Routine & ", " & Message & ", must stay registered");
+      while Index <= Text'Last loop
+         if Text (Index) = ASCII.LF then
+            In_String := False;
+         elsif Text (Index) = '"' then
+            In_String := not In_String;
+         elsif not In_String
+           and then Text (Index) = '-'
+           and then Index < Text'Last
+           and then Text (Index + 1) = '-'
+           --  A character literal '-' followed by '-' is not a comment.
+           and then not (Index > Text'First and then Text (Index - 1) = ''')
+         then
+            while Index <= Text'Last and then Text (Index) /= ASCII.LF loop
+               Index := Index + 1;
+            end loop;
+            exit when Index > Text'Last;
+         end if;
+         Last := Last + 1;
+         Result (Last) := Text (Index);
+         Index := Index + 1;
+      end loop;
+      return Result (Text'First .. Last);
+   end Code_Of;
+
+   procedure Require_Registered_Routine (Routine : String; Message : String) is
+      Code : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Combined_Suite)));
+   begin
+      if Ada.Strings.Fixed.Index (Code, "(T, " & Routine & "'Access") = 0 then
+         Put_Line (Standard_Error, Routine & ", " & Message & ", must stay registered");
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         raise Program_Error;
+      end if;
    end Require_Registered_Routine;
 
    procedure Check_AUnit_Test_Registration is
@@ -797,7 +834,7 @@ procedure Check_All is
          Ada.Directories.Get_Next_Entry (Search, Found);
          declare
             Path    : constant String := Ada.Directories.Full_Name (Found);
-            Content : constant String := To_String (Project_Tools.Text.Read_Text_File (Path));
+            Content : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
             Prefix  : constant String := ASCII.LF & "   procedure Test_";
             From    : Natural := Content'First;
          begin
@@ -2260,8 +2297,26 @@ procedure Check_All is
          To_Unbounded_String ("Direct_IO"),
          To_Unbounded_String ("Sequential_IO"),
          To_Unbounded_String ("GNAT.OS_Lib"),
-         To_Unbounded_String ("System.OS_Lib")];
+         To_Unbounded_String ("System.OS_Lib"),
+         To_Unbounded_String ("GNAT.Directory_Operations"),
+         To_Unbounded_String ("GNAT.Expect"),
+         To_Unbounded_String ("GNAT.Sockets"),
+         To_Unbounded_String ("Ada.Command_Line"),
+         To_Unbounded_String ("Ada.Environment_Variables"),
+         To_Unbounded_String ("Interfaces.C"),
+         --  System covers its children: addresses, storage, machine code.
+         To_Unbounded_String ("System")];
       No_Units : constant String_List := [1 .. 0 => <>];
+
+      --  Nor does it bind to foreign code itself: no import, export or
+      --  machine-level representation.
+      Foreign_Tokens : constant String_List :=
+        [To_Unbounded_String ("Import"),
+         To_Unbounded_String ("Export"),
+         To_Unbounded_String ("Convention"),
+         To_Unbounded_String ("External_Name"),
+         To_Unbounded_String ("Link_Name"),
+         To_Unbounded_String ("Address")];
 
       --  Reject a with of any Filesystem_Units unit in Path.
       --
@@ -2296,6 +2351,7 @@ procedure Check_All is
             Ada.Directories.Get_Next_Entry (Search, Item);
             Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), "Files.", Body_Allowed);
             Require_No_Filesystem_Imports (Ada.Directories.Full_Name (Item));
+            Project_Tools.Ada_Source.Require_No_Code_Tokens (Ada.Directories.Full_Name (Item), Foreign_Tokens);
          end loop;
          Ada.Directories.End_Search (Search);
       exception
@@ -2356,26 +2412,89 @@ procedure Check_All is
          "event translation must not mutate or inspect live model state");
 
       --  The model holds its background jobs' handles as data; starting,
-      --  polling, cancelling and stepping them is Files.Operations' work.
+      --  polling, cancelling and stepping them is Files.Operations' work. So
+      --  model code (files-model*.adb, children and subunits) names only the
+      --  handle type and the queries below in the job packages -- an
+      --  allow-list, so a new driving call is caught without being listed --
+      --  and never uses or renames a job package (which would let a call go
+      --  unqualified).
       declare
-         Model_Body : constant String := Root & "/src/files-model.adb";
+         Job_Packages : constant String_List :=
+           [To_Unbounded_String ("Files.Transfer_Jobs"),
+            To_Unbounded_String ("Files.Process_Jobs"),
+            To_Unbounded_String ("Files.Folder_Size")];
+         Allowed_Names : constant String_List :=
+           [To_Unbounded_String ("Session"),
+            To_Unbounded_String ("Active"),
+            To_Unbounded_String ("Is_Active"),
+            To_Unbounded_String ("Target_For_Test")];
+         Search : Ada.Directories.Search_Type;
+         Item   : Ada.Directories.Directory_Entry_Type;
+
+         procedure Refuse (Path, Message : String) is
+         begin
+            Put_Line (Standard_Error, Path & ": the model drives no background job (" & Message & ")");
+            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+            raise Program_Error;
+         end Refuse;
+
+         procedure Check_Line (Path, Line : String) is
+            Cut  : constant Natural := Ada.Strings.Fixed.Index (Line, "--");
+            Code : constant String := (if Cut = 0 then Line else Line (Line'First .. Cut - 1));
+         begin
+            for Package_Name of Job_Packages loop
+               declare
+                  Name : constant String := To_String (Package_Name);
+                  From : Natural := Code'First;
+                  At_Name : Natural;
+               begin
+                  if Ada.Strings.Fixed.Index (Code, "use " & Name) > 0
+                    or else Ada.Strings.Fixed.Index (Code, "renames " & Name) > 0
+                  then
+                     Refuse (Path, "uses or renames " & Name);
+                  end if;
+                  loop
+                     At_Name := Ada.Strings.Fixed.Index (Code (From .. Code'Last), Name & ".");
+                     exit when At_Name = 0;
+                     declare
+                        First : constant Positive := At_Name + Name'Length + 1;
+                        Last  : Natural := First - 1;
+                     begin
+                        while Last < Code'Last and then Code (Last + 1) in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_'
+                        loop
+                           Last := Last + 1;
+                        end loop;
+                        if not (for some Allowed of Allowed_Names => To_String (Allowed) = Code (First .. Last)) then
+                           Refuse (Path, Name & "." & Code (First .. Last));
+                        end if;
+                        From := Last + 1;
+                     end;
+                  end loop;
+               end;
+            end loop;
+         end Check_Line;
       begin
-         for Call of Project_Tools.Ada_Source.String_List'
-           [To_Unbounded_String ("Files.Transfer_Jobs.Start"),
-            To_Unbounded_String ("Files.Transfer_Jobs.Poll"),
-            To_Unbounded_String ("Files.Transfer_Jobs.Cancel"),
-            To_Unbounded_String ("Files.Transfer_Jobs.Reset"),
-            To_Unbounded_String ("Files.Process_Jobs.Cancel"),
-            To_Unbounded_String ("Files.Process_Jobs.Reset"),
-            To_Unbounded_String ("Files.Process_Jobs.Launch"),
-            To_Unbounded_String ("Files.Folder_Size.Set_Targets"),
-            To_Unbounded_String ("Files.Folder_Size.Step"),
-            To_Unbounded_String ("Files.Folder_Size.Take"),
-            To_Unbounded_String ("Files.Folder_Size.Cancel")]
-         loop
-            Require_Not_Contains_In_Unit
-              (Model_Body, To_String (Call), "the model drives no background job (" & To_String (Call) & ")");
+         Ada.Directories.Start_Search
+           (Search, Root & "/src", "files-model*.adb", [Ada.Directories.Ordinary_File => True, others => False]);
+         while Ada.Directories.More_Entries (Search) loop
+            Ada.Directories.Get_Next_Entry (Search, Item);
+            declare
+               Path    : constant String := Ada.Directories.Full_Name (Item);
+               Content : constant String := To_String (Project_Tools.Text.Read_Text_File (Path));
+               Start   : Positive := Content'First;
+            begin
+               for Index in Content'Range loop
+                  if Content (Index) = ASCII.LF then
+                     Check_Line (Path, Content (Start .. Index - 1));
+                     Start := Index + 1;
+                  end if;
+               end loop;
+               if Start <= Content'Last then
+                  Check_Line (Path, Content (Start .. Content'Last));
+               end if;
+            end;
          end loop;
+         Ada.Directories.End_Search (Search);
       end;
    end Check_Event_Translation_Contract;
 

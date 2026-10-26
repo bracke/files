@@ -699,18 +699,6 @@ package Files.Settings is
       Draft    : Settings_Draft)
       return Settings_Parse_Result;
 
-   --  Validate, apply, and save a settings draft to Path.
-   --
-   --  @param Path Settings file path.
-   --  @param Settings Base settings model.
-   --  @param Draft Draft values to save.
-   --  @return Write result with deterministic diagnostic key.
-   function Save_Draft
-     (Path     : String;
-      Settings : Settings_Model;
-      Draft    : Settings_Draft)
-      return Settings_Write_Result;
-
    --  Return a default settings draft, discarding any edited values.
    --
    --  @return Draft created from Default_Settings.

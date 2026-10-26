@@ -3,6 +3,23 @@ separate (Files_Suite.Settings)
       pragma Unreferenced (T);
       Loaded : constant Files.Settings.Settings_Parse_Result := Load_Saved_Details_Settings;
       Saved  : Files.Settings.Settings_Write_Result;
+
+      --  What the settings pane's Save does with a draft: apply it, then
+      --  write the result (Files.Controller.Save_Settings).
+      function Save_Draft
+        (Path     : String;
+         Settings : Files.Settings.Settings_Model;
+         Draft    : Files.Settings.Settings_Draft)
+         return Files.Settings.Settings_Write_Result
+      is
+         Applied : constant Files.Settings.Settings_Parse_Result := Files.Settings.Apply_Draft (Settings, Draft);
+      begin
+         if not Applied.Success then
+            return (Success => False, Durable => False, Path => To_Unbounded_String (Path),
+                    Error_Key => Applied.Error_Key);
+         end if;
+         return Files.Settings.Save_Text (Path, Files.Settings.To_Text (Applied.Settings));
+      end Save_Draft;
    begin
       declare
          Reset_Draft : constant Files.Settings.Settings_Draft := Files.Settings.Reset_Draft_To_Defaults;
@@ -83,7 +100,7 @@ separate (Files_Suite.Settings)
            (To_String (Lookup.Action.Executable),
             "json-editor",
             "draft action executable is parsed");
-         Saved := Files.Settings.Save_Draft (Draft_Path, Loaded.Settings, Draft);
+         Saved := Save_Draft (Draft_Path, Loaded.Settings, Draft);
          Assert (Saved.Success, "settings draft saves to disk");
          Draft_Load := Files.Settings.Load_File (Draft_Path);
          Assert (Draft_Load.Success, "saved draft settings load");
@@ -110,7 +127,7 @@ separate (Files_Suite.Settings)
             "json-editor",
             "saved draft persists structured-suffix open action executable");
          Draft.Scalars (Files.Settings.Default_View_Mode_Setting) := To_Unbounded_String ("bad-view");
-         Saved := Files.Settings.Save_Draft (Draft_Path, Loaded.Settings, Draft);
+         Saved := Save_Draft (Draft_Path, Loaded.Settings, Draft);
          Assert (not Saved.Success, "invalid settings draft is not saved");
          Files_Suite.Support.Assert_Equal
            (To_String (Saved.Error_Key),

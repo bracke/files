@@ -40,6 +40,7 @@ separate (Files_Suite.Operations)
          Assert (Link.Success, "hard link creation succeeds on the test filesystem");
 
          Mutation := Files.File_System.Rename_Item (Lower, Upper);
+         Assert (not Mutation.Success, "a case-only rename onto a second name of the same file is refused");
          Assert (Ada.Directories.Exists (Lower), "the case-only rename leaves the source intact on rollback");
          Assert (Ada.Directories.Exists (Upper), "the case-only rename leaves the aliased name intact");
          Assert

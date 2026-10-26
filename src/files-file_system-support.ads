@@ -91,6 +91,9 @@ private package Files.File_System.Support is
       --  Entries without their content digests, for Same_Shape.
       Shapes : Files.Types.String_Vectors.Vector;
       Times : Source_Time_Maps.Map;
+      --  Whether every file's content was read (Weak_Change_Times held): a
+      --  snapshot to compare with this one is taken by the same rule.
+      Weak_Change_Times : Boolean := False;
    end record;
 
    --  Verification excludes access times changed by reading the source.
@@ -194,6 +197,17 @@ private package Files.File_System.Support is
    --  @return True when the change time is no proof of an unchanged file.
    function Weak_Change_Times (Path : String) return Boolean;
 
+   --  Whether a snapshot trusts change times: decided from the root
+   --  (Weak_Change_Times), or as an earlier snapshot it is compared with did.
+   type Change_Time_Trust is (Decide_Change_Times, Trust_Change_Times, Distrust_Change_Times);
+
+   --  The rule Snapshot followed for Taken, to take another by.
+   --
+   --  @param Taken An earlier snapshot.
+   --  @return Its rule, as a choice for Snapshot.
+   function Trust_Of (Taken : Source_Snapshot) return Change_Time_Trust is
+     (if Taken.Weak_Change_Times then Distrust_Change_Times else Trust_Change_Times);
+
    --  A snapshot reads one file's content at most: a regular-file root's.
    --  Every entry below the root is pinned by its revision, change time
    --  included, which any write moves; only the root's change time is left
@@ -208,10 +222,13 @@ private package Files.File_System.Support is
    --  @return Sorted identities, revisions, and the root file's content
    --    digest, raising if any entry cannot be verified.
    --  @param Check_Job_Cancellation False for recovery that must finish after cancellation.
+   --  @param Change_Times Decide whether change times are weak from Path,
+   --    or take another snapshot by an earlier one's rule (Trust_Of).
    function Snapshot
      (Path                   : String;
       Content                : Boolean := True;
-      Check_Job_Cancellation : Boolean := True)
+      Check_Job_Cancellation : Boolean := True;
+      Change_Times           : Change_Time_Trust := Decide_Change_Times)
       return Source_Snapshot;
 
    --  Where files keeps its own data (the recovery index, the volume-trash

@@ -37,11 +37,7 @@ is
       end if;
    end Record_Progress;
 
-   function Trimmed_Image (Value : Positive) return String is
-      Image : constant String := Positive'Image (Value);
-   begin
-      return Image (Image'First + 1 .. Image'Last);
-   end Trimmed_Image;
+   function Trimmed_Image (Value : Positive) return String is (Files.Types.Natural_Text (Value));
 
    --  Treat a name ending (case-insensitively) in .zip or .7z as an archive.
    function Name_Is_Archive (Name : String) return Boolean is

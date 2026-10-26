@@ -52,6 +52,21 @@ package body Files.Rendering is
    Pool       : array (1 .. Max_Pooled_Renderers) of Pooled_Renderer;
    Pool_Clock : Natural := 0;
 
+   --  Mark Slot as used now: every use advances the clock, so of two windows
+   --  drawing between loads the one that drew last is the more recent. On
+   --  the (distant) wrap every stamp starts over.
+   procedure Touch (Slot : Positive) is
+   begin
+      if Pool_Clock = Natural'Last then
+         for Item of Pool loop
+            Item.Used := 0;
+         end loop;
+         Pool_Clock := 0;
+      end if;
+      Pool_Clock := Pool_Clock + 1;
+      Pool (Slot).Used := Pool_Clock;
+   end Touch;
+
    --  Parsed icon assets by their text: every icon drawn was parsed again on
    --  every frame rebuild. Keyed by the text itself, so a theme switch or
    --  another asset source (the tests install their own) never reuses a
@@ -118,10 +133,11 @@ package body Files.Rendering is
    --  layout and scroll agree.
    Permission_Grid_Rows : constant Natural := 6;
    Main_Content_Padding : constant Natural := 8;
-   Main_Grid_Gap : constant Natural := 8;
-   Item_Content_Padding : constant Natural := 4;
-   Item_Icon_Text_Gap : constant Natural := 12;
-   Details_Column_Padding : constant Natural := 6;
+   --  The grid's own spacing (Guikit.Item_Grid draws the grid).
+   Main_Grid_Gap : constant Natural := Guikit.Item_Grid.Main_Grid_Gap;
+   Item_Content_Padding : constant Natural := Guikit.Item_Grid.Item_Content_Padding;
+   Item_Icon_Text_Gap : constant Natural := Guikit.Item_Grid.Item_Icon_Text_Gap;
+   Details_Column_Padding : constant Natural := Guikit.Item_Grid.Details_Column_Padding;
    Command_Palette_Padding : constant Natural := Guikit.Layout.Palette_Padding;
    Command_Result_Row_Padding : constant Natural := Guikit.Layout.Palette_Result_Row_Padding;
    Command_Palette_Scrollbar_Gap : constant Natural := 8;
@@ -1786,21 +1802,6 @@ package body Files.Rendering is
       return Files.Fonts.Default_Font_Path;
    end Default_Font_Path;
 
-   function Font_Path_For_Frame
-     (Frame : Frame_Commands)
-      return String
-   is
-      pragma Unreferenced (Frame);
-   begin
-      --  Every frame now renders on the monospace primary with per-glyph font
-      --  fallback (see Initialize_Text), so the whole-frame font is always the
-      --  monospace default. The previous per-frame text-coverage heuristic --
-      --  which could flip the entire proportional face for a single symbol such
-      --  as the favourite star -- is retired; symbols and CJK resolve per glyph
-      --  from the fallback chain instead.
-      return Files.Fonts.Default_Font_Path;
-   end Font_Path_For_Frame;
-
    function Initialize_Text
      (Renderer     : in out Text_Renderer;
       Font_Path    : String;
@@ -1819,13 +1820,12 @@ package body Files.Rendering is
            & Positive'Image (Atlas_Width) & Positive'Image (Atlas_Height));
       Slot      : Positive := 1;
    begin
-      Pool_Clock := (if Pool_Clock = Natural'Last then 1 else Pool_Clock + 1);
       Renderer.Pixel_Size := Pixel_Size;
       Renderer.Key := Key;
       --  Already loaded for this configuration: nothing to load.
       for Index in Pool'Range loop
          if Pool (Index).Key = Key then
-            Pool (Index).Used := Pool_Clock;
+            Touch (Index);
             Renderer.Slot := Index;
             Renderer.Loaded := True;
             Renderer.Font_Path    := To_Unbounded_String (Font_Path);
@@ -1842,7 +1842,7 @@ package body Files.Rendering is
          end if;
       end loop;
       Pool (Slot).Key := Null_Unbounded_String;
-      Pool (Slot).Used := Pool_Clock;
+      Touch (Slot);
       Renderer.Slot := Slot;
 
       --  Delegate to the guikit text layer; the app owns the font paths.
@@ -1930,7 +1930,7 @@ package body Files.Rendering is
             end if;
          end;
       end if;
-      Pool (Renderer.Slot).Used := Pool_Clock;
+      Touch (Renderer.Slot);
       return Guikit.Text.Build_Glyphs (Pool (Renderer.Slot).R, Frame.Text, Frame.Overlay_Text);
    end Build_Text_Glyphs;
 

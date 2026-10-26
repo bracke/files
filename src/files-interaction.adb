@@ -419,9 +419,12 @@ package body Files.Interaction is
               Tree_Page_Rows => Tree_Page_Rows);
       begin
          Observe_Controller_Outcome (Outcome, Result);
+         --  Whether the command ran is what it did, not whether it is enabled
+         --  now: Clear Recent, say, disables itself by running.
          if Files.Commands.Requires_Settings_Path (Outcome.Command)
            and then Outcome.Status = Files.Controller.Controller_Command_Executed
-           and then Files.Commands.Is_Enabled (Outcome.Command, Model)
+           and then (Outcome.Operation.Status /= Files.Operations.Operation_Disabled
+                     or else not Files.Settings.Same_Content (Before, Settings))
          then
             --  The controller applied a settings shortcut (or Enter in the
             --  palette). The shell then dropped any parallel character event;

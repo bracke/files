@@ -66,11 +66,7 @@ is
          return Make_Result (Operation_Failed, Error_Key, Directory);
    end Failed;
 
-   function Trimmed_Image (Value : Positive) return String is
-      Image : constant String := Positive'Image (Value);
-   begin
-      return Image (Image'First + 1 .. Image'Last);
-   end Trimmed_Image;
+   function Trimmed_Image (Value : Positive) return String is (Files.Types.Natural_Text (Value));
 
    --  Build the " (link)" / " (link N)" marker. The fragments are kept
    --  separate so no single string literal mixes a letter with a space,

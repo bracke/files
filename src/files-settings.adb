@@ -1237,25 +1237,6 @@ package body Files.Settings is
       return Settings_Parse_Result
  is separate;
 
-   function Save_Draft
-     (Path     : String;
-      Settings : Settings_Model;
-      Draft    : Settings_Draft)
-      return Settings_Write_Result
-   is
-      Applied : constant Settings_Parse_Result := Apply_Draft (Settings, Draft);
-   begin
-      if not Applied.Success then
-         return
-           (Success   => False,
-            Durable   => False,
-            Path      => To_Unbounded_String (Path),
-            Error_Key => Applied.Error_Key);
-      end if;
-
-      return Save_Text (Path, To_Text (Applied.Settings));
-   end Save_Draft;
-
    function Reset_Draft_To_Defaults return Settings_Draft is
    begin
       return Make_Draft (Default_Settings);

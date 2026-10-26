@@ -15,6 +15,7 @@ separate (Files.Application.Windows)
       Frame_Rebuilt : Boolean := False;
       use type Ada.Real_Time.Time;
       use type Ada.Real_Time.Time_Span;
+      use type Guikit.Draw.Text_Command_Vectors.Vector;
    begin
       if Runtime.Handle = null
         or else not Glfw.Windows.Initialized (As_Window (Runtime.Handle))
@@ -164,9 +165,6 @@ separate (Files.Application.Windows)
             Runtime.Cached_Marquee_W := Runtime.Marquee_Rect_W;
             Runtime.Cached_Marquee_H := Runtime.Marquee_Rect_H;
             Runtime.Cached_Minute := Current_Minute;
-            Runtime.Cached_Main_Text_Key := Text_Commands_Key (Runtime.Cached_Frame.Text);
-            Runtime.Cached_Frame_Text_Key :=
-              Runtime.Cached_Main_Text_Key & ASCII.FS & Text_Commands_Key (Runtime.Cached_Frame.Overlay_Text);
             Runtime.Frame_Cache_Valid := True;
          end Rebuild_Frame;
       begin
@@ -261,15 +259,6 @@ separate (Files.Application.Windows)
                Width    => Natural (Width),
                Height   => Natural (Height));
 
-            declare
-               --  What the glyph cache is keyed on. A change in it re-lays the
-               --  glyphs out; the fonts and atlas stay loaded.
-               Current_Text_Key : constant Unbounded_String :=
-                 (if Overlay_Merged
-                  --  The main text is the cached frame's; only the overlay
-                  --  layer, merged in now, is keyed again.
-                  then Runtime.Cached_Main_Text_Key & ASCII.FS & Text_Commands_Key (Frame.Overlay_Text)
-                  else Runtime.Cached_Frame_Text_Key);
             begin
                --  Loaded once per window (a pooled renderer per size, so this is
                --  cheap when another window already has the size); a failure
@@ -288,7 +277,7 @@ separate (Files.Application.Windows)
                           Cell_Height => Cell_Height_For (Runtime.Font_Pixel_Size));
                   begin
                      Runtime.Text_Ready := Status = Files.Rendering.Text_Render_Success;
-                     Runtime.Text_Glyph_Key := Null_Unbounded_String;
+                     Runtime.Glyph_Text_Valid := False;
                      Runtime.Text_Failed_Size := (if Runtime.Text_Ready then 0 else Runtime.Font_Pixel_Size);
                      Runtime.Text_Failed_At := Ada.Real_Time.Clock;
                   end;
@@ -303,7 +292,9 @@ separate (Files.Application.Windows)
                      --  Unchanged text reuses its glyphs; the renderer uploads
                      --  the atlas only when its version moved (or an earlier
                      --  present failed).
-                     if Runtime.Text_Glyph_Key = Current_Text_Key
+                     if Runtime.Glyph_Text_Valid
+                       and then Runtime.Glyph_Text = Frame.Text
+                       and then Runtime.Glyph_Overlay_Text = Frame.Overlay_Text
                        and then Runtime.Text_Glyphs.Status = Files.Rendering.Text_Render_Success
                        and then Files.Rendering.Text_Glyphs_Current (Runtime.Text, Runtime.Text_Glyphs)
                      then
@@ -311,7 +302,9 @@ separate (Files.Application.Windows)
                      else
                         Glyphs := Files.Rendering.Build_Text_Glyphs (Runtime.Text, Frame);
                         Runtime.Text_Glyphs := Glyphs;
-                        Runtime.Text_Glyph_Key := Current_Text_Key;
+                        Runtime.Glyph_Text := Frame.Text;
+                        Runtime.Glyph_Overlay_Text := Frame.Overlay_Text;
+                        Runtime.Glyph_Text_Valid := True;
                      end if;
                   end if;
 

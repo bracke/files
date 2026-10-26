@@ -493,11 +493,9 @@ package body Files.Model is
       and then (Overlay = Command_Palette_Overlay or else not Model.Command_Palette_Open));
 
    function Escape_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean is
-     (Topmost_Overlay (Model, Overlay)
-      and then Overlay in Label_Picker_Overlay | Context_Menu_Overlay | Command_Palette_Overlay
-                        | Root_Selector_Overlay | Sort_Menu_Overlay | Settings_Pane_Overlay);
+     (Topmost_Overlay (Model, Overlay) and then Overlay in Escape_Closable_Overlay);
 
-   procedure Close_Overlay (Model : in out Window_Model; Overlay : Input_Overlay) is
+   procedure Close_Overlay (Model : in out Window_Model; Overlay : Escape_Closable_Overlay) is
    begin
       case Overlay is
          when Label_Picker_Overlay    => Close_Label_Picker (Model);
@@ -507,9 +505,6 @@ package body Files.Model is
          when Sort_Menu_Overlay       => Close_Sort_Menu (Model);
          --  Closed the way Escape in the pane closes it; reopening starts a fresh draft.
          when Settings_Pane_Overlay   => Toggle_Settings_Pane (Model);
-         when Quick_Look_Overlay      => Close_Quick_Look (Model);
-         --  A tree pick and a paste end through their own controls.
-         when Tree_Pick_Overlay | Paste_Conflict_Overlay | Paste_Execution_Overlay => null;
       end case;
    end Close_Overlay;
 
@@ -965,8 +960,9 @@ package body Files.Model is
 
    --  Leave the current view for New_Path ("" for the virtual recent view):
    --  what belongs to a view -- its selection, edits in progress, search,
-   --  filter, scroll, folder sizes, overlays and Quick Look -- does not carry
-   --  over. History and the listing are each caller's.
+   --  filter, scroll, folder sizes, the command palette, the root selector
+   --  and Quick Look -- does not carry over. History and the listing are each
+   --  caller's.
    procedure Leave_View (Model : in out Window_Model; New_Path : UString) is
    begin
       Clear_Folder_Size (Model);

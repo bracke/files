@@ -79,7 +79,11 @@ begin
    --  Volume trashes are off (cross-device tests keep exercising the home
    --  trash), and even where a test turns them on the trash view never scans
    --  the mounts, so Empty Trash in a test never meets a real drive's trash.
-   Ada.Environment_Variables.Set ("FILES_TEST_VOLUME_TRASH", "off");
+   --  A helper process inherits the test's setting (a test that turned them
+   --  on runs its helpers with them on), so only the suite itself sets it.
+   if not Ada.Environment_Variables.Exists ("FILES_TEST_VOLUME_TRASH") then
+      Ada.Environment_Variables.Set ("FILES_TEST_VOLUME_TRASH", "off");
+   end if;
 
    --  The scratch area for application state (the recovery index, the
    --  volume-trash list) and helper jobs, made here unless the caller named
@@ -763,11 +767,31 @@ begin
             null;
          end;
       end if;
+   exception
+      when others =>
+         --  The test trash goes on a crash too; the outer handler removes the rest.
+         declare
+            Removed : constant Files.File_System.Mutation_Result := Files.File_System.Delete_Permanently (Trash_Root);
+            pragma Unreferenced (Removed);
+         begin
+            null;
+         end;
+         raise;
    end;
 exception
    when others =>
       Files.Job_Scavenger.Shutdown;
       Files.Job_Context.Shutdown;
       Files.Process_Jobs.Shutdown;
+      --  The scratch area this run made is not left behind by a crash.
+      if Ada.Strings.Unbounded.Length (Owned_Temp) > 0 then
+         declare
+            Removed : constant Files.File_System.Mutation_Result :=
+              Files.File_System.Delete_Permanently (Ada.Strings.Unbounded.To_String (Owned_Temp));
+            pragma Unreferenced (Removed);
+         begin
+            null;
+         end;
+      end if;
       raise;
 end Tests;

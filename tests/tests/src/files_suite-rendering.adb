@@ -23,7 +23,9 @@ with Files.Model;
 with Files.UI;
 with Files.UTF8;
 with Files.Quick_Look;
+with Interfaces;
 with Guikit.Draw;
+with Guikit.Shared_Bytes;
 with Files.Rendering;
 with Files.Rendering.Hit;
 with Files.Accessibility;
@@ -86,6 +88,8 @@ package body Files_Suite.Rendering is
    procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_A11y_Stop_Is_Final (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Item_Icons_Drawn_Once (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Icon_Atlas_Shared_Across_Frames (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Text_Pool_Evicts_Least_Recent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Suppresses_Item_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Overlay_Suppresses_Background_Tooltips (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -219,6 +223,12 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Item_Icons_Drawn_Once'Access,
          "Item icons are drawn once, as vectors");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Icon_Atlas_Shared_Across_Frames'Access,
+         "An unchanged icon atlas is shared, also between two windows");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Text_Pool_Evicts_Least_Recent'Access,
+         "The text renderer pool evicts the one used least recently");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Selection_Summary'Access,
          "bottom bar shows the selection count and summed size when items are selected");
@@ -580,6 +590,10 @@ package body Files_Suite.Rendering is
    procedure Test_A11y_Stop_Is_Final (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Item_Icons_Drawn_Once (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Icon_Atlas_Shared_Across_Frames (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Text_Pool_Evicts_Least_Recent (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

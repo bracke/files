@@ -1,5 +1,6 @@
 with Ada.Containers;
 with Ada.Containers.Indefinite_Hashed_Maps;
+with Ada.Real_Time;
 with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 with Interfaces;
@@ -15,10 +16,9 @@ package body Files.Extension_Labels is
    use type Interfaces.Unsigned_8;
    use type Guikit.Draw.Text_Render_Status;
 
-   --  Matches the renderer's atlas cap, as far as guikit lets its glyph atlas
-   --  grow (1024 wide, 4096 tall); the atlas is a single-channel (R8) alpha
+   --  The renderer's atlas cap; the atlas is a single-channel (R8) alpha
    --  buffer, so one byte per pixel.
-   Max_Atlas_Bytes : constant := 4_194_304;
+   Max_Atlas_Bytes : constant := Guikit.Draw.Max_Atlas_Bytes;
    type Atlas_Bytes_Array is array (Positive range 1 .. Max_Atlas_Bytes) of Interfaces.Unsigned_8;
    package Atlas_Conversions is new System.Address_To_Access_Conversions (Atlas_Bytes_Array);
 
@@ -38,9 +38,13 @@ package body Files.Extension_Labels is
    Cache          : Label_Maps.Map;
    R              : Guikit.Text.Renderer;
    R_Pixel_Height : Natural := 0;
-   --  Height whose initialization last failed. Retrying it for every label
-   --  drawn reloaded and parsed each fallback font from disk per call.
+   --  Height whose initialization last failed, and when. Retrying it for
+   --  every label drawn reloaded and parsed each fallback font from disk per
+   --  call; it is tried again after a pause (a font installed meanwhile, a
+   --  disk that was not ready), as the windows retry their own text.
    Failed_Height  : Natural := 0;
+   Failed_At      : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+   Retry_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (5);
 
    function Theme_Tag (Theme : Guikit.Draw.Theme_Kind) return String is
      (case Theme is
@@ -54,13 +58,14 @@ package body Files.Extension_Labels is
    --  (Re)load the small renderer at Height. The cache is keyed by height, so
    --  labels made at another (another window's zoom) stay cached.
    procedure Ensure_Renderer (Height : Positive) is
+      use type Ada.Real_Time.Time;
       Fallbacks : Guikit.Text.Font_Path_Vectors.Vector;
       Status    : Guikit.Draw.Text_Render_Status;
       pragma Unreferenced (Status);
    begin
       if R_Pixel_Height = Height and then Guikit.Text.Loaded (R) then
          return;
-      elsif Failed_Height = Height then
+      elsif Failed_Height = Height and then Ada.Real_Time.Clock < Failed_At + Retry_Interval then
          return;
       end if;
       for Path of Files.Fonts.Fallback_Font_Paths loop
@@ -76,6 +81,7 @@ package body Files.Extension_Labels is
            Cell_Height    => Height);
       R_Pixel_Height := Height;
       Failed_Height := (if Guikit.Text.Loaded (R) then 0 else Height);
+      Failed_At := Ada.Real_Time.Clock;
    end Ensure_Renderer;
 
    function Rasterize
