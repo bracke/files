@@ -149,20 +149,32 @@ package Files.Model is
       Overlay : Input_Overlay)
       return Boolean;
 
-   --  The open overlay on top: the one whose own controls alone still act
-   --  (a paste in progress first, then Quick Look, the label picker, the
-   --  command palette, the settings pane, the root selector, the sort menu,
-   --  the context menu, a tree pick).
+   --  The open overlay on top: the one whose own controls alone still act,
+   --  and the one drawn on top (a paste in progress first, then the command
+   --  palette, the settings pane, the context menu, the root selector, the
+   --  sort menu, the label picker, Quick Look, a tree pick). Escape and the
+   --  window's drawing follow the same order.
    --
    --  @param Model Model to inspect.
    --  @param Overlay Set to the top-most open overlay when one is open.
    --  @return True when any input-owning overlay is open.
    function Topmost_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean;
 
-   --  The open overlay Escape (the close command) closes first: the label
-   --  picker, the context menu, the command palette, the root selector, the
-   --  sort menu, then the settings pane. The other overlays have their own
-   --  way out.
+   --  Whether the window layer draws Overlay (the command palette or the
+   --  settings pane, which it merges over the frame): it is open and nothing
+   --  is above it in Topmost_Overlay's order. A paste dialog, drawn in the
+   --  frame, is above both; the palette is above the pane.
+   --
+   --  @param Model Model to inspect.
+   --  @param Overlay The palette or the pane.
+   --  @return True when Overlay is to be drawn.
+   function Window_Overlay_Shown (Model : Window_Model; Overlay : Text_Input_Overlay) return Boolean;
+
+   --  The overlay Escape (the close command) closes: the top-most one
+   --  (Topmost_Overlay), when it is one Escape closes -- the label picker,
+   --  the context menu, the command palette, the root selector, the sort
+   --  menu or the settings pane. The others have their own way out, and an
+   --  overlay below one of them is not closed past it.
    --
    --  @param Model Model to inspect.
    --  @param Overlay Set to that overlay when one is open.
@@ -879,6 +891,24 @@ package Files.Model is
    --  @param Model Model to update.
    procedure Go_Forward
      (Model : in out Window_Model);
+
+   --  Where a window is in its history: its view, the recent view or not,
+   --  and both history stacks.
+   type Navigation_Mark is private;
+
+   --  Mark where Model is, to return there when a move fails.
+   --
+   --  @param Model Model to inspect.
+   --  @return Its view and history.
+   function Mark_Navigation (Model : Window_Model) return Navigation_Mark;
+
+   --  Return Model to Mark: the view, whether it is the recent view, and the
+   --  history as it was -- not a move the other way, which from the recent
+   --  view (never in history) lands somewhere else.
+   --
+   --  @param Model Model to update.
+   --  @param Mark  Where it was, from Mark_Navigation.
+   procedure Return_To (Model : in out Window_Model; Mark : Navigation_Mark);
 
    --  Focus the path input field.
    --
@@ -3316,6 +3346,12 @@ private
       Replaced_Identities     : Files.Types.String_Vectors.Vector;
       Replaced_Targets        : Files.Types.String_Vectors.Vector;
       Verified_Replaced_Count : Natural := 0;
+   end record;
+
+   type Navigation_Mark is record
+      Path            : UString;
+      Recent          : Boolean := False;
+      Back, Forward   : Files.Types.String_Vectors.Vector;
    end record;
 
    type Window_Model is record

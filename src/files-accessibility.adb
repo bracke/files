@@ -50,16 +50,6 @@ package body Files.Accessibility is
       return A11ykit.Tree.Build (Flat);
    end To_A11ykit_Tree;
 
-   procedure Start is
-   begin
-      A11ykit.Provider.Start;
-   end Start;
-
-   procedure Stop is
-   begin
-      A11ykit.Provider.Stop;
-   end Stop;
-
    procedure Service is
    begin
       A11ykit.Provider.Service;
@@ -91,6 +81,26 @@ package body Files.Accessibility is
    package Native_Handles is new Ada.Containers.Ordered_Maps
      (Key_Type => Window_Key, Element_Type => System.Address, "=" => System."=");
    Handles : Native_Handles.Map;
+
+   --  Between the session's Stop and a new Start: a window that still
+   --  closes or draws does not register the application again.
+   Stopped : Boolean := False;
+
+   procedure Start is
+   begin
+      Stopped := False;
+      A11ykit.Provider.Start;
+   end Start;
+
+   procedure Stop is
+   begin
+      Stopped := True;
+      Trees.Clear;
+      Ranges.Clear;
+      Handles.Clear;
+      Focused := 0;
+      A11ykit.Provider.Stop;
+   end Stop;
 
    --  Name each window to the provider by its place among the combined
    --  tree's windows, which shifts as windows come and go.
@@ -157,7 +167,7 @@ package body Files.Accessibility is
    begin
       --  An overlay is republished every frame it is up; an unchanged tree
       --  costs no combining, no provider diff and no native attach.
-      if not First and then Trees.Element (Window) = Tree then
+      if Stopped or else (not First and then Trees.Element (Window) = Tree) then
          return;
       end if;
       Trees.Include (Window, Tree);
@@ -171,6 +181,8 @@ package body Files.Accessibility is
          Attach_Windows;
       end if;
    end Publish;
+
+   function Published_Windows return Natural is (Natural (Trees.Length));
 
    procedure Forget (Window : Window_Key) is
    begin
@@ -194,7 +206,7 @@ package body Files.Accessibility is
 
    procedure Set_Active (Window : Window_Key) is
    begin
-      if Window /= Focused then
+      if not Stopped and then Window /= Focused then
          if Focused /= 0 then
             A11ykit.Provider.Set_Active (False);
          end if;

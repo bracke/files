@@ -116,21 +116,16 @@ package body Files.Interaction is
    is
       Selected : constant Files.File_System.Item_Vectors.Vector :=
         Files.Model.Selected_Items (Model);
-      Before   : constant Files.Settings.Settings_Model := Settings;
+      Updated  : Files.Settings.Settings_Model := Settings;
    begin
       for Item of Selected loop
-         Files.Settings.Set_Label (Settings, To_String (Item.Full_Path), Label);
+         Files.Settings.Set_Label (Updated, To_String (Item.Full_Path), Label);
       end loop;
       Files.Model.Close_Label_Picker (Model);
-      if Selected.Is_Empty then
-         return;
-      elsif not Files.Settings.Loadable (Settings) then
-         Settings := Before;
-         Files.Model.Set_Error (Model, "error.settings.full");
-         return;
+      if not Files.Settings.Same_Content (Updated, Settings) then
+         Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path);
+         Result.Settings_Changed := Files.Settings.Same_Content (Settings, Updated);
       end if;
-      Persist_Settings (Model, Settings, Settings_Path);
-      Result.Settings_Changed := True;
    end Apply_Label;
 
    function Follow_Path_Moves
@@ -602,21 +597,17 @@ package body Files.Interaction is
             end if;
          when Files.Events.Path_Favorite_Toggle_Input_Action =>
             --  Toggle the current directory's favorite state directly by path,
-            --  independent of the selection, then persist through the same
-            --  settings-write seam the Toggle_Favorite_Command uses so it saves.
-            if not Files.Model.Input_Owning_Overlay_Is_Open (Model) then
+            --  independent of the selection, under the policy every settings
+            --  change has (Commit_Settings). The recent view has no path.
+            if not Files.Model.Input_Owning_Overlay_Is_Open (Model)
+              and then Files.Model.Current_Path (Model) /= ""
+            then
                declare
-                  Before : constant Files.Settings.Settings_Model := Settings;
+                  Updated : Files.Settings.Settings_Model := Settings;
                begin
-                  Files.Settings.Toggle_Favorite_Path
-                    (Settings, Files.Model.Current_Path (Model));
-                  if Files.Settings.Loadable (Settings) then
-                     Persist_Settings (Model, Settings, Settings_Path);
-                     Result.Settings_Changed := True;
-                  else
-                     Settings := Before;
-                     Files.Model.Set_Error (Model, "error.settings.full");
-                  end if;
+                  Files.Settings.Toggle_Favorite_Path (Updated, Files.Model.Current_Path (Model));
+                  Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path);
+                  Result.Settings_Changed := Files.Settings.Same_Content (Settings, Updated);
                end;
             end if;
          when Files.Events.Tree_Click_Input_Action =>
@@ -974,8 +965,7 @@ package body Files.Interaction is
    begin
       Result := (others => <>);
       if Updated.Column_Order /= Settings.Column_Order then
-         Settings := Updated;
-         Persist_Settings (Model, Settings, Settings_Path);
+         Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path);
          Result.Settings_Changed := True;
       end if;
    end Apply_Column_Reorder;

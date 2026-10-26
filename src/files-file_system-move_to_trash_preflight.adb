@@ -85,6 +85,36 @@ is
       when others =>
          return False;
    end Is_Same_Or_Inside;
+
+   --  A volume's trash (.Trash-$uid, .Trash/$uid), or anything in it: its
+   --  files/ and info/ would go into themselves.
+   function Inside_Volume_Trash return Boolean is
+      Current : Unbounded_String := To_Unbounded_String (Normalized_Text (Path));
+   begin
+      loop
+         declare
+            Text   : constant String := To_String (Current);
+            Parent : constant String :=
+              (if Text = "" then "" else Ada.Directories.Containing_Directory (Text));
+            Name   : constant String := (if Text = "" then "" else Ada.Directories.Simple_Name (Text));
+            Upper  : constant String :=
+              (if Parent = "" then "" else Ada.Directories.Simple_Name (Parent));
+         begin
+            exit when Text = "" or else Parent = Text;
+            if ((Name'Length >= 6 and then Name (Name'First .. Name'First + 5) = ".Trash")
+                or else Upper = ".Trash")
+              and then Valid_Volume_Trash_Base (Text)
+            then
+               return True;
+            end if;
+            Current := To_Unbounded_String (Parent);
+         end;
+      end loop;
+      return False;
+   exception
+      when others =>
+         return False;
+   end Inside_Volume_Trash;
 begin
    --  The native backends used to be refused here, because nothing called
    --  them: a desktop trash we could not reach was the same as no trash. They
@@ -119,6 +149,7 @@ begin
          Error_Key => To_Unbounded_String ("error.trash.unavailable"));
    elsif Is_Same_Or_Inside (Base, Path)
      or else Is_Same_Or_Inside (Path, Base)
+     or else Inside_Volume_Trash
    then
       return
         (Success   => False,

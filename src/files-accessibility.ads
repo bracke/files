@@ -21,7 +21,9 @@ package Files.Accessibility is
    --  Begin and end the application's host screen-reader lifetime. Native
    --  providers defer registration until Publish supplies the first root tree.
    --
-   --  Both are idempotent and no-ops on an unsupported host.
+   --  Both are idempotent and no-ops on an unsupported host. Stop forgets
+   --  every window: one that closes or draws after it does not register the
+   --  application again (until Start).
    procedure Start;
    procedure Stop;
 
@@ -50,6 +52,11 @@ package Files.Accessibility is
    --  @param Window The window the frame was drawn for.
    --  @param Frame Render frame containing accessibility nodes.
    procedure Publish (Window : Window_Key; Frame : Files.Rendering.Frame_Commands);
+
+   --  How many windows the application's tree holds now.
+   --
+   --  @return The number of windows published and not forgotten since Stop.
+   function Published_Windows return Natural;
 
    --  Take a closed window out of the tree.
    --

@@ -13,6 +13,8 @@ separate (Files.Application.Windows)
       --  to re-present, so an idle frame whose commands are unchanged skips the
       --  glyph/vertex/submit/present work entirely.
       Frame_Rebuilt : Boolean := False;
+      use type Ada.Real_Time.Time;
+      use type Ada.Real_Time.Time_Span;
    begin
       if Runtime.Handle = null
         or else not Glfw.Windows.Initialized (As_Window (Runtime.Handle))
@@ -201,11 +203,13 @@ separate (Files.Application.Windows)
       --  so we keep presenting every frame through it and stay on the compositor's
       --  frame clock while the user is interacting.
       if Frame_Rebuilt
-        or else Files.Model.Command_Palette_Is_Open (Runtime.Model)
-        or else Files.Model.Settings_Pane_Is_Open (Runtime.Model)
+        or else Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Command_Palette_Overlay)
+        or else Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Settings_Pane_Overlay)
         or else Runtime.Last_Present_Palette_Open
         or else Runtime.Last_Present_Settings_Open
-        or else (not Runtime.Text_Ready and then Runtime.Text_Failed_Size /= Runtime.Font_Pixel_Size)
+        or else (not Runtime.Text_Ready
+                 and then (Runtime.Text_Failed_Size /= Runtime.Font_Pixel_Size
+                           or else Ada.Real_Time.Clock - Runtime.Text_Failed_At >= Text_Retry_Interval))
       then
          Runtime.Present_Grace := Present_Grace_Frames;
       end if;
@@ -226,8 +230,8 @@ separate (Files.Application.Windows)
          --  Whether an overlay is merged in below, so the frame shown differs
          --  from the cached one.
          Overlay_Merged : constant Boolean :=
-           Files.Model.Command_Palette_Is_Open (Runtime.Model)
-           or else Files.Model.Settings_Pane_Is_Open (Runtime.Model);
+           Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Command_Palette_Overlay)
+           or else Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Settings_Pane_Overlay);
 
          procedure Present (Frame : Files.Rendering.Frame_Commands) is
          begin
@@ -266,8 +270,6 @@ separate (Files.Application.Windows)
                   --  layer, merged in now, is keyed again.
                   then Runtime.Cached_Main_Text_Key & ASCII.FS & Text_Commands_Key (Frame.Overlay_Text)
                   else Runtime.Cached_Frame_Text_Key);
-               use type Ada.Real_Time.Time;
-               use type Ada.Real_Time.Time_Span;
             begin
                --  Loaded once per window (a pooled renderer per size, so this is
                --  cheap when another window already has the size); a failure
@@ -292,15 +294,18 @@ separate (Files.Application.Windows)
                   end;
                end if;
 
-               if Runtime.Text_Ready then
-                  declare
-                     Glyphs : Files.Rendering.Text_Render_Result;
-                  begin
+               declare
+                  --  Without text (no font yet, a failed load) the frame is
+                  --  still drawn: a window with no labels, not a blank one.
+                  Glyphs : Files.Rendering.Text_Render_Result;
+               begin
+                  if Runtime.Text_Ready then
                      --  Unchanged text reuses its glyphs; the renderer uploads
                      --  the atlas only when its version moved (or an earlier
                      --  present failed).
                      if Runtime.Text_Glyph_Key = Current_Text_Key
                        and then Runtime.Text_Glyphs.Status = Files.Rendering.Text_Render_Success
+                       and then Files.Rendering.Text_Glyphs_Current (Runtime.Text, Runtime.Text_Glyphs)
                      then
                         Glyphs := Runtime.Text_Glyphs;
                      else
@@ -308,36 +313,33 @@ separate (Files.Application.Windows)
                         Runtime.Text_Glyphs := Glyphs;
                         Runtime.Text_Glyph_Key := Current_Text_Key;
                      end if;
+                  end if;
 
-                     declare
-                        Batch : constant Guikit.Vulkan.Submission_Batch :=
-                          Guikit.Vulkan.Build_Submission
-                            (Rectangles         => Frame.Rectangles,
-                             Triangles          => Frame.Triangles,
-                             Icons              => Frame.Icons,
-                             Overlay_Rectangles => Frame.Overlay_Rectangles,
-                             Layout             => Frame.Layout,
-                             Theme              => Frame.Theme_Palette,
-                             Text               => Glyphs);
-                     begin
-                        Runtime.Last_Glyph_Count := Natural (Glyphs.Glyphs.Length);
-                        Runtime.Last_Missing_Glyph_Count := Glyphs.Missing_Glyph_Count;
-                        Runtime.Last_Present_Status :=
-                          Guikit.Vulkan.Present_Frame
-                            (Renderer => Runtime.Vulkan,
-                             Batch    => Batch,
-                             Width    => Natural (Width),
-                             Height   => Natural (Height));
+                  declare
+                     Batch : constant Guikit.Vulkan.Submission_Batch :=
+                       Guikit.Vulkan.Build_Submission
+                         (Rectangles         => Frame.Rectangles,
+                          Triangles          => Frame.Triangles,
+                          Icons              => Frame.Icons,
+                          Overlay_Rectangles => Frame.Overlay_Rectangles,
+                          Layout             => Frame.Layout,
+                          Theme              => Frame.Theme_Palette,
+                          Text               => Glyphs);
+                  begin
+                     Runtime.Last_Glyph_Count := Natural (Glyphs.Glyphs.Length);
+                     Runtime.Last_Missing_Glyph_Count := Glyphs.Missing_Glyph_Count;
+                     Runtime.Last_Present_Status :=
+                       Guikit.Vulkan.Present_Frame
+                         (Renderer => Runtime.Vulkan,
+                          Batch    => Batch,
+                          Width    => Natural (Width),
+                          Height   => Natural (Height));
 
-                        if Runtime.Last_Present_Status /= Guikit.Vulkan.Vulkan_Presented then
-                           Runtime.Fallback_Frames := Runtime.Fallback_Frames + 1;
-                        end if;
-                     end;
+                     if Runtime.Last_Present_Status /= Guikit.Vulkan.Vulkan_Presented then
+                        Runtime.Fallback_Frames := Runtime.Fallback_Frames + 1;
+                     end if;
                   end;
-               else
-                  Runtime.Last_Glyph_Count := 0;
-                  Runtime.Last_Missing_Glyph_Count := 0;
-               end if;
+               end;
             end;
 
          end Present;
@@ -349,7 +351,7 @@ separate (Files.Application.Windows)
                --  fresh without polluting the cache.
                Frame : Files.Rendering.Frame_Commands := Runtime.Cached_Frame;
             begin
-               if Files.Model.Command_Palette_Is_Open (Runtime.Model) then
+               if Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Command_Palette_Overlay) then
                   declare
                      Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
                      Layout : constant Files.Rendering.Layout_Metrics :=
@@ -383,9 +385,7 @@ separate (Files.Application.Windows)
                --  Settings remains logically open when Commands is invoked from it,
                --  but Commands is the active top-level modal and owns the pixels until
                --  it closes. Rendering both would interleave their batched text layers.
-               if Files.Model.Settings_Pane_Is_Open (Runtime.Model)
-                 and then not Files.Model.Command_Palette_Is_Open (Runtime.Model)
-               then
+               if Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Settings_Pane_Overlay) then
                   declare
                      Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
                      Layout : constant Files.Rendering.Layout_Metrics :=
@@ -432,9 +432,9 @@ separate (Files.Application.Windows)
          --  can tell whether an overlay closed (a change that must be presented).
          Runtime.Presented_Once := True;
          Runtime.Last_Present_Palette_Open :=
-           Files.Model.Command_Palette_Is_Open (Runtime.Model);
+           Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Command_Palette_Overlay);
          Runtime.Last_Present_Settings_Open :=
-           Files.Model.Settings_Pane_Is_Open (Runtime.Model);
+           Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Settings_Pane_Overlay);
 
          --  Burn down one frame of the grace window. It is refilled above on any
          --  visible change, so it only reaches zero after a genuine idle gap.

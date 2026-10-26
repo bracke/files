@@ -1106,7 +1106,7 @@ package body Files.Application.Windows is
    --  The model's visible index of the item drawn at Index in Slot. The
    --  frame on screen can be older than the listing (a watched change, a key
    --  that navigated): an index into it then names a different item, so the
-   --  drawn item is found again by name, and a click on one that is gone
+   --  drawn item is found again (Item_Now), and a click on one that is gone
    --  lands nowhere (0).
    function Current_Item_Index
      (Runtime : Runtime_Window;
@@ -1117,17 +1117,7 @@ package body Files.Application.Windows is
       if Index = 0 or else Runtime.Slot_Listings (Slot) = Files.Model.Listing_Revision (Runtime.Model) then
          return Index;
       end if;
-      for Drawn of Runtime.Snapshots (Slot).Items loop
-         if Drawn.Visible_Index = Index then
-            for Current in 1 .. Files.Model.Visible_Count (Runtime.Model) loop
-               if Files.Model.Visible_Item (Runtime.Model, Current).Name = Drawn.Name then
-                  return Current;
-               end if;
-            end loop;
-            return 0;
-         end if;
-      end loop;
-      return 0;
+      return Files.Rendering.Item_Now (Runtime.Snapshots (Slot), Index, Runtime.Model);
    end Current_Item_Index;
 
    function Current_Click_Action
@@ -1717,15 +1707,7 @@ package body Files.Application.Windows is
         Files.Model.Tree_Pick_Is_Active (Runtime.Model)
         and then Files.Model.Tree_Panel_Is_Open (Runtime.Model)
         and then Runtime.Scrollbar_Drag_Target = Files.Events.Scroll_Tree_Panel
-        and then not Files.Model.Command_Palette_Is_Open (Runtime.Model)
-        and then not Files.Model.Root_Selector_Is_Open (Runtime.Model)
-        and then not Files.Model.Settings_Pane_Is_Open (Runtime.Model)
-        and then not Files.Model.Sort_Menu_Is_Open (Runtime.Model)
-        and then not Files.Model.Context_Menu_Is_Open (Runtime.Model)
-        and then not Files.Model.Label_Picker_Is_Open (Runtime.Model)
-        and then not Files.Model.Quick_Look_Is_Open (Runtime.Model)
-        and then not Files.Model.Paste_Conflict_Is_Active (Runtime.Model)
-        and then not Files.Model.Paste_Execution_Is_Active (Runtime.Model);
+        and then not Files.Model.Other_Input_Owning_Overlay_Is_Open (Runtime.Model, Files.Model.Tree_Pick_Overlay);
    begin
       if not Files.Model.Input_Owning_Overlay_Is_Open (Runtime.Model) then
          return;

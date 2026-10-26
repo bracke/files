@@ -85,8 +85,43 @@ package Files.Controller is
       Settings      : Files.Settings.Settings_Model;
       Settings_Path : String);
 
-   --  Validate, apply, refresh, and save edited settings. A valid draft is
-   --  applied even when the save then fails; the failure is reported.
+   --  The one policy for a settings change, wherever it comes from: Updated
+   --  replaces Settings and is saved -- a write that fails or is not durable
+   --  is reported in the window's error line and the result, never by
+   --  dropping the change -- unless the file could not hold it (it would not
+   --  load again): then the change is refused whole, Settings stays as it
+   --  was, and the error line says the settings are full. An Updated equal to
+   --  Settings writes nothing.
+   --
+   --  @param Model Window whose error line reports a refused change or a failed write.
+   --  @param Settings Live settings model, replaced by Updated when it is accepted.
+   --  @param Updated The settings with the change made.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @return The write's result; Success is False for a refused change.
+   function Commit_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Updated       : Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Files.Settings.Settings_Write_Result;
+
+   --  Commit_Settings, for a caller the result tells nothing more than the
+   --  error line does.
+   --
+   --  @param Model Window whose error line reports a refused change or a failed write.
+   --  @param Settings Live settings model, replaced by Updated when it is accepted.
+   --  @param Updated The settings with the change made.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   procedure Commit_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Updated       : Files.Settings.Settings_Model;
+      Settings_Path : String);
+
+   --  Validate, apply, refresh, and save edited settings (Commit_Settings): a
+   --  valid draft is applied even when the save then fails, and the failure
+   --  is reported; one the file could not hold is refused. An unchanged draft
+   --  is written again, so Save retries a save that failed.
    --
    --  @param Model Window model to update.
    --  @param Settings Live settings model, replaced when the draft is valid.

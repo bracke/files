@@ -42,6 +42,9 @@ package Files.Rendering is
 
    type Item_Snapshot is record
       Name               : UString;
+      --  The item's path: what a click on a frame older than the listing is
+      --  matched by (a name repeats across folders and in search results).
+      Full_Path          : UString;
       Filetype           : UString;
       Filetype_Detail    : UString;
       Icon_Id            : UString;
@@ -723,6 +726,21 @@ package Files.Rendering is
       Settings : Files.Settings.Settings_Model)
       return View_Snapshot;
 
+   --  The model's visible index of the item drawn at Index in Drawn, a
+   --  snapshot that may be older than the model's listing (a watched change,
+   --  a key that navigated): the drawn item found again by its path. A name
+   --  repeats across folders and in search results, so it is not enough.
+   --
+   --  @param Drawn The snapshot the frame on screen was built from.
+   --  @param Index A visible index in Drawn (0 for none).
+   --  @param Model The window's model now.
+   --  @return The item's visible index in Model, or 0 when it is gone.
+   function Item_Now
+     (Drawn : View_Snapshot;
+      Index : Natural;
+      Model : Files.Model.Window_Model)
+      return Natural;
+
    --  Calculate stable layout metrics for a window.
    --
    --  @param Snapshot View snapshot to lay out.
@@ -1193,6 +1211,16 @@ package Files.Rendering is
       Atlas_Width  : Positive := 1024;
       Atlas_Height : Positive := 1024)
       return Text_Render_Status;
+
+   --  Whether glyphs built earlier for Renderer still index the atlas its
+   --  renderer holds now. Renderers are shared by windows of one size, and
+   --  another window's text can grow, empty or reload the atlas: glyphs from
+   --  before then point at an atlas that is gone, so they are built again.
+   --
+   --  @param Renderer The window's text renderer.
+   --  @param Glyphs Glyphs Build_Text_Glyphs returned for it.
+   --  @return True when Glyphs may be drawn and uploaded as they are.
+   function Text_Glyphs_Current (Renderer : Text_Renderer; Glyphs : Text_Render_Result) return Boolean;
 
    --  Rasterize frame text commands into glyph draw commands.
    --

@@ -6,6 +6,7 @@ separate (Files_Suite.Operations)
    --  items, and restore, delete and the recorded original path work on it.
    procedure Test_Volume_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      use type Interfaces.Unsigned_64;
       Remote    : Files_Suite.Volumes.Remote_Directory;
       Data_Home : constant String := Root & "_volume_trash_data";
       Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -50,21 +51,38 @@ separate (Files_Suite.Operations)
          Assert (Result.Success, "an item beside the home trash goes to the home trash");
 
          Write_File (Volume_Item, "volume");
-         --  No administrator's .Trash on a test volume: the per-user one.
+         --  No administrator's .Trash on a test volume: the per-user one. One
+         --  that is there already is someone's (the user's, another run's):
+         --  this test must not touch it.
          Volume_Base := To_Unbounded_String (Files_Suite.Volumes.Volume_Trash_Of (Remote.Path));
-         --  A volume whose top takes no trash (the root filesystem, mounted
-         --  read-only) falls back to the home trash, as it should: nothing
-         --  here to test.
-         if not Ada.Directories.Exists (To_String (Volume_Base)) then
-            begin
-               Ada.Directories.Create_Directory (To_String (Volume_Base));
-            exception
-               when Ada.Directories.Use_Error =>
-                  Files_Suite.Support.Skip ("Test_Volume_Trash", "the second volume's top takes no trash folder");
-                  Clean;
-                  return;
-            end;
+         if Ada.Directories.Exists (To_String (Volume_Base)) then
+            Files_Suite.Support.Skip ("Test_Volume_Trash", "this user already has a trash on the second volume");
+            Clean;
+            return;
          end if;
+
+         --  A volume whose top takes no trash (the root filesystem, a read-only
+         --  mount) falls back to the home trash's copy.
+         Result := Files.File_System.Move_To_Trash (Volume_Item, Trashed);
+         Assert (Result.Success, "an item on another volume is trashed");
+         if not Ada.Directories.Exists (To_String (Volume_Base)) then
+            Files_Suite.Support.Assert_Equal
+              (Ada.Directories.Containing_Directory (To_String (Trashed)),
+               Files.File_System.Trash_Files_Directory,
+               "where the volume takes no trash, the item is copied to the home trash");
+            Assert (Files.File_System.Restore_From_Trash (To_String (Trashed)).Success,
+                    "and restores from there");
+            Assert (Files.File_System.Delete_Trashed_Item (To_String (Home_Trashed)).Success,
+                    "the home trash's item is deleted");
+            Files_Suite.Support.Skip ("Test_Volume_Trash", "the second volume's top takes no trash folder");
+            Clean;
+            return;
+         end if;
+         Assert
+           ((Hostkit.Metadata.Entry_Revision_Of (To_String (Volume_Base)).Mode and 8#077#) = 0,
+            "the trash the application made on the volume is its owner's only");
+         Assert (Files.File_System.Restore_From_Trash (To_String (Trashed)).Success,
+                 "put back, to trash it again below");
          declare
             Before : constant String := Files.File_Identities.Token (Volume_Item);
          begin

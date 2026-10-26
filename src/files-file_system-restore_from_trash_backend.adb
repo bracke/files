@@ -50,57 +50,54 @@ begin
             Error_Key => To_Unbounded_String ("error.trash.restore_exists"));
       end if;
 
-      if Expected_Identity /= "" then
-         declare
-            Moved : constant Mutation_Result :=
-              Rename_Item (Trashed_Path, To_String (Original), Expected_Identity);
+      --  Undo names the item it trashed: something else under that name now
+      --  is not restored in its place. Then the same move a plain restore
+      --  makes, across devices too.
+      if Expected_Identity /= ""
+        and then Files.File_Identities.Token (Trashed_Path) /= Expected_Identity
+      then
+         return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
+      end if;
+      declare
+         use type Hostkit.Fs.Move_Outcome;
+         Outcome : Hostkit.Fs.Move_Outcome := Hostkit.Fs.Move_Refused;
+      begin
          begin
-            if not Moved.Success then
-               return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
-            end if;
+            Outcome := Support.Move_No_Replace_Outcome (Trashed_Path, To_String (Original));
+         exception
+            when others =>
+               Outcome := Hostkit.Fs.Move_Refused;
          end;
-      else
-         declare
-            use type Hostkit.Fs.Move_Outcome;
-            Outcome : Hostkit.Fs.Move_Outcome := Hostkit.Fs.Move_Refused;
-         begin
+         if Outcome /= Hostkit.Fs.Moved and then not Support.Copy_May_Replace_Move (Outcome) then
+            --  Refused for a reason a copy would meet too (the name was
+            --  taken meanwhile, no permission): no copy.
+            return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
+         elsif Outcome /= Hostkit.Fs.Moved then
+            --  The trash is on another device: the staged copy every move
+            --  uses (copied into a private stage on the destination's
+            --  filesystem, journaled, published without replacing), so a
+            --  failed copy leaves Original absent. Cancellation stops new
+            --  work, but must not interrupt a restore, which is recovery.
+            declare
+               Identity, Revision : UString;
             begin
-               Outcome := Support.Move_No_Replace_Outcome (Trashed_Path, To_String (Original));
+               Support.Copy_To_New_Path
+                 (Trashed_Path, To_String (Original), Identity, Revision,
+                  Preserve_Ownership => True, Check_Job_Cancellation => False);
             exception
                when others =>
-                  Outcome := Hostkit.Fs.Move_Refused;
+                  return
+                    (Success   => False,
+                     Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
             end;
-            if Outcome /= Hostkit.Fs.Moved and then not Support.Copy_May_Replace_Move (Outcome) then
-               --  Refused for a reason a copy would meet too (the name was
-               --  taken meanwhile, no permission): no copy.
-               return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
-            elsif Outcome /= Hostkit.Fs.Moved then
-               --  The trash is on another device: the staged copy every move
-               --  uses (copied into a private stage on the destination's
-               --  filesystem, journaled, published without replacing), so a
-               --  failed copy leaves Original absent. Cancellation stops new
-               --  work, but must not interrupt a restore, which is recovery.
-               declare
-                  Identity, Revision : UString;
-               begin
-                  Support.Copy_To_New_Path
-                    (Trashed_Path, To_String (Original), Identity, Revision,
-                     Preserve_Ownership => True, Check_Job_Cancellation => False);
-               exception
-                  when others =>
-                     return
-                       (Success   => False,
-                        Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
-               end;
-               --  The restore is done; the trash copy is now redundant. If it
-               --  cannot be removed, its info file stays with it, so it is
-               --  still listed in the trash rather than hidden there for good.
-               if not Delete_Permanently (Trashed_Path).Success then
-                  return (Success => True, Error_Key => Null_Unbounded_String);
-               end if;
+            --  The restore is done; the trash copy is now redundant. If it
+            --  cannot be removed, its info file stays with it, so it is
+            --  still listed in the trash rather than hidden there for good.
+            if not Delete_Permanently (Trashed_Path).Success then
+               return (Success => True, Error_Key => Null_Unbounded_String);
             end if;
-         end;
-      end if;
+         end if;
+      end;
 
       begin
          if Ada.Directories.Exists (Info_Path) then

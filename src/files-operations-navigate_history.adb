@@ -1,7 +1,6 @@
 separate (Files.Operations)
 --  History navigation shared by Navigate_Back and Navigate_Forward: mirror
---  images differing only in the availability check, the error key, the move,
---  and which way the rollback moves on a failed reload.
+--  images differing only in the availability check, the error key and the move.
 function Navigate_History
   (Model     : in out Files.Model.Window_Model;
    Settings  : Files.Settings.Settings_Model;
@@ -13,6 +12,7 @@ is
    Had_Rename     : constant Boolean := Files.Model.Rename_Is_Active (Model);
    Rename_Text    : constant String := Files.Model.Rename_Text (Model);
    Rename_Source  : constant String := Files.Model.Selected_Name (Model);
+   Origin         : constant Files.Model.Navigation_Mark := Files.Model.Mark_Navigation (Model);
    Available      : constant Boolean :=
      (if Direction = History_Back
       then Files.Model.Can_Go_Back (Model)
@@ -37,12 +37,9 @@ begin
       Reload : constant Operation_Result := Refresh (Model, Settings);
    begin
       if Reload.Status /= Operation_Success then
-         --  Undo the history move, then restore any interrupted rename/create.
-         if Direction = History_Back then
-            Files.Model.Go_Forward (Model);
-         else
-            Files.Model.Go_Back (Model);
-         end if;
+         --  Return to where the window was, then restore any interrupted
+         --  rename/create.
+         Files.Model.Return_To (Model, Origin);
          Settle_Current_Is_Trash (Model);
          if Had_Temporary then
             Files.Model.Begin_Create_File (Model, Temporary_Name);

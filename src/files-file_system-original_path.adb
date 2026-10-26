@@ -125,6 +125,37 @@ function Original_Path (Trashed_Path : String) return String is
       or else Ada.Strings.Fixed.Index (Value, "/../") > 0
       or else (Value'Length >= 3 and then Value (Value'Last - 2 .. Value'Last) = "/.."));
 
+   --  Whether Candidate, with every link on the way resolved, is still on the
+   --  volume: a folder on a crafted stick that links to ~/.ssh must not let a
+   --  restore publish there. Its nearest existing ancestor is resolved and
+   --  must be Top itself or below it.
+   function Stays_On_Volume (Candidate, Top : String) return Boolean is
+      Real_Top : constant String := Hostkit.Fs.Real_Path (Top);
+      Current  : Unbounded_String := To_Unbounded_String (Ada.Directories.Containing_Directory (Candidate));
+   begin
+      if Real_Top = "" then
+         return False;
+      end if;
+      loop
+         if Ada.Directories.Exists (To_String (Current)) or else Hostkit.Fs.Is_Link (To_String (Current)) then
+            declare
+               Real : constant String := Hostkit.Fs.Real_Path (To_String (Current));
+            begin
+               return Real /= "" and then (Real = Real_Top or else Relative_To_Top (Real, Real_Top) /= "");
+            end;
+         end if;
+         declare
+            Up : constant String := Ada.Directories.Containing_Directory (To_String (Current));
+         begin
+            exit when Up = To_String (Current);
+            Current := To_Unbounded_String (Up);
+         end;
+      end loop;
+      return False;
+   exception
+      when others => return False;
+   end Stays_On_Volume;
+
    --  The home trash or the volume trash that holds it.
    Base : constant String := Trash_Base_Of (Trashed_Path);
 begin
@@ -146,17 +177,17 @@ begin
       --  volume being mounted elsewhere. An absolute one must stay on the
       --  volume: a crafted stick must not pick where a restore lands.
       declare
-         Top : constant String := Volume_Trash_Top (Base);
+         Top       : constant String := Volume_Trash_Top (Base);
+         Candidate : constant String :=
+           (if Climbs (Recorded) then ""
+            elsif GNAT.OS_Lib.Is_Absolute_Path (Recorded)
+            then (if Relative_To_Top (Recorded, Top) /= "" then Recorded else "")
+            else Join_Path (Top, Recorded));
       begin
-         if Climbs (Recorded) then
+         if Candidate = "" or else not Stays_On_Volume (Candidate, Top) then
             return "";
-         elsif GNAT.OS_Lib.Is_Absolute_Path (Recorded) then
-            return
-              (if Recorded'Length > Top'Length + 1
-                 and then Recorded (Recorded'First .. Recorded'First + Top'Length) = Top & "/"
-               then Recorded else "");
          end if;
-         return Join_Path (Top, Recorded);
+         return Candidate;
       end;
    end;
 exception

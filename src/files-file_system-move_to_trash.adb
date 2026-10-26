@@ -91,12 +91,10 @@ is
    begin
       if Volume /= "" then
          declare
-            Top : constant String := Volume_Trash_Top (Volume);
+            Relative : constant String := Relative_To_Top (Original, Volume_Trash_Top (Volume));
          begin
-            if Original'Length > Top'Length + 1
-              and then Original (Original'First .. Original'First + Top'Length) = Top & "/"
-            then
-               return Original (Original'First + Top'Length + 1 .. Original'Last);
+            if Relative /= "" then
+               return Relative;
             end if;
          end;
       end if;

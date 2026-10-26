@@ -728,8 +728,13 @@ package body Files.File_System is
    --  Whether Parent may hold this user's volume trash: for the shared
    --  .Trash (Shared), a real directory owned by root with the sticky bit,
    --  so no one else can swap our folder in it for a link; for the volume's
-   --  top, a real directory others cannot write to without the sticky bit.
+   --  top, a real directory only its owner can write to, unless sticky.
    function Safe_Trash_Parent (Parent : String; Shared : Boolean) return Boolean;
+
+   --  Path below Top, relative to it ("" when Path is not under Top). Top
+   --  may be "/" (or end in a separator): the prefix is Top with exactly one
+   --  separator after it either way.
+   function Relative_To_Top (Path, Top : String) return String;
 
    --  The top of the volume a volume trash Base belongs to: the parent of
    --  .Trash-$uid, or of .Trash for .Trash/$uid.
@@ -892,6 +897,18 @@ package body Files.File_System is
    function Valid_Volume_Trash_Base (Base : String) return Boolean is separate;
 
    function Safe_Trash_Parent (Parent : String; Shared : Boolean) return Boolean is separate;
+
+   function Relative_To_Top (Path, Top : String) return String is
+      Prefix : constant String :=
+        (if Top'Length > 0 and then Top (Top'Last) in '/' | '\' then Top else Top & "/");
+   begin
+      if Path'Length > Prefix'Length
+        and then Path (Path'First .. Path'First + Prefix'Length - 1) = Prefix
+      then
+         return Path (Path'First + Prefix'Length .. Path'Last);
+      end if;
+      return "";
+   end Relative_To_Top;
 
    function Volume_Trash_Top (Base : String) return String is
      (if Ada.Directories.Simple_Name (Base) (1 .. Natural'Min (7, Ada.Directories.Simple_Name (Base)'Length))

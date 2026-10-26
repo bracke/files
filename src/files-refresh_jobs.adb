@@ -395,7 +395,7 @@ package body Files.Refresh_Jobs is
       Matching := Work.Root = Files.Model.Current_Path (Model)
         and then Work.Recent = Files.Model.In_Recent_View (Model)
         and then Work.Context_Revision = Files.Model.Listing_Revision (Model)
-        and then Work.Settings = Settings;
+        and then Files.Settings.Same_Content (Work.Settings, Settings);
       if not Matching and then not Cancelled
         and then Work.Root = Files.Model.Current_Path (Model)
       then

@@ -6,7 +6,6 @@ function Apply_Settings_Command
    Settings_Path : String)
    return Controller_Result
 is
-   Executed : constant Controller_Result := Make_Result (Controller_Command_Executed, Id);
 begin
    case Id is
       when Files.Commands.Save_Settings_Command =>
@@ -34,8 +33,7 @@ begin
          declare
             Selected : constant Files.File_System.Item_Vectors.Vector :=
               Files.Model.Selected_Items (Model);
-            Before   : constant Files.Settings.Settings_Model := Settings;
-            Changed  : Boolean := False;
+            Updated  : Files.Settings.Settings_Model := Settings;
 
             --  Add or remove Path so it matches Favorited, toggling only when
             --  the stored state actually differs. Guarding on Is_Favorite lets
@@ -44,10 +42,9 @@ begin
             procedure Set_Favorite (Path : String; Favorited : Boolean) is
             begin
                if Path /= ""
-                 and then Files.Settings.Is_Favorite (Settings, Path) /= Favorited
+                 and then Files.Settings.Is_Favorite (Updated, Path) /= Favorited
                then
-                  Files.Settings.Toggle_Favorite_Path (Settings, Path);
-                  Changed := True;
+                  Files.Settings.Toggle_Favorite_Path (Updated, Path);
                end if;
             end Set_Favorite;
 
@@ -59,8 +56,7 @@ begin
                if Path = "" then
                   return;
                end if;
-               Files.Settings.Toggle_Favorite_Path (Settings, Path);
-               Changed := True;
+               Files.Settings.Toggle_Favorite_Path (Updated, Path);
             end Toggle_One;
          begin
             if Selected.Is_Empty then
@@ -81,7 +77,7 @@ begin
                begin
                   for Item of Selected loop
                      if not Files.Settings.Is_Favorite
-                              (Settings, To_String (Item.Full_Path))
+                              (Updated, To_String (Item.Full_Path))
                      then
                         All_Favorited := False;
                      end if;
@@ -92,14 +88,8 @@ begin
                   end loop;
                end;
             end if;
-            if Changed and then not Files.Settings.Loadable (Settings) then
-               --  Too many favorites to load again: refuse the toggle whole.
-               Settings := Before;
-               Files.Model.Set_Error (Model, "error.settings.full");
-            elsif Changed then
-               Persist_Settings (Model, Settings, Settings_Path);
-            end if;
-            return Executed;
+            --  Too many favorites to load again: refused whole (Commit_Settings).
+            return Apply_Settings_Change (Id, Model, Settings, Updated, Settings_Path);
          end;
       when Files.Commands.Toggle_Column_Modified_Command
          | Files.Commands.Toggle_Column_Size_Command
@@ -120,24 +110,32 @@ begin
                   when others =>
                      Files.Types.Permissions_Column);
          begin
-            Settings := Files.Settings.Toggle_Column (Settings, Column);
-            Persist_Settings (Model, Settings, Settings_Path);
-            return Executed;
+            return
+              Apply_Settings_Change
+                (Id, Model, Settings, Files.Settings.Toggle_Column (Settings, Column), Settings_Path);
          end;
       when Files.Commands.Cycle_Group_By_Command =>
-         Settings := Files.Settings.Cycle_Group_By (Settings);
-         Persist_Settings (Model, Settings, Settings_Path);
-         return Executed;
+         return
+           Apply_Settings_Change (Id, Model, Settings, Files.Settings.Cycle_Group_By (Settings), Settings_Path);
       when Files.Commands.Clear_Recent_Command =>
-         Files.Settings.Clear_Recent (Settings);
-         Persist_Settings (Model, Settings, Settings_Path);
-         --  Rebuild the (now empty) recent view in place so it reflects the
-         --  cleared list without leaving the view or touching history.
-         if Files.Model.In_Recent_View (Model) then
-            return
-              Make_Result
-                (Controller_Command_Executed, Id, Files.Operations.Navigate_Recent (Model, Settings));
-         end if;
-         return Executed;
+         declare
+            Updated : Files.Settings.Settings_Model := Settings;
+            Saved   : Controller_Result;
+         begin
+            Files.Settings.Clear_Recent (Updated);
+            Saved := Apply_Settings_Change (Id, Model, Settings, Updated, Settings_Path);
+            --  Rebuild the (now empty) recent view in place so it reflects the
+            --  cleared list without leaving the view or touching history.
+            if Files.Model.In_Recent_View (Model) then
+               declare
+                  Listed : constant Files.Operations.Operation_Result :=
+                    Files.Operations.Navigate_Recent (Model, Settings);
+                  pragma Unreferenced (Listed);
+               begin
+                  null;
+               end;
+            end if;
+            return Saved;
+         end;
    end case;
 end Apply_Settings_Command;

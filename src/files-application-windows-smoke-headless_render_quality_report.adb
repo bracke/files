@@ -77,6 +77,7 @@ separate (Files.Application.Windows.Smoke)
                   Drag_Snapshot.Items.Append
                     (Files.Rendering.Item_Snapshot'
                        (Name               => To_Unbounded_String ("quality-drag.txt"),
+                        Full_Path          => To_Unbounded_String ("quality-drag.txt"),
                         Filetype           => To_Unbounded_String ("text/plain"),
                         Filetype_Detail    => To_Unbounded_String ("text"),
                         Icon_Id            => To_Unbounded_String ("text"),

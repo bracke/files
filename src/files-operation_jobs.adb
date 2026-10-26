@@ -351,7 +351,7 @@ package body Files.Operation_Jobs is
          return Boolean is
         (Candidate.Root = Files.Model.Current_Path (Model)
          and then Candidate.Recent = Files.Model.In_Recent_View (Model)
-         and then Candidate.Settings = Settings
+         and then Files.Settings.Same_Content (Candidate.Settings, Settings)
          and then Candidate.View_Incarnation = Files.Model.View_Incarnation (Model));
 
       --  Additionally nothing listing-visible changed since the job started,

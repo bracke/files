@@ -84,6 +84,8 @@ package body Files_Suite.Rendering is
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Modified_Time_Is_Local (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_A11y_Stop_Is_Final (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Item_Icons_Drawn_Once (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Context_Menu_Suppresses_Item_Hover (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Overlay_Suppresses_Background_Tooltips (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -106,6 +108,7 @@ package body Files_Suite.Rendering is
    procedure Test_Detail_Header_Separator_Hit_Test (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Separators_Within_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Whole_Content_Item_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Shared_Text_Renderer_Invalidates_Glyphs (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Text_Baseline (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sort_Button_Fits_Field (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sort_Label_Centered (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -211,6 +214,12 @@ package body Files_Suite.Rendering is
         (T, Test_A11ykit_Tree_Mapping'Access,
          "a frame's accessibility nodes map into a well-formed hierarchical a11ykit tree");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_A11y_Stop_Is_Final'Access,
+         "Screen reader: Stop is final until Start");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Item_Icons_Drawn_Once'Access,
+         "Item icons are drawn once, as vectors");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Selection_Summary'Access,
          "bottom bar shows the selection count and summed size when items are selected");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -291,6 +300,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Whole_Content_Item_Layout'Access,
          "the whole-content item layout places scrolled-off rows where a scrolling marquee finds them");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Shared_Text_Renderer_Invalidates_Glyphs'Access,
+         "glyphs from a shared text renderer are rebuilt once another window changed its atlas");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Bottom_Bar_Text_Baseline'Access,
          "the view-mode chooser labels share the bottom bar's text baseline");
@@ -565,6 +577,10 @@ package body Files_Suite.Rendering is
 
    procedure Test_A11ykit_Tree_Mapping (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_A11y_Stop_Is_Final (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Item_Icons_Drawn_Once (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Bottom_Bar_Selection_Summary (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    --  True when the frame's base layer carries a hover-colored fill anchored at
@@ -676,6 +692,8 @@ package body Files_Suite.Rendering is
    procedure Test_Detail_Separators_Within_Content (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Whole_Content_Item_Layout (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Shared_Text_Renderer_Invalidates_Glyphs (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Bottom_Bar_Text_Baseline (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -1879,6 +1879,34 @@ package body Files.Rendering is
       return Status;
    end Initialize_Text;
 
+   function Item_Now
+     (Drawn : View_Snapshot;
+      Index : Natural;
+      Model : Files.Model.Window_Model)
+      return Natural is
+   begin
+      if Index = 0 then
+         return 0;
+      end if;
+      for Item of Drawn.Items loop
+         if Item.Visible_Index = Index then
+            for Current in 1 .. Files.Model.Visible_Count (Model) loop
+               if Files.Model.Visible_Item (Model, Current).Full_Path = Item.Full_Path then
+                  return Current;
+               end if;
+            end loop;
+            return 0;
+         end if;
+      end loop;
+      return 0;
+   end Item_Now;
+
+   function Text_Glyphs_Current (Renderer : Text_Renderer; Glyphs : Text_Render_Result) return Boolean is
+     (Renderer.Loaded
+      and then Renderer.Slot in Pool'Range
+      and then Pool (Renderer.Slot).Key = Renderer.Key
+      and then Guikit.Text.Atlas_Version (Pool (Renderer.Slot).R) = Glyphs.Atlas_Version);
+
    function Build_Text_Glyphs
      (Renderer : in out Text_Renderer;
       Frame    : Frame_Commands)

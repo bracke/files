@@ -260,6 +260,7 @@ separate (Files.Rendering)
                Snapshot.Items.Append
                  (Item_Snapshot'
                     (Name               => Item.Name,
+                     Full_Path          => Item.Full_Path,
                      Filetype           => Item.Filetype,
                      Filetype_Detail    => Filetype_Detail (Item),
                      Icon_Id            => Item.Icon_Id,

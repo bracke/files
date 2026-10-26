@@ -264,26 +264,35 @@ separate (Files.Rendering.Build_Frame_Commands)
 
       Add_Extension_Badge;
 
-      Result.Icons.Append
-        (Icon_Command'
-           (X          => X,
-            Y          => Y,
-            Size       => Draw_Size,
-            Icon_Id    => To_Unbounded_String (Resolved_Name),
-            Theme_Name => To_Unbounded_String (Icon_Theme_Name),
-            Asset_Path => Resolved_Asset_Path,
-            Thumbnail_Width  => (if Use_Thumbnail then Item.Thumbnail_Width else 0),
-            Thumbnail_Height => (if Use_Thumbnail then Item.Thumbnail_Height else 0),
-            Thumbnail_Pixels =>
-              (if Use_Thumbnail then Item.Thumbnail.Pixels else Files.Shared_Bytes.Empty),
-            Overlay          => Overlay,
-            Draw_Width       => 0,
-            Draw_Height      => 0,
-            others           => <>));
+      --  An icon the vector layer can draw is drawn there, in the theme's
+      --  colours (below). An atlas tile is for what it cannot: a thumbnail's
+      --  pixels, and an overlay icon (a drag preview), which must sit above
+      --  the base layer. Both at once painted every icon twice, the atlas's
+      --  fixed colours over the theme's.
+      if Overlay
+        or else (Use_Thumbnail and then Item.Thumbnail_Available and then Length (Item.Thumbnail_Path) > 0)
+      then
+         Result.Icons.Append
+           (Icon_Command'
+              (X          => X,
+               Y          => Y,
+               Size       => Draw_Size,
+               Icon_Id    => To_Unbounded_String (Resolved_Name),
+               Theme_Name => To_Unbounded_String (Icon_Theme_Name),
+               Asset_Path => Resolved_Asset_Path,
+               Thumbnail_Width  => (if Use_Thumbnail then Item.Thumbnail_Width else 0),
+               Thumbnail_Height => (if Use_Thumbnail then Item.Thumbnail_Height else 0),
+               Thumbnail_Pixels =>
+                 (if Use_Thumbnail then Item.Thumbnail.Pixels else Files.Shared_Bytes.Empty),
+               Overlay          => Overlay,
+               Draw_Width       => 0,
+               Draw_Height      => 0,
+               others           => <>));
+      end if;
 
       --  Overlay icons are rasterized from the same asset path, but must not
-      --  also emit their vector fallback into the base rectangle/triangle
-      --  layer or background content would paint over the drag preview.
+      --  also emit their vectors into the base rectangle/triangle layer or
+      --  background content would paint over the drag preview.
       if Overlay then
          return;
       end if;

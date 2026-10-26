@@ -127,6 +127,16 @@ package Files.Settings is
       Persistence_Refused    : Boolean := False;
    end record;
 
+   --  Whether two settings say the same thing, leaving out session state
+   --  (Persistence_Refused) that never travels in a file or a job request:
+   --  what a job's settings must equal for its result to apply.
+   --
+   --  @param Left First settings.
+   --  @param Right Second settings.
+   --  @return True when every persisted setting is equal.
+   function Same_Content (Left, Right : Settings_Model) return Boolean is
+     ((Left with delta Persistence_Refused => False) = (Right with delta Persistence_Refused => False));
+
    --  The exact subset of the settings that Build_Snapshot reads. The render
    --  layer caches this and reuses the cached view snapshot while it still
    --  matches, so the snapshot rebuilds automatically on a theme, column,

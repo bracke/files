@@ -473,20 +473,29 @@ package body Files.Model is
       return False;
    end First_Open;
 
+   --  Top to bottom as they are drawn: the paste dialogs over everything (the
+   --  window layer gives way to them, Window_Overlay_Shown), then the window
+   --  layer's palette over its settings pane, then the frame's popups in the
+   --  reverse of their drawing order, and the tree pick, which is part of the
+   --  frame itself.
    function Topmost_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean is
      (First_Open
         (Model,
-         [Paste_Execution_Overlay, Paste_Conflict_Overlay, Quick_Look_Overlay, Label_Picker_Overlay,
-          Command_Palette_Overlay, Settings_Pane_Overlay, Root_Selector_Overlay, Sort_Menu_Overlay,
-          Context_Menu_Overlay, Tree_Pick_Overlay],
+         [Paste_Execution_Overlay, Paste_Conflict_Overlay, Command_Palette_Overlay, Settings_Pane_Overlay,
+          Context_Menu_Overlay, Root_Selector_Overlay, Sort_Menu_Overlay, Label_Picker_Overlay,
+          Quick_Look_Overlay, Tree_Pick_Overlay],
          Overlay));
 
+   function Window_Overlay_Shown (Model : Window_Model; Overlay : Text_Input_Overlay) return Boolean is
+     (Overlay_Is_Open (Model, Overlay)
+      and then not Model.Paste_Exec.Active
+      and then not Model.Paste_Conflict.Active
+      and then (Overlay = Command_Palette_Overlay or else not Model.Command_Palette_Open));
+
    function Escape_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean is
-     (First_Open
-        (Model,
-         [Label_Picker_Overlay, Context_Menu_Overlay, Command_Palette_Overlay, Root_Selector_Overlay,
-          Sort_Menu_Overlay, Settings_Pane_Overlay],
-         Overlay));
+     (Topmost_Overlay (Model, Overlay)
+      and then Overlay in Label_Picker_Overlay | Context_Menu_Overlay | Command_Palette_Overlay
+                        | Root_Selector_Overlay | Sort_Menu_Overlay | Settings_Pane_Overlay);
 
    procedure Close_Overlay (Model : in out Window_Model; Overlay : Input_Overlay) is
    begin
@@ -938,6 +947,13 @@ package body Files.Model is
    --  browser does, dropping the oldest (least likely to be revisited) entry.
    Max_Back_History : constant := 200;
 
+   --  Replace the items in view, keeping the view (a refresh): edits in
+   --  progress, selection and scroll go; Sorted orders them by the model's sort.
+   procedure Swap_Items
+     (Model  : in out Window_Model;
+      Items  : Files.File_System.Item_Vectors.Vector;
+      Sorted : Boolean);
+
    procedure Push_Back_History (Model : in out Window_Model) is
    begin
       Model.Back_History.Append (Model.Current_Path_Value);
@@ -1006,16 +1022,18 @@ package body Files.Model is
      (Model : in out Window_Model;
       Items : Files.File_System.Item_Vectors.Vector) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
-      --  Only the initial entry into the view records the departure point; a
-      --  refresh or clear re-enters while already active and just swaps items.
-      if not Model.Recent_View_Active then
-         Push_Back_History (Model);
+      --  A refresh or clear re-enters while already active: the view stays,
+      --  only its items change (as a folder's refresh), in recency order,
+      --  which is also the order drawn.
+      if Model.Recent_View_Active then
+         Swap_Items (Model, Items, Sorted => False);
+         return;
       end if;
-
+      Model.Revision_Value := Model.Revision_Value + 1;
+      --  The initial entry records the departure point.
+      Push_Back_History (Model);
       Model.Recent_View_Active := True;
       Leave_View (Model, Null_Unbounded_String);
-      --  Recent keeps its recency order, which is also the order drawn.
       Model.Items := Items;
       Model.Directory_Signature := Signature_From_Items ("", Items);
    end Navigate_Recent;
@@ -1060,6 +1078,21 @@ package body Files.Model is
       Model.Recent_View_Active := False;
       Leave_View (Model, Next);
    end Go_Forward;
+
+   function Mark_Navigation (Model : Window_Model) return Navigation_Mark is
+     ((Path    => Model.Current_Path_Value,
+       Recent  => Model.Recent_View_Active,
+       Back    => Model.Back_History,
+       Forward => Model.Forward_History));
+
+   procedure Return_To (Model : in out Window_Model; Mark : Navigation_Mark) is
+   begin
+      Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Back_History := Mark.Back;
+      Model.Forward_History := Mark.Forward;
+      Model.Recent_View_Active := Mark.Recent;
+      Leave_View (Model, Mark.Path);
+   end Return_To;
 
    procedure Focus_Path_Input
      (Model : in out Window_Model) is separate;
@@ -1800,6 +1833,14 @@ package body Files.Model is
      (Model : in out Window_Model;
       Items : Files.File_System.Item_Vectors.Vector) is
    begin
+      Swap_Items (Model, Items, Sorted => True);
+   end Replace_Items;
+
+   procedure Swap_Items
+     (Model  : in out Window_Model;
+      Items  : Files.File_System.Item_Vectors.Vector;
+      Sorted : Boolean) is
+   begin
       Clear_Folder_Size (Model);
       Model.Revision_Value := Model.Revision_Value + 1;
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
@@ -1822,16 +1863,18 @@ package body Files.Model is
       --  model's order) would move opposite to the display under descending sort
       --  or any non-default sort, because Build_Snapshot sorts for display but
       --  Load_Directory cannot know the model's current sort direction.
-      Files.File_System.Sort_Items
-        (Model.Items,
-         Model.Sort_Field_Value,
-         Model.Sort_Ascending);
+      if Sorted then
+         Files.File_System.Sort_Items
+           (Model.Items,
+            Model.Sort_Field_Value,
+            Model.Sort_Ascending);
+      end if;
       Model.Directory_Signature := Signature_From_Items (Current_Path (Model), Items);
       Model.Main_View_Scroll := 0;
       Model.Info_Pane_Scroll := 0;
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
-   end Replace_Items;
+   end Swap_Items;
 
    procedure Set_Error
      (Model     : in out Window_Model;

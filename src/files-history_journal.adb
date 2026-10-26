@@ -226,6 +226,11 @@ package body Files.History_Journal is
       then
          raise Ada.Directories.Use_Error;
       end if;
+      --  A temporary a crash left behind (a plain file, checked above) would
+      --  refuse every later save: the journal is ours, so it goes.
+      if Ada.Directories.Exists (Temporary) then
+         Ada.Directories.Delete_File (Temporary);
+      end if;
       Output.Descriptor :=
         GNAT.OS_Lib.Create_New_File (Temporary, GNAT.OS_Lib.Binary);
       if Output.Descriptor = GNAT.OS_Lib.Invalid_FD then

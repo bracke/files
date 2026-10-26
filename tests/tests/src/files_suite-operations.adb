@@ -198,6 +198,7 @@ package body Files_Suite.Operations is
    procedure Test_Pending_Create_Mutation_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Drops_While_Busy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Refresh_Applies_With_Refused_Settings (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Empty_Archive_Directories (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Duplicate_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Undo_Same_Size_Edits (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -265,6 +266,8 @@ package body Files_Suite.Operations is
    procedure Test_User_Visible_Mount_Points (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_From_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_From_Trash_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Restore_Checks_Trashed_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Trash_Refuses_Volume_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_Url_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Empty_Trash_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Empty_Trash_Partial_Failure (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -353,6 +356,7 @@ package body Files_Suite.Operations is
    procedure Test_Extract_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Undo_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Undo_Redo_History (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_History_Save_Replaces_Leftover (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Symlink_Creation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Set_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Set_Ownership_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -466,6 +470,10 @@ package body Files_Suite.Operations is
    procedure Test_Copy_To_Tree_Label_Sets_Target (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recent_View_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recent_Duplicate (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Recent_View_Refresh_And_Rollback (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Stale_Click_Matches_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Overlay_Order_Is_Drawing_Order (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Change_Policy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Content_Search_Operation (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Operation_Test_Case) return AUnit.Message_String is
@@ -652,6 +660,12 @@ package body Files_Suite.Operations is
         (T, Test_Restore_From_Trash_Guards'Access,
          "restore refuses (keeping the payload) when the destination or its parent is unavailable");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Restore_Checks_Trashed_Identity'Access,
+         "Undo's restore checks the trashed item's identity");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Trash_Refuses_Volume_Trash'Access,
+         "A volume trash and what is in it are not trashed");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Restore_Url_Round_Trip'Access,
          "restore decodes a percent/space name back to its exact original path");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -821,6 +835,9 @@ package body Files_Suite.Operations is
         (T, Test_Undo_Redo_History'Access,
          "multi-level undo unwinds LIFO, redo re-applies, and a new op clears redo");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_History_Save_Replaces_Leftover'Access,
+         "A leftover history.tmp does not block saves");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Redo_Symlink_Creation'Access, "a created symlink undoes and redoes symmetrically");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Redo_Set_Permissions'Access, "chmod undoes to the old mode and redoes to the new mode");
@@ -951,6 +968,18 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Recent_Duplicate'Access, "Recent duplicates stay beside each source and retain the view and Undo");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Recent_View_Refresh_And_Rollback'Access,
+         "The recent view refreshes in place and a failed Back returns to it");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Stale_Click_Matches_Path'Access,
+         "A stale click finds the drawn item by its path");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Overlay_Order_Is_Drawing_Order'Access,
+         "Overlay input, Escape and drawing follow one order");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Change_Policy'Access,
+         "Every settings change follows one save policy");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Content_Search_Operation'Access,
          "content search matches file contents case-insensitively, skips binary and capped files, "
          & "and drives the scope model");
@@ -975,6 +1004,9 @@ package body Files_Suite.Operations is
         (T, Test_Drops_While_Busy'Access, "drops cannot replace active jobs or conflict dialogs");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Refresh'Access, "empty metadata is cached and info panes preserve manual refreshes");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Refresh_Applies_With_Refused_Settings'Access,
+         "a background refresh applies in a session whose settings failed to load");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Empty_Archive_Directories'Access, "ZIP and 7z preserve nested empty and directory-only selections");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1133,6 +1165,10 @@ package body Files_Suite.Operations is
    procedure Test_Restore_From_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Restore_From_Trash_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Restore_Checks_Trashed_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Trash_Refuses_Volume_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Restore_Url_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -1444,6 +1480,8 @@ package body Files_Suite.Operations is
 
    procedure Test_Info_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Refresh_Applies_With_Refused_Settings (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Empty_Archive_Directories (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Archive_Completeness (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -1551,6 +1589,8 @@ package body Files_Suite.Operations is
 
    procedure Test_Undo_Redo_History (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_History_Save_Replaces_Leftover (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Partial_Redo_Creation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Partial_Redo_Move (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -1634,6 +1674,14 @@ package body Files_Suite.Operations is
    procedure Test_Copy_To_Tree_Label_Sets_Target (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Recent_Duplicate (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Recent_View_Refresh_And_Rollback (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Stale_Click_Matches_Path (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Overlay_Order_Is_Drawing_Order (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Settings_Change_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Recent_View_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

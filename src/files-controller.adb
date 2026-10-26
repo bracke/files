@@ -167,6 +167,41 @@ package body Files.Controller is
       end;
    end Persisted;
 
+   function Commit_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Updated       : Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Files.Settings.Settings_Write_Result is
+   begin
+      if Files.Settings.Same_Content (Updated, Settings) then
+         return (Success => True, Durable => True, Path => To_Unbounded_String (Settings_Path),
+                 Error_Key => Null_Unbounded_String);
+      elsif not Files.Settings.Loadable (Updated) then
+         Files.Model.Set_Error (Model, "error.settings.full");
+         return
+           (Success   => False,
+            Durable   => False,
+            Path      => To_Unbounded_String (Settings_Path),
+            Error_Key => To_Unbounded_String ("error.settings.full"));
+      end if;
+      Settings := Updated;
+      return Persisted (Model, Settings, Settings_Path);
+   end Commit_Settings;
+
+   procedure Commit_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Updated       : Files.Settings.Settings_Model;
+      Settings_Path : String)
+   is
+      Saved : constant Files.Settings.Settings_Write_Result :=
+        Commit_Settings (Model, Settings, Updated, Settings_Path);
+      pragma Unreferenced (Saved);
+   begin
+      null;
+   end Commit_Settings;
+
    procedure Persist_Settings
      (Model         : in out Files.Model.Window_Model;
       Settings      : Files.Settings.Settings_Model;
@@ -438,11 +473,9 @@ package body Files.Controller is
       return Controller_Result
  is separate;
 
-   --  The one policy for a settings toggle: Updated is applied in memory and
-   --  kept for the session, then saved; a save that fails or is not durable is
-   --  reported in the error line and in the result, never by dropping the
-   --  change. Reload re-lists the directory first, for a setting that changes
-   --  which items are listed.
+   --  A settings command's change, through Commit_Settings, with the save's
+   --  outcome in the result. Reload re-lists the directory after an accepted
+   --  change, for a setting that changes which items are listed.
    function Apply_Settings_Change
      (Id            : Files.Commands.Command_Id;
       Model         : in out Files.Model.Window_Model;
@@ -453,13 +486,13 @@ package body Files.Controller is
       return Controller_Result
    is
       Operation : Files.Operations.Operation_Result := Empty_Operation;
-      Saved     : Files.Settings.Settings_Write_Result;
+      Saved     : constant Files.Settings.Settings_Write_Result :=
+        Commit_Settings (Model, Settings, Updated, Settings_Path);
    begin
-      Settings := Updated;
-      if Reload then
+      --  Refused: nothing changed, nothing to list again.
+      if Reload and then Files.Settings.Same_Content (Settings, Updated) then
          Operation := Files.Operations.Refresh (Model, Settings);
       end if;
-      Saved := Persisted (Model, Settings, Settings_Path);
       if Operation.Status = Files.Operations.Operation_Failed then
          return Make_Result (Controller_Command_Executed, Id, Operation);
       end if;
