@@ -208,7 +208,7 @@ separate (Files.Application.Windows)
         or else Runtime.Last_Present_Settings_Open
         or else (not Runtime.Text_Ready
                  and then (Runtime.Text_Failed_Size /= Runtime.Font_Pixel_Size
-                           or else Ada.Real_Time.Clock - Runtime.Text_Failed_At >= Text_Retry_Interval))
+                           or else Ada.Real_Time.Clock >= Runtime.Text_Failed_At + Text_Retry_Interval))
       then
          Runtime.Present_Grace := Present_Grace_Frames;
       end if;
@@ -266,7 +266,7 @@ separate (Files.Application.Windows)
                --  is retried after a pause, not every frame.
                if not Runtime.Text_Ready
                  and then (Runtime.Text_Failed_Size /= Runtime.Font_Pixel_Size
-                           or else Ada.Real_Time.Clock - Runtime.Text_Failed_At >= Text_Retry_Interval)
+                           or else Ada.Real_Time.Clock >= Runtime.Text_Failed_At + Text_Retry_Interval)
                then
                   declare
                      Status : constant Files.Rendering.Text_Render_Status :=

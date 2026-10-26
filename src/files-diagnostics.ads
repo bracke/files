@@ -15,4 +15,12 @@ package Files.Diagnostics is
      (Occurrence : Ada.Exceptions.Exception_Occurrence;
       Where      : String);
 
+   --  Record a step worth following when something goes missing on a host
+   --  that cannot be debugged directly (a screen reader's request on a CI
+   --  runner). Silent unless FILES_DIAGNOSTICS is set.
+   --
+   --  @param Where The unit the step is in.
+   --  @param Message What happened.
+   procedure Trace (Where : String; Message : String);
+
 end Files.Diagnostics;

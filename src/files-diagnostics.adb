@@ -20,4 +20,15 @@ package body Files.Diagnostics is
          null;
    end Note;
 
+   procedure Trace (Where : String; Message : String) is
+   begin
+      if Ada.Environment_Variables.Exists ("FILES_DIAGNOSTICS") then
+         Ada.Text_IO.Put_Line
+           (Ada.Text_IO.Standard_Error, "files-diagnostics" & ':' & ' ' & Where & ':' & ' ' & Message);
+      end if;
+   exception
+      when others =>
+         null;
+   end Trace;
+
 end Files.Diagnostics;

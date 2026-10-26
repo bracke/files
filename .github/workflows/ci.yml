@@ -611,6 +611,21 @@ jobs:
             echo "::error::live-smoke failed the structural analysis (exit $code)"
             exit "$code"
           fi
+          # The real event loop, as a user runs it: a few seconds open on a
+          # folder. It carries on past an error in one pass and says so only
+          # under FILES_DIAGNOSTICS; one that recurs every pass leaves a window
+          # that never draws again, which the smoke above does not reach.
+          mkdir -p "$RUNNER_TEMP/loop-folder"
+          touch "$RUNNER_TEMP/loop-folder/alpha.txt" "$RUNNER_TEMP/loop-folder/beta.txt"
+          set +e
+          FILES_DIAGNOSTICS=1 timeout 10 xvfb-run -a ./bin/files "$RUNNER_TEMP/loop-folder" > "$RUNNER_TEMP/loop.txt" 2>&1
+          set -e
+          if grep -q "files-diagnostics: Files.Application.Windows" "$RUNNER_TEMP/loop.txt"; then
+            echo "::error::files' event loop raised while running"
+            grep -m 5 -A 4 "files-diagnostics: Files.Application.Windows" "$RUNNER_TEMP/loop.txt"
+            exit 1
+          fi
+          echo "the event loop ran without raising"
 
       - name: Live GPU smoke (Windows and macOS, software Vulkan)
         # The live smoke on the other hosts, with Mesa's lavapipe software
@@ -926,7 +941,7 @@ jobs:
           mkdir -p "$folder"
           for name in alpha beta gamma; do echo "$name" > "$folder/$name.txt"; done
           # A11YKIT_TRACE: each event files raises, and the answer, in its output.
-          A11YKIT_TRACE=1 "$bin" "$folder" > "$RUNNER_TEMP/files-app.txt" 2>&1 &
+          A11YKIT_TRACE=1 FILES_DIAGNOSTICS=1 "$bin" "$folder" > "$RUNNER_TEMP/files-app.txt" 2>&1 &
           app_pid=$!
           sleep 8
           if [ "$RUNNER_OS" = "Windows" ]; then
@@ -1150,6 +1165,14 @@ jobs:
           fi
           kill "$app_pid" 2>/dev/null || true
           echo "screen-reader action exit $act on $MATRIX_OS"
+          # The event loop carries on past an error in one pass, and says so
+          # only under FILES_DIAGNOSTICS: one that recurs every pass leaves a
+          # window that never draws again.
+          if grep -q "files-diagnostics: Files.Application.Windows" "$RUNNER_TEMP/files-app.txt"; then
+            echo "::error::files' event loop raised while the screen reader drove it on $MATRIX_OS"
+            grep -m 5 -A 4 "files-diagnostics: Files.Application.Windows" "$RUNNER_TEMP/files-app.txt"
+            exit 1
+          fi
           if [ "$act" != 0 ]; then
             echo "::error::files did not carry out or announce a screen reader's selection on $MATRIX_OS"
             echo "--- files' own output:"

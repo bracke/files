@@ -1214,7 +1214,16 @@ package body Files.Application.Windows is
          then
             Action.Activate := True;
          end if;
+         Files.Diagnostics.Trace
+           ("Files.Application.Windows",
+            --  A developer trace: field=value pairs, no prose.
+            "x=" & Natural'Image (Item.Bounds.X) & ',' & "y=" & Natural'Image (Item.Bounds.Y)
+            & ',' & "action=" & Files.Events.Input_Action_Kind'Image (Action.Kind)
+            & ',' & "item=" & Action.Item_Index'Image);
          Dispatch_Click_Action (Runtime, Action, Guikit.Input.No_Modifiers);
+         Files.Diagnostics.Trace
+           ("Files.Application.Windows",
+            "selected=" & Natural'Image (Files.Model.Selected_Count (Runtime.Model)));
 
          --  A click on a settings row's middle only focuses it; activating a
          --  toggle or choice should change it, as Space on the focused field
@@ -1965,8 +1974,10 @@ package body Files.Application.Windows is
       Runtime_Windows : Runtime_Window_Vectors.Vector;
       Initialized     : Boolean := False;
       Recovery_Reported : Boolean := False;
-      Last_Recovery_Check : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
-      use type Ada.Real_Time.Time_Span;
+      --  When the recovery report is next looked for. An addition, not
+      --  Clock - Last: subtracting Time_First overflows, and that raised on
+      --  every pass of the loop, which then never drew another frame.
+      Next_Recovery_Check : Ada.Real_Time.Time := Ada.Real_Time.Clock;
    begin
       if Startup.Windows.Is_Empty then
          return;
@@ -2048,10 +2059,8 @@ package body Files.Application.Windows is
             Sync_Settings_Across_Windows (Runtime_Windows);
             --  A report file appears rarely: looked for once a second, not on
             --  every wake-up.
-            if not Recovery_Reported
-              and then Ada.Real_Time.Clock - Last_Recovery_Check >= Ada.Real_Time.Seconds (1)
-            then
-               Last_Recovery_Check := Ada.Real_Time.Clock;
+            if not Recovery_Reported and then Ada.Real_Time.Clock >= Next_Recovery_Check then
+               Next_Recovery_Check := Ada.Real_Time.Clock + Ada.Real_Time.Seconds (1);
                if Files.Job_Scavenger.Has_Unrecoverable then
                   for Runtime of Runtime_Windows loop
                      if Runtime.Handle /= null then

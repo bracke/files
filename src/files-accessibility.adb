@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Containers.Ordered_Maps;
 with Ada.Containers.Vectors;
 
@@ -227,6 +228,11 @@ package body Files.Accessibility is
    begin
       Window := 0;
       while A11ykit.Provider.Next_Request (Item) loop
+         Files.Diagnostics.Trace
+           ("Files.Accessibility",
+            --  A developer trace: field=value pairs, no prose.
+            "kind=" & A11ykit.Provider.Request_Kind'Image (Item.Kind) & ',' & "node=" & Item.Node'Image
+            & ',' & "windows=" & Ranges.Length'Image);
          for Part of Ranges loop
             if Item.Node > Part.Offset and then Item.Node <= Part.Offset + Part.Count then
                Window := Part.Window;
