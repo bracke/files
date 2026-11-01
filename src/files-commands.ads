@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.File_System;
 with Guikit.Input;
 with Files.Types;
@@ -311,7 +312,7 @@ package Files.Commands is
    --  @param Items Items whose full paths are joined.
    --  @return Newline-joined full paths, or an empty string when Items is empty.
    function Joined_Full_Paths
-     (Items : Files.File_System.Item_Vectors.Vector)
+     (Items : Files.Items.Item_Vectors.Vector)
       return String;
 
    --  Return whether Identifier names a registered command.

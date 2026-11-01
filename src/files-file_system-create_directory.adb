@@ -3,15 +3,7 @@ function Create_Directory
   (Path : String)
    return Mutation_Result
 is
-   function Parent_Directory return String is
-   begin
-      return Ada.Directories.Containing_Directory (Path);
-   exception
-      when others =>
-         return "";
-   end Parent_Directory;
-
-   Parent : constant String := Parent_Directory;
+   Parent : constant String := Parent_Directory (Path);
    Name   : constant String := Mutation_Leaf_Name (Path);
 begin
    Files.Io_Errors.Reset;

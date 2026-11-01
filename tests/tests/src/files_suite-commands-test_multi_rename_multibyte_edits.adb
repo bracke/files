@@ -3,7 +3,7 @@ separate (Files_Suite.Commands)
       pragma Unreferenced (T);
       function U8 (Text : Wide_Wide_String) return String is
         (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode (Text));
-      Items : Files.File_System.Item_Vectors.Vector;
+      Items : Files.Items.Item_Vectors.Vector;
       Model : Files.Model.Window_Model;
       Moved : Boolean;
       pragma Unreferenced (Moved);
@@ -22,7 +22,7 @@ separate (Files_Suite.Commands)
       Files.Model.Select_All_Visible (Model);
       Files.Model.Toggle_Rename (Model);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename_Field_Count (Model),
+        (Files.Model.Testing.Rename_Field_Count (Model),
          2,
          "both selected names are being renamed");
 

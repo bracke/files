@@ -7,7 +7,7 @@ separate (Files_Suite.Interaction)
       Path     : constant String :=
         Files_Suite.Support.Join (Files_Suite.Support.Root, "recent.conf");
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Items    : Files.File_System.Item_Vectors.Vector;
+      Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Result   : Files.Interaction.Interaction_Result;
       Action   : constant Files.Events.Input_Action :=

@@ -142,7 +142,7 @@ separate (Files_Suite.Operations)
               and then Files.Model.Current_Path (Model) = Join (Root, "other"),
               "navigation prevents an old directory snapshot from replacing the new view");
       Files.Settings.Note_Recent (Settings, Join (Root, "alpha"));
-      Files.Model.Navigate_Recent (Model, Files.File_System.Item_Vectors.Empty_Vector);
+      Files.Model.Navigate_Recent (Model, Files.Items.Item_Vectors.Empty_Vector);
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_F5, Current_Font_Size => 16, Result => Routed);
       Await_Refresh (True);

@@ -8,8 +8,8 @@ separate (Files_Suite.Interaction)
       pragma Unreferenced (T);
       Path : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "hidden-toggle.conf");
 
-      function Items_With_Hidden return Files.File_System.Item_Vectors.Vector is
-         Items : Files.File_System.Item_Vectors.Vector;
+      function Items_With_Hidden return Files.Items.Item_Vectors.Vector is
+         Items : Files.Items.Item_Vectors.Vector;
       begin
          Items.Append
            (Files.File_System.Make_Item
@@ -34,6 +34,7 @@ separate (Files_Suite.Interaction)
       X, Y     : Natural := 0;
       Found    : Boolean := False;
       Before   : Boolean;
+      Listing     : Natural;
    begin
       Files_Suite.Support.Reset_Root;
       Files.Model.Initialize
@@ -78,6 +79,7 @@ separate (Files_Suite.Interaction)
          "the hidden-count region translates to the Toggle_Hidden_Files command");
 
       Before := Settings.Show_Hidden_Files;
+      Listing := Files.Model.Listing_Revision (Model);
       Files.Interaction.Apply_Input_Action
         (Model             => Model,
          Settings          => Settings,
@@ -89,6 +91,7 @@ separate (Files_Suite.Interaction)
 
       Assert (Settings.Show_Hidden_Files /= Before, "clicking the hidden count flips Show_Hidden_Files");
       Assert (Result.Settings_Changed, "the hidden-count click reports a settings change");
-      Assert (Result.Directory_Reloaded, "the hidden-count click reports the directory reload");
+      Assert
+        (Files.Model.Listing_Revision (Model) /= Listing, "the hidden-count click reloads the directory");
       Assert (Ada.Directories.Exists (Path), "the hidden-count click persists the settings file");
    end Test_Bottom_Bar_Hidden_Toggle;

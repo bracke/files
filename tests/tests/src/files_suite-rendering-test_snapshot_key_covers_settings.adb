@@ -16,7 +16,7 @@ separate (Files_Suite.Rendering)
          Column_Widths, Column_Order, Group_By, Shortcut_Overrides);
 
       Model     : constant Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
-      Items     : constant Files.File_System.Item_Vectors.Vector := Files_Suite.Support.Sample_Items;
+      Items     : constant Files.Items.Item_Vectors.Vector := Files_Suite.Support.Sample_Items;
       Item_Path : constant String := To_String (Items.First_Element.Full_Path);
       Base      : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Base_View : constant View_Snapshot := Build_Snapshot (Model, Base);

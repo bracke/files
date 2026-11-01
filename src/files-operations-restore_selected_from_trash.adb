@@ -4,7 +4,7 @@ function Restore_Selected_From_Trash
    Settings : Files.Settings.Settings_Model)
    return Operation_Result
 is
-   Items      : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+   Items      : constant Files.Items.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
    First_Path : Unbounded_String;
 begin
    if Files.Model.Background_Transfers (Model) then

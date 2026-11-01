@@ -4,12 +4,7 @@ separate (Files_Suite.Model)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Sample_Model;
       Result   : Files.Controller.Controller_Result;
-      Policy   : constant Files.Model.Rename_Policy := Files.Model.Rename_Behavior;
    begin
-      Assert (not Policy.Single_Item_Only, "rename policy is no longer single-item only");
-      Assert (Policy.Synchronized_Multi, "rename policy claims synchronized multi-rename");
-      Assert (not Policy.Atomic_Multi_Rename, "rename policy does not claim atomic multi-rename");
-      Assert (not Policy.Requires_One_Selection, "rename policy does not require exactly one selected item");
       Assert (not Files.Model.Rename_Is_Enabled (Model), "rename disabled with no selection");
       Files.Model.Select_Visible (Model, 2);
       Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
@@ -38,7 +33,7 @@ separate (Files_Suite.Model)
       Files.Model.Toggle_Rename (Model);
       Assert (Files.Model.Rename_Is_Active (Model), "multi-selection rename enters rename mode");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename_Field_Count (Model),
+        (Files.Model.Testing.Rename_Field_Count (Model),
          2,
          "multi-selection rename opens one field per item");
       Files.Model.Toggle_Rename (Model);

@@ -32,7 +32,7 @@ separate (Files_Suite.Operations)
         (Ada.Directories.Exists (Dest) and then not Ada.Directories.Exists (Source),
          "the move relocates the file to the destination");
       Assert
-        (Files.Model.Undo_Kind_Of (Model) = Files.Model.Undo_Move,
+        (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Model.Undo_Move,
          "a move paste records an Undo_Move entry");
 
       Step := Complete_Operation

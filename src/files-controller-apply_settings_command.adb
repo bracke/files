@@ -31,7 +31,7 @@ begin
          return Toggle_Free_Space_Display (Model, Settings, Settings_Path);
       when Files.Commands.Toggle_Favorite_Command =>
          declare
-            Selected : constant Files.File_System.Item_Vectors.Vector :=
+            Selected : constant Files.Items.Item_Vectors.Vector :=
               Files.Model.Selected_Items (Model);
             Updated  : Files.Settings.Settings_Model := Settings;
 

@@ -41,7 +41,7 @@ separate (Files_Suite.Operations)
          Settings := Files.Settings.Default_Settings;
          Files.Settings.Note_Recent (Settings, Join (Join (Root, "one"), "same.txt"));
          Files.Settings.Note_Recent (Settings, Join (Join (Root, "two"), "same.txt"));
-         Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+         Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Step := Files.Operations.Navigate_Recent (Model, Settings);

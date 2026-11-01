@@ -255,11 +255,6 @@ package body Files.Folder_Size is
       return Files.Process_Jobs.Active (Scan.Job);
    end Is_Active;
 
-   function Target_For_Test (Scan : Session) return String is
-   begin
-      return To_String (Scan.Target_Path);
-   end Target_For_Test;
-
    procedure Request (Scan : in out Session; Path : String) is
       Paths : Path_Vectors.Vector;
    begin

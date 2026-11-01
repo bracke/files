@@ -6,7 +6,7 @@ function Navigate_Recent
 is
    Recent : constant Files.Types.String_Vectors.Vector :=
      Files.Settings.Recent_Paths (Settings);
-   Items  : Files.File_System.Item_Vectors.Vector;
+   Items  : Files.Items.Item_Vectors.Vector;
 begin
    --  Stat each stored path in most-recent-first order, skipping any that no
    --  longer resolve so a stale entry silently drops from the view.

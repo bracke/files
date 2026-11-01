@@ -62,9 +62,6 @@ package body Files.Operations.Support is
       return Make_Result (Operation_Disabled, Error_Key);
    end Disabled;
 
-   function Safe_Environment_Value (Name : String) return String is
-     (Ada.Environment_Variables.Value (Name, ""));
-
    function Executable_Is_Available
      (Executable : String)
       return Boolean
@@ -107,7 +104,7 @@ package body Files.Operations.Support is
       Preserve_Selection : Boolean := False)
       return Operation_Result
    is
-      Previous_Selection : constant Files.File_System.Item_Vectors.Vector :=
+      Previous_Selection : constant Files.Items.Item_Vectors.Vector :=
         Files.Model.Selected_Items (Model);
       Previous_Primary : constant String :=
         To_String (Files.Model.Selected_Item (Model).Full_Path);
@@ -125,7 +122,7 @@ package body Files.Operations.Support is
          declare
             Recent : constant Files.Types.String_Vectors.Vector :=
               Files.Settings.Recent_Paths (Settings);
-            Items  : Files.File_System.Item_Vectors.Vector;
+            Items  : Files.Items.Item_Vectors.Vector;
          begin
             for Path of Recent loop
                declare
@@ -203,7 +200,7 @@ package body Files.Operations.Support is
    procedure Generate_Missing_Thumbnails
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Items    : Files.File_System.Item_Vectors.Vector) is
+      Items    : Files.Items.Item_Vectors.Vector) is
    begin
       if Files.File_System.Thumbnails_Missing (Items) then
          declare

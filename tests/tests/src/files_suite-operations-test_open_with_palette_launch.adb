@@ -14,7 +14,7 @@ separate (Files_Suite.Operations)
             Targets.Append (To_Unbounded_String (Marker_One));
             Targets.Append (To_Unbounded_String (Marker_Two));
             Files.Model.Initialize
-              (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+              (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Files.Model.Open_Command_Palette (Model);
             Files.Model.Set_Open_With_Targets (Model, Targets);
             --  What the Open With command does: list the applications once.
@@ -79,7 +79,7 @@ separate (Files_Suite.Operations)
             Routed  : Files.Controller.Controller_Result;
          begin
             Files.Model.Initialize
-              (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+              (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Targets.Append (To_Unbounded_String ("/tmp/a file.txt"));
             Files.Model.Open_Command_Palette (Model);
             Files.Model.Set_Open_With_Targets (Model, Targets);

@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.File_System;
 with Files.Model;
 with Files.Quick_Look;
@@ -845,7 +846,7 @@ package Files.Operations is
    --  @param Item Directory item to preview.
    --  @return Prepared Quick Look content.
    function Prepare_Quick_Look
-     (Item : Files.File_System.Directory_Item)
+     (Item : Files.Items.Directory_Item)
       return Files.Quick_Look.Quick_Look_Content;
 
 end Files.Operations;

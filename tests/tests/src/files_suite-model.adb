@@ -1,3 +1,5 @@
+with Files.Items;
+with Files.Model.Testing;
 with Ada.Calendar;
 with Files.Grouping;
 with Ada.Directories;
@@ -252,7 +254,7 @@ package body Files_Suite.Model is
 
    --  The "extra info" is now computed lazily (not stored on load), so tests
    --  compute it on demand via the shared token function.
-   function Item_Extra (I : Files.File_System.Directory_Item) return String is
+   function Item_Extra (I : Files.Items.Directory_Item) return String is
      (Files.File_System.Extra_Info_Token
         (To_String (I.Full_Path), I.Kind, To_String (I.Filetype)));
 

@@ -22,7 +22,7 @@ separate (Files_Suite.Operations)
             Assert (Mutation.Success, "trash hidden payload");
             Mutation := Files.File_System.Move_To_Trash (Join (Root, "visible"), Visible);
             Assert (Mutation.Success, "trash visible payload");
-            Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+            Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Files.Model.Set_Background_Transfers (Model, Background);
             Settings.Show_Hidden_Files := Show_Hidden;
             Step := Complete_Operation (Model, Settings, Files.Operations.Empty_Trash (Model, Settings));

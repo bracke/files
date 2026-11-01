@@ -1,3 +1,5 @@
+with Files.File_Types;
+
 separate (Files.Settings)
    function Expand_Placeholders
      (Action : Open_Action;
@@ -167,21 +169,11 @@ separate (Files.Settings)
          return Name (Name'First .. Dot - 1);
       end Stem_Of;
 
-      function Extension_Of (Name : String) return String is
-         Dot : constant Natural := Last_Extension_Dot (Name);
-      begin
-         if Dot = 0 or else Dot = Name'First or else Dot = Name'Last then
-            return "";
-         end if;
-
-         return Normalize_Extension (Name (Dot + 1 .. Name'Last));
-      end Extension_Of;
-
       Result    : Open_Action := Action;
       Clean     : constant String := Trim_Trailing_Path_Separators (Path);
       Name      : constant String := Safe_Simple_Name (Clean);
       Parent    : constant String := Safe_Containing_Directory (Clean);
-      Extension : constant String := Extension_Of (Name);
+      Extension : constant String := Files.File_Types.Extension_Of (Name);
       Stem      : constant String := Stem_Of (Name);
    begin
       Result.Arguments.Clear;

@@ -71,22 +71,6 @@ package body Files.Folder_Tree is
       return In_Range (T, Index) and then T.Nodes.Element (Index).Expanded;
    end Node_Is_Expanded;
 
-   function Index_For_Path
-     (T    : Tree;
-      Path : String)
-      return Natural is
-   begin
-      if T.Nodes.Is_Empty then
-         return 0;
-      end if;
-      for I in T.Nodes.First_Index .. T.Nodes.Last_Index loop
-         if To_String (T.Nodes.Element (I).Path) = Path then
-            return I;
-         end if;
-      end loop;
-      return 0;
-   end Index_For_Path;
-
    procedure Set_Children
      (T        : in out Tree;
       Index    : Positive;

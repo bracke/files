@@ -62,19 +62,6 @@ package Files.UTF8 is
       Codepoint             : out Natural;
       Replacement_Codepoint : Natural := 16#FFFD#);
 
-   --  Decode the UTF-8 unit at Index for user-visible text rendering.
-   --
-   --  Valid UTF-8 decodes normally. Invalid non-ASCII bytes decode as Latin-1
-   --  codepoints so legacy byte filenames remain inspectable.
-   --
-   --  @param Content UTF-8 encoded byte string, or legacy filename bytes.
-   --  @param Index One-based string index updated to the next byte after decode.
-   --  @param Codepoint Decoded Unicode codepoint or Latin-1 fallback byte value.
-   procedure Decode_Next_Display_Codepoint
-     (Content   : String;
-      Index     : in out Integer;
-      Codepoint : out Natural);
-
    --  Return whether Codepoint is a zero-width mark that still needs a glyph.
    --
    --  Variation selectors are zero-width but not required glyphs because they

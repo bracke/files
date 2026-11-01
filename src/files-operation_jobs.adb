@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.Fs_Primitives;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
@@ -37,7 +38,7 @@ package body Files.Operation_Jobs is
       Root     : Files.Types.UString;
       Recent   : Boolean;
       Query    : Files.Types.UString;
-      Selected : Files.File_System.Item_Vectors.Vector;
+      Selected : Files.Items.Item_Vectors.Vector;
       Settings : Files.Settings.Settings_Model;
       Context_Revision : Natural;
       View_Incarnation : Natural;
@@ -47,7 +48,7 @@ package body Files.Operation_Jobs is
       Kind      : Operation_Kind;
       Recent    : Boolean := False;
       Result    : Files.Operations.Operation_Result;
-      Items     : Files.File_System.Item_Vectors.Vector;
+      Items     : Files.Items.Item_Vectors.Vector;
       Selection : Files.Types.UString;
       Visible_Error : Files.Types.UString;
       Signature : Files.File_System.Directory_Signature;

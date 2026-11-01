@@ -73,16 +73,6 @@ package Files.Paste is
       Name : String)
       return String;
 
-   --  Whether an item's desired destination already exists.
-   --
-   --  @param Item Work item to test.
-   --  @param Existing Full destination paths known to exist.
-   --  @return True when the item's desired destination is present in Existing.
-   function Has_Conflict
-     (Item     : Work_Item;
-      Existing : Files.Types.String_Vectors.Vector)
-      return Boolean;
-
    --  The effective per-item decision for a policy and an optional override.
    --  An explicit override wins; otherwise the policy maps to a decision
    --  (Policy_Ask stays Decision_Pending).

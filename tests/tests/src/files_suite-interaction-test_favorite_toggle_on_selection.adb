@@ -40,7 +40,7 @@ separate (Files_Suite.Interaction)
         (Result.Command, Files.Commands.No_Command,
          "a reused interaction result does not retain follow-up flags from the prior action (command)");
       Assert
-        (not Result.Command_Executed,
+        (Result.Status /= Files.Controller.Controller_Command_Executed,
          "a reused interaction result does not retain follow-up flags from the prior action (command executed)");
       Assert
         (not Result.Settings_Changed,
@@ -51,9 +51,6 @@ separate (Files_Suite.Interaction)
       Assert
         (not Result.Needs_Glyph_Rebuild,
          "a reused interaction result does not retain follow-up flags from the prior action (needs glyph rebuild)");
-      Assert
-        (not Result.Directory_Reloaded,
-         "a reused interaction result does not retain follow-up flags from the prior action (directory reloaded)");
       Assert
         (not Result.Clear_Pending_Text,
          "a reused interaction result does not retain follow-up flags from the prior action (clear pending text)");

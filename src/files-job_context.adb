@@ -278,11 +278,6 @@ package body Files.Job_Context is
    function Cancelled return Boolean is
      (Files.Process_Jobs.Cancellation_Requested (To_String (Current)));
 
-   procedure Create_Private_Directory (Path : String) is
-   begin
-      Files.Private_Directories.Create (Path);
-   end Create_Private_Directory;
-
    function Stage_Owner_Directory return String is
    begin
       if Length (Current) > 0 then

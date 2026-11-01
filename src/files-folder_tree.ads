@@ -96,16 +96,6 @@ package Files.Folder_Tree is
       Index : Positive)
       return Boolean;
 
-   --  Return the first node index whose path matches Path, or zero when none.
-   --
-   --  @param T Tree to inspect.
-   --  @param Path Absolute directory path to find.
-   --  @return One-based node index, or zero when no node matches.
-   function Index_For_Path
-     (T    : Tree;
-      Path : String)
-      return Natural;
-
    --  Attach a node's child subdirectories and mark it loaded.
    --
    --  Children are appended once; the node's expandability is derived from the

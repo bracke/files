@@ -8,7 +8,7 @@ begin
    elsif Selected_Count (Model) = 1 then
       Claim_Overlay_Input (Model);
       declare
-         Item    : constant Files.File_System.Directory_Item := Selected_Item (Model);
+         Item    : constant Files.Items.Directory_Item := Selected_Item (Model);
          Content : constant Files.Quick_Look.Quick_Look_Content :=
            Files.Quick_Look.Prepare_Content
              (Name           => To_String (Item.Name),

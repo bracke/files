@@ -101,7 +101,7 @@ separate (Files_Suite.Operations)
             Ada.Environment_Variables.Set
               ("FILES_TEST_DIRECTORY_RESTORE_FAULT", Join (Root, ".files-recovery-1/payload"));
             Ada.Environment_Variables.Set ("FILES_TEST_DIRECTORY_RESTORE_BLOCK", Source);
-            Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+            Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Files.Model.Set_Background_Transfers (Model, Background);
             Actions.Append (Files.Paste.Resolved_Action'
               (To_Unbounded_String (Copy_Source), To_Unbounded_String (Source), False, True));

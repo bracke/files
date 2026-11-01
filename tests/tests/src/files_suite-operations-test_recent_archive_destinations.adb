@@ -7,7 +7,7 @@ separate (Files_Suite.Operations)
       Model : Files.Model.Window_Model;
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
-      Archives : Files.File_System.Item_Vectors.Vector;
+      Archives : Files.Items.Item_Vectors.Vector;
       Loaded : Files.File_System.Item_Load_Result;
       One : constant String := Join (Root, "one");
       Two : constant String := Join (Root, "two");
@@ -26,7 +26,7 @@ separate (Files_Suite.Operations)
          Settings := Files.Settings.Default_Settings;
          Files.Settings.Note_Recent (Settings, Join (One, "report.txt"));
          Files.Settings.Note_Recent (Settings, Join (Two, "note.txt"));
-         Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+         Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Step := Files.Operations.Navigate_Recent (Model, Settings);

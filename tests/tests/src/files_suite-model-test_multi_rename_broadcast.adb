@@ -8,7 +8,7 @@ separate (Files_Suite.Model)
          Value  : Unbounded_String;
          Cursor : Natural;
       begin
-         Files.Model.Rename_State_For_Visible (Model, Visible_Index, Active, Value, Cursor);
+         Files.Model.Testing.Rename_State_For_Visible (Model, Visible_Index, Active, Value, Cursor);
          return To_String (Value);
       end RValue;
 
@@ -17,7 +17,7 @@ separate (Files_Suite.Model)
          Value  : Unbounded_String;
          Cursor : Natural;
       begin
-         Files.Model.Rename_State_For_Visible (Model, Visible_Index, Active, Value, Cursor);
+         Files.Model.Testing.Rename_State_For_Visible (Model, Visible_Index, Active, Value, Cursor);
          return Cursor;
       end RCursor;
 
@@ -26,7 +26,7 @@ separate (Files_Suite.Model)
          Value  : Unbounded_String;
          Cursor : Natural;
       begin
-         Files.Model.Rename_State_For_Visible (Model, Visible_Index, Active, Value, Cursor);
+         Files.Model.Testing.Rename_State_For_Visible (Model, Visible_Index, Active, Value, Cursor);
          return Active;
       end RActive;
 
@@ -39,7 +39,7 @@ separate (Files_Suite.Model)
       Files.Model.Toggle_Rename (Model);
       Assert (Files.Model.Rename_Is_Active (Model), "multi-rename activates for two selected items");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename_Field_Count (Model),
+        (Files.Model.Testing.Rename_Field_Count (Model),
          2,
          "multi-rename opens one field per selected item");
 

@@ -11,7 +11,7 @@ begin
    end if;
 
    declare
-      Item      : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
+      Item      : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
       Path      : constant String :=
         GNAT.OS_Lib.Normalize_Pathname (To_String (Item.Full_Path), Resolve_Links => True);
       Old_Mode : Natural;

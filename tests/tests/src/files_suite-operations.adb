@@ -1,3 +1,6 @@
+with Files.Items;
+with Files.Folder_Size.Testing;
+with Files.Model.Testing;
 with Files.File_Identities;
 with Files.File_Identities.Testing;
 with Files.Job_Helpers;

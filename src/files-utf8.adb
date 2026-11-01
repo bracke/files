@@ -271,25 +271,6 @@ package body Files.UTF8 is
       Guikit.Utf8.Decode_Next_Codepoint (Content, Index, Codepoint, Replacement_Codepoint);
    end Decode_Next_Codepoint;
 
-   procedure Decode_Next_Display_Codepoint
-     (Content   : String;
-      Index     : in out Integer;
-      Codepoint : out Natural)
-   is
-      Byte_Value : constant Natural := Byte_At (Content, Index);
-   begin
-      if Byte_Value > 16#7F# and then Unit_Length (Content, Index) = 1 then
-         Codepoint := Byte_Value;
-         Index := Index + 1;
-      else
-         Decode_Next_Codepoint
-           (Content,
-            Index,
-            Codepoint,
-            Replacement_Codepoint => 16#FFFD#);
-      end if;
-   end Decode_Next_Display_Codepoint;
-
    function Is_Valid
      (Content : String)
       return Boolean

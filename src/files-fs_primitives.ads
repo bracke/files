@@ -21,6 +21,13 @@ package Files.Fs_Primitives is
    --  @return True when Path exists (file or directory).
    function Exists (Path : String) return Boolean;
 
+   --  Return the parent directory of Path.
+   --
+   --  @param Path Path whose parent is requested.
+   --  @return Parent directory path, or an empty string when Path is a
+   --    filesystem root (or otherwise has no parent).
+   function Parent_Directory (Path : String) return String;
+
    --  @param Path Filesystem path to test.
    --  @return True when Path names an ordinary file.
    function File_Exists (Path : String) return Boolean;

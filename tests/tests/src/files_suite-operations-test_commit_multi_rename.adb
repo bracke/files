@@ -18,7 +18,7 @@ separate (Files_Suite.Operations)
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Files.Model.Toggle_Rename (Model);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename_Field_Count (Model),
+        (Files.Model.Testing.Rename_Field_Count (Model),
          2,
          "multi-rename opens a field per selected file");
       Changed := Files.Model.Rename_Insert_At_Carets (Model, "Z");
@@ -71,7 +71,7 @@ separate (Files_Suite.Operations)
       end loop;
       Files.Model.Toggle_Rename (Model);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Rename_Field_Count (Model),
+        (Files.Model.Testing.Rename_Field_Count (Model),
          2,
          "best-effort rename opens two fields");
       Changed := Files.Model.Rename_Insert_At_Carets (Model, "Z");

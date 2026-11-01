@@ -5,15 +5,7 @@ function Validate_Link_Destination
   (Link_Path : String)
    return Mutation_Result
 is
-   function Parent_Directory return String is
-   begin
-      return Ada.Directories.Containing_Directory (Link_Path);
-   exception
-      when others =>
-         return "";
-   end Parent_Directory;
-
-   Parent : constant String := Parent_Directory;
+   Parent : constant String := Parent_Directory (Link_Path);
    Name   : constant String := Mutation_Leaf_Name (Link_Path);
 begin
    if Link_Path = "" then

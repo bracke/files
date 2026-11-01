@@ -233,7 +233,7 @@ package body Files.Model.Support is
 
    function Item_Is_Visible
      (Model : Window_Model;
-      Item  : Files.File_System.Directory_Item)
+      Item  : Files.Items.Directory_Item)
       return Boolean
    is
    begin
@@ -347,13 +347,6 @@ package body Files.Model.Support is
       end if;
    end Remove_Selected_Index;
 
-   procedure Mark_Settings_Draft_Edited (Model : in out Window_Model) is
-   begin
-      Model.Revision_Value := Model.Revision_Value + 1;
-      Model.Settings_Draft_Value.Valid := True;
-      Model.Settings_Draft_Value.Error_Key := Null_Unbounded_String;
-   end Mark_Settings_Draft_Edited;
-
    function Effective_Selected_Item_Index (Model : Window_Model) return Natural is
    begin
       if Model.Selected_Item_Index /= 0 then
@@ -457,7 +450,7 @@ package body Files.Model.Support is
 
    function Signature_From_Items
      (Directory_Path : String;
-      Items          : Files.File_System.Item_Vectors.Vector)
+      Items          : Files.Items.Item_Vectors.Vector)
       return Files.File_System.Directory_Signature
    is
       Result : Files.File_System.Directory_Signature :=
@@ -469,7 +462,7 @@ package body Files.Model.Support is
          Latest_Modified_Known => False);
 
       function Item_Checksum
-        (Item : Files.File_System.Directory_Item)
+        (Item : Files.Items.Directory_Item)
          return Natural
       is
          Modulus : constant Long_Long_Integer := 1_000_000_007;
@@ -524,7 +517,7 @@ package body Files.Model.Support is
    function Group_Band
      (Model  : Window_Model;
       Labels : Label_Maps.Map;
-      Item   : Files.File_System.Directory_Item)
+      Item   : Files.Items.Directory_Item)
       return Positive
    is
       Found : constant Label_Maps.Cursor := Labels.Find (To_String (Item.Full_Path));
@@ -568,7 +561,7 @@ package body Files.Model.Support is
       Labels := Group_Labels_Map (Model);
       declare
          Count : constant Positive := Files.Grouping.Band_Count (Model.Group_Mode_Value);
-         type Band_Array is array (1 .. Count) of Files.File_System.Item_Vectors.Vector;
+         type Band_Array is array (1 .. Count) of Files.Items.Item_Vectors.Vector;
          Bands : Band_Array;
       begin
          for Item of Model.Items loop
@@ -582,7 +575,7 @@ package body Files.Model.Support is
    end Group_Items;
 
    procedure Resort_Items (Model : in out Window_Model; Field_Sort : Boolean := True) is
-      Previous_Selection : Files.File_System.Item_Vectors.Vector;
+      Previous_Selection : Files.Items.Item_Vectors.Vector;
       Primary_Sentinel   : constant Boolean := Model.Selected_Item_Index = Temporary_Item_Index;
       Primary_Path       : Unbounded_String := Null_Unbounded_String;
       Rename_Old_Paths   : Files.Types.String_Vectors.Vector;

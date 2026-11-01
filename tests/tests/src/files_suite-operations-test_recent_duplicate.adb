@@ -91,7 +91,7 @@ separate (Files_Suite.Operations)
             Files.Settings.Note_Recent (Settings, Source_B);
             Files.Settings.Note_Recent (Settings, Bundle);
             Files.Settings.Note_Recent (Settings, Unselected);
-            Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+            Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Step := Files.Operations.Navigate_Recent (Model, Settings);
             Files.Model.Select_All_Visible (Model);
             for Index in 1 .. Files.Model.Visible_Count (Model) loop

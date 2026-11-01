@@ -51,7 +51,7 @@ separate (Files_Suite.Operations)
                                 "the successful helper result retains the replacement original for Undo");
                      end if;
                   else
-                     Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+                     Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
                      Actions.Append (Action);
                      Files.Model.Begin_Paste_Execution (Model, Actions, Mode);
                      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);

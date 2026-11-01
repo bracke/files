@@ -80,7 +80,7 @@ separate (Files_Suite.Operations)
 
       Assert (Files.Model.Undo_Available (Model), "the completed paste records an undo");
       Assert
-        (Files.Model.Undo_Kind_Of (Model) = Files.Model.Undo_Delete_Created,
+        (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Model.Undo_Delete_Created,
          "a copy paste is undone by deleting the created copies");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.Undo_From_Paths (Model).Length),

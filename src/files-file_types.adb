@@ -87,7 +87,8 @@ package body Files.File_Types is
    end Leaf_Name;
 
    function Extension_Of
-     (Name : String)
+     (Name     : String;
+      Dotfiles : Boolean := False)
       return String
    is
       Clean : constant String := Leaf_Name (Name);
@@ -100,7 +101,7 @@ package body Files.File_Types is
          end if;
       end loop;
 
-      if Dot = 0 or else Dot = Clean'First or else Dot = Clean'Last then
+      if Dot = 0 or else (Dot = Clean'First and then not Dotfiles) or else Dot = Clean'Last then
          return "";
       end if;
 

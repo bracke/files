@@ -11,7 +11,7 @@ separate (Files_Suite.Operations)
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Folder);
-      Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+      Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Settings.Font_Pixel_Size := Files.Settings.Clamp_Font_Pixel_Size (Settings.Font_Pixel_Size + 3);
       Files.Controller.Persist_Settings (Model, Settings, Path);
       declare

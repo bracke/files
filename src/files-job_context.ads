@@ -27,10 +27,6 @@ package Files.Job_Context is
    --  @return True when this helper's parent requested cancellation.
    function Cancelled return Boolean;
 
-   --  Create a directory with owner-only access before creating any payload.
-   --  @param Path Unused directory pathname; raises on failure or collision.
-   procedure Create_Private_Directory (Path : String);
-
    --  @param Parent Absolute destination filesystem directory.
    --  @return Exclusively created and journaled staging directory.
    --  Raises Use_Error before copying when the filesystem cannot identify the

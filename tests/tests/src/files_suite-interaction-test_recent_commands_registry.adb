@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Interaction)
    procedure Test_Recent_Commands_Registry (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -7,7 +8,7 @@ separate (Files_Suite.Interaction)
       Empty    : constant String :=
         Files_Suite.Support.Join (Files_Suite.Support.Root, "reg-empty-dir");
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Items    : Files.File_System.Item_Vectors.Vector;
+      Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Result   : Files.Interaction.Interaction_Result;
       Action   : constant Files.Events.Input_Action :=

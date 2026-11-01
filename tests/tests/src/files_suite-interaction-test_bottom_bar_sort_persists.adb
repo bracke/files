@@ -4,8 +4,8 @@ separate (Files_Suite.Interaction)
       use type Files.Types.Sort_Field;
       Path : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "sort-persist.conf");
 
-      function Items return Files.File_System.Item_Vectors.Vector is
-         V : Files.File_System.Item_Vectors.Vector;
+      function Items return Files.Items.Item_Vectors.Vector is
+         V : Files.Items.Item_Vectors.Vector;
       begin
          V.Append (Files.File_System.Make_Item
                      (Files_Suite.Support.Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));

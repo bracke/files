@@ -1,3 +1,4 @@
+with Files.Items;
 private package Files.Model.Support is
 
    --  Sentinel item index marking the temporary create-item row.
@@ -160,7 +161,7 @@ private package Files.Model.Support is
    --  @return True when Item is shown under the current filter.
    function Item_Is_Visible
      (Model : Window_Model;
-      Item  : Files.File_System.Directory_Item)
+      Item  : Files.Items.Directory_Item)
       return Boolean;
 
    --  Whether the temporary create-item row is shown under the current filter.
@@ -228,11 +229,6 @@ private package Files.Model.Support is
      (Model      : in out Window_Model;
       Item_Index : Natural);
 
-   --  Mark the settings draft as edited so a save is offered.
-   --
-   --  @param Model Model whose draft is flagged dirty.
-   procedure Mark_Settings_Draft_Edited (Model : in out Window_Model);
-
    --  The single primary selected item index, falling back to the first entry
    --  of the multi-selection, or zero when nothing is selected.
    --
@@ -260,7 +256,7 @@ private package Files.Model.Support is
    --  @return Signature capturing the directory's current state.
    function Signature_From_Items
      (Directory_Path : String;
-      Items          : Files.File_System.Item_Vectors.Vector)
+      Items          : Files.Items.Item_Vectors.Vector)
       return Files.File_System.Directory_Signature;
 
    --  Reorder the stored items to match the model's current sort field and

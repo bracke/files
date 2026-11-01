@@ -68,7 +68,7 @@ separate (Files_Suite.Operations)
                                                        To_Unbounded_String ("macos")]) loop
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", To_String (Backend));
          for Background in Boolean loop
-            Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+            Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Files.Model.Set_Background_Transfers (Model, Background);
             Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
             for Attempt in Files_Suite.Support.Polling loop

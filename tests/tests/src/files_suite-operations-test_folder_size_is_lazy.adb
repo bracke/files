@@ -21,7 +21,8 @@ separate (Files_Suite.Operations)
          --  bar's total can count it), but the walk runs in a helper off the UI
          --  path: nothing is computed synchronously on the input.
          Files.Operations.Update_Folder_Size (Model, Settings);
-         Assert (Files.Model.Folder_Scan_Is_Active (Model) and then Files.Model.Folder_Scan_Target (Model) = Path,
+         Assert (Files.Model.Testing.Folder_Scan_Is_Active (Model)
+                 and then Files.Model.Testing.Folder_Scan_Target (Model) = Path,
                  "selecting a folder requests its size");
          Assert (not Files.Model.Folder_Size_Cached_For (Model, Path),
                  "folder size is not computed synchronously on the input path");

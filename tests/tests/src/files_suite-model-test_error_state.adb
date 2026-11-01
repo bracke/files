@@ -4,13 +4,13 @@ separate (Files_Suite.Model)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Sample_Model;
       Result   : Files.Operations.Operation_Result;
-      Item     : Files.File_System.Directory_Item;
+      Item     : Files.Items.Directory_Item;
    begin
       Item := Files.Model.Selected_Item (Model);
       Files_Suite.Support.Assert_Equal (To_String (Item.Name), "", "empty selection returns an empty selected item");
       Files_Suite.Support.Assert_Equal (To_String (Item.Full_Path), "", "empty selection selected item has empty path");
       Assert (Item.Kind = Files.Types.Unknown_Item, "empty selection selected item has unknown kind");
-      Assert (not Files.Model.Selected_Item_Is_Temporary (Model), "empty selection is not temporary");
+      Assert (not Files.Model.Testing.Selected_Item_Is_Temporary (Model), "empty selection is not temporary");
 
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal

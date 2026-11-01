@@ -118,7 +118,7 @@ separate (Files_Suite.Operations)
                        "deleting the copied tree preserves the source link");
             end;
          end;
-         Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+         Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Paths.Append (To_Unbounded_String (Link));
          Files.Operations.Record_Undo
            (Model, Files.Model.Undo_Delete_Created, Paths, Files.Types.String_Vectors.Empty_Vector, Redoable => False);

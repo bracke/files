@@ -1,3 +1,5 @@
+with Files.Items;
+with Files.Environment;
 with Files.Diagnostics;
 with Ada.Environment_Variables;
 with Ada.Unchecked_Deallocation;
@@ -132,9 +134,6 @@ package body Files.Application.Windows is
    procedure Free_Window is new Ada.Unchecked_Deallocation
      (Object => Desktop_Window,
       Name   => Window_Access);
-
-   function Safe_Environment_Value (Name : String) return String is
-     (Ada.Environment_Variables.Value (Name, ""));
 
    --  Persist the runtime settings to the central settings file. The reducer
    --  owns the actual serialization; this wrapper exists for the shell-only
@@ -1253,7 +1252,7 @@ package body Files.Application.Windows is
      (Model : Files.Model.Window_Model)
       return Files.Types.String_Vectors.Vector
    is
-      Items  : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+      Items  : constant Files.Items.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
       Result : Files.Types.String_Vectors.Vector;
    begin
       for Item of Items loop
@@ -1281,7 +1280,7 @@ package body Files.Application.Windows is
       end if;
 
       declare
-         Target : constant Files.File_System.Directory_Item :=
+         Target : constant Files.Items.Directory_Item :=
            Files.Model.Visible_Item (Runtime.Model, Positive (Target_Index));
       begin
          if Target.Kind /= Files.Types.Directory_Item then
@@ -1875,9 +1874,9 @@ package body Files.Application.Windows is
 
    function Live_Display_Available return Boolean is
       use type Hostkit.Host.Kind;
-      Display         : constant String := Safe_Environment_Value ("DISPLAY");
-      Wayland_Display : constant String := Safe_Environment_Value ("WAYLAND_DISPLAY");
-      Comspec         : constant String := Safe_Environment_Value ("COMSPEC");
+      Display         : constant String := Files.Environment.Value ("DISPLAY");
+      Wayland_Display : constant String := Files.Environment.Value ("WAYLAND_DISPLAY");
+      Comspec         : constant String := Files.Environment.Value ("COMSPEC");
    begin
       --  A macOS session always has its window server; it sets none of these.
       return Display /= "" or else Wayland_Display /= "" or else Comspec /= ""
@@ -1906,36 +1905,12 @@ package body Files.Application.Windows is
    function Runtime_Capabilities return Desktop_Capabilities is
       Display : constant Boolean := Live_Display_Available;
       Vulkan  : constant Boolean := Vulkan_Runtime_Available;
-      Drop_Profile : constant Files.Drop_Events.Drop_Event_Source_Profile := Files.Drop_Events.Profile;
    begin
       return
         (Display_Available       => Display,
          Vulkan_Available        => Vulkan,
-         Headless_Rendering      => True,
-         Live_Window_Smoke_Ready => Display and then Vulkan,
-         Event_Translation_Model => True,
-         Focus_Runtime_Model     => True,
-         Resize_Runtime_Model    => True,
-         Scroll_Runtime_Model    => True,
-         Native_Drop_Callbacks   => Drop_Profile.Native_Drop_Callbacks,
-         Native_Drop_Automation  => Drop_Profile.Event_Source_Backend,
-         Directory_Watch_Polling => True,
-         Native_File_Watching    => True);
+         Live_Window_Smoke_Ready => Display and then Vulkan);
    end Runtime_Capabilities;
-
-   function Native_Drag_Automation_Profile_Of_Current_Runtime
-      return Native_Drag_Automation_Profile is
-   begin
-      return
-        (Portable_GLFW_Automation => Files.Drop_Events.Profile.Portable_GLFW_Automation,
-         Native_Drop_Callbacks    => Files.Drop_Events.Profile.Native_Drop_Callbacks,
-         Event_Source_Backend     => Files.Drop_Events.Profile.Event_Source_Backend,
-         Queued_Drop_Imports      => Files.Drop_Events.Profile.Queued_Drop_Imports,
-         Requires_OS_Event_Source => Files.Drop_Events.Profile.Requires_OS_Event_Source,
-         Uses_Shell               => Files.Drop_Events.Profile.Uses_Shell,
-         Max_Paths                => Files.Drop_Events.Profile.Max_Paths,
-         Binding_Unit             => Files.Drop_Events.Profile.Binding_Unit);
-   end Native_Drag_Automation_Profile_Of_Current_Runtime;
 
    function Accumulate_Scroll_Offset
      (Remainder : in out Long_Float;

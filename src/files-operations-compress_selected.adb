@@ -5,7 +5,7 @@ function Compress_Selected
    Format   : Archive_Format)
    return Operation_Result
 is
-   Items     : constant Files.File_System.Item_Vectors.Vector :=
+   Items     : constant Files.Items.Item_Vectors.Vector :=
      Files.Model.Selected_Items (Model);
    Directory : constant String :=
      (if Files.Model.In_Recent_View (Model) and then not Items.Is_Empty

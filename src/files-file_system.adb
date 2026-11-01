@@ -1,3 +1,4 @@
+with Files.Environment;
 with Files.Diagnostics;
 with Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Hashed_Sets;
@@ -21,7 +22,6 @@ with GNAT.OS_Lib;
 with Zlib;
 
 with Files.File_Types;
-with Files.Fs_Primitives;
 with Files_Config;
 
 with Hostkit.Metadata;
@@ -1096,8 +1096,6 @@ package body Files.File_System is
    end Delete_Trashed_Item;
 
    use type Hostkit.Host.Kind;
-
-   function Parent_Directory (Path : String) return String is separate;
 
    function Expand_User_Path (Path : String) return String is separate;
 

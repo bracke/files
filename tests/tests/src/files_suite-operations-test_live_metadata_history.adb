@@ -48,7 +48,7 @@ separate (Files_Suite.Operations)
             Assert (Available, "read actual ownership");
             Load := Files.File_System.Load_Directory (Root, Settings);
             declare
-               Item : Files.File_System.Directory_Item := Load.Items.First_Element;
+               Item : Files.Items.Directory_Item := Load.Items.First_Element;
             begin
                Item.Owner_Id := (if Uid > 0 then Uid - 1 else 1);
                Item.Group_Id := (if Gid > 0 then Gid - 1 else 1);
@@ -65,7 +65,7 @@ separate (Files_Suite.Operations)
                "change ownership with a stale cached owner");
             Assert
               (Ada.Strings.Fixed.Index
-                 (To_String (Files.Model.Undo_To_Paths (Model).First_Element),
+                 (To_String (Files.Model.Testing.Undo_To_Paths (Model).First_Element),
                   Files.Types.Account_Image (Uid) & " "
                   & Files.Types.Account_Image (Gid)
                   & String'(1 => Ada.Characters.Latin_1.NUL)) = 1,

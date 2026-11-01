@@ -5,9 +5,9 @@ separate (Files_Suite.Model)
    --  lookup. Unsampled, the pane gets no name and falls back to the number.
    procedure Test_Snapshot_Owner_Names_From_Model (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Owned    : Files.File_System.Directory_Item :=
+      Owned    : Files.Items.Directory_Item :=
         Files.File_System.Make_Item (Root, "Owned.txt", Files.Types.Regular_File_Item, "text/plain");
-      Items    : Files.File_System.Item_Vectors.Vector;
+      Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Revision : Natural;

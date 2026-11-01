@@ -4,7 +4,7 @@ function Extract_Selected
    Settings : Files.Settings.Settings_Model)
    return Operation_Result
 is
-   Items     : constant Files.File_System.Item_Vectors.Vector :=
+   Items     : constant Files.Items.Item_Vectors.Vector :=
      Files.Model.Selected_Items (Model);
    Directory : constant String := Files.Model.Current_Path (Model);
 

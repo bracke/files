@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Commands)
    --  Files.Commands.Status.Status_Of is the one set of enablement rules; the
@@ -49,7 +50,7 @@ separate (Files_Suite.Commands)
       end;
 
       --  The recent view: a search names the view, not a directory load error.
-      Files.Model.Navigate_Recent (Model, Files.File_System.Item_Vectors.Empty_Vector);
+      Files.Model.Navigate_Recent (Model, Files.Items.Item_Vectors.Empty_Vector);
       Files.Model.Set_Filter (Model, "alpha");
       Expect (Files.Commands.Search_Recursive_Command, "error.command.recent_view", "search in the recent view");
 

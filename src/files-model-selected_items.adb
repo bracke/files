@@ -2,9 +2,9 @@ separate (Files.Model)
 function Selected_Items
   (Model : Window_Model;
    Limit : Natural := Natural'Last)
-   return Files.File_System.Item_Vectors.Vector
+   return Files.Items.Item_Vectors.Vector
 is
-   Result : Files.File_System.Item_Vectors.Vector;
+   Result : Files.Items.Item_Vectors.Vector;
 begin
    if Selected_Count (Model) = 0 or else Model.Items.Is_Empty then
       return Result;

@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.Commands.Status;
 with Files.Grouping;
 separate (Files.Rendering)
@@ -32,12 +33,12 @@ separate (Files.Rendering)
             when others => Default_Theme);
 
       function Filetype_Detail
-        (Item : Files.File_System.Directory_Item)
+        (Item : Files.Items.Directory_Item)
          return UString
  is separate;
 
       function Filetype_Extra
-        (Item : Files.File_System.Directory_Item)
+        (Item : Files.Items.Directory_Item)
          return UString
  is separate;
 
@@ -46,7 +47,7 @@ separate (Files.Rendering)
          Label : String)
          return String is separate;
       --  The selection, copied once for the selection total and the info pane.
-      Selected : Files.File_System.Item_Vectors.Vector;
+      Selected : Files.Items.Item_Vectors.Vector;
    begin
       Snapshot.Current_Path := To_Unbounded_String (Files.Model.Current_Path (Model));
       Snapshot.Current_Path_Is_Favorite :=
@@ -149,7 +150,7 @@ separate (Files.Rendering)
          declare
             Content : constant Files.Quick_Look.Quick_Look_Content :=
               Files.Model.Quick_Look_Content_Of (Model);
-            Item    : constant Files.File_System.Directory_Item :=
+            Item    : constant Files.Items.Directory_Item :=
               Files.Model.Selected_Item (Model);
          begin
             Snapshot.Quick_Look_Kind           := Content.Kind;
@@ -246,7 +247,7 @@ separate (Files.Rendering)
          for Index in Rows.First_Index .. Rows.Last_Index loop
             declare
                Row  : Files.Model.Visible_Row renames Rows (Index);
-               Item : Files.File_System.Directory_Item renames Row.Item;
+               Item : Files.Items.Directory_Item renames Row.Item;
                Full_Path : constant String := To_String (Item.Full_Path);
                Rename_On     : Boolean;
                Rename_Value  : Ada.Strings.Unbounded.Unbounded_String;
@@ -374,10 +375,10 @@ separate (Files.Rendering)
 
       if Snapshot.Info_Pane_Open and then Files.Model.Selected_Count (Model) > 0 then
          declare
-            Items : Files.File_System.Item_Vectors.Vector renames Selected;
+            Items : Files.Items.Item_Vectors.Vector renames Selected;
 
             function Build_Info
-              (Item : Files.File_System.Directory_Item)
+              (Item : Files.Items.Directory_Item)
                return Info_Snapshot
             is
                Is_Directory : constant Boolean := Item.Kind = Files.Types.Directory_Item;
@@ -432,7 +433,7 @@ separate (Files.Rendering)
                return Info;
             end Build_Info;
 
-            Single_Item : constant Files.File_System.Directory_Item :=
+            Single_Item : constant Files.Items.Directory_Item :=
               Files.Model.Selected_Item (Model);
             In_Trash    : constant Boolean := Files.Model.Current_Is_Trash (Model);
          begin

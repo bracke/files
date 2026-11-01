@@ -5,7 +5,7 @@ separate (Files_Suite.Operations)
       File_Name : constant String := Join (Root, "recent-file.txt");
       Missing   : constant String := Join (Root, "recent-gone.txt");
       Settings  : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Items     : Files.File_System.Item_Vectors.Vector;
+      Items     : Files.Items.Item_Vectors.Vector;
       Model     : Files.Model.Window_Model;
       Result    : Files.Operations.Operation_Result;
       Dir_Index : Natural := 0;

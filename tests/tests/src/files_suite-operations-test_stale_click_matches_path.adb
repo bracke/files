@@ -9,7 +9,7 @@ separate (Files_Suite.Operations)
       Model    : Files.Model.Window_Model;
       Clicked  : Natural := 0;
 
-      function Listing (Path : String) return Files.File_System.Item_Vectors.Vector is
+      function Listing (Path : String) return Files.Items.Item_Vectors.Vector is
         (Files.File_System.Load_Directory (Path, Settings).Items);
 
       function Index_Of (Name : String) return Natural is

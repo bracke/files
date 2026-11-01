@@ -51,15 +51,6 @@ package body Files.Paste is
       return False;
    end Contains;
 
-   function Has_Conflict
-     (Item     : Work_Item;
-      Existing : Files.Types.String_Vectors.Vector)
-      return Boolean is
-   begin
-      return Contains
-        (Existing, Desired_Path (To_String (Item.Dest_Dir), To_String (Item.Dest_Name)));
-   end Has_Conflict;
-
    function Effective_Decision
      (Policy   : Conflict_Policy;
       Override : Item_Decision)

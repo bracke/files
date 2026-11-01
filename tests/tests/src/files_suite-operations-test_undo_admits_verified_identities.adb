@@ -17,7 +17,7 @@ separate (Files_Suite.Operations)
          Write_Binary_File (Verifiable, "verifiable bytes");
          Write_Binary_File (Older, "older bytes");
          Files.Model.Initialize
-           (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+           (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Operations.Clear_Undo (Model);
          Older_Path.Append (To_Unbounded_String (Older));
          Files.Operations.Record_Undo

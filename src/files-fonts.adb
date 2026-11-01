@@ -1,3 +1,4 @@
+with Files.Environment;
 with Files.Diagnostics;
 with Ada.Characters.Handling;
 with Ada.Containers.Vectors;
@@ -68,9 +69,6 @@ package body Files.Fonts is
       To_Unbounded_String ("/System/Library/Fonts"),
       To_Unbounded_String ("C:\Windows\Fonts")];
 
-   function Safe_Environment_Value (Name : String) return String is
-     (Ada.Environment_Variables.Value (Name, ""));
-
    function Is_Ordinary_File
      (Path : String)
       return Boolean is
@@ -81,18 +79,8 @@ package body Files.Fonts is
          return False;
    end Is_Ordinary_File;
 
-   function To_Lower
-     (Text : String)
-      return String
-   is
-      Result : String (Text'Range);
-   begin
-      for Index in Text'Range loop
-         Result (Index) := Ada.Characters.Handling.To_Lower (Text (Index));
-      end loop;
-
-      return Result;
-   end To_Lower;
+   --  UTF-8 aware: a byte-wise Latin-1 lowering broke multi-byte names.
+   function To_Lower (Text : String) return String renames Files.Types.To_Lower;
 
    function Has_Suffix
      (Text   : String;
@@ -464,7 +452,7 @@ package body Files.Fonts is
    end Glyph_Coverage_Score;
 
    function Default_Font_Path return String is
-      Override_Path : constant String := Safe_Environment_Value ("FILES_FONT_PATH");
+      Override_Path : constant String := Files.Environment.Value ("FILES_FONT_PATH");
       Best_Path  : Unbounded_String;
       Best_Score : Integer := -1;
 

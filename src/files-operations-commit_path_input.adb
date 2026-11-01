@@ -7,7 +7,7 @@ is
    Path_Result : constant Files.File_System.Path_Result :=
      Files.File_System.Normalize_Path
        (Files.File_System.Expand_User_Path (Files.Model.Path_Input_Text (Model)));
-   Empty_Items : Files.File_System.Item_Vectors.Vector;
+   Empty_Items : Files.Items.Item_Vectors.Vector;
 begin
    if Path_Result.Status /= Files.File_System.Path_Valid then
       Files.Model.Commit_Path_Input (Model, Path_Result, Empty_Items);

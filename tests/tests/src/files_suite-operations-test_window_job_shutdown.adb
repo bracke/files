@@ -45,8 +45,8 @@ separate (Files_Suite.Operations)
       for Scenario in Scenario_Kind loop
          Reset_Root;
          Write_Binary_File (Join (Root, "source.txt"), "source bytes");
-         Files.Model.Initialize (Closing, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
-         Files.Model.Initialize (Remaining, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+         Files.Model.Initialize (Closing, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
+         Files.Model.Initialize (Remaining, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Model.Set_Background_Transfers (Closing, True);
          Files.Model.Set_Background_Transfers (Remaining, True);
          Actions.Clear;

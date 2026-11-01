@@ -58,7 +58,7 @@ package body Files.Job_Records is
    end Signature_Is_Consistent;
 
    function Thumbnail_Is_Valid
-     (Value : Files.File_System.Directory_Item) return Boolean
+     (Value : Files.Items.Directory_Item) return Boolean
    is
       Pixel_Count : constant Ada.Containers.Count_Type :=
         Ada.Containers.Count_Type (Files.Shared_Bytes.Length (Value.Thumbnail_Pixels));
@@ -81,7 +81,7 @@ package body Files.Job_Records is
    end Thumbnail_Is_Valid;
 
    function Item_Is_Consistent
-     (Value : Files.File_System.Directory_Item) return Boolean is
+     (Value : Files.Items.Directory_Item) return Boolean is
    begin
       return Valid_Absolute_Path (Value.Full_Path)
         and then Valid_Absolute_Path (Value.Parent_Path)
@@ -247,7 +247,7 @@ package body Files.Job_Records is
 
    procedure Write_Item
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Value : Files.File_System.Directory_Item)
+      Value : Files.Items.Directory_Item)
    is
    begin
       if not Item_Is_Consistent (Value) then
@@ -285,9 +285,9 @@ package body Files.Job_Records is
 
    function Read_Item
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
-      return Files.File_System.Directory_Item
+      return Files.Items.Directory_Item
    is
-      Result : Files.File_System.Directory_Item;
+      Result : Files.Items.Directory_Item;
    begin
       Result.Name := To_Unbounded_String (Read_String (Stream, Max_Path_Length));
       Result.Full_Path := To_Unbounded_String (Read_String (Stream, Max_Path_Length));
@@ -325,7 +325,7 @@ package body Files.Job_Records is
 
    procedure Write_Items
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Value : Files.File_System.Item_Vectors.Vector)
+      Value : Files.Items.Item_Vectors.Vector)
    is
    begin
       if Value.Length > Ada.Containers.Count_Type (Max_Item_Count) then
@@ -339,10 +339,10 @@ package body Files.Job_Records is
 
    function Read_Items
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
-      return Files.File_System.Item_Vectors.Vector
+      return Files.Items.Item_Vectors.Vector
    is
       Count : constant Natural := Natural'Input (Stream);
-      Result : Files.File_System.Item_Vectors.Vector;
+      Result : Files.Items.Item_Vectors.Vector;
    begin
       if Count > Max_Item_Count then
          raise Ada.IO_Exceptions.Data_Error;

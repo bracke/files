@@ -1,3 +1,4 @@
+with Files.Items;
 with Ada.Streams;
 
 with Files.File_System;
@@ -65,14 +66,14 @@ package Files.Job_Records is
    --  @param Value Items to encode.
    procedure Write_Items
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Value : Files.File_System.Item_Vectors.Vector);
+      Value : Files.Items.Item_Vectors.Vector);
 
    --  Decode a bounded vector of directory items and thumbnail data.
    --  @param Stream Source stream.
    --  @return Decoded items.
    function Read_Items
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
-      return Files.File_System.Item_Vectors.Vector;
+      return Files.Items.Item_Vectors.Vector;
 
    --  Encode a background operation result.
    --  @param Stream Destination stream.

@@ -13,7 +13,7 @@ separate (Files_Suite.Interaction)
          Ada.Directories.Delete_File (Path);
       end if;
       Files.Model.Initialize
-        (Model, Files_Suite.Support.Root, Files.File_System.Item_Vectors.Empty_Vector, Files_Suite.Support.Root,
+        (Model, Files_Suite.Support.Root, Files.Items.Item_Vectors.Empty_Vector, Files_Suite.Support.Root,
          Default_View_Mode => Files.Types.Details);
 
       --  Several pointer moves of one drag change the width in memory only.

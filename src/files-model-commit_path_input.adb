@@ -2,7 +2,7 @@ separate (Files.Model)
 procedure Commit_Path_Input
   (Model  : in out Window_Model;
    Result : Files.File_System.Path_Result;
-   Items  : Files.File_System.Item_Vectors.Vector) is
+   Items  : Files.Items.Item_Vectors.Vector) is
 begin
    Model.Revision_Value := Model.Revision_Value + 1;
    if Result.Status = Files.File_System.Path_Valid then

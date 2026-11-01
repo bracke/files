@@ -1,11 +1,12 @@
+with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Copy_Path_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings   : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model      : Files.Model.Window_Model := Sample_Model;
-      Empty      : Files.File_System.Item_Vectors.Vector;
-      Pair       : Files.File_System.Item_Vectors.Vector;
+      Empty      : Files.Items.Item_Vectors.Vector;
+      Pair       : Files.Items.Item_Vectors.Vector;
       Ctrl_Shift : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result     : Files.Controller.Controller_Result;
       Alpha_Path : constant String := Join (Root, "Alpha.txt");

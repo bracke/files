@@ -3,7 +3,7 @@ function Ownership_Editable_Selection
   (Model : Files.Model.Window_Model)
    return Boolean
 is
-   Item : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
+   Item : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
 begin
    return Files.Model.Selected_Count (Model) = 1
      and then not Files.Model.Selection_Includes_Temporary (Model)

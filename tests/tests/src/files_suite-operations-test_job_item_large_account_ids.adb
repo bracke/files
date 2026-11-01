@@ -8,8 +8,8 @@ separate (Files_Suite.Operations)
       use type Files.Types.Account_Id;
       Path   : constant String := Join (Root, "large-account-ids");
       File   : Ada.Streams.Stream_IO.File_Type;
-      Items  : Files.File_System.Item_Vectors.Vector;
-      Item   : Files.File_System.Directory_Item;
+      Items  : Files.Items.Item_Vectors.Vector;
+      Item   : Files.Items.Directory_Item;
       Nobody : constant Files.Types.Account_Id := 4_294_967_294;
       Mapped : constant Files.Types.Account_Id := 2**31;
    begin

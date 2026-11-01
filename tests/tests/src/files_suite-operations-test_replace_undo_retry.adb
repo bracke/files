@@ -42,7 +42,7 @@ separate (Files_Suite.Operations)
                      To_Paths.Append (To_Unbounded_String (Source_B));
                   end if;
                end if;
-               Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+               Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
                if Scenario = Recovery_Only then
                   Files.Operations.Record_Undo
                     (Model, Files.Model.Undo_Restore_Trash, Backups, To_Paths, Redoable => False);

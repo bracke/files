@@ -1,3 +1,5 @@
+with Files.File_System;
+with Files.Model.Testing;
 with Files.Settings;
 with Ada.Text_IO;
 with Ada.Command_Line;
@@ -525,8 +527,8 @@ package body Files_Suite.Support is
          return False;
    end Case_Insensitive_Filesystem;
 
-   function Sample_Items return Files.File_System.Item_Vectors.Vector is
-      Items : Files.File_System.Item_Vectors.Vector;
+   function Sample_Items return Files.Items.Item_Vectors.Vector is
+      Items : Files.Items.Item_Vectors.Vector;
    begin
       Items.Append (Files.File_System.Make_Item (Root, "Alpha.txt", Files.Types.Regular_File_Item, "text/plain"));
       Items.Append (Files.File_System.Make_Item (Root, "Beta.txt", Files.Types.Regular_File_Item, "text/plain"));
@@ -620,9 +622,9 @@ package body Files_Suite.Support is
    begin
       for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
          Files.Operations.Poll_Folder_Sizes (Model);
-         exit when not Files.Model.Folder_Scan_Is_Active (Model);
+         exit when not Files.Model.Testing.Folder_Scan_Is_Active (Model);
       end loop;
-      Assert (not Files.Model.Folder_Scan_Is_Active (Model), "the background folder-size walks finish");
+      Assert (not Files.Model.Testing.Folder_Scan_Is_Active (Model), "the background folder-size walks finish");
    end Drain_Folder_Sizes;
 
    function Process_State (Process_Id : Integer) return Character is

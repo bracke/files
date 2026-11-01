@@ -27,7 +27,7 @@ separate (Files_Suite.Interaction)
         (Result.Command,
          Files.Commands.Extract_Archive_Command,
          "the result echoes the dispatched command id");
-      Assert (not Result.Command_Executed,
+      Assert (Result.Status /= Files.Controller.Controller_Command_Executed,
               "the disabled command does not report execution");
       Files_Suite.Support.Assert_Equal
         (Result.Status,

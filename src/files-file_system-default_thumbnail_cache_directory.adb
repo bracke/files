@@ -3,7 +3,7 @@ function Default_Thumbnail_Cache_Directory
   (Fallback_Directory : String)
    return String
 is
-   Raw_Xdg_Cache : constant String := Safe_Environment_Value ("XDG_CACHE_HOME");
+   Raw_Xdg_Cache : constant String := Files.Environment.Value ("XDG_CACHE_HOME");
    Xdg_Cache : constant String :=
      (if GNAT.OS_Lib.Is_Absolute_Path (Raw_Xdg_Cache) then Raw_Xdg_Cache
       else "");

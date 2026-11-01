@@ -13,7 +13,7 @@ separate (Files_Suite.Operations)
       Ada.Directories.Create_Path (Folder);
       Write_File (Item, "opened");
       Files.Settings.Note_Recent (Settings, Item);
-      Files.Model.Initialize (Model, Folder, Files.File_System.Item_Vectors.Empty_Vector, Root);
+      Files.Model.Initialize (Model, Folder, Files.Items.Item_Vectors.Empty_Vector, Root);
       Step := Files.Operations.Refresh (Model, Settings);
       Step := Files.Operations.Navigate_Recent (Model, Settings);
       Assert (Files.Model.In_Recent_View (Model), "the recent view is open");

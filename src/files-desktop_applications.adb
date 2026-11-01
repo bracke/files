@@ -1,3 +1,4 @@
+with Files.Environment;
 with Files.Diagnostics;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Directories;
@@ -85,16 +86,7 @@ package body Files.Desktop_Applications is
       return True;
    end Is_Valid_Group_Header;
 
-   function Environment_Value (Name : String) return String is
-   begin
-      if Ada.Environment_Variables.Exists (Name) then
-         return Ada.Environment_Variables.Value (Name);
-      end if;
-      return "";
-   exception
-      when others =>
-         return "";
-   end Environment_Value;
+   function Environment_Value (Name : String) return String renames Files.Environment.Value;
 
    function Strip_Locale_Encoding (Locale : String) return String is
       Dot      : Natural := 0;
@@ -138,13 +130,8 @@ package body Files.Desktop_Applications is
          Result.Append (To_Unbounded_String (Value));
       end Append_Unique;
    begin
-      Raw := To_Unbounded_String (Environment_Value ("LC_ALL"));
-      if Raw = "" then
-         Raw := To_Unbounded_String (Environment_Value ("LC_MESSAGES"));
-      end if;
-      if Raw = "" then
-         Raw := To_Unbounded_String (Environment_Value ("LANG"));
-      end if;
+      --  The variable the interface's own locale comes from, as spelled.
+      Raw := To_Unbounded_String (Files.Localization.Message_Locale_Variable);
 
       if Raw = "" then
          Raw := To_Unbounded_String (Files.Localization.System_Locale);
@@ -1070,14 +1057,13 @@ package body Files.Desktop_Applications is
    end Scan_Directory;
 
    --  Return the list of XDG base data directories to scan, most specific first.
+   --  Where the desktop keeps its entries: the host's answer, which its
+   --  default opener searches too. A host with none (Windows, macOS) still
+   --  has the folders a user exported in XDG_DATA_HOME and XDG_DATA_DIRS
+   --  searched -- they meant them, as files honours its other XDG overrides
+   --  on every host -- but not the freedesktop defaults.
    function Data_Directories return Files.Types.String_Vectors.Vector is
       Bases : Files.Types.String_Vectors.Vector;
-
-      Home          : constant String := Environment_Value ("HOME");
-      Data_Home     : constant String := Environment_Value ("XDG_DATA_HOME");
-      Data_Dirs     : constant String := Environment_Value ("XDG_DATA_DIRS");
-      Effective_Dirs : constant String :=
-        (if Data_Dirs /= "" then Data_Dirs else "/usr/local/share:/usr/share");
 
       procedure Append_Base (Value : String) is
       begin
@@ -1091,31 +1077,26 @@ package body Files.Desktop_Applications is
          end loop;
          Bases.Append (To_Unbounded_String (Value));
       end Append_Base;
-   begin
-      if Data_Home /= "" and then GNAT.OS_Lib.Is_Absolute_Path (Data_Home) then
-         Append_Base (Data_Home);
-      elsif Home /= "" and then GNAT.OS_Lib.Is_Absolute_Path (Home) then
-         Append_Base (Home & "/.local/share");
-      end if;
 
-      declare
-         Current : Unbounded_String;
+      procedure Append_List (List : String) is
+         First : Positive := List'First;
       begin
-         for Character_Value of Effective_Dirs loop
-            if Character_Value = ':' then
-               if Length (Current) > 0 then
-                  Append_Base (To_String (Current));
-                  Current := Null_Unbounded_String;
-               end if;
-            else
-               Append (Current, Character_Value);
+         for Index in List'Range loop
+            if List (Index) = ':' then
+               Append_Base (List (First .. Index - 1));
+               First := Index + 1;
             end if;
          end loop;
-         if Length (Current) > 0 then
-            Append_Base (To_String (Current));
-         end if;
-      end;
-
+         Append_Base (List (First .. List'Last));
+      end Append_List;
+   begin
+      for Base of Hostkit.Fs.Application_Data_Directories loop
+         Append_Base (To_String (Base));
+      end loop;
+      if Bases.Is_Empty then
+         Append_Base (Environment_Value ("XDG_DATA_HOME"));
+         Append_List (Environment_Value ("XDG_DATA_DIRS"));
+      end if;
       return Bases;
    exception
       when others =>

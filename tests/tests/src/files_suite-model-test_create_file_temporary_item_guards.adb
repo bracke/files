@@ -1,10 +1,11 @@
+with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Model)
    procedure Test_Create_File_Temporary_Item_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
-      Items    : Files.File_System.Item_Vectors.Vector;
+      Items    : Files.Items.Item_Vectors.Vector;
       Result   : Files.Controller.Controller_Result;
       Operation : Files.Operations.Operation_Result;
    begin
@@ -40,7 +41,7 @@ separate (Files_Suite.Model)
         (Files.Model.Selected_Name (Model),
          "untitled 2.txt",
          "temporary selection exposes pending name");
-      Assert (Files.Model.Selected_Item_Is_Temporary (Model), "model identifies selected temporary item");
+      Assert (Files.Model.Testing.Selected_Item_Is_Temporary (Model), "model identifies selected temporary item");
       Assert (not Files.Model.Rename_Is_Enabled (Model), "temporary item is not a real rename target");
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),

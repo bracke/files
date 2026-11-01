@@ -214,17 +214,23 @@ package body Files.Localization is
    end System_Locale;
 
    --  System_Locale's answer worked out afresh from the environment.
-   function Resolve_System_Locale return String is
-      LC_All      : constant String := Environment_Locale ("LC_ALL");
-      LC_Messages : constant String := Environment_Locale ("LC_MESSAGES");
-      Lang        : constant String := Environment_Locale ("LANG");
+   function Message_Locale_Variable return String is
+      function Set (Name : String) return String is
+        (Ada.Strings.Fixed.Trim (Ada.Environment_Variables.Value (Name, ""), Ada.Strings.Both));
+      LC_All      : constant String := Set ("LC_ALL");
+      LC_Messages : constant String := Set ("LC_MESSAGES");
    begin
-      if LC_All /= "" then
-         return LC_All;
-      elsif LC_Messages /= "" then
-         return LC_Messages;
-      elsif Lang /= "" then
-         return Lang;
+      return
+        (if LC_All /= "" then LC_All
+         elsif LC_Messages /= "" then LC_Messages
+         else Set ("LANG"));
+   end Message_Locale_Variable;
+
+   function Resolve_System_Locale return String is
+      Variable : constant String := Message_Locale_Variable;
+   begin
+      if Variable /= "" then
+         return Normalize_Locale (Variable);
       end if;
 
       declare

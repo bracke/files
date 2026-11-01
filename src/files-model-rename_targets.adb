@@ -8,7 +8,7 @@ begin
    for Field of Model.Rename_Fields loop
       if Field.Item_Index in 1 .. Natural (Model.Items.Last_Index) then
          declare
-            Item : constant Files.File_System.Directory_Item :=
+            Item : constant Files.Items.Directory_Item :=
               Model.Items.Element (Positive (Field.Item_Index));
          begin
             Result.Append

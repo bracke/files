@@ -28,16 +28,12 @@ package Files.Interaction is
       Status               : Files.Controller.Controller_Status :=
         Files.Controller.Controller_Ignored;
       --  Status reported by the underlying controller leaf operation.
-      Command_Executed     : Boolean := False;
-      --  True when a command actually ran (controller reported execution).
       Settings_Changed     : Boolean := False;
       --  True when the persisted settings model changed and was written to disk.
       Font_Size_Changed    : Boolean := False;
       --  True when a saved settings change altered the live font pixel size.
       Needs_Glyph_Rebuild  : Boolean := False;
       --  True when the shell must invalidate its rasterized glyph cache.
-      Directory_Reloaded   : Boolean := False;
-      --  True when the current directory listing was reloaded.
       Clear_Pending_Text   : Boolean := False;
       --  True when the shell must drop any buffered character input.
       Context_Menu_Changed : Boolean := False;

@@ -51,13 +51,13 @@ separate (Files_Suite.Operations)
       Files.Folder_Size.Request (Scan, "relative-folder-size-target");
       Assert
         (not Files.Folder_Size.Is_Active (Scan)
-         and then Files.Folder_Size.Target_For_Test (Scan) = "",
+         and then Files.Folder_Size.Testing.Target (Scan) = "",
          "folder-size requests reject relative targets before launching a helper");
       Files.Folder_Size.Request
         (Scan, Root & Character'Val (0) & "ignored");
       Assert
         (not Files.Folder_Size.Is_Active (Scan)
-         and then Files.Folder_Size.Target_For_Test (Scan) = "",
+         and then Files.Folder_Size.Testing.Target (Scan) = "",
          "folder-size requests reject NUL-containing targets before launching a helper");
       Ada.Environment_Variables.Set ("FILES_TEST_STALL_FOLDER_SIZES", Marker);
       Before := Now;

@@ -1,9 +1,10 @@
+with Files.Items;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 separate (Files.Model)
 procedure Restore_Selection
   (Model        : in out Window_Model;
-   Items        : Files.File_System.Item_Vectors.Vector;
+   Items        : Files.Items.Item_Vectors.Vector;
    Primary_Path : String)
 is
    --  Runs on every refresh, so a large Select All must stay linear:

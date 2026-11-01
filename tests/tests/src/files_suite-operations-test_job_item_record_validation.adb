@@ -3,14 +3,14 @@ separate (Files_Suite.Operations)
       pragma Unreferenced (T);
       Path      : constant String := Join (Root, "invalid-job-items");
       File      : Ada.Streams.Stream_IO.File_Type;
-      Items     : Files.File_System.Item_Vectors.Vector;
-      Item      : Files.File_System.Directory_Item;
+      Items     : Files.Items.Item_Vectors.Vector;
+      Item      : Files.Items.Directory_Item;
       Signature : Files.File_System.Directory_Signature;
       Rejected  : Boolean := False;
 
       procedure Write_Raw_Items
         (Record_Path : String;
-         Value       : Files.File_System.Directory_Item)
+         Value       : Files.Items.Directory_Item)
       is
          Stream : Ada.Streams.Stream_IO.Stream_Access;
       begin

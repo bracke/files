@@ -2,7 +2,7 @@ separate (Files_Suite.Commands)
    procedure Test_Tab_Focus_Ring (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Items    : Files.File_System.Item_Vectors.Vector;
+      Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Result   : Files.Controller.Controller_Result;
       pragma Unreferenced (Result);

@@ -9,6 +9,7 @@ with Hostkit.Fs;
 with Hostkit.Host;
 
 with Files.File_Identities;
+with Files.Fs_Primitives;
 with Files.Durable_Writes;
 with Files.Private_Directories;
 with Files.UTF8;
@@ -284,11 +285,7 @@ package body Files.Settings is
       return Text (First .. Last);
    end Trim;
 
-   function Starts_With (Text : String; Prefix : String) return Boolean is
-   begin
-      return Text'Length >= Prefix'Length
-        and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix;
-   end Starts_With;
+   function Starts_With (Text : String; Prefix : String) return Boolean renames Files.Types.Starts_With;
 
    function Contains (Text : String; Pattern : String) return Boolean is
    begin
@@ -337,17 +334,7 @@ package body Files.Settings is
 
    function Quoted_Value_Is_Valid (Text : String) return Boolean is separate;
 
-   function Parent_Directory (Path : String) return String is
-   begin
-      if Path = "" then
-         return "";
-      end if;
-
-      return Ada.Directories.Containing_Directory (Path);
-   exception
-      when others =>
-         return "";
-   end Parent_Directory;
+   function Parent_Directory (Path : String) return String renames Files.Fs_Primitives.Parent_Directory;
 
    function Icon_Theme_Name_Is_Valid (Name : String) return Boolean is
       Clean : constant String := Files.Types.To_Lower (Trim (Name));

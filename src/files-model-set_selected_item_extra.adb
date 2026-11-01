@@ -9,7 +9,7 @@ begin
       return;
    end if;
    declare
-      Item : Files.File_System.Directory_Item := Model.Items.Element (Idx);
+      Item : Files.Items.Directory_Item := Model.Items.Element (Idx);
    begin
       Item.Filetype_Extra := To_Unbounded_String (Token);
       Item.Filetype_Extra_Loaded := True;

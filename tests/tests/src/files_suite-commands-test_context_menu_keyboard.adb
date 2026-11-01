@@ -1,10 +1,11 @@
+with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Context_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Files.Commands.Context_Menu_Row_Kind;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Items    : Files.File_System.Item_Vectors.Vector;
+      Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Result   : Files.Controller.Controller_Result;
       pragma Unreferenced (Result);

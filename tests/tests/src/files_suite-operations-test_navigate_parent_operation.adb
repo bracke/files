@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Navigate_Parent_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -70,7 +71,7 @@ separate (Files_Suite.Operations)
          Root_Op    : Files.Operations.Operation_Result;
       begin
          Files.Model.Initialize
-           (Root_Model, "/", Files.File_System.Item_Vectors.Empty_Vector, Full_Child);
+           (Root_Model, "/", Files.Items.Item_Vectors.Empty_Vector, Full_Child);
          Assert
            (not Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Parent_Command, Root_Model),
             "navigate-parent is disabled at the filesystem root");
@@ -95,7 +96,7 @@ separate (Files_Suite.Operations)
             Trash_Model : Files.Model.Window_Model;
             Source_Load : constant Files.File_System.Item_Load_Result :=
               Files.File_System.Load_Item (Join (Full_Child, "leaf.txt"), Settings);
-            Trash_Items : Files.File_System.Item_Vectors.Vector;
+            Trash_Items : Files.Items.Item_Vectors.Vector;
             Trash_Sources : Files.Types.String_Vectors.Vector;
             Trash_Result  : Files.Operations.Operation_Result;
          begin

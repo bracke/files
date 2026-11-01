@@ -1,3 +1,4 @@
+with Files.Items;
 with Ada.Calendar;
 with Files.Copy_Context;
 with Files.Desktop_Applications;
@@ -35,7 +36,7 @@ package Files.Model is
    procedure Initialize
      (Model             : out Window_Model;
       Directory_Path    : String;
-      Items             : Files.File_System.Item_Vectors.Vector;
+      Items             : Files.Items.Item_Vectors.Vector;
       Home_Path         : String;
       Default_View_Mode : Files.Types.View_Mode := Files.Types.Small_Icons);
 
@@ -428,11 +429,11 @@ package Files.Model is
    function Visible_Item
      (Model         : Window_Model;
       Visible_Index : Positive)
-      return Files.File_System.Directory_Item;
+      return Files.Items.Directory_Item;
 
    --  One visible row: the directory item plus whether it is selected.
    type Visible_Row is record
-      Item       : Files.File_System.Directory_Item;
+      Item       : Files.Items.Directory_Item;
       Selected   : Boolean := False;
       --  Index into the loaded items, or zero for the pending create row.
       --  Lets a caller walking the rows skip a per-row visible-to-item scan.
@@ -699,14 +700,6 @@ package Files.Model is
      (Model   : in out Window_Model;
       Columns : Positive);
 
-   --  Return the visible grid column count used by vertical selection movement.
-   --
-   --  @param Model Model to inspect.
-   --  @return Number of visible item columns used as the vertical movement stride.
-   function Selection_Grid_Columns
-     (Model : Window_Model)
-      return Positive;
-
    --  Record how many item rows the main view shows, for Page Up and Page
    --  Down. The shell measures it from the rendered layout before each key.
    --
@@ -764,7 +757,7 @@ package Files.Model is
    --  @return Selected item, or a default empty item when no selection exists.
    function Selected_Item
      (Model : Window_Model)
-      return Files.File_System.Directory_Item;
+      return Files.Items.Directory_Item;
 
    --  Return the selected items in deterministic loaded-item order.
    --
@@ -774,7 +767,7 @@ package Files.Model is
    function Selected_Items
      (Model : Window_Model;
       Limit : Natural := Natural'Last)
-      return Files.File_System.Item_Vectors.Vector;
+      return Files.Items.Item_Vectors.Vector;
 
    --  Restore the loaded, visible items present in a previous selection. Item
    --  paths provide identity across sorting and reloads; Primary_Path restores
@@ -785,16 +778,8 @@ package Files.Model is
    --  @param Primary_Path Full path of the previous primary item, or empty.
    procedure Restore_Selection
      (Model        : in out Window_Model;
-      Items        : Files.File_System.Item_Vectors.Vector;
+      Items        : Files.Items.Item_Vectors.Vector;
       Primary_Path : String);
-
-   --  Return whether the current selection is the temporary create-file item.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when the pending create-file item is selected.
-   function Selected_Item_Is_Temporary
-     (Model : Window_Model)
-      return Boolean;
 
    --  Return whether any selected item is the temporary create-file item.
    --
@@ -812,7 +797,7 @@ package Files.Model is
    procedure Navigate_To
      (Model          : in out Window_Model;
       Directory_Path : String;
-      Items          : Files.File_System.Item_Vectors.Vector);
+      Items          : Files.Items.Item_Vectors.Vector);
 
    --  Enter the virtual recent-items view, showing Items in place of an ordinary
    --  directory listing. The first entry into the view pushes the current path
@@ -824,7 +809,7 @@ package Files.Model is
    --  @param Items Recent items materialized from the stored recent paths.
    procedure Navigate_Recent
      (Model : in out Window_Model;
-      Items : Files.File_System.Item_Vectors.Vector);
+      Items : Files.Items.Item_Vectors.Vector);
 
    --  Return whether the virtual recent-items view is currently shown.
    --
@@ -1097,12 +1082,6 @@ package Files.Model is
      (Model : Window_Model;
       Index : Positive)
       return Boolean;
-
-   --  Toggle the folder-tree sidebar visibility.
-   --
-   --  @param Model Model to update.
-   procedure Toggle_Tree_Panel
-     (Model : in out Window_Model);
 
    --  Open the folder-tree sidebar.
    --
@@ -1416,7 +1395,7 @@ package Files.Model is
    procedure Commit_Path_Input
      (Model  : in out Window_Model;
       Result : Files.File_System.Path_Result;
-      Items  : Files.File_System.Item_Vectors.Vector);
+      Items  : Files.Items.Item_Vectors.Vector);
 
    --  Return whether the path input is valid.
    --
@@ -1958,18 +1937,6 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
-   type Rename_Policy is record
-      Single_Item_Only       : Boolean := True;
-      Synchronized_Multi     : Boolean := False;
-      Atomic_Multi_Rename    : Boolean := False;
-      Requires_One_Selection : Boolean := True;
-   end record;
-
-   --  Return the rename policy selected by this implementation.
-   --
-   --  @return Rename behavior policy.
-   function Rename_Behavior return Rename_Policy;
-
    --  Toggle synchronized multi-item rename mode.
    --
    --  When starting, one inline rename field is created per selected loaded
@@ -1986,14 +1953,6 @@ package Files.Model is
    function Rename_Is_Active
      (Model : Window_Model)
       return Boolean;
-
-   --  Return the number of active inline rename fields.
-   --
-   --  @param Model Model to inspect.
-   --  @return Count of rename fields (zero when rename is inactive).
-   function Rename_Field_Count
-     (Model : Window_Model)
-      return Natural;
 
    --  Return the first rename field's text (a shim for single-field callers).
    --
@@ -2099,20 +2058,6 @@ package Files.Model is
       Visible_Index : Natural;
       Position      : Natural);
 
-   --  Return the rename state for the item shown at Visible_Index.
-   --
-   --  @param Model Model to inspect.
-   --  @param Visible_Index One-based visible row index.
-   --  @param Active Set True when that row has an active rename field.
-   --  @param Value Field text (empty when inactive).
-   --  @param Cursor Field caret byte offset (zero when inactive).
-   procedure Rename_State_For_Visible
-     (Model         : Window_Model;
-      Visible_Index : Positive;
-      Active        : out Boolean;
-      Value         : out UString;
-      Cursor        : out Natural);
-
    --  Rename state for a row already resolved to its item, as Visible_Rows
    --  reports it; avoids a visible-to-item scan per row during a rename.
    --
@@ -2213,7 +2158,7 @@ package Files.Model is
    --  @param Items New loaded item list.
    procedure Replace_Items
      (Model : in out Window_Model;
-      Items : Files.File_System.Item_Vectors.Vector);
+      Items : Files.Items.Item_Vectors.Vector);
 
    --  Select an item by name in the full loaded model.
    --
@@ -2442,14 +2387,6 @@ package Files.Model is
       Path   : String;
       Result : Files.File_System.Directory_Size_Result);
 
-   --  @param Model Window whose measurement to inspect.
-   --  @return True when its size helper is active.
-   function Folder_Scan_Is_Active (Model : Window_Model) return Boolean;
-
-   --  @param Model Window whose measurement to inspect.
-   --  @return Active measurement path, or empty when idle.
-   function Folder_Scan_Target (Model : Window_Model) return String;
-
    --  Stack of undo/redo entries; the last element is the top of the stack.
    package Undo_Entry_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
@@ -2598,27 +2535,11 @@ package Files.Model is
      (Model  : in out Window_Model;
       Action : Undo_Entry);
 
-   --  Return the kind of the top undo entry.
-   --
-   --  @param Model Model to inspect.
-   --  @return Undo_None when the undo stack is empty.
-   function Undo_Kind_Of
-     (Model : Window_Model)
-      return Undo_Action_Kind;
-
    --  Return the top undo entry's "from" (current) paths.
    --
    --  @param Model Model to inspect.
    --  @return Vector of current locations, parallel to Undo_To_Paths.
    function Undo_From_Paths
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
-
-   --  Return the top undo entry's "to" (restore-target) paths.
-   --
-   --  @param Model Model to inspect.
-   --  @return Vector of restore targets, parallel to Undo_From_Paths.
-   function Undo_To_Paths
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector;
 
@@ -3362,7 +3283,7 @@ private
       --  layer so labels, favorites and recent paths follow (Note_Path_Move).
       Moved_From_Queue     : Files.Types.String_Vectors.Vector;
       Moved_To_Queue       : Files.Types.String_Vectors.Vector;
-      Items                : Files.File_System.Item_Vectors.Vector;
+      Items                : Files.Items.Item_Vectors.Vector;
       Directory_Signature  : Files.File_System.Directory_Signature;
       Filter_Value         : UString;
       Type_Ahead_Buffer_Value : UString;

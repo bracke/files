@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.Fs_Primitives;
 with Files.Diagnostics;
 with Ada.Directories;
@@ -41,7 +42,7 @@ package body Files.Refresh_Jobs is
    type Outcome is record
       Success : Boolean := False;
       Reloaded : Boolean := False;
-      Items : Files.File_System.Item_Vectors.Vector;
+      Items : Files.Items.Item_Vectors.Vector;
       Signature : Files.File_System.Directory_Signature;
       Error_Key : Files.Types.UString;
    end record;
@@ -407,7 +408,7 @@ package body Files.Refresh_Jobs is
       end if;
       if Done.Reloaded then
          declare
-            Previous_Selection : constant Files.File_System.Item_Vectors.Vector :=
+            Previous_Selection : constant Files.Items.Item_Vectors.Vector :=
               Files.Model.Selected_Items (Model);
             Previous_Primary : constant Files.Types.UString :=
               Files.Model.Selected_Item (Model).Full_Path;

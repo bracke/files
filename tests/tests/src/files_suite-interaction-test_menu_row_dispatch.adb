@@ -92,7 +92,9 @@ separate (Files_Suite.Interaction)
       Assert
         (not Files.Model.Clipboard_Has_Items (Model),
          "a stale menu-row action is inert after its menu closes (clipboard empty)");
-      Assert (not Result.Command_Executed, "a stale menu-row action is inert after its menu closes (command executed)");
+      Assert
+        (Result.Status /= Files.Controller.Controller_Command_Executed,
+         "a stale menu-row action is inert after its menu closes (command executed)");
       Assert
         (not Result.Context_Menu_Changed,
          "a stale menu-row action is inert after its menu closes (context menu changed)");
@@ -115,7 +117,7 @@ separate (Files_Suite.Interaction)
         (not Files.Model.Clipboard_Has_Items (Model),
          "an item-only command is rejected by the open empty-area menu (clipboard empty)");
       Assert
-        (not Result.Command_Executed,
+        (Result.Status /= Files.Controller.Controller_Command_Executed,
          "an item-only command is rejected by the open empty-area menu (command executed)");
       Assert
         (not Result.Context_Menu_Changed,
@@ -124,7 +126,6 @@ separate (Files_Suite.Interaction)
       Result.Settings_Changed := True;
       Result.Font_Size_Changed := True;
       Result.Needs_Glyph_Rebuild := True;
-      Result.Directory_Reloaded := True;
       Result.Clear_Pending_Text := True;
       Files.Interaction.Apply_Context_Menu_Command
         (Model             => Model,
@@ -142,7 +143,7 @@ separate (Files_Suite.Interaction)
         (Result.Command, Files.Commands.No_Command,
          "a missed menu row returns only its own context-menu follow-up (command)");
       Assert
-        (not Result.Command_Executed,
+        (Result.Status /= Files.Controller.Controller_Command_Executed,
          "a missed menu row returns only its own context-menu follow-up (command executed)");
       Assert
         (not Result.Settings_Changed,
@@ -153,9 +154,6 @@ separate (Files_Suite.Interaction)
       Assert
         (not Result.Needs_Glyph_Rebuild,
          "a missed menu row returns only its own context-menu follow-up (needs glyph rebuild)");
-      Assert
-        (not Result.Directory_Reloaded,
-         "a missed menu row returns only its own context-menu follow-up (directory reloaded)");
       Assert
         (not Result.Clear_Pending_Text,
          "a missed menu row returns only its own context-menu follow-up (clear pending text)");

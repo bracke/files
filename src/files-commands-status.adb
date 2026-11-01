@@ -1,3 +1,4 @@
+with Files.Items;
 with Ada.Characters.Handling;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
@@ -22,7 +23,7 @@ package body Files.Commands.Status is
 
    --  Return whether at least one selected item is a recognized archive.
    function Selection_Has_Archive (Model : Files.Model.Window_Model) return Boolean is
-      Items : constant Files.File_System.Item_Vectors.Vector :=
+      Items : constant Files.Items.Item_Vectors.Vector :=
         Files.Model.Selected_Items (Model);
    begin
       for Item of Items loop

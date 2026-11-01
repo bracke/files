@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.Model;
 with Files.Settings;
 
@@ -54,12 +55,6 @@ private package Files.Operations.Support is
       Error_Key : String)
       return Operation_Result;
 
-   --  Environment variable value, or "" when absent or on any failure.
-   --
-   --  @param Name Environment variable name.
-   --  @return The variable's value, or "" when unset or unreadable.
-   function Safe_Environment_Value (Name : String) return String;
-
    --  Whether Executable names something this host will actually run: an
    --  on-PATH command, or a path that is a regular executable file.
    --
@@ -102,6 +97,6 @@ private package Files.Operations.Support is
    procedure Generate_Missing_Thumbnails
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Items    : Files.File_System.Item_Vectors.Vector);
+      Items    : Files.Items.Item_Vectors.Vector);
 
 end Files.Operations.Support;

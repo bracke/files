@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.Commands.Status;
 with Ada.Strings.Unbounded;
 
@@ -61,11 +62,6 @@ package body Files.Interaction is
    begin
       Result.Command := Outcome.Command;
       Result.Status := Outcome.Status;
-      Result.Command_Executed :=
-        Outcome.Status = Files.Controller.Controller_Command_Executed;
-      Result.Directory_Reloaded :=
-        Result.Directory_Reloaded
-        or else Outcome.Operation.Status = Files.Operations.Operation_Navigated;
    end Observe_Controller_Outcome;
 
    --  Record the UI follow-ups of a settings command the controller applied:
@@ -90,7 +86,6 @@ package body Files.Interaction is
             end if;
          when Files.Commands.Toggle_Hidden_Files_Command =>
             Result.Settings_Changed := True;
-            Result.Directory_Reloaded := True;
          when Files.Commands.Toggle_Favorite_Command =>
             --  A favorite toggle with nothing to toggle changes nothing.
             Result.Settings_Changed := Files.Settings."/=" (Settings, Before);
@@ -115,7 +110,7 @@ package body Files.Interaction is
       Label         : Files.Types.Color_Label;
       Result        : in out Interaction_Result)
    is
-      Selected : constant Files.File_System.Item_Vectors.Vector :=
+      Selected : constant Files.Items.Item_Vectors.Vector :=
         Files.Model.Selected_Items (Model);
       Updated  : Files.Settings.Settings_Model := Settings;
    begin
@@ -277,9 +272,6 @@ package body Files.Interaction is
       if not Files.Commands.Status.Is_Enabled (Command, Model) then
          Outcome := Files.Controller.Execute_Command (Command, Model, Settings, Modifiers);
          Result.Status := Outcome.Status;
-         Result.Command_Executed := Outcome.Status = Files.Controller.Controller_Command_Executed;
-         Result.Directory_Reloaded :=
-           Outcome.Operation.Status = Files.Operations.Operation_Navigated;
          Result.Context_Menu_Changed :=
            Files.Model.Context_Menu_Is_Open (Model) /= Context_Menu_At_Entry;
          return;
@@ -303,10 +295,6 @@ package body Files.Interaction is
       end;
 
       Result.Status := Outcome.Status;
-      Result.Command_Executed := Outcome.Status = Files.Controller.Controller_Command_Executed;
-      Result.Directory_Reloaded :=
-        Result.Directory_Reloaded
-        or else Outcome.Operation.Status = Files.Operations.Operation_Navigated;
       Result.Context_Menu_Changed :=
         Files.Model.Context_Menu_Is_Open (Model) /= Context_Menu_At_Entry;
    end Execute_Command;
@@ -348,9 +336,6 @@ package body Files.Interaction is
          begin
             if Op.Status = Files.Operations.Operation_Success then
                Files.Model.End_Tree_Pick (Model);
-               Result.Directory_Reloaded :=
-                 not Files.Model.Paste_Conflict_Is_Active (Model)
-                 and then not Files.Model.Paste_Execution_Is_Active (Model);
             end if;
          end;
       end;
@@ -703,9 +688,9 @@ package body Files.Interaction is
                       (Model    => Model,
                        Bit      => Action.Item_Index,
                        Settings => Settings);
+                  pragma Unreferenced (Toggle);
                begin
-                  Result.Directory_Reloaded :=
-                    Toggle.Status = Files.Operations.Operation_Success;
+                  null;
                end;
             end if;
          when Files.Events.Ownership_Edit_Input_Action =>
@@ -742,10 +727,9 @@ package body Files.Interaction is
                              Settings  => Settings,
                              Choice    => Choice,
                              Apply_All => Files.Model.Paste_Conflict_Apply_All (Model));
+                        pragma Unreferenced (Outcome);
                      begin
-                        Result.Directory_Reloaded :=
-                          Outcome.Status = Files.Operations.Operation_Success
-                          and then not Files.Model.Paste_Conflict_Is_Active (Model);
+                        null;
                      end;
                   when others =>
                      null;
@@ -759,10 +743,9 @@ package body Files.Interaction is
                declare
                   Outcome : constant Files.Operations.Operation_Result :=
                     Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
+                  pragma Unreferenced (Outcome);
                begin
-                  Result.Directory_Reloaded :=
-                    Outcome.Status = Files.Operations.Operation_Success
-                    and then not Files.Model.Paste_Execution_Is_Active (Model);
+                  null;
                end;
             end if;
          when Files.Events.Search_Scope_Toggle_Input_Action =>
@@ -771,8 +754,6 @@ package body Files.Interaction is
             --  (or restoring it from) recursive search results.
             Outcome := Files.Controller.Handle_Search_Scope_Toggle (Model, Settings);
             Observe_Controller_Outcome (Outcome, Result);
-            Result.Directory_Reloaded :=
-              Outcome.Operation.Status = Files.Operations.Operation_Success;
          when Files.Events.Scroll_Input_Action =>
             Outcome :=
               Files.Controller.Handle_Targeted_Scroll

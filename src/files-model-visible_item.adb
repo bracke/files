@@ -2,7 +2,7 @@ separate (Files.Model)
 function Visible_Item
   (Model         : Window_Model;
    Visible_Index : Positive)
-   return Files.File_System.Directory_Item
+   return Files.Items.Directory_Item
 is
    Item_Index : constant Natural := Visible_To_Item_Index (Model, Visible_Index);
 begin

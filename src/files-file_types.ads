@@ -4,12 +4,17 @@ with Files.Types;
 --  Filetype detection and icon classification.
 package Files.File_Types is
 
-   --  Return the extension of Name without the dot.
+   --  Return the extension of Name without the dot: after its last dot,
+   --  none for no dot or a trailing one.
    --
    --  @param Name File name to inspect.
+   --  @param Dotfiles A leading dot alone (.gitignore, .env) starts an
+   --  extension too, as for the icon's label; otherwise such a name has none,
+   --  as for filetype detection and placeholders.
    --  @return Lower-case extension without a leading dot.
    function Extension_Of
-     (Name : String)
+     (Name     : String;
+      Dotfiles : Boolean := False)
       return String;
 
    --  Determine a filetype from item kind, file name, and settings mappings.

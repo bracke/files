@@ -5,22 +5,12 @@ separate (Files_Suite.Startup)
       Caps : constant Files.Application.Windows.Desktop_Capabilities :=
         Files.Application.Windows.Runtime_Capabilities;
    begin
-      Assert (Caps.Headless_Rendering, "runtime capabilities advertise headless rendering");
       Files_Suite.Support.Assert_Equal
         (Caps.Live_Window_Smoke_Ready,
          (Caps.Display_Available and then Caps.Vulkan_Available),
          "runtime capabilities gate live window smoke on display and Vulkan");
-      Assert (Caps.Event_Translation_Model, "runtime capabilities expose event translation model");
-      Assert (Caps.Focus_Runtime_Model, "runtime capabilities expose focus model");
-      Assert (Caps.Resize_Runtime_Model, "runtime capabilities expose resize model");
-      Assert (Caps.Scroll_Runtime_Model, "runtime capabilities expose scroll model");
-      Assert (Caps.Native_Drop_Callbacks, "runtime capabilities expose native drop callbacks");
-      Assert
-        (Caps.Native_Drop_Automation,
-         "runtime capabilities expose drop event-source automation");
       declare
-         Drop_Profile : constant Files.Application.Windows.Native_Drag_Automation_Profile :=
-           Files.Application.Windows.Native_Drag_Automation_Profile_Of_Current_Runtime;
+         Drop_Profile  : Files.Drop_Events.Drop_Event_Source_Profile renames Files.Drop_Events.Profile;
          Event_Profile : constant Files.Drop_Events.Drop_Event_Source_Profile := Files.Drop_Events.Profile;
          Source        : Files.Drop_Events.Drop_Event_Source;
          Paths         : Files.Types.String_Vectors.Vector;
@@ -74,6 +64,4 @@ separate (Files_Suite.Startup)
             Assert (not Files.Drop_Events.Take_Overflow (Source), "the refusal report clears after it is taken");
          end;
       end;
-      Assert (Caps.Directory_Watch_Polling, "runtime capabilities expose directory watch polling");
-      Assert (Caps.Native_File_Watching, "runtime capabilities expose native file watching");
    end Test_Runtime_Capabilities_And_Drop_Events;

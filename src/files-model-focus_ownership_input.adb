@@ -4,7 +4,7 @@ procedure Focus_Ownership_Input
    Editing_Group : Boolean;
    Account_Name  : String)
 is
-   Item : constant Files.File_System.Directory_Item := Selected_Item (Model);
+   Item : constant Files.Items.Directory_Item := Selected_Item (Model);
 begin
    if Selected_Count (Model) /= 1
      or else Selection_Includes_Temporary (Model)

@@ -2,7 +2,7 @@ separate (Files_Suite.Model)
    procedure Test_Path_History (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model : Files.Model.Window_Model := Sample_Model;
-      Items : constant Files.File_System.Item_Vectors.Vector := Sample_Items;
+      Items : constant Files.Items.Item_Vectors.Vector := Sample_Items;
    begin
       Files.Model.Go_Back (Model);
       Files_Suite.Support.Assert_Equal

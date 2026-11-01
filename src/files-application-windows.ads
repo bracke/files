@@ -25,30 +25,12 @@ private with Guikit.Input;
 package Files.Application.Windows is
    Desktop_Error : exception;
 
+   --  What this host offers a desktop run, found without opening a window.
+   --  (What file drops can do is Files.Drop_Events.Profile.)
    type Desktop_Capabilities is record
       Display_Available       : Boolean := False;
       Vulkan_Available        : Boolean := False;
-      Headless_Rendering      : Boolean := True;
       Live_Window_Smoke_Ready : Boolean := False;
-      Event_Translation_Model : Boolean := True;
-      Focus_Runtime_Model     : Boolean := True;
-      Resize_Runtime_Model    : Boolean := True;
-      Scroll_Runtime_Model    : Boolean := True;
-      Native_Drop_Callbacks   : Boolean := True;
-      Native_Drop_Automation  : Boolean := False;
-      Directory_Watch_Polling : Boolean := True;
-      Native_File_Watching    : Boolean := True;
-   end record;
-
-   type Native_Drag_Automation_Profile is record
-      Portable_GLFW_Automation        : Boolean := False;
-      Native_Drop_Callbacks           : Boolean := True;
-      Event_Source_Backend            : Boolean := True;
-      Queued_Drop_Imports             : Boolean := True;
-      Requires_OS_Event_Source        : Boolean := False;
-      Uses_Shell                      : Boolean := False;
-      Max_Paths                       : Positive := 256;
-      Binding_Unit                    : UString;
    end record;
 
    --  Create one GLFW window for each startup window and run until all close.
@@ -81,16 +63,6 @@ package Files.Application.Windows is
    --
    --  @return Display, Vulkan, and smoke-test readiness flags.
    function Runtime_Capabilities return Desktop_Capabilities;
-
-   --  Return the native blocker profile for OS drag-event automation.
-   --
-   --  GLFW provides file-drop callbacks but not portable synthesis of external
-   --  drag events. This profile names the native backends required for real
-   --  automation so capability reporting stays explicit.
-   --
-   --  @return Structured native drag automation capability and blocker metadata.
-   function Native_Drag_Automation_Profile_Of_Current_Runtime
-      return Native_Drag_Automation_Profile;
 
    --  Accumulate a fractional scroll offset into whole scroll lines.
    --
@@ -497,9 +469,6 @@ private
    package Runtime_Window_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Runtime_Window);
-
-   --  The value of environment variable Name, or "" when unset.
-   function Safe_Environment_Value (Name : String) return String;
 
    --  The GLFW window reference of a desktop window.
    function As_Window

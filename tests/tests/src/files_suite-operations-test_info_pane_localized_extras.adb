@@ -12,8 +12,8 @@ separate (Files_Suite.Operations)
          Message  : String;
          Kind     : Files.Types.Item_Kind := Files.Types.Regular_File_Item)
       is
-         Items : Files.File_System.Item_Vectors.Vector;
-         Item  : Files.File_System.Directory_Item :=
+         Items : Files.Items.Item_Vectors.Vector;
+         Item  : Files.Items.Directory_Item :=
            Files.File_System.Make_Item
              (Parent_Path => Root,
               Name        => Name,

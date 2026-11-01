@@ -1,3 +1,5 @@
+with Files.Items;
+with Files.Environment;
 with Ada.Calendar;
 with Ada.Directories;
 with Ada.Environment_Variables;
@@ -121,9 +123,6 @@ package body Files.Application is
       return Files_Config.Crate_Name & " " & Files_Config.Crate_Version;
    end Version_Text;
 
-   function Safe_Environment_Value (Name : String) return String is
-     (Ada.Environment_Variables.Value (Name, ""));
-
    function Home_Directory return String is
       --  Which directory is this user's home is a host fact, and Hostkit answers
       --  it: HOME then the password file on POSIX, USERPROFILE then HOMEDRIVE
@@ -139,11 +138,11 @@ package body Files.Application is
       --  is not there -- so its answer is filtered, and these remain as further
       --  candidates for when it does not survive that filter. They are Windows
       --  spellings and simply never match elsewhere.
-      Home_Drive : constant String := Safe_Environment_Value ("HOMEDRIVE");
-      Home_Path  : constant String := Safe_Environment_Value ("HOMEPATH");
+      Home_Drive : constant String := Files.Environment.Value ("HOMEDRIVE");
+      Home_Path  : constant String := Files.Environment.Value ("HOMEPATH");
       Drive_Profile : constant String :=
         (if Home_Drive /= "" and then Home_Path /= "" then Home_Drive & Home_Path else "");
-      Home_Share : constant String := Safe_Environment_Value ("HOMESHARE");
+      Home_Share : constant String := Files.Environment.Value ("HOMESHARE");
 
       function Existing_Directory (Path : String) return Boolean is
       begin
@@ -193,7 +192,7 @@ package body Files.Application is
       --  who exported it meant it. It is a user-level override, so it applies
       --  whichever home is being asked about.
       Raw_Xdg_Config : constant String :=
-        Safe_Environment_Value ("XDG_CONFIG_HOME");
+        Files.Environment.Value ("XDG_CONFIG_HOME");
       Xdg_Config : constant String :=
         (if GNAT.OS_Lib.Is_Absolute_Path (Raw_Xdg_Config) then
             Raw_Xdg_Config
@@ -237,7 +236,7 @@ package body Files.Application is
      (Home_Path : String)
       return String
    is
-      Files_Settings : constant String := Safe_Environment_Value ("FILES_SETTINGS");
+      Files_Settings : constant String := Files.Environment.Value ("FILES_SETTINGS");
    begin
       --  FILES_SETTINGS is this application's own override and stays here.
       --  XDG_CONFIG_HOME used to be read a second time at this level; it is part
@@ -377,7 +376,7 @@ package body Files.Application is
      (Model : in out Files.Model.Window_Model)
    is
       --  Record Item's owner and group names unless they already are.
-      procedure Sample (Item : Files.File_System.Directory_Item) is
+      procedure Sample (Item : Files.Items.Directory_Item) is
       begin
          if not Item.Ownership_Available then
             return;
@@ -398,7 +397,7 @@ package body Files.Application is
       --  The same items Build_Snapshot lists in the info pane.
       if Files.Model.Info_Pane_Is_Open (Model) and then Files.Model.Selected_Count (Model) > 0 then
          declare
-            Items : constant Files.File_System.Item_Vectors.Vector :=
+            Items : constant Files.Items.Item_Vectors.Vector :=
               Files.Model.Selected_Items (Model, Limit => Files.Rendering.Max_Info_Items);
          begin
             if Items.Is_Empty then

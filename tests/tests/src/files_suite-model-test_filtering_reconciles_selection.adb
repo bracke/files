@@ -3,7 +3,7 @@ separate (Files_Suite.Model)
       pragma Unreferenced (T);
       Settings     : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model        : Files.Model.Window_Model := Sample_Model;
-      Missing_Item : Files.File_System.Directory_Item;
+      Missing_Item : Files.Items.Directory_Item;
       Result       : Files.Controller.Controller_Result;
    begin
       Missing_Item := Files.Model.Visible_Item (Model, 99);
@@ -41,7 +41,7 @@ separate (Files_Suite.Model)
       Assert (Files.Model.Is_Selected (Model, 1), "selected visible item is reported selected");
       Assert (not Files.Model.Is_Selected (Model, 2), "out-of-range visible item is not selected");
       declare
-         Unicode_Items : Files.File_System.Item_Vectors.Vector := Sample_Items;
+         Unicode_Items : Files.Items.Item_Vectors.Vector := Sample_Items;
          Unicode_Model : Files.Model.Window_Model;
          Upper_Name    : constant String := Byte (16#C3#) & Byte (16#89#) & "t"
            & Byte (16#C3#) & Byte (16#A9#) & ".txt";

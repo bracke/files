@@ -5,7 +5,7 @@ separate (Files_Suite.Interaction)
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       Found    : Boolean;
-      Items    : Files.File_System.Item_Vectors.Vector;
+      Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
    begin
       Files_Suite.Support.Reset_Root;

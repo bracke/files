@@ -10,7 +10,7 @@ separate (Files_Suite.Model)
       Ada.Directories.Create_Path (Target);
       Write_File (Join (Target, "inside.txt"));
       --  An empty listing at Root with every overlay closed.
-      Files.Model.Navigate_To (Model, Root, Files.File_System.Item_Vectors.Empty_Vector);
+      Files.Model.Navigate_To (Model, Root, Files.Items.Item_Vectors.Empty_Vector);
 
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector can reopen after palette Escape");

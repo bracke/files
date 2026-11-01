@@ -41,7 +41,6 @@ separate (Files_Suite.Interaction)
       --  The group command advances the persisted grouping mode.
       Result.Font_Size_Changed := True;
       Result.Needs_Glyph_Rebuild := True;
-      Result.Directory_Reloaded := True;
       Result.Clear_Pending_Text := True;
       Result.Context_Menu_Changed := True;
       Files.Interaction.Execute_Command
@@ -61,9 +60,6 @@ separate (Files_Suite.Interaction)
       Assert
         (not Result.Needs_Glyph_Rebuild,
          "direct command execution clears unrelated follow-up flags (needs glyph rebuild)");
-      Assert
-        (not Result.Directory_Reloaded,
-         "direct command execution clears unrelated follow-up flags (directory reloaded)");
       Assert
         (not Result.Clear_Pending_Text,
          "direct command execution clears unrelated follow-up flags (clear pending text)");

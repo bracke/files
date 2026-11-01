@@ -1,7 +1,7 @@
 separate (Files.File_System)
 function Trash_Location_For_Environment return Trash_Location is
-   Xdg_Data_Home : constant String := Safe_Environment_Value ("XDG_DATA_HOME");
-   Home          : constant String := Safe_Environment_Value ("HOME");
+   Xdg_Data_Home : constant String := Files.Environment.Value ("XDG_DATA_HOME");
+   Home          : constant String := Files.Environment.Value ("HOME");
 
    Result : Trash_Location;
 begin

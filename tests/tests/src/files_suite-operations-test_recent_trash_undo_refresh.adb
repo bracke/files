@@ -10,7 +10,7 @@ separate (Files_Suite.Operations)
       Reset_Root;
       Write_Binary_File (Path, "original recent bytes");
       Files.Settings.Note_Recent (Settings, Path);
-      Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+      Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Step := Files.Operations.Navigate_Recent (Model, Settings);
       Files.Model.Select_All_Visible (Model);
       Step := Complete_Operation

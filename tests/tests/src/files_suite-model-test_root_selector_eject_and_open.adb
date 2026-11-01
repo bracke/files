@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Model)
    procedure Test_Root_Selector_Eject_And_Open (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -69,7 +70,7 @@ separate (Files_Suite.Model)
          "root-open loads selected root");
 
       --  Chosen from the palette, opened over the selector, it opens too.
-      Files.Model.Navigate_To (Model, Root, Files.File_System.Item_Vectors.Empty_Vector);
+      Files.Model.Navigate_To (Model, Root, Files.Items.Item_Vectors.Empty_Vector);
       Files.Model.Open_Root_Selector (Model, Entries);
       Files.Model.Open_Command_Palette (Model);
       Result := Files.Controller.Execute_Command (Files.Commands.Open_Selected_Root_Command, Model, Settings);

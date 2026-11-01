@@ -4,6 +4,8 @@ with Ada.Streams;
 with Ada.Containers.Vectors;
 
 with Files.Settings;
+with Files.Fs_Primitives;
+with Files.Items;
 with Files.Shared_Bytes;
 with Files.Types;
 
@@ -22,44 +24,9 @@ package Files.File_System is
       Error_Key      : UString;
    end record;
 
-   type Directory_Item is record
-      Name               : UString;
-      Full_Path          : UString;
-      Parent_Path        : UString;
-      --  Hidden by a leading dot or by the host's own flag (Windows hidden
-      --  attribute, macOS UF_HIDDEN).
-      Hidden             : Boolean := False;
-      Kind               : Files.Types.Item_Kind := Files.Types.Unknown_Item;
-      Filetype           : UString;
-      Icon_Id            : UString;
-      Size_Available     : Boolean := False;
-      Size               : Long_Long_Integer := 0;
-      Creation_Available : Boolean := False;
-      Creation_Time      : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
-      Modified_Available : Boolean := False;
-      Modified_Time      : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
-      Permissions        : UString;
-      Mode_Available     : Boolean := False;
-      Mode_Bits          : Natural := 0;
-      Ownership_Available : Boolean := False;
-      Owner_Id           : Files.Types.Account_Id := 0;
-      Group_Id           : Files.Types.Account_Id := 0;
-      Filetype_Extra     : UString;
-      Filetype_Extra_Loaded : Boolean := False;
-      Thumbnail_Available : Boolean := False;
-      Thumbnail_Path      : UString;
-      Thumbnail_Width     : Natural := 0;
-      Thumbnail_Height    : Natural := 0;
-      --  Shared, immutable: copying an item (into rows, snapshots, caches)
-      --  must not copy its decoded thumbnail.
-      Thumbnail_Pixels    : Files.Shared_Bytes.Bytes;
-      Metadata_Error     : Boolean := False;
-      Error_Key          : UString;
-   end record;
-
-   package Item_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Directory_Item);
+   --  The item type is Files.Items'; these names keep it at hand here.
+   subtype Directory_Item is Files.Items.Directory_Item;
+   package Item_Vectors renames Files.Items.Item_Vectors;
 
    type Directory_Load_Result is record
       Success   : Boolean := False;
@@ -298,7 +265,7 @@ package Files.File_System is
    --    filesystem root (or otherwise has no parent).
    function Parent_Directory
      (Path : String)
-      return String;
+      return String renames Files.Fs_Primitives.Parent_Directory;
 
    --  Load the direct children of a directory. Thumbnails come from the cache
    --  only: no image is decoded and no cache file written, so a caller that

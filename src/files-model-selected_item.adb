@@ -1,7 +1,7 @@
 separate (Files.Model)
 function Selected_Item
   (Model : Window_Model)
-   return Files.File_System.Directory_Item
+   return Files.Items.Directory_Item
 is
    Item_Index : constant Natural := Effective_Selected_Item_Index (Model);
 begin

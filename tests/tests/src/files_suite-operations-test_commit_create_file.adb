@@ -2,7 +2,7 @@ separate (Files_Suite.Operations)
    procedure Test_Commit_Create_File (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model    : Files.Model.Window_Model;
-      Items    : Files.File_System.Item_Vectors.Vector;
+      Items    : Files.Items.Item_Vectors.Vector;
       Paths    : Files.Types.String_Vectors.Vector;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Operations.Operation_Result;

@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Operations)
    --  Typing the trash's path into the path bar opens the trash view, as
@@ -15,7 +16,7 @@ separate (Files_Suite.Operations)
          Write_File (Join (Root, "path-input-trash.txt"));
          Assert (Files.File_System.Move_To_Trash (Join (Root, "path-input-trash.txt"), Trashed).Success,
                  "something is in the trash");
-         Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+         Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Model.Set_Path_Input_Text (Model, Files.File_System.Trash_Files_Directory);
          Result := Files.Operations.Commit_Path_Input (Model, Settings);
          Files_Suite.Support.Assert_Equal

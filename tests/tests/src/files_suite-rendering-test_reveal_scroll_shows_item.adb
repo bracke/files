@@ -38,7 +38,7 @@ separate (Files_Suite.Rendering)
 
       declare
          Model : Files.Model.Window_Model;
-         Items : Files.File_System.Item_Vectors.Vector;
+         Items : Files.Items.Item_Vectors.Vector;
       begin
          for Index in 1 .. 60 loop
             Items.Append

@@ -1,3 +1,4 @@
+with Files.Items;
 with Ada.Strings;
 with Ada.Strings.Fixed;
 
@@ -196,10 +197,10 @@ package body Files.Application.Windows.Smoke is
    --  path so the scrolled scenario has enough rows to scroll through.
    function Scenario_Overflow_Items
      (Model : Files.Model.Window_Model)
-      return Files.File_System.Item_Vectors.Vector
+      return Files.Items.Item_Vectors.Vector
    is
       Parent : constant String := Files.Model.Current_Path (Model);
-      Items  : Files.File_System.Item_Vectors.Vector;
+      Items  : Files.Items.Item_Vectors.Vector;
    begin
       for Index in 1 .. Scenario_Overflow_Item_Count loop
          declare
@@ -208,7 +209,7 @@ package body Files.Application.Windows.Smoke is
             Name   : constant String := "smoke-item-" & Suffix;
          begin
             Items.Append
-              (Files.File_System.Directory_Item'
+              (Files.Items.Directory_Item'
                  (Name        => To_Unbounded_String (Name),
                   Full_Path   => To_Unbounded_String (Parent & "/" & Name),
                   Parent_Path => To_Unbounded_String (Parent),

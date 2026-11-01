@@ -1,7 +1,7 @@
 separate (Files_Suite.Model)
    procedure Test_Runtime_Sort_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Items    : Files.File_System.Item_Vectors.Vector;
+      Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Controller.Controller_Result;
@@ -12,9 +12,9 @@ separate (Files_Suite.Model)
          Size     : Long_Long_Integer;
          Created  : Ada.Calendar.Time;
          Changed  : Ada.Calendar.Time)
-         return Files.File_System.Directory_Item
+         return Files.Items.Directory_Item
       is
-         Value : Files.File_System.Directory_Item :=
+         Value : Files.Items.Directory_Item :=
            Files.File_System.Make_Item (Root, Name, Files.Types.Regular_File_Item, Filetype);
       begin
          Value.Size_Available := True;

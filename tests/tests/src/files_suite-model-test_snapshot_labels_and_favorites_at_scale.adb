@@ -7,7 +7,7 @@ separate (Files_Suite.Model)
       pragma Unreferenced (T);
       use type Files.Types.Color_Label;
       Count    : constant := 400;
-      Items    : Files.File_System.Item_Vectors.Vector;
+      Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Favorites : Natural := 0;

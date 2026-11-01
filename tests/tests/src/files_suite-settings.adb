@@ -1,3 +1,4 @@
+with Files.Items;
 with Ada.Directories;
 with Ada.Strings;
 with Ada.Strings.Fixed;

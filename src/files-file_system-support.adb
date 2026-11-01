@@ -1,3 +1,4 @@
+with Files.Environment;
 with Files.Diagnostics;
 with Ada.Environment_Variables;
 with Ada.Exceptions;
@@ -120,25 +121,13 @@ package body Files.File_System.Support is
       end if;
    end Safe_Close;
 
-   function Safe_Environment_Value (Name : String) return String is
-     (Ada.Environment_Variables.Value (Name, ""));
-
    function Environment_Equals
      (Name     : String;
       Expected : String)
       return Boolean is
    begin
-      return Files.Types.To_Lower (Safe_Environment_Value (Name)) = Expected;
+      return Files.Types.To_Lower (Files.Environment.Value (Name)) = Expected;
    end Environment_Equals;
-
-   function Starts_With
-     (Value  : String;
-      Prefix : String)
-      return Boolean is
-   begin
-      return Value'Length >= Prefix'Length
-        and then Value (Value'First .. Value'First + Prefix'Length - 1) = Prefix;
-   end Starts_With;
 
    function Natural_Text (Value : Natural) return String renames Files.Types.Natural_Text;
 

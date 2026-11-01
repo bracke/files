@@ -16,7 +16,7 @@ begin
    end if;
 
    declare
-      Matches      : Files.File_System.Item_Vectors.Vector;
+      Matches      : Files.Items.Item_Vectors.Vector;
       Files_Scanned : Natural := 0;
       Read_Error : Unbounded_String;
 

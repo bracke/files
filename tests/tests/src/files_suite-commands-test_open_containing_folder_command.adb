@@ -1,10 +1,11 @@
+with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Open_Containing_Folder_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Sub      : constant String := Join (Root, "sub");
-      Items    : Files.File_System.Item_Vectors.Vector;
+      Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Result   : Files.Controller.Controller_Result;
    begin

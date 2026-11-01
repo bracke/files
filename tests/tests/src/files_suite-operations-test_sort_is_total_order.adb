@@ -4,10 +4,10 @@ separate (Files_Suite.Operations)
    --  comparison must be a total order.
    procedure Test_Sort_Is_Total_Order (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Forward, Backward : Files.File_System.Item_Vectors.Vector;
+      Forward, Backward : Files.Items.Item_Vectors.Vector;
 
-      function Item (Folder : String) return Files.File_System.Directory_Item is
-         Result : Files.File_System.Directory_Item;
+      function Item (Folder : String) return Files.Items.Directory_Item is
+         Result : Files.Items.Directory_Item;
       begin
          Result.Name := To_Unbounded_String ("README.md");
          Result.Full_Path := To_Unbounded_String ("/" & Folder & "/README.md");
@@ -24,8 +24,8 @@ separate (Files_Suite.Operations)
       for Field in Files.Types.Sort_Field loop
          for Ascending in Boolean loop
             declare
-               A : Files.File_System.Item_Vectors.Vector := Forward;
-               B : Files.File_System.Item_Vectors.Vector := Backward;
+               A : Files.Items.Item_Vectors.Vector := Forward;
+               B : Files.Items.Item_Vectors.Vector := Backward;
             begin
                Files.File_System.Sort_Items (A, Field, Ascending);
                Files.File_System.Sort_Items (B, Field, Ascending);

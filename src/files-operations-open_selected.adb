@@ -5,7 +5,7 @@ function Open_Selected
    Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
    return Operation_Result
 is
-   Items : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+   Items : constant Files.Items.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
 begin
    if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
       return Disabled (Model, "error.selection.empty");

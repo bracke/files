@@ -41,15 +41,6 @@ private package Files.File_System.Support is
    procedure Safe_Close
      (File : in out Ada.Streams.Stream_IO.File_Type);
 
-   --  The value of environment variable Name, or "" when it is unset or cannot
-   --  be read.
-   --
-   --  @param Name Environment variable name.
-   --  @return Its value, or "" when unset/unreadable.
-   function Safe_Environment_Value
-     (Name : String)
-      return String;
-
    --  Whether environment variable Name equals Expected, compared
    --  case-insensitively.
    --
@@ -69,7 +60,7 @@ private package Files.File_System.Support is
    function Starts_With
      (Value  : String;
       Prefix : String)
-      return Boolean;
+      return Boolean renames Files.Types.Starts_With;
 
    --  Decimal text of Value: Natural'Image with the leading space guarded off.
    --

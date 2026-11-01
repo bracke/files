@@ -2,7 +2,7 @@ separate (Files_Suite.Model)
    procedure Test_Path_Input_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model   : Files.Model.Window_Model := Sample_Model;
-      Empty   : Files.File_System.Item_Vectors.Vector;
+      Empty   : Files.Items.Item_Vectors.Vector;
       Invalid : constant Files.File_System.Path_Result :=
         (Status         => Files.File_System.Path_Missing,
          Directory_Path => Null_Unbounded_String,

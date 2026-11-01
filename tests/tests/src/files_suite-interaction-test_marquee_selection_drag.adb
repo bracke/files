@@ -3,7 +3,7 @@ separate (Files_Suite.Interaction)
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
-      Items    : Files.File_System.Item_Vectors.Vector;
+      Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
    begin
       --  A small details list leaves ample empty space below the rows and lays

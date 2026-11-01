@@ -234,6 +234,13 @@ package Files.Types is
    --  @return Lower-case version of Text.
    function To_Lower (Text : String) return String;
 
+   --  @param Text Text to inspect.
+   --  @param Prefix Bytes Text must begin with.
+   --  @return True when Text begins with exactly Prefix.
+   function Starts_With (Text : String; Prefix : String) return Boolean is
+     (Text'Length >= Prefix'Length
+      and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix);
+
    --  Text folded for a case-insensitive match: every script's letters, not
    --  only Latin-1 (Привет, Łódź, Ελλάδα), and one Unicode form, so a name
    --  stored decomposed (é as e and a combining accent, as older Macs write

@@ -1,3 +1,4 @@
+with Files.Items;
 with Ada.Real_Time;
 
 with Files.Timing;
@@ -8,7 +9,7 @@ function Delete_Selected
    Settings : Files.Settings.Settings_Model)
    return Operation_Result
 is
-   Items      : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+   Items      : constant Files.Items.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
    First_Path : Unbounded_String;
    Undo_From  : Files.Types.String_Vectors.Vector;
    Undo_To    : Files.Types.String_Vectors.Vector;

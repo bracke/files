@@ -26,9 +26,17 @@ separate (Files_Suite.Model)
                Found_Drive_Profile := True;
             end if;
          end loop;
-         Assert
-           (Found_Drive_Profile,
-            "available roots include HOMEDRIVE and HOMEPATH profile directory");
+         --  The Windows profile variables are that host's convention, read
+         --  there only (Hostkit.Fs.User_Places).
+         if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows) then
+            Assert
+              (Found_Drive_Profile,
+               "available roots include HOMEDRIVE and HOMEPATH profile directory");
+         else
+            Assert
+              (not Found_Drive_Profile,
+               "off Windows, HOMEDRIVE and HOMEPATH name no root");
+         end if;
       end;
       declare
          Shared_Profile_Path : constant String := Join (Root, "shared-profile-root");

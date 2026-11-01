@@ -155,7 +155,7 @@ separate (Files_Suite.Settings)
             Missing_Current_Path : constant String := Join (Root, "settings-save-missing-current");
             Missing_Model        : Files.Model.Window_Model;
             Missing_Settings     : Files.Settings.Settings_Model := Draft_Settings;
-            Missing_Items        : Files.File_System.Item_Vectors.Vector;
+            Missing_Items        : Files.Items.Item_Vectors.Vector;
             Missing_Result       : Files.Controller.Controller_Result;
          begin
             Ada.Directories.Create_Path (Missing_Current_Path);

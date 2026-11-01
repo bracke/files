@@ -85,8 +85,7 @@ separate (Files_Suite.Interaction)
              others => <>),
             Base_Font, Guikit.Input.No_Modifiers, Reduced);
          Assert
-           (Files.Model.Search_Scope_Of (Model) = Scope_Before
-            and then not Reduced.Directory_Reloaded,
+           (Files.Model.Search_Scope_Of (Model) = Scope_Before,
             Name & " rejects a delayed search-scope click");
       end Assert_Contained;
    begin

@@ -8,7 +8,7 @@ separate (Files_Suite.Interaction)
       --  Open on a directory navigates into it.
       declare
          Dir   : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "open-nav");
-         Items : Files.File_System.Item_Vectors.Vector;
+         Items : Files.Items.Item_Vectors.Vector;
          Model : Files.Model.Window_Model;
       begin
          Files_Suite.Support.Reset_Root;

@@ -14,7 +14,7 @@ begin
       return False;
    end if;
    declare
-      Item : constant Files.File_System.Directory_Item := Model.Items.Element (Idx);
+      Item : constant Files.Items.Directory_Item := Model.Items.Element (Idx);
    begin
       return not Item.Filetype_Extra_Loaded and then Length (Item.Filetype_Extra) = 0;
    end;

@@ -37,7 +37,7 @@ separate (Files_Suite.Operations)
                   Step := Complete_Operation (Model, Settings, Files.Operations.Delete_Selected (Model, Settings));
                   Await_View (Model, Settings);
                   Paths := Files.Model.Undo_From_Paths (Model);
-                  Assert (Files.Model.Undo_To_Paths (Model).First_Element = To_Unbounded_String (Source),
+                  Assert (Files.Model.Testing.Undo_To_Paths (Model).First_Element = To_Unbounded_String (Source),
                           "trash history retains its original destination");
                else
                   Ada.Directories.Create_Directory (Join (Root, "inbox"));

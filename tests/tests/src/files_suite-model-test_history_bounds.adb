@@ -2,7 +2,7 @@ separate (Files_Suite.Model)
    procedure Test_History_Bounds (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model : Files.Model.Window_Model;
-      Empty : Files.File_System.Item_Vectors.Vector;
+      Empty : Files.Items.Item_Vectors.Vector;
       History_Path : constant String := Join (Root, "history-entry");
    begin
       --  Recording far more undo entries than the cap keeps only the most recent

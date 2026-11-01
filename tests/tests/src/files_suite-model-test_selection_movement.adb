@@ -31,7 +31,7 @@ separate (Files_Suite.Model)
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Down);
       Files_Suite.Support.Assert_Equal (Files.Model.Selected_Index (Model), 2, "down advances selection");
       declare
-         Grid_Items : Files.File_System.Item_Vectors.Vector := Sample_Items;
+         Grid_Items : Files.Items.Item_Vectors.Vector := Sample_Items;
          Grid_Model : Files.Model.Window_Model;
       begin
          Grid_Items.Append
@@ -46,7 +46,7 @@ separate (Files_Suite.Model)
             Default_View_Mode => Files.Types.Small_Icons);
          Files.Model.Set_Selection_Grid_Columns (Grid_Model, 2);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Selection_Grid_Columns (Grid_Model),
+           (Files.Model.Testing.Selection_Grid_Columns (Grid_Model),
             2,
             "model records rendered grid columns");
          Files.Model.Select_Visible (Grid_Model, 1);
@@ -75,7 +75,7 @@ separate (Files_Suite.Model)
       Assert (Files.Model.Is_Selected (Model, 1), "first toggled item is selected");
       Assert (Files.Model.Is_Selected (Model, 2), "primary item remains selected");
       declare
-         Selected_Items : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+         Selected_Items : constant Files.Items.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
       begin
          Files_Suite.Support.Assert_Equal
            (Natural (Selected_Items.Length),

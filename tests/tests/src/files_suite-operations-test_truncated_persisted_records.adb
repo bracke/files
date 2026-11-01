@@ -115,7 +115,7 @@ separate (Files_Suite.Operations)
          Files.Model.Undo_Entry_Vectors.Empty_Vector,
          Required => True);
       Files.Model.Initialize
-        (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+        (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert
         (Files.History_Journal.Restore (History_Directory, Model),
          "the complete history record decodes before prefix mutation");

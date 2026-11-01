@@ -42,9 +42,7 @@ package body Files.Grouping is
       Today              : Ada.Calendar.Time)
       return Positive
    is
-      function Starts_With (Text : String; Prefix : String) return Boolean is
-        (Text'Length >= Prefix'Length
-         and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix);
+      function Starts_With (Text : String; Prefix : String) return Boolean renames Files.Types.Starts_With;
 
       function Type_Band return Positive is
          Mime : constant String := Files.Types.To_Lower (Filetype);

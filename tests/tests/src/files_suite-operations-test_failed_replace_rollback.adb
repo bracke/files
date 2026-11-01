@@ -1,3 +1,4 @@
+with Files.Items;
 with Files_Suite.Volumes;
 separate (Files_Suite.Operations)
    procedure Test_Failed_Replace_Rollback (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -43,7 +44,7 @@ separate (Files_Suite.Operations)
          Assert (Result.Success, "preserve a readonly nested directory in the copied destination");
          Result := Files.File_System.Set_Permissions (Root, 8#555#);
          Assert (Result.Success, "the fixture permits copying but refuses atomic source removal");
-         Files.Model.Initialize (Model, Remote.Path, Files.File_System.Item_Vectors.Empty_Vector, Root);
+         Files.Model.Initialize (Model, Remote.Path, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);

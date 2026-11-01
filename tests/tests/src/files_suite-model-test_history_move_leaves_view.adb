@@ -7,7 +7,7 @@ separate (Files_Suite.Model)
       Model : Files.Model.Window_Model := Sample_Model;
       Content : Files.Quick_Look.Quick_Look_Content;
    begin
-      Files.Model.Navigate_To (Model, "/tmp/files_aunit/other", Files.File_System.Item_Vectors.Empty_Vector);
+      Files.Model.Navigate_To (Model, "/tmp/files_aunit/other", Files.Items.Item_Vectors.Empty_Vector);
       Files.Model.Open_Quick_Look (Model, Content);
       Assert (Files.Model.Quick_Look_Is_Open (Model), "Quick Look is open");
       Files.Model.Go_Back (Model);

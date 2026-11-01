@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.Type_Ahead;
 separate (Files.Model)
 procedure Type_Ahead_Input
@@ -7,7 +8,7 @@ procedure Type_Ahead_Input
 is
    Combined : constant String := To_String (Model.Type_Ahead_Buffer_Value) & Text;
    Current  : constant Natural := Selected_Index (Model);
-   Visible  : Files.File_System.Item_Vectors.Vector;
+   Visible  : Files.Items.Item_Vectors.Vector;
    Count    : constant Natural := Visible_Count (Model);
    Prefix   : Unbounded_String;
    Start    : Natural;
@@ -27,7 +28,7 @@ begin
       if Row.Item_Index /= 0 then
          Visible.Append (Row.Item);
       else
-         Visible.Append (Files.File_System.Directory_Item'(others => <>));
+         Visible.Append (Files.Items.Directory_Item'(others => <>));
       end if;
    end loop;
 

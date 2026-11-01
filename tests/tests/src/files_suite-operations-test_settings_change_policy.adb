@@ -14,7 +14,7 @@ separate (Files_Suite.Operations)
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Unwritable);
-      Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+      Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       --  Where the column commands are enabled.
       Files.Model.Set_View_Mode (Model, Files.Types.Details);
 

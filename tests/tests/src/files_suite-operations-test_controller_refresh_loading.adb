@@ -35,7 +35,7 @@ separate (Files_Suite.Operations)
          Files.Types.Focus_None,
          "refresh clears rename focus");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "refresh clears command palette");
-      Assert (not Files.Model.Selected_Item_Is_Temporary (Model), "refresh clears temporary selection");
+      Assert (not Files.Model.Testing.Selected_Item_Is_Temporary (Model), "refresh clears temporary selection");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Info_Pane_Scroll_Lines (Model),
          0,

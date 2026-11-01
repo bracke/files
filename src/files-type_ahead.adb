@@ -24,7 +24,7 @@ package body Files.Type_Ahead is
    end Starts_With_Case_Insensitive;
 
    function Type_Ahead_Target
-     (Items       : Files.File_System.Item_Vectors.Vector;
+     (Items       : Files.Items.Item_Vectors.Vector;
       Prefix      : String;
       Start_Index : Natural)
       return Natural

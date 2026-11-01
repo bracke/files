@@ -44,10 +44,6 @@ package Files.Folder_Size is
    --  @return True when a helper is active.
    function Is_Active (Scan : Session) return Boolean;
 
-   --  @param Scan Measurements to inspect.
-   --  @return Active directory, or empty when idle.
-   function Target_For_Test (Scan : Session) return String;
-
    --  Set_Targets with the one directory Path.
    --
    --  @param Scan The window's scan.

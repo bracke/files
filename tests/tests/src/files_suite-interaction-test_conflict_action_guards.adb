@@ -40,8 +40,7 @@ separate (Files_Suite.Interaction)
             (Kind => Files.Events.Paste_Cancel_Input_Action, others => <>),
             Base_Font, Guikit.Input.No_Modifiers, Result);
          Assert
-           (Files.Model.Revision (Model) = Revision
-            and then not Result.Directory_Reloaded,
+           (Files.Model.Revision (Model) = Revision,
             "a stale paste-cancel action is inert when no paste is active");
       end;
 

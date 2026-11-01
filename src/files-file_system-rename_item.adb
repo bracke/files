@@ -129,15 +129,7 @@ is
             Error_Key => To_Unbounded_String ("error.rename.failed"));
    end Rename_Case_Only;
 
-   function Parent_Directory return String is
-   begin
-      return Ada.Directories.Containing_Directory (To_Path);
-   exception
-      when others =>
-         return "";
-   end Parent_Directory;
-
-   Parent : constant String := Parent_Directory;
+   Parent : constant String := Parent_Directory (To_Path);
    Name   : constant String := Mutation_Leaf_Name (To_Path);
 
    function Rename_Recorded return Mutation_Result is

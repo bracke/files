@@ -143,8 +143,5 @@ separate (Files_Suite.Interaction)
            (Files.Model.Current_Path (Model),
             Files_Suite.Support.Root,
             "Alt+Up through the key seam navigates to the parent directory");
-         Assert
-           (Result.Directory_Reloaded,
-            "successful key navigation reports the installed directory listing");
       end;
    end Test_Keyboard_Dispatch_Path;

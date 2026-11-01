@@ -121,7 +121,7 @@ separate (Files_Suite.Operations)
          "error.directory.load",
          "cancelling a retry does not clear an unconfirmed load error");
       Files.Settings.Note_Recent (Settings, Join (View, "alpha"));
-      Files.Model.Navigate_Recent (Model, Files.File_System.Item_Vectors.Empty_Vector);
+      Files.Model.Navigate_Recent (Model, Files.Items.Item_Vectors.Empty_Vector);
       for Operation_Error in Boolean loop
          Files.Model.Set_Error
            (Model, (if Operation_Error then "error.trash.restore_exists" else "error.directory.load"));

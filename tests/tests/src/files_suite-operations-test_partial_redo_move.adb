@@ -22,7 +22,7 @@ separate (Files_Suite.Operations)
             Destinations.Append (To_Unbounded_String (Dest_B));
             Sources.Append (To_Unbounded_String (Source_A));
             Sources.Append (To_Unbounded_String (Source_B));
-            Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+            Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Files.Operations.Record_Undo
               (Model,
                (case Scenario is

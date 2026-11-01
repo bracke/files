@@ -1,6 +1,6 @@
 separate (Files.Rendering.Build_Snapshot)
    function Filetype_Detail
-     (Item : Files.File_System.Directory_Item)
+     (Item : Files.Items.Directory_Item)
       return UString
    is
       --  Read once: the regular-file branch below compares it up to 17 times.

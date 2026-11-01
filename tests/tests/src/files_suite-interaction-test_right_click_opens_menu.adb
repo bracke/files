@@ -45,7 +45,6 @@ separate (Files_Suite.Interaction)
       Result.Settings_Changed := True;
       Result.Font_Size_Changed := True;
       Result.Needs_Glyph_Rebuild := True;
-      Result.Directory_Reloaded := True;
       Result.Clear_Pending_Text := True;
       Right_Click (2);
       Assert (Found, "a layout cell exists for the right-clicked item");
@@ -61,9 +60,6 @@ separate (Files_Suite.Interaction)
       Assert
         (not Result.Needs_Glyph_Rebuild,
          "right-click clears follow-up flags left by an earlier interaction (needs glyph rebuild)");
-      Assert
-        (not Result.Directory_Reloaded,
-         "right-click clears follow-up flags left by an earlier interaction (directory reloaded)");
       Assert
         (not Result.Clear_Pending_Text,
          "right-click clears follow-up flags left by an earlier interaction (clear pending text)");

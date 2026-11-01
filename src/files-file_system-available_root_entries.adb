@@ -1,3 +1,4 @@
+with Hostkit.Fs;
 with Hostkit.Mounts;
 separate (Files.File_System)
 function Available_Root_Entries return Root_Entry_Vectors.Vector is
@@ -5,28 +6,24 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
    Max_Discovered_Roots : constant Natural := 1_024;
    Max_Root_Entries_Scanned : constant Natural := 4_096;
    Root_Entries_Scanned : Natural := 0;
-   Home                    : constant String := Safe_Environment_Value ("HOME");
-   User_Profile            : constant String := Safe_Environment_Value ("USERPROFILE");
-   Xdg_Runtime_Dir         : constant String := Safe_Environment_Value ("XDG_RUNTIME_DIR");
-   User_Name               : constant String := Safe_Environment_Value ("USER");
-   Home_Drive              : constant String := Safe_Environment_Value ("HOMEDRIVE");
-   Home_Path               : constant String := Safe_Environment_Value ("HOMEPATH");
-   System_Drive            : constant String := Safe_Environment_Value ("SystemDrive");
-   Home_Share              : constant String := Safe_Environment_Value ("HOMESHARE");
-   One_Drive               : constant String := Safe_Environment_Value ("OneDrive");
-   One_Drive_Commercial    : constant String := Safe_Environment_Value ("OneDriveCommercial");
-   One_Drive_Consumer      : constant String := Safe_Environment_Value ("OneDriveConsumer");
-   Home_Drive_Profile      : constant String :=
-     (if Home_Drive /= "" and then Home_Path /= "" then Home_Drive & Home_Path else "");
+   --  The folders the host's conventions give this user (the home, the
+   --  Windows profile drive, share and OneDrive, where Linux mounts media).
+   Places    : constant Hostkit.Fs.User_Place_List := Hostkit.Fs.User_Places;
+   User_Name : constant String := Files.Environment.Value ("USER");
 
-   function Starts_With
-     (Text   : String;
-      Prefix : String)
-      return Boolean is
+   function Place_Of (Kind : Hostkit.Fs.User_Place_Kind) return String is
    begin
-      return Text'Length >= Prefix'Length
-        and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix;
-   end Starts_With;
+      for Place of Places loop
+         if Hostkit.Fs."=" (Place.Kind, Kind) then
+            return To_String (Place.Path);
+         end if;
+      end loop;
+      return "";
+   end Place_Of;
+
+   Desktop_Mounts : constant String := Place_Of (Hostkit.Fs.Desktop_Mounts_Parent);
+
+   function Starts_With (Text : String; Prefix : String) return Boolean renames Files.Types.Starts_With;
 
    function Is_Pseudo_Mount_Type (Filesystem_Type : String) return Boolean is
       Normalized : constant String := Files.Types.To_Lower (Filesystem_Type);
@@ -92,7 +89,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
 
    function Is_User_Visible_Mount_Point (Mount_Point : String) return Boolean is
      (Files.File_System.Is_User_Visible_Mount_Point
-        (Mount_Point, (if Xdg_Runtime_Dir = "" then "" else Join_Path (Xdg_Runtime_Dir, "gvfs"))));
+        (Mount_Point, Desktop_Mounts));
 
    function Is_Displayable_Root_Mount
      (Mount_Point     : String;
@@ -257,53 +254,42 @@ begin
       Append_If_Directory ("/", Root_Filesystem);
    end if;
    Append_Proc_Mounts;
-   if Home /= "" then
-      Append_If_Directory (Home, Root_Home);
-   end if;
-   if User_Profile /= "" then
-      Append_If_Directory (User_Profile, Root_Home);
-   end if;
+   --  The home first, so it keeps its own kind should another place name it.
+   for Place of Places loop
+      if Hostkit.Fs."=" (Place.Kind, Hostkit.Fs.Home_Place) then
+         Append_If_Directory (To_String (Place.Path), Root_Home);
+      end if;
+   end loop;
    Append_If_Directory (Ada.Directories.Current_Directory, Root_Current);
    Append_Children ("/mnt", Root_Mount);
    Append_Children ("/media", Root_Mount);
    Append_Children ("/run/media", Root_User_Mount);
    Append_Children ("/Volumes", Root_Mount);
    Append_Children ("/System/Volumes", Root_Mount);
-   if Xdg_Runtime_Dir /= "" then
-      Append_Children (Join_Path (Xdg_Runtime_Dir, "gvfs"), Root_Network_Mount);
-   end if;
-   if User_Name /= "" then
-      declare
-         Run_Media_User : constant String := "/run/media/" & User_Name;
-      begin
-         Append_Children (Run_Media_User, Root_User_Mount);
-      end;
-   end if;
 
    for Drive in Character range 'A' .. 'Z' loop
       Append_If_Directory (String'(1 => Drive) & ":\", Root_Windows_Drive);
    end loop;
-   if Home_Drive /= "" then
-      Append_If_Directory (Home_Drive & "\", Root_Windows_Drive);
-   end if;
-   if Home_Drive_Profile /= "" then
-      Append_If_Directory (Home_Drive_Profile, Root_User_Mount);
-   end if;
-   if System_Drive /= "" then
-      Append_If_Directory (System_Drive & "\", Root_Windows_Drive);
-   end if;
-   if Home_Share /= "" then
-      Append_If_Directory (Home_Share, Root_Network_Mount);
-   end if;
-   if One_Drive /= "" then
-      Append_If_Directory (One_Drive, Root_User_Mount);
-   end if;
-   if One_Drive_Commercial /= "" then
-      Append_If_Directory (One_Drive_Commercial, Root_User_Mount);
-   end if;
-   if One_Drive_Consumer /= "" then
-      Append_If_Directory (One_Drive_Consumer, Root_User_Mount);
-   end if;
+   for Place of Places loop
+      declare
+         Path : constant String := To_String (Place.Path);
+      begin
+         case Place.Kind is
+            when Hostkit.Fs.Home_Place =>
+               null;
+            when Hostkit.Fs.Drive_Place =>
+               Append_If_Directory (Path, Root_Windows_Drive);
+            when Hostkit.Fs.Profile_Place | Hostkit.Fs.Cloud_Place =>
+               Append_If_Directory (Path, Root_User_Mount);
+            when Hostkit.Fs.Network_Place =>
+               Append_If_Directory (Path, Root_Network_Mount);
+            when Hostkit.Fs.Removable_Media_Parent =>
+               Append_Children (Path, Root_User_Mount);
+            when Hostkit.Fs.Desktop_Mounts_Parent =>
+               Append_Children (Path, Root_Network_Mount);
+         end case;
+      end;
+   end loop;
 
    if Roots.Is_Empty then
       declare

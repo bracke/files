@@ -1,10 +1,11 @@
+with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Recent_View_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Sample_Model;
-      Empty    : Files.File_System.Item_Vectors.Vector;
+      Empty    : Files.Items.Item_Vectors.Vector;
       Clipboard : Files.Types.String_Vectors.Vector;
       Result   : Files.Controller.Controller_Result;
    begin

@@ -1,10 +1,10 @@
+with Files.Items;
 with Ada.Finalization;
 with Ada.Iterator_Interfaces;
 with Ada.Real_Time;
 with Files.Commands;
 with Files.Controller;
 with Files.Events;
-with Files.File_System;
 with Files.Model;
 with Files.Operations;
 with Files.Rendering;
@@ -506,7 +506,7 @@ package Files_Suite.Support is
    --  Build a sample set of directory items for tests.
    --
    --  @return A vector of sample directory items.
-   function Sample_Items return Files.File_System.Item_Vectors.Vector;
+   function Sample_Items return Files.Items.Item_Vectors.Vector;
 
    --  Build a sample window model populated with sample items.
    --

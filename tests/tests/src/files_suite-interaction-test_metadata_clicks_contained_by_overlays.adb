@@ -22,9 +22,6 @@ separate (Files_Suite.Interaction)
         (Files.Model.Revision (Model) = Before
          and then Files.Model.Command_Palette_Is_Open (Model),
          "a stale permission click cannot mutate behind the command palette");
-      Assert
-        (not Result.Directory_Reloaded,
-         "a contained permission click reports no directory mutation");
 
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",

@@ -1,10 +1,11 @@
+with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Model)
    procedure Test_Create_File_Mixed_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Mixed_Model : Files.Model.Window_Model := Sample_Model;
-      Mixed_Items : Files.File_System.Item_Vectors.Vector;
+      Mixed_Items : Files.Items.Item_Vectors.Vector;
       Operation : Files.Operations.Operation_Result;
    begin
       Files.Model.Begin_Create_File (Mixed_Model, "pending.txt");
@@ -25,7 +26,7 @@ separate (Files_Suite.Model)
         (Files.Model.Selection_Includes_Temporary (Mixed_Model),
          "model identifies temporary item inside mixed selection");
       Assert
-        (not Files.Model.Selected_Item_Is_Temporary (Mixed_Model),
+        (not Files.Model.Testing.Selected_Item_Is_Temporary (Mixed_Model),
          "primary selected item need not be temporary in a mixed selection");
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Mixed_Model),

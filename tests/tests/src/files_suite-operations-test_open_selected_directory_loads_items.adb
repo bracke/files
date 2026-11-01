@@ -3,7 +3,7 @@ separate (Files_Suite.Operations)
       pragma Unreferenced (T);
       Dir      : constant String := Join (Root, "open-dir");
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Items    : Files.File_System.Item_Vectors.Vector;
+      Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Result   : Files.Operations.Operation_Result;
       Routed   : Files.Controller.Controller_Result;

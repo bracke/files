@@ -1,3 +1,4 @@
+with Files.Environment;
 with Files.Diagnostics;
 with Ada.Text_IO;
 
@@ -16,7 +17,7 @@ separate (Files.Application.Windows.Smoke)
       --  screen that long, announced on standard output, so a person or a
       --  screenshot tool can look at it. Unset or invalid: no pause.
       function Hold_Seconds return Natural is
-         Value : constant String := Safe_Environment_Value ("FILES_LIVE_SMOKE_HOLD");
+         Value : constant String := Files.Environment.Value ("FILES_LIVE_SMOKE_HOLD");
       begin
          return (if Value = "" then 0 else Natural'Min (Natural'Value (Value), 600));
       exception
@@ -225,12 +226,15 @@ separate (Files.Application.Windows.Smoke)
                Event_Loop_Pass (Runtime_Windows, Loop_State);
             end loop;
             Before := Guikit.Vulkan.Diagnostics (Window.Vulkan).Last_Framebuffer_Hash;
+            --  Ctrl+= (zoom in): it redraws everything and starts no
+            --  background work. Selecting an item would measure a folder of
+            --  the runner's home, whose helper may outlive the smoke's exit.
             Window.Handle.Pending_Input.Append
               (Input_Event'
                  (Kind      => Key_Press_Event,
-                  Key       => Tracked_Down,
-                  Physical  => To_Glfw_Key (Tracked_Down),
-                  Modifiers => Guikit.Input.No_Modifiers,
+                  Key       => Tracked_Equal,
+                  Physical  => To_Glfw_Key (Tracked_Equal),
+                  Modifiers => [Guikit.Input.Control_Key => True, others => False],
                   Text      => Null_Unbounded_String,
                   Parallel  => False));
             for Pass in 1 .. Settle_Passes loop

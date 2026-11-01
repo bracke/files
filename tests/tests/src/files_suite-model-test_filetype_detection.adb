@@ -2,17 +2,17 @@ separate (Files_Suite.Model)
    procedure Test_Filetype_Detection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Directory_Item : constant Files.File_System.Directory_Item :=
+      Directory_Item : constant Files.Items.Directory_Item :=
         Files.File_System.Make_Item (Root, "src", Files.Types.Directory_Item);
-      Symlink_Item : constant Files.File_System.Directory_Item :=
+      Symlink_Item : constant Files.Items.Directory_Item :=
         Files.File_System.Make_Item (Root, "link.adb", Files.Types.Symlink_Item);
-      Executable_Item : constant Files.File_System.Directory_Item :=
+      Executable_Item : constant Files.Items.Directory_Item :=
         Files.File_System.Make_Item (Root, "run", Files.Types.Executable_Item);
-      Regular_Item : constant Files.File_System.Directory_Item :=
+      Regular_Item : constant Files.Items.Directory_Item :=
         Files.File_System.Make_Item ("", "loose.txt", Files.Types.Regular_File_Item);
-      Ada_Item : Files.File_System.Directory_Item;
-      Executable_Ada_Item : Files.File_System.Directory_Item;
-      Symlink_Ada_Item : Files.File_System.Directory_Item;
+      Ada_Item : Files.Items.Directory_Item;
+      Executable_Ada_Item : Files.Items.Directory_Item;
+      Symlink_Ada_Item : Files.Items.Directory_Item;
       C1_Break : constant Character := Character'Val (133);
       NBSP : constant String := Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#));
       Line_Separator : constant String :=

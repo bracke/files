@@ -3,7 +3,7 @@ separate (Files_Suite.Model)
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
-      Items    : Files.File_System.Item_Vectors.Vector;
+      Items    : Files.Items.Item_Vectors.Vector;
       Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result   : Files.Controller.Controller_Result;
    begin

@@ -381,7 +381,7 @@ package body Files.Commands is
    end Id_For_Identifier;
 
    function Joined_Full_Paths
-     (Items : Files.File_System.Item_Vectors.Vector)
+     (Items : Files.Items.Item_Vectors.Vector)
       return String
    is
       Result : Unbounded_String;

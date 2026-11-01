@@ -570,7 +570,7 @@ package body Files.Model is
    procedure Initialize
      (Model             : out Window_Model;
       Directory_Path    : String;
-      Items             : Files.File_System.Item_Vectors.Vector;
+      Items             : Files.Items.Item_Vectors.Vector;
       Home_Path         : String;
       Default_View_Mode : Files.Types.View_Mode := Files.Types.Small_Icons) is
    begin
@@ -647,7 +647,7 @@ package body Files.Model is
    function Visible_Item
      (Model         : Window_Model;
       Visible_Index : Positive)
-      return Files.File_System.Directory_Item
+      return Files.Items.Directory_Item
    is separate;
 
    function Visible_Rows
@@ -866,10 +866,6 @@ package body Files.Model is
      (Model   : in out Window_Model;
       Columns : Positive) is separate;
 
-   function Selection_Grid_Columns
-     (Model : Window_Model)
-      return Positive is separate;
-
    function Is_Selected
      (Model         : Window_Model;
       Visible_Index : Positive)
@@ -890,24 +886,20 @@ package body Files.Model is
 
    function Selected_Item
      (Model : Window_Model)
-      return Files.File_System.Directory_Item
+      return Files.Items.Directory_Item
    is separate;
 
    function Selected_Items
      (Model : Window_Model;
       Limit : Natural := Natural'Last)
-      return Files.File_System.Item_Vectors.Vector
+      return Files.Items.Item_Vectors.Vector
    is separate;
 
    procedure Restore_Selection
      (Model        : in out Window_Model;
-      Items        : Files.File_System.Item_Vectors.Vector;
+      Items        : Files.Items.Item_Vectors.Vector;
       Primary_Path : String)
    is separate;
-
-   function Selected_Item_Is_Temporary
-     (Model : Window_Model)
-      return Boolean is separate;
 
    function Selection_Includes_Temporary
      (Model : Window_Model)
@@ -945,7 +937,7 @@ package body Files.Model is
    --  progress, selection and scroll go; Sorted orders them by the model's sort.
    procedure Swap_Items
      (Model  : in out Window_Model;
-      Items  : Files.File_System.Item_Vectors.Vector;
+      Items  : Files.Items.Item_Vectors.Vector;
       Sorted : Boolean);
 
    procedure Push_Back_History (Model : in out Window_Model) is
@@ -993,7 +985,7 @@ package body Files.Model is
    procedure Navigate_To
      (Model          : in out Window_Model;
       Directory_Path : String;
-      Items          : Files.File_System.Item_Vectors.Vector) is
+      Items          : Files.Items.Item_Vectors.Vector) is
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
       --  Leaving the virtual recent view does not preserve it in history (its
@@ -1015,7 +1007,7 @@ package body Files.Model is
 
    procedure Navigate_Recent
      (Model : in out Window_Model;
-      Items : Files.File_System.Item_Vectors.Vector) is
+      Items : Files.Items.Item_Vectors.Vector) is
    begin
       --  A refresh or clear re-enters while already active: the view stays,
       --  only its items change (as a folder's refresh), in recency order,
@@ -1182,7 +1174,7 @@ package body Files.Model is
    procedure Commit_Path_Input
      (Model  : in out Window_Model;
       Result : Files.File_System.Path_Result;
-      Items  : Files.File_System.Item_Vectors.Vector) is separate;
+      Items  : Files.Items.Item_Vectors.Vector) is separate;
 
    function Path_Input_Is_Valid
      (Model : Window_Model)
@@ -1241,18 +1233,12 @@ package body Files.Model is
      (Model : Window_Model)
       return Boolean is separate;
 
-   function Rename_Behavior return Rename_Policy is separate;
-
    procedure Toggle_Rename
      (Model : in out Window_Model) is separate;
 
    function Rename_Is_Active
      (Model : Window_Model)
       return Boolean is separate;
-
-   function Rename_Field_Count
-     (Model : Window_Model)
-      return Natural is separate;
 
    function Rename_Text
      (Model : Window_Model)
@@ -1314,14 +1300,6 @@ package body Files.Model is
      (Model         : in out Window_Model;
       Visible_Index : Natural;
       Position      : Natural) is separate;
-
-   procedure Rename_State_For_Visible
-     (Model         : Window_Model;
-      Visible_Index : Positive;
-      Active        : out Boolean;
-      Value         : out UString;
-      Cursor        : out Natural)
-   is separate;
 
    procedure Rename_State_For_Item
      (Model      : Window_Model;
@@ -1536,9 +1514,6 @@ package body Files.Model is
      (Model          : in out Window_Model;
       Fallback_Index : Positive)
    is separate;
-
-   procedure Toggle_Tree_Panel
-     (Model : in out Window_Model) is separate;
 
    procedure Open_Tree_Panel
      (Model : in out Window_Model) is separate;
@@ -1873,14 +1848,14 @@ package body Files.Model is
 
    procedure Replace_Items
      (Model : in out Window_Model;
-      Items : Files.File_System.Item_Vectors.Vector) is
+      Items : Files.Items.Item_Vectors.Vector) is
    begin
       Swap_Items (Model, Items, Sorted => True);
    end Replace_Items;
 
    procedure Swap_Items
      (Model  : in out Window_Model;
-      Items  : Files.File_System.Item_Vectors.Vector;
+      Items  : Files.Items.Item_Vectors.Vector;
       Sorted : Boolean) is
    begin
       Clear_Folder_Size (Model);
@@ -2018,15 +1993,7 @@ package body Files.Model is
      (Model  : in out Window_Model;
       Action : Undo_Entry) is separate;
 
-   function Undo_Kind_Of
-     (Model : Window_Model)
-      return Undo_Action_Kind is separate;
-
    function Undo_From_Paths
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector is separate;
-
-   function Undo_To_Paths
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector is separate;
 
@@ -2235,11 +2202,6 @@ package body Files.Model is
          Set_Folder_Size (Model, Path, Result);
       end if;
    end Note_Folder_Size;
-
-   function Folder_Scan_Is_Active (Model : Window_Model) return Boolean is
-     (Files.Folder_Size.Is_Active (Model.Folder_Scan));
-   function Folder_Scan_Target (Model : Window_Model) return String is
-     (Files.Folder_Size.Target_For_Test (Model.Folder_Scan));
 
    procedure Set_Folder_Size
      (Model : in out Window_Model;

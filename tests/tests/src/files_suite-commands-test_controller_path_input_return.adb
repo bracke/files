@@ -3,7 +3,7 @@ separate (Files_Suite.Commands)
       pragma Unreferenced (T);
       Target   : constant String := Join (Root, "path-target");
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Items    : Files.File_System.Item_Vectors.Vector;
+      Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Ctrl     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result   : Files.Controller.Controller_Result;

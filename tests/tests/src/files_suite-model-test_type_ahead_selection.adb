@@ -4,8 +4,8 @@ separate (Files_Suite.Model)
 
       --  Six-item projection with several names sharing a "d" prefix so the
       --  refine and repeated-letter cycling behaviours are observable.
-      function Grid_Items return Files.File_System.Item_Vectors.Vector is
-         Items : Files.File_System.Item_Vectors.Vector;
+      function Grid_Items return Files.Items.Item_Vectors.Vector is
+         Items : Files.Items.Item_Vectors.Vector;
       begin
          Items.Append (Files.File_System.Make_Item (Root, "delta", Files.Types.Regular_File_Item, "text/plain"));
          Items.Append (Files.File_System.Make_Item (Root, "Doc", Files.Types.Regular_File_Item, "text/plain"));

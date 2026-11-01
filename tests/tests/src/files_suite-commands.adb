@@ -1,3 +1,5 @@
+with Files.Items;
+with Files.Model.Testing;
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with I18N.Normalization;
 with Ada.Directories;

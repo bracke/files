@@ -9,8 +9,8 @@ separate (Files_Suite.Operations)
    begin
       Reset_Root;
       declare
-         Items          : Files.File_System.Item_Vectors.Vector;
-         Broken_Item    : Files.File_System.Directory_Item :=
+         Items          : Files.Items.Item_Vectors.Vector;
+         Broken_Item    : Files.Items.Directory_Item :=
            Files.File_System.Make_Item
              (Parent_Path => Root,
               Name        => "broken.txt",
@@ -68,8 +68,8 @@ separate (Files_Suite.Operations)
 
       Write_File (Join (Root, "run.sh"), "#!/bin/sh" & ASCII.LF);
       declare
-         Items : Files.File_System.Item_Vectors.Vector;
-         Exec_Item : Files.File_System.Directory_Item :=
+         Items : Files.Items.Item_Vectors.Vector;
+         Exec_Item : Files.Items.Directory_Item :=
            Files.File_System.Make_Item
              (Parent_Path => Root,
               Name        => "run.sh",
@@ -91,7 +91,7 @@ separate (Files_Suite.Operations)
       end;
 
       declare
-         Items : Files.File_System.Item_Vectors.Vector;
+         Items : Files.Items.Item_Vectors.Vector;
       begin
          Items.Append
            (Files.File_System.Make_Item

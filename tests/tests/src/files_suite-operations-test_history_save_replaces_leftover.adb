@@ -13,7 +13,7 @@ separate (Files_Suite.Operations)
          Files.Model.Undo_Entry_Vectors.Empty_Vector,
          Files.Model.Undo_Entry_Vectors.Empty_Vector,
          Required => True);
-      Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+      Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert (Files.History_Journal.Restore (History_Directory, Model), "the journal is saved over the leftover");
       Assert (not Ada.Directories.Exists (Join (History_Directory, "history.tmp")), "and no temporary is left");
       Reset_Root;

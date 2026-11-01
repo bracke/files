@@ -13,7 +13,7 @@ separate (Files_Suite.Interaction)
          Files.Settings.Set_Label (Settings, "/d/f" & Index'Image, Files.Types.Gray);
       end loop;
       Assert (Files.Settings.Loadable (Settings), "3000 labels fit");
-      Files.Model.Initialize (Model, "/", Files.File_System.Item_Vectors.Empty_Vector, "/");
+      Files.Model.Initialize (Model, "/", Files.Items.Item_Vectors.Empty_Vector, "/");
       Files.Model.Note_Path_Move (Model, "/d", Longer);
       Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
       Assert (not Followed, "a move the settings file cannot hold is not followed");

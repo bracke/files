@@ -24,7 +24,7 @@ separate (Files_Suite.Model)
             Removable => False));
       Files.Model.Open_Root_Selector (Model, Entries);
       Result := Files.Controller.Execute_Command (Files.Commands.Open_Selected_Root_Command, Model, Settings);
-      Files.Model.Navigate_To (Model, Root, Files.File_System.Item_Vectors.Empty_Vector);
+      Files.Model.Navigate_To (Model, Root, Files.Items.Item_Vectors.Empty_Vector);
       Files.Model.Toggle_Settings_Pane (Model);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens before direct root selector call");
       Files.Model.Open_Root_Selector (Model, Entries);

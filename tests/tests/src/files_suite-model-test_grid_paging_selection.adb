@@ -3,7 +3,7 @@ separate (Files_Suite.Model)
       pragma Unreferenced (T);
 
       function Paging_Model (Count : Natural) return Files.Model.Window_Model is
-         Items : Files.File_System.Item_Vectors.Vector;
+         Items : Files.Items.Item_Vectors.Vector;
          Built : Files.Model.Window_Model;
       begin
          for Index in 1 .. Count loop

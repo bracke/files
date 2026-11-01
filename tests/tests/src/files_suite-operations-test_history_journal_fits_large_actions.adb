@@ -29,7 +29,7 @@ separate (Files_Suite.Operations)
       Undo.Append (Large ("newer"));
       Files.History_Journal.Save_Stacks
         (History_Directory, Undo, Files.Model.Undo_Entry_Vectors.Empty_Vector, Required => True);
-      Files.Model.Initialize (Model, Root, Files.File_System.Item_Vectors.Empty_Vector, Root);
+      Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
       Assert (Files.History_Journal.Restore (History_Directory, Model), "the journal is saved and reads back");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.Undo_History (Model).Length), 1, "with the newest action, the older left out");

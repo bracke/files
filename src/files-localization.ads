@@ -16,6 +16,14 @@ package Files.Localization is
    --  @return Normalized locale from LC_ALL, LC_MESSAGES, or LANG; en when none is usable.
    function System_Locale return String;
 
+   --  The message locale as the environment spells it: the first of LC_ALL,
+   --  LC_MESSAGES and LANG that is set, trimmed but not normalized, so
+   --  POSIX modifiers (sr_RS@latin) survive for desktop-entry keys. One
+   --  order for the interface (System_Locale) and those keys alike.
+   --
+   --  @return That value, or "" when none of them is set.
+   function Message_Locale_Variable return String;
+
    --  Return the process date/time locale inferred from the environment.
    --
    --  @return Normalized locale from LC_ALL, LC_TIME, or LANG; en when none is usable.

@@ -1,3 +1,4 @@
+with Files.Items;
 with Ada.Containers.Ordered_Sets;
 separate (Files.Model)
 function Visible_Rows
@@ -21,7 +22,7 @@ begin
             --  Directory_Item (thumbnail pixels included) once for the filter
             --  test and Append copied it again. The reference tests the filter
             --  with no copy; only the retained Rows entry copies it.
-            Item : Files.File_System.Directory_Item renames Model.Items (Index);
+            Item : Files.Items.Directory_Item renames Model.Items (Index);
          begin
             --  Same test as Item_Is_Visible, which every index mapping
             --  (clicks, selection, rename) uses: search results show every
@@ -41,7 +42,7 @@ begin
 
    if Temporary_Is_Visible (Model) then
       declare
-         Temp : constant Files.File_System.Directory_Item :=
+         Temp : constant Files.Items.Directory_Item :=
            (if Model.Temporary_Is_Directory then
                Files.File_System.Make_Item
                  (Parent_Path => Current_Path (Model),

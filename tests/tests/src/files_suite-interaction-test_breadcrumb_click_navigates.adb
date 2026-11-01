@@ -67,10 +67,6 @@ separate (Files_Suite.Interaction)
             "clicking the parent breadcrumb navigates to the parent directory");
       end;
       Assert
-        (Result.Status = Files.Controller.Controller_Command_Executed
-         and then Result.Command_Executed,
+        (Result.Status = Files.Controller.Controller_Command_Executed,
          "breadcrumb navigation reports the controller command execution");
-      Assert
-        (Result.Directory_Reloaded,
-         "breadcrumb navigation reports the installed directory listing");
    end Test_Breadcrumb_Click_Navigates;

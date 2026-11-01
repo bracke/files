@@ -1,6 +1,6 @@
 separate (Files.Rendering.Build_Snapshot)
    function Filetype_Extra
-     (Item : Files.File_System.Directory_Item)
+     (Item : Files.Items.Directory_Item)
       return UString
    is
       Type_Name : constant String := To_String (Item.Filetype);

@@ -107,15 +107,7 @@ separate (Files.Rendering.Build_Frame_Commands)
          return True;
       end Add_Named_Asset;
 
-      function Starts_With
-        (Value  : String;
-         Prefix : String)
-         return Boolean
-      is
-      begin
-         return Value'Length >= Prefix'Length
-           and then Value (Value'First .. Value'First + Prefix'Length - 1) = Prefix;
-      end Starts_With;
+      function Starts_With (Text : String; Prefix : String) return Boolean renames Files.Types.Starts_With;
 
       function Resolved_Icon_Name return String is
       begin
@@ -153,32 +145,12 @@ separate (Files.Rendering.Build_Frame_Commands)
          then Item.Thumbnail_Path
          else To_Unbounded_String (Icon_Asset_Directory & "/" & Resolved_Name & ".icon"));
 
-      --  The lowercase extension of a filename (after the last dot), or "" for
-      --  no extension, a dotfile (leading dot only), or a trailing dot.
-      function Extension_Of (Name : String) return String is
-         Dot : Natural := 0;
-      begin
-         for Position in reverse Name'Range loop
-            if Name (Position) = '.' then
-               Dot := Position;
-               exit;
-            end if;
-         end loop;
-         --  No dot at all (README, Makefile) has nothing to show; a trailing dot
-         --  likewise. A leading dot (dotfiles like .gitignore, .env) is treated as
-         --  a bare extension so those still get a tab.
-         if Dot = 0 or else Dot = Name'Last then
-            return "";
-         end if;
-         return Files.Types.To_Lower (Name (Dot + 1 .. Name'Last));
-      end Extension_Of;
-
       --  In large-icon view, draw the file extension as a small index tab in the
       --  icon's bottom-right corner (a prerendered bitmap on the overlay layer).
       --  Only in large-icon view (where Use_Thumbnail is set); skipped for folders
       --  and extensionless names.
       procedure Add_Extension_Badge is
-         Ext : constant String := Extension_Of (To_String (Item.Name));
+         Ext : constant String := Files.File_Types.Extension_Of (To_String (Item.Name), Dotfiles => True);
       begin
          if Ext = ""
            or else not Use_Thumbnail

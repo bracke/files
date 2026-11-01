@@ -1,3 +1,4 @@
+with Files.Environment;
 with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Environment_Variables;
@@ -420,7 +421,7 @@ package body Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
    is
-      Items      : constant Files.File_System.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
+      Items      : constant Files.Items.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
       First_Path : Unbounded_String;
       First_Name : Unbounded_String;
       Unsupported_Key  : Unbounded_String;
@@ -533,7 +534,7 @@ package body Files.Operations is
    begin
       if Files.Model.Selected_Item_Needs_Extra (Model) then
          declare
-            Item : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
+            Item : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
          begin
             Files.Model.Set_Selected_Item_Extra
               (Model,
@@ -551,7 +552,7 @@ package body Files.Operations is
          return;
       end if;
       declare
-         Item : constant Files.File_System.Directory_Item := Files.Model.Selected_Item (Model);
+         Item : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
       begin
          Files.Model.Focus_Ownership_Input
            (Model,
@@ -778,7 +779,7 @@ package body Files.Operations is
    procedure Settle_History (Model : in out Files.Model.Window_Model) is separate;
 
    function Prepare_Quick_Look
-     (Item : Files.File_System.Directory_Item)
+     (Item : Files.Items.Directory_Item)
       return Files.Quick_Look.Quick_Look_Content
    is
       use type Files.Quick_Look.Content_Kind;

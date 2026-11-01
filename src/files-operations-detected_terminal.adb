@@ -2,7 +2,7 @@ separate (Files.Operations)
 function Detected_Terminal return String is
    type Terminal_List is array (Positive range <>) of Unbounded_String;
 
-   Configured : constant String := Safe_Environment_Value ("TERMINAL");
+   Configured : constant String := Files.Environment.Value ("TERMINAL");
 
    --  Ordered most- to least-preferred, per host. Each entry is a bare
    --  executable expected on PATH, so an unknown one simply never matches

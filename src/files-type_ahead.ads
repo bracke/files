@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.File_System;
 
 --  Pure type-to-select (type-ahead) matching over a visible item projection.
@@ -30,7 +31,7 @@ package Files.Type_Ahead is
    --  @return One-based visible index of the first match, or zero when none
    --    match or Prefix is empty.
    function Type_Ahead_Target
-     (Items       : Files.File_System.Item_Vectors.Vector;
+     (Items       : Files.Items.Item_Vectors.Vector;
       Prefix      : String;
       Start_Index : Natural)
       return Natural;

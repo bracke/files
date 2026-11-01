@@ -30,7 +30,7 @@ separate (Files_Suite.Operations)
       Result := Files.Operations.Set_Ownership_For (Model, Uid, Gid, Settings);
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "identity chown succeeds");
       Assert
-        (Files.Model.Undo_Kind_Of (Model) = Files.Model.Undo_Set_Ownership,
+        (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Model.Undo_Set_Ownership,
          "set-ownership records an ownership undo");
 
       Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));

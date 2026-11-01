@@ -19,13 +19,6 @@ package body Glfw.Windows.Drop is
       pragma Unreferenced (Previous);
    end Set_Drop_Callback;
 
-   function User_Pointer
-     (Window : System.Address)
-      return System.Address is
-   begin
-      return Raw_Get_Window_User_Pointer (Window);
-   end User_Pointer;
-
    function Raw_Handle
      (Window : not null access Glfw.Windows.Window)
       return System.Address is

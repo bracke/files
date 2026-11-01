@@ -1,9 +1,10 @@
+with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Pure_Command_Execution (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model : Files.Model.Window_Model := Sample_Model;
-      Empty : Files.File_System.Item_Vectors.Vector;
+      Empty : Files.Items.Item_Vectors.Vector;
    begin
       --  The model-only executor (Files.Commands.Execute) takes only pure
       --  commands, so the type keeps it from ever running one that inspects
