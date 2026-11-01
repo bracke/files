@@ -188,7 +188,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Selection_Color => Selection_Color,
                   Hover_Color     => Hover_Color,
                   Border_Color    => Border_Color,
-                  Alternate_Color => Detail_Alternate_Color);
+                  Alternate_Color => Alternate_Row_Color);
             end;
 
             if Snapshot.View_Mode = Files.Types.Details then
@@ -216,7 +216,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                Line_Height   => Line_Height,
                Favorite      => Item.Is_Favorite,
                Star_Glyph    => To_Unbounded_String (Favorite_Star_Filled_Text),
-               Star_Color    => Favorite_Star_Color,
+               Star_Color    => Accent_Gold_Color,
                Has_Label     => Item.Label /= Files.Types.No_Label,
                Label_Color   => Label_Render_Color (Item.Label));
             declare

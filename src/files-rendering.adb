@@ -787,13 +787,13 @@ package body Files.Rendering is
    begin
       case Label is
          when Files.Types.No_Label => return Muted_Text_Color;
-         when Files.Types.Red      => return Label_Red_Color;
-         when Files.Types.Orange   => return Label_Orange_Color;
-         when Files.Types.Yellow   => return Label_Yellow_Color;
-         when Files.Types.Green    => return Label_Green_Color;
-         when Files.Types.Blue     => return Label_Blue_Color;
-         when Files.Types.Purple   => return Label_Purple_Color;
-         when Files.Types.Gray     => return Label_Gray_Color;
+         when Files.Types.Red      => return Accent_Red_Color;
+         when Files.Types.Orange   => return Accent_Orange_Color;
+         when Files.Types.Yellow   => return Accent_Yellow_Color;
+         when Files.Types.Green    => return Accent_Green_Color;
+         when Files.Types.Blue     => return Accent_Blue_Color;
+         when Files.Types.Purple   => return Accent_Purple_Color;
+         when Files.Types.Gray     => return Accent_Gray_Color;
       end case;
    end Label_Render_Color;
 

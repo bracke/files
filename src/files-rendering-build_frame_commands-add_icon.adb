@@ -18,7 +18,7 @@ separate (Files.Rendering.Build_Frame_Commands)
               Clipped_Size (Y, Size, Layout.Height)));
       Accent     : constant Render_Color :=
         (if Item.Kind = Files.Types.Executable_Item or else Icon_Name = "ada"
-         then Icon_Executable_Color
+         then Icon_Program_Color
          else Selection_Color);
       Fold       : constant Natural := Natural'Max (1, Draw_Size / 4);
       Stripe_W   : constant Natural := Natural'Max (1, Draw_Size / 5);
@@ -315,7 +315,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             end if;
 
          when Files.Types.Executable_Item =>
-            Add_Rect (X, Y, Draw_Size, Draw_Size, Icon_File_Color);
+            Add_Rect (X, Y, Draw_Size, Draw_Size, Icon_Document_Color);
             Add_Rect (X_Offset (Draw_Size - Fold), Y, Fold, Fold, Muted_Text_Color);
             Add_Rect (X, Y, Stripe_W, Draw_Size, Accent);
             if Draw_Size > 6 then
@@ -334,7 +334,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             end if;
 
          when Files.Types.Symlink_Item =>
-            Add_Rect (X, Y, Draw_Size, Draw_Size, Icon_File_Color);
+            Add_Rect (X, Y, Draw_Size, Draw_Size, Icon_Document_Color);
             Add_Rect (X_Offset (Draw_Size - Fold), Y, Fold, Fold, Muted_Text_Color);
             if Draw_Size > 5 then
                Add_Rect
@@ -388,13 +388,13 @@ separate (Files.Rendering.Build_Frame_Commands)
                      Y_Offset (Scale (1, 3)),
                      Scale (1, 5),
                      Scale (1, 2),
-                     Icon_Executable_Color);
+                     Icon_Program_Color);
                   Add_Rect
                     (X_Offset (Scale (3, 5)),
                      Y_Offset (Scale (1, 3)),
                      Scale (1, 5),
                      Scale (1, 2),
-                     Icon_Executable_Color);
+                     Icon_Program_Color);
                   Add_Rect
                     (X_Offset (Scale (1, 4)),
                      Y_Offset (Scale (1, 2)),

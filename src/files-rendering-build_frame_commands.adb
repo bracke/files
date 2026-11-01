@@ -664,13 +664,13 @@ separate (Files.Rendering)
       begin
          case Kind is
             when Files.Types.Directory_Item =>
-               return Icon_Directory_Color;
+               return Icon_Folder_Color;
             when Files.Types.Executable_Item =>
-               return Icon_Executable_Color;
+               return Icon_Program_Color;
             when Files.Types.Regular_File_Item | Files.Types.Symlink_Item | Files.Types.Other_Item =>
-               return Icon_File_Color;
+               return Icon_Document_Color;
             when Files.Types.Unknown_Item =>
-               return Icon_Unknown_Color;
+               return Icon_Generic_Color;
          end case;
       end Icon_Color;
 

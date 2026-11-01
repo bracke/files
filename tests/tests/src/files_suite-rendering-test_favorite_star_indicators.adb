@@ -13,7 +13,7 @@ separate (Files_Suite.Rendering)
       begin
          for Cmd of Frame.Text loop
             if To_String (Cmd.Text) = Filled_Star
-              and then Cmd.Color = Guikit.Draw.Favorite_Star_Color
+              and then Cmd.Color = Guikit.Draw.Accent_Gold_Color
             then
                Total := Total + 1;
             end if;
@@ -85,7 +85,7 @@ separate (Files_Suite.Rendering)
               Build_Frame_Commands (Fav, 1000, 800, 20);
          begin
             Assert
-              (Star_Triangle_Present (Frame, Guikit.Draw.Favorite_Star_Color),
+              (Star_Triangle_Present (Frame, Guikit.Draw.Accent_Gold_Color),
                "a favorited current directory draws the filled path star");
             Assert
               (not Star_Triangle_Present (Frame, Guikit.Draw.Muted_Text_Color),
@@ -106,7 +106,7 @@ separate (Files_Suite.Rendering)
               (Star_Triangle_Present (Frame, Guikit.Draw.Muted_Text_Color),
                "a non-favorited current directory draws the empty outline path star");
             Assert
-              (not Star_Triangle_Present (Frame, Guikit.Draw.Favorite_Star_Color),
+              (not Star_Triangle_Present (Frame, Guikit.Draw.Accent_Gold_Color),
                "a non-favorited current directory draws no filled star");
          end;
       end;

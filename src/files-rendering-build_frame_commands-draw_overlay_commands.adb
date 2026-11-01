@@ -121,13 +121,13 @@ separate (Files.Rendering.Build_Frame_Commands)
                            Saturating_Add (Glyph_Y, Glyph_Size / 4),
                            Glyph_Size,
                            Natural'Max (1, Glyph_Size / 2),
-                           Icon_Directory_Color);
+                           Icon_Folder_Color);
                         Add_Overlay_Rect
                           (Saturating_Add (Glyph_X, Glyph_Size / 4),
                            Glyph_Y,
                            Natural'Max (1, Glyph_Size / 2),
                            Natural'Max (1, Glyph_Size / 4),
-                           Icon_Directory_Color);
+                           Icon_Folder_Color);
                      end if;
                      Add_Command_Tooltip
                        (Row.X,

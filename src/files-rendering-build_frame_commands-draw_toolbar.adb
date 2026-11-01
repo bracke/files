@@ -211,7 +211,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                   --  star when favourited, an outline star when not) so it fills
                   --  its box crisply at any size, unlike the small font glyph.
                   if Snapshot.Current_Path_Is_Favorite then
-                     Add_Star_Fill (Center_X, Center_Y, Radius, Favorite_Star_Color);
+                     Add_Star_Fill (Center_X, Center_Y, Radius, Accent_Gold_Color);
                   else
                      Add_Star_Outline (Center_X, Center_Y, Radius, Stroke, Muted_Text_Color);
                   end if;
