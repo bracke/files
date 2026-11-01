@@ -194,7 +194,7 @@ jobs:
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
-          clone_at a11ykit 6487a75697d9b5722c63ab3b9a7a77006c394f29
+          clone_at a11ykit 359e8b59a08114aa26bfea15dea8452738e9308d
           # i18n's pre-build regeneration builds download_tzdb (httpclient with
           # ssllib/truststores, tarlib, awklib-on-regexp) and the CLDR import;
           # clone that complete pinned tool dependency closure too.
@@ -673,8 +673,8 @@ jobs:
           # files on a folder in its own session bus, an item selected through
           # AT-SPI the way Orca does, and files required to carry it out (the
           # item becomes selected) and announce it (an event reaches the
-          # client). The window is given the focus first, as a user's is:
-          # files announces the focus of its active window only.
+          # client: the selection changing, and the focus where the window is
+          # the active one, which it is given first, as a user's is).
           folder="$RUNNER_TEMP/action-folder"
           mkdir -p "$folder"
           for name in alpha beta gamma; do echo "$name" > "$folder/$name.txt"; done
