@@ -340,6 +340,10 @@ separate (Files.Application.Windows)
 
                      if Runtime.Last_Present_Status /= Guikit.Vulkan.Vulkan_Presented then
                         Runtime.Fallback_Frames := Runtime.Fallback_Frames + 1;
+                     else
+                        Files.Diagnostics.Trace
+                          ("Files.Application.Windows",
+                           "presented=" & Natural'Image (Guikit.Vulkan.Diagnostics (Runtime.Vulkan).Submitted_Frames));
                      end if;
                   end;
                end;

@@ -2190,6 +2190,67 @@ procedure Check_All is
          raise;
    end Check_Direct_Localization_Call_Keys_In_Tree;
 
+   --  A timer that subtracts from the clock (Clock - Since) overflows when
+   --  Since is Time_First, the "never" many timers start from; that raised
+   --  on every pass of the event loop and froze every window. Timers in src/
+   --  ask Files.Timing.Elapsed, or add (Clock >= Since + Span), instead.
+   procedure Check_Clock_Arithmetic is
+      Search : Ada.Directories.Search_Type;
+      Item   : Ada.Directories.Directory_Entry_Type;
+
+      procedure Refuse (Path, What : String) is
+      begin
+         Put_Line
+           (Standard_Error,
+            Path & ": " & What & " can overflow (Time_First is a common start); use Files.Timing.Elapsed");
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         raise Program_Error;
+      end Refuse;
+
+      procedure Check (Path : String) is
+         Code : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
+         From : Positive := Code'First;
+         At_Clock : Natural;
+      begin
+         loop
+            At_Clock := Ada.Strings.Fixed.Index (Code (From .. Code'Last), "Clock");
+            exit when At_Clock = 0;
+            declare
+               Next : Positive := At_Clock + 5;
+            begin
+               --  Clock, Clock (), then blanks, then a lone minus.
+               if Next + 1 <= Code'Last and then Code (Next .. Next + 1) = "()" then
+                  Next := Next + 2;
+               end if;
+               while Next <= Code'Last and then Code (Next) in ' ' | ASCII.LF | ASCII.CR | ASCII.HT loop
+                  Next := Next + 1;
+               end loop;
+               if Next <= Code'Last and then Code (Next) = '-'
+                 and then (At_Clock = Code'First
+                           or else Code (At_Clock - 1) not in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_')
+               then
+                  Refuse (Path, "subtracting from the clock");
+               end if;
+               exit when At_Clock + 5 > Code'Last;
+               From := At_Clock + 5;
+            end;
+         end loop;
+         if Ada.Strings.Fixed.Index (Code, "- Ada.Real_Time.Time_First") > 0
+           or else Ada.Strings.Fixed.Index (Code, "-Ada.Real_Time.Time_First") > 0
+         then
+            Refuse (Path, "subtracting Time_First");
+         end if;
+      end Check;
+   begin
+      Ada.Directories.Start_Search
+        (Search, Root & "/src", "*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Item);
+         Check (Ada.Directories.Full_Name (Item));
+      end loop;
+      Ada.Directories.End_Search (Search);
+   end Check_Clock_Arithmetic;
+
    procedure Check_Localization_Usage is
       Main_Manifest : constant String := Root & "/alire.toml";
       Localization  : constant String := Root & "/src/files-localization.adb";
@@ -2288,12 +2349,17 @@ procedure Check_All is
       Check_Direct_Localization_Call_Keys_In_Tree (Root & "/src");
    end Check_Localization_Usage;
 
+   --  The pattern is looked for in code only: a comment that names what a
+   --  unit must not do (as this file's own comments do) is no violation.
    procedure Require_Not_Contains
      (Path    : String;
       Pattern : String;
       Message : String) is
    begin
-      if Project_Tools.Files.File_Contains (Path, Pattern) then
+      if Project_Tools.Files.File_Exists (Path)
+        and then Ada.Strings.Fixed.Index
+          (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path))), Pattern) > 0
+      then
          Put_Line (Standard_Error, Message);
          Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
          raise Program_Error;
@@ -4028,8 +4094,10 @@ procedure Check_All is
    --  a with clause alone; a suite that lost its tests now fails here.
    procedure Check_Test_Subsystem_Coverage is
       procedure Require_Tests (Suite : String; Minimum : Positive) is
+         --  Registrations in code: one commented out is not counted.
          Text  : constant String :=
-           To_String (Project_Tools.Text.Read_Text_File (Root & "/tests/tests/src/files_suite-" & Suite & ".adb"));
+           Code_Of
+             (To_String (Project_Tools.Text.Read_Text_File (Root & "/tests/tests/src/files_suite-" & Suite & ".adb")));
          Count : Natural := 0;
          From  : Natural := Text'First;
       begin
@@ -4055,13 +4123,13 @@ procedure Check_All is
    begin
       --  The floors are the counts as of the last change to a suite, so a
       --  lost test fails here; raise a floor when a suite grows.
-      Require_Tests ("settings", 34);
-      Require_Tests ("startup", 27);
-      Require_Tests ("commands", 37);
+      Require_Tests ("settings", 36);
+      Require_Tests ("startup", 28);
+      Require_Tests ("commands", 38);
       Require_Tests ("model", 50);
-      Require_Tests ("interaction", 71);
-      Require_Tests ("rendering", 79);
-      Require_Tests ("operations", 238);
+      Require_Tests ("interaction", 75);
+      Require_Tests ("rendering", 86);
+      Require_Tests ("operations", 260);
    end Check_Test_Subsystem_Coverage;
 
 begin
@@ -4085,6 +4153,7 @@ begin
    Check_Test_Subsystem_Coverage;
    Check_Ada_Only_Tooling;
    Check_Localization_Usage;
+   Check_Clock_Arithmetic;
    Check_Filetype_Detection_Order;
    Check_Event_Translation_Contract;
    Check_Test_Hooks;

@@ -15,6 +15,17 @@ package Files.Diagnostics is
      (Occurrence : Ada.Exceptions.Exception_Occurrence;
       Where      : String);
 
+   --  Note an exception the event loop carries on past (a window's step, a
+   --  whole pass, a window-system callback), and count it: a pass that fails
+   --  every time leaves windows undrawn while the program looks alive, so the
+   --  smokes and the unit suite fail on any.
+   --
+   --  @param Occurrence The caught exception.
+   procedure Note_Event_Loop (Occurrence : Ada.Exceptions.Exception_Occurrence);
+
+   --  @return How many exceptions Note_Event_Loop has counted in this process.
+   function Event_Loop_Failures return Natural;
+
    --  Record a step worth following when something goes missing on a host
    --  that cannot be debugged directly (a screen reader's request on a CI
    --  runner). Silent unless FILES_DIAGNOSTICS is set; marked files-trace:,

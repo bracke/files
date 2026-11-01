@@ -298,7 +298,7 @@ package body Files.Application.Windows is
       --  This is a Convention => C callback invoked from GLFW's C stack; an
       --  exception must never unwind through C frames. Swallow anything.
       when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Application.Windows");
+         Files.Diagnostics.Note_Event_Loop (Swallowed);
    end Raw_Drop_Callback;
 
    function Text_Input_Bytes
@@ -688,6 +688,9 @@ package body Files.Application.Windows is
                Runtime.Key_Last_Fired (Event.Key) := Now;
                Runtime.Held_Physical (Event.Key) := Event.Physical;
                Fired (Event.Key) := True;
+               --  With the trace below a presented frame, CI follows a key
+               --  it sends through the loop onto the screen.
+               Files.Diagnostics.Trace ("Files.Application.Windows", "key=" & Tracked_Key'Image (Event.Key));
                Fire_Key (Runtime, Event.Key, Event.Modifiers, Consumed);
             when Text_Event =>
                if not (Event.Parallel and then Consumed) then
@@ -783,7 +786,7 @@ package body Files.Application.Windows is
             --  rebuilt next pass. Recorded (FILES_DIAGNOSTICS): a step that
             --  fails every pass leaves that window undrawn.
             when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.Application.Windows");
+               Files.Diagnostics.Note_Event_Loop (Swallowed);
                Runtime.Frame_Cache_Valid := False;
                Runtime.Snapshot_Valid := False;
          end;
@@ -1988,16 +1991,74 @@ package body Files.Application.Windows is
       end if;
    end Add_Pending_Scroll;
 
+   procedure Event_Loop_Pass
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector;
+      State           : in out Event_Loop_State) is
+   begin
+      Files.Accessibility.Service;
+      declare
+         use type Files.Accessibility.Window_Key;
+         Request : A11ykit.Provider.Request;
+         Window  : Files.Accessibility.Window_Key;
+      begin
+         while Files.Accessibility.Next_Request (Window, Request) loop
+            for Runtime of Runtime_Windows loop
+               if Runtime.A11y_Key = Window then
+                  Perform_Accessibility_Request (Runtime, Request);
+               end if;
+            end loop;
+         end loop;
+      end;
+      declare
+         Focused : Files.Accessibility.Window_Key := 0;
+      begin
+         for Runtime of Runtime_Windows loop
+            if Runtime.Handle /= null and then Glfw.Windows.Focused (As_Window (Runtime.Handle)) then
+               Focused := Runtime.A11y_Key;
+            end if;
+         end loop;
+         Files.Accessibility.Set_Active (Focused);
+      end;
+      Handle_All_Keyboard (Runtime_Windows);
+      Handle_All_Type_Ahead_Timeout (Runtime_Windows);
+      Handle_All_Mouse (Runtime_Windows);
+      Handle_All_Drop_Input (Runtime_Windows);
+      Handle_All_Scroll_Input (Runtime_Windows);
+      Sync_Settings_Across_Windows (Runtime_Windows);
+      --  A report file appears rarely: looked for once a second, not on
+      --  every wake-up.
+      if not State.Recovery_Reported and then Ada.Real_Time.Clock >= State.Next_Recovery_Check then
+         State.Next_Recovery_Check := Ada.Real_Time.Clock + Ada.Real_Time.Seconds (1);
+         if Files.Job_Scavenger.Has_Unrecoverable then
+            for Runtime of Runtime_Windows loop
+               if Runtime.Handle /= null then
+                  Files.Model.Set_Error
+                    (Runtime.Model, "error.recovery.unsafe_transport");
+                  Runtime.Frame_Cache_Valid := False;
+                  Runtime.Snapshot_Valid := False;
+               end if;
+            end loop;
+            State.Recovery_Reported := True;
+         end if;
+      end if;
+      Render_All (Runtime_Windows);
+      Handle_All_File_Watch_Poll (Runtime_Windows);
+      Poll_All_Folder_Sizes (Runtime_Windows);
+   exception
+      --  Resilience: a stray error while handling one frame's input or
+      --  rendering should not tear down every window. Skip the frame and
+      --  keep the event loop running. (The caller's wait paces the loop, so
+      --  this cannot become a tight busy-spin.)
+      when Swallowed : others =>
+         Files.Diagnostics.Note_Event_Loop (Swallowed);
+   end Event_Loop_Pass;
+
    procedure Run
      (Startup : Files.Application.Startup_Result)
    is
       Runtime_Windows : Runtime_Window_Vectors.Vector;
       Initialized     : Boolean := False;
-      Recovery_Reported : Boolean := False;
-      --  When the recovery report is next looked for. An addition, not
-      --  Clock - Last: subtracting Time_First overflows, and that raised on
-      --  every pass of the loop, which then never drew another frame.
-      Next_Recovery_Check : Ada.Real_Time.Time := Ada.Real_Time.Clock;
+      State           : Event_Loop_State;
    begin
       if Startup.Windows.Is_Empty then
          return;
@@ -2043,67 +2104,10 @@ package body Files.Application.Windows is
       Guikit.Vulkan.Poll_Events;
 
       while Any_Window_Open (Runtime_Windows) loop
-         begin
-            Guikit.Vulkan.Wait_For_Events (Event_Wait_Timeout);
-            Release_Closed_Windows (Runtime_Windows);
-            exit when not Any_Window_Open (Runtime_Windows);
-            Files.Accessibility.Service;
-            declare
-               use type Files.Accessibility.Window_Key;
-               Request : A11ykit.Provider.Request;
-               Window  : Files.Accessibility.Window_Key;
-            begin
-               while Files.Accessibility.Next_Request (Window, Request) loop
-                  for Runtime of Runtime_Windows loop
-                     if Runtime.A11y_Key = Window then
-                        Perform_Accessibility_Request (Runtime, Request);
-                     end if;
-                  end loop;
-               end loop;
-            end;
-            declare
-               Focused : Files.Accessibility.Window_Key := 0;
-            begin
-               for Runtime of Runtime_Windows loop
-                  if Runtime.Handle /= null and then Glfw.Windows.Focused (As_Window (Runtime.Handle)) then
-                     Focused := Runtime.A11y_Key;
-                  end if;
-               end loop;
-               Files.Accessibility.Set_Active (Focused);
-            end;
-            Handle_All_Keyboard (Runtime_Windows);
-            Handle_All_Type_Ahead_Timeout (Runtime_Windows);
-            Handle_All_Mouse (Runtime_Windows);
-            Handle_All_Drop_Input (Runtime_Windows);
-            Handle_All_Scroll_Input (Runtime_Windows);
-            Sync_Settings_Across_Windows (Runtime_Windows);
-            --  A report file appears rarely: looked for once a second, not on
-            --  every wake-up.
-            if not Recovery_Reported and then Ada.Real_Time.Clock >= Next_Recovery_Check then
-               Next_Recovery_Check := Ada.Real_Time.Clock + Ada.Real_Time.Seconds (1);
-               if Files.Job_Scavenger.Has_Unrecoverable then
-                  for Runtime of Runtime_Windows loop
-                     if Runtime.Handle /= null then
-                        Files.Model.Set_Error
-                          (Runtime.Model, "error.recovery.unsafe_transport");
-                        Runtime.Frame_Cache_Valid := False;
-                        Runtime.Snapshot_Valid := False;
-                     end if;
-                  end loop;
-                  Recovery_Reported := True;
-               end if;
-            end if;
-            Render_All (Runtime_Windows);
-            Handle_All_File_Watch_Poll (Runtime_Windows);
-            Poll_All_Folder_Sizes (Runtime_Windows);
-         exception
-            --  Resilience: a stray error while handling one frame's input or
-            --  rendering should not tear down every window. Skip the frame and
-            --  keep the event loop running. (The Wait above paces the loop, so
-            --  this cannot become a tight busy-spin.)
-            when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.Application.Windows");
-         end;
+         Guikit.Vulkan.Wait_For_Events (Event_Wait_Timeout);
+         Release_Closed_Windows (Runtime_Windows);
+         exit when not Any_Window_Open (Runtime_Windows);
+         Event_Loop_Pass (Runtime_Windows, State);
       end loop;
 
       Files.Accessibility.Stop;

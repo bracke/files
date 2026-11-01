@@ -8,6 +8,8 @@ separate (Files_Suite.Startup)
       Failed      : Files.Application.Windows.Smoke.Live_Smoke_Result;
       No_Readback : Files.Application.Windows.Smoke.Live_Smoke_Result;
       Dirty_Exit  : Files.Application.Windows.Smoke.Live_Smoke_Result;
+      Loop_Failed : Files.Application.Windows.Smoke.Live_Smoke_Result;
+      Not_Drawn   : Files.Application.Windows.Smoke.Live_Smoke_Result;
    begin
       --  A plan skipped for want of a display or Vulkan maps to Skip.
       Skipped.Skipped_By_Plan := True;
@@ -34,6 +36,7 @@ separate (Files_Suite.Startup)
       Passed.Framebuffer_Readback_Ready := True;
       Passed.Framebuffer_Passed := True;
       Passed.Closed_Cleanly := True;
+      Passed.Loop_Drew_Input := True;
       Assert
         (Files.Application.Windows.Smoke.Gate_Outcome (Passed) =
            Files.Application.Windows.Smoke.Live_Smoke_Pass,
@@ -62,4 +65,20 @@ separate (Files_Suite.Startup)
         (Files.Application.Windows.Smoke.Gate_Outcome (Dirty_Exit) =
            Files.Application.Windows.Smoke.Live_Smoke_Fail,
          "attempted live smoke that did not close cleanly maps to Fail");
+
+      --  An exception the event loop carried on past fails a clean run.
+      Loop_Failed := Passed;
+      Loop_Failed.Loop_Failures := 1;
+      Assert
+        (Files.Application.Windows.Smoke.Gate_Outcome (Loop_Failed) =
+           Files.Application.Windows.Smoke.Live_Smoke_Fail,
+         "a live smoke whose event loop carried an exception past maps to Fail");
+
+      --  So does a key pressed through the loop that never reached the screen.
+      Not_Drawn := Passed;
+      Not_Drawn.Loop_Drew_Input := False;
+      Assert
+        (Files.Application.Windows.Smoke.Gate_Outcome (Not_Drawn) =
+           Files.Application.Windows.Smoke.Live_Smoke_Fail,
+         "a live smoke whose loop did not draw a pressed key maps to Fail");
    end Test_Live_Smoke_Gate_Outcome;

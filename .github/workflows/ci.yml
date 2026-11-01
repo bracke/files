@@ -77,6 +77,10 @@ jobs:
             fonts-noto-color-emoji \
             mesa-vulkan-drivers \
             xvfb \
+            xdotool \
+            python3-gi \
+            gir1.2-atspi-2.0 \
+            at-spi2-core \
             libxcursor-dev \
             libxxf86vm-dev \
             libxrandr-dev \
@@ -566,7 +570,9 @@ jobs:
         shell: bash
         working-directory: files/tests
         run: |
-          python3 -m pip install --quiet gcovr
+          # A fixed gcovr: another release counts lines differently, which
+          # would move the measure against the recorded floor by itself.
+          python3 -m pip install --quiet gcovr==8.8
           cd ..
           gcovr --root . --filter 'src/' --exclude-unreachable-branches \
             --txt-summary --txt coverage.txt --json-summary coverage-summary.json .
@@ -611,21 +617,41 @@ jobs:
             echo "::error::live-smoke failed the structural analysis (exit $code)"
             exit "$code"
           fi
-          # The real event loop, as a user runs it: a few seconds open on a
-          # folder. It carries on past an error in one pass and says so only
-          # under FILES_DIAGNOSTICS; one that recurs every pass leaves a window
-          # that never draws again, which the smoke above does not reach.
+          # The real event loop, as a user runs it: open on a folder, a key
+          # pressed (xdotool, through the X server like a keyboard), and the
+          # key's frame on the screen. The loop carries on past an error in one
+          # pass and says so only under FILES_DIAGNOSTICS; one that recurs
+          # every pass leaves a window that never draws again. The traces
+          # (key=, presented=) show the key went through the loop to a frame.
           mkdir -p "$RUNNER_TEMP/loop-folder"
           touch "$RUNNER_TEMP/loop-folder/alpha.txt" "$RUNNER_TEMP/loop-folder/beta.txt"
-          # timeout inside xvfb-run, so it is files the timer stops: 124 says
-          # files was still running then; anything else (no window, a crash)
-          # means the loop never ran its ten seconds.
+          cat > "$RUNNER_TEMP/loop.sh" <<'LOOP'
+          folder=$1; out=$2
+          # timeout inside the X session, so it is files the timer stops: 124
+          # says files was still running then.
+          timeout 15 ./bin/files "$folder" > "$out" 2>&1 &
+          files_pid=$!
+          window=
+          for attempt in $(seq 1 50); do
+            window=$(xdotool search --name loop-folder 2>/dev/null | head -n 1)
+            [ -n "$window" ] && break
+            sleep 0.2
+          done
+          sleep 2
+          if [ -n "$window" ]; then
+            xdotool windowfocus --sync "$window" || true
+            xdotool key Down
+          else
+            echo "no files window appeared" >> "$out"
+          fi
+          wait "$files_pid"
+          LOOP
           set +e
-          FILES_DIAGNOSTICS=1 xvfb-run -a timeout 10 ./bin/files "$RUNNER_TEMP/loop-folder" > "$RUNNER_TEMP/loop.txt" 2>&1
+          FILES_DIAGNOSTICS=1 xvfb-run -a bash "$RUNNER_TEMP/loop.sh" "$RUNNER_TEMP/loop-folder" "$RUNNER_TEMP/loop.txt"
           code=$?
           set -e
           if [ "$code" -ne 124 ]; then
-            echo "::error::files stopped before its ten seconds were up (exit $code)"
+            echo "::error::files stopped before its time was up (exit $code)"
             cat "$RUNNER_TEMP/loop.txt"
             exit 1
           fi
@@ -634,7 +660,143 @@ jobs:
             grep -m 5 -A 4 "files-diagnostics: Files.Application.Windows" "$RUNNER_TEMP/loop.txt"
             exit 1
           fi
-          echo "the event loop ran without raising"
+          if ! awk '/files-trace: Files.Application.Windows: key=TRACKED_DOWN/ { key = 1 }
+                    key && /files-trace: Files.Application.Windows: presented=/ { drawn = 1 }
+                    END { exit !drawn }' "$RUNNER_TEMP/loop.txt"; then
+            echo "::error::a key sent to files was not drawn by its event loop"
+            grep "files-trace\|no files window" "$RUNNER_TEMP/loop.txt" | tail -n 20
+            exit 1
+          fi
+          echo "the event loop drew a pressed key without raising"
+
+          # What a screen reader does, not only reads, as on Windows and macOS:
+          # files on a folder in its own session bus, an item selected through
+          # AT-SPI the way Orca does, and files required to carry it out (the
+          # item becomes selected) and announce it (an event reaches the
+          # client). The window is given the focus first, as a user's is:
+          # files announces the focus of its active window only.
+          folder="$RUNNER_TEMP/action-folder"
+          mkdir -p "$folder"
+          for name in alpha beta gamma; do echo "$name" > "$folder/$name.txt"; done
+          # The client is written out here: files keeps no helper scripts
+          # outside Ada in the repository.
+          cat > "$RUNNER_TEMP/atspi_act.py" <<'ACT'
+          # Selects an item of the running files window through AT-SPI, as Orca does,
+          # and waits for files to select it, counting the events it announces.
+          import sys, time
+          import gi
+          gi.require_version('Atspi', '2.0')
+          from gi.repository import Atspi, GLib
+
+          needle = sys.argv[1] if len(sys.argv) > 1 else 'beta.txt'
+          seconds = int(sys.argv[2]) if len(sys.argv) > 2 else 60
+          deadline = time.monotonic() + seconds
+          events = []
+
+          def on_event(event):
+              try:
+                  if event.source and event.source.get_name() == needle:
+                      events.append(event.type)
+              except Exception:
+                  pass
+
+          listener = Atspi.EventListener.new(on_event)
+          for kind in ('object:state-changed:selected', 'object:state-changed:focused', 'focus:'):
+              listener.register(kind)
+
+          def find(element, depth=0):
+              try:
+                  if element.get_name() == needle:
+                      return element
+                  count = element.get_child_count()
+              except Exception:
+                  return None
+              if depth > 12:
+                  return None
+              for index in range(count):
+                  child = element.get_child_at_index(index)
+                  found = find(child, depth + 1) if child else None
+                  if found:
+                      return found
+              return None
+
+          def item():
+              desktop = Atspi.get_desktop(0)
+              for index in range(desktop.get_child_count()):
+                  app = desktop.get_child_at_index(index)
+                  if app and app.get_name() == 'files':
+                      found = find(app)
+                      if found:
+                          return found
+              return None
+
+          def pump(span):
+              end = time.monotonic() + span
+              context = GLib.MainContext.default()
+              while time.monotonic() < end:
+                  while context.pending():
+                      context.iteration(False)
+                  time.sleep(0.05)
+
+          target = None
+          while target is None and time.monotonic() < deadline:
+              target = item()
+              if target is None:
+                  pump(1)
+          if target is None:
+              print('atspi: no item named', needle)
+              sys.exit(2)
+          action = target.get_action_iface()
+          if action is None or action.get_n_actions() == 0:
+              print('atspi: the item offers no action')
+              sys.exit(3)
+          action.do_action(0)
+          selected = False
+          while time.monotonic() < deadline:
+              pump(0.5)
+              again = item()
+              if again is not None and again.get_state_set().contains(Atspi.StateType.SELECTED):
+                  selected = True
+                  if events:
+                      break
+          print('atspi: selected', selected, 'events', len(events), sorted(set(events)))
+          sys.exit(0 if selected and events else 1)
+          ACT
+          cat > "$RUNNER_TEMP/atspi.sh" <<'RUN'
+          folder=$1; out=$2; client=$3
+          A11YKIT_TRACE=1 FILES_DIAGNOSTICS=1 ./bin/files "$folder" > "$out" 2>&1 &
+          files_pid=$!
+          window=
+          for attempt in $(seq 1 50); do
+            window=$(xdotool search --name action-folder 2>/dev/null | head -n 1)
+            [ -n "$window" ] && break
+            sleep 0.2
+          done
+          if [ -n "$window" ]; then
+            xdotool windowfocus --sync "$window" || true
+          fi
+          sleep 3
+          python3 "$client" beta.txt 60
+          code=$?
+          kill "$files_pid" 2>/dev/null
+          wait "$files_pid" 2>/dev/null
+          exit "$code"
+          RUN
+          set +e
+          xvfb-run -a dbus-run-session -- bash "$RUNNER_TEMP/atspi.sh" "$folder" "$RUNNER_TEMP/atspi-app.txt" "$RUNNER_TEMP/atspi_act.py"
+          code=$?
+          set -e
+          if grep -q "files-diagnostics: Files.Application.Windows" "$RUNNER_TEMP/atspi-app.txt"; then
+            echo "::error::files' event loop raised while the screen reader drove it on Linux"
+            grep -m 5 -A 4 "files-diagnostics: Files.Application.Windows" "$RUNNER_TEMP/atspi-app.txt"
+            exit 1
+          fi
+          if [ "$code" -ne 0 ]; then
+            echo "::error::files did not carry out or announce a screen reader's selection on Linux (exit $code)"
+            grep "a11ykit\|files-trace" "$RUNNER_TEMP/atspi-app.txt" | grep -v "presented=" | tail -n 20
+            exit 1
+          fi
+          echo "files carried out and announced a screen reader's selection"
 
       - name: Live GPU smoke (Windows and macOS, software Vulkan)
         # The live smoke on the other hosts, with Mesa's lavapipe software

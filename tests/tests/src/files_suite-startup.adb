@@ -20,6 +20,9 @@ with Hostkit.Host;
 with Hostkit.Durability;
 
 with Files.Application;
+with Files.Timing;
+with Ada.Calendar;
+with Ada.Real_Time;
 with Files.Application.Windows;
 with Files.Application.Windows.Smoke;
 with Files.Commands;
@@ -79,6 +82,7 @@ package body Files_Suite.Startup is
    procedure Test_Desktop_Runtime_Wiring (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Desktop_Packaging_Contents (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Live_Smoke_Gate_Outcome (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Timing_At_Clock_Ends (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Live_Smoke_Scenarios_Verdict (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Startup_Test_Case) return AUnit.Message_String is
@@ -150,6 +154,9 @@ package body Files_Suite.Startup is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Live_Smoke_Gate_Outcome'Access, "live smoke gate outcome taxonomy");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Timing_At_Clock_Ends'Access,
+         "timers answer at the ends of the clock's range without overflow");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Live_Smoke_Scenarios_Verdict'Access, "live smoke multi-scenario verdict aggregation");
    end Register_Tests;
 
@@ -208,6 +215,8 @@ package body Files_Suite.Startup is
    procedure Test_Desktop_Packaging_Contents (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Live_Smoke_Gate_Outcome (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Timing_At_Clock_Ends (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Live_Smoke_Scenarios_Verdict (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

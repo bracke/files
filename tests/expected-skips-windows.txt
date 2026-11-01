@@ -1,46 +1,47 @@
--- Tests that skip on the Windows CI runner (see FILES_TEST_EXPECTED_SKIPS in ci.yml).
--- The runner keeps UTC, where local and UTC times format alike.
-Test_Modified_Time_Is_Local
-Test_Autonomous_Cleanup_Worker
-Test_Backslash_Executable_Lookup
-Test_Batch_Hard_Link_Copy
-Test_Copy_Access_Bits
-Test_Copy_Destination_Revalidation
-Test_Copy_Extended_Metadata
-Test_Copy_Hard_Link_Trees
-Test_Copy_Read_Only_Cause
-Test_Copy_Timestamps
-Test_Create_Read_Only_Cause
-Test_Cross_Device_Recovery
-Test_Decode_Emoji_Png_From_Font
-Test_Deep_Tree_Copy
-Test_Emoji_Draws_As_Colour_Icons
-Test_Failed_Move_Rollback
-Test_Failed_Replace_Rollback
-Test_Fifo_Never_Blocks
-Test_Hardlink_Dangling_Symlink
-Test_Hard_Linked_Symbolic_Links
-Test_History_Retire_Drain
-Test_Invalid_UTF8_Names
-Test_Labels_Travel_Through_Trash
-Test_Move_Ownership
-Test_Move_Source_Changes
-Test_Move_Without_Read_Access
-Test_Paste_Read_Only_Cause
-Test_Preserve_Puts_Original_Back
-Test_Read_Only_Directory_Transfers
-Test_Recovery_Mode_Failure
-Test_Released_Recovery_Goes_To_Trash
-Test_Rename_Trash_Delete_Read_Only_Cause
-Test_Reserve_Exception_Safety
-Test_Search_Read_Errors
-Test_Settings_Save_Read_Only_Cause
-Test_Sparse_Transfers
-Test_Special_Entry_Metadata
-Test_Staging_Default_ACL
-Test_Stray_Home_Trash_Stays_Freedesktop
-Test_Transport_Cleanup_Retry
-Test_Trash_Refuses_Volume_Trash
-Test_Trash_Source_Verification
-Test_Unreadable_Hardlink_History
-Test_Volume_Trash
+-- Tests that skip on the Windows CI runner (see FILES_TEST_EXPECTED_SKIPS in ci.yml),
+-- each as "Test: reason", exactly as the test's Skip call gives them: a listed
+-- test that skips for another reason fails the run as an unlisted skip does.
+Test_Autonomous_Cleanup_Worker: the stopped-worker half needs Linux and its /proc
+Test_Backslash_Executable_Lookup: needs a POSIX host: on Windows a backslash separates directories
+Test_Batch_Hard_Link_Copy: needs Linux
+Test_Copy_Access_Bits: needs native POSIX mode bits
+Test_Copy_Destination_Revalidation: needs Linux
+Test_Copy_Extended_Metadata: needs Linux
+Test_Copy_Hard_Link_Trees: needs Linux
+Test_Copy_Read_Only_Cause: a read-only directory does not refuse writes here
+Test_Copy_Timestamps: needs Linux
+Test_Create_Read_Only_Cause: a read-only directory does not refuse writes here
+Test_Cross_Device_Recovery: needs Linux
+Test_Decode_Emoji_Png_From_Font: the Noto Color Emoji font is not installed
+Test_Deep_Tree_Copy: needs Linux
+Test_Emoji_Draws_As_Colour_Icons: the Noto Color Emoji font is not installed
+Test_Failed_Move_Rollback: needs Linux
+Test_Failed_Replace_Rollback: needs Linux
+Test_Fifo_Never_Blocks: Windows has no FIFOs
+Test_Hardlink_Dangling_Symlink: needs Linux
+Test_Hard_Linked_Symbolic_Links: needs Linux
+Test_History_Retire_Drain: needs Linux
+Test_Invalid_UTF8_Names: Windows file names cannot hold bytes that are not UTF-8
+Test_Labels_Travel_Through_Trash: needs Linux
+Test_Modified_Time_Is_Local: local time is UTC here
+Test_Move_Ownership: needs Linux
+Test_Move_Source_Changes: needs Linux
+Test_Move_Without_Read_Access: needs native POSIX mode bits
+Test_Paste_Read_Only_Cause: a read-only directory does not refuse writes here
+Test_Preserve_Puts_Original_Back: needs Linux
+Test_Read_Only_Directory_Transfers: needs Linux
+Test_Recovery_Mode_Failure: needs Linux
+Test_Released_Recovery_Goes_To_Trash: needs Linux
+Test_Rename_Trash_Delete_Read_Only_Cause: a read-only directory does not refuse writes here
+Test_Reserve_Exception_Safety: needs Linux or macOS
+Test_Search_Read_Errors: needs Linux
+Test_Settings_Save_Read_Only_Cause: a read-only directory does not refuse writes here
+Test_Sparse_Transfers: needs Linux
+Test_Special_Entry_Metadata: needs Linux
+Test_Staging_Default_ACL: needs Linux
+Test_Stray_Home_Trash_Stays_Freedesktop: only Linux and macOS read a ~/.Trash folder; Windows uses the Recycle Bin
+Test_Transport_Cleanup_Retry: needs Linux, not root
+Test_Trash_Refuses_Volume_Trash: Windows has no freedesktop volume trash
+Test_Trash_Source_Verification: needs Linux
+Test_Unreadable_Hardlink_History: needs native POSIX mode bits
+Test_Volume_Trash: Windows has no freedesktop volume trash

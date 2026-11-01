@@ -103,6 +103,10 @@ package Files.Application.Windows.Smoke is
       Framebuffer_Passed : Boolean := False;
       Vulkan_Device_Ready : Boolean := False;
       Scenario_Results   : Scenario_Outcome_Array;
+      --  Exceptions the event loop carried on past during the run, and
+      --  whether a key pressed through the loop's own pass was drawn.
+      Loop_Failures      : Natural := 0;
+      Loop_Drew_Input    : Boolean := False;
       --  Per-scenario structural verdict and framebuffer hash captured by the
       --  multi-scenario live smoke; Framebuffer_* above mirror the default
       --  scenario's frame for the legacy single-frame diagnostics.

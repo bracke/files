@@ -20,6 +20,33 @@ package body Files.Diagnostics is
          null;
    end Note;
 
+   --  Callbacks from the window system may run on another task.
+   protected Loop_Counter is
+      procedure Add;
+      function Value return Natural;
+   private
+      Count : Natural := 0;
+   end Loop_Counter;
+
+   protected body Loop_Counter is
+      procedure Add is
+      begin
+         if Count < Natural'Last then
+            Count := Count + 1;
+         end if;
+      end Add;
+
+      function Value return Natural is (Count);
+   end Loop_Counter;
+
+   procedure Note_Event_Loop (Occurrence : Ada.Exceptions.Exception_Occurrence) is
+   begin
+      Loop_Counter.Add;
+      Note (Occurrence, "Files.Application.Windows");
+   end Note_Event_Loop;
+
+   function Event_Loop_Failures return Natural is (Loop_Counter.Value);
+
    procedure Trace (Where : String; Message : String) is
    begin
       if Ada.Environment_Variables.Exists ("FILES_DIAGNOSTICS") then

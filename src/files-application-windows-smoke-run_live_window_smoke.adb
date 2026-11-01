@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Text_IO;
 
 separate (Files.Application.Windows.Smoke)
@@ -9,6 +10,7 @@ separate (Files.Application.Windows.Smoke)
       Runtime_Windows : Runtime_Window_Vectors.Vector;
       Initialized     : Boolean := False;
       Result          : Live_Smoke_Result := Evaluate_Live_Window_Smoke (Plan);
+      Loop_State      : Event_Loop_State;
 
       --  FILES_LIVE_SMOKE_HOLD=<seconds> keeps each scenario's last frame on
       --  screen that long, announced on standard output, so a person or a
@@ -55,13 +57,10 @@ separate (Files.Application.Windows.Smoke)
       end loop;
 
       Result.Window_Created := not Runtime_Windows.Is_Empty;
+      --  The program's own loop pass, not a list of its steps.
       for Poll_Index in 1 .. Plan.Input_Poll_Count loop
          Guikit.Vulkan.Poll_Events;
-         Handle_All_Keyboard (Runtime_Windows);
-         Handle_All_Mouse (Runtime_Windows);
-         Handle_All_Drop_Input (Runtime_Windows);
-         Handle_All_Scroll_Input (Runtime_Windows);
-         Handle_All_File_Watch_Poll (Runtime_Windows);
+         Event_Loop_Pass (Runtime_Windows, Loop_State);
          Result.Input_Polled := True;
       end loop;
 
@@ -207,11 +206,48 @@ separate (Files.Application.Windows.Smoke)
                end if;
             end;
          end loop;
+
+         --  Then the loop as the program runs it: back at the startup state, let
+         --  the passes settle, press a key, and require that the passes drew the
+         --  change -- the read-back frame differs from the settled one (with
+         --  readback on, every pass submits a frame, so a count would not tell).
+         --  A pass that raised every time after startup froze every window
+         --  once; it is counted, and any count fails the smoke.
+         declare
+            use type Interfaces.Unsigned_32;
+            Window : Runtime_Window renames Runtime_Windows (1);
+            Settle_Passes : constant := 10;
+            Before : Interfaces.Unsigned_32;
+         begin
+            Prepare_Scenario (Window, Bases (1), Scenario_Default);
+            for Pass in 1 .. Settle_Passes loop
+               Guikit.Vulkan.Poll_Events;
+               Event_Loop_Pass (Runtime_Windows, Loop_State);
+            end loop;
+            Before := Guikit.Vulkan.Diagnostics (Window.Vulkan).Last_Framebuffer_Hash;
+            Window.Handle.Pending_Input.Append
+              (Input_Event'
+                 (Kind      => Key_Press_Event,
+                  Key       => Tracked_Down,
+                  Physical  => To_Glfw_Key (Tracked_Down),
+                  Modifiers => Guikit.Input.No_Modifiers,
+                  Text      => Null_Unbounded_String,
+                  Parallel  => False));
+            for Pass in 1 .. Settle_Passes loop
+               Guikit.Vulkan.Poll_Events;
+               Event_Loop_Pass (Runtime_Windows, Loop_State);
+               Result.Loop_Drew_Input :=
+                 Guikit.Vulkan.Diagnostics (Window.Vulkan).Last_Framebuffer_Hash /= Before;
+               exit when Result.Loop_Drew_Input;
+            end loop;
+         end;
       end;
 
       --  Overall structural verdict: every scenario must pass and every
       --  non-default scenario's frame must differ from the default frame.
       Result.Framebuffer_Passed := Scenarios_Verdict (Result.Scenario_Results);
+
+      Result.Loop_Failures := Files.Diagnostics.Event_Loop_Failures;
 
       Release_All (Runtime_Windows);
       Glfw.Shutdown;
@@ -221,52 +257,16 @@ separate (Files.Application.Windows.Smoke)
           ((if Result.Frame_Rendered then "runtime.smoke.ready" else "runtime.smoke.text_failed"));
       return Result;
    exception
-      when Desktop_Error =>
-         Release_All (Runtime_Windows);
-         if Initialized then
-            Glfw.Shutdown;
-         end if;
-         return
-           (Attempted       => True,
-            Window_Created  => Result.Window_Created,
-            Frame_Rendered  => Result.Frame_Rendered,
-            Frames_Attempted => Result.Frames_Attempted,
-            Frames_Presented => Result.Frames_Presented,
-            Input_Polled    => Result.Input_Polled,
-            Closed_Cleanly  => False,
-            Skipped_By_Plan => False,
-            Last_Status     => Result.Last_Status,
-            Last_Vk_Result  => Result.Last_Vk_Result,
-            Framebuffer_Readback_Ready => Result.Framebuffer_Readback_Ready,
-            Last_Framebuffer_Hash => Result.Last_Framebuffer_Hash,
-            Last_Framebuffer_Bytes => Result.Last_Framebuffer_Bytes,
-            Framebuffer_Analysis => Result.Framebuffer_Analysis,
-            Framebuffer_Passed => Result.Framebuffer_Passed,
-            Vulkan_Device_Ready => Result.Vulkan_Device_Ready,
-            Scenario_Results => Result.Scenario_Results,
-            Error_Key       => To_Unbounded_String ("error.window.create"));
+      --  Whatever the run reached, as it was; only the close failed.
       when others =>
          Release_All (Runtime_Windows);
          if Initialized then
             Glfw.Shutdown;
          end if;
-         return
-           (Attempted       => True,
-            Window_Created  => Result.Window_Created,
-            Frame_Rendered  => Result.Frame_Rendered,
-            Frames_Attempted => Result.Frames_Attempted,
-            Frames_Presented => Result.Frames_Presented,
-            Input_Polled    => Result.Input_Polled,
-            Closed_Cleanly  => False,
-            Skipped_By_Plan => False,
-            Last_Status     => Result.Last_Status,
-            Last_Vk_Result  => Result.Last_Vk_Result,
-            Framebuffer_Readback_Ready => Result.Framebuffer_Readback_Ready,
-            Last_Framebuffer_Hash => Result.Last_Framebuffer_Hash,
-            Last_Framebuffer_Bytes => Result.Last_Framebuffer_Bytes,
-            Framebuffer_Analysis => Result.Framebuffer_Analysis,
-            Framebuffer_Passed => Result.Framebuffer_Passed,
-            Vulkan_Device_Ready => Result.Vulkan_Device_Ready,
-            Scenario_Results => Result.Scenario_Results,
-            Error_Key       => To_Unbounded_String ("error.window.create"));
+         Result.Attempted := True;
+         Result.Skipped_By_Plan := False;
+         Result.Closed_Cleanly := False;
+         Result.Loop_Failures := Files.Diagnostics.Event_Loop_Failures;
+         Result.Error_Key := To_Unbounded_String ("error.window.create");
+         return Result;
    end Run_Live_Window_Smoke;

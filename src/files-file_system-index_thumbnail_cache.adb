@@ -1,3 +1,4 @@
+with Files.Timing;
 separate (Files.File_System)
 function Index_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is
    use type Ada.Calendar.Time;
@@ -11,7 +12,7 @@ begin
       return List_Thumbnail_Cache (Cache_Directory);
    end if;
    Stamp := Ada.Directories.Modification_Time (Cache_Directory);
-   if Ada.Calendar.Clock - Stamp < 2.0 then
+   if not Files.Timing.Elapsed (Ada.Calendar.Clock, Stamp, 2.0) then
       return List_Thumbnail_Cache (Cache_Directory);
    end if;
    if Cache_Index_Memo.Holds (Cache_Directory, Stamp) then

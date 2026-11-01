@@ -1,5 +1,7 @@
 with Ada.Real_Time;
 
+with Files.Timing;
+
 separate (Files.Operations)
 function Delete_Selected
   (Model    : in out Files.Model.Window_Model;
@@ -46,10 +48,10 @@ is
 
    --  The first item at once (an Undo exists from the start), then by time.
    procedure Checkpoint is
-      use type Ada.Real_Time.Time;
-      use type Ada.Real_Time.Time_Span;
    begin
-      if not Progress_Recorded or else Ada.Real_Time.Clock - Last_Checkpoint >= Checkpoint_Interval then
+      if not Progress_Recorded
+        or else Files.Timing.Elapsed (Ada.Real_Time.Clock, Last_Checkpoint, Checkpoint_Interval)
+      then
          Record_Progress;
       end if;
    end Checkpoint;

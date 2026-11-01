@@ -1,3 +1,4 @@
--- Tests that skip on the Linux CI runner (see FILES_TEST_EXPECTED_SKIPS in ci.yml).
--- The test root's filesystem is case-sensitive.
-Test_Case_Only_Paste_Conflicts
+-- Tests that skip on the Linux CI runner (see FILES_TEST_EXPECTED_SKIPS in ci.yml),
+-- each as "Test: reason", exactly as the test's Skip call gives them: a listed
+-- test that skips for another reason fails the run as an unlisted skip does.
+Test_Case_Only_Paste_Conflicts: the test root's filesystem is case-sensitive

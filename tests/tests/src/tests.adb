@@ -11,6 +11,7 @@ with AUnit.Options;
 with AUnit.Run;
 with Files_Suite.Support;
 with All_Suites;
+with Files.Diagnostics;
 with Files.Job_Helpers;
 with Files.Job_Context;
 with Files.Job_Scavenger;
@@ -729,6 +730,15 @@ begin
       if Status = AUnit.Failure then
          Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
       end if;
+      --  An exception the event loop carried on past is a bug even when every
+      --  assertion held: the loop skips the pass, and windows stop drawing.
+      if Files.Diagnostics.Event_Loop_Failures > 0 then
+         Ada.Text_IO.Put_Line
+           (Ada.Text_IO.Standard_Error,
+            "FAILED: event loop failures:" & Natural'Image (Files.Diagnostics.Event_Loop_Failures)
+            & " (FILES_DIAGNOSTICS=1 names them)");
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+      end if;
       --  A filter that matches nothing runs nothing, and nothing fails: say
       --  so, or a mistyped FILES_TEST_ONLY reads as a green repeat.
       if Test_Progress.Only /= "" and then Test_Progress.Matched = 0 then
@@ -738,11 +748,12 @@ begin
          Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
       end if;
       --  A skip passes, so a test that quietly stops running here would go
-      --  unnoticed: CI names, per host, the tests that skip there (one per
-      --  line in FILES_TEST_EXPECTED_SKIPS; "--" starts a comment). Another
-      --  test skipping fails the run, and so does a listed one that ran -- a
-      --  count alone let one take the other's place. A run of selected tests
-      --  (FILES_TEST_ONLY) checks only the first.
+      --  unnoticed: CI names, per host, the tests that skip there and why
+      --  ("Test: reason", one per line in FILES_TEST_EXPECTED_SKIPS; "--"
+      --  starts a comment). Another skip fails the run -- a listed test
+      --  skipping for another reason too -- and so does a listed one that
+      --  ran: a count alone let one take the other's place. A run of selected
+      --  tests (FILES_TEST_ONLY) checks only the first.
       declare
          List_Path : constant String := Ada.Environment_Variables.Value ("FILES_TEST_EXPECTED_SKIPS", "");
          Expected  : Files.Types.String_Vectors.Vector;
@@ -764,22 +775,22 @@ begin
                end;
             end loop;
             Ada.Text_IO.Close (File);
-            for Name of Files_Suite.Support.Skipped_Tests loop
+            for Name of Files_Suite.Support.Skips loop
                if not Expected.Contains (Name) then
                   Ada.Text_IO.Put_Line
                     (Ada.Text_IO.Standard_Error,
-                     "FAILED: " & Ada.Strings.Unbounded.To_String (Name) & " skipped, and " & List_Path
-                     & " does not list it");
+                     "FAILED: skipped (" & Ada.Strings.Unbounded.To_String (Name) & "), and " & List_Path
+                     & " does not list that skip");
                   Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
                end if;
             end loop;
             if Test_Progress.Only = "" then
                for Name of Expected loop
-                  if not Files_Suite.Support.Skipped_Test (Ada.Strings.Unbounded.To_String (Name)) then
+                  if not Files_Suite.Support.Has_Skipped (Ada.Strings.Unbounded.To_String (Name)) then
                      Ada.Text_IO.Put_Line
                        (Ada.Text_IO.Standard_Error,
-                        "FAILED: " & Ada.Strings.Unbounded.To_String (Name) & " is listed in " & List_Path
-                        & " but ran: take it off the list");
+                        "FAILED: " & List_Path & " lists (" & Ada.Strings.Unbounded.To_String (Name)
+                        & "), but no test skipped so: take it off the list, or give its reason now");
                      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
                   end if;
                end loop;

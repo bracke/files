@@ -45,6 +45,10 @@ separate (Files_Suite.Operations)
               (Execute_Bit (Runnable) = 'x',
                "and where mode decides it, chmod +x really does show as executable");
          end if;
+      else
+         Assert
+           (not Files.File_System.Supports_Permissions,
+            "a host that supports permissions can make a file runnable");
       end if;
 
       --  The read and write positions, across the mode matrix, against the same
@@ -54,6 +58,9 @@ separate (Files_Suite.Operations)
       --  would go quietly wrong rather than fail.
       declare
          Probe : constant String := Join (Root, "rw-probe.txt");
+         --  Modes the host took; one it refuses is not checked, but a host
+         --  that supports permissions and took none would check nothing.
+         Checked : Natural := 0;
 
          procedure Check_At (Mode : Natural) is
             Applied : constant Files.File_System.Mutation_Result :=
@@ -62,6 +69,7 @@ separate (Files_Suite.Operations)
             if not Applied.Success then
                return;
             end if;
+            Checked := Checked + 1;
 
             declare
                Loaded : constant Files.File_System.Item_Load_Result :=
@@ -86,6 +94,9 @@ separate (Files_Suite.Operations)
          Check_At (8#200#);
          Check_At (8#444#);
          Check_At (8#000#);
+         Assert
+           (Checked > 0 or else not Files.File_System.Supports_Permissions,
+            "a host that supports permissions takes at least one of the probe's modes");
 
          --  Leave it removable for Reset_Root.
          declare

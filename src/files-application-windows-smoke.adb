@@ -332,6 +332,8 @@ package body Files.Application.Windows.Smoke is
             Framebuffer_Passed => False,
             Vulkan_Device_Ready => False,
             Scenario_Results   => [others => <>],
+            Loop_Failures      => 0,
+            Loop_Drew_Input    => False,
             Error_Key          => Plan.Reason_Key);
       end if;
 
@@ -353,6 +355,8 @@ package body Files.Application.Windows.Smoke is
          Framebuffer_Passed => False,
          Vulkan_Device_Ready => False,
          Scenario_Results   => [others => <>],
+         Loop_Failures      => 0,
+         Loop_Drew_Input    => False,
          Error_Key          => To_Unbounded_String ("runtime.smoke.requires_live_harness"));
    end Evaluate_Live_Window_Smoke;
 
@@ -376,6 +380,8 @@ package body Files.Application.Windows.Smoke is
       elsif Result.Framebuffer_Passed
         and then Result.Framebuffer_Readback_Ready
         and then Result.Closed_Cleanly
+        and then Result.Loop_Failures = 0
+        and then Result.Loop_Drew_Input
       then
          return Live_Smoke_Pass;
       else

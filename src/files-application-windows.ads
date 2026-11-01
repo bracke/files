@@ -549,6 +549,27 @@ private
       Modifiers : Guikit.Input.Modifier_Set)
       return Files.Events.Input_Action;
 
+   --  What the event loop carries from one pass to the next.
+   type Event_Loop_State is record
+      Recovery_Reported : Boolean := False;
+      --  When the recovery report is next looked for. An addition, not
+      --  Clock - Last: subtracting Time_First overflows, and that raised on
+      --  every pass of the loop, which then never drew another frame.
+      Next_Recovery_Check : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+   end record;
+
+   --  One pass of the event loop after its wait: screen-reader requests,
+   --  input, settings sharing, rendering, watching and folder sizes for every
+   --  window. Run and the live smoke both drive the windows through this, so
+   --  the smoke runs the loop the program runs. A failure is counted
+   --  (Files.Diagnostics.Note_Event_Loop) and the pass skipped.
+   --
+   --  @param Runtime_Windows The open windows.
+   --  @param State Carried from the previous pass.
+   procedure Event_Loop_Pass
+     (Runtime_Windows : in out Runtime_Window_Vectors.Vector;
+      State           : in out Event_Loop_State);
+
    --  Carry out a screen reader's request on a window.
    procedure Perform_Accessibility_Request
      (Runtime : in out Runtime_Window;

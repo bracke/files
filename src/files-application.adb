@@ -13,6 +13,7 @@ with Hostkit.Fs;
 with Hostkit.Metadata;
 
 with Files.Commands;
+with Files.Diagnostics;
 with Files.File_System;
 with Files.Fs_Primitives;
 with Files.Application.Windows;
@@ -604,7 +605,9 @@ package body Files.Application is
       begin
          Append_Line
            ("runtime-smoke:" & " "
-            & (if Quality.Passed and then Result.Errors.Is_Empty then "PASS" else "FAIL"));
+            & (if Quality.Passed and then Result.Errors.Is_Empty
+                 and then Files.Diagnostics.Event_Loop_Failures = 0
+               then "PASS" else "FAIL"));
          Append_Line
            ((if Quality.Passed and then Result.Errors.Is_Empty
              then Files.Localization.Text ("runtime.smoke.ready", Locale)
@@ -775,6 +778,7 @@ package body Files.Application is
                Fail_Word         : constant String := "fail";
                Region_Word       : constant String := "region";
                Keys_Word         : constant String := "keys";
+               Loop_Word         : constant String := "loop";
 
                --  Automake convention: a skipped test exits with code 77 so CI
                --  can tell "environment could not run it" apart from a pass (0)
@@ -792,6 +796,10 @@ package body Files.Application is
                begin
                   if not Failed.Closed_Cleanly then
                      return Files.Localization.Text (To_String (Failed.Error_Key));
+                  elsif Failed.Loop_Failures > 0 then
+                     return Files.Localization.Text ("runtime.smoke.loop_failed");
+                  elsif not Failed.Loop_Drew_Input then
+                     return Files.Localization.Text ("runtime.smoke.loop_not_drawn");
                   elsif not Failed.Framebuffer_Readback_Ready then
                      return Files.Localization.Text ("runtime.smoke.readback_missing");
                   else
@@ -910,6 +918,13 @@ package body Files.Application is
                            else ""));
                   end;
                end loop;
+
+               --  The loop phase: exceptions carried past, and the key drawn.
+               Ada.Text_IO.Put_Line
+                 (Scenario_Prefix & Space & Loop_Word & Colon & Space
+                  & (if Live_Result.Loop_Failures = 0 and then Live_Result.Loop_Drew_Input
+                     then Pass_Word else Fail_Word)
+                  & Natural'Image (Live_Result.Loop_Failures));
 
                --  Emit exactly one canonical, greppable verdict line and set a
                --  matching exit code so CI can classify the run:

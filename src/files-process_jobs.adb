@@ -1,4 +1,5 @@
 with Files.Diagnostics;
+with Files.Timing;
 with Ada.Directories;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
@@ -89,7 +90,7 @@ package body Files.Process_Jobs is
                Item.Detached := Item.Terminated;
             end if;
          elsif Item.Cancelled and then not Item.Stop_Requested
-           and then Ada.Real_Time.Clock - Item.Cancel_At >= Ada.Real_Time.Seconds (2)
+           and then Files.Timing.Elapsed (Ada.Real_Time.Clock, Item.Cancel_At, Ada.Real_Time.Seconds (2))
          then
             Stop (Item);
             --  A process stuck in kernel I/O may not become reapable immediately.
@@ -322,7 +323,7 @@ package body Files.Process_Jobs is
             if Found and then Status.State in Hostkit.Spawn.Wait_Running
               | Hostkit.Spawn.Wait_Stopped | Hostkit.Spawn.Wait_Continued
             then
-               if Ada.Real_Time.Clock - Item.Cleanup_Started_At >= Ada.Real_Time.Seconds (30) then
+               if Files.Timing.Elapsed (Ada.Real_Time.Clock, Item.Cleanup_Started_At, Ada.Real_Time.Seconds (30)) then
                   declare
                      Sent : constant Boolean := Hostkit.Signals.Send_To_Process
                        (Hostkit.Spawn.Process_Id (Item.Cleanup_Process), Hostkit.Signals.Signal_Kill);
