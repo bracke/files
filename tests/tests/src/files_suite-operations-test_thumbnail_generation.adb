@@ -1,15 +1,17 @@
+with Files.File_System.Thumbnails;
+with Files.Images;
 separate (Files_Suite.Operations)
    procedure Test_Thumbnail_Generation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Thumbnail : Files.File_System.Thumbnail_Result;
+      Thumbnail : Files.File_System.Thumbnails.Thumbnail_Result;
       Thumbnail_Source : constant String := Join (Root, "picture.png");
       Ppm_Thumbnail_Source : constant String := Join (Root, "picture.ppm");
       Thumbnail_Cache  : constant String := Join (Root, "thumb-cache");
    begin
       Reset_Root;
       Write_Binary_File (Thumbnail_Source, Minimal_Png_Header (48, 32));
-      Thumbnail := Files.File_System.Generate_Thumbnail (Thumbnail_Source, Thumbnail_Cache, Size => 8);
-      Assert (Thumbnail.Status = Files.File_System.Thumbnail_Generated, "thumbnail generation succeeds");
+      Thumbnail := Files.File_System.Thumbnails.Generate_Thumbnail (Thumbnail_Source, Thumbnail_Cache, Size => 8);
+      Assert (Thumbnail.Status = Files.File_System.Thumbnails.Thumbnail_Generated, "thumbnail generation succeeds");
       Assert (Thumbnail.Width = 8 and then Thumbnail.Height = 8, "thumbnail reports requested dimensions");
       Assert
         (Ada.Directories.Exists (To_String (Thumbnail.Thumbnail_Path)),
@@ -36,12 +38,12 @@ separate (Files_Suite.Operations)
         (Project_Tools.Files.File_Contains (To_String (Thumbnail.Thumbnail_Path), "8 8"),
          "thumbnail artifact records requested image dimensions");
       declare
-         Oversized : constant Files.File_System.Thumbnail_Result :=
-           Files.File_System.Generate_Thumbnail
+         Oversized : constant Files.File_System.Thumbnails.Thumbnail_Result :=
+           Files.File_System.Thumbnails.Generate_Thumbnail
              (Thumbnail_Source, Thumbnail_Cache, Size => 2_049);
       begin
          Assert
-           (Oversized.Status = Files.File_System.Thumbnail_Failed
+           (Oversized.Status = Files.File_System.Thumbnails.Thumbnail_Failed
             and then Length (Oversized.Thumbnail_Path) = 0,
             "oversized public thumbnail requests fail before allocating an image");
       end;
@@ -52,9 +54,9 @@ separate (Files_Suite.Operations)
          Ada.Directories.Delete_File (Cache_Path);
          Write_File (Victim, "must stay intact");
          if Files_Suite.Support.Create_Symlink (Victim, Cache_Path) then
-            Thumbnail := Files.File_System.Generate_Thumbnail
+            Thumbnail := Files.File_System.Thumbnails.Generate_Thumbnail
               (Thumbnail_Source, Thumbnail_Cache, Size => 8);
-            Assert (Thumbnail.Status = Files.File_System.Thumbnail_Generated,
+            Assert (Thumbnail.Status = Files.File_System.Thumbnails.Thumbnail_Generated,
                     "thumbnail generation replaces a cache symlink safely");
             Assert (not Hostkit.Fs.Is_Link (Cache_Path),
                     "thumbnail publication replaces the cache entry, not its target");
@@ -79,7 +81,7 @@ separate (Files_Suite.Operations)
               Ada.Streams.Stream_Element (Character'Pos (Header (Index)));
          end loop;
          Assert
-           (not Files.File_System.Image_Bytes_Extent (Data, Width, Height),
+           (not Files.Images.Image_Bytes_Extent (Data, Width, Height),
             "encoded images above the colour-glyph pixel budget are rejected: rejected");
          Files_Suite.Support.Assert_Equal
            (Width,
@@ -90,8 +92,8 @@ separate (Files_Suite.Operations)
             0,
             "encoded images above the colour-glyph pixel budget are rejected: height cleared");
          declare
-            Decoded : constant Files.File_System.Decoded_Image :=
-              Files.File_System.Decode_Image_Bytes (Data);
+            Decoded : constant Files.Images.Decoded_Image :=
+              Files.Images.Decode_Image_Bytes (Data);
          begin
             Assert
               (not Decoded.Available and then Decoded.Pixels.Is_Empty,
@@ -111,7 +113,7 @@ separate (Files_Suite.Operations)
            "00000709FFC40014110100000000000000000000000000000000FFDA000C03010002110311003F003A03154DFFD9";
          Jpeg_Source : constant String := Join (Root, "red.jpg");
          Jpeg_Bytes  : String (1 .. Jpeg_Hex'Length / 2);
-         Decoded     : Files.File_System.Decoded_Image;
+         Decoded     : Files.Images.Decoded_Image;
       begin
          for Index in Jpeg_Bytes'Range loop
             Jpeg_Bytes (Index) :=
@@ -119,7 +121,7 @@ separate (Files_Suite.Operations)
                                    & "#"));
          end loop;
          Write_Binary_File (Jpeg_Source, Jpeg_Bytes);
-         Decoded := Files.File_System.Decode_Image_To_Pixels (Jpeg_Source, 8);
+         Decoded := Files.Images.Decode_Image_To_Pixels (Jpeg_Source, 8);
          Assert (Decoded.Available, "a real JPEG decodes through the native image loader");
          Assert
            (Decoded.Width in 1 .. 8 and then Decoded.Height in 1 .. 8,
@@ -146,8 +148,8 @@ separate (Files_Suite.Operations)
          & "255" & ASCII.LF
          & "255 0 0 0 255 0" & ASCII.LF
          & "0 0 255 255 255 255" & ASCII.LF);
-      Thumbnail := Files.File_System.Generate_Thumbnail (Ppm_Thumbnail_Source, Thumbnail_Cache, Size => 2);
-      Assert (Thumbnail.Status = Files.File_System.Thumbnail_Generated, "decoded PPM thumbnail succeeds");
+      Thumbnail := Files.File_System.Thumbnails.Generate_Thumbnail (Ppm_Thumbnail_Source, Thumbnail_Cache, Size => 2);
+      Assert (Thumbnail.Status = Files.File_System.Thumbnails.Thumbnail_Generated, "decoded PPM thumbnail succeeds");
       Assert
         (File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (255) & Byte (0) & Byte (0)),
          "decoded PPM thumbnail preserves source pixel colors: red pixel");
@@ -158,9 +160,10 @@ separate (Files_Suite.Operations)
         (File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (0) & Byte (255)),
          "decoded PPM thumbnail preserves source pixel colors: blue pixel");
 
-      Thumbnail := Files.File_System.Generate_Thumbnail (Join (Root, "missing.png"), Thumbnail_Cache, Size => 8);
+      Thumbnail :=
+        Files.File_System.Thumbnails.Generate_Thumbnail (Join (Root, "missing.png"), Thumbnail_Cache, Size => 8);
       Assert
-        (Thumbnail.Status = Files.File_System.Thumbnail_Source_Missing,
+        (Thumbnail.Status = Files.File_System.Thumbnails.Thumbnail_Source_Missing,
          "thumbnail generation reports missing sources");
       Files_Suite.Support.Assert_Equal
         (To_String (Thumbnail.Error_Key),

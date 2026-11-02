@@ -1,3 +1,4 @@
+with Files.Images;
 with Files.Environment;
 with Files.Diagnostics;
 with Ada.Characters.Handling;
@@ -292,7 +293,7 @@ package body Files.Fonts is
       Height : out Natural)
       return Boolean is
    begin
-      return Files.File_System.Image_Bytes_Extent (As_Stream_Elements (Data), Width, Height);
+      return Files.Images.Image_Bytes_Extent (As_Stream_Elements (Data), Width, Height);
    end Colour_Glyph_Image_Extent;
 
    function Decode_Colour_Glyph_Image
@@ -302,8 +303,8 @@ package body Files.Fonts is
       Pixels : out Textrender.Rgba_Buffer)
       return Boolean
    is
-      Decoded : constant Files.File_System.Decoded_Image :=
-        Files.File_System.Decode_Image_Bytes (As_Stream_Elements (Data));
+      Decoded : constant Files.Images.Decoded_Image :=
+        Files.Images.Decode_Image_Bytes (As_Stream_Elements (Data));
    begin
       Pixels := [others => 0];
 

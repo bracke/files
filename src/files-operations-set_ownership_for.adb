@@ -53,7 +53,8 @@ begin
                  (User_Id, Group_Id, New_User_Name, New_Group_Name)));
          Record_Undo
            (Model, Files.Model.Undo_Set_Ownership, Undo_From, Undo_To,
-            Forward => Undo_Forward, Original_Identities => Identities);
+            Forward => Undo_Forward,
+            Provenance => (Identities => Identities, others => <>));
       end;
 
       declare

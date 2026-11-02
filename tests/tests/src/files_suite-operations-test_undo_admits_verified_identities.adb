@@ -29,8 +29,7 @@ separate (Files_Suite.Operations)
          Recorded := Files.Operations.Try_Record_Undo
            (Model, Files.Model.Undo_Delete_Created, Paths,
             Files.Types.String_Vectors.Empty_Vector, Redoable => False,
-            Original_Identities => Identities,
-            Original_Tree_Revisions => Revisions);
+            Provenance => (Identities => Identities, Tree_Revisions => Revisions, others => <>));
          Assert (not Recorded and then Files.Model.Undo_From_Paths (Model).First_Element = Older,
                  "an identity-free action does not replace an older usable Undo entry");
          declare
@@ -54,8 +53,7 @@ separate (Files_Suite.Operations)
             Recorded := Files.Operations.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created, Candidate,
                Files.Types.String_Vectors.Empty_Vector, Redoable => False,
-               Original_Identities => Candidate_Identities,
-               Original_Tree_Revisions => Candidate_Revisions);
+               Provenance => (Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions, others => <>));
             Assert
               (not Recorded,
                "a stale supplied identity cannot enter history or displace an older action: not recorded");
@@ -78,8 +76,7 @@ separate (Files_Suite.Operations)
             Recorded := Files.Operations.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created, Candidate,
                Files.Types.String_Vectors.Empty_Vector, Redoable => False,
-               Original_Identities => Candidate_Identities,
-               Original_Tree_Revisions => Candidate_Revisions);
+               Provenance => (Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions, others => <>));
             Assert (Recorded, "admit the first independently verified batch member");
             Files.Model.Take_Undo (Model, Previous, Found);
             Candidate.Append (To_Unbounded_String (Stale));
@@ -88,9 +85,11 @@ separate (Files_Suite.Operations)
             Recorded := Files.Operations.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created, Candidate,
                Files.Types.String_Vectors.Empty_Vector, Redoable => False,
-               Original_Identities => Candidate_Identities,
-               Original_Tree_Revisions => Candidate_Revisions,
-               Retain_Verified_Main => 1);
+               Provenance =>
+                 (Identities => Candidate_Identities,
+                  Tree_Revisions => Candidate_Revisions,
+                  Retain_Verified_Main => 1,
+                  others => <>));
             Assert (Recorded, "a verified prefix does not admit a newly appended stale snapshot: recorded");
             Files_Suite.Support.Assert_Equal
               (Natural (Files.Model.Undo_From_Paths (Model).Length),
@@ -113,8 +112,7 @@ separate (Files_Suite.Operations)
             Recorded := Files.Operations.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created, Candidate,
                Files.Types.String_Vectors.Empty_Vector, Redoable => False,
-               Original_Identities => Candidate_Identities,
-               Original_Tree_Revisions => Candidate_Revisions);
+               Provenance => (Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions, others => <>));
             Assert (not Recorded and then Files.Model.Undo_From_Paths (Model).First_Element = Older,
                     "a created directory without a complete tree revision is not recorded");
 
@@ -124,8 +122,7 @@ separate (Files_Suite.Operations)
             Recorded := Files.Operations.Try_Record_Undo
               (Model, Files.Model.Undo_Delete_Created, Candidate,
                Files.Types.String_Vectors.Empty_Vector, Redoable => False,
-               Original_Identities => Candidate_Identities,
-               Original_Tree_Revisions => Candidate_Revisions);
+               Provenance => (Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions, others => <>));
             Assert (not Recorded and then Files.Model.Undo_From_Paths (Model).First_Element = Older,
                     "a stale directory revision cannot enter history");
 
@@ -141,8 +138,7 @@ separate (Files_Suite.Operations)
               (Model, Files.Model.Undo_Delete_Created, Candidate,
                Files.Types.String_Vectors.Empty_Vector,
                Create_Kind => Files.Model.Create_Copy,
-               Original_Identities => Candidate_Identities,
-               Original_Tree_Revisions => Candidate_Revisions);
+               Provenance => (Identities => Candidate_Identities, Tree_Revisions => Candidate_Revisions, others => <>));
             Assert (not Recorded and then Files.Model.Undo_From_Paths (Model).First_Element = Older,
                     "an action without its required Redo source is not recorded");
          end;
@@ -153,8 +149,7 @@ separate (Files_Suite.Operations)
          Recorded := Files.Operations.Try_Record_Undo
            (Model, Files.Model.Undo_Delete_Created, Paths,
             Files.Types.String_Vectors.Empty_Vector, Redoable => False,
-            Original_Identities => Identities,
-            Original_Tree_Revisions => Revisions);
+            Provenance => (Identities => Identities, Tree_Revisions => Revisions, others => <>));
          Assert (Recorded, "mixed history retains only members with verifiable publication identities: recorded");
          Files_Suite.Support.Assert_Equal
            (Natural (Files.Model.Undo_From_Paths (Model).Length),

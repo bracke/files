@@ -1601,67 +1601,83 @@ package body Files.Rendering is
       return Result;
    end Skip_Wrap_Whitespace;
 
+   --  Visit each row Text takes when wrapped to Text_W: its index from zero
+   --  and its byte range (empty for a blank row). Line breaks start a row;
+   --  a long line breaks at the last blank that fits, and the blanks at the
+   --  break are dropped. Counting rows (Wrapped_Line_Count) and drawing them
+   --  (the info pane) both walk this, so the height laid out is the height
+   --  drawn.
+   procedure For_Each_Wrapped_Line
+     (Text        : String;
+      Text_W      : Natural;
+      Line_Height : Positive;
+      Visit       : not null access procedure (Row : Natural; First : Integer; Last : Integer))
+   is
+      Cell_W   : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
+      Capacity : constant Natural := Text_W / Cell_W;
+      Row      : Natural := 0;
+
+      procedure Segment (First : Integer; Last : Integer) is
+         Start : Integer;
+      begin
+         if Last < First then
+            Visit (Row, First, First - 1);
+            Row := Saturating_Add (Row, 1);
+            return;
+         end if;
+         Start := Skip_Wrap_Whitespace (Text, First, Last);
+         if Start > Last then
+            Visit (Row, First, First - 1);
+            Row := Saturating_Add (Row, 1);
+            return;
+         end if;
+         loop
+            declare
+               Line_Last : constant Integer := Wrapped_Line_Last (Text, Start, Last, Capacity);
+            begin
+               Visit (Row, Start, Line_Last);
+               Row := Saturating_Add (Row, 1);
+               exit when Line_Last >= Last;
+               Start := Skip_Wrap_Whitespace (Text, Line_Last + 1, Last);
+               exit when Start > Last;
+            end;
+         end loop;
+      end Segment;
+
+      Line_First : Integer := Text'First;
+   begin
+      if Text'Length = 0 or else Capacity = 0 then
+         Visit (0, Text'First, Text'Last);
+         return;
+      end if;
+      for Position in Text'Range loop
+         if Text (Position) = ASCII.LF then
+            Segment (Line_First, Position - 1);
+            Line_First := Position + 1;
+         end if;
+      end loop;
+      if Line_First <= Text'Last then
+         Segment (Line_First, Text'Last);
+      elsif Text (Text'Last) = ASCII.LF then
+         Visit (Row, Text'Last + 1, Text'Last);
+      end if;
+   end For_Each_Wrapped_Line;
+
    function Wrapped_Line_Count
      (Text        : UString;
       Text_W      : Natural;
       Line_Height : Positive)
       return Natural
    is
-      Cell_W   : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
-      Capacity : constant Natural := Text_W / Cell_W;
-      Raw      : constant String := To_String (Text);
+      Rows : Natural := 0;
 
-      function Segment_Row_Count
-        (First : Integer;
-         Last  : Integer)
-         return Natural
-      is
-         Start : Integer := First;
-         Count : Natural := 0;
+      procedure Count (Row : Natural; First : Integer; Last : Integer) is
+         pragma Unreferenced (First, Last);
       begin
-         if Capacity = 0 or else Last < First then
-            return 1;
-         end if;
-
-         Start := Skip_Wrap_Whitespace (Raw, Start, Last);
-         if Start > Last then
-            return 1;
-         end if;
-
-         while Start <= Last loop
-            declare
-               Line_Last : constant Integer :=
-                 Wrapped_Line_Last (Raw, Start, Last, Capacity);
-            begin
-               Count := Saturating_Add (Count, 1);
-               exit when Line_Last >= Last;
-               Start := Skip_Wrap_Whitespace (Raw, Line_Last + 1, Last);
-            end;
-         end loop;
-
-         return Count;
-      end Segment_Row_Count;
-
-      Rows       : Natural := 0;
-      Line_First : Integer := Raw'First;
+         Rows := Natural'Max (Rows, Saturating_Add (Row, 1));
+      end Count;
    begin
-      if Raw'Length = 0 then
-         return 1;
-      end if;
-
-      for Position in Raw'Range loop
-         if Raw (Position) = ASCII.LF then
-            Rows := Saturating_Add (Rows, Segment_Row_Count (Line_First, Position - 1));
-            Line_First := Position + 1;
-         end if;
-      end loop;
-
-      if Line_First <= Raw'Last then
-         Rows := Saturating_Add (Rows, Segment_Row_Count (Line_First, Raw'Last));
-      elsif Raw (Raw'Last) = ASCII.LF then
-         Rows := Saturating_Add (Rows, 1);
-      end if;
-
+      For_Each_Wrapped_Line (To_String (Text), Text_W, Line_Height, Count'Access);
       return Rows;
    end Wrapped_Line_Count;
 

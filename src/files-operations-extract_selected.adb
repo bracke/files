@@ -26,9 +26,11 @@ is
       Progress_Recorded := Try_Record_Undo
         (Model, Files.Model.Undo_Delete_Created, Created,
          Files.Types.String_Vectors.Empty_Vector, Redoable => False,
-         Original_Identities => Identities,
-         Original_Tree_Revisions => Tree_Revisions,
-         Retain_Verified_Main => Verified_Count);
+         Provenance =>
+           (Identities => Identities,
+            Tree_Revisions => Tree_Revisions,
+            Retain_Verified_Main => Verified_Count,
+            others => <>));
       if Progress_Recorded
         and then Natural (Files.Model.Undo_From_Paths (Model).Length) =
           Natural (Created.Length)

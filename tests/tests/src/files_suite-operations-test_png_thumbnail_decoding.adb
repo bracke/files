@@ -1,7 +1,8 @@
+with Files.File_System.Thumbnails;
 separate (Files_Suite.Operations)
    procedure Test_Png_Thumbnail_Decoding (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Thumbnail : Files.File_System.Thumbnail_Result;
+      Thumbnail : Files.File_System.Thumbnails.Thumbnail_Result;
       Decoded_Png_Source : constant String := Join (Root, "decoded-picture.png");
       Thumbnail_Cache  : constant String := Join (Root, "thumb-cache");
    begin
@@ -24,7 +25,7 @@ separate (Files_Suite.Operations)
            & Byte (8) & Byte (2) & Byte (0) & Byte (0) & Byte (0);
          Raster  : Unbounded_String;
          Png_Src : constant String := Join (Root, "decodable-rgb.png");
-         Decoded : Files.File_System.Thumbnail_Result;
+         Decoded : Files.File_System.Thumbnails.Thumbnail_Result;
       begin
          for Row in 1 .. Png_H loop
             Append (Raster, Byte (0));  -- PNG row filter type 0 (None)
@@ -37,9 +38,9 @@ separate (Files_Suite.Operations)
             Signature & Chunk ("IHDR", Ihdr)
             & Chunk ("IDAT", Stored_Zlib_Stream (To_String (Raster)))
             & Chunk ("IEND", ""));
-         Decoded := Files.File_System.Generate_Thumbnail (Png_Src, Thumbnail_Cache, Size => 8);
+         Decoded := Files.File_System.Thumbnails.Generate_Thumbnail (Png_Src, Thumbnail_Cache, Size => 8);
          Assert
-           (Decoded.Status = Files.File_System.Thumbnail_Generated,
+           (Decoded.Status = Files.File_System.Thumbnails.Thumbnail_Generated,
             "a complete PNG decodes through the pure-Ada fast path");
          Assert
            (File_Has_Bytes (To_String (Decoded.Thumbnail_Path), Byte (173) & Byte (89) & Byte (211)),
@@ -51,17 +52,17 @@ separate (Files_Suite.Operations)
          Pixel  : constant String := Byte (173) & Byte (89) & Byte (211);
          Raster : constant String :=
            Byte (0) & Pixel & Pixel & Byte (0) & Pixel & Pixel;
-         Generated : Files.File_System.Thumbnail_Result;
+         Generated : Files.File_System.Thumbnails.Thumbnail_Result;
       begin
          --  The IHDR declares exactly fourteen inflated scanline bytes.  The
          --  extra byte used to be silently retained by the one-shot inflater,
          --  which first allocated the entire attacker-controlled expansion.
          Write_Binary_File
            (Source, Minimal_Png_RGB (2, 2, Raster & Byte (99)));
-         Generated := Files.File_System.Generate_Thumbnail
+         Generated := Files.File_System.Thumbnails.Generate_Thumbnail
            (Source, Thumbnail_Cache, Size => 2);
          Assert
-           (Generated.Status = Files.File_System.Thumbnail_Generated,
+           (Generated.Status = Files.File_System.Thumbnails.Thumbnail_Generated,
             "an invalid PNG expansion falls back to a generated thumbnail");
          Assert
            (not File_Has_Bytes
@@ -77,8 +78,8 @@ separate (Files_Suite.Operations)
             2,
             Byte (0) & Byte (255) & Byte (0) & Byte (0) & Byte (0) & Byte (255) & Byte (0) &
             Byte (0) & Byte (0) & Byte (0) & Byte (255) & Byte (255) & Byte (255) & Byte (255)));
-      Thumbnail := Files.File_System.Generate_Thumbnail (Decoded_Png_Source, Thumbnail_Cache, Size => 2);
-      Assert (Thumbnail.Status = Files.File_System.Thumbnail_Generated, "decoded PNG thumbnail succeeds");
+      Thumbnail := Files.File_System.Thumbnails.Generate_Thumbnail (Decoded_Png_Source, Thumbnail_Cache, Size => 2);
+      Assert (Thumbnail.Status = Files.File_System.Thumbnails.Thumbnail_Generated, "decoded PNG thumbnail succeeds");
       Assert
         (File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (255) & Byte (0) & Byte (0)),
          "decoded PNG thumbnail preserves source pixel colors: red pixel");
@@ -102,17 +103,17 @@ separate (Files_Suite.Operations)
            Byte (0)
            & Byte (255) & Byte (0) & Byte (0) & Byte (0)
            & Byte (0) & Byte (0) & Byte (255) & Byte (255);
-         Generated : Files.File_System.Thumbnail_Result;
+         Generated : Files.File_System.Thumbnails.Thumbnail_Result;
       begin
          Write_Binary_File
            (Source,
             Signature & Chunk ("IHDR", Ihdr)
             & Chunk ("IDAT", Stored_Zlib_Stream (Raster))
             & Chunk ("IEND", ""));
-         Generated := Files.File_System.Generate_Thumbnail
+         Generated := Files.File_System.Thumbnails.Generate_Thumbnail
            (Source, Thumbnail_Cache, Size => 2);
          Assert
-           (Generated.Status = Files.File_System.Thumbnail_Generated,
+           (Generated.Status = Files.File_System.Thumbnails.Thumbnail_Generated,
             "an RGBA PNG produces a thumbnail");
          Assert
            (File_Has_Bytes
@@ -155,7 +156,7 @@ separate (Files_Suite.Operations)
            & Byte (0) & Byte (0) & Byte (255)
            & Byte (255) & Byte (0) & Byte (0)
            & Byte (0) & Byte (0) & Byte (255);
-         Generated : Files.File_System.Thumbnail_Result;
+         Generated : Files.File_System.Thumbnails.Thumbnail_Result;
       begin
          Write_Binary_File
            (Source,
@@ -163,10 +164,10 @@ separate (Files_Suite.Operations)
             & Chunk ("tRNS", Transparent_Red)
             & Chunk ("IDAT", Stored_Zlib_Stream (Raster))
             & Chunk ("IEND", ""));
-         Generated := Files.File_System.Generate_Thumbnail
+         Generated := Files.File_System.Thumbnails.Generate_Thumbnail
            (Source, Thumbnail_Cache, Size => 2);
          Assert
-           (Generated.Status = Files.File_System.Thumbnail_Generated,
+           (Generated.Status = Files.File_System.Thumbnails.Thumbnail_Generated,
             "true-colour PNG tRNS transparency is composited against white: generated");
          Assert
            (File_Has_Bytes (To_String (Generated.Thumbnail_Path), Expected),

@@ -241,8 +241,8 @@ begin
       Created.Append (To_Unbounded_String (Output_Path));
       Record_Undo
         (Model, Files.Model.Undo_Delete_Created, Created,
-         Files.Types.String_Vectors.Empty_Vector, Redoable => False, Original_Identities => Identities,
-         Original_Tree_Revisions => Tree_Revisions);
+         Files.Types.String_Vectors.Empty_Vector, Redoable => False,
+         Provenance => (Identities => Identities, Tree_Revisions => Tree_Revisions, others => <>));
 
       --  Reload so the new archive appears, and select it.
       declare

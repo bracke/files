@@ -1,3 +1,4 @@
+with Files.File_System.Thumbnails;
 with Files.Items;
 with Files.Folder_Size.Testing;
 with Files.Model.Testing;
@@ -103,7 +104,7 @@ package body Files_Suite.Operations is
    use type Files.Job_Transports.Claim_Outcome;
    use type Files.Events.Input_Action_Kind;
    use type Files.File_System.Drop_Import_Mode;
-   use type Files.File_System.Thumbnail_Status;
+   use type Files.File_System.Thumbnails.Thumbnail_Status;
    use type Files.File_System.Trash_Backend;
    use type Files.Operations.Testing.Open_Action_Lifecycle_State;
    use type Files.Operations.Operation_Status;

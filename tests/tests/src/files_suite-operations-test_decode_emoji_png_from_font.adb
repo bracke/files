@@ -1,3 +1,4 @@
+with Files.Images;
 separate (Files_Suite.Operations)
    procedure Test_Decode_Emoji_Png_From_Font (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -41,7 +42,7 @@ separate (Files_Suite.Operations)
 
                --  The extent must be readable without decoding, and must agree
                --  with what the font's own metrics claimed.
-               Assert (Files.File_System.Image_Bytes_Extent (Data, Width, Height),
+               Assert (Files.Images.Image_Bytes_Extent (Data, Width, Height),
                        "the PNG header is readable");
                Assert (Width = Bitmap.Width and then Height = Bitmap.Height,
                        "and agrees with the font's metrics:"
@@ -50,8 +51,8 @@ separate (Files_Suite.Operations)
                        & " x" & Natural'Image (Bitmap.Height));
 
                declare
-                  Decoded : constant Files.File_System.Decoded_Image :=
-                    Files.File_System.Decode_Image_Bytes (Data);
+                  Decoded : constant Files.Images.Decoded_Image :=
+                    Files.Images.Decode_Image_Bytes (Data);
                   Opaque_Pixels : Natural := 0;
                   Coloured      : Natural := 0;
                begin

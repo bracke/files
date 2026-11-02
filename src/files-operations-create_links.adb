@@ -38,8 +38,7 @@ is
               (if Hard
                then Files.Model.Create_Hard_Link
                else Files.Model.Create_Symbolic_Link),
-            Original_Identities => Identities,
-            Original_Tree_Revisions => Tree_Revisions);
+            Provenance => (Identities => Identities, Tree_Revisions => Tree_Revisions, others => <>));
          pragma Unreferenced (Recorded);
       begin
          null;

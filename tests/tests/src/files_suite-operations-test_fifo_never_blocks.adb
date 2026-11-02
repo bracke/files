@@ -1,3 +1,4 @@
+with Files.File_System.Thumbnails;
 separate (Files_Suite.Operations)
    procedure Test_Fifo_Never_Blocks (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -39,8 +40,8 @@ separate (Files_Suite.Operations)
                     "Quick Look of a FIFO shows its card without reading it");
          end if;
       end loop;
-      Assert (Files.File_System.Generate_Thumbnail (Pipe, Join (Root, "thumbs")).Status
-                /= Files.File_System.Thumbnail_Generated,
+      Assert (Files.File_System.Thumbnails.Generate_Thumbnail (Pipe, Join (Root, "thumbs")).Status
+                /= Files.File_System.Thumbnails.Thumbnail_Generated,
               "a FIFO is never thumbnailed");
 
       Files.Model.Initialize (Model, Dir, Load.Items, Root);

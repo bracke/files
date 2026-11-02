@@ -1,10 +1,11 @@
+with Files.File_System.Thumbnails;
 separate (Files_Suite.Operations)
    procedure Test_Explicit_Thumbnail_Survives_The_Listing (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings   : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Not_Image  : constant String := Join (Root, "notes.txt");
       Cache      : constant String := Join (Root, "explicit-cache");
-      Generated  : Files.File_System.Thumbnail_Result;
+      Generated  : Files.File_System.Thumbnails.Thumbnail_Result;
       Listed     : Files.File_System.Directory_Load_Result;
       Found      : Boolean := False;
       --  Restores what the test changes, on failure too.
@@ -17,9 +18,9 @@ separate (Files_Suite.Operations)
       Ada.Directories.Create_Path (Cache);
 
       --  The command's own path: generate for whatever is selected, image or not.
-      Generated := Files.File_System.Generate_Thumbnail (Not_Image, Cache);
+      Generated := Files.File_System.Thumbnails.Generate_Thumbnail (Not_Image, Cache);
       Assert
-        (Generated.Status = Files.File_System.Thumbnail_Generated,
+        (Generated.Status = Files.File_System.Thumbnails.Thumbnail_Generated,
          "the thumbnail command produces something even for a text file");
 
       --  Point the listing at that cache and read the directory back.

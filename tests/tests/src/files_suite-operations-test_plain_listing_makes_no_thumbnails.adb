@@ -1,3 +1,4 @@
+with Files.File_System.Thumbnails;
 separate (Files_Suite.Operations)
    procedure Test_Plain_Listing_Makes_No_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,8 +9,8 @@ separate (Files_Suite.Operations)
       Environment : Files_Suite.Support.Environment_Guard;
 
       function Cache_File return String is
-        (Files.File_System.Thumbnail_Path_For
-           (Photo, Files.File_System.Default_Thumbnail_Cache_Directory (Root), 64));
+        (Files.File_System.Thumbnails.Thumbnail_Path_For
+           (Photo, Files.File_System.Thumbnails.Default_Thumbnail_Cache_Directory (Root), 64));
    begin
       Reset_Root;
       Files_Suite.Support.Save (Environment, "XDG_CACHE_HOME");

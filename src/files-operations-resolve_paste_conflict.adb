@@ -35,20 +35,21 @@ begin
                when Choice_Cancel  => Files.Paste.Policy_Skip_All));
       else
          Files.Model.Set_Paste_Conflict_Override
-           (Model, Files.Model.Paste_Conflict_Index (Model), Decision);
+           (Model, Files.Model.Paste_Conflict_Of (Model).Index, Decision);
       end if;
    end;
 
    declare
-      Work     : constant Files.Paste.Work_Item_Vectors.Vector :=
-        Files.Model.Paste_Conflict_Items (Model);
+      --  Read after the choice above was recorded.
+      Conflict : constant Files.Model.Paste_Conflict_State := Files.Model.Paste_Conflict_Of (Model);
+      Work     : constant Files.Paste.Work_Item_Vectors.Vector := Conflict.Items;
       Existing : constant Files.Types.String_Vectors.Vector :=
-        Files.Model.Paste_Conflict_Existing (Model);
-      Policy   : constant Files.Paste.Conflict_Policy := Files.Model.Paste_Conflict_Policy (Model);
+        Conflict.Existing;
+      Policy   : constant Files.Paste.Conflict_Policy := Conflict.Policy;
       Overrides : constant Files.Paste.Item_Decision_Vectors.Vector :=
-        Files.Model.Paste_Conflict_Overrides (Model);
+        Conflict.Overrides;
       Mode     : constant Files.File_System.Drop_Import_Mode :=
-        Files.Model.Paste_Conflict_Mode (Model);
+        Conflict.Mode;
       Next     : constant Natural :=
         Files.Paste.Next_Unresolved_Conflict (Work, Policy, Overrides, Existing);
    begin
@@ -64,7 +65,7 @@ begin
          --  drag-and-drop) captured when the conflict dialog was armed, since
          --  Clear_Paste_Conflict below resets it.
          Clears_Clipboard : constant Boolean :=
-           Files.Model.Paste_Conflict_Clears_Clipboard (Model);
+           Conflict.Clears_Clipboard;
       begin
          --  Leave the conflict sub-mode, arm the resumable execution over the
          --  resolved actions, and run the first batch (small pastes finish

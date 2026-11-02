@@ -1,3 +1,5 @@
+with Files.File_System.Thumbnails;
+with Files.Images;
 with Files.Environment;
 with Ada.Characters.Handling;
 with Ada.Directories;
@@ -41,7 +43,7 @@ with Files.Archive_Writing;
 
 package body Files.Operations is
    use Ada.Strings.Unbounded;
-   use type Files.File_System.Thumbnail_Status;
+   use type Files.File_System.Thumbnails.Thumbnail_Status;
    use type Files.Types.Item_Kind;
    use type Files.File_System.Path_Status;
    use type GNAT.OS_Lib.Argument_List_Access;
@@ -422,7 +424,7 @@ package body Files.Operations is
 
       function Cache_Directory return String is
       begin
-         return Files.File_System.Default_Thumbnail_Cache_Directory (Files.Model.Current_Path (Model));
+         return Files.File_System.Thumbnails.Default_Thumbnail_Cache_Directory (Files.Model.Current_Path (Model));
       end Cache_Directory;
    begin
       if Files.Model.Selected_Count (Model) = 0 or else Files.Model.Selection_Includes_Temporary (Model) then
@@ -431,15 +433,15 @@ package body Files.Operations is
 
       for Item of Items loop
          declare
-            Thumbnail : constant Files.File_System.Thumbnail_Result :=
-              Files.File_System.Generate_Thumbnail (To_String (Item.Full_Path), Cache_Directory);
+            Thumbnail : constant Files.File_System.Thumbnails.Thumbnail_Result :=
+              Files.File_System.Thumbnails.Generate_Thumbnail (To_String (Item.Full_Path), Cache_Directory);
          begin
-            if Thumbnail.Status = Files.File_System.Thumbnail_Unsupported then
+            if Thumbnail.Status = Files.File_System.Thumbnails.Thumbnail_Unsupported then
                --  A folder or non-image in a mixed selection is not a failure;
                --  stopping here skipped every image after it.
                Unsupported_Key := Thumbnail.Error_Key;
                Unsupported_Path := Item.Full_Path;
-            elsif Thumbnail.Status /= Files.File_System.Thumbnail_Generated then
+            elsif Thumbnail.Status /= Files.File_System.Thumbnails.Thumbnail_Generated then
                --  Refresh so thumbnails already generated for earlier items in
                --  the batch are shown, then restore the failure diagnostic.
                Files.Model.Set_Error (Model, To_String (Thumbnail.Error_Key));
@@ -737,16 +739,7 @@ package body Files.Operations is
       Redoable    : Boolean := True;
       Restore_Trash : Files.Types.String_Vectors.Vector :=
         Files.Types.String_Vectors.Empty_Vector;
-      Original_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Retain_Verified_Main : Natural := 0;
-      Retain_Verified_Restores : Natural := 0) return Boolean is separate;
+      Provenance  : Undo_Provenance := (others => <>)) return Boolean is separate;
 
    procedure Record_Undo
      (Model       : in out Files.Model.Window_Model;
@@ -759,16 +752,7 @@ package body Files.Operations is
       Redoable    : Boolean := True;
       Restore_Trash : Files.Types.String_Vectors.Vector :=
         Files.Types.String_Vectors.Empty_Vector;
-      Original_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Retain_Verified_Main : Natural := 0;
-      Retain_Verified_Restores : Natural := 0)
+      Provenance  : Undo_Provenance := (others => <>))
    is separate;
 
    procedure Clear_Undo (Model : in out Files.Model.Window_Model) is separate;
@@ -787,7 +771,7 @@ package body Files.Operations is
       Icon_Id  : constant String := To_String (Item.Icon_Id);
       Path     : constant String := To_String (Item.Full_Path);
       Is_Image : constant Boolean :=
-        Files.File_System.Is_Image_Item (Item.Kind, Filetype, Name, Icon_Id);
+        Files.File_System.Thumbnails.Is_Image_Item (Item.Kind, Filetype, Name, Icon_Id);
       Raw      : constant String :=
         (if Is_Image
            or else (Item.Kind /= Files.Types.Regular_File_Item
@@ -814,8 +798,8 @@ package body Files.Operations is
       --  preview scales the source rather than the small thumbnail.
       if Content.Kind = Files.Quick_Look.Image_Content then
          declare
-            Decoded : constant Files.File_System.Decoded_Image :=
-              Files.File_System.Decode_Image_To_Pixels (Path, Preview_Size);
+            Decoded : constant Files.Images.Decoded_Image :=
+              Files.Images.Decode_Image_To_Pixels (Path, Preview_Size);
          begin
             if Decoded.Available then
                Content.Image_Pixels := Files.Shared_Bytes.To_Shared (Decoded.Pixels);

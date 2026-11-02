@@ -1,28 +1,14 @@
-with Ada.Strings.Unbounded;
-
 with Files.File_System;
 with Files.Types;
 
 --  Drop event-source backend shared by native callbacks and automation tests.
 package Files.Drop_Events is
 
-   type Drop_Event_Source_Profile is record
-      Native_Drop_Callbacks     : Boolean := True;
-      Event_Source_Backend      : Boolean := True;
-      Queued_Drop_Imports       : Boolean := True;
-      Portable_GLFW_Automation  : Boolean := False;
-      Requires_OS_Event_Source  : Boolean := False;
-      Uses_Shell                : Boolean := False;
-      Max_Paths                 : Positive := 256;
-      Binding_Unit              : Ada.Strings.Unbounded.Unbounded_String;
-   end record;
+   --  The most paths one drop may carry. A larger drop is refused whole
+   --  (Take_Overflow) rather than imported in part.
+   Max_Paths : constant Positive := 65_536;
 
    type Drop_Event_Source is private;
-
-   --  Return the active drop event-source backend profile.
-   --
-   --  @return Structured backend capability metadata.
-   function Profile return Drop_Event_Source_Profile;
 
    --  Queue a drop event, filtering empty path entries. A drop of more paths
    --  than the backend limit is refused whole (see Take_Overflow) rather than

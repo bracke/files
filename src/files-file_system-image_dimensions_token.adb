@@ -15,7 +15,7 @@ is
       --  chunk.  A signature alone is not enough: arbitrary bytes at these
       --  offsets must not be presented as image dimensions.
       return Last >= 24
-        and then Matches_Signature (Buffer, Last, PNG_Magic)
+        and then Matches_Signature (Buffer, Last, Files.Images.PNG_Magic)
         and then Buffer (9 .. 12) = [0, 0, 0, 13]
         and then Buffer (13 .. 16) =
           [Character'Pos ('I'), Character'Pos ('H'),

@@ -678,6 +678,23 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
+   --  What an undo entry's members are known by, captured when the action
+   --  ran: kept together so the vectors that run parallel to From, and those
+   --  that run parallel to Restore_Trash, cannot be passed out of step.
+   type Undo_Provenance is record
+      --  Publication identity of each From entry.
+      Identities         : Files.Types.String_Vectors.Vector;
+      --  Recursive revision of each From entry that is a created directory.
+      Tree_Revisions     : Files.Types.String_Vectors.Vector;
+      --  Identity and destination of each Restore_Trash entry.
+      Restore_Identities : Files.Types.String_Vectors.Vector;
+      Restore_Targets    : Files.Types.String_Vectors.Vector;
+      --  How many leading From and Restore_Trash snapshots were validated
+      --  before and may survive a later pathname replacement.
+      Retain_Verified_Main     : Natural := 0;
+      Retain_Verified_Restores : Natural := 0;
+   end record;
+
    --  Record a performed action in the undo history, keeping only members
    --  whose publication identity still matches the live entry. Created
    --  directories also require a matching recursive revision, and every
@@ -696,14 +713,7 @@ package Files.Operations is
    --  @param Create_Kind Creation operation used by Redo.
    --  @param Redoable Whether a successful Undo may enter Redo history.
    --  @param Restore_Trash Preserved replacement originals to restore.
-   --  @param Original_Identities Publication identities parallel to From.
-   --  @param Original_Tree_Revisions Directory revisions parallel to From.
-   --  @param Original_Restore_Identities Identities parallel to Restore_Trash.
-   --  @param Original_Restore_Targets Destinations parallel to Restore_Trash.
-   --  @param Retain_Verified_Main Number of leading From snapshots previously
-   --    validated and allowed to survive a later pathname replacement.
-   --  @param Retain_Verified_Restores Number of leading Restore_Trash snapshots
-   --    previously validated and allowed to survive a later replacement.
+   --  @param Provenance What identifies the entries From and Restore_Trash name.
    --  @return True when a usable history entry was added.
    function Try_Record_Undo
      (Model       : in out Files.Model.Window_Model;
@@ -716,16 +726,7 @@ package Files.Operations is
       Redoable    : Boolean := True;
       Restore_Trash : Files.Types.String_Vectors.Vector :=
         Files.Types.String_Vectors.Empty_Vector;
-      Original_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Retain_Verified_Main : Natural := 0;
-      Retain_Verified_Restores : Natural := 0) return Boolean;
+      Provenance  : Undo_Provenance := (others => <>)) return Boolean;
 
    --  Try_Record_Undo for callers that do not need to know whether an entry
    --  was added.
@@ -738,14 +739,7 @@ package Files.Operations is
    --  @param Create_Kind Creation operation used by Redo.
    --  @param Redoable Whether a successful Undo may enter Redo history.
    --  @param Restore_Trash Preserved replacement originals to restore.
-   --  @param Original_Identities Publication identities parallel to From.
-   --  @param Original_Tree_Revisions Directory revisions parallel to From.
-   --  @param Original_Restore_Identities Identities parallel to Restore_Trash.
-   --  @param Original_Restore_Targets Destinations parallel to Restore_Trash.
-   --  @param Retain_Verified_Main Number of leading From snapshots previously
-   --    validated and allowed to survive a later pathname replacement.
-   --  @param Retain_Verified_Restores Number of leading Restore_Trash snapshots
-   --    previously validated and allowed to survive a later replacement.
+   --  @param Provenance What identifies the entries From and Restore_Trash name.
    procedure Record_Undo
      (Model       : in out Files.Model.Window_Model;
       Kind        : Files.Model.Undo_Action_Kind;
@@ -757,16 +751,7 @@ package Files.Operations is
       Redoable    : Boolean := True;
       Restore_Trash : Files.Types.String_Vectors.Vector :=
         Files.Types.String_Vectors.Empty_Vector;
-      Original_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Retain_Verified_Main : Natural := 0;
-      Retain_Verified_Restores : Natural := 0);
+      Provenance  : Undo_Provenance := (others => <>));
 
    --  Forget the entire undo and redo history, then delete the recovery
    --  payloads it retained and save the history journal.

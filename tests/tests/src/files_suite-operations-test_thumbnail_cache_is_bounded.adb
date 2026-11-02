@@ -1,3 +1,4 @@
+with Files.File_System.Thumbnails;
 separate (Files_Suite.Operations)
    procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -46,7 +47,7 @@ separate (Files_Suite.Operations)
 
       Files.File_Identities.Testing.Set_Unavailable (True);
       begin
-         Files.File_System.Prune_Thumbnail_Cache (Cache, 0);
+         Files.File_System.Thumbnails.Prune_Thumbnail_Cache (Cache, 0);
          Files.File_Identities.Testing.Set_Unavailable (False);
       exception
          when others =>
@@ -58,13 +59,13 @@ separate (Files_Suite.Operations)
       Assert (Path_Exists (Newest), "cache pruning refuses identity-free deletion candidates: newest kept");
 
       --  Comfortably above the total: nothing is touched.
-      Files.File_System.Prune_Thumbnail_Cache (Cache, 1_000_000);
+      Files.File_System.Thumbnails.Prune_Thumbnail_Cache (Cache, 1_000_000);
       Assert (Path_Exists (Old_One), "a cache inside its budget is left alone: oldest kept");
       Assert (Path_Exists (Old_Two), "a cache inside its budget is left alone: middle kept");
       Assert (Path_Exists (Newest), "a cache inside its budget is left alone: newest kept");
 
       --  Room for roughly one file: the two oldest go, the newest stays.
-      Files.File_System.Prune_Thumbnail_Cache (Cache, 5_000);
+      Files.File_System.Thumbnails.Prune_Thumbnail_Cache (Cache, 5_000);
       Assert (Path_Exists (Newest), "the most recently written thumbnail survives");
       Assert
         (not Path_Exists (Old_One) and then not Path_Exists (Old_Two),
@@ -76,7 +77,7 @@ separate (Files_Suite.Operations)
       --  Housekeeping must never be a precondition for anything.
       --  Pruning a missing cache returns without raising (an exception would
       --  fail this test) and does not bring the directory into being.
-      Files.File_System.Prune_Thumbnail_Cache (Join (Root, "no-such-cache"), 1);
+      Files.File_System.Thumbnails.Prune_Thumbnail_Cache (Join (Root, "no-such-cache"), 1);
       Assert
         (not Path_Exists (Join (Root, "no-such-cache")),
          "pruning a cache directory that does not exist does not create it");
@@ -92,7 +93,7 @@ separate (Files_Suite.Operations)
          Write_File (Kept_File, Filler (4_000));
 
          if Files_Suite.Support.Create_Symlink (Real_Directory, Linked_Cache) then
-            Files.File_System.Prune_Thumbnail_Cache (Linked_Cache, 0);
+            Files.File_System.Thumbnails.Prune_Thumbnail_Cache (Linked_Cache, 0);
             Assert (Hostkit.Fs.Is_Link (Linked_Cache),
                     "cache pruning leaves a linked cache root in place");
             Assert (File_Has_Bytes (Kept_File, Filler (4_000)),

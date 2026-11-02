@@ -1,13 +1,11 @@
 with Files.Environment;
 with Files.Diagnostics;
 with Ada.Characters.Handling;
-with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Containers.Ordered_Maps;
 with Ada.Directories;
 with Ada.Environment_Variables;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
-with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
@@ -15,11 +13,8 @@ with Interfaces.C;
 with Interfaces.C.Strings;
 
 with System;
-with System.Address_To_Access_Conversions;
 
 with GNAT.OS_Lib;
-
-with Zlib;
 
 with Files.File_Types;
 with Files_Config;
@@ -29,14 +24,12 @@ with Hostkit.Fs;
 with Hostkit.Host;
 with Files.UTF8;
 with Files.File_System.Support;
+with Files.File_System.Thumbnails;
+with Files.Images;
 with Files.File_System.Recovery;
 with Files.File_Identities;
 with Files.Private_Directories;
 with Ada.Characters;
-with Ada.Containers.Ordered_Sets;
-with Ada.Unchecked_Deallocation;
-with CryptoLib.Hashes;
-with GNAT.CRC32;
 with Files.Job_Context;
 with Files.Io_Errors;
 with Hostkit.Trash;
@@ -45,6 +38,7 @@ with Files.Bounded_Text_IO;
 package body Files.File_System is
 
    use Files.File_System.Support;
+   use Files.File_System.Thumbnails;
    use Ada.Strings.Unbounded;
    use type Interfaces.C.int;
    use type Interfaces.C.long;
@@ -60,193 +54,7 @@ package body Files.File_System is
    use type Files.Types.Sort_Field;
    use type Files.Types.Item_Kind;
 
-   Max_Source_Side   : constant := 4096;
-
-   Max_Source_Pixels : constant := 4_194_304;
-
    package Stream_IO renames Ada.Streams.Stream_IO;
-
-   Max_Thumbnail_Dimension : constant Positive := 2_048;
-
-   Max_Decode_Source_Bytes : constant Natural := 128 * 1024 * 1024;
-
-   function Loader_New return System.Address
-     with Import, Convention => C, External_Name => "gdk_pixbuf_loader_new";
-
-   function Loader_Write
-     (Loader : System.Address;
-      Buffer : System.Address;
-      Count  : Interfaces.C.size_t;
-      Error  : System.Address)
-      return Interfaces.C.int
-     with Import, Convention => C, External_Name => "gdk_pixbuf_loader_write";
-
-   function Loader_Close
-     (Loader : System.Address;
-      Error  : System.Address)
-      return Interfaces.C.int
-     with Import, Convention => C, External_Name => "gdk_pixbuf_loader_close";
-
-   function Loader_Get_Pixbuf (Loader : System.Address) return System.Address
-     with Import, Convention => C, External_Name => "gdk_pixbuf_loader_get_pixbuf";
-
-   procedure Loader_Set_Size
-     (Loader : System.Address; Width, Height : C_Int)
-     with Import, Convention => C, External_Name => "gdk_pixbuf_loader_set_size";
-
-   function Signal_Connect_Data
-     (Instance        : System.Address;
-      Detailed_Signal : Interfaces.C.Strings.chars_ptr;
-      Handler         : System.Address;
-      Data            : System.Address;
-      Destroy_Data    : System.Address;
-      Flags           : Interfaces.C.int) return Interfaces.C.unsigned_long
-     with Import, Convention => C, External_Name => "g_signal_connect_data";
-
-   function Gdk_Pixbuf_Get_Width
-     (Pixbuf : System.Address)
-      return C_Int
-   with Import, Convention => C, External_Name => "gdk_pixbuf_get_width";
-
-   function Gdk_Pixbuf_Get_Height
-     (Pixbuf : System.Address)
-      return C_Int
-   with Import, Convention => C, External_Name => "gdk_pixbuf_get_height";
-
-   function Gdk_Pixbuf_Get_N_Channels
-     (Pixbuf : System.Address)
-      return C_Int
-   with Import, Convention => C, External_Name => "gdk_pixbuf_get_n_channels";
-
-   function Gdk_Pixbuf_Get_Rowstride
-     (Pixbuf : System.Address)
-      return C_Int
-   with Import, Convention => C, External_Name => "gdk_pixbuf_get_rowstride";
-
-   function Gdk_Pixbuf_Get_Pixels
-     (Pixbuf : System.Address)
-      return System.Address
-   with Import, Convention => C, External_Name => "gdk_pixbuf_get_pixels";
-
-   procedure G_Object_Unref
-     (Object : System.Address)
-   with Import, Convention => C, External_Name => "g_object_unref";
-
-   package C_Int_Pointers is new System.Address_To_Access_Conversions (C_Int);
-
-   use type C_Int_Pointers.Object_Pointer;
-
-   procedure Loader_Size_Prepared
-     (Loader : System.Address;
-      Width, Height : C_Int;
-      Data : System.Address)
-     with Convention => C;
-
-   procedure Loader_Size_Prepared
-     (Loader : System.Address;
-      Width, Height : C_Int;
-      Data : System.Address)
-   is separate;
-
-   procedure Safe_Free
-     (Pointer : in out Interfaces.C.Strings.chars_ptr);
-
-   function Thumbnail_Extension
-     (Source_Path : String)
-      return String;
-
-   function Sanitized_Thumbnail_Extension
-     (Source_Path : String)
-      return String;
-
-   function Thumbnail_Path_Checksum
-     (Source_Path : String)
-      return Natural;
-
-   function Thumbnail_Cache_Key
-     (Source_Path : String)
-      return String;
-
-   procedure Safe_Free
-     (Pointer : in out Interfaces.C.Strings.chars_ptr) is separate;
-
-   function Thumbnail_Extension
-     (Source_Path : String)
-      return String
-   is separate;
-
-   function Sanitized_Thumbnail_Extension
-     (Source_Path : String)
-      return String
-   is separate;
-
-   function Thumbnail_Path_Checksum
-     (Source_Path : String)
-      return Natural
-   is separate;
-
-   function Thumbnail_Cache_Key
-     (Source_Path : String)
-      return String
-   is separate;
-
-   Cache_Byte_Budget : constant Long_Long_Integer := 64 * 1024 * 1024;
-
-   Max_Cache_Prune_Entries : constant Natural := 100_000;
-
-   package Cache_Path_Sets is new Ada.Containers.Ordered_Sets
-     (Element_Type => Unbounded_String);
-
-   Max_Remembered_Cache_Paths : constant Natural := 256;
-
-   protected Cache_Prune_Registry is
-      procedure Claim (Path : String; Prune : out Boolean);
-   private
-      Seen : Cache_Path_Sets.Set;
-   end Cache_Prune_Registry;
-
-   protected body Cache_Prune_Registry is
-      procedure Claim (Path : String; Prune : out Boolean) is
-         Key : constant Unbounded_String := To_Unbounded_String (Path);
-      begin
-         if Seen.Contains (Key) then
-            Prune := False;
-         else
-            Prune := True;
-            --  Keep the registry itself bounded. Beyond the cap, pruning again
-            --  is safer than retaining one attacker-controlled path forever.
-            if Natural (Seen.Length) < Max_Remembered_Cache_Paths then
-               Seen.Insert (Key);
-            end if;
-         end if;
-      end Claim;
-   end Cache_Prune_Registry;
-
-   procedure Prune_Thumbnail_Cache
-     (Cache_Directory : String;
-      Budget_Bytes    : Long_Long_Integer)
-   is separate;
-
-   procedure Prune_Cache_Once (Cache_Directory : String) is separate;
-
-   function Default_Thumbnail_Cache_Directory
-     (Fallback_Directory : String)
-      return String
-   is separate;
-
-   function Thumbnail_Path_For
-     (Source_Path      : String;
-      Cache_Directory : String;
-      Size            : Positive := 64)
-      return String is separate;
-
-   function Is_Image_Item
-     (Kind     : Files.Types.Item_Kind;
-      Filetype : String;
-      Name     : String;
-      Icon_Id  : String)
-      return Boolean
-   is separate;
 
    function Read_Bounded_Regular_File
      (Path : String; Max_Bytes : Natural;
@@ -267,124 +75,6 @@ package body Files.File_System is
      (Path : String; Max_Bytes : Natural; Success : out Boolean) return String
    is separate;
 
-   PNG_Magic    : constant Ada.Streams.Stream_Element_Array (1 .. 8) :=
-     --  89 'P' 'N' 'G' CR LF 1A LF
-     [16#89#, 16#50#, 16#4E#, 16#47#, 16#0D#, 16#0A#, 16#1A#, 16#0A#];
-
-   function Image_Bytes_Extent
-     (Data   : Ada.Streams.Stream_Element_Array;
-      Width  : out Natural;
-      Height : out Natural)
-      return Boolean
-   is separate;
-
-   function Decode_Image_Bytes
-     (Data : Ada.Streams.Stream_Element_Array)
-      return Decoded_Image
-   is separate;
-
-   function Decode_Image_To_Pixels
-     (Path     : String;
-      Max_Size : Positive)
-      return Decoded_Image
-   is separate;
-
-   function Clamp_Channel (Value : Natural) return Natural is separate;
-
-   function File_Size_Signal (Source_Path : String) return Natural is separate;
-
-   Max_Fast_Decode_Source_Bytes : constant Natural := 33_554_432;
-
-   function Source_Fits_Fast_Decode (Source_Path : String) return Boolean is separate;
-
-   type Rgba_Pixel is record
-      Red   : Natural := 0;
-      Green : Natural := 0;
-      Blue  : Natural := 0;
-      Alpha : Natural := 255;
-   end record;
-
-   package Pixel_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => Rgba_Pixel);
-
-   package Thumbnail_Byte_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => Ada.Streams.Stream_Element);
-
-   type Stream_Element_Array_Access is
-     access Ada.Streams.Stream_Element_Array;
-
-   procedure Free_Stream_Element_Array is new Ada.Unchecked_Deallocation
-     (Object => Ada.Streams.Stream_Element_Array,
-      Name   => Stream_Element_Array_Access);
-
-   type Gdk_Pixel_Array is array (Natural range 0 .. 67_108_863) of aliased Interfaces.Unsigned_8;
-
-   pragma Convention (C, Gdk_Pixel_Array);
-
-   package Gdk_Pixel_Pointers is new System.Address_To_Access_Conversions (Gdk_Pixel_Array);
-
-   use type Gdk_Pixel_Pointers.Object_Pointer;
-
-   function Byte_At
-     (Data  : Thumbnail_Byte_Vectors.Vector;
-      Index : Natural)
-      return Natural is separate;
-
-   function U32_BE_From
-     (Data  : Thumbnail_Byte_Vectors.Vector;
-      Index : Natural)
-      return Natural
-   is separate;
-
-   function Bytes_To_Stream_Array
-     (Data : Thumbnail_Byte_Vectors.Vector)
-      return Stream_Element_Array_Access
-   is separate;
-
-   procedure Write_Pixels_As_Ppm
-     (Target_Path   : String;
-      Size          : Positive;
-      Pixels        : Pixel_Vectors.Vector;
-      Source_Width  : Natural;
-      Source_Height : Natural)
-   is separate;
-
-   function Try_Write_Decoded_P3_Thumbnail
-     (Source_Path : String;
-      Size        : Positive;
-      Target_Path : String)
-      return Boolean
-   is separate;
-
-   function Try_Write_Decoded_Png_Thumbnail
-     (Source_Path : String;
-      Size        : Positive;
-      Target_Path : String)
-      return Boolean
-   is separate;
-
-   function Try_Write_Gdk_Pixbuf_Thumbnail
-     (Source_Path : String;
-      Size        : Positive;
-      Target_Path : String)
-      return Boolean
-   is separate;
-
-   Checksum  : Natural := 0;
-
-   Size_Bias : Natural := 0;
-
-   Target    : Unbounded_String;
-
-   function Generate_Thumbnail
-     (Source_Path      : String;
-      Cache_Directory : String;
-      Size            : Positive := 64)
-      return Thumbnail_Result
-   is separate;
-
    use type Ada.Streams.Stream_Element_Array;
 
    use type Ada.Streams.Stream_IO.Count;
@@ -401,21 +91,6 @@ package body Files.File_System is
 
    Max_Directory_Count_Entries : constant Natural := 10_000;
 
-   Max_Cached_Thumbnail_Bytes  : constant Natural := 16 * 1024 * 1024;
-
-   Max_Legacy_Thumbnail_Bytes  : constant Natural := 1 * 1024 * 1024;
-
-   Max_Cached_Thumbnail_Pixels : constant Natural := 2_048 * 2_048;
-
-   Max_Thumbnail_Cache_Entries : constant Natural := 100_000;
-
-   type Cached_Thumbnail is record
-      Loaded : Boolean := False;
-      Width  : Natural := 0;
-      Height : Natural := 0;
-      Pixels : Files.Types.Byte_Vectors.Vector;
-   end record;
-
    ELF_Magic    : constant Ada.Streams.Stream_Element_Array (1 .. 4) :=
      [16#7F#, 16#45#, 16#4C#, 16#46#];   --  7F 'E' 'L' 'F'
 
@@ -424,52 +99,6 @@ package body Files.File_System is
 
    Script_Magic : constant Ada.Streams.Stream_Element_Array (1 .. 2) :=
      [16#23#, 16#21#];                   --  '#' '!'
-
-   function Load_Cached_Thumbnail
-     (Path : String)
-      return Cached_Thumbnail;
-
-   function Should_Auto_Generate_Thumbnail
-     (Kind     : Files.Types.Item_Kind;
-      Filetype : String;
-      Name     : String;
-      Icon_Id  : String)
-      return Boolean;
-
-   package Thumbnail_Name_Sets is new Ada.Containers.Indefinite_Hashed_Sets
-     (Element_Type        => String,
-      Hash                => Ada.Strings.Hash,
-      Equivalent_Elements => "=");
-
-   type Cache_Index is record
-      Listed : Boolean := False;
-      Names  : Thumbnail_Name_Sets.Set;
-      --  False for a listing the UI waits on: a missing thumbnail is then
-      --  left for a background listing to make.
-      Generate : Boolean := True;
-      --  True when Names is empty and the remembered listing answers
-      --  instead (Cache_Index_Memo), so it is never copied per directory.
-      Shared   : Boolean := False;
-   end record;
-
-   --  Whether the cache holds Name, by the index or the listing it shares.
-   function Cache_Holds (Index : Cache_Index; Name : String) return Boolean;
-
-   --  Read the cache directory once. A cache that does not exist yet yields an
-   --  empty listing. An unreadable or oversized cache falls back to per-item
-   --  checks rather than losing cached results or retaining unbounded names.
-   function Index_Thumbnail_Cache (Cache_Directory : String) return Cache_Index;
-
-   function Thumbnail_For_Item
-     (Full_Path       : String;
-      Kind            : Files.Types.Item_Kind;
-      Filetype        : String;
-      Name            : String;
-      Icon_Id         : String;
-      Cache_Directory : String;
-      Thumbnail_Path  : String;
-      Cached          : Cache_Index)
-      return Cached_Thumbnail;
 
    --  @param Path The item's full path.
    --  @param Kind How the item was already classified, which for most kinds
@@ -546,66 +175,6 @@ package body Files.File_System is
       Settings    : Files.Settings.Settings_Model;
       Cached      : Cache_Index)
       return Directory_Item;
-
-   function Load_Cached_Thumbnail
-     (Path : String)
-      return Cached_Thumbnail
-   is separate;
-
-   function Should_Auto_Generate_Thumbnail
-     (Kind     : Files.Types.Item_Kind;
-      Filetype : String;
-      Name     : String;
-      Icon_Id  : String)
-      return Boolean is separate;
-
-   function List_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is separate;
-
-   protected Cache_Index_Memo is
-      function Holds (Directory : String; Stamp : Ada.Calendar.Time) return Boolean;
-      function Contains (Name : String) return Boolean;
-      procedure Keep (Directory : String; Stamp : Ada.Calendar.Time; Index : Cache_Index);
-   private
-      Kept_Directory : Unbounded_String;
-      Kept_Stamp     : Ada.Calendar.Time := Files.Types.Unknown_Time;
-      Kept_Index     : Cache_Index;
-      Valid          : Boolean := False;
-   end Cache_Index_Memo;
-
-   protected body Cache_Index_Memo is
-      function Holds (Directory : String; Stamp : Ada.Calendar.Time) return Boolean is
-      begin
-         return Valid and then To_String (Kept_Directory) = Directory and then Kept_Stamp = Stamp;
-      end Holds;
-
-      function Contains (Name : String) return Boolean is
-        (Valid and then Kept_Index.Names.Contains (Name));
-
-      procedure Keep (Directory : String; Stamp : Ada.Calendar.Time; Index : Cache_Index) is
-      begin
-         Kept_Directory := To_Unbounded_String (Directory);
-         Kept_Stamp := Stamp;
-         Kept_Index := Index;
-         Valid := True;
-      end Keep;
-   end Cache_Index_Memo;
-
-   function Index_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is separate;
-
-   function Cache_Holds (Index : Cache_Index; Name : String) return Boolean is
-     (if Index.Shared then Cache_Index_Memo.Contains (Name) else Index.Names.Contains (Name));
-
-   function Thumbnail_For_Item
-     (Full_Path       : String;
-      Kind            : Files.Types.Item_Kind;
-      Filetype        : String;
-      Name            : String;
-      Icon_Id         : String;
-      Cache_Directory : String;
-      Thumbnail_Path  : String;
-      Cached          : Cache_Index)
-      return Cached_Thumbnail
-   is separate;
 
    procedure Sort_Items
      (Items     : in out Item_Vectors.Vector;

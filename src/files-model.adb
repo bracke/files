@@ -2008,6 +2008,10 @@ package body Files.Model is
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector is separate;
 
+   function Paste_Conflict_Of (Model : Window_Model) return Paste_Conflict_State is (Model.Paste_Conflict);
+
+   function Paste_Execution_Of (Model : Window_Model) return Paste_Execution_State is (Model.Paste_Exec);
+
    procedure Begin_Paste_Conflict
      (Model           : in out Window_Model;
       Items           : Files.Paste.Work_Item_Vectors.Vector;
@@ -2019,34 +2023,6 @@ package body Files.Model is
    function Paste_Conflict_Is_Active
      (Model : Window_Model)
       return Boolean is separate;
-
-   function Paste_Conflict_Items
-     (Model : Window_Model)
-      return Files.Paste.Work_Item_Vectors.Vector is separate;
-
-   function Paste_Conflict_Existing
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector is separate;
-
-   function Paste_Conflict_Overrides
-     (Model : Window_Model)
-      return Files.Paste.Item_Decision_Vectors.Vector is separate;
-
-   function Paste_Conflict_Policy
-     (Model : Window_Model)
-      return Files.Paste.Conflict_Policy is separate;
-
-   function Paste_Conflict_Mode
-     (Model : Window_Model)
-      return Files.File_System.Drop_Import_Mode is separate;
-
-   function Paste_Conflict_Clears_Clipboard
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   function Paste_Conflict_Index
-     (Model : Window_Model)
-      return Natural is separate;
 
    function Paste_Conflict_Name
      (Model : Window_Model)
@@ -2102,10 +2078,6 @@ package body Files.Model is
      (Model : Window_Model)
       return Files.File_System.Drop_Import_Mode is separate;
 
-   function Paste_Execution_Clears_Clipboard
-     (Model : Window_Model)
-      return Boolean is separate;
-
    function Paste_Execution_Cancelled
      (Model : Window_Model)
       return Boolean is separate;
@@ -2123,37 +2095,6 @@ package body Files.Model is
       Index : Positive)
       return Files.Paste.Resolved_Action is separate;
 
-   function Paste_Execution_Undo_From
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector is separate;
-
-   function Paste_Execution_Undo_To
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector is separate;
-
-   function Paste_Execution_Created_Identities
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector is separate;
-
-   function Paste_Execution_Created_Tree_Revisions
-     (Model : Window_Model) return Files.Types.String_Vectors.Vector is separate;
-
-   function Paste_Execution_Verified_Created_Count
-     (Model : Window_Model) return Natural is separate;
-
-   function Paste_Execution_Replaced_Trash
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector is separate;
-
-   function Paste_Execution_Replaced_Identities
-     (Model : Window_Model) return Files.Types.String_Vectors.Vector is separate;
-
-   function Paste_Execution_Replaced_Targets
-     (Model : Window_Model) return Files.Types.String_Vectors.Vector is separate;
-
-   function Paste_Execution_Verified_Replaced_Count
-     (Model : Window_Model) return Natural is separate;
-
    function Paste_Execution_Replaced_Extends_Verified
      (Model : Window_Model) return Boolean is separate;
 
@@ -2163,10 +2104,6 @@ package body Files.Model is
       Identity : String;
       Original_Path : String;
       Verified : Boolean) is separate;
-
-   function Paste_Execution_First_Dest
-     (Model : Window_Model)
-      return String is separate;
 
    procedure Skip_Paste_Execution_Action
      (Model : in out Window_Model) is separate;

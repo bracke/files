@@ -10,17 +10,14 @@ function Try_Record_Undo
    Redoable    : Boolean := True;
    Restore_Trash : Files.Types.String_Vectors.Vector :=
      Files.Types.String_Vectors.Empty_Vector;
-   Original_Identities : Files.Types.String_Vectors.Vector :=
-     Files.Types.String_Vectors.Empty_Vector;
-   Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
-     Files.Types.String_Vectors.Empty_Vector;
-   Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
-     Files.Types.String_Vectors.Empty_Vector;
-   Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
-     Files.Types.String_Vectors.Empty_Vector;
-   Retain_Verified_Main : Natural := 0;
-   Retain_Verified_Restores : Natural := 0) return Boolean is
+   Provenance  : Undo_Provenance := (others => <>)) return Boolean is
    use type Files.Model.Undo_Create_Kind;
+   Original_Identities : Files.Types.String_Vectors.Vector renames Provenance.Identities;
+   Original_Tree_Revisions : Files.Types.String_Vectors.Vector renames Provenance.Tree_Revisions;
+   Original_Restore_Identities : Files.Types.String_Vectors.Vector renames Provenance.Restore_Identities;
+   Original_Restore_Targets : Files.Types.String_Vectors.Vector renames Provenance.Restore_Targets;
+   Retain_Verified_Main : Natural renames Provenance.Retain_Verified_Main;
+   Retain_Verified_Restores : Natural renames Provenance.Retain_Verified_Restores;
    function Identity_Matches (Path, Expected : String) return Boolean
      renames Files.File_System.Entry_Identity_Matches;
    function Creation_Snapshot_Matches

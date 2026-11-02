@@ -124,7 +124,8 @@ begin
    Files.Model.Clear_Edit_State (Model);
    if not From_V.Is_Empty then
       Record_Undo
-        (Model, Files.Model.Undo_Rename, From_V, To_V, Original_Identities => Identities);
+        (Model, Files.Model.Undo_Rename, From_V, To_V,
+      Provenance => (Identities => Identities, others => <>));
    end if;
 
    if Need_Reload then

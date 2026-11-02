@@ -460,9 +460,11 @@ package body Files.Operation_Jobs is
                Files.Operations.Record_Undo
                  (Model, Files.Model.Undo_Delete_Created, Untracked,
                   Files.Types.String_Vectors.Empty_Vector, Redoable => False,
-                  Original_Identities => Untracked_Identities,
-                  Original_Tree_Revisions => Untracked_Tree_Revisions,
-                  Retain_Verified_Main => Natural (Untracked.Length));
+                  Provenance =>
+                    (Identities => Untracked_Identities,
+                     Tree_Revisions => Untracked_Tree_Revisions,
+                     Retain_Verified_Main => Natural (Untracked.Length),
+                     others => <>));
             end if;
          end if;
       exception

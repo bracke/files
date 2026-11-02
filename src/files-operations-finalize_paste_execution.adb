@@ -9,18 +9,20 @@ function Finalize_Paste_Execution
    Error_Key : String)
    return Operation_Result
 is
+   --  Read once: everything recorded below is what the paste gathered.
+   Exec       : constant Files.Model.Paste_Execution_State := Files.Model.Paste_Execution_Of (Model);
    Mode       : constant Files.File_System.Drop_Import_Mode :=
-     Files.Model.Paste_Execution_Mode (Model);
+     Exec.Mode;
    Undo_From  : constant Files.Types.String_Vectors.Vector :=
-     Files.Model.Paste_Execution_Undo_From (Model);
+     Exec.Undo_From;
    Undo_To    : constant Files.Types.String_Vectors.Vector :=
-     Files.Model.Paste_Execution_Undo_To (Model);
+     Exec.Undo_To;
    --  Trash locations of destinations a Replace overwrote; undo restores them,
    --  and a paste that replaced anything is undo-only (redo is not attempted).
    Replaced_Trash : constant Files.Types.String_Vectors.Vector :=
-     Files.Model.Paste_Execution_Replaced_Trash (Model);
+     Exec.Replaced_Trash;
    Redoable   : constant Boolean := Replaced_Trash.Is_Empty;
-   First_Dest : constant String := Files.Model.Paste_Execution_First_Dest (Model);
+   First_Dest : constant String := To_String (Exec.First_Dest);
 begin
    if not Undo_From.Is_Empty then
       if Mode = Files.File_System.Drop_Move then
@@ -28,12 +30,13 @@ begin
            (Model, Files.Model.Undo_Move, Undo_From, Undo_To,
             Redoable      => Redoable,
             Restore_Trash => Replaced_Trash,
-            Original_Restore_Identities => Files.Model.Paste_Execution_Replaced_Identities (Model),
-            Original_Restore_Targets => Files.Model.Paste_Execution_Replaced_Targets (Model),
-            Original_Identities => Files.Model.Paste_Execution_Created_Identities (Model),
-            Original_Tree_Revisions => Files.Model.Paste_Execution_Created_Tree_Revisions (Model),
-            Retain_Verified_Main => Files.Model.Paste_Execution_Verified_Created_Count (Model),
-            Retain_Verified_Restores => Files.Model.Paste_Execution_Verified_Replaced_Count (Model));
+            Provenance =>
+              (Restore_Identities => Exec.Replaced_Identities,
+               Restore_Targets => Exec.Replaced_Targets,
+               Identities => Exec.Identities,
+               Tree_Revisions => Exec.Tree_Revisions,
+               Retain_Verified_Main => Exec.Verified_Created_Count,
+               Retain_Verified_Restores => Exec.Verified_Replaced_Count));
       else
          --  A copy is reversed by deleting the created copies (Undo_From) and
          --  redone by copying each source (Undo_To) back to its destination.
@@ -44,12 +47,13 @@ begin
             Create_Kind   => Files.Model.Create_Copy,
             Redoable      => Redoable,
             Restore_Trash => Replaced_Trash,
-            Original_Restore_Identities => Files.Model.Paste_Execution_Replaced_Identities (Model),
-            Original_Restore_Targets => Files.Model.Paste_Execution_Replaced_Targets (Model),
-            Original_Identities => Files.Model.Paste_Execution_Created_Identities (Model),
-            Original_Tree_Revisions => Files.Model.Paste_Execution_Created_Tree_Revisions (Model),
-            Retain_Verified_Main => Files.Model.Paste_Execution_Verified_Created_Count (Model),
-            Retain_Verified_Restores => Files.Model.Paste_Execution_Verified_Replaced_Count (Model));
+            Provenance =>
+              (Restore_Identities => Exec.Replaced_Identities,
+               Restore_Targets => Exec.Replaced_Targets,
+               Identities => Exec.Identities,
+               Tree_Revisions => Exec.Tree_Revisions,
+               Retain_Verified_Main => Exec.Verified_Created_Count,
+               Retain_Verified_Restores => Exec.Verified_Replaced_Count));
       end if;
 
       --  A clipboard cut/move consumes the clipboard once the paste has run
@@ -57,7 +61,7 @@ begin
       --  already moved). A drag-and-drop move never touches the clipboard, so
       --  it must not clear an unrelated clipboard selection.
       if Mode = Files.File_System.Drop_Move
-        and then Files.Model.Paste_Execution_Clears_Clipboard (Model)
+        and then Exec.Clears_Clipboard
       then
          Files.Model.Clear_Clipboard (Model);
       end if;
@@ -66,9 +70,11 @@ begin
    if Undo_From.Is_Empty and then not Replaced_Trash.Is_Empty then
       Record_Undo
         (Model, Files.Model.Undo_Restore_Trash, Replaced_Trash,
-         Files.Model.Paste_Execution_Replaced_Targets (Model), Redoable => False,
-         Original_Identities => Files.Model.Paste_Execution_Replaced_Identities (Model),
-         Retain_Verified_Main => Files.Model.Paste_Execution_Verified_Replaced_Count (Model));
+         Exec.Replaced_Targets, Redoable => False,
+         Provenance =>
+           (Identities => Exec.Replaced_Identities,
+            Retain_Verified_Main => Exec.Verified_Replaced_Count,
+            others => <>));
    end if;
    Files.Model.Clear_Paste_Execution (Model);
 

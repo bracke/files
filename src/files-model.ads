@@ -2542,6 +2542,65 @@ package Files.Model is
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector;
 
+   --  The replace-or-skip prompt shown when a paste meets existing names.
+   --  Every default is the closed state, as for Paste_Execution_State.
+   type Paste_Conflict_State is record
+      Active           : Boolean := False;
+      Items            : Files.Paste.Work_Item_Vectors.Vector;
+      Existing         : Files.Types.String_Vectors.Vector;
+      Overrides        : Files.Paste.Item_Decision_Vectors.Vector;
+      Policy           : Files.Paste.Conflict_Policy := Files.Paste.Policy_Ask;
+      Mode             : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      Index            : Natural := 0;
+      Apply_All        : Boolean := False;
+      Clears_Clipboard : Boolean := True;
+   end record;
+
+   --  The paste-conflict state as it stands: what the dialog asks about,
+   --  and the choices made so far. A copy, for a caller that reads several
+   --  of its fields once (resolving a choice).
+   --
+   --  @param Model Model to inspect.
+   --  @return A copy of the conflict state.
+   function Paste_Conflict_Of (Model : Window_Model) return Paste_Conflict_State;
+
+   --  One paste (or drop) being carried out, action by action. Every field's
+   --  default is the idle state, so a paste starts and ends by assigning a
+   --  fresh aggregate rather than clearing each field by hand.
+   type Paste_Execution_State is record
+      Active                  : Boolean := False;
+      Copy_Context            : Files.Copy_Context.Session;
+      Actions                 : Files.Paste.Resolved_Action_Vectors.Vector;
+      Cursor                  : Natural := 0;
+      Done                    : Natural := 0;
+      Total                   : Natural := 0;
+      Mode                    : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+      Cancelled               : Boolean := False;
+      Clears_Clipboard        : Boolean := True;
+      Current                 : UString;
+      First_Dest              : UString;
+      Undo_From               : Files.Types.String_Vectors.Vector;
+      Undo_To                 : Files.Types.String_Vectors.Vector;
+      Identities              : Files.Types.String_Vectors.Vector;
+      Tree_Revisions          : Files.Types.String_Vectors.Vector;
+      Verified_Created_Count  : Natural := 0;
+      --  Trash locations of destinations overwritten by a Replace during this
+      --  paste, so the undo entry can restore them (each is restored to its
+      --  own recorded original path).
+      Replaced_Trash          : Files.Types.String_Vectors.Vector;
+      Replaced_Identities     : Files.Types.String_Vectors.Vector;
+      Replaced_Targets        : Files.Types.String_Vectors.Vector;
+      Verified_Replaced_Count : Natural := 0;
+   end record;
+
+   --  The paste being carried out, as it stands. A copy, for a caller that
+   --  reads several of its fields once (finishing the paste); progress read
+   --  every frame has its own queries, which copy nothing.
+   --
+   --  @param Model Model to inspect.
+   --  @return A copy of the execution state.
+   function Paste_Execution_Of (Model : Window_Model) return Paste_Execution_State;
+
    --  Enter the pending paste-conflict sub-mode. The work-list, the set of
    --  existing destination paths, and the copy/move mode are recorded, the
    --  policy starts at Policy_Ask with no per-item overrides, and the dialog is
@@ -2569,62 +2628,6 @@ package Files.Model is
    function Paste_Conflict_Is_Active
      (Model : Window_Model)
       return Boolean;
-
-   --  The recorded paste work-list.
-   --
-   --  @param Model Model to inspect.
-   --  @return The full work-list captured when the sub-mode began.
-   function Paste_Conflict_Items
-     (Model : Window_Model)
-      return Files.Paste.Work_Item_Vectors.Vector;
-
-   --  The recorded set of existing destination paths.
-   --
-   --  @param Model Model to inspect.
-   --  @return Destination paths that existed when the sub-mode began.
-   function Paste_Conflict_Existing
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
-
-   --  The accumulated per-item decisions, parallel to the work-list.
-   --
-   --  @param Model Model to inspect.
-   --  @return Per-item overrides recorded so far.
-   function Paste_Conflict_Overrides
-     (Model : Window_Model)
-      return Files.Paste.Item_Decision_Vectors.Vector;
-
-   --  The accumulated batch-wide policy.
-   --
-   --  @param Model Model to inspect.
-   --  @return The current conflict policy.
-   function Paste_Conflict_Policy
-     (Model : Window_Model)
-      return Files.Paste.Conflict_Policy;
-
-   --  The copy/move mode of the pending paste.
-   --
-   --  @param Model Model to inspect.
-   --  @return Copy or move mode.
-   function Paste_Conflict_Mode
-     (Model : Window_Model)
-      return Files.File_System.Drop_Import_Mode;
-
-   --  Whether finalizing this paste's move should clear the clipboard.
-   --
-   --  @param Model Model to inspect.
-   --  @return True for a clipboard-originated paste, False for drag-and-drop.
-   function Paste_Conflict_Clears_Clipboard
-     (Model : Window_Model)
-      return Boolean;
-
-   --  The one-based index of the conflict currently shown, or 0 when inactive.
-   --
-   --  @param Model Model to inspect.
-   --  @return Index into the work-list of the conflict under decision.
-   function Paste_Conflict_Index
-     (Model : Window_Model)
-      return Natural;
 
    --  The leaf name of the conflict currently shown.
    --
@@ -2787,14 +2790,6 @@ package Files.Model is
      (Model : Window_Model)
       return Files.File_System.Drop_Import_Mode;
 
-   --  Whether finalizing this execution's move should clear the clipboard.
-   --
-   --  @param Model Model to inspect.
-   --  @return True for a clipboard-originated paste, False for drag-and-drop.
-   function Paste_Execution_Clears_Clipboard
-     (Model : Window_Model)
-      return Boolean;
-
    --  Whether the armed execution has been asked to cancel.
    --
    --  @param Model Model to inspect.
@@ -2829,60 +2824,6 @@ package Files.Model is
       Index : Positive)
       return Files.Paste.Resolved_Action;
 
-   --  The accumulated undo "from" paths (destinations) for completed writes.
-   --
-   --  @param Model Model to inspect.
-   --  @return Destination paths written so far.
-   function Paste_Execution_Undo_From
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
-
-   --  The accumulated undo "to" paths (sources) for completed writes.
-   --
-   --  @param Model Model to inspect.
-   --  @return Source paths written so far.
-   function Paste_Execution_Undo_To
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
-   --  @param Model Window owning the current paste batch.
-   --  @return Entry identities parallel to the committed destination paths.
-   function Paste_Execution_Created_Identities
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
-
-   --  @param Model Window owning the current paste batch.
-   --  @return Recursive directory revisions parallel to committed destinations.
-   function Paste_Execution_Created_Tree_Revisions
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
-
-   --  @param Model Window owning the current paste batch.
-   --  @return Leading created snapshots independently verified at publication.
-   function Paste_Execution_Verified_Created_Count
-     (Model : Window_Model) return Natural;
-
-   --  Trash locations of destinations this paste overwrote via Replace, so the
-   --  undo entry can restore each overwritten original from the trash.
-   --
-   --  @param Model Model to inspect.
-   --  @return The trash locations of replaced destinations so far.
-   function Paste_Execution_Replaced_Trash
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
-
-   --  @param Model Window whose preserved originals to inspect.
-   --  @return Parallel identities captured when those originals were preserved.
-   function Paste_Execution_Replaced_Identities (Model : Window_Model) return Files.Types.String_Vectors.Vector;
-
-   --  @param Model Window whose replacement destinations to inspect.
-   --  @return Destinations captured when replacement originals were preserved.
-   function Paste_Execution_Replaced_Targets (Model : Window_Model) return Files.Types.String_Vectors.Vector;
-
-   --  @param Model Window owning the current paste batch.
-   --  @return Leading preserved-original snapshots independently verified.
-   function Paste_Execution_Verified_Replaced_Count
-     (Model : Window_Model) return Natural;
-
    --  @param Model Window owning the active copy batch.
    --  @return Shared private hard-link journal, or an empty session.
    function Paste_Execution_Copy_Context (Model : Window_Model) return Files.Copy_Context.Session;
@@ -2907,14 +2848,6 @@ package Files.Model is
    procedure Record_Paste_Execution_Replaced_Trash
      (Model : in out Window_Model; Trash_Path : Files.Types.UString; Identity : String;
       Original_Path : String; Verified : Boolean);
-
-   --  The first destination path written, reported as the operation result path.
-   --
-   --  @param Model Model to inspect.
-   --  @return The first written destination, or "" when nothing was written.
-   function Paste_Execution_First_Dest
-     (Model : Window_Model)
-      return String;
 
    --  Advance the cursor past a skipped action without recording a write.
    --
@@ -3212,49 +3145,6 @@ private
       Target     : Context_Menu_Target := Files.Types.Context_Menu_None;
       Item_Index : Natural := 0;
       Highlight  : Natural := 0;
-   end record;
-
-   --  The replace-or-skip prompt shown when a paste meets existing names.
-   --  Every default is the closed state, as for Paste_Execution_State.
-   type Paste_Conflict_State is record
-      Active           : Boolean := False;
-      Items            : Files.Paste.Work_Item_Vectors.Vector;
-      Existing         : Files.Types.String_Vectors.Vector;
-      Overrides        : Files.Paste.Item_Decision_Vectors.Vector;
-      Policy           : Files.Paste.Conflict_Policy := Files.Paste.Policy_Ask;
-      Mode             : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
-      Index            : Natural := 0;
-      Apply_All        : Boolean := False;
-      Clears_Clipboard : Boolean := True;
-   end record;
-
-   --  One paste (or drop) being carried out, action by action. Every field's
-   --  default is the idle state, so a paste starts and ends by assigning a
-   --  fresh aggregate rather than clearing each field by hand.
-   type Paste_Execution_State is record
-      Active                  : Boolean := False;
-      Copy_Context            : Files.Copy_Context.Session;
-      Actions                 : Files.Paste.Resolved_Action_Vectors.Vector;
-      Cursor                  : Natural := 0;
-      Done                    : Natural := 0;
-      Total                   : Natural := 0;
-      Mode                    : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
-      Cancelled               : Boolean := False;
-      Clears_Clipboard        : Boolean := True;
-      Current                 : UString;
-      First_Dest              : UString;
-      Undo_From               : Files.Types.String_Vectors.Vector;
-      Undo_To                 : Files.Types.String_Vectors.Vector;
-      Identities              : Files.Types.String_Vectors.Vector;
-      Tree_Revisions          : Files.Types.String_Vectors.Vector;
-      Verified_Created_Count  : Natural := 0;
-      --  Trash locations of destinations overwritten by a Replace during this
-      --  paste, so the undo entry can restore them (each is restored to its
-      --  own recorded original path).
-      Replaced_Trash          : Files.Types.String_Vectors.Vector;
-      Replaced_Identities     : Files.Types.String_Vectors.Vector;
-      Replaced_Targets        : Files.Types.String_Vectors.Vector;
-      Verified_Replaced_Count : Natural := 0;
    end record;
 
    type Navigation_Mark is record

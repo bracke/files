@@ -26,14 +26,11 @@ separate (Files.Rendering.Build_Frame_Commands)
               Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding)) - Integer (Info_Pane.Scroll_Pixels);
             Text_X : constant Natural := Saturating_Add (Layout.Main_Width, Info_Pane_Padding);
             Info_Bottom : constant Natural := Saturating_Add (Info_Pane.Y, Info_Pane.Height);
-            Reserved_W : constant Natural :=
-              Saturating_Add
-                ((if Info_Pane.Scrollbar_Visible then Info_Pane.Scrollbar_Width else 0),
-                 Saturating_Multiply (Info_Pane_Padding, 2));
+            --  The width the layout counted rows at, which always leaves the
+            --  scrollbar's column: wrapping wider when it is hidden drew fewer
+            --  rows than the pane was sized for.
             Text_W : constant Natural :=
-              (if Layout.Info_Pane_Width > Reserved_W
-               then Layout.Info_Pane_Width - Reserved_W
-               else 0);
+              Info_Text_Width (Layout, Scrollbar_W => Natural'Min (Scrollbar_Width, Layout.Info_Pane_Width));
 
             --  Text helpers shared by the multi-item and the single-item layout.
             procedure Add_Info_Text
@@ -113,61 +110,17 @@ separate (Files.Rendering.Build_Frame_Commands)
                Text  : UString;
                Color : Render_Color := Text_Color)
             is
-               Raw        : constant String := To_String (Text);
-               Cell_W     : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
-               Capacity   : constant Natural := Text_W / Cell_W;
-               Line_Index : Natural := 0;
+               Raw : constant String := To_String (Text);
 
-               procedure Add_Wrapped_Segment
-                 (Segment_First : Integer;
-                  Segment_Last  : Integer)
-               is
-                  Start : Integer := Segment_First;
+               procedure Add_Line (Line : Natural; First : Integer; Last : Integer) is
                begin
-                  if Segment_Last < Segment_First then
-                     Line_Index := Saturating_Add (Line_Index, 1);
-                     return;
+                  if Last >= First then
+                     Add_Info_Text
+                       (Saturating_Add (Row, Line), To_Unbounded_String (Raw (First .. Last)), Color, Fit => False);
                   end if;
-
-                  Start := Skip_Wrap_Whitespace (Raw, Start, Segment_Last);
-                  while Start <= Segment_Last loop
-                     declare
-                        Last   : constant Integer :=
-                          Wrapped_Line_Last (Raw, Start, Segment_Last, Capacity);
-                     begin
-                        Add_Info_Text
-                          (Saturating_Add (Row, Line_Index),
-                           To_Unbounded_String (Raw (Start .. Last)),
-                           Color,
-                           Fit => False);
-                        exit when Last >= Segment_Last;
-                        Start := Skip_Wrap_Whitespace (Raw, Last + 1, Segment_Last);
-                        Line_Index := Saturating_Add (Line_Index, 1);
-                     end;
-                  end loop;
-
-                  Line_Index := Saturating_Add (Line_Index, 1);
-               end Add_Wrapped_Segment;
-
-               Line_First : Integer := Raw'First;
+               end Add_Line;
             begin
-               if Raw'Length = 0 or else Capacity = 0 then
-                  Add_Info_Text (Row, Text, Color, Fit => False);
-                  return;
-               end if;
-
-               for Position in Raw'Range loop
-                  if Raw (Position) = ASCII.LF then
-                     Add_Wrapped_Segment (Line_First, Position - 1);
-                     Line_First := Position + 1;
-                  end if;
-               end loop;
-
-               if Line_First <= Raw'Last then
-                  Add_Wrapped_Segment (Line_First, Raw'Last);
-               elsif Raw (Raw'Last) = ASCII.LF then
-                  Add_Info_Text (Saturating_Add (Row, Line_Index), Null_Unbounded_String, Color, Fit => False);
-               end if;
+               For_Each_Wrapped_Line (Raw, Text_W, Line_Height, Add_Line'Access);
             end Add_Info_Wrapped_Value;
          begin
 

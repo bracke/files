@@ -81,31 +81,6 @@ package Files.File_System is
       Error_Key : UString;
    end record;
 
-   type Thumbnail_Status is
-     (Thumbnail_Generated,
-      Thumbnail_Source_Missing,
-      Thumbnail_Unsupported,
-      Thumbnail_Failed);
-
-   type Thumbnail_Result is record
-      Status         : Thumbnail_Status := Thumbnail_Failed;
-      Source_Path    : UString;
-      Thumbnail_Path : UString;
-      Width          : Positive := 1;
-      Height         : Positive := 1;
-      Error_Key      : UString;
-   end record;
-
-   --  A decoded raster image: RGBA bytes (row-major, 4 bytes/pixel) scaled to
-   --  fit within a target box while preserving aspect ratio. Available is False
-   --  when the image could not be decoded.
-   type Decoded_Image is record
-      Available : Boolean := False;
-      Width     : Natural := 0;
-      Height    : Natural := 0;
-      Pixels    : Files.Types.Byte_Vectors.Vector;
-   end record;
-
    type Mutation_Result is record
       Success   : Boolean := False;
       Error_Key : UString;
@@ -968,120 +943,6 @@ package Files.File_System is
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result;
 
-   --  Bring the thumbnail cache under Budget_Bytes, deleting the least recently
-   --  modified files first.
-   --
-   --  The cache is regenerable, so nothing here is lost -- a pruned thumbnail is
-   --  simply rebuilt the next time its source is listed. Oldest-first is also
-   --  what clears orphans: a thumbnail whose source was renamed or deleted is
-   --  never rewritten, so it ages to the front of the queue on its own.
-   --
-   --  Housekeeping, never a precondition: a file it cannot identify, stat, or
-   --  delete is skipped, and failure to prune never stops a thumbnail being
-   --  written. Each deletion is bound to the entry observed during the scan.
-   --
-   --  @param Cache_Directory Directory holding the cached thumbnails.
-   --  @param Budget_Bytes Total size to come under.
-   procedure Prune_Thumbnail_Cache
-     (Cache_Directory : String;
-      Budget_Bytes    : Long_Long_Integer);
-
-   --  Return the default thumbnail cache directory for the current environment.
-   --
-   --  @param Fallback_Directory Directory used when no user cache location exists.
-   --  @return Directory path used for generated thumbnail artifacts.
-   function Default_Thumbnail_Cache_Directory
-     (Fallback_Directory : String)
-      return String;
-
-   --  Return the deterministic cached thumbnail path for a source file and its
-   --  current identity/revision, so replacement or modification cannot reuse a
-   --  stale artifact.
-   --
-   --  @param Source_Path Source file represented by the thumbnail.
-   --  @param Cache_Directory Thumbnail cache directory.
-   --  @param Size Thumbnail size in pixels.
-   --  @return Deterministic thumbnail artifact path.
-   function Thumbnail_Path_For
-     (Source_Path      : String;
-      Cache_Directory : String;
-      Size            : Positive := 64)
-      return String;
-
-   --  Generate a cached thumbnail artifact for a regular file.
-   --
-   --  Supported source image formats are decoded and scaled in Ada; unsupported
-   --  formats fall back to a deterministic PPM derived from file metadata.
-   --
-   --  @param Source_Path File to summarize as a thumbnail.
-   --  @param Cache_Directory Directory where the thumbnail file is written.
-   --  @param Size Width and height in pixels.
-   --  @return Thumbnail path and status, or a recoverable error key.
-   function Generate_Thumbnail
-     (Source_Path      : String;
-      Cache_Directory : String;
-      Size            : Positive := 64)
-      return Thumbnail_Result;
-
-   --  The pixel dimensions an encoded image declares, without decoding it.
-   --
-   --  For PNG this reads IHDR, which is at a fixed offset, so a caller can size a
-   --  buffer before paying for a decode. Available is False when the bytes are
-   --  not an image this can measure.
-   --
-   --  @param Data Encoded image bytes.
-   --  @param Width Image width when Available.
-   --  @param Height Image height when Available.
-   --  @return True when the dimensions were read.
-   function Image_Bytes_Extent
-     (Data   : Ada.Streams.Stream_Element_Array;
-      Width  : out Natural;
-      Height : out Natural)
-      return Boolean;
-
-   --  Decode an encoded image held in memory rather than in a file.
-   --
-   --  The case this exists for is a picture inside a font: colour emoji glyphs
-   --  are PNGs in the font file, and Textrender hands out their bytes rather than
-   --  decoding them itself. Pixels come back four bytes each in R, G, B, A order,
-   --  which is what an RGBA atlas wants, whatever channel count the source had.
-   --
-   --  @param Data Encoded image bytes.
-   --  @return Decoded image; Available is False when the bytes could not be read.
-   function Decode_Image_Bytes
-     (Data : Ada.Streams.Stream_Element_Array)
-      return Decoded_Image;
-
-   --  Decode an image file directly to RGBA pixels, scaled to fit within
-   --  Max_Size x Max_Size while preserving aspect ratio. Used for the Quick Look
-   --  image preview so it renders from the original rather than the small
-   --  thumbnail. Returns Available => False when decoding is unavailable.
-   --
-   --  @param Path Image file to decode.
-   --  @param Max_Size Longest-side bound in pixels for the decoded result.
-   --  @return The decoded RGBA image, or Available => False on failure.
-   function Decode_Image_To_Pixels
-     (Path     : String;
-      Max_Size : Positive)
-      return Decoded_Image;
-
-   --  Return whether an item is a previewable raster image, using the same
-   --  classification the automatic thumbnail generator applies (image/* MIME,
-   --  the "image" icon id, or a known raster extension). Directories and
-   --  symlinks are never images.
-   --
-   --  @param Kind Filesystem item kind.
-   --  @param Filetype Detected filetype identifier.
-   --  @param Name File name to inspect.
-   --  @param Icon_Id Icon identifier for the item.
-   --  @return True when the item should be previewed as an image.
-   function Is_Image_Item
-     (Kind     : Files.Types.Item_Kind;
-      Filetype : String;
-      Name     : String;
-      Icon_Id  : String)
-      return Boolean;
-
    --  Read up to Max_Bytes leading bytes of a file as a raw String, for a
    --  bounded text preview. Returns an empty string when the file cannot be
    --  opened or read. Never blocks beyond the capped read.
@@ -1100,4 +961,13 @@ package Files.File_System is
    --  @return Leading bytes; ignore them when Success is False.
    function Read_Preview_Text
      (Path : String; Max_Bytes : Natural; Success : out Boolean) return String;
+private
+
+   --  Read at most Max_Bytes of a regular file, never following a link and
+   --  never blocking on a FIFO. Complete is False when the file is longer.
+   --  The thumbnail writers (Files.File_System.Thumbnails) read sources so.
+   function Read_Bounded_Regular_File
+     (Path : String; Max_Bytes : Natural;
+      Success, Complete : out Boolean) return String;
+
 end Files.File_System;

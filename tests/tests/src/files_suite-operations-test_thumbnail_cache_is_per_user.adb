@@ -1,3 +1,4 @@
+with Files.File_System.Thumbnails;
 separate (Files_Suite.Operations)
    procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -19,7 +20,7 @@ separate (Files_Suite.Operations)
       Environment : Files_Suite.Support.Environment_Guard;
 
       function Cache_Directory return String is
-        (Files.File_System.Default_Thumbnail_Cache_Directory (Browsed));
+        (Files.File_System.Thumbnails.Default_Thumbnail_Cache_Directory (Browsed));
    begin
       Files_Suite.Support.Save (Environment, "XDG_CACHE_HOME");
       Files_Suite.Support.Save (Environment, Host_Variable);

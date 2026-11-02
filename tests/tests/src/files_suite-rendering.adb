@@ -143,6 +143,7 @@ package body Files_Suite.Rendering is
    procedure Test_Compact_Empty_State_Stays_In_View (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Empty_Info_Pane_Message (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Content_Clipped (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Info_Pane_Height_Matches_Drawn (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scope_Chip_Has_Own_Tooltip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filetype_Labels_Omit_Document (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Overlay_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -395,6 +396,9 @@ package body Files_Suite.Rendering is
         (T, Test_Info_Pane_Content_Clipped'Access,
          "information-pane content stays above the bottom bar at compact heights");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Info_Pane_Height_Matches_Drawn'Access,
+         "the info pane is laid out for exactly the height its wrapped text is drawn at");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Scope_Chip_Has_Own_Tooltip'Access,
          "the search-scope chip has its own tooltip describing the scope");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -448,6 +452,7 @@ package body Files_Suite.Rendering is
    procedure Test_Empty_Info_Pane_Message (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Info_Pane_Content_Clipped (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Info_Pane_Height_Matches_Drawn (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Scope_Chip_Has_Own_Tooltip (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

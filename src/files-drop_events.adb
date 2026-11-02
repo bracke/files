@@ -1,20 +1,7 @@
+with Ada.Strings.Unbounded;
+
 package body Files.Drop_Events is
    use Ada.Strings.Unbounded;
-
-   Max_Drop_Paths : constant Positive := 65_536;
-
-   function Profile return Drop_Event_Source_Profile is
-   begin
-      return
-        (Native_Drop_Callbacks    => True,
-         Event_Source_Backend     => True,
-         Queued_Drop_Imports      => True,
-         Portable_GLFW_Automation => False,
-         Requires_OS_Event_Source => False,
-         Uses_Shell               => False,
-         Max_Paths                => Max_Drop_Paths,
-         Binding_Unit             => To_Unbounded_String ("Files.Drop_Events"));
-   end Profile;
 
    procedure Queue
      (Source : in out Drop_Event_Source;
@@ -23,7 +10,7 @@ package body Files.Drop_Events is
    begin
       Source.Pending_Paths.Clear;
       Source.Pending_Mode := Mode;
-      if Natural (Paths.Length) > Max_Drop_Paths then
+      if Natural (Paths.Length) > Max_Paths then
          --  Importing only the first part would report success for a drop
          --  that silently left files behind.
          Source.Overflowed := True;

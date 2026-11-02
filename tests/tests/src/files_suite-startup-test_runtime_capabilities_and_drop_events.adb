@@ -10,31 +10,11 @@ separate (Files_Suite.Startup)
          (Caps.Display_Available and then Caps.Vulkan_Available),
          "runtime capabilities gate live window smoke on display and Vulkan");
       declare
-         Drop_Profile  : Files.Drop_Events.Drop_Event_Source_Profile renames Files.Drop_Events.Profile;
-         Event_Profile : constant Files.Drop_Events.Drop_Event_Source_Profile := Files.Drop_Events.Profile;
          Source        : Files.Drop_Events.Drop_Event_Source;
          Paths         : Files.Types.String_Vectors.Vector;
          Drained       : Files.Types.String_Vectors.Vector;
          Mode          : Files.File_System.Drop_Import_Mode;
       begin
-         Assert (Drop_Profile.Native_Drop_Callbacks, "drag automation profile keeps native drop callbacks separate");
-         Assert
-           (not Drop_Profile.Portable_GLFW_Automation,
-            "drag automation profile rejects portable GLFW event synthesis");
-         Assert (Drop_Profile.Event_Source_Backend, "drag automation profile exposes an Ada event-source backend");
-         Assert (Drop_Profile.Queued_Drop_Imports, "drag automation profile supports queued drop imports");
-         Assert
-           (not Drop_Profile.Requires_OS_Event_Source,
-            "drag automation profile no longer blocks on OS event-source backends");
-         Files_Suite.Support.Assert_Equal
-           (Drop_Profile.Max_Paths,
-            Event_Profile.Max_Paths,
-            "drag automation profile uses the drop event backend path limit");
-         Files_Suite.Support.Assert_Equal
-           (To_String (Drop_Profile.Binding_Unit),
-            "Files.Drop_Events",
-            "drag automation profile records owning backend unit");
-         Assert (Event_Profile.Event_Source_Backend, "drop event backend profile exposes event-source support");
          Paths.Append (To_Unbounded_String (""));
          Paths.Append (To_Unbounded_String ("  " & Dir & "  "));
          Files.Drop_Events.Queue (Source, Paths, Files.File_System.Drop_Move);
@@ -54,7 +34,7 @@ separate (Files_Suite.Startup)
          declare
             Too_Many : Files.Types.String_Vectors.Vector;
          begin
-            for Index in 1 .. Event_Profile.Max_Paths + 1 loop
+            for Index in 1 .. Files.Drop_Events.Max_Paths + 1 loop
                Too_Many.Append (To_Unbounded_String (Dir));
             end loop;
             Files.Drop_Events.Queue (Source, Too_Many);

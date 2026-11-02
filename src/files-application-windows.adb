@@ -279,7 +279,7 @@ package body Files.Application.Windows is
            C_Path_Array_Pointers.To_Pointer (Paths);
          Last      : constant Natural :=
            --  One past the limit, so Queue can tell an oversized drop apart.
-           Natural'Min (Natural (Count), Files.Drop_Events.Profile.Max_Paths + 1);
+           Natural'Min (Natural (Count), Files.Drop_Events.Max_Paths + 1);
          Drops     : Files.Types.String_Vectors.Vector;
       begin
          if Raw_Paths = null then

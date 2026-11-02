@@ -1,3 +1,4 @@
+with Files.File_System.Thumbnails;
 separate (Files_Suite.Operations)
    procedure Test_Thumbnail_Cache_Entries (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -21,9 +22,9 @@ separate (Files_Suite.Operations)
          Write_Binary_File (Legacy_Source, Minimal_Png_Header (8, 8));
          declare
             Legacy_Cache : constant String :=
-              Files.File_System.Thumbnail_Path_For
+              Files.File_System.Thumbnails.Thumbnail_Path_For
                 (Legacy_Source,
-                 Files.File_System.Default_Thumbnail_Cache_Directory (Root),
+                 Files.File_System.Thumbnails.Default_Thumbnail_Cache_Directory (Root),
                  64);
          begin
             --  2x2 of red, green, blue, white in the old ASCII form.
@@ -65,14 +66,14 @@ separate (Files_Suite.Operations)
          Write_File (Commented_Source, "not an image");
          Write_File (Trailing_Source, "not an image");
          Commented_Cache := To_Unbounded_String
-           (Files.File_System.Thumbnail_Path_For
+           (Files.File_System.Thumbnails.Thumbnail_Path_For
               (Commented_Source,
-               Files.File_System.Default_Thumbnail_Cache_Directory (Root),
+               Files.File_System.Thumbnails.Default_Thumbnail_Cache_Directory (Root),
                64));
          Trailing_Cache := To_Unbounded_String
-           (Files.File_System.Thumbnail_Path_For
+           (Files.File_System.Thumbnails.Thumbnail_Path_For
               (Trailing_Source,
-               Files.File_System.Default_Thumbnail_Cache_Directory (Root),
+               Files.File_System.Thumbnails.Default_Thumbnail_Cache_Directory (Root),
                64));
          Write_Binary_File
            (To_String (Commented_Cache),
@@ -124,9 +125,9 @@ separate (Files_Suite.Operations)
       begin
          Write_File (Corrupt_Source, "not an image");
          Corrupt_Cache := To_Unbounded_String
-           (Files.File_System.Thumbnail_Path_For
+           (Files.File_System.Thumbnails.Thumbnail_Path_For
               (Corrupt_Source,
-               Files.File_System.Default_Thumbnail_Cache_Directory (Root),
+               Files.File_System.Thumbnails.Default_Thumbnail_Cache_Directory (Root),
                64));
          Write_File
            (To_String (Corrupt_Cache),
@@ -164,18 +165,18 @@ separate (Files_Suite.Operations)
          Assert (Hostkit.Metadata.Set_File_Times (Revision_Source, Unix_Now - 200, Unix_Now - 200),
                  "date the original image");
          First_Path := To_Unbounded_String
-           (Files.File_System.Thumbnail_Path_For
+           (Files.File_System.Thumbnails.Thumbnail_Path_For
               (Revision_Source,
-               Files.File_System.Default_Thumbnail_Cache_Directory (Root), 64));
+               Files.File_System.Thumbnails.Default_Thumbnail_Cache_Directory (Root), 64));
          Write_File
            (Revision_Source,
             "P3" & ASCII.LF & "1 1" & ASCII.LF & "255" & ASCII.LF & "0 0 255" & ASCII.LF);
          Assert (Hostkit.Metadata.Set_File_Times (Revision_Source, Unix_Now - 100, Unix_Now - 100),
                  "date the edit later than the original");
          Second_Path := To_Unbounded_String
-           (Files.File_System.Thumbnail_Path_For
+           (Files.File_System.Thumbnails.Thumbnail_Path_For
               (Revision_Source,
-               Files.File_System.Default_Thumbnail_Cache_Directory (Root), 64));
+               Files.File_System.Thumbnails.Default_Thumbnail_Cache_Directory (Root), 64));
          Assert
            (First_Path /= Second_Path,
             "editing an image changes its thumbnail cache key");

@@ -10,22 +10,10 @@ procedure Record_Undo
    Redoable    : Boolean := True;
    Restore_Trash : Files.Types.String_Vectors.Vector :=
      Files.Types.String_Vectors.Empty_Vector;
-   Original_Identities : Files.Types.String_Vectors.Vector :=
-     Files.Types.String_Vectors.Empty_Vector;
-   Original_Tree_Revisions : Files.Types.String_Vectors.Vector :=
-     Files.Types.String_Vectors.Empty_Vector;
-   Original_Restore_Identities : Files.Types.String_Vectors.Vector :=
-     Files.Types.String_Vectors.Empty_Vector;
-   Original_Restore_Targets : Files.Types.String_Vectors.Vector :=
-     Files.Types.String_Vectors.Empty_Vector;
-   Retain_Verified_Main : Natural := 0;
-   Retain_Verified_Restores : Natural := 0)
+   Provenance  : Undo_Provenance := (others => <>))
 is
    Recorded : constant Boolean := Try_Record_Undo
-     (Model, Kind, From, To, Forward, Create_Kind, Redoable, Restore_Trash,
-      Original_Identities, Original_Tree_Revisions,
-      Original_Restore_Identities, Original_Restore_Targets,
-      Retain_Verified_Main, Retain_Verified_Restores);
+     (Model, Kind, From, To, Forward, Create_Kind, Redoable, Restore_Trash, Provenance);
    pragma Unreferenced (Recorded);
 begin
    null;
