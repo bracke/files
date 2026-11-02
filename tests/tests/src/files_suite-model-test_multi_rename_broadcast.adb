@@ -57,7 +57,7 @@ separate (Files_Suite.Model)
       Assert (RCursor (1) = 6 and then RCursor (2) = 5, "each caret advances past the inserted text");
 
       --  Backspace deletes at every caret.
-      Changed := Files.Model.Rename_Delete_Backward (Model);
+      Changed := Files.Model.Rename_Delete (Model, Backward => True);
       Assert (Changed, "backspace reports a change across the fields");
       Assert
         (RValue (1) = "Alpha.txt" and then RValue (2) = "Beta.txt",

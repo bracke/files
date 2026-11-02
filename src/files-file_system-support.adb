@@ -1,3 +1,4 @@
+with Files.Fs_Primitives;
 with Files.Environment;
 with Files.Diagnostics;
 with Ada.Environment_Variables;
@@ -567,25 +568,10 @@ package body Files.File_System.Support is
       Links : Copied_File_Maps.Map;
       Index : Positive := 1;
 
-      function Nul_Free (Value : String) return Boolean is
-      begin
-         for Item of Value loop
-            if Item = ASCII.NUL then
-               return False;
-            end if;
-         end loop;
-         return True;
-      end Nul_Free;
+      function Nul_Free (Value : String) return Boolean renames Files.Fs_Primitives.Nul_Free;
 
       function Valid_Absolute_Path (Path : String) return Boolean is
-      begin
-         return Path /= ""
-           and then Nul_Free (Path)
-           and then GNAT.OS_Lib.Is_Absolute_Path (Path);
-      exception
-         when others =>
-            return False;
-      end Valid_Absolute_Path;
+        (Files.Fs_Primitives.Valid_Absolute_Path (Path));
    begin
       if Natural (Items.Length) mod 6 /= 0 then
          raise Ada.Directories.Use_Error;

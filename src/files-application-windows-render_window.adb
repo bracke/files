@@ -106,23 +106,25 @@ separate (Files.Application.Windows)
            and then Runtime.Drag_Source_Index /= 0
            and then Runtime.Handle.Drag_Moved;
          Current_Minute : constant Natural := Wall_Clock_Minute;
+         Inputs : constant Frame_Inputs :=
+           (Width          => Natural (Width),
+            Height         => Natural (Height),
+            Line_Height    => Line_Height,
+            Hover_X        => Hover_X,
+            Hover_Y        => Hover_Y,
+            Has_Hover      => Has_Hover_Now,
+            Has_Press      => Has_Press_Now,
+            Drag_Item      => Runtime.Drag_Source_Index,
+            Has_Drag       => Has_Drag_Now,
+            Marquee_Active => Runtime.Marquee_Active,
+            Marquee_X      => Runtime.Marquee_Rect_X,
+            Marquee_Y      => Runtime.Marquee_Rect_Y,
+            Marquee_W      => Runtime.Marquee_Rect_W,
+            Marquee_H      => Runtime.Marquee_Rect_H);
          Inputs_Match : constant Boolean :=
            Runtime.Frame_Cache_Valid
            and then Runtime.Cached_Minute = Current_Minute
-           and then Runtime.Cached_Frame_W = Natural (Width)
-           and then Runtime.Cached_Frame_H = Natural (Height)
-           and then Runtime.Cached_Line_Height = Line_Height
-           and then Runtime.Cached_Hover_X = Hover_X
-           and then Runtime.Cached_Hover_Y = Hover_Y
-           and then Runtime.Cached_Has_Hover = Has_Hover_Now
-           and then Runtime.Cached_Has_Press = Has_Press_Now
-           and then Runtime.Cached_Drag_Item = Runtime.Drag_Source_Index
-           and then Runtime.Cached_Has_Drag = Has_Drag_Now
-           and then Runtime.Cached_Marquee_Active = Runtime.Marquee_Active
-           and then Runtime.Cached_Marquee_X = Runtime.Marquee_Rect_X
-           and then Runtime.Cached_Marquee_Y = Runtime.Marquee_Rect_Y
-           and then Runtime.Cached_Marquee_W = Runtime.Marquee_Rect_W
-           and then Runtime.Cached_Marquee_H = Runtime.Marquee_Rect_H;
+           and then Runtime.Cached_Inputs = Inputs;
 
          --  Rebuild the cached frame from Snapshot and record the input keys it
          --  was built for. Snapshot is an in-parameter (passed by reference, not
@@ -151,20 +153,7 @@ separate (Files.Application.Windows)
                  Marquee_Y   => Runtime.Marquee_Rect_Y,
                  Marquee_W   => Runtime.Marquee_Rect_W,
                  Marquee_H   => Runtime.Marquee_Rect_H);
-            Runtime.Cached_Frame_W := Natural (Width);
-            Runtime.Cached_Frame_H := Natural (Height);
-            Runtime.Cached_Line_Height := Line_Height;
-            Runtime.Cached_Hover_X := Hover_X;
-            Runtime.Cached_Hover_Y := Hover_Y;
-            Runtime.Cached_Has_Hover := Has_Hover_Now;
-            Runtime.Cached_Has_Press := Has_Press_Now;
-            Runtime.Cached_Drag_Item := Runtime.Drag_Source_Index;
-            Runtime.Cached_Has_Drag := Has_Drag_Now;
-            Runtime.Cached_Marquee_Active := Runtime.Marquee_Active;
-            Runtime.Cached_Marquee_X := Runtime.Marquee_Rect_X;
-            Runtime.Cached_Marquee_Y := Runtime.Marquee_Rect_Y;
-            Runtime.Cached_Marquee_W := Runtime.Marquee_Rect_W;
-            Runtime.Cached_Marquee_H := Runtime.Marquee_Rect_H;
+            Runtime.Cached_Inputs := Inputs;
             Runtime.Cached_Minute := Current_Minute;
             Runtime.Frame_Cache_Valid := True;
          end Rebuild_Frame;
@@ -418,9 +407,9 @@ separate (Files.Application.Windows)
                         Focused       =>
                           Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Settings_Input,
                         Hover_X       =>
-                          (if Runtime.Cached_Has_Hover then Integer (Runtime.Cached_Hover_X) else -1),
+                          (if Runtime.Cached_Inputs.Has_Hover then Integer (Runtime.Cached_Inputs.Hover_X) else -1),
                         Hover_Y       =>
-                          (if Runtime.Cached_Has_Hover then Integer (Runtime.Cached_Hover_Y) else -1),
+                          (if Runtime.Cached_Inputs.Has_Hover then Integer (Runtime.Cached_Inputs.Hover_Y) else -1),
                         Rectangles    => S_Rects,
                         Text          => S_Text,
                         Accessibility => S_Nodes);

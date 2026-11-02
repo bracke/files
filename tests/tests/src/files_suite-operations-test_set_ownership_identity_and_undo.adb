@@ -1,3 +1,4 @@
+with Hostkit.Metadata;
 separate (Files_Suite.Operations)
    procedure Test_Set_Ownership_Identity_And_Undo (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -18,7 +19,7 @@ separate (Files_Suite.Operations)
 
       Reset_Root;
       Write_File (Target, "own me");
-      Files.File_System.Ownership_Of (Target, Uid, Gid, Avail);
+      Hostkit.Metadata.File_Ownership (Target, Uid, Gid, Avail);
       Assert (Avail, "ownership of the temp file is readable");
 
       Load := Files.File_System.Load_Directory (Root, Settings);
@@ -64,7 +65,7 @@ separate (Files_Suite.Operations)
          New_Uid, New_Gid : Files.Types.Account_Id := 0;
          Now_Avail        : Boolean := False;
       begin
-         Files.File_System.Ownership_Of (Target, New_Uid, New_Gid, Now_Avail);
+         Hostkit.Metadata.File_Ownership (Target, New_Uid, New_Gid, Now_Avail);
          Assert (Now_Avail, "ownership is unchanged after identity chown and undo: ownership readable");
          Assert (New_Uid = Uid, "ownership is unchanged after identity chown and undo: uid");
          Assert (New_Gid = Gid, "ownership is unchanged after identity chown and undo: gid");

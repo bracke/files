@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Controller_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -25,7 +26,7 @@ separate (Files_Suite.Operations)
       Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
 
       Load := Files.File_System.Load_Directory (Second, Settings);
-      Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
+      Files.Model.Open_Root_Selector (Model, Files.File_System.Testing.Available_Roots);
       Files.Model.Navigate_To (Model, Second, Load.Items);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Root_Count (Model),

@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Commands)
@@ -24,7 +25,7 @@ separate (Files_Suite.Commands)
       Assert
         (Files.Commands.Open_Selected_Items_Command not in Files.Commands.Pure_Command_Id,
          "open loads the selected items, so it is not a pure command");
-      Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
+      Files.Model.Open_Root_Selector (Model, Files.File_System.Testing.Available_Roots);
       Files_Suite.Support.Run_Command (Files.Commands.Select_Details_Command, Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Model),

@@ -8,30 +8,15 @@ is
    Identity : UString;
    Closed : Boolean;
 
-   Parent : constant String := Parent_Directory (Path);
-   Name   : constant String := Mutation_Leaf_Name (Path);
 begin
    Files.Io_Errors.Reset;
-   if Path = "" then
-      return
-        (Success   => False,
-         Error_Key => To_Unbounded_String ("error.file.parent_missing"));
-   elsif not Valid_Leaf_Name_At (Name, Parent) then
-      return
-        (Success   => False,
-         Error_Key => To_Unbounded_String ("error.name.invalid"));
-   elsif Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path) then
-      return
-        (Success   => False,
-         Error_Key => To_Unbounded_String ("error.file.exists"));
-   elsif Parent = ""
-     or else not Ada.Directories.Exists (Parent)
-     or else Ada.Directories.Kind (Parent) /= Ada.Directories.Directory
-   then
-      return
-        (Success   => False,
-         Error_Key => To_Unbounded_String ("error.file.parent_missing"));
-   end if;
+   declare
+      Checked : constant Mutation_Result := Validate_New_Entry (Path, "error.file.parent_missing");
+   begin
+      if not Checked.Success then
+         return Checked;
+      end if;
+   end;
 
    Descriptor := GNAT.OS_Lib.Create_New_File (Path, GNAT.OS_Lib.Binary);
    if Descriptor = GNAT.OS_Lib.Invalid_FD then

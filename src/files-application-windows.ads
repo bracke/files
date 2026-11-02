@@ -297,6 +297,26 @@ private
    type Snapshot_Slot_Array is array (Snapshot_Slot) of Files.Rendering.View_Snapshot;
    type Slot_Listing_Array is array (Snapshot_Slot) of Natural;
 
+   --  Everything besides the snapshot that a frame is built from: its size
+   --  and the pointer. A frame is rebuilt only when these (or the snapshot,
+   --  or the minute) change, compared as one record.
+   type Frame_Inputs is record
+      Width          : Natural := 0;
+      Height         : Natural := 0;
+      Line_Height    : Positive := 20;
+      Hover_X        : Natural := 0;
+      Hover_Y        : Natural := 0;
+      Has_Hover      : Boolean := False;
+      Has_Press      : Boolean := False;
+      Drag_Item      : Natural := 0;
+      Has_Drag       : Boolean := False;
+      Marquee_Active : Boolean := False;
+      Marquee_X      : Natural := 0;
+      Marquee_Y      : Natural := 0;
+      Marquee_W      : Natural := 0;
+      Marquee_H      : Natural := 0;
+   end record;
+
    type Runtime_Window is record
       Handle          : Window_Access;
       A11y_Key        : Files.Accessibility.Window_Key := 0;
@@ -438,20 +458,8 @@ private
       --  reused only while both still match -- no explicit invalidation.
       Cached_Settings_Key  : Files.Settings.Snapshot_Settings_Key;
       Cached_Frame         : Files.Rendering.Frame_Commands;
-      Cached_Frame_W       : Natural := 0;
-      Cached_Frame_H       : Natural := 0;
-      Cached_Line_Height   : Positive := 20;
-      Cached_Hover_X       : Natural := 0;
-      Cached_Hover_Y       : Natural := 0;
-      Cached_Has_Hover     : Boolean := False;
-      Cached_Has_Press     : Boolean := False;
-      Cached_Drag_Item     : Natural := 0;
-      Cached_Has_Drag      : Boolean := False;
-      Cached_Marquee_Active : Boolean := False;
-      Cached_Marquee_X     : Natural := 0;
-      Cached_Marquee_Y     : Natural := 0;
-      Cached_Marquee_W     : Natural := 0;
-      Cached_Marquee_H     : Natural := 0;
+      --  The pointer and size inputs Cached_Frame was built for.
+      Cached_Inputs        : Frame_Inputs;
       --  Wall-clock minute the cached frame was built in. Relative times
       --  ("now", "Today 23:50") and the Today / This week group bands are
       --  computed from the clock, which no other key covers.

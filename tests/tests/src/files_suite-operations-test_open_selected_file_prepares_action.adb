@@ -107,13 +107,13 @@ separate (Files_Suite.Operations)
          Root,
          "opening a non-directory does not navigate");
       declare
-         Lifecycle : constant Files.Operations.Open_Action_Lifecycle :=
-           Files.Operations.Open_Action_Lifecycle_Of (Result);
+         Lifecycle : constant Files.Operations.Testing.Open_Action_Lifecycle :=
+           Files.Operations.Testing.Open_Action_Lifecycle_Of (Result);
       begin
          --  Open_Selected launches detached, so the action is spawned and let go.
          --  "Completed" would claim we watched it finish, and we did not.
          Assert
-           (Lifecycle.State = Files.Operations.Open_Action_Spawned,
+           (Lifecycle.State = Files.Operations.Testing.Open_Action_Spawned,
             "open-action lifecycle records a spawned action");
          Files_Suite.Support.Assert_Equal
            (To_String (Lifecycle.Executable),
@@ -189,8 +189,8 @@ separate (Files_Suite.Operations)
          Join (Root, "Alpha.txt"),
          "multi-file open exposes first expanded action path");
       Assert
-        (Files.Operations.Open_Action_Lifecycle_Of (Result).State =
-         Files.Operations.Open_Action_Spawned,
+        (Files.Operations.Testing.Open_Action_Lifecycle_Of (Result).State =
+         Files.Operations.Testing.Open_Action_Spawned,
          "multi-file open lifecycle records a spawned action");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),

@@ -1,3 +1,4 @@
+with Files.Helper_Modes;
 with Files.Items;
 with Files.Fs_Primitives;
 with Ada.Containers.Indefinite_Hashed_Maps;
@@ -110,15 +111,7 @@ package body Files.Operation_Jobs is
       return Paths;
    end Read_Paths;
 
-   function Nul_Free (Value : String) return Boolean is
-   begin
-      for Item of Value loop
-         if Item = ASCII.NUL then
-            return False;
-         end if;
-      end loop;
-      return True;
-   end Nul_Free;
+   function Nul_Free (Value : String) return Boolean renames Files.Fs_Primitives.Nul_Free;
 
    function Valid_Absolute_Path (Path : String) return Boolean is
      (Files.Fs_Primitives.Valid_Absolute_Path (Path));
@@ -320,7 +313,7 @@ package body Files.Operation_Jobs is
       Write_Request (File'Access, Work);
       Files.Job_Records.Validate_Size (Files.Exclusive_Streams.Size (File));
       Files.Exclusive_Streams.Close (File);
-      Files.Process_Jobs.Launch (Job, "--files-operation");
+      Files.Process_Jobs.Launch (Job, Files.Helper_Modes.Flag (Files.Helper_Modes.Operation));
       Actions.Append
         (Files.Paste.Resolved_Action'
            (Source_Path => Work.Root, Dest_Path => Work.Root, Skip => False, Replaced => False));

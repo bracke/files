@@ -1,19 +1,14 @@
 with Files.Fs_Primitives;
 with Ada.Real_Time;
-with Files.Diagnostics;
 with Ada.Containers;
 with Ada.Streams;
 with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Strings.Unbounded;
-with GNAT.OS_Lib;
 with Files.Bounded_Streams;
-with Files.Descriptor_Streams;
 with Files.Durable_Writes;
-with Files.File_Identities;
 with Files.Job_Context;
 with Files.Lease_Streams;
-with Files.Private_Directories;
 with Files.Types;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
@@ -22,7 +17,6 @@ package body Files.History_Journal is
    use Ada.Strings.Unbounded;
    use type Ada.Containers.Count_Type;
    use type Ada.Directories.File_Kind;
-   use type GNAT.OS_Lib.File_Descriptor;
    use type Hostkit.Lease_Files.Open_Outcome;
 
    Journal_Header : constant String := "files-history-1";
@@ -244,21 +238,15 @@ package body Files.History_Journal is
       Fields : Natural := 0;
       Temporary : constant String := Hostkit.Fs.Join (Directory, "history.tmp");
       Target : constant String := Hostkit.Fs.Join (Directory, "history");
-      Output : aliased Files.Descriptor_Streams.Output_Stream;
       Temporary_Identity : Unbounded_String;
 
-      procedure Remove_Owned_Temporary is
+      procedure Write_Journal (Output : not null access Ada.Streams.Root_Stream_Type'Class) is
       begin
-         if Length (Temporary_Identity) > 0
-           and then Files.File_Identities.Token (Temporary) =
-             To_String (Temporary_Identity)
-         then
-            Ada.Directories.Delete_File (Temporary);
-         end if;
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.History_Journal");
-      end Remove_Owned_Temporary;
+         String'Output (Output, Journal_Header);
+         Fit (Kept_Undo, Kept_Redo, Total);
+         Write_Stack (Output, Kept_Undo, Total, Fields);
+         Write_Stack (Output, Kept_Redo, Total, Fields);
+      end Write_Journal;
    begin
       if Directory = "" then
          return;
@@ -281,53 +269,20 @@ package body Files.History_Journal is
       if Ada.Directories.Exists (Temporary) then
          Ada.Directories.Delete_File (Temporary);
       end if;
-      Output.Descriptor :=
-        GNAT.OS_Lib.Create_New_File (Temporary, GNAT.OS_Lib.Binary);
-      if Output.Descriptor = GNAT.OS_Lib.Invalid_FD then
-         raise Ada.Directories.Use_Error;
-      end if;
-      Temporary_Identity := To_Unbounded_String
-        (Files.File_Identities.Token (Temporary));
-      if Length (Temporary_Identity) = 0 then
-         raise Ada.Directories.Use_Error;
-      end if;
-      Files.Private_Directories.Make_File_Private (Output.Descriptor);
-      String'Output (Output'Access, Journal_Header);
-      Fit (Kept_Undo, Kept_Redo, Total);
-      Write_Stack (Output'Access, Kept_Undo, Total, Fields);
-      Write_Stack (Output'Access, Kept_Redo, Total, Fields);
-      declare
-         Closed : Boolean;
-      begin
-         Files.Descriptor_Streams.Flush (Output);
-         GNAT.OS_Lib.Close (Output.Descriptor, Closed);
-         Output.Descriptor := GNAT.OS_Lib.Invalid_FD;
-         if not Closed then
-            raise Ada.Directories.Use_Error;
-         end if;
-      end;
-      if Files.File_Identities.Token (Temporary) /=
-        To_String (Temporary_Identity)
-      then
-         raise Ada.Directories.Use_Error;
-      end if;
+      Files.Durable_Writes.Write_Private_File (Temporary, Write_Journal'Access, Temporary_Identity);
       Published := Files.Durable_Writes.Publish
         (Temporary, Target);
       if Files.Durable_Writes.Published (Published) then
          Temporary_Identity := Null_Unbounded_String;
       else
-         Remove_Owned_Temporary;
+         Files.Durable_Writes.Remove_Owned (Temporary, To_String (Temporary_Identity));
          if Required then
             raise Ada.Directories.Use_Error;
          end if;
       end if;
    exception
       when others =>
-         if Output.Descriptor /= GNAT.OS_Lib.Invalid_FD then
-            GNAT.OS_Lib.Close (Output.Descriptor);
-            Output.Descriptor := GNAT.OS_Lib.Invalid_FD;
-         end if;
-         Remove_Owned_Temporary;
+         Files.Durable_Writes.Remove_Owned (Temporary, To_String (Temporary_Identity));
          if Required then
             raise;
          end if;

@@ -8,7 +8,7 @@ is
       Exists                => False,
       Entry_Count           => 0,
       Entry_State_Checksum  => 0,
-      Latest_Modified       => Ada.Calendar.Time_Of (1901, 1, 1),
+      Latest_Modified       => Files.Types.Unknown_Time,
       Latest_Modified_Known => False);
 
    function Entry_Checksum
@@ -36,7 +36,7 @@ is
          Full     : constant String := Join_Path (To_String (Result.Path), Name);
          Kind     : Ada.Directories.File_Kind := Ada.Directories.Special_File;
          Size     : Long_Long_Integer := 0;
-         Modified : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+         Modified : Ada.Calendar.Time := Files.Types.Unknown_Time;
       begin
          begin
             Kind := Ada.Directories.Kind (Full);

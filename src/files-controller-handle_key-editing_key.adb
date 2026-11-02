@@ -32,7 +32,7 @@ begin
          if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
             Result :=
               Make_Result
-                (if Files.Model.Rename_Move_All_Carets_Word (Model, Guikit.Input.Move_Left)
+                (if Files.Model.Rename_Move_All_Carets (Model, Guikit.Input.Move_Left, By_Word => True)
                  then Controller_Text_Updated
                  else Controller_Ignored);
             return;
@@ -56,7 +56,7 @@ begin
          if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
             Result :=
               Make_Result
-                (if Files.Model.Rename_Move_All_Carets_Word (Model, Guikit.Input.Move_Right)
+                (if Files.Model.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right, By_Word => True)
                  then Controller_Text_Updated
                  else Controller_Ignored);
             return;

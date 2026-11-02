@@ -1,3 +1,4 @@
+with Files.Helper_Modes;
 with Ada.Command_Line;
 with Ada.Strings.Unbounded;
 with Files.Job_Cleanup;
@@ -12,6 +13,7 @@ with Hostkit.Fs;
 with Hostkit.Parent_Watch;
 
 package body Files.Job_Helpers is
+   use Files.Helper_Modes;
    use Ada.Strings.Unbounded;
    use type Files.Job_Cleanup.Cleanup_Outcome;
    use type Files.Job_Transports.Claim_Outcome;
@@ -33,7 +35,7 @@ package body Files.Job_Helpers is
    function Run_If_Requested return Boolean is
    begin
       if Ada.Command_Line.Argument_Count = 1
-        and then Ada.Command_Line.Argument (1) = "--files-scavenge"
+        and then Ada.Command_Line.Argument (1) = Flag (Scavenge)
       then
          if not Files.Job_Scavenger.Run then
             Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
@@ -48,8 +50,8 @@ package body Files.Job_Helpers is
          Directory : constant String := Ada.Command_Line.Argument (2);
          Helper_Owner : Files.Job_Transports.Lease;
       begin
-         if Mode in "--files-transfer" | "--files-operation" | "--files-refresh" | "--files-watch"
-           | "--files-folder-size"
+         if Mode in Flag (Transfer) | Flag (Operation) | Flag (Refresh) | Flag (Watch)
+           | Flag (Files.Helper_Modes.Folder_Size)
          then
             if Ada.Command_Line.Argument_Count /= 2
               or else Files.Job_Transports.Recorded_Identity (Directory) = ""
@@ -62,13 +64,13 @@ package body Files.Job_Helpers is
                return True;
             end if;
             Files.Job_Context.Initialize (Directory);
-            if Mode = "--files-transfer" then
+            if Mode = Flag (Transfer) then
                Files.Transfer_Jobs.Run_Helper (Directory);
-            elsif Mode = "--files-operation" then
+            elsif Mode = Flag (Operation) then
                Files.Operation_Jobs.Run_Helper (Directory);
-            elsif Mode = "--files-refresh" then
+            elsif Mode = Flag (Refresh) then
                Files.Refresh_Jobs.Run_Helper (Directory);
-            elsif Mode = "--files-folder-size" then
+            elsif Mode = Flag (Files.Helper_Modes.Folder_Size) then
                Files.Folder_Size.Run_Helper (Directory);
             else
                --  The other helpers finish on their own, and a transfer must
@@ -85,7 +87,7 @@ package body Files.Job_Helpers is
                end;
             end if;
             return True;
-         elsif Mode = "--files-cleanup" then
+         elsif Mode = Flag (Cleanup) then
             if Ada.Command_Line.Argument_Count /= 3 then
                Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
                return True;

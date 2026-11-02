@@ -1,3 +1,4 @@
+with Files.Fs_Primitives;
 with Ada.Calendar;
 with Ada.Containers;
 with Ada.Directories;
@@ -28,27 +29,11 @@ package body Files.Job_Records is
    Max_Thumbnail_Dimension : constant := 2_048;
    Max_Thumbnail_Bytes : constant := 2_048 * 2_048 * 4;
 
-   function Nul_Free (Value : String) return Boolean is
-   begin
-      for Item of Value loop
-         if Item = ASCII.NUL then
-            return False;
-         end if;
-      end loop;
-      return True;
-   end Nul_Free;
+   function Nul_Free (Value : String) return Boolean renames Files.Fs_Primitives.Nul_Free;
 
    function Valid_Absolute_Path
      (Value : Files.Types.UString) return Boolean is
-      Path : constant String := To_String (Value);
-   begin
-      return Path /= ""
-        and then Nul_Free (Path)
-        and then GNAT.OS_Lib.Is_Absolute_Path (Path);
-   exception
-      when others =>
-         return False;
-   end Valid_Absolute_Path;
+       (Files.Fs_Primitives.Valid_Absolute_Path (To_String (Value)));
 
    function Signature_Is_Consistent
      (Value : Files.File_System.Directory_Signature) return Boolean is

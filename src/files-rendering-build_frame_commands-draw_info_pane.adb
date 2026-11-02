@@ -21,16 +21,160 @@ separate (Files.Rendering.Build_Frame_Commands)
          declare
             --  The combined selection total is rendered as the last line of the
             --  Contents section (see Coalesced_Info_Sections), so no header rows
-            --  are reserved above the list.
-            Section_Offset_Rows : Natural := 0;
+            --  are reserved above the list: sections start at the top of the pane.
+            Row_Y  : constant Integer :=
+              Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding)) - Integer (Info_Pane.Scroll_Pixels);
+            Text_X : constant Natural := Saturating_Add (Layout.Main_Width, Info_Pane_Padding);
+            Info_Bottom : constant Natural := Saturating_Add (Info_Pane.Y, Info_Pane.Height);
+            Reserved_W : constant Natural :=
+              Saturating_Add
+                ((if Info_Pane.Scrollbar_Visible then Info_Pane.Scrollbar_Width else 0),
+                 Saturating_Multiply (Info_Pane_Padding, 2));
+            Text_W : constant Natural :=
+              (if Layout.Info_Pane_Width > Reserved_W
+               then Layout.Info_Pane_Width - Reserved_W
+               else 0);
+
+            --  Text helpers shared by the multi-item and the single-item layout.
+            procedure Add_Info_Text
+              (Offset : Natural;
+               Text   : UString;
+               Color  : Render_Color := Text_Color;
+               Fit    : Boolean := True)
+            is
+               Y : constant Integer :=
+                 Saturating_Integer_Add (Row_Y, Saturating_Multiply (Offset, Line_Height));
+            begin
+               if Y >= Integer (Info_Pane.Y)
+                 and then Y < Integer (Info_Bottom)
+               then
+                  Add_Text
+                    (Text_X,
+                     Natural (Y),
+                     Text_W,
+                     Natural'Min (Line_Height, Info_Bottom - Natural (Y)),
+                     Text,
+                     Color,
+                     Fit => Fit);
+               end if;
+            end Add_Info_Text;
+
+            procedure Add_Info_Label
+              (Row : Natural;
+               Key : String)
+            is
+               Text : constant UString := To_Unbounded_String (Files.Localization.Text (Key));
+            begin
+               Add_Info_Text (Row, Text, Text_Color);
+               if Text_W > 1 then
+                  declare
+                     Y : constant Integer :=
+                       Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
+                  begin
+                     if Y >= Integer (Info_Pane.Y)
+                       and then Y < Integer (Info_Bottom)
+                     then
+                        Add_Text
+                          (Saturating_Add (Text_X, 1),
+                           Natural (Y),
+                           Text_W - 1,
+                           Natural'Min (Line_Height, Info_Bottom - Natural (Y)),
+                           Text,
+                           Text_Color,
+                           Fit => True);
+                     end if;
+                  end;
+               end if;
+
+               --  A "<key>.tooltip" catalog entry, when present, describes
+               --  the section on hover.
+               declare
+                  Tip_Key : constant String := Key & ".tooltip";
+                  Tip_Y   : constant Integer :=
+                    Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
+               begin
+                  if Text_W > 0
+                    and then Tip_Y >= Integer (Info_Pane.Y)
+                    and then Tip_Y < Integer (Info_Bottom)
+                    and then Files.Localization.Text (Tip_Key) /= Tip_Key
+                  then
+                     Add_Tooltip
+                       (Text_X,
+                        Natural (Tip_Y),
+                        Text_W,
+                        Natural'Min (Line_Height, Info_Bottom - Natural (Tip_Y)),
+                        Tip_Key);
+                  end if;
+               end;
+            end Add_Info_Label;
+
+            procedure Add_Info_Wrapped_Value
+              (Row   : Natural;
+               Text  : UString;
+               Color : Render_Color := Text_Color)
+            is
+               Raw        : constant String := To_String (Text);
+               Cell_W     : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
+               Capacity   : constant Natural := Text_W / Cell_W;
+               Line_Index : Natural := 0;
+
+               procedure Add_Wrapped_Segment
+                 (Segment_First : Integer;
+                  Segment_Last  : Integer)
+               is
+                  Start : Integer := Segment_First;
+               begin
+                  if Segment_Last < Segment_First then
+                     Line_Index := Saturating_Add (Line_Index, 1);
+                     return;
+                  end if;
+
+                  Start := Skip_Wrap_Whitespace (Raw, Start, Segment_Last);
+                  while Start <= Segment_Last loop
+                     declare
+                        Last   : constant Integer :=
+                          Wrapped_Line_Last (Raw, Start, Segment_Last, Capacity);
+                     begin
+                        Add_Info_Text
+                          (Saturating_Add (Row, Line_Index),
+                           To_Unbounded_String (Raw (Start .. Last)),
+                           Color,
+                           Fit => False);
+                        exit when Last >= Segment_Last;
+                        Start := Skip_Wrap_Whitespace (Raw, Last + 1, Segment_Last);
+                        Line_Index := Saturating_Add (Line_Index, 1);
+                     end;
+                  end loop;
+
+                  Line_Index := Saturating_Add (Line_Index, 1);
+               end Add_Wrapped_Segment;
+
+               Line_First : Integer := Raw'First;
+            begin
+               if Raw'Length = 0 or else Capacity = 0 then
+                  Add_Info_Text (Row, Text, Color, Fit => False);
+                  return;
+               end if;
+
+               for Position in Raw'Range loop
+                  if Raw (Position) = ASCII.LF then
+                     Add_Wrapped_Segment (Line_First, Position - 1);
+                     Line_First := Position + 1;
+                  end if;
+               end loop;
+
+               if Line_First <= Raw'Last then
+                  Add_Wrapped_Segment (Line_First, Raw'Last);
+               elsif Raw (Raw'Last) = ASCII.LF then
+                  Add_Info_Text (Saturating_Add (Row, Line_Index), Null_Unbounded_String, Color, Fit => False);
+               end if;
+            end Add_Info_Wrapped_Value;
          begin
 
             if Snapshot.Selected_Info.Is_Empty then
                declare
                   Text_Y : constant Natural :=
                     Saturating_Add (Info_Pane.Y, Info_Pane_Padding);
-                  Info_Bottom : constant Natural :=
-                    Saturating_Add (Info_Pane.Y, Info_Pane.Height);
                begin
                   if Text_Y < Info_Bottom then
                      Add_Text
@@ -47,158 +191,9 @@ separate (Files.Rendering.Build_Frame_Commands)
 
             if Natural (Snapshot.Selected_Info.Length) >= 2 then
                declare
-                  --  Sections start at the top of the pane: the combined total is
-                  --  now the Contents section's last line, not a reserved header.
-                  Base_Y : constant Integer :=
-                    Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding));
-                  Row_Y  : constant Integer := Base_Y - Integer (Info_Pane.Scroll_Pixels);
-                  Text_X : constant Natural := Saturating_Add (Layout.Main_Width, Info_Pane_Padding);
-                  Info_Bottom : constant Natural := Saturating_Add (Info_Pane.Y, Info_Pane.Height);
-                  Reserved_W : constant Natural :=
-                    Saturating_Add
-                      ((if Info_Pane.Scrollbar_Visible then Info_Pane.Scrollbar_Width else 0),
-                       Saturating_Multiply (Info_Pane_Padding, 2));
-                  Text_W : constant Natural :=
-                    (if Layout.Info_Pane_Width > Reserved_W
-                     then Layout.Info_Pane_Width - Reserved_W
-                     else 0);
                   Sections : constant Coalesced_Section_Vectors.Vector :=
                     Coalesced_Info_Sections (Snapshot);
                   Current_Row : Natural := 0;
-
-                  procedure Add_Info_Text
-                    (Offset : Natural;
-                     Text   : UString;
-                     Color  : Render_Color := Text_Color;
-                     Fit    : Boolean := True)
-                  is
-                     Y : constant Integer :=
-                       Saturating_Integer_Add (Row_Y, Saturating_Multiply (Offset, Line_Height));
-                  begin
-                     if Y >= Integer (Info_Pane.Y)
-                       and then Y < Integer (Info_Bottom)
-                     then
-                        Add_Text
-                          (Text_X,
-                           Natural (Y),
-                           Text_W,
-                           Natural'Min (Line_Height, Info_Bottom - Natural (Y)),
-                           Text,
-                           Color,
-                           Fit => Fit);
-                     end if;
-                  end Add_Info_Text;
-
-                  procedure Add_Info_Label
-                    (Row : Natural;
-                     Key : String)
-                  is
-                     Text : constant UString := To_Unbounded_String (Files.Localization.Text (Key));
-                  begin
-                     Add_Info_Text (Row, Text, Text_Color);
-                     if Text_W > 1 then
-                        declare
-                           Y : constant Integer :=
-                             Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
-                        begin
-                           if Y >= Integer (Info_Pane.Y)
-                             and then Y < Integer (Info_Bottom)
-                           then
-                              Add_Text
-                                (Saturating_Add (Text_X, 1),
-                                 Natural (Y),
-                                 Text_W - 1,
-                                 Natural'Min (Line_Height, Info_Bottom - Natural (Y)),
-                                 Text,
-                                 Text_Color,
-                                 Fit => True);
-                           end if;
-                        end;
-                     end if;
-
-                     --  A "<key>.tooltip" catalog entry, when present, describes
-                     --  the section on hover.
-                     declare
-                        Tip_Key : constant String := Key & ".tooltip";
-                        Tip_Y   : constant Integer :=
-                          Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
-                     begin
-                        if Text_W > 0
-                          and then Tip_Y >= Integer (Info_Pane.Y)
-                          and then Tip_Y < Integer (Info_Bottom)
-                          and then Files.Localization.Text (Tip_Key) /= Tip_Key
-                        then
-                           Add_Tooltip
-                             (Text_X,
-                              Natural (Tip_Y),
-                              Text_W,
-                              Natural'Min (Line_Height, Info_Bottom - Natural (Tip_Y)),
-                              Tip_Key);
-                        end if;
-                     end;
-                  end Add_Info_Label;
-
-                  procedure Add_Info_Wrapped_Value
-                    (Row   : Natural;
-                     Text  : UString;
-                     Color : Render_Color := Text_Color)
-                  is
-                     Raw        : constant String := To_String (Text);
-                     Cell_W     : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
-                     Capacity   : constant Natural := Text_W / Cell_W;
-                     Line_Index : Natural := 0;
-
-                     procedure Add_Wrapped_Segment
-                       (Segment_First : Integer;
-                        Segment_Last  : Integer)
-                     is
-                        Start : Integer := Segment_First;
-                     begin
-                        if Segment_Last < Segment_First then
-                           Line_Index := Saturating_Add (Line_Index, 1);
-                           return;
-                        end if;
-
-                        Start := Skip_Wrap_Whitespace (Raw, Start, Segment_Last);
-                        while Start <= Segment_Last loop
-                           declare
-                              Last   : constant Integer :=
-                                Wrapped_Line_Last (Raw, Start, Segment_Last, Capacity);
-                           begin
-                              Add_Info_Text
-                                (Saturating_Add (Row, Line_Index),
-                                 To_Unbounded_String (Raw (Start .. Last)),
-                                 Color,
-                                 Fit => False);
-                              exit when Last >= Segment_Last;
-                              Start := Skip_Wrap_Whitespace (Raw, Last + 1, Segment_Last);
-                              Line_Index := Saturating_Add (Line_Index, 1);
-                           end;
-                        end loop;
-
-                        Line_Index := Saturating_Add (Line_Index, 1);
-                     end Add_Wrapped_Segment;
-
-                     Line_First : Integer := Raw'First;
-                  begin
-                     if Raw'Length = 0 or else Capacity = 0 then
-                        Add_Info_Text (Row, Text, Color, Fit => False);
-                        return;
-                     end if;
-
-                     for Position in Raw'Range loop
-                        if Raw (Position) = ASCII.LF then
-                           Add_Wrapped_Segment (Line_First, Position - 1);
-                           Line_First := Position + 1;
-                        end if;
-                     end loop;
-
-                     if Line_First <= Raw'Last then
-                        Add_Wrapped_Segment (Line_First, Raw'Last);
-                     elsif Raw (Raw'Last) = ASCII.LF then
-                        Add_Info_Text (Saturating_Add (Row, Line_Index), Null_Unbounded_String, Color, Fit => False);
-                     end if;
-                  end Add_Info_Wrapped_Value;
                begin
                   --  Field-major coalesced layout: each section's label once,
                   --  then one value row per selected item (see Coalesced_Info_Rows
@@ -263,155 +258,6 @@ separate (Files.Rendering.Build_Frame_Commands)
                for Index in 1 .. Natural (Snapshot.Selected_Info.Length) loop
                   declare
                      Info   : constant Info_Snapshot := Snapshot.Selected_Info.Element (Positive (Index));
-                     Section_Offset : constant Natural := Saturating_Multiply (Section_Offset_Rows, Line_Height);
-                     Base_Y : constant Integer :=
-                       Saturating_Integer_Add
-                         (Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding)), Section_Offset);
-                     Row_Y  : constant Integer := Base_Y - Integer (Info_Pane.Scroll_Pixels);
-                     Text_X : constant Natural := Saturating_Add (Layout.Main_Width, Info_Pane_Padding);
-                     Info_Bottom : constant Natural := Saturating_Add (Info_Pane.Y, Info_Pane.Height);
-                     Reserved_W : constant Natural :=
-                       Saturating_Add
-                         ((if Info_Pane.Scrollbar_Visible then Info_Pane.Scrollbar_Width else 0),
-                          Saturating_Multiply (Info_Pane_Padding, 2));
-                     Text_W : constant Natural :=
-                       (if Layout.Info_Pane_Width > Reserved_W
-                        then Layout.Info_Pane_Width - Reserved_W
-                        else 0);
-
-                     procedure Add_Info_Text
-                       (Offset : Natural;
-                        Text   : UString;
-                        Color  : Render_Color := Text_Color;
-                        Fit    : Boolean := True)
-                     is
-                        Y : constant Integer :=
-                          Saturating_Integer_Add (Row_Y, Saturating_Multiply (Offset, Line_Height));
-                     begin
-                        if Y >= Integer (Info_Pane.Y)
-                          and then Y < Integer (Info_Bottom)
-                        then
-                           Add_Text
-                             (Text_X,
-                              Natural (Y),
-                              Text_W,
-                              Natural'Min (Line_Height, Info_Bottom - Natural (Y)),
-                              Text,
-                              Color,
-                              Fit => Fit);
-                        end if;
-                     end Add_Info_Text;
-
-                     procedure Add_Info_Label
-                       (Row : Natural;
-                        Key : String)
-                     is
-                        Text : constant UString := To_Unbounded_String (Files.Localization.Text (Key));
-                     begin
-                        Add_Info_Text (Row, Text, Text_Color);
-                        if Text_W > 1 then
-                           declare
-                              Y : constant Integer :=
-                                Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
-                           begin
-                              if Y >= Integer (Info_Pane.Y)
-                                and then Y < Integer (Info_Bottom)
-                              then
-                                 Add_Text
-                                   (Saturating_Add (Text_X, 1),
-                                    Natural (Y),
-                                    Text_W - 1,
-                                    Natural'Min (Line_Height, Info_Bottom - Natural (Y)),
-                                    Text,
-                                    Text_Color,
-                                    Fit => True);
-                              end if;
-                           end;
-                        end if;
-
-                        --  A "<key>.tooltip" catalog entry, when present, describes
-                        --  the section on hover.
-                        declare
-                           Tip_Key : constant String := Key & ".tooltip";
-                           Tip_Y   : constant Integer :=
-                             Saturating_Integer_Add (Row_Y, Saturating_Multiply (Row, Line_Height));
-                        begin
-                           if Text_W > 0
-                             and then Tip_Y >= Integer (Info_Pane.Y)
-                             and then Tip_Y < Integer (Info_Bottom)
-                             and then Files.Localization.Text (Tip_Key) /= Tip_Key
-                           then
-                              Add_Tooltip
-                                (Text_X,
-                                 Natural (Tip_Y),
-                                 Text_W,
-                                 Natural'Min (Line_Height, Info_Bottom - Natural (Tip_Y)),
-                                 Tip_Key);
-                           end if;
-                        end;
-                     end Add_Info_Label;
-
-                     procedure Add_Info_Wrapped_Value
-                       (Row   : Natural;
-                        Text  : UString;
-                        Color : Render_Color := Text_Color)
-                     is
-                        Raw        : constant String := To_String (Text);
-                        Cell_W     : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
-                        Capacity   : constant Natural := Text_W / Cell_W;
-                        Line_Index : Natural := 0;
-
-                        procedure Add_Wrapped_Segment
-                          (Segment_First : Integer;
-                           Segment_Last  : Integer)
-                        is
-                           Start : Integer := Segment_First;
-                        begin
-                           if Segment_Last < Segment_First then
-                              Line_Index := Saturating_Add (Line_Index, 1);
-                              return;
-                           end if;
-
-                           Start := Skip_Wrap_Whitespace (Raw, Start, Segment_Last);
-                           while Start <= Segment_Last loop
-                              declare
-                                 Last   : constant Integer :=
-                                   Wrapped_Line_Last (Raw, Start, Segment_Last, Capacity);
-                              begin
-                                 Add_Info_Text
-                                   (Saturating_Add (Row, Line_Index),
-                                    To_Unbounded_String (Raw (Start .. Last)),
-                                    Color,
-                                    Fit => False);
-                                 exit when Last >= Segment_Last;
-                                 Start := Skip_Wrap_Whitespace (Raw, Last + 1, Segment_Last);
-                                 Line_Index := Saturating_Add (Line_Index, 1);
-                              end;
-                           end loop;
-
-                           Line_Index := Saturating_Add (Line_Index, 1);
-                        end Add_Wrapped_Segment;
-
-                        Line_First : Integer := Raw'First;
-                     begin
-                        if Raw'Length = 0 or else Capacity = 0 then
-                           Add_Info_Text (Row, Text, Color, Fit => False);
-                           return;
-                        end if;
-
-                        for Position in Raw'Range loop
-                           if Raw (Position) = ASCII.LF then
-                              Add_Wrapped_Segment (Line_First, Position - 1);
-                              Line_First := Position + 1;
-                           end if;
-                        end loop;
-
-                        if Line_First <= Raw'Last then
-                           Add_Wrapped_Segment (Line_First, Raw'Last);
-                        elsif Raw (Raw'Last) = ASCII.LF then
-                           Add_Info_Text (Saturating_Add (Row, Line_Index), Null_Unbounded_String, Color, Fit => False);
-                        end if;
-                     end Add_Info_Wrapped_Value;
 
                      Current_Row : Natural := 0;
 
@@ -689,10 +535,6 @@ separate (Files.Rendering.Build_Frame_Commands)
                               Description);
                         end if;
                      end;
-                     Section_Offset_Rows :=
-                       Saturating_Add
-                         (Section_Offset_Rows,
-                          Info_Section_Row_Count (Info, Text_W, Line_Height));
                   end;
                end loop;
             end if;

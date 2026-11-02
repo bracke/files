@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 separate (Files_Suite.Model)
    procedure Test_Root_Selector_Settings_Exclusivity_And_Close (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -11,7 +12,7 @@ separate (Files_Suite.Model)
       Reset_Root;
       Ada.Directories.Create_Path (Target);
       Write_File (Join (Target, "inside.txt"));
-      Roots_A := Files.File_System.Available_Roots;
+      Roots_A := Files.File_System.Testing.Available_Roots;
       --  Open the selected root and come back to Root, so the selector starts
       --  closed over a navigated window.
       Entries.Append

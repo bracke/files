@@ -56,34 +56,15 @@ is
             end if;
             if Admitted then
                Items.Append
-                 (Directory_Item'(Name => To_Unbounded_String (Name),
-                   Full_Path          => To_Unbounded_String (Full),
-                   Parent_Path        => Normalized_Path,
-                   Hidden             => Name (Name'First) = '.',
-                   Kind               => Files.Types.Unknown_Item,
-                   Filetype           => To_Unbounded_String ("application/octet-stream"),
-                   Icon_Id            => To_Unbounded_String ("unknown"),
-                   Size_Available     => False,
-                   Size               => 0,
-                   Creation_Available => False,
-                   Creation_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
-                   Modified_Available => False,
-                   Modified_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
-                   Permissions        => Null_Unbounded_String,
-                   Mode_Available     => False,
-                   Mode_Bits          => 0,
-                   Ownership_Available => False,
-                   Owner_Id           => 0,
-                   Group_Id           => 0,
-                   Filetype_Extra     => Null_Unbounded_String,
-                   Filetype_Extra_Loaded => False,
-                   Thumbnail_Available => False,
-                   Thumbnail_Path      => Null_Unbounded_String,
-                   Thumbnail_Width     => 0,
-                   Thumbnail_Height    => 0,
-                   Thumbnail_Pixels    => Files.Shared_Bytes.Empty,
-                   Metadata_Error     => True,
-                   Error_Key          => To_Unbounded_String ("error.metadata.read")));
+                 (Directory_Item'(Name           => To_Unbounded_String (Name),
+                                  Full_Path      => To_Unbounded_String (Full),
+                                  Parent_Path    => Normalized_Path,
+                                  Hidden         => Name (Name'First) = '.',
+                                  Filetype       => To_Unbounded_String ("application/octet-stream"),
+                                  Icon_Id        => To_Unbounded_String ("unknown"),
+                                  Metadata_Error => True,
+                                  Error_Key      => To_Unbounded_String ("error.metadata.read"),
+                                  others         => <>));
             end if;
          exception
             when Fallback_Failure : others =>

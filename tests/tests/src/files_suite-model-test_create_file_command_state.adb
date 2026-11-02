@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Model)
@@ -12,7 +13,7 @@ separate (Files_Suite.Model)
       Write_File (Join (Root, "untitled.txt"));
       Write_File (Join (Root, "untitled 2.txt"));
       Files.Model.Initialize (Model, Root, Items, Root);
-      Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
+      Files.Model.Open_Root_Selector (Model, Files.File_System.Testing.Available_Roots);
       Files.Model.Open_Command_Palette (Model);
       Files.Model.Begin_Create_File (Model, "draft.txt");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "direct create adds temporary item");

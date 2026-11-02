@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 separate (Files_Suite.Model)
    procedure Test_Root_Selection_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -15,7 +16,7 @@ separate (Files_Suite.Model)
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector can reopen after palette Escape");
       Files.Model.Begin_Create_File (Model, "root-pending.txt");
-      Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
+      Files.Model.Open_Root_Selector (Model, Files.File_System.Testing.Available_Roots);
 
       Result := Files.Controller.Select_Root (Model, Settings, Join (Root, "missing-root"));
       Files_Suite.Support.Assert_Equal

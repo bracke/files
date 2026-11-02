@@ -15,10 +15,10 @@ separate (Files_Suite.Operations)
            (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Windows_Recycle_Bin,
             "trash backend can represent native Windows recycle-bin intent");
          Assert
-           (Files.File_System.Trash_Capabilities_Of_Current_Environment.Native_Platform,
+           (Files.File_System.Testing.Trash_Capabilities_Of_Current_Environment.Native_Platform,
             "native Windows trash backend reports native-platform intent");
          Assert
-           (not Files.File_System.Trash_Capabilities_Of_Current_Environment.Permanent_Delete,
+           (not Files.File_System.Testing.Trash_Capabilities_Of_Current_Environment.Permanent_Delete,
             "native trash capability does not opt into permanent deletion");
          declare
             Request : constant Files.File_System.Native_Trash_Request :=
@@ -36,48 +36,14 @@ separate (Files_Suite.Operations)
             then
                Assert (Native_Result.Supported,
                        "on Windows the native recycle-bin adapter is supported");
-               Assert (Native_Result.Native_Binding_Available,
-                       "on Windows the native trash binding is available");
-               Assert
-                 (Native_Result.Native_Binding_Status
-                    = Files.File_System.Native_API_Binding_Available,
-                  "on Windows the native trash binding reports available");
             else
                Assert (not Native_Result.Supported,
                        "off Windows the recycle-bin adapter is unsupported");
-               Assert (not Native_Result.Native_Binding_Available,
-                       "off Windows the Windows trash binding is unavailable");
-               Assert
-                 (Native_Result.Native_Binding_Status
-                    = Files.File_System.Native_API_Not_Target,
-                  "off Windows the Windows trash binding is not the target");
             end if;
 
             --  Evaluation never mutates, on any host.
             Assert (not Native_Result.Attempted, "native trash evaluation does not attempt mutation");
             Assert (not Native_Result.Completed, "native trash evaluation does not complete mutation");
-            Files_Suite.Support.Assert_Equal
-              (To_String (Native_Result.Binding_Unit),
-               "Hostkit.Trash",
-               "Windows native trash result records the unit that owns the binding");
-            Assert (not Native_Result.Desktop_Standard, "Windows native trash is not a desktop-standard fallback");
-            Assert (Native_Result.Uses_Recycle_Bin, "Windows native trash result records recycle-bin target");
-            Files_Suite.Support.Assert_Equal
-              (To_String (Native_Result.Adapter_Name),
-               "windows.recycle_bin",
-               "Windows native trash result records adapter name");
-            Files_Suite.Support.Assert_Equal
-              (To_String (Native_Result.Native_Api_Name),
-               "SHFileOperationW",
-               "Windows native trash result records the API it actually calls");
-            Files_Suite.Support.Assert_Equal
-              (To_String (Native_Result.Operation_Name),
-               "move_to_trash",
-               "native trash result records operation name");
-            Assert (Native_Result.Preserves_Metadata, "native trash result records metadata-preservation intent");
-            Assert
-              (not Native_Result.Requires_User_Consent,
-               "native trash result records no in-app consent requirement");
             --  An evaluation carries a diagnostic only when it has something to
             --  report. On Windows the adapter is right here and working, so there is
             --  nothing to say; everywhere else the "unavailable" key IS the finding.
@@ -99,13 +65,6 @@ separate (Files_Suite.Operations)
                Assert
                  (not Native_Execution.Completed,
                   "and it refuses a path that does not exist");
-               Assert
-                 (Native_Execution.Native_Binding_Available,
-                  "on Windows the binding stays available across execution");
-               Assert
-                 (Native_Execution.Native_Binding_Status
-                    = Files.File_System.Native_API_Binding_Available,
-                  "on Windows execution preserves binding status");
                Files_Suite.Support.Assert_Equal
                  (To_String (Native_Execution.Error_Key),
                   "error.trash.failed",
@@ -118,12 +77,6 @@ separate (Files_Suite.Operations)
                   "off Windows the evaluation reports native-unavailable");
                Assert (not Native_Execution.Supported, "native trash execution reports unsupported adapter");
                Assert (not Native_Execution.Attempted, "native trash execution does not attempt unsupported adapter");
-               Assert
-                 (not Native_Execution.Native_Binding_Available,
-                  "native trash execution reports unavailable binding");
-               Assert
-                 (Native_Execution.Native_Binding_Status = Files.File_System.Native_API_Not_Target,
-                  "native trash execution preserves binding status");
                Files_Suite.Support.Assert_Equal
                  (To_String (Native_Execution.Error_Key),
                   "error.trash.native_unavailable",

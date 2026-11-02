@@ -3,9 +3,7 @@ with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
-with GNAT.OS_Lib;
 with Files.Bounded_Streams;
-with Files.Descriptor_Streams;
 with Files.File_System;
 with Files.Fs_Primitives;
 with Files.Durable_Writes;
@@ -22,7 +20,6 @@ package body Files.Job_Context is
    use type Ada.Directories.File_Kind;
    use type Ada.Streams.Stream_Element_Offset;
    use type Files.Private_Directories.Create_Result;
-   use type GNAT.OS_Lib.File_Descriptor;
    use type Hostkit.Durability.Outcome;
    use type Hostkit.Lease_Files.Open_Outcome;
 
@@ -84,15 +81,7 @@ package body Files.Job_Context is
       end loop;
    end Write;
 
-   function Nul_Free (Value : String) return Boolean is
-   begin
-      for Item of Value loop
-         if Item = ASCII.NUL then
-            return False;
-         end if;
-      end loop;
-      return True;
-   end Nul_Free;
+   function Nul_Free (Value : String) return Boolean renames Files.Fs_Primitives.Nul_Free;
 
    function Valid_Absolute_Path (Path : String) return Boolean is
      (Files.Fs_Primitives.Valid_Absolute_Path (Path, Max_Record_Path_Length));
@@ -104,21 +93,7 @@ package body Files.Job_Context is
       Write_Record : not null access procedure
         (Stream : not null access Ada.Streams.Root_Stream_Type'Class))
    is
-      Output : aliased Files.Descriptor_Streams.Output_Stream;
       Temporary_Identity : Files.Types.UString;
-
-      procedure Remove_Owned_Temporary is
-      begin
-         if Length (Temporary_Identity) > 0
-           and then Files.File_Identities.Token (Temporary) =
-             To_String (Temporary_Identity)
-         then
-            Ada.Directories.Delete_File (Temporary);
-         end if;
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
-      end Remove_Owned_Temporary;
    begin
       if Hostkit.Fs.Is_Link (Temporary)
         or else Ada.Directories.Exists (Temporary)
@@ -128,46 +103,15 @@ package body Files.Job_Context is
       then
          raise Ada.Directories.Use_Error;
       end if;
-      Output.Descriptor :=
-        GNAT.OS_Lib.Create_New_File (Temporary, GNAT.OS_Lib.Binary);
-      if Output.Descriptor = GNAT.OS_Lib.Invalid_FD then
-         raise Ada.Directories.Use_Error;
-      end if;
-      Temporary_Identity := To_Unbounded_String
-        (Files.File_Identities.Token (Temporary));
-      if Length (Temporary_Identity) = 0 then
-         raise Ada.Directories.Use_Error;
-      end if;
-      Files.Private_Directories.Make_File_Private (Output.Descriptor);
-      Write_Record (Output'Access);
-      declare
-         Closed : Boolean;
-      begin
-         Files.Descriptor_Streams.Flush (Output);
-         GNAT.OS_Lib.Close (Output.Descriptor, Closed);
-         Output.Descriptor := GNAT.OS_Lib.Invalid_FD;
-         if not Closed then
-            raise Ada.Directories.Use_Error;
-         end if;
-      end;
-      if Files.File_Identities.Token (Temporary) /=
-        To_String (Temporary_Identity)
-      then
-         raise Ada.Directories.Use_Error;
-      end if;
+      Files.Durable_Writes.Write_Private_File (Temporary, Write_Record, Temporary_Identity);
       if not Files.Durable_Writes.Published
         (Files.Durable_Writes.Publish (Temporary, Target))
       then
          raise Ada.Directories.Use_Error;
       end if;
-      Temporary_Identity := Null_Unbounded_String;
    exception
       when others =>
-         if Output.Descriptor /= GNAT.OS_Lib.Invalid_FD then
-            GNAT.OS_Lib.Close (Output.Descriptor);
-            Output.Descriptor := GNAT.OS_Lib.Invalid_FD;
-         end if;
-         Remove_Owned_Temporary;
+         Files.Durable_Writes.Remove_Owned (Temporary, To_String (Temporary_Identity));
          raise;
    end Publish_Record;
 

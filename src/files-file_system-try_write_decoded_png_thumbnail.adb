@@ -31,15 +31,10 @@ separate (Files.File_System)
 
       function Is_Png_Signature return Boolean is
       begin
-         return Natural (Bytes.Length) >= 8
-           and then Byte_At (Bytes, 0) = 16#89#
-           and then Byte_At (Bytes, 1) = Character'Pos ('P')
-           and then Byte_At (Bytes, 2) = Character'Pos ('N')
-           and then Byte_At (Bytes, 3) = Character'Pos ('G')
-           and then Byte_At (Bytes, 4) = 16#0D#
-           and then Byte_At (Bytes, 5) = 16#0A#
-           and then Byte_At (Bytes, 6) = 16#1A#
-           and then Byte_At (Bytes, 7) = 16#0A#;
+         return Natural (Bytes.Length) >= PNG_Magic'Length
+           and then
+             (for all Index in PNG_Magic'Range =>
+                Byte_At (Bytes, Natural (Index - PNG_Magic'First)) = Natural (PNG_Magic (Index)));
       end Is_Png_Signature;
 
       function Chunk_Type

@@ -1,3 +1,4 @@
+with Ada.Calendar;
 with Ada.Containers.Vectors;
 with Ada.Strings.Unbounded;
 
@@ -6,6 +7,10 @@ with Hostkit.Metadata;
 
 --  Shared value types used across the files model, commands, and rendering.
 package Files.Types is
+   --  The time a record holds when it has none: a date no file carries, so
+   --  it is never mistaken for one (the matching Available flag says so too).
+   Unknown_Time : constant Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+
    subtype UString is Ada.Strings.Unbounded.Unbounded_String;
 
    package String_Vectors is new Ada.Containers.Vectors

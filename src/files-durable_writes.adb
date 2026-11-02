@@ -1,5 +1,11 @@
 with Ada.Directories;
+with Ada.Strings.Unbounded;
+with GNAT.OS_Lib;
+with Files.Descriptor_Streams;
+with Files.Diagnostics;
+with Files.File_Identities;
 with Files.Io_Errors;
+with Files.Private_Directories;
 with Hostkit.Fs;
 
 package body Files.Durable_Writes is
@@ -61,4 +67,57 @@ package body Files.Durable_Writes is
    begin
       return Publish (Temporary, Target, Step);
    end Publish;
+   procedure Remove_Owned (Temporary : String; Identity : String) is
+   begin
+      if Identity /= "" and then Files.File_Identities.Token (Temporary) = Identity then
+         Ada.Directories.Delete_File (Temporary);
+      end if;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Durable_Writes");
+   end Remove_Owned;
+
+   procedure Write_Private_File
+     (Temporary : String;
+      Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
+      Identity  : out Files.Types.UString)
+   is
+      use type GNAT.OS_Lib.File_Descriptor;
+      Output : aliased Files.Descriptor_Streams.Output_Stream;
+   begin
+      Identity := Files.Types.UString'(Ada.Strings.Unbounded.Null_Unbounded_String);
+      Output.Descriptor := GNAT.OS_Lib.Create_New_File (Temporary, GNAT.OS_Lib.Binary);
+      if Output.Descriptor = GNAT.OS_Lib.Invalid_FD then
+         raise Ada.Directories.Use_Error;
+      end if;
+      Identity := Ada.Strings.Unbounded.To_Unbounded_String (Files.File_Identities.Token (Temporary));
+      if Ada.Strings.Unbounded.Length (Identity) = 0 then
+         raise Ada.Directories.Use_Error;
+      end if;
+      Files.Private_Directories.Make_File_Private (Output.Descriptor);
+      Write (Output'Access);
+      declare
+         Closed : Boolean;
+      begin
+         Files.Descriptor_Streams.Flush (Output);
+         GNAT.OS_Lib.Close (Output.Descriptor, Closed);
+         Output.Descriptor := GNAT.OS_Lib.Invalid_FD;
+         if not Closed then
+            raise Ada.Directories.Use_Error;
+         end if;
+      end;
+      if Files.File_Identities.Token (Temporary) /= Ada.Strings.Unbounded.To_String (Identity) then
+         raise Ada.Directories.Use_Error;
+      end if;
+   exception
+      when others =>
+         if Output.Descriptor /= GNAT.OS_Lib.Invalid_FD then
+            GNAT.OS_Lib.Close (Output.Descriptor);
+            Output.Descriptor := GNAT.OS_Lib.Invalid_FD;
+         end if;
+         Remove_Owned (Temporary, Ada.Strings.Unbounded.To_String (Identity));
+         Identity := Ada.Strings.Unbounded.Null_Unbounded_String;
+         raise;
+   end Write_Private_File;
+
 end Files.Durable_Writes;

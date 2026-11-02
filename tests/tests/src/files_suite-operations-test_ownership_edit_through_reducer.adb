@@ -1,3 +1,4 @@
+with Hostkit.Metadata;
 separate (Files_Suite.Operations)
    procedure Test_Ownership_Edit_Through_Reducer (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -22,7 +23,7 @@ separate (Files_Suite.Operations)
 
       Reset_Root;
       Write_File (Target, "reduce me");
-      Files.File_System.Ownership_Of (Target, Uid, Gid, Avail);
+      Hostkit.Metadata.File_Ownership (Target, Uid, Gid, Avail);
       Assert (Avail, "ownership of the temp file is readable");
 
       Load := Files.File_System.Load_Directory (Root, Settings);

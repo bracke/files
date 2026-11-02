@@ -1,3 +1,4 @@
+with Hostkit.Metadata;
 separate (Files_Suite.Operations)
    procedure Test_Ownership_Name_Resolution (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -25,7 +26,7 @@ separate (Files_Suite.Operations)
          begin
             Reset_Root;
             Write_File (Owned, "owned");
-            Files.File_System.Ownership_Of (Owned, Uid, Gid, Avail);
+            Hostkit.Metadata.File_Ownership (Owned, Uid, Gid, Avail);
             Assert (Avail, "a file we just created has an owner");
 
             declare

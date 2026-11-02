@@ -1,4 +1,3 @@
-with Files.Diagnostics;
 with Ada.Containers;
 with Ada.Directories;
 with Ada.IO_Exceptions;
@@ -6,11 +5,8 @@ with Ada.Strings.Unbounded;
 with Ada.Streams;
 with GNAT.OS_Lib;
 with Files.Bounded_Streams;
-with Files.Descriptor_Streams;
 with Files.Durable_Writes;
-with Files.File_Identities;
 with Files.Lease_Streams;
-with Files.Private_Directories;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
 
@@ -18,7 +14,6 @@ package body Files.Copy_Context is
    use Ada.Strings.Unbounded;
    use type Ada.Containers.Count_Type;
    use type Ada.Directories.File_Kind;
-   use type GNAT.OS_Lib.File_Descriptor;
    use type Hostkit.Lease_Files.Open_Outcome;
 
    Links_Header : constant String := "files-copy-links-1";
@@ -125,21 +120,16 @@ package body Files.Copy_Context is
       --  and vector count so the writer cannot create a journal its reader
       --  must reject for exceeding Max_Links_File_Bytes.
       Total : Natural := Links_Header'Length + 32;
-      Output : aliased Files.Descriptor_Streams.Output_Stream;
       Temp_Identity : Unbounded_String;
 
-      procedure Remove_Owned_Temp is
+      procedure Write_Links (Output : not null access Ada.Streams.Root_Stream_Type'Class) is
       begin
-         if Length (Temp_Identity) > 0
-           and then Files.File_Identities.Token (Temp) =
-             To_String (Temp_Identity)
-         then
-            Ada.Directories.Delete_File (Temp);
-         end if;
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Copy_Context");
-      end Remove_Owned_Temp;
+         String'Output (Output, Links_Header);
+         Natural'Output (Output, Natural (Items.Length));
+         for Item of Items loop
+            String'Output (Output, To_String (Item));
+         end loop;
+      end Write_Links;
    begin
       if Path = "" then
          return;
@@ -166,34 +156,7 @@ package body Files.Copy_Context is
          end if;
          Total := Total + Length (Item) + 16;
       end loop;
-      Output.Descriptor :=
-        GNAT.OS_Lib.Create_New_File (Temp, GNAT.OS_Lib.Binary);
-      if Output.Descriptor = GNAT.OS_Lib.Invalid_FD then
-         raise Ada.Directories.Use_Error;
-      end if;
-      Temp_Identity := To_Unbounded_String (Files.File_Identities.Token (Temp));
-      if Length (Temp_Identity) = 0 then
-         raise Ada.Directories.Use_Error;
-      end if;
-      Files.Private_Directories.Make_File_Private (Output.Descriptor);
-      String'Output (Output'Access, Links_Header);
-      Natural'Output (Output'Access, Natural (Items.Length));
-      for Item of Items loop
-         String'Output (Output'Access, To_String (Item));
-      end loop;
-      declare
-         Closed : Boolean;
-      begin
-         Files.Descriptor_Streams.Flush (Output);
-         GNAT.OS_Lib.Close (Output.Descriptor, Closed);
-         Output.Descriptor := GNAT.OS_Lib.Invalid_FD;
-         if not Closed then
-            raise Ada.Directories.Use_Error;
-         end if;
-      end;
-      if Files.File_Identities.Token (Temp) /= To_String (Temp_Identity) then
-         raise Ada.Directories.Use_Error;
-      end if;
+      Files.Durable_Writes.Write_Private_File (Temp, Write_Links'Access, Temp_Identity);
       if not Files.Durable_Writes.Published
         (Files.Durable_Writes.Publish (Temp, Path))
       then
@@ -202,11 +165,7 @@ package body Files.Copy_Context is
       Temp_Identity := Null_Unbounded_String;
    exception
       when others =>
-         if Output.Descriptor /= GNAT.OS_Lib.Invalid_FD then
-            GNAT.OS_Lib.Close (Output.Descriptor);
-            Output.Descriptor := GNAT.OS_Lib.Invalid_FD;
-         end if;
-         Remove_Owned_Temp;
+         Files.Durable_Writes.Remove_Owned (Temp, To_String (Temp_Identity));
          raise;
    end Save;
 end Files.Copy_Context;

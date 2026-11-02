@@ -1,3 +1,4 @@
+with Hostkit.Metadata;
 separate (Files_Suite.Operations)
    procedure Test_Exclusive_New_Files (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -33,7 +34,7 @@ separate (Files_Suite.Operations)
             Available : Boolean;
          begin
             Ada.Directories.Create_Directory (Parent);
-            Files.File_System.Ownership_Of (Parent, User_Id, Group_Id, Available);
+            Hostkit.Metadata.File_Ownership (Parent, User_Id, Group_Id, Available);
             if Available and then User_Id /= 0 then
                Assert (Files.File_System.Set_Permissions (Parent, 8#555#).Success, "prepare a read-only parent");
                Mutation := Files.File_System.Create_Empty_File (Join (Parent, "child"));

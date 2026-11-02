@@ -1,3 +1,5 @@
+with Ada.Streams;
+with Files.Types;
 with Hostkit.Durability;
 
 --  Crash-safe publication of a completely written temporary file.
@@ -39,6 +41,27 @@ package Files.Durable_Writes is
    --  @return True when publication reached the host's durability boundary.
    function Durable (Result : Publication_Result) return Boolean is
      (Result = Published_Durable);
+
+   --  Write a private record file to be published: create Temporary anew
+   --  (never over an entry already there), owner-only, write it through
+   --  Write, flush and close it, and check it is still the file created.
+   --  Raises Ada.Directories.Use_Error on any failure, having removed what
+   --  it created. The caller checks the paths beforehand and publishes after.
+   --
+   --  @param Temporary Path to create; nothing may exist there.
+   --  @param Write Writes the record to the stream given.
+   --  @param Identity Set to the file's identity token, for Remove_Owned.
+   procedure Write_Private_File
+     (Temporary : String;
+      Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class);
+      Identity  : out Files.Types.UString);
+
+   --  Remove Temporary if it is still the file Write_Private_File made
+   --  (Identity matches), after a refused publish; never raises.
+   --
+   --  @param Temporary The written file's path.
+   --  @param Identity The identity Write_Private_File returned; "" does nothing.
+   procedure Remove_Owned (Temporary : String; Identity : String);
 
 private
    function Outcome_Of

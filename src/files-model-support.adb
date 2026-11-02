@@ -458,7 +458,7 @@ package body Files.Model.Support is
          Exists                => True,
          Entry_Count           => Natural (Items.Length),
          Entry_State_Checksum  => 0,
-         Latest_Modified       => Ada.Calendar.Time_Of (1901, 1, 1),
+         Latest_Modified       => Files.Types.Unknown_Time,
          Latest_Modified_Known => False);
 
       function Item_Checksum

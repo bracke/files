@@ -23,9 +23,9 @@ package Files.Items is
       Size_Available     : Boolean := False;
       Size               : Long_Long_Integer := 0;
       Creation_Available : Boolean := False;
-      Creation_Time      : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+      Creation_Time      : Ada.Calendar.Time := Files.Types.Unknown_Time;
       Modified_Available : Boolean := False;
-      Modified_Time      : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+      Modified_Time      : Ada.Calendar.Time := Files.Types.Unknown_Time;
       Permissions        : UString;
       Mode_Available     : Boolean := False;
       Mode_Bits          : Natural := 0;

@@ -19,13 +19,7 @@ separate (Files.Controller)
       if Files.Model.Focus (Model) = Files.Types.Focus_Rename_Input then
          declare
             Deleted : constant Boolean :=
-              (case Direction is
-                  when Delete_Backward =>
-                    (if By_Word then Files.Model.Rename_Delete_Word_Backward (Model)
-                     else Files.Model.Rename_Delete_Backward (Model)),
-                  when Delete_Forward =>
-                    (if By_Word then Files.Model.Rename_Delete_Word_Forward (Model)
-                     else Files.Model.Rename_Delete_Forward (Model)));
+              Files.Model.Rename_Delete (Model, Backward => Direction = Delete_Backward, By_Word => By_Word);
          begin
             return Make_Result
               (if Deleted then Controller_Text_Updated else Controller_Ignored);

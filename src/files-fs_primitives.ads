@@ -8,6 +8,13 @@ with GNAT.OS_Lib;
 --  than a private child of Files.File_System.
 package Files.Fs_Primitives is
 
+   --  Whether Value holds no NUL byte, which no path or record field may.
+   --
+   --  @param Value Text to check.
+   --  @return True when Value has no NUL.
+   function Nul_Free (Value : String) return Boolean is
+     (for all Item of Value => Item /= ASCII.NUL);
+
    --  Whether Path is fit to hand to a helper or write into a record: not
    --  empty, at most Max_Length bytes, no NUL, absolute. One rule, so the
    --  job transports' checks cannot drift apart.

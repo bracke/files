@@ -267,6 +267,10 @@ package body Files.File_System is
      (Path : String; Max_Bytes : Natural; Success : out Boolean) return String
    is separate;
 
+   PNG_Magic    : constant Ada.Streams.Stream_Element_Array (1 .. 8) :=
+     --  89 'P' 'N' 'G' CR LF 1A LF
+     [16#89#, 16#50#, 16#4E#, 16#47#, 16#0D#, 16#0A#, 16#1A#, 16#0A#];
+
    function Image_Bytes_Extent
      (Data   : Ada.Streams.Stream_Element_Array;
       Width  : out Natural;
@@ -421,10 +425,6 @@ package body Files.File_System is
    Script_Magic : constant Ada.Streams.Stream_Element_Array (1 .. 2) :=
      [16#23#, 16#21#];                   --  '#' '!'
 
-   PNG_Magic    : constant Ada.Streams.Stream_Element_Array (1 .. 8) :=
-     --  89 'P' 'N' 'G' CR LF 1A LF
-     [16#89#, 16#50#, 16#4E#, 16#47#, 16#0D#, 16#0A#, 16#1A#, 16#0A#];
-
    function Load_Cached_Thumbnail
      (Path : String)
       return Cached_Thumbnail;
@@ -567,7 +567,7 @@ package body Files.File_System is
       procedure Keep (Directory : String; Stamp : Ada.Calendar.Time; Index : Cache_Index);
    private
       Kept_Directory : Unbounded_String;
-      Kept_Stamp     : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+      Kept_Stamp     : Ada.Calendar.Time := Files.Types.Unknown_Time;
       Kept_Index     : Cache_Index;
       Valid          : Boolean := False;
    end Cache_Index_Memo;
@@ -818,34 +818,14 @@ package body Files.File_System is
       Filetype : constant String := Files.File_Types.Detect_Filetype (Settings, Kind, Name);
    begin
       return
-        (Name               => To_Unbounded_String (Name),
-         Full_Path          => To_Unbounded_String (Join_Path (Parent_Path, Name)),
-         Parent_Path        => To_Unbounded_String (Parent_Path),
-         Hidden             => Name'Length > 0 and then Name (Name'First) = '.',
-         Kind               => Kind,
-         Filetype           => To_Unbounded_String (Filetype),
-         Icon_Id            => To_Unbounded_String (Files.File_Types.Icon_Id_For (Settings, Kind, Filetype)),
-         Size_Available     => False,
-         Size               => 0,
-         Creation_Available => False,
-         Creation_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
-         Modified_Available => False,
-         Modified_Time      => Ada.Calendar.Time_Of (1901, 1, 1),
-         Permissions        => Null_Unbounded_String,
-         Mode_Available     => False,
-         Mode_Bits          => 0,
-         Ownership_Available => False,
-         Owner_Id           => 0,
-         Group_Id           => 0,
-         Filetype_Extra     => Null_Unbounded_String,
-         Filetype_Extra_Loaded => False,
-         Thumbnail_Available => False,
-         Thumbnail_Path      => Null_Unbounded_String,
-         Thumbnail_Width     => 0,
-         Thumbnail_Height    => 0,
-         Thumbnail_Pixels    => Files.Shared_Bytes.Empty,
-         Metadata_Error     => False,
-         Error_Key          => Null_Unbounded_String);
+        (Name        => To_Unbounded_String (Name),
+         Full_Path   => To_Unbounded_String (Join_Path (Parent_Path, Name)),
+         Parent_Path => To_Unbounded_String (Parent_Path),
+         Hidden      => Name'Length > 0 and then Name (Name'First) = '.',
+         Kind        => Kind,
+         Filetype    => To_Unbounded_String (Filetype),
+         Icon_Id     => To_Unbounded_String (Files.File_Types.Icon_Id_For (Settings, Kind, Filetype)),
+         others      => <>);
    end Make_Item;
 
    function Directory_Size
@@ -944,8 +924,6 @@ package body Files.File_System is
    function Trash_Is_Available return Boolean is separate;
 
    function Trash_Backend_Of_Current_Environment return Trash_Backend is separate;
-
-   function Trash_Capabilities_Of_Current_Environment return Trash_Capabilities is separate;
 
    function Evaluate_Native_Trash
      (Request : Native_Trash_Request)
@@ -1185,10 +1163,6 @@ package body Files.File_System is
 
    function Available_Root_Entries return Root_Entry_Vectors.Vector is separate;
 
-   function Available_Roots return Files.Types.String_Vectors.Vector is separate;
-
-   function Root_Discovery_Status return Root_Discovery_Diagnostics is separate;
-
    procedure Volume_Size_For
      (Path : String;
       Info : out Volume_Size_Info)
@@ -1203,11 +1177,28 @@ package body Files.File_System is
 
    function Mutation_Leaf_Name (Path : String) return String;
 
-   function Validate_Link_Destination
-     (Link_Path : String)
+   --  Whether Path can take a new entry: not empty (else Empty_Key), a leaf
+   --  name the destination accepts (stores, when Storable; is valid,
+   --  otherwise), nothing there yet, inside an existing directory.
+   function Validate_New_Entry
+     (Path      : String;
+      Empty_Key : String;
+      Storable  : Boolean := False)
       return Mutation_Result;
 
+   function Validate_Link_Destination
+     (Link_Path : String)
+      return Mutation_Result is
+     (Validate_New_Entry (Link_Path, "error.link.failed", Storable => True));
+
    function Mutation_Leaf_Name (Path : String) return String is separate;
+
+   function Validate_New_Entry
+     (Path      : String;
+      Empty_Key : String;
+      Storable  : Boolean := False)
+      return Mutation_Result
+   is separate;
 
    function Create_Empty_File
      (Path : String)
@@ -1223,11 +1214,6 @@ package body Files.File_System is
      (From_Path : String;
       To_Path   : String;
       Expected_Identity : String := "")
-      return Mutation_Result
-   is separate;
-
-   function Validate_Link_Destination
-     (Link_Path : String)
       return Mutation_Result
    is separate;
 
@@ -1266,12 +1252,6 @@ package body Files.File_System is
    is separate;
 
    function Supports_Ownership return Boolean is separate;
-
-   procedure Ownership_Of
-     (Path      : String;
-      User_Id   : out Files.Types.Account_Id;
-      Group_Id  : out Files.Types.Account_Id;
-      Available : out Boolean) is separate;
 
    function User_Id_For_Name
      (Name  : String;

@@ -1,3 +1,4 @@
+with Files.Helper_Modes;
 with Files.Diagnostics;
 with Ada.Directories;
 with Ada.Containers.Indefinite_Hashed_Sets;
@@ -20,6 +21,7 @@ with Hostkit.Signals;
 with Hostkit.Spawn;
 
 package body Files.Job_Scavenger is
+   use Files.Helper_Modes;
    use Ada.Strings.Unbounded;
    use type Files.Job_Cleanup.Cleanup_Outcome;
    use type Files.Job_Transports.Claim_Outcome;
@@ -287,7 +289,7 @@ package body Files.Job_Scavenger is
          Arguments : Hostkit.String_Vectors.Vector;
       begin
          Retry_Pending := False;
-         Arguments.Append (To_Unbounded_String ("--files-scavenge"));
+         Arguments.Append (To_Unbounded_String (Flag (Scavenge)));
          Active := Length (Program) > 0
            and then Hostkit.Spawn.Start
              (To_String (Program), Arguments, (others => <>),
@@ -369,7 +371,7 @@ package body Files.Job_Scavenger is
                         declare
                            Arguments : Hostkit.String_Vectors.Vector;
                         begin
-                           Arguments.Append (To_Unbounded_String ("--files-scavenge"));
+                           Arguments.Append (To_Unbounded_String (Flag (Scavenge)));
                            Attempts := Attempts + 1;
                            Active := Hostkit.Spawn.Start
                              (To_String (Monitored_Program), Arguments, (others => <>),

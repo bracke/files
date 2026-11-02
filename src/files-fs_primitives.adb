@@ -11,7 +11,7 @@ package body Files.Fs_Primitives is
    begin
       return Path /= ""
         and then Path'Length <= Max_Length
-        and then (for all Value of Path => Value /= ASCII.NUL)
+        and then Nul_Free (Path)
         and then GNAT.OS_Lib.Is_Absolute_Path (Path);
    exception
       when others =>

@@ -74,6 +74,7 @@ with Files.Model;
 with Files.Operation_Jobs.Testing;
 with Files.Icon_Assets;
 with Files.Operations;
+with Files.Operations.Testing;
 with Files.Paste;
 with Hostkit.Fs;
 with Hostkit.Metadata;
@@ -101,11 +102,10 @@ package body Files_Suite.Operations is
    use type Files.Private_Directories.Create_Result;
    use type Files.Job_Transports.Claim_Outcome;
    use type Files.Events.Input_Action_Kind;
-   use type Files.File_System.Native_API_Binding_Status;
    use type Files.File_System.Drop_Import_Mode;
    use type Files.File_System.Thumbnail_Status;
    use type Files.File_System.Trash_Backend;
-   use type Files.Operations.Open_Action_Lifecycle_State;
+   use type Files.Operations.Testing.Open_Action_Lifecycle_State;
    use type Files.Operations.Operation_Status;
    use type Files.Operations.Archive_Format;
    use type Guikit.Draw.Accessibility_Role;
@@ -703,7 +703,7 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Open_Selected_Directory_Loads_Items'Access, "open directory loads and navigates");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Open_Action_Policy'Access, "open-action policy records its execution contract");
+        (T, Test_Open_Action_Policy'Access, "a generic failed operation is not an open-action preflight failure");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Open_Selected_File_Prepares_Action'Access, "open file executes configured action");
       AUnit.Test_Cases.Registration.Register_Routine

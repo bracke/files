@@ -1279,35 +1279,17 @@ package body Files.Model is
       return Boolean
    is separate;
 
-   function Rename_Delete_Backward
-     (Model : in out Window_Model)
-      return Boolean
-   is separate;
-
-   function Rename_Delete_Forward
-     (Model : in out Window_Model)
-      return Boolean
-   is separate;
-
-   function Rename_Delete_Word_Backward
-     (Model : in out Window_Model)
-      return Boolean
-   is separate;
-
-   function Rename_Delete_Word_Forward
-     (Model : in out Window_Model)
+   function Rename_Delete
+     (Model    : in out Window_Model;
+      Backward : Boolean;
+      By_Word  : Boolean := False)
       return Boolean
    is separate;
 
    function Rename_Move_All_Carets
      (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
-      return Boolean
-   is separate;
-
-   function Rename_Move_All_Carets_Word
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
+      Direction : Guikit.Input.Navigation_Direction;
+      By_Word   : Boolean := False)
       return Boolean
    is separate;
 

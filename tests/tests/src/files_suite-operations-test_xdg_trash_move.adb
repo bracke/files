@@ -34,24 +34,9 @@ separate (Files_Suite.Operations)
             Assert (Native_Execution.Supported, "XDG trash execution reports supported adapter");
             Assert (Native_Execution.Attempted, "XDG trash execution attempts mutation");
             Assert (Native_Execution.Completed, "XDG trash execution completes mutation");
-            Assert (Native_Execution.Desktop_Standard, "XDG trash execution reports desktop-standard backend");
-            Assert
-              (not Native_Execution.Native_Binding_Available,
-               "XDG trash execution does not claim OS-specific native binding");
-            Assert
-              (Native_Execution.Native_Binding_Status = Files.File_System.Native_API_Binding_Missing,
-               "XDG trash execution reports no OS-specific native binding");
-            Files_Suite.Support.Assert_Equal
-              (To_String (Native_Execution.Binding_Unit),
-               "Files.File_System.Move_To_Trash",
-               "XDG trash execution records binding unit");
             Assert
               (not Ada.Directories.Exists (Join (Root, "native-execute.txt")),
                "XDG trash execution moves source entry");
-            Files_Suite.Support.Assert_Equal
-              (To_String (Native_Execution.Adapter_Name),
-               "xdg.trash",
-               "XDG trash execution records adapter name");
             Files_Suite.Support.Assert_Equal
               (To_String (Native_Execution.Error_Key),
                "",

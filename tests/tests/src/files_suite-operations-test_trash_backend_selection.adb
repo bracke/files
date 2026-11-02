@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Trash_Backend_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -41,7 +42,7 @@ separate (Files_Suite.Operations)
          end if;
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
          Assert
-           (not Files.File_System.Trash_Capabilities_Of_Current_Environment.Metadata_Sidecar,
+           (not Files.File_System.Testing.Trash_Capabilities_Of_Current_Environment.Metadata_Sidecar,
             "unavailable trash backend reports no metadata sidecar support");
          Write_File (Join (Root, "blocked-trash-parent"));
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Join (Root, "blocked-trash-parent"), "xdg"));
@@ -77,10 +78,10 @@ separate (Files_Suite.Operations)
            (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Xdg_Data_Home,
             "trash backend reports XDG data home when configured");
          Assert
-           (Files.File_System.Trash_Capabilities_Of_Current_Environment.Metadata_Sidecar,
+           (Files.File_System.Testing.Trash_Capabilities_Of_Current_Environment.Metadata_Sidecar,
             "XDG trash backend reports trashinfo sidecar support");
          Assert
-           (Files.File_System.Trash_Capabilities_Of_Current_Environment.Collision_Safe_Name,
+           (Files.File_System.Testing.Trash_Capabilities_Of_Current_Environment.Collision_Safe_Name,
             "XDG trash backend reports collision-safe naming");
          --  "/" is not a root on Windows; the drive is.
          Mutation := Files.File_System.Move_To_Trash_Preflight (Filesystem_Root);

@@ -53,13 +53,6 @@ package body Files.Operations is
 
    use Files.Operations.Support;
 
-   function Open_Action_Policy return Open_Action_Execution_Policy is separate;
-
-   function Open_Action_Lifecycle_Of
-     (Result : Operation_Result)
-      return Open_Action_Lifecycle
-   is separate;
-
    function Unsafe_Open_Action
      (Model : in out Files.Model.Window_Model;
       Path  : String)

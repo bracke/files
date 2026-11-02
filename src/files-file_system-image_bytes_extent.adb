@@ -8,10 +8,8 @@ is
    use type Ada.Streams.Stream_Element;
    use type Ada.Streams.Stream_Element_Offset;
 
-   --  PNG: an 8-byte signature, then IHDR's length and type, then width and
-   --  height as big-endian 32-bit values at fixed offsets 16 and 20.
-   Signature : constant Ada.Streams.Stream_Element_Array (0 .. 7) :=
-     [16#89#, 16#50#, 16#4E#, 16#47#, 16#0D#, 16#0A#, 16#1A#, 16#0A#];
+   --  PNG: the 8-byte signature (PNG_Magic), then IHDR's length and type,
+   --  then width and height as big-endian 32-bit values at offsets 16 and 20.
 
    function U32_At (Offset : Ada.Streams.Stream_Element_Offset) return Natural is
      (Natural (Data (Data'First + Offset)) * 16#100_0000#
@@ -26,11 +24,9 @@ begin
       return False;
    end if;
 
-   for Index in Signature'Range loop
-      if Data (Data'First + Index) /= Signature (Index) then
-         return False;
-      end if;
-   end loop;
+   if Ada.Streams."/=" (Data (Data'First .. Data'First + PNG_Magic'Length - 1), PNG_Magic) then
+      return False;
+   end if;
 
    declare
       W : constant Natural := U32_At (16);

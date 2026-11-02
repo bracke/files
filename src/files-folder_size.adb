@@ -1,3 +1,4 @@
+with Files.Helper_Modes;
 with Files.Fs_Primitives;
 with Ada.Directories;
 with Ada.Containers.Hashed_Sets;
@@ -163,7 +164,7 @@ package body Files.Folder_Size is
             Write_Request
               (File'Access, To_String (Scan.Target_Path));
             Files.Exclusive_Streams.Close (File);
-            Files.Process_Jobs.Launch (Scan.Job, "--files-folder-size");
+            Files.Process_Jobs.Launch (Scan.Job, Files.Helper_Modes.Flag (Files.Helper_Modes.Folder_Size));
             return;
          exception
             when others =>

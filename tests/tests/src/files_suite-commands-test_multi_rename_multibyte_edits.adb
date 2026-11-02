@@ -27,7 +27,7 @@ separate (Files_Suite.Commands)
          "both selected names are being renamed");
 
       Moved := Files.Model.Rename_Set_All_Carets_Home (Model);
-      Assert (Files.Model.Rename_Delete_Forward (Model), "Delete removes one letter (a field changed)");
+      Assert (Files.Model.Rename_Delete (Model, Backward => False), "Delete removes one letter (a field changed)");
       Assert (Name (1) = U8 ("afé über.txt") and then Name (2) = U8 ("aïve ölig.txt"), "Delete removes one letter");
       Assert
         (Files.Model.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right),
@@ -36,19 +36,19 @@ separate (Files_Suite.Commands)
         (Files.Model.Rename_Move_All_Carets (Model, Guikit.Input.Move_Right),
          "Delete after a multibyte letter takes the whole next letter (second caret move)");
       Assert
-        (Files.Model.Rename_Delete_Forward (Model),
+        (Files.Model.Rename_Delete (Model, Backward => False),
          "Delete after a multibyte letter takes the whole next letter (a field changed)");
       Assert (Name (1) = U8 ("af über.txt") and then Name (2) = U8 ("aïe ölig.txt"),
               "Delete after a multibyte letter takes the whole next letter");
       Assert
-        (Files.Model.Rename_Delete_Backward (Model),
+        (Files.Model.Rename_Delete (Model, Backward => True),
          "Backspace takes the whole multibyte letter before the caret (a field changed)");
       Assert (Name (1) = U8 ("a über.txt") and then Name (2) = U8 ("ae ölig.txt"),
               "Backspace takes the whole multibyte letter before the caret");
 
       Moved := Files.Model.Rename_Set_All_Carets_Home (Model);
       Assert
-        (Files.Model.Rename_Delete_Word_Forward (Model),
+        (Files.Model.Rename_Delete (Model, Backward => False, By_Word => True),
          "Ctrl+Delete removes the first word and leaves the next one whole (a field changed)");
       Assert (All_Valid, "Ctrl+Delete removes the first word and leaves the next one whole (valid UTF-8)");
       Assert
@@ -59,7 +59,7 @@ separate (Files_Suite.Commands)
          "Ctrl+Delete removes the first word and leaves the next one whole (second name)");
       Moved := Files.Model.Rename_Set_All_Carets_End (Model);
       Assert
-        (Files.Model.Rename_Delete_Word_Backward (Model),
+        (Files.Model.Rename_Delete (Model, Backward => True, By_Word => True),
          "Ctrl+Backspace leaves every name valid UTF-8 (a field changed)");
       Assert (All_Valid, "Ctrl+Backspace leaves every name valid UTF-8");
    end Test_Multi_Rename_Multibyte_Edits;

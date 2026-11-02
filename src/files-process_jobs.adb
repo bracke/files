@@ -1,3 +1,4 @@
+with Files.Helper_Modes;
 with Files.Diagnostics;
 with Files.Timing;
 with Ada.Directories;
@@ -263,7 +264,7 @@ package body Files.Process_Jobs is
 
       function Launch_Cleanup return Boolean is
       begin
-         Arguments.Append (To_Unbounded_String ("--files-cleanup"));
+         Arguments.Append (To_Unbounded_String (Files.Helper_Modes.Flag (Files.Helper_Modes.Cleanup)));
          Arguments.Append (Item.Directory);
          Arguments.Append (Item.Identity);
          if Hostkit.Spawn.Start

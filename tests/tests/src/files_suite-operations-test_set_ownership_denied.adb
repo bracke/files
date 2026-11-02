@@ -1,3 +1,4 @@
+with Hostkit.Metadata;
 separate (Files_Suite.Operations)
    procedure Test_Set_Ownership_Denied (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,7 +18,7 @@ separate (Files_Suite.Operations)
 
       Reset_Root;
       Write_File (Target, "deny me");
-      Files.File_System.Ownership_Of (Target, Uid, Gid, Avail);
+      Hostkit.Metadata.File_Ownership (Target, Uid, Gid, Avail);
       Assert (Avail, "ownership of the temp file is readable");
 
       Load := Files.File_System.Load_Directory (Root, Settings);
@@ -46,7 +47,7 @@ separate (Files_Suite.Operations)
             Now_Uid, Now_Gid : Files.Types.Account_Id := 0;
             Now_Avail        : Boolean := False;
          begin
-            Files.File_System.Ownership_Of (Target, Now_Uid, Now_Gid, Now_Avail);
+            Hostkit.Metadata.File_Ownership (Target, Now_Uid, Now_Gid, Now_Avail);
             Assert (Now_Avail, "a denied chown leaves the file ownership unchanged: ownership readable");
             Assert (Now_Uid = Uid, "a denied chown leaves the file ownership unchanged: uid");
             Assert (Now_Gid = Gid, "a denied chown leaves the file ownership unchanged: gid");

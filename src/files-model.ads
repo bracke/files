@@ -2007,56 +2007,29 @@ package Files.Model is
       Text  : String)
       return Boolean;
 
-   --  Delete the character before every rename field's caret.
+   --  Delete, at every rename field's caret, the character or word before
+   --  it (Backward) or after it.
    --
    --  @param Model Model to update.
-   --  @return True when any field changed.
-   function Rename_Delete_Backward
-     (Model : in out Window_Model)
+   --  @param Backward Delete before the caret; otherwise at it.
+   --  @param By_Word A word rather than one character.
+   --  @return True when any field changed (the revision moves only then).
+   function Rename_Delete
+     (Model    : in out Window_Model;
+      Backward : Boolean;
+      By_Word  : Boolean := False)
       return Boolean;
 
-   --  Delete the character at every rename field's caret.
-   --
-   --  @param Model Model to update.
-   --  @return True when any field changed.
-   function Rename_Delete_Forward
-     (Model : in out Window_Model)
-      return Boolean;
-
-   --  Delete the word before every rename field's caret.
-   --
-   --  @param Model Model to update.
-   --  @return True when any field changed.
-   function Rename_Delete_Word_Backward
-     (Model : in out Window_Model)
-      return Boolean;
-
-   --  Delete the word at every rename field's caret.
-   --
-   --  @param Model Model to update.
-   --  @return True when any field changed.
-   function Rename_Delete_Word_Forward
-     (Model : in out Window_Model)
-      return Boolean;
-
-   --  Move every rename field's caret one text boundary in Direction.
+   --  Move every rename field's caret one character or word in Direction.
    --
    --  @param Model Model to update.
    --  @param Direction Left/Up moves back, Right/Down moves forward.
-   --  @return True when any caret moved.
+   --  @param By_Word To the next word boundary rather than the next character.
+   --  @return True when any caret moved (the revision moves only then).
    function Rename_Move_All_Carets
      (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
-      return Boolean;
-
-   --  Move every rename field's caret one word boundary in Direction.
-   --
-   --  @param Model Model to update.
-   --  @param Direction Left/Up moves back, Right/Down moves forward.
-   --  @return True when any caret moved.
-   function Rename_Move_All_Carets_Word
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
+      Direction : Guikit.Input.Navigation_Direction;
+      By_Word   : Boolean := False)
       return Boolean;
 
    --  Move every rename field's caret to the start of its text.
@@ -3412,7 +3385,7 @@ private
       --  was last checked at.
       Group_Mode_Value      : Files.Types.Group_Mode := Files.Types.No_Grouping;
       Group_Labels          : Files.Settings.Path_Label_Vectors.Vector;
-      Group_Day             : Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
+      Group_Day             : Ada.Calendar.Time := Files.Types.Unknown_Time;
       Group_Synced_Revision : Natural := Natural'Last;
       --  Narrower generation used to reject stale background directory reads
       --  without treating harmless interaction as a listing-context change.

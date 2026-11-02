@@ -1,3 +1,4 @@
+with Files.Helper_Modes;
 with Files.Fs_Primitives;
 with Files.Diagnostics;
 with Ada.Directories;
@@ -288,7 +289,7 @@ package body Files.Transfer_Jobs is
       Write_Request
         (File'Access, Action, Mode, Files.Copy_Context.Directory (Batch));
       Files.Exclusive_Streams.Close (File);
-      Files.Process_Jobs.Launch (Job.Process, "--files-transfer");
+      Files.Process_Jobs.Launch (Job.Process, Files.Helper_Modes.Flag (Files.Helper_Modes.Transfer));
    exception
       when others =>
          Files.Exclusive_Streams.Close_Safely (File);

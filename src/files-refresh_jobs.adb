@@ -1,3 +1,4 @@
+with Files.Helper_Modes;
 with Files.Items;
 with Files.Fs_Primitives;
 with Files.Diagnostics;
@@ -47,15 +48,7 @@ package body Files.Refresh_Jobs is
       Error_Key : Files.Types.UString;
    end record;
 
-   function Nul_Free (Value : String) return Boolean is
-   begin
-      for Item of Value loop
-         if Item = ASCII.NUL then
-            return False;
-         end if;
-      end loop;
-      return True;
-   end Nul_Free;
+   function Nul_Free (Value : String) return Boolean renames Files.Fs_Primitives.Nul_Free;
 
    function Valid_Absolute_Path (Path : String) return Boolean is
      (Files.Fs_Primitives.Valid_Absolute_Path (Path));
@@ -284,7 +277,7 @@ package body Files.Refresh_Jobs is
       Write_Request (File'Access, Work);
       Files.Job_Records.Validate_Size (Files.Exclusive_Streams.Size (File));
       Files.Exclusive_Streams.Close (File);
-      Files.Process_Jobs.Launch (Job, "--files-refresh");
+      Files.Process_Jobs.Launch (Job, Files.Helper_Modes.Flag (Files.Helper_Modes.Refresh));
       Files.Model.Set_Background_Refresh (Model, Job);
       --  This read covers the current view, so any reload owed to it is paid.
       Files.Model.Clear_Owed_Refresh (Model);
@@ -582,7 +575,7 @@ package body Files.Refresh_Jobs is
       Files.Job_Records.Write_String
         (File'Access, Path, Max_Watch_Path_Length);
       Files.Exclusive_Streams.Close (File);
-      Files.Process_Jobs.Launch (Job.Process, "--files-watch");
+      Files.Process_Jobs.Launch (Job.Process, Files.Helper_Modes.Flag (Files.Helper_Modes.Watch));
       Job.Path := To_Unbounded_String (Path);
    exception
       when others =>

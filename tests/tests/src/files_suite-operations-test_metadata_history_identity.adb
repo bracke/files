@@ -1,3 +1,4 @@
+with Hostkit.Metadata;
 separate (Files_Suite.Operations)
    procedure Test_Metadata_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -56,7 +57,7 @@ separate (Files_Suite.Operations)
                if Kind < 3 then
                   Step := Files.Operations.Set_Permissions_For (Model, (if Kind = 1 then 0 else 8#600#), Settings);
                else
-                  Files.File_System.Ownership_Of (Source, Uid, Gid, Available);
+                  Hostkit.Metadata.File_Ownership (Source, Uid, Gid, Available);
                   Assert (Available, "read the current owner");
                   Step := Files.Operations.Set_Ownership_For (Model, Uid, Gid, Settings);
                end if;

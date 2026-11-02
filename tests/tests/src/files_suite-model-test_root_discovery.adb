@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 separate (Files_Suite.Model)
    procedure Test_Root_Discovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5,7 +6,7 @@ separate (Files_Suite.Model)
       Roots_A  : Files.Types.String_Vectors.Vector;
       Roots_B  : Files.Types.String_Vectors.Vector;
       Entries  : Files.File_System.Root_Entry_Vectors.Vector;
-      Root_Status : Files.File_System.Root_Discovery_Diagnostics;
+      Root_Status : Files.File_System.Testing.Root_Discovery_Diagnostics;
 
       function Starts_With
         (Text   : String;
@@ -35,10 +36,10 @@ separate (Files_Suite.Model)
       Reset_Root;
       Ada.Directories.Create_Path (Target);
       Write_File (Join (Target, "inside.txt"));
-      Roots_A := Files.File_System.Available_Roots;
-      Roots_B := Files.File_System.Available_Roots;
+      Roots_A := Files.File_System.Testing.Available_Roots;
+      Roots_B := Files.File_System.Testing.Available_Roots;
       Entries := Files.File_System.Available_Root_Entries;
-      Root_Status := Files.File_System.Root_Discovery_Status;
+      Root_Status := Files.File_System.Testing.Root_Discovery_Status;
       Assert (not Roots_A.Is_Empty, "available roots is never empty");
       Files_Suite.Support.Assert_Equal
         (Natural (Entries.Length),

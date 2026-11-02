@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 separate (Files_Suite.Model)
    procedure Test_Rename_Mode (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -7,7 +8,7 @@ separate (Files_Suite.Model)
    begin
       Assert (not Files.Model.Rename_Is_Enabled (Model), "rename disabled with no selection");
       Files.Model.Select_Visible (Model, 2);
-      Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
+      Files.Model.Open_Root_Selector (Model, Files.File_System.Testing.Available_Roots);
       Files.Model.Open_Command_Palette (Model);
       Files.Model.Toggle_Rename (Model);
       Assert (Files.Model.Rename_Is_Active (Model), "direct rename enters rename mode");
@@ -19,7 +20,7 @@ separate (Files_Suite.Model)
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "direct rename closes stale command palette");
       Files.Model.Toggle_Rename (Model);
       Assert (not Files.Model.Rename_Is_Active (Model), "direct rename can be cancelled after overlay cleanup");
-      Files.Model.Open_Root_Selector (Model, Files.File_System.Available_Roots);
+      Files.Model.Open_Root_Selector (Model, Files.File_System.Testing.Available_Roots);
       Files.Model.Open_Command_Palette (Model);
       Files.Model.Resume_Rename (Model, "renamed.txt");
       Assert (Files.Model.Rename_Is_Active (Model), "resume rename enters rename mode");

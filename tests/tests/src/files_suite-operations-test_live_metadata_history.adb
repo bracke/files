@@ -1,3 +1,4 @@
+with Hostkit.Metadata;
 separate (Files_Suite.Operations)
    procedure Test_Live_Metadata_History (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -44,7 +45,7 @@ separate (Files_Suite.Operations)
          if Files.File_System.Supports_Ownership then
             Reset_Root;
             Write_Binary_File (Source, "owned bytes");
-            Files.File_System.Ownership_Of (Source, Uid, Gid, Available);
+            Hostkit.Metadata.File_Ownership (Source, Uid, Gid, Available);
             Assert (Available, "read actual ownership");
             Load := Files.File_System.Load_Directory (Root, Settings);
             declare
