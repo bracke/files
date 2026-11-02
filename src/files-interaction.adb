@@ -973,15 +973,20 @@ package body Files.Interaction is
      (Model : Files.Model.Window_Model)
       return Files.Rendering.Visible_Index_Vectors.Vector
    is
-      Rows   : constant Files.Model.Visible_Row_Vectors.Vector := Files.Model.Visible_Rows (Model);
-      Result : Files.Rendering.Visible_Index_Vectors.Vector;
+      Result   : Files.Rendering.Visible_Index_Vectors.Vector;
+      Position : Natural := 0;
+
+      procedure Note (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean) is
+         pragma Unreferenced (Item, Item_Index);
+      begin
+         Position := Position + 1;
+         if Selected then
+            Result.Append (Position);
+         end if;
+      end Note;
    begin
       --  One pass over the rows; Is_Selected per index rescans the items.
-      for Index in Rows.First_Index .. Rows.Last_Index loop
-         if Rows (Index).Selected then
-            Result.Append (Index);
-         end if;
-      end loop;
+      Files.Model.For_Each_Visible_Row (Model, Note'Access);
       return Result;
    end Selected_Visible_Indices;
 

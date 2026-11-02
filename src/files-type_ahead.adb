@@ -1,7 +1,5 @@
 with Ada.Strings.Unbounded;
 
-with Files.Types;
-
 package body Files.Type_Ahead is
 
    use Ada.Strings.Unbounded;
@@ -24,15 +22,17 @@ package body Files.Type_Ahead is
    end Starts_With_Case_Insensitive;
 
    function Type_Ahead_Target
-     (Items       : Files.Items.Item_Vectors.Vector;
+     (Names       : Files.Types.String_Vectors.Vector;
       Prefix      : String;
       Start_Index : Natural)
       return Natural
    is
-      Count : constant Natural := Natural (Items.Length);
+      Count : constant Natural := Natural (Names.Length);
+      --  Folded once, not once per candidate.
+      Folded_Prefix : constant String := Files.Types.Fold_Case (Prefix);
       Start : Natural;
    begin
-      if Prefix = "" or else Count = 0 then
+      if Prefix = "" or else Folded_Prefix = "" or else Count = 0 then
          return 0;
       end if;
 
@@ -44,9 +44,9 @@ package body Files.Type_Ahead is
       for Offset in 0 .. Count - 1 loop
          declare
             Index : constant Positive := ((Start - 1 + Offset) mod Count) + 1;
-            Name  : constant String := To_String (Items.Element (Index).Name);
+            Name  : constant String := Files.Types.Fold_Case (To_String (Names (Index)));
          begin
-            if Starts_With_Case_Insensitive (Name, Prefix) then
+            if Files.Types.Starts_With (Name, Folded_Prefix) then
                return Index;
             end if;
          end;

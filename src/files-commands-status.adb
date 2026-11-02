@@ -15,24 +15,24 @@ package body Files.Commands.Status is
    --  Return whether a simple file name ends, case-insensitively, in a
    --  recognized archive extension (.zip or .7z).
    function Name_Is_Archive (Name : String) return Boolean is
-      Lower : constant String := Ada.Characters.Handling.To_Lower (Name);
+      Lower : constant String := Ada.Characters.Handling.To_Lower (Ada.Strings.Fixed.Tail (Name, 4));
    begin
-      return Ada.Strings.Fixed.Tail (Lower, 4) = ".zip"
-        or else Ada.Strings.Fixed.Tail (Lower, 3) = ".7z";
+      return Lower = ".zip" or else Ada.Strings.Fixed.Tail (Lower, 3) = ".7z";
    end Name_Is_Archive;
 
    --  Return whether at least one selected item is a recognized archive.
    function Selection_Has_Archive (Model : Files.Model.Window_Model) return Boolean is
-      Items : constant Files.Items.Item_Vectors.Vector :=
-        Files.Model.Selected_Items (Model);
-   begin
-      for Item of Items loop
-         if Name_Is_Archive (To_String (Item.Name)) then
-            return True;
-         end if;
-      end loop;
+      Found : Boolean := False;
 
-      return False;
+      --  Read in place: every snapshot asks, and copying a Select All in a
+      --  large folder for it cost more than the rest of the commands.
+      procedure Check (Item : Files.Items.Directory_Item) is
+      begin
+         Found := Found or else Name_Is_Archive (To_String (Item.Name));
+      end Check;
+   begin
+      Files.Model.For_Each_Selected_Item (Model, Check'Access);
+      return Found;
    end Selection_Has_Archive;
 
    --  Return whether the model currently shows the platform trash payload

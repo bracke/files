@@ -1,5 +1,4 @@
-with Files.Items;
-with Files.File_System;
+with Files.Types;
 
 --  Pure type-to-select (type-ahead) matching over a visible item projection.
 package Files.Type_Ahead is
@@ -25,13 +24,13 @@ package Files.Type_Ahead is
    --  A Start_Index of zero, or one past the last item, begins the scan at the
    --  first item. Matching is case-insensitive and UTF-8 aware.
    --
-   --  @param Items Visible items in display order.
+   --  @param Names Visible item names in display order.
    --  @param Prefix UTF-8 encoded prefix typed by the user.
    --  @param Start_Index One-based visible index to begin scanning from.
    --  @return One-based visible index of the first match, or zero when none
    --    match or Prefix is empty.
    function Type_Ahead_Target
-     (Items       : Files.Items.Item_Vectors.Vector;
+     (Names       : Files.Types.String_Vectors.Vector;
       Prefix      : String;
       Start_Index : Natural)
       return Natural;

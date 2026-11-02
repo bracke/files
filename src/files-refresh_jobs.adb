@@ -531,7 +531,19 @@ package body Files.Refresh_Jobs is
       Files.Process_Jobs.Reset (Job.Process);
       Job.Path := Null_Unbounded_String;
       Job.Claim_Left := False;
+      Job.Native := False;
    end Release_Watch;
+
+   function Watch_Is_Native (Job : in out Watch_Session) return Boolean is
+   begin
+      if not Job.Native and then Files.Process_Jobs.Active (Job.Process) then
+         Job.Native := Ada.Directories.Exists (Files.Process_Jobs.Path (Job.Process, "native"));
+      end if;
+      return Job.Native and then Files.Process_Jobs.Active (Job.Process);
+   exception
+      when others =>
+         return False;
+   end Watch_Is_Native;
 
    Watch_Retry_Delay : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (5);
 
@@ -692,6 +704,19 @@ package body Files.Refresh_Jobs is
          Files.Lease_Streams.Release (Input);
          Hostkit.Watch.Watch_Path (Watch, Path);
       end;
+      if Hostkit.Watch.Is_Active (Watch) then
+         --  Tell the window its timed re-read can relax (Watch_Is_Native).
+         declare
+            Marker : Files.Exclusive_Streams.Output_Stream;
+         begin
+            Files.Exclusive_Streams.Create (Marker, Hostkit.Fs.Join (Directory, "native"));
+            Files.Exclusive_Streams.Close (Marker);
+         exception
+            when Swallowed : others =>
+               Close (Marker);
+               Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
+         end;
+      end if;
       loop
          exit when Files.Job_Context.Cancelled;
          if Hostkit.Watch.Poll (Watch) then

@@ -23,6 +23,7 @@ with Files.Job_Scavenger;
 with Files.Operations;
 with Files.Process_Jobs;
 with Files.Rendering.Hit;
+with Files.Timing;
 with Guikit.Layout;
 with Guikit.Settings_Panel;
 with Guikit.Utf8;
@@ -95,6 +96,10 @@ package body Files.Application.Windows is
    --  How long a window whose text failed to load waits before trying again.
    Text_Retry_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (5);
    File_Watch_Poll_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
+   --  With a native watch announcing changes, the re-read only covers what a
+   --  watch can miss (a change made over the network to a mounted folder).
+   --  Each re-read stats every entry, so in a large folder it is not free.
+   Native_Watch_Poll_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (10);
    Type_Ahead_Timeout : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
    --  The event loop always waits this long: input, window refresh, and posted
    --  events wake it immediately, and this bounds how long a background file
@@ -535,22 +540,27 @@ package body Files.Application.Windows is
    --  Make Runtime.Snapshots (Runtime.Current_Slot) the snapshot of the model
    --  and settings as they are now, rebuilding it only when the model revision,
    --  the snapshot settings or the minute moved since it was built (or a paste
-   --  is running, whose progress no revision tracks). This is the render's own
-   --  validity check, so a handler that lays the view out between frames
-   --  shares the snapshot the next render draws instead of rebuilding it per
-   --  event. A rebuild never overwrites the drawn snapshot (Drawn_Slot).
+   --  is running, whose progress no revision tracks: then at most ten times a
+   --  second). This is the render's own validity check, so a handler that
+   --  lays the view out between frames shares the snapshot the next render
+   --  draws instead of rebuilding it per event. A rebuild never overwrites the drawn snapshot (Drawn_Slot).
    --  Callers rename the slot after calling, and call again after mutating the
    --  model before they lay it out again.
    --
    --  @param Runtime Window whose current snapshot is brought up to date.
    procedure Refresh_Snapshot (Runtime : in out Runtime_Window) is
+      --  Ten progress updates a second: a rebuild is O(items), and on every
+      --  loop pass it held a core for the length of a paste in a large folder.
+      Paste_Progress_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (100);
       Minute : constant Natural := Wall_Clock_Minute;
+      Now    : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
    begin
       if Runtime.Snapshot_Valid
         and then Runtime.Snapshot_Minute = Minute
         and then Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model)
         and then Files.Settings.Same_Snapshot_Settings (Runtime.Settings, Runtime.Cached_Settings_Key)
-        and then not Files.Model.Paste_Execution_Is_Active (Runtime.Model)
+        and then (not Files.Model.Paste_Execution_Is_Active (Runtime.Model)
+                  or else not Files.Timing.Elapsed (Now, Runtime.Snapshot_Built_At, Paste_Progress_Interval))
       then
          return;
       end if;
@@ -563,6 +573,7 @@ package body Files.Application.Windows is
       Runtime.Cached_Model_Revision := Files.Model.Revision (Runtime.Model);
       Runtime.Cached_Settings_Key := Files.Settings.Snapshot_Settings_Key_Of (Runtime.Settings);
       Runtime.Snapshot_Minute := Minute;
+      Runtime.Snapshot_Built_At := Now;
       Runtime.Snapshot_Valid := True;
    end Refresh_Snapshot;
 
@@ -905,7 +916,10 @@ package body Files.Application.Windows is
          return;
       end if;
 
-      if Now < Runtime.Last_Watch_Poll + File_Watch_Poll_Interval then
+      if Now < Runtime.Last_Watch_Poll + File_Watch_Poll_Interval
+        or else (Files.Refresh_Jobs.Watch_Is_Native (Runtime.Watch)
+                 and then Now < Runtime.Last_Watch_Poll + Native_Watch_Poll_Interval)
+      then
          return;
       end if;
 
@@ -1495,6 +1509,7 @@ package body Files.Application.Windows is
             Drawn_Slot           => 1,
             Snapshot_Valid       => False,
             Snapshot_Minute      => 0,
+            Snapshot_Built_At    => Never,
             Cached_Model_Revision => 0,
             Cached_Settings_Key  => <>,
             Cached_Frame         => <>,

@@ -458,6 +458,22 @@ package Files.Model is
      (Model : Window_Model)
       return Visible_Row_Vectors.Vector;
 
+   --  Visit every visible row in display order, as Visible_Rows lists them,
+   --  without copying the items: Item is the model's own, for the duration
+   --  of the call. For a caller that reads each row once (the snapshot,
+   --  type-ahead), where the copy cost more than the work.
+   --
+   --  @param Model Model to inspect.
+   --  @param Visit Called once per row with the three below.
+   --  @param Item The row's item, the model's own.
+   --  @param Item_Index Its index into the loaded items; zero for the
+   --    pending create row.
+   --  @param Selected Whether it is selected.
+   procedure For_Each_Visible_Row
+     (Model : Window_Model;
+      Visit : not null access procedure
+        (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean));
+
    --  The first and last visible indexes that are selected, in one pass.
    --
    --  @param Model Model to inspect.
@@ -768,6 +784,17 @@ package Files.Model is
      (Model : Window_Model;
       Limit : Natural := Natural'Last)
       return Files.Items.Item_Vectors.Vector;
+
+   --  Visit the selected items in the order Selected_Items lists them,
+   --  without copying them: Item is the model's own, for the duration of the
+   --  call. For a caller that reads each once (a total, a test for any
+   --  archive), where copying a large selection cost more than the work.
+   --
+   --  @param Model Model to inspect.
+   --  @param Visit Called once per selected loaded item.
+   procedure For_Each_Selected_Item
+     (Model : Window_Model;
+      Visit : not null access procedure (Item : Files.Items.Directory_Item));
 
    --  Restore the loaded, visible items present in a previous selection. Item
    --  paths provide identity across sorting and reloads; Primary_Path restores
@@ -2058,20 +2085,19 @@ package Files.Model is
       Visible_Index : Natural;
       Position      : Natural);
 
-   --  Rename state for a row already resolved to its item, as Visible_Rows
-   --  reports it; avoids a visible-to-item scan per row during a rename.
+   --  Visit each active rename field, so a caller rendering every row can
+   --  index them once instead of searching the fields per row (a rename of
+   --  a whole large folder made that quadratic). Nothing is visited when no
+   --  rename is active.
    --
    --  @param Model Model to inspect.
-   --  @param Item_Index Row's item index (zero for the pending create row).
-   --  @param Active Set True when that row has an active rename field.
-   --  @param Value Field text (empty when inactive).
-   --  @param Cursor Field caret byte offset (zero when inactive).
-   procedure Rename_State_For_Item
-     (Model      : Window_Model;
-      Item_Index : Natural;
-      Active     : out Boolean;
-      Value      : out UString;
-      Cursor     : out Natural);
+   --  @param Visit Called once per field with the three below.
+   --  @param Item_Index The field's item index; zero for the pending create row.
+   --  @param Value Its text.
+   --  @param Cursor Its caret byte offset.
+   procedure For_Each_Rename_Field
+     (Model : Window_Model;
+      Visit : not null access procedure (Item_Index : Natural; Value : UString; Cursor : Natural));
 
    type Rename_Target is record
       Item_Index    : Natural := 0;

@@ -425,6 +425,9 @@ private
       --  Wall-clock minute the current snapshot was built in: relative times
       --  and the Today / This week bands are computed from the clock.
       Snapshot_Minute : Natural := 0;
+      --  When the current snapshot was built: during a paste, whose progress
+      --  no revision tracks, it is rebuilt at most every Paste_Progress_Interval.
+      Snapshot_Built_At : Ada.Real_Time.Time := Never;
       --  Model revision the current snapshot was built at. It is reused only
       --  while the model's revision still matches, so a background poll (file
       --  watch, folder sizes) that changed nothing forces no O(items) rebuild.

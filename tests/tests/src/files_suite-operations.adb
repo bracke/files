@@ -268,6 +268,7 @@ package body Files_Suite.Operations is
    procedure Test_Path_Input_Opens_Trash_View (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Path_Input_Relative_To_View (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Trash_Long_Name (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Folder_Size_Survives_Background_Read (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_User_Visible_Mount_Points (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_From_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_From_Trash_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -673,6 +674,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Trash_Long_Name'Access,
          "a name too long for the trash's own additions is trashed shortened and restored whole");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Folder_Size_Survives_Background_Read'Access,
+         "a background read neither restarts a folder measurement nor bumps the revision when nothing changed");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_User_Visible_Mount_Points'Access,
          "the root list shows what is mounted under the mount containers, never the containers themselves");
@@ -1204,6 +1208,7 @@ package body Files_Suite.Operations is
    procedure Test_Path_Input_Opens_Trash_View (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Path_Input_Relative_To_View (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Trash_Long_Name (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Folder_Size_Survives_Background_Read (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_User_Visible_Mount_Points (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

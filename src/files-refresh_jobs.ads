@@ -50,6 +50,15 @@ package Files.Refresh_Jobs is
    --  @return True when its helper posted a change notification.
    function Poll_Watch (Job : in out Watch_Session) return Boolean;
 
+   --  Whether the helper established a native watch, so changes are
+   --  announced and a timed re-read is only a safety net. False while the
+   --  helper is starting, and for good where the host or filesystem gives
+   --  no notifications.
+   --
+   --  @param Job Native notification helper.
+   --  @return True when the helper reported a native watch for its path.
+   function Watch_Is_Native (Job : in out Watch_Session) return Boolean;
+
    --  @param Job Watch helper to stop without waiting for storage.
    procedure Release_Watch (Job : in out Watch_Session);
 
@@ -87,5 +96,7 @@ private
       --  A claimed notification could not be removed; retry before the next
       --  claim. Otherwise a poll is only the claiming rename.
       Claim_Left  : Boolean := False;
+      --  The helper reported a native watch (Watch_Is_Native).
+      Native      : Boolean := False;
    end record;
 end Files.Refresh_Jobs;

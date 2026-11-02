@@ -8,7 +8,7 @@ procedure Type_Ahead_Input
 is
    Combined : constant String := To_String (Model.Type_Ahead_Buffer_Value) & Text;
    Current  : constant Natural := Selected_Index (Model);
-   Visible  : Files.Items.Item_Vectors.Vector;
+   Visible  : Files.Types.String_Vectors.Vector;
    Count    : constant Natural := Visible_Count (Model);
    Prefix   : Unbounded_String;
    Start    : Natural;
@@ -24,13 +24,16 @@ begin
    --  Snapshot the visible projection in display order so the pure matcher's
    --  returned index maps straight back to a visible index. Temporary
    --  create-file items are never type-ahead targets.
-   for Row of Visible_Rows (Model) loop
-      if Row.Item_Index /= 0 then
-         Visible.Append (Row.Item);
-      else
-         Visible.Append (Files.Items.Directory_Item'(others => <>));
-      end if;
-   end loop;
+   declare
+      procedure Add (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean) is
+         pragma Unreferenced (Selected);
+      begin
+         Visible.Append (if Item_Index /= 0 then Item.Name else Null_Unbounded_String);
+      end Add;
+   begin
+      Visible.Reserve_Capacity (Ada.Containers."+" (Model.Items.Length, 1));
+      For_Each_Visible_Row (Model, Add'Access);
+   end;
 
    --  Repeatedly typing one letter cycles through the items beginning with
    --  it: collapse the prefix to that single codepoint and scan from just

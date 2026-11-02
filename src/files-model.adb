@@ -655,6 +655,12 @@ package body Files.Model is
       return Visible_Row_Vectors.Vector
    is separate;
 
+   procedure For_Each_Visible_Row
+     (Model : Window_Model;
+      Visit : not null access procedure
+        (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean))
+   is separate;
+
    function In_Recent_View
      (Model : Window_Model)
       return Boolean is separate;
@@ -894,6 +900,25 @@ package body Files.Model is
       Limit : Natural := Natural'Last)
       return Files.Items.Item_Vectors.Vector
    is separate;
+
+   procedure For_Each_Selected_Item
+     (Model : Window_Model;
+      Visit : not null access procedure (Item : Files.Items.Directory_Item))
+   is
+   begin
+      if Selected_Count (Model) = 0 or else Model.Items.Is_Empty then
+         return;
+      end if;
+      declare
+         Selected : constant Selection_Flags := Selected_Flags (Model);
+      begin
+         for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+            if Selected (Index) then
+               Visit (Model.Items (Index));
+            end if;
+         end loop;
+      end;
+   end For_Each_Selected_Item;
 
    procedure Restore_Selection
      (Model        : in out Window_Model;
@@ -1301,12 +1326,16 @@ package body Files.Model is
       Visible_Index : Natural;
       Position      : Natural) is separate;
 
-   procedure Rename_State_For_Item
-     (Model      : Window_Model;
-      Item_Index : Natural;
-      Active     : out Boolean;
-      Value      : out UString;
-      Cursor     : out Natural) is separate;
+   procedure For_Each_Rename_Field
+     (Model : Window_Model;
+      Visit : not null access procedure (Item_Index : Natural; Value : UString; Cursor : Natural)) is
+   begin
+      if Model.Rename_Active then
+         for Field of Model.Rename_Fields loop
+            Visit (Field.Item_Index, Field.Value, Field.Cursor);
+         end loop;
+      end if;
+   end For_Each_Rename_Field;
 
    function Rename_Targets
      (Model : Window_Model)
@@ -2356,18 +2385,23 @@ package body Files.Model is
       First : out Natural;
       Last  : out Natural)
    is
-      Rows : constant Visible_Row_Vectors.Vector := Visible_Rows (Model);
+      Position : Natural := 0;
+
+      procedure Note (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean) is
+         pragma Unreferenced (Item, Item_Index);
+      begin
+         Position := Position + 1;
+         if Selected then
+            if First = 0 then
+               First := Position;
+            end if;
+            Last := Position;
+         end if;
+      end Note;
    begin
       First := 0;
       Last := 0;
-      for Index in Rows.First_Index .. Rows.Last_Index loop
-         if Rows (Index).Selected then
-            if First = 0 then
-               First := Index;
-            end if;
-            Last := Index;
-         end if;
-      end loop;
+      For_Each_Visible_Row (Model, Note'Access);
    end Selected_Visible_Bounds;
 
    function Selection_Move_Would_Wrap

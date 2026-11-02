@@ -26,15 +26,22 @@ begin
    declare
       --  Map rows to items in one pass; a per-row scan made a long
       --  shift-click range quadratic.
-      Rows : constant Visible_Row_Vectors.Vector := Visible_Rows (Model);
+      Rows : Natural_Vectors.Vector;
+      Position : Natural := 0;
+
+      procedure Note (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean) is
+         pragma Unreferenced (Item, Selected);
+      begin
+         Position := Position + 1;
+         if Position in First .. Last then
+            --  Rows are distinct and the list was cleared, so append directly
+            --  rather than pay Add_Selected_Index's duplicate scan.
+            Rows.Append (if Item_Index /= 0 then Item_Index else Temporary_Item_Index);
+         end if;
+      end Note;
    begin
-      for Visible_Index in First .. Natural'Min (Last, Natural (Rows.Length)) loop
-         --  Rows are distinct and the list was just cleared, so append
-         --  directly rather than pay Add_Selected_Index's duplicate scan.
-         Model.Selected_Item_Indexes.Append
-           (if Rows (Visible_Index).Item_Index /= 0 then Rows (Visible_Index).Item_Index
-            else Temporary_Item_Index);
-      end loop;
+      For_Each_Visible_Row (Model, Note'Access);
+      Model.Selected_Item_Indexes := Rows;
    end;
 
    Model.Selected_Item_Index := Visible_To_Item_Index (Model, Target_Index);

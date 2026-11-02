@@ -563,6 +563,13 @@ package body Files.Operations is
       end;
    end Focus_Ownership_Input;
 
+   --  A size result changes the render revision, and a listing read in
+   --  flight (or a paste) must see the revision it was started at. While one
+   --  runs, measurements carry on but their results wait in the scan.
+   function Folder_Sizes_Paused (Model : Files.Model.Window_Model) return Boolean is
+     (Files.Model.Paste_Execution_Is_Active (Model)
+      or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)));
+
    procedure Poll_Folder_Sizes (Model : in out Files.Model.Window_Model) is
       Scan      : Files.Folder_Size.Session := Files.Model.Folder_Scan (Model);
       Path      : Unbounded_String;
@@ -571,6 +578,7 @@ package body Files.Operations is
    begin
       Files.Folder_Size.Step (Scan);
       loop
+         exit when Folder_Sizes_Paused (Model);
          Files.Folder_Size.Take (Scan, Path, Result, Available);
          exit when not Available;
          Files.Model.Note_Folder_Size (Model, To_String (Path), Result);
@@ -598,12 +606,10 @@ package body Files.Operations is
    is
       pragma Unreferenced (Settings);
    begin
-      --  A size result changes the render revision. Stop older measurements
-      --  before a listing request captures it, and resume after that read applies.
-      if Files.Model.Paste_Execution_Is_Active (Model)
-        or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model))
-      then
-         Cancel_Folder_Scan (Model);
+      --  Retargeted once the read or paste is done: the watch poll's read
+      --  comes every few seconds, and cancelling here restarted any folder
+      --  slower than that from scratch every time, so it never finished.
+      if Folder_Sizes_Paused (Model) then
          return;
       end if;
       --  The helper process performs the recursive subtree walk. Here we only

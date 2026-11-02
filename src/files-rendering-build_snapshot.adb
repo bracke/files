@@ -1,4 +1,7 @@
 with Files.Items;
+with Ada.Containers.Hashed_Maps;
+with Ada.Containers.Indefinite_Hashed_Maps;
+with Ada.Strings.Hash;
 with Files.Commands.Status;
 with Files.Grouping;
 separate (Files.Rendering)
@@ -31,6 +34,26 @@ separate (Files.Rendering)
         (case Settings.Theme is
             when Files.Settings.Theme_High_Contrast => High_Contrast_Theme,
             when others => Default_Theme);
+
+      --  Kind labels looked up once per rebuild, not once per item: most
+      --  items in a folder share a handful of them.
+      package Text_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+        (Key_Type => String, Element_Type => UString, Hash => Ada.Strings.Hash, Equivalent_Keys => "=");
+      Localized : Text_Maps.Map;
+
+      function Cached_Text (Key : String) return UString is
+         Found : constant Text_Maps.Cursor := Localized.Find (Key);
+      begin
+         if Text_Maps.Has_Element (Found) then
+            return Text_Maps.Element (Found);
+         end if;
+         declare
+            Value : constant UString := To_Unbounded_String (Files.Localization.Text (Key));
+         begin
+            Localized.Insert (Key, Value);
+            return Value;
+         end;
+      end Cached_Text;
 
       function Filetype_Detail
         (Item : Files.Items.Directory_Item)
@@ -239,56 +262,80 @@ separate (Files.Rendering)
          begin
             return Cut_Active and then Cut_Paths.Contains (Full_Path);
          end Is_Cut_Pending;
-         Rows : constant Files.Model.Visible_Row_Vectors.Vector := Files.Model.Visible_Rows (Model);
          --  Favorites and labels hashed by path once: each item asks both, and
          --  a scan of the two lists per item made a rebuild O(items x labels).
          Paths : constant Files.Settings.Path_Index := Files.Settings.Index_Paths (Settings);
+
+         --  Rename fields by item index, read once: searching the fields per
+         --  row made renaming a whole large folder quadratic.
+         type Rename_State is record
+            Value  : Ada.Strings.Unbounded.Unbounded_String;
+            Cursor : Natural := 0;
+         end record;
+         function Hash (Index : Natural) return Ada.Containers.Hash_Type is
+           (Ada.Containers.Hash_Type'Mod (Index));
+         package Rename_Maps is new Ada.Containers.Hashed_Maps
+           (Key_Type => Natural, Element_Type => Rename_State, Hash => Hash, Equivalent_Keys => "=");
+         Rename_Fields : Rename_Maps.Map;
+
+         procedure Note_Rename (Item_Index : Natural; Value : UString; Cursor : Natural) is
+         begin
+            --  The first field for an index wins, as the search did.
+            if not Rename_Fields.Contains (Item_Index) then
+               Rename_Fields.Insert (Item_Index, (Value, Cursor));
+            end if;
+         end Note_Rename;
+
+         --  Rows are visited in place: a vector of copied items cost a third
+         --  of a rebuild in a large folder.
+         procedure Add_Row
+           (Item       : Files.Items.Directory_Item;
+            Item_Index : Natural;
+            Selected   : Boolean)
+         is
+            Full_Path : constant String := To_String (Item.Full_Path);
+            Renamed   : constant Rename_Maps.Cursor := Rename_Fields.Find (Item_Index);
+            Rename_On : constant Boolean := Rename_Maps.Has_Element (Renamed);
+            Rename    : constant Rename_State :=
+              (if Rename_On then Rename_Maps.Element (Renamed) else (others => <>));
+         begin
+            Snapshot.Items.Append
+              (Item_Snapshot'
+                 (Name               => Item.Name,
+                  Full_Path          => Item.Full_Path,
+                  Filetype           => Item.Filetype,
+                  Filetype_Detail    => Filetype_Detail (Item),
+                  Icon_Id            => Item.Icon_Id,
+                  Kind               => Item.Kind,
+                  Size_Available     => Item.Size_Available,
+                  Size               => Item.Size,
+                  Creation_Available => Item.Creation_Available,
+                  Creation_Time      => Item.Creation_Time,
+                  Modified_Available => Item.Modified_Available,
+                  Modified_Time      => Item.Modified_Time,
+                  Permissions        => Item.Permissions,
+                  Thumbnail_Available => Item.Thumbnail_Available,
+                  Thumbnail_Path      => Item.Thumbnail_Path,
+                  Thumbnail_Width     => Item.Thumbnail_Width,
+                  Thumbnail_Height    => Item.Thumbnail_Height,
+                  Thumbnail           => (Pixels => Item.Thumbnail_Pixels),
+                  Metadata_Error     => Item.Metadata_Error,
+                  Error_Key          => Item.Error_Key,
+                  Selected           => Selected,
+                  Visible_Index      => Natural (Snapshot.Items.Length) + 1,
+                  Cut_Pending        => Is_Cut_Pending (Item.Full_Path),
+                  Renaming           => Rename_On,
+                  Rename_Value       => Rename.Value,
+                  Rename_Cursor      => Rename.Cursor,
+                  Is_Group_Header    => False,
+                  Group_Label        => Null_Unbounded_String,
+                  Is_Favorite        => Files.Settings.Is_Favorite (Paths, Full_Path),
+                  Label              => Files.Settings.Label_Of (Paths, Full_Path)));
+         end Add_Row;
       begin
-         for Index in Rows.First_Index .. Rows.Last_Index loop
-            declare
-               Row  : Files.Model.Visible_Row renames Rows (Index);
-               Item : Files.Items.Directory_Item renames Row.Item;
-               Full_Path : constant String := To_String (Item.Full_Path);
-               Rename_On     : Boolean;
-               Rename_Value  : Ada.Strings.Unbounded.Unbounded_String;
-               Rename_Cursor : Natural;
-            begin
-               Files.Model.Rename_State_For_Item
-                 (Model, Row.Item_Index, Rename_On, Rename_Value, Rename_Cursor);
-               Snapshot.Items.Append
-                 (Item_Snapshot'
-                    (Name               => Item.Name,
-                     Full_Path          => Item.Full_Path,
-                     Filetype           => Item.Filetype,
-                     Filetype_Detail    => Filetype_Detail (Item),
-                     Icon_Id            => Item.Icon_Id,
-                     Kind               => Item.Kind,
-                     Size_Available     => Item.Size_Available,
-                     Size               => Item.Size,
-                     Creation_Available => Item.Creation_Available,
-                     Creation_Time      => Item.Creation_Time,
-                     Modified_Available => Item.Modified_Available,
-                     Modified_Time      => Item.Modified_Time,
-                     Permissions        => Item.Permissions,
-                     Thumbnail_Available => Item.Thumbnail_Available,
-                     Thumbnail_Path      => Item.Thumbnail_Path,
-                     Thumbnail_Width     => Item.Thumbnail_Width,
-                     Thumbnail_Height    => Item.Thumbnail_Height,
-                     Thumbnail           => (Pixels => Item.Thumbnail_Pixels),
-                     Metadata_Error     => Item.Metadata_Error,
-                     Error_Key          => Item.Error_Key,
-                     Selected           => Row.Selected,
-                     Visible_Index      => Index,
-                     Cut_Pending        => Is_Cut_Pending (Item.Full_Path),
-                     Renaming           => Rename_On,
-                     Rename_Value       => Rename_Value,
-                     Rename_Cursor      => Rename_Cursor,
-                     Is_Group_Header    => False,
-                     Group_Label        => Null_Unbounded_String,
-                     Is_Favorite        => Files.Settings.Is_Favorite (Paths, Full_Path),
-                     Label              => Files.Settings.Label_Of (Paths, Full_Path)));
-            end;
-         end loop;
+         Files.Model.For_Each_Rename_Field (Model, Note_Rename'Access);
+         Snapshot.Items.Reserve_Capacity (Ada.Containers.Count_Type (Snapshot.Visible_Count) + 1);
+         Files.Model.For_Each_Visible_Row (Model, Add_Row'Access);
       end;
 
       --  Items arrive in the model's order, which the model keeps sorted by its
@@ -339,8 +386,9 @@ separate (Files.Rendering)
       --  size of each selected folder. Computed for any selection (not only when
       --  the info pane is open) so the bottom bar's total counts folder contents.
       --  Folders not yet measured mark the total pending (still growing).
+      --  The info pane shows at most Max_Info_Items: only those are copied.
       if Files.Model.Selected_Count (Model) > 0 then
-         Selected := Files.Model.Selected_Items (Model);
+         Selected := Files.Model.Selected_Items (Model, Limit => Max_Info_Items);
       end if;
       if Files.Model.Selected_Count (Model) > 0 then
          declare
@@ -355,8 +403,9 @@ separate (Files.Rendering)
                   Total := Long_Long_Integer'Last;
                end if;
             end Add;
-         begin
-            for Item of Selected loop
+
+            procedure Count (Item : Files.Items.Directory_Item) is
+            begin
                if Item.Kind = Files.Types.Directory_Item then
                   if Files.Model.Folder_Size_Cached_For (Model, To_String (Item.Full_Path)) then
                      Add (Files.Model.Folder_Size_Value
@@ -367,7 +416,9 @@ separate (Files.Rendering)
                elsif Item.Size_Available then
                   Add (Item.Size);
                end if;
-            end loop;
+            end Count;
+         begin
+            Files.Model.For_Each_Selected_Item (Model, Count'Access);
             Snapshot.Selection_Total_Bytes := Total;
             Snapshot.Selection_Total_Pending := Pending;
          end;

@@ -5,11 +5,17 @@ procedure Prune_Folder_Sizes_To_Selection
    Kept : Folder_Size_Maps.Map;
 begin
    --  Rebuild the cache keeping only entries for directories still selected.
-   for Item of Selected_Items (Model) loop
-      if Item.Kind = Files.Types.Directory_Item
-        and then Model.Folder_Sizes.Contains (Item.Full_Path)
-      then
-         Kept.Include (Item.Full_Path, Model.Folder_Sizes.Element (Item.Full_Path));
+   for Index of Model.Selected_Item_Indexes loop
+      if Index in Model.Items.First_Index .. Model.Items.Last_Index then
+         declare
+            Item : Files.Items.Directory_Item renames Model.Items (Index);
+         begin
+            if Item.Kind = Files.Types.Directory_Item
+              and then Model.Folder_Sizes.Contains (Item.Full_Path)
+            then
+               Kept.Include (Item.Full_Path, Model.Folder_Sizes.Element (Item.Full_Path));
+            end if;
+         end;
       end if;
    end loop;
    if not Folder_Size_Maps."=" (Model.Folder_Sizes, Kept) then
