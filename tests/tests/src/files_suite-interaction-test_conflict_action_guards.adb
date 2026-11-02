@@ -50,7 +50,7 @@ separate (Files_Suite.Interaction)
             Dest_Dir    => Ada.Strings.Unbounded.To_Unbounded_String ("/dest"),
             Dest_Name   => Ada.Strings.Unbounded.To_Unbounded_String ("a.txt")));
       Existing.Append
-        (Ada.Strings.Unbounded.To_Unbounded_String ("/dest/a.txt"));
+        (Ada.Strings.Unbounded.To_Unbounded_String (Files.Paste.Desired_Path ("/dest", "a.txt")));
       Files.Model.Begin_Paste_Conflict
         (Model, Items, Existing, Files.File_System.Drop_Copy, 1);
 

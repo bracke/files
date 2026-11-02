@@ -10,6 +10,10 @@ separate (Files_Suite.Operations)
             Dest_Name   => To_Unbounded_String (Name));
       end Work_Item;
 
+      --  A destination path spelled as the resolver spells it, with the
+      --  host's separator.
+      function Dest (Name : String) return String is (Files.Paste.Desired_Path ("/dest", Name));
+
       Items    : Files.Paste.Work_Item_Vectors.Vector;
       Existing : Files.Types.String_Vectors.Vector;
       None     : constant Files.Paste.Item_Decision_Vectors.Vector :=
@@ -19,8 +23,8 @@ separate (Files_Suite.Operations)
       Items.Append (Work_Item ("a.txt"));
       Items.Append (Work_Item ("b.txt"));
       Items.Append (Work_Item ("c.txt"));
-      Existing.Append (To_Unbounded_String ("/dest/a.txt"));
-      Existing.Append (To_Unbounded_String ("/dest/b.txt"));
+      Existing.Append (To_Unbounded_String (Dest ("a.txt")));
+      Existing.Append (To_Unbounded_String (Dest ("b.txt")));
 
       --  Replace_All: every item is written; the colliding two overwrite.
       declare
@@ -35,7 +39,7 @@ separate (Files_Suite.Operations)
          Assert (not Actions.Element (3).Replaced, "replace-all writes the non-colliding item unchanged: not replaced");
          Files_Suite.Support.Assert_Equal
            (To_String (Actions.Element (3).Dest_Path),
-            "/dest/c.txt",
+            Dest ("c.txt"),
             "replace-all writes the non-colliding item unchanged: destination");
       end;
 
@@ -53,7 +57,7 @@ separate (Files_Suite.Operations)
                Dest_Name   => To_Unbounded_String ("a.txt")));
          Actions := Files.Paste.Resolve (Twins, Files.Paste.Policy_Replace_All, None, Existing);
          Assert (Actions.Element (1).Replaced
-                   and then To_String (Actions.Element (1).Dest_Path) = "/dest/a.txt",
+                   and then To_String (Actions.Element (1).Dest_Path) = Dest ("a.txt"),
                  "the first same-named item replaces the existing entry");
          Assert
            (not Actions.Element (2).Replaced,
@@ -62,7 +66,7 @@ separate (Files_Suite.Operations)
            (not Actions.Element (2).Skip,
             "a second same-named item is kept under a unique name instead of replacing the first: not skipped");
          Assert
-           (To_String (Actions.Element (2).Dest_Path) /= "/dest/a.txt",
+           (To_String (Actions.Element (2).Dest_Path) /= Dest ("a.txt"),
             "a second same-named item is kept under a unique name instead of replacing the first: unique destination");
       end;
 
@@ -74,7 +78,7 @@ separate (Files_Suite.Operations)
          Assert (Actions.Element (1).Skip, "skip-all skips the first colliding item");
          Assert (Actions.Element (2).Skip, "skip-all skips the second colliding item");
          Assert (not Actions.Element (3).Skip
-                   and then To_String (Actions.Element (3).Dest_Path) = "/dest/c.txt",
+                   and then To_String (Actions.Element (3).Dest_Path) = Dest ("c.txt"),
                  "skip-all still writes the non-colliding item");
       end;
 
@@ -87,17 +91,17 @@ separate (Files_Suite.Operations)
          Assert (not Actions.Element (1).Replaced, "rename-all uniquifies the first colliding item: not replaced");
          Files_Suite.Support.Assert_Equal
            (To_String (Actions.Element (1).Dest_Path),
-            "/dest/a 2.txt",
+            Dest ("a 2.txt"),
             "rename-all uniquifies the first colliding item: destination");
          Assert (not Actions.Element (2).Skip, "rename-all uniquifies the second colliding item: not skipped");
          Assert (not Actions.Element (2).Replaced, "rename-all uniquifies the second colliding item: not replaced");
          Files_Suite.Support.Assert_Equal
            (To_String (Actions.Element (2).Dest_Path),
-            "/dest/b 2.txt",
+            Dest ("b 2.txt"),
             "rename-all uniquifies the second colliding item: destination");
          Files_Suite.Support.Assert_Equal
            (To_String (Actions.Element (3).Dest_Path),
-            "/dest/c.txt",
+            Dest ("c.txt"),
             "rename-all leaves the non-colliding name alone");
       end;
 
@@ -107,9 +111,9 @@ separate (Files_Suite.Operations)
          Actions        : constant Files.Paste.Resolved_Action_Vectors.Vector :=
            Files.Paste.Resolve (Items, Files.Paste.Policy_Ask, None, Empty_Existing);
       begin
-         Assert (not Actions.Element (1).Skip and then To_String (Actions.Element (1).Dest_Path) = "/dest/a.txt",
+         Assert (not Actions.Element (1).Skip and then To_String (Actions.Element (1).Dest_Path) = Dest ("a.txt"),
                  "with no conflicts the first item is written to its desired path");
-         Assert (not Actions.Element (2).Skip and then To_String (Actions.Element (2).Dest_Path) = "/dest/b.txt",
+         Assert (not Actions.Element (2).Skip and then To_String (Actions.Element (2).Dest_Path) = Dest ("b.txt"),
                  "with no conflicts the second item is written to its desired path");
          Assert (not Actions.Element (3).Skip,
                  "with no conflicts the third item is written");
