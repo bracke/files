@@ -1,12 +1,18 @@
+with GNAT.OS_Lib;
+
 separate (Files.Operations)
 function Commit_Path_Input
   (Model    : in out Files.Model.Window_Model;
    Settings : Files.Settings.Settings_Model)
    return Operation_Result
 is
+   Typed : constant String := Files.File_System.Expand_User_Path (Files.Model.Path_Input_Text (Model));
+   --  A relative path is relative to the folder on screen, not to wherever
+   --  the program was started.
    Path_Result : constant Files.File_System.Path_Result :=
      Files.File_System.Normalize_Path
-       (Files.File_System.Expand_User_Path (Files.Model.Path_Input_Text (Model)));
+       (if Typed = "" or else GNAT.OS_Lib.Is_Absolute_Path (Typed) then Typed
+        else Files.File_System.Join_Path (Files.Model.Current_Path (Model), Typed));
    Empty_Items : Files.Items.Item_Vectors.Vector;
 begin
    if Path_Result.Status /= Files.File_System.Path_Valid then

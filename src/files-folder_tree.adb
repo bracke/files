@@ -1,4 +1,5 @@
 with Ada.Strings.Unbounded;
+with Ada.Unchecked_Deallocation;
 
 package body Files.Folder_Tree is
    use Ada.Strings.Unbounded;
@@ -144,12 +145,16 @@ package body Files.Folder_Tree is
       declare
          subtype Node_Range is Positive range T.Nodes.First_Index .. T.Nodes.Last_Index;
          type Link_Array is array (Node_Range) of Natural;
+         type Link_Array_Access is access Link_Array;
+         procedure Free is new Ada.Unchecked_Deallocation (Link_Array, Link_Array_Access);
          --  Children of each node as a linked list in attach order, built in
          --  one pass. Scanning every node per expanded node made a deeply
-         --  expanded tree quadratic on every snapshot.
-         First_Child : Link_Array := [others => 0];
-         Last_Child  : Link_Array := [others => 0];
-         Next_Child  : Link_Array := [others => 0];
+         --  expanded tree quadratic on every snapshot. On the heap: sized by
+         --  the node count, three of them overflow a 1 MiB stack (Windows'
+         --  main thread) at under 90,000 nodes.
+         First_Child : Link_Array_Access := new Link_Array'[others => 0];
+         Last_Child  : Link_Array_Access := new Link_Array'[others => 0];
+         Next_Child  : Link_Array_Access := new Link_Array'[others => 0];
 
          procedure Visit (Index : Positive) is
             N     : Node renames T.Nodes (Index);
@@ -192,6 +197,15 @@ package body Files.Folder_Tree is
                Visit (Index);
             end if;
          end loop;
+         Free (First_Child);
+         Free (Last_Child);
+         Free (Next_Child);
+      exception
+         when others =>
+            Free (First_Child);
+            Free (Last_Child);
+            Free (Next_Child);
+            raise;
       end;
       return Result;
    end Visible_Rows;
@@ -201,6 +215,8 @@ package body Files.Folder_Tree is
       return Natural
    is
       type Flag_Array is array (Positive range <>) of Boolean;
+      type Flag_Array_Access is access Flag_Array;
+      procedure Free is new Ada.Unchecked_Deallocation (Flag_Array, Flag_Array_Access);
       Count : Natural := 0;
    begin
       if T.Nodes.Is_Empty then
@@ -210,8 +226,9 @@ package body Files.Folder_Tree is
       declare
          --  Set_Children appends children after their parent, so one forward
          --  pass sees each parent's visibility before any of its children.
-         Shown : Flag_Array (T.Nodes.First_Index .. T.Nodes.Last_Index) :=
-           [others => False];
+         --  On the heap, as Visible_Rows' links are.
+         Shown : Flag_Array_Access :=
+           new Flag_Array'[T.Nodes.First_Index .. T.Nodes.Last_Index => False];
       begin
          for Index in Shown'Range loop
             declare
@@ -227,6 +244,11 @@ package body Files.Folder_Tree is
                end if;
             end;
          end loop;
+         Free (Shown);
+      exception
+         when others =>
+            Free (Shown);
+            raise;
       end;
       return Count;
    end Visible_Row_Count;

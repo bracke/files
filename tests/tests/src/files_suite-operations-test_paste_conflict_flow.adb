@@ -172,4 +172,29 @@ separate (Files_Suite.Operations)
          "cancel changes nothing at the destination");
       Assert (not Ada.Directories.Exists (Join (Dest_Dir, "a 2.txt")), "cancel writes no copy");
       Assert (Files.Model.Clipboard_Has_Items (Model), "cancel keeps the clipboard for a retry");
+
+      --  A dangling link holding the name is a conflict too: the listing the
+      --  dialog is armed from must not drop it, and Replace puts the file there.
+      Reset_Root;
+      Ada.Directories.Create_Path (Src_Dir);
+      Ada.Directories.Create_Path (Dest_Dir);
+      Write_File (Join (Src_Dir, "a.txt"), "SRC");
+      if Hostkit.Fs.Create_Link ("missing-target", Join (Dest_Dir, "a.txt")) then
+         Arm_Model (Model, One_File);
+         Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+         Assert (Files.Model.Paste_Conflict_Is_Active (Model), "a dangling link at the name arms the conflict dialog");
+         Resolved :=
+           Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
+         Files_Suite.Support.Assert_Equal
+           (Resolved.Status,
+            Files.Operations.Operation_Success,
+            "replacing a dangling link resolves successfully");
+         Assert (not Hostkit.Fs.Is_Link (Join (Dest_Dir, "a.txt")), "replace removes the dangling link");
+         Files_Suite.Support.Assert_Equal
+           (Read (Join (Dest_Dir, "a.txt")),
+            "SRC",
+            "replace puts the source where the dangling link was");
+      else
+         Files_Suite.Support.Link_Not_Made ("Test_Paste_Conflict_Flow", Files_Suite.Support.Symbolic_Link);
+      end if;
    end Test_Paste_Conflict_Flow;

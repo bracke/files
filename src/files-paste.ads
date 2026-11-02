@@ -67,7 +67,8 @@ package Files.Paste is
    --
    --  @param Dir Destination directory.
    --  @param Name Desired leaf name.
-   --  @return The desired destination path (Dir and Name joined with '/').
+   --  @return The desired destination path (Dir and Name joined with the host's
+   --  separator, as Hostkit.Fs.Join joins them).
    function Desired_Path
      (Dir  : String;
       Name : String)

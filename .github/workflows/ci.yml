@@ -190,7 +190,7 @@ jobs:
           clone_at textrender 0a6721cb4239e581518c0d312bb7085e5b1ff402
           clone_at zlib 56d3b4fab7bb749f04952c5ec118aab0ef0787b8
           clone_at guikit 020e9bbc52f775facc18062cef01f3efdc5a0fe9
-          clone_at hostkit 56574710765e2940ce2e9829b34b177885f8f80f
+          clone_at hostkit d94c4cdcedc3e93f807eb74d0dffc82e1003b479
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
@@ -552,7 +552,11 @@ jobs:
           FILES_TEST_TIME_SCALE: '2'
         run: |
           # -f: the objects from the steps above are not instrumented.
-          alr --non-interactive build -- -f -cargs -fprofile-arcs -ftest-coverage -largs --coverage
+          # Atomic counter updates: the suite runs tasks, and two of them
+          # bumping one counter at once can leave it negative, which gcovr
+          # refuses (it failed a run on files-file_identities.adb).
+          alr --non-interactive build -- -f -cargs -fprofile-arcs -ftest-coverage -fprofile-update=atomic \
+            -largs --coverage
           if ! ./bin/tests > "$RUNNER_TEMP/coverage-tests.log" 2>&1; then
             tail -n 200 "$RUNNER_TEMP/coverage-tests.log"
             echo "::error::the test suite failed in the coverage build (last 200 lines above)"

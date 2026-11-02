@@ -38,7 +38,8 @@ is
    --  A case-only rename of a single file: the destination exists but is the
    --  very same file as the source (a case-insensitive filesystem reports the
    --  two case-differing spellings as one file), and the leaves match only
-   --  when case is ignored. This must NOT be treated as a collision.
+   --  when case and Unicode form are ignored -- in every script, not only
+   --  Latin-1 (Привет to привет). This must NOT be treated as a collision.
    function Is_Case_Only_Rename return Boolean is
       From_Identity : constant String := Files.File_Identities.Token (From_Path);
    begin
@@ -51,8 +52,8 @@ is
            else not Hostkit.Fs.Is_Link (From_Path)
              and then not Hostkit.Fs.Is_Link (To_Path)
              and then Hostkit.Metadata.Same_File (From_Path, To_Path))
-        and then Files.Types.To_Lower (Mutation_Leaf_Name (From_Path))
-                 = Files.Types.To_Lower (Mutation_Leaf_Name (To_Path))
+        and then Files.Types.Fold_Case (Mutation_Leaf_Name (From_Path))
+                 = Files.Types.Fold_Case (Mutation_Leaf_Name (To_Path))
         and then Mutation_Leaf_Name (From_Path) /= Mutation_Leaf_Name (To_Path);
    exception
       when others =>

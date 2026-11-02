@@ -1,6 +1,7 @@
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
+with Hostkit.Fs;
 
 package body Files.Paste is
 
@@ -28,13 +29,9 @@ package body Files.Paste is
       Name : String)
       return String is
    begin
-      if Dir = "" then
-         return Name;
-      elsif Dir (Dir'Last) = '/' then
-         return Dir & Name;
-      else
-         return Dir & "/" & Name;
-      end if;
+      --  The host's separator, so the path is spelled as a listing spells
+      --  it: labels, favorites and recents follow a moved item by its path.
+      return Hostkit.Fs.Join (Dir, Name);
    end Desired_Path;
 
    --  Whether Path is present in a vector of full paths.

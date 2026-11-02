@@ -5,6 +5,9 @@ separate (Files_Suite.Operations)
       Image    : constant String := Join (Root, "ci.dmg");
       Mount    : constant String := Join (Root, "ci-volume");
       Attached : Boolean := False;
+      --  Spelled by code point: a String literal cannot hold Cyrillic.
+      Lower_Cyrillic : constant String := Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("привет.txt");
+      Upper_Cyrillic : constant String := Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("Привет.txt");
 
       function Run (Program : String; Arguments : GNAT.OS_Lib.Argument_List) return Boolean is
          use type GNAT.OS_Lib.String_Access;
@@ -108,6 +111,27 @@ separate (Files_Suite.Operations)
             "the report",
             "the contents are intact");
          Ada.Directories.Delete_File (Join (Folder, "Report.txt"));
+         --  Outside Latin-1 too: the leaves are compared folded in every script.
+         Write_Binary_File (Join (Folder, Lower_Cyrillic), "hello");
+         Load := Files.File_System.Load_Directory (Folder, Settings);
+         Files.Model.Initialize (Model, Folder, Load.Items, Root);
+         Select_Name (Model, Lower_Cyrillic);
+         Files.Model.Toggle_Rename (Model);
+         Files.Model.Set_Rename_Text (Model, Upper_Cyrillic);
+         Step := Files.Operations.Commit_Rename (Model, Settings);
+         Files_Suite.Support.Assert_Equal
+           (Step.Status,
+            Files.Operations.Operation_Success,
+            "the Cyrillic case-only rename succeeds" & (if Folding then " (case-insensitive volume)" else ""));
+         Names.Clear;
+         Load := Files.File_System.Load_Directory (Folder, Settings);
+         for Item of Load.Items loop
+            Names.Append (Item.Name);
+         end loop;
+         Assert (Names.Contains (To_Unbounded_String (Upper_Cyrillic))
+                 and then not Names.Contains (To_Unbounded_String (Lower_Cyrillic)),
+                 "the folder now lists the capitalised Cyrillic name, not the lower-case one");
+         Ada.Directories.Delete_File (Join (Folder, Upper_Cyrillic));
       end;
       Detach;
    exception

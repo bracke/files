@@ -14,6 +14,7 @@ separate (Files_Suite.Interaction)
       Files_Suite.Support.Reset_Root;
       Ada.Directories.Create_Path (Sub);
       Files_Suite.Support.Write_File (Source, "payload");
+      Files.Settings.Set_Label (Settings, Source, Files.Types.Red);
 
       --  Step 1: cut a file from the source directory.
       Model := Loaded_Model (Src_Dir);
@@ -34,6 +35,21 @@ separate (Files_Suite.Interaction)
       Assert (Found, "the empty-area menu offers the paste command");
       Assert (Ada.Directories.Exists (Pasted), "paste moves the cut file into the subdirectory");
       Assert (not Ada.Directories.Exists (Source), "a cut paste removes the file from its origin");
+      --  The label follows the move to the path a listing gives the item,
+      --  separator and all.
+      declare
+         Kept : Boolean := False;
+      begin
+         Load := Files.File_System.Load_Directory (Sub, Settings);
+         for Item of Load.Items loop
+            if Ada.Strings.Unbounded.To_String (Item.Name) = "movable.txt" then
+               Kept := Files.Types."="
+                 (Files.Settings.Label_Of (Settings, Ada.Strings.Unbounded.To_String (Item.Full_Path)),
+                  Files.Types.Red);
+            end if;
+         end loop;
+         Assert (Kept, "the moved file keeps its label under its listed path");
+      end;
 
       --  Step 3: if the move is undoable, undo returns the file to its origin.
       if Files.Model.Undo_Available (Model) then

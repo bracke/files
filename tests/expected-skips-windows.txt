@@ -41,6 +41,7 @@ Test_Special_Entry_Metadata: needs Linux
 Test_Staging_Default_ACL: needs Linux
 Test_Stray_Home_Trash_Stays_Freedesktop: only Linux and macOS read a ~/.Trash folder; Windows uses the Recycle Bin
 Test_Transport_Cleanup_Retry: needs Linux, not root
+Test_Trash_Long_Name: the name passes the Windows path limit
 Test_Trash_Refuses_Volume_Trash: Windows has no freedesktop volume trash
 Test_Trash_Source_Verification: needs Linux
 Test_Unreadable_Hardlink_History: needs native POSIX mode bits

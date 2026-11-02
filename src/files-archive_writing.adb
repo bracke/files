@@ -104,7 +104,7 @@ package body Files.Archive_Writing is
 
       --  The name two entries collide under on the destination.
       function Key (Name : String) return String is
-        (if Case_Insensitive then Files.Types.To_Lower (Name) else Name);
+        (if Case_Insensitive then Files.Types.Fold_Case (Name) else Name);
    begin
       for Member of Entries loop
          declare

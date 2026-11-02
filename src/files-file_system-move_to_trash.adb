@@ -11,8 +11,42 @@ is
       Name            : String)
       return String
    is
+      --  A leaf holds at most 255 bytes, and the info file adds ".trashinfo"
+      --  and a uniquifying counter (".2" up to ".2147483647") to the name. A
+      --  longer name is cut down here -- keeping its extension, and never
+      --  inside a UTF-8 sequence -- or the item could never be trashed. Its
+      --  info file's Path= keeps the original, which restore uses.
+      Max_Base : constant Natural := 255 - 10 - 11;
+
+      function Shortened return String is
+         Dot  : Natural := 0;
+         Last : Natural;
+      begin
+         if Info_Directory = "" or else Name'Length <= Max_Base then
+            return Name;
+         end if;
+         for Index in reverse Name'Range loop
+            if Name (Index) = '.' then
+               Dot := Index;
+               exit;
+            end if;
+         end loop;
+         if Dot <= Name'First or else Name'Last - Dot + 1 > 32 then
+            Dot := Name'Last + 1;
+         end if;
+         Last := Name'First + Max_Base - (Name'Last - Dot + 1) - 1;
+         --  Back off a continuation byte so the cut ends a whole character.
+         while Last >= Name'First
+           and then Character'Pos (Name (Last + 1)) in 16#80# .. 16#BF#
+         loop
+            Last := Last - 1;
+         end loop;
+         return Name (Name'First .. Last) & Name (Dot .. Name'Last);
+      end Shortened;
+
+      Base      : constant String := Shortened;
       Counter   : Positive := 2;
-      Candidate : Unbounded_String := To_Unbounded_String (Name);
+      Candidate : Unbounded_String := To_Unbounded_String (Base);
    begin
       while Ada.Directories.Exists (Join_Path (Files_Directory, To_String (Candidate)))
         or else Hostkit.Fs.Is_Link (Join_Path (Files_Directory, To_String (Candidate)))
@@ -21,7 +55,7 @@ is
                    (Ada.Directories.Exists (Join_Path (Info_Directory, To_String (Candidate) & ".trashinfo"))
                     or else Hostkit.Fs.Is_Link (Join_Path (Info_Directory, To_String (Candidate) & ".trashinfo"))))
       loop
-         Candidate := To_Unbounded_String (Name & "." & Natural_Text (Counter));
+         Candidate := To_Unbounded_String (Base & "." & Natural_Text (Counter));
          exit when Counter = Positive'Last;
          Counter := Counter + 1;
       end loop;

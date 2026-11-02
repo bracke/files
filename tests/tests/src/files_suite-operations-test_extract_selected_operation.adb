@@ -110,6 +110,10 @@ separate (Files_Suite.Operations)
               "names differing in case are distinct on a case-sensitive volume");
       Assert (not Files.Archive_Writing.Names_Are_Extractable (Catalogue, False, Case_Insensitive => True),
               "names differing only in case collide on a case-insensitive volume");
+      Catalogue (1).Name := To_Unbounded_String (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("ΑΒΓ.txt"));
+      Catalogue (2).Name := To_Unbounded_String (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode ("αβγ.txt"));
+      Assert (not Files.Archive_Writing.Names_Are_Extractable (Catalogue, False, Case_Insensitive => True),
+              "Greek names differing only in case collide on a case-insensitive volume too");
 
       Ada.Directories.Create_Path (Dir);
       Write_File (Source_Report, Report_Payload);
