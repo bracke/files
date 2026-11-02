@@ -21,7 +21,7 @@ separate (Files_Suite.Operations)
             else Files.Operations.Undo_Last (Model, Settings)));
          Await_View (Model, Settings);
          Assert (Step.Status = Files.Operations.Operation_Failed
-                 and then File_Has_Bytes (Path, "unrelated replacement"), "history refuses to move a replacement");
+                 and then File_Is (Path, "unrelated replacement"), "history refuses to move a replacement");
          Mutation := Files.File_System.Delete_Permanently (Path);
          Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Saved, Path), "restore the owned history entry");
       end Replace_And_Refuse;
@@ -90,7 +90,7 @@ separate (Files_Suite.Operations)
                   "history cannot mark an unrelated existing target as already moved: status");
                Assert (Files.Model.Undo_Available (Model),
                        "history cannot mark an unrelated existing target as already moved: Undo retained");
-               Assert (File_Has_Bytes (Source, "unrelated target"),
+               Assert (File_Is (Source, "unrelated target"),
                        "history cannot mark an unrelated existing target as already moved: target kept");
             end loop;
          end loop;

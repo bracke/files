@@ -79,7 +79,7 @@ separate (Files_Suite.Operations)
             Assert
               (Mutation.Success, "the aliased same-directory move keeps the original name and bytes: succeeds");
             Assert
-              (File_Has_Bytes (Stay, "stay"),
+              (File_Is (Stay, "stay"),
                "the aliased same-directory move keeps the original name and bytes: bytes");
             Assert
               (not Ada.Directories.Exists (Join (Child, "stay 2.txt")),

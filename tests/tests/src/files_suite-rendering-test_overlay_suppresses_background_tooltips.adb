@@ -38,4 +38,28 @@ separate (Files_Suite.Rendering)
                "the active root selector retains no tooltip region from the toolbar behind it");
          end loop;
       end;
+
+      --  Every input-owning overlay counts, each on its own. The case names
+      --  them all, so a new overlay does not compile here until its flag is
+      --  listed -- and then this fails until Any_Overlay_Open lists it too.
+      for Overlay in Files.Model.Input_Overlay loop
+         declare
+            One : View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+         begin
+            Assert (not Any_Overlay_Open (One), "the sample has no overlay open");
+            case Overlay is
+               when Files.Model.Settings_Pane_Overlay   => One.Settings_Pane_Open := True;
+               when Files.Model.Command_Palette_Overlay => One.Command_Palette_Open := True;
+               when Files.Model.Root_Selector_Overlay   => One.Root_Selector_Open := True;
+               when Files.Model.Sort_Menu_Overlay       => One.Sort_Menu_Open := True;
+               when Files.Model.Context_Menu_Overlay    => One.Context_Menu_Open := True;
+               when Files.Model.Label_Picker_Overlay    => One.Label_Picker_Open := True;
+               when Files.Model.Quick_Look_Overlay      => One.Quick_Look_Open := True;
+               when Files.Model.Tree_Pick_Overlay       => One.Tree_Pick_Active := True;
+               when Files.Model.Paste_Conflict_Overlay  => One.Paste_Conflict_Open := True;
+               when Files.Model.Paste_Execution_Overlay => One.Paste_Progress_Open := True;
+            end case;
+            Assert (Any_Overlay_Open (One), Files.Model.Input_Overlay'Image (Overlay) & " hides covered tooltips");
+         end;
+      end loop;
    end Test_Overlay_Suppresses_Background_Tooltips;

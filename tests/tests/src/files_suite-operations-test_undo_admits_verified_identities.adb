@@ -63,7 +63,7 @@ separate (Files_Suite.Operations)
               (Files.Model.Undo_From_Paths (Model).First_Element = Older,
                "a stale supplied identity cannot enter history or displace an older action: older action kept");
             Assert
-              (File_Has_Bytes (Stale, "replacement bytes"),
+              (File_Is (Stale, "replacement bytes"),
                "a stale supplied identity cannot enter history or displace an older action: replacement kept");
 
             Write_Binary_File (Prefix, "verified bytes");

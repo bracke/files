@@ -42,7 +42,7 @@ separate (Files_Suite.Operations)
             Files.File_System.Drop_Import_Mode'Image (Mode) & " into a read-only folder says permission was denied");
       end loop;
       Unlock_Directory (Locked);
-      Assert (File_Has_Bytes (Source, "source bytes"),
+      Assert (File_Is (Source, "source bytes"),
               "refused copies and moves leave the sources and add nothing: source file kept");
       Assert (Ada.Directories.Exists (Join (Folder, "inside.txt")),
               "refused copies and moves leave the sources and add nothing: source folder kept");

@@ -64,10 +64,10 @@ separate (Files_Suite.Operations)
                Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Assert (Step.Status = Files.Operations.Operation_Success
-                       and then File_Has_Bytes (Source, "source bytes"),
+                       and then File_Is (Source, "source bytes"),
                        "Undo reverses a committed paste recovered without its final helper result");
                if Replaced then
-                  Assert (File_Has_Bytes (Dest, "original destination"),
+                  Assert (File_Is (Dest, "original destination"),
                           "recovered Undo restores the replacement backup");
                else
                   Assert (not Ada.Directories.Exists (Dest), "recovered Undo vacates the published destination");

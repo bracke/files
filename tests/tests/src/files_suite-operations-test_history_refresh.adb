@@ -35,10 +35,7 @@ separate (Files_Suite.Operations)
                      if Background then
                         Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
                                 "the history action schedules a background refresh");
-                        for Attempt in Files_Suite.Support.Polling loop
-                           Applied := Files.Refresh_Jobs.Advance (Model, Settings) or else Applied;
-                           exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
-                        end loop;
+                        Await_View (Model, Settings, Applied);
                         Assert (Applied and then not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
                                 "Undo or Redo's own refresh applies without a fallback poll or manual reload");
                      else
@@ -86,7 +83,7 @@ separate (Files_Suite.Operations)
                      Assert ((if Recent then Listed (Source_A) and then Listed (Source_B)
                               else not Listed (Dest_A) and then Listed (Dest_B)),
                              "a partial Undo refresh shows its completed mutation");
-                     Assert (File_Has_Bytes (Source_B, "unrelated source collision"),
+                     Assert (File_Is (Source_B, "unrelated source collision"),
                              "the blocked Undo preserves the occupying source");
                      Ada.Directories.Delete_File (Source_B);
                      Step := Complete_Operation
@@ -114,7 +111,7 @@ separate (Files_Suite.Operations)
                      Assert ((if Recent then not Listed (Source_A) and then Listed (Source_B)
                               else Listed (Dest_A) and then Listed (Dest_B)),
                              "a partial Redo refresh shows its completed mutation");
-                     Assert (File_Has_Bytes (Dest_B, "unrelated destination collision"),
+                     Assert (File_Is (Dest_B, "unrelated destination collision"),
                              "the blocked Redo preserves the occupying destination");
                      Ada.Directories.Delete_File (Dest_B);
                      Step := Complete_Operation

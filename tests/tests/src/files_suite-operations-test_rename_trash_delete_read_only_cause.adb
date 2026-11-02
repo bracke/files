@@ -33,7 +33,7 @@ separate (Files_Suite.Operations)
       Assert (not Mutation.Success, "a read-only folder refuses a permanent delete");
       Assert_Equal (To_String (Mutation.Error_Key), "error.io.denied", "the refused delete says permission was denied");
       Unlock_Directory (Locked);
-      Assert (File_Has_Bytes (Item, "item bytes")
+      Assert (File_Is (Item, "item bytes")
               and then not Ada.Directories.Exists (Join (Locked, "renamed.txt")),
               "every refused mutation leaves the item where it was");
 

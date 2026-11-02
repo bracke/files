@@ -174,6 +174,9 @@ package body Files_Suite.Support is
       Project_Tools.Files.Write_Text_File (Path, Content);
    end Write_File;
 
+   function File_Is (Path : String; Bytes : String) return Boolean is
+     (Ada.Directories.Exists (Path) and then Project_Tools.Files.Read_Raw_File (Path) = Bytes);
+
    function File_Has_Bytes (Path : String; Bytes : String) return Boolean is
       use type Ada.Streams.Stream_Element_Offset;
 

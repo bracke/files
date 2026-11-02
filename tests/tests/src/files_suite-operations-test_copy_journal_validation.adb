@@ -71,7 +71,7 @@ separate (Files_Suite.Operations)
          end;
          Assert
            (Rejected
-            and then File_Has_Bytes (Victim, "protected copy journal"),
+            and then File_Is (Victim, "protected copy journal"),
             "copy journal reads refuse a multiply-linked file");
          Ada.Directories.Delete_File (Join (Root, "links"));
       else
@@ -101,7 +101,7 @@ separate (Files_Suite.Operations)
             when Ada.Directories.Use_Error => Rejected := True;
          end;
          Assert
-           (Rejected and then File_Has_Bytes (Victim, "preserve me"),
+           (Rejected and then File_Is (Victim, "preserve me"),
             "copy journals refuse a temporary symlink without truncating its target");
          declare
             Removed : constant Boolean :=

@@ -52,16 +52,16 @@ separate (Files_Suite.Operations)
                Assert (File_Has_Bytes (Join (Copy_Bundle, "payload.txt"), "bundle bytes"),
                        "a Recent directory duplicates beside its source with complete contents");
                Assert
-                 (File_Has_Bytes (Existing, "existing copy bytes"),
+                 (File_Is (Existing, "existing copy bytes"),
                   "Duplicate preserves sources, existing copies and unselected items: existing copy");
                Assert
-                 (File_Has_Bytes (Source_A, "source a bytes"),
+                 (File_Is (Source_A, "source a bytes"),
                   "Duplicate preserves sources, existing copies and unselected items: source a");
                Assert
-                 (File_Has_Bytes (Source_B, "source b bytes"),
+                 (File_Is (Source_B, "source b bytes"),
                   "Duplicate preserves sources, existing copies and unselected items: source b");
                Assert
-                 (File_Has_Bytes (Unselected, "unselected bytes"),
+                 (File_Is (Unselected, "unselected bytes"),
                   "Duplicate preserves sources, existing copies and unselected items: unselected item");
             end Check_Copies;
 
@@ -69,10 +69,7 @@ separate (Files_Suite.Operations)
                Applied : Boolean := False;
             begin
                if Background then
-                  for Attempt in Files_Suite.Support.Polling loop
-                     Applied := Files.Refresh_Jobs.Advance (Model, Settings) or else Applied;
-                     exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
-                  end loop;
+                  Await_View (Model, Settings, Applied);
                   Assert (Applied and then not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
                           "history refresh applies to the Recent view after a duplicate");
                end if;
@@ -150,7 +147,7 @@ separate (Files_Suite.Operations)
                "Undo removes every adjacent copy from its source folder: bundle copy removed");
             Await_Refresh;
             Check_Recent;
-            Assert (File_Has_Bytes (Existing, "existing copy bytes"), "Undo preserves the pre-existing copy collision");
+            Assert (File_Is (Existing, "existing copy bytes"), "Undo preserves the pre-existing copy collision");
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal

@@ -55,7 +55,7 @@ separate (Files_Suite.Operations)
               (Files.Model.Undo_Available (Model),
                "Undo retains a same-size edited copy and its retryable action: undo kept");
             Assert
-              (File_Has_Bytes (Dest, "edited bytes"),
+              (File_Is (Dest, "edited bytes"),
                "Undo retains a same-size edited copy and its retryable action: edited bytes kept");
          end;
          Reset_Root;
@@ -95,7 +95,7 @@ separate (Files_Suite.Operations)
               (Files.Model.Undo_Available (Model),
                "Undo retains a copied directory whose child bytes changed: undo kept");
             Assert
-              (File_Has_Bytes (Child, "edited bytes"),
+              (File_Is (Child, "edited bytes"),
                "Undo retains a copied directory whose child bytes changed: edited bytes kept");
          end;
       end loop;

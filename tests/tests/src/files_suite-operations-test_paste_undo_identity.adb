@@ -47,7 +47,7 @@ separate (Files_Suite.Operations)
                   Files.Operations.Operation_Failed,
                   "later paste steps cannot recapture a replacement as an owned entry: status");
                Assert
-                 (File_Has_Bytes (A, "unrelated a"),
+                 (File_Is (A, "unrelated a"),
                   "later paste steps cannot recapture a replacement as an owned entry: A replacement kept");
                Assert
                  (not Ada.Directories.Exists (B),
@@ -66,7 +66,7 @@ separate (Files_Suite.Operations)
                  (not Ada.Directories.Exists (A),
                   "partial Undo retries preserve unrelated entries at already reversed paths: A removed");
                Assert
-                 (File_Has_Bytes (B, "unrelated b"),
+                 (File_Is (B, "unrelated b"),
                   "partial Undo retries preserve unrelated entries at already reversed paths: B replacement kept");
             end;
          end loop;

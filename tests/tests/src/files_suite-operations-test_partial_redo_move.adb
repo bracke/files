@@ -42,7 +42,7 @@ separate (Files_Suite.Operations)
               (Step.Status,
                Files.Operations.Operation_Failed,
                "the first forward move completes before B fails: status");
-            Assert (File_Has_Bytes (Dest_A, "original a"), "the first forward move completes before B fails: A moved");
+            Assert (File_Is (Dest_A, "original a"), "the first forward move completes before B fails: A moved");
             Assert
               (not Ada.Directories.Exists (Source_A),
                "the first forward move completes before B fails: A source vacated");
@@ -54,13 +54,13 @@ separate (Files_Suite.Operations)
                Files.Operations.Operation_Failed,
                "repeated partial Redo leaves completed moves and unrelated paths intact: status");
             Assert
-              (File_Has_Bytes (Source_A, "unrelated new source"),
+              (File_Is (Source_A, "unrelated new source"),
                "repeated partial Redo leaves completed moves and unrelated paths intact: new source A intact");
             Assert
-              (File_Has_Bytes (Dest_A, "original a"),
+              (File_Is (Dest_A, "original a"),
                "repeated partial Redo leaves completed moves and unrelated paths intact: moved A intact");
             Assert
-              (File_Has_Bytes (Dest_B, "unrelated collision"),
+              (File_Is (Dest_B, "unrelated collision"),
                "repeated partial Redo leaves completed moves and unrelated paths intact: B collision intact");
             Ada.Directories.Rename (Dest_A, Saved_A);
             Step := Complete_Operation
@@ -74,7 +74,7 @@ separate (Files_Suite.Operations)
                "a missing completed move invalidates its marker without moving a replacement source"
                & ": moved A stays missing");
             Assert
-              (File_Has_Bytes (Source_A, "unrelated new source"),
+              (File_Is (Source_A, "unrelated new source"),
                "a missing completed move invalidates its marker without moving a replacement source"
                & ": new source A intact");
             Assert
@@ -88,7 +88,7 @@ separate (Files_Suite.Operations)
                Files.Operations.Operation_Failed,
                "restoring the moved entry makes its invalidated marker retryable: status");
             Assert
-              (File_Has_Bytes (Dest_A, "original a"),
+              (File_Is (Dest_A, "original a"),
                "restoring the moved entry makes its invalidated marker retryable: A restored");
             Assert
               (Files.Model.Redo_Available (Model),
@@ -107,10 +107,10 @@ separate (Files_Suite.Operations)
               (not Files.Model.Redo_Available (Model),
                "unblocking B completes Redo without moving the unrelated recreated source A: redo consumed");
             Assert
-              (File_Has_Bytes (Source_A, "unrelated new source"),
+              (File_Is (Source_A, "unrelated new source"),
                "unblocking B completes Redo without moving the unrelated recreated source A: new source A intact");
             Assert
-              (File_Has_Bytes (Dest_B, "original b"),
+              (File_Is (Dest_B, "original b"),
                "unblocking B completes Redo without moving the unrelated recreated source A: B moved");
             Ada.Directories.Delete_File (Source_A);
             Step := Complete_Operation
@@ -128,10 +128,10 @@ separate (Files_Suite.Operations)
                Files.Operations.Operation_Success,
                "a fresh Redo cycle moves both items after its progress was cleared: status");
             Assert
-              (File_Has_Bytes (Dest_A, "original a"),
+              (File_Is (Dest_A, "original a"),
                "a fresh Redo cycle moves both items after its progress was cleared: A moved");
             Assert
-              (File_Has_Bytes (Dest_B, "original b"),
+              (File_Is (Dest_B, "original b"),
                "a fresh Redo cycle moves both items after its progress was cleared: B moved");
             Assert
               (not Ada.Directories.Exists (Source_A),

@@ -14,13 +14,13 @@ separate (Files_Suite.Operations)
          Assert (not Ada.Directories.Exists (Target), "creation preserves a dangling link and its target: no target");
          Write_Binary_File (Target, "existing bytes");
          Mutation := Files.File_System.Create_Empty_File (Link);
-         Assert (not Mutation.Success and then File_Has_Bytes (Target, "existing bytes"),
+         Assert (not Mutation.Success and then File_Is (Target, "existing bytes"),
                  "creation preserves a live symbolic link target");
       else
          Write_Binary_File (Target, "existing bytes");
       end if;
       Mutation := Files.File_System.Create_Empty_File (Target);
-      Assert (not Mutation.Success and then File_Has_Bytes (Target, "existing bytes"),
+      Assert (not Mutation.Success and then File_Is (Target, "existing bytes"),
               "creation never truncates an existing regular file");
       Mutation := Files.File_System.Create_Empty_File (Join (Root, "new"));
       Assert (Mutation.Success and then Ada.Directories.Size (Join (Root, "new")) = 0,

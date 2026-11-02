@@ -91,9 +91,9 @@ separate (Files_Suite.Operations)
                   Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                   Await_View (Model, Settings);
                   Assert (Step.Status = Files.Operations.Operation_Success
-                          and then File_Has_Bytes (Source, "owned original"),
+                          and then File_Is (Source, "owned original"),
                           "retry reverses the journaled committed move");
-                  Assert ((if Replace then File_Has_Bytes (Dest, "original destination")
+                  Assert ((if Replace then File_Is (Dest, "original destination")
                            else not Ada.Directories.Exists (Dest)), "retry also restores a replaced destination");
                end loop;
             end;

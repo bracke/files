@@ -55,7 +55,7 @@ separate (Files_Suite.Operations)
                  (Files.Model.Undo_Available (Model),
                   "Undo refuses to restore an unrelated trash payload and retains retryable history: undo kept");
                Assert
-                 (File_Has_Bytes (Payload, "unrelated replacement"),
+                 (File_Is (Payload, "unrelated replacement"),
                   "Undo refuses to restore an unrelated trash payload and retains retryable history: replacement kept");
                Assert
                  (not Ada.Directories.Exists (Source),
@@ -67,7 +67,7 @@ separate (Files_Suite.Operations)
                Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Assert (Step.Status = Files.Operations.Operation_Success
-                       and then File_Has_Bytes (Source, "original destination"),
+                       and then File_Is (Source, "original destination"),
                        "retry restores the original without repeating completed paste removal");
             end;
          end loop;

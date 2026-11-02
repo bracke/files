@@ -62,7 +62,7 @@ separate (Files_Suite.Operations)
          0,
          "Replace refuses an unidentifiable original before moving it: no backup");
       Assert
-        (File_Has_Bytes (Dest, "original"),
+        (File_Is (Dest, "original"),
          "Replace refuses an unidentifiable original before moving it: original kept");
    exception
       when others =>

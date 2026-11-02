@@ -150,6 +150,8 @@ begin
                        Free_Inodes_Known => Capacity.Inodes_Known,
                        Destination       => Destination)
                   then
+                     --  The stage was made before the archive was read.
+                     Discard_Stage;
                      return Failed;
                   end if;
                end;

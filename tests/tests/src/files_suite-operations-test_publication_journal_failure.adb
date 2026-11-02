@@ -83,10 +83,10 @@ separate (Files_Suite.Operations)
                      Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                      Assert (Step.Status = Files.Operations.Operation_Success
-                             and then File_Has_Bytes (Source, "source bytes"),
+                             and then File_Is (Source, "source bytes"),
                              "Undo reverses the committed operation without losing the source bytes");
                      if Replaced then
-                        Assert (File_Has_Bytes (Dest, "original bytes"),
+                        Assert (File_Is (Dest, "original bytes"),
                                 "replacement Undo restores the retained original after journal failure");
                      else
                         Assert (not Ada.Directories.Exists (Dest), "Undo vacates the created destination");

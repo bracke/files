@@ -85,7 +85,7 @@ separate (Files_Suite.Operations)
                Mutation := Files.File_System.Copy_Tree (Source, Dest);
                Assert (Mutation.Success, "foreground copy through a restrictive default ACL");
             end if;
-            Assert (File_Has_Bytes (Dest, "copied bytes") and then File_Has_Bytes (Source, "copied bytes"),
+            Assert (File_Has_Bytes (Dest, "copied bytes") and then File_Is (Source, "copied bytes"),
                     "copying succeeds without changing the source or the destination's ACL policy");
          end loop;
       end loop;

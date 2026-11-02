@@ -1,3 +1,4 @@
+with Files.Timing;
 with Files.Diagnostics;
 with Ada.Calendar;
 with Ada.Directories;
@@ -730,7 +731,7 @@ package body Files.Job_Transports is
            Ada.Directories.Modification_Time (Directory);
       begin
          if Modified <= Now
-           and then Now - Modified < Duration'Max (0.0, Minimum_Age)
+           and then not Files.Timing.Elapsed (Now, Modified, Minimum_Age)
          then
             Release (Owner);
             Identity := Null_Unbounded_String;

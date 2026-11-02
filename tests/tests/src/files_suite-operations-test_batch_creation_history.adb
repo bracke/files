@@ -105,7 +105,7 @@ separate (Files_Suite.Operations)
                   Assert (not Ada.Directories.Exists (Join (Root, "prior")),
                           "the next Undo reaches the prior action and never touches a recreated batch path: "
                           & "prior action undone");
-                  Assert (File_Has_Bytes (Keep, "unrelated replacement"),
+                  Assert (File_Is (Keep, "unrelated replacement"),
                           "the next Undo reaches the prior action and never touches a recreated batch path: "
                           & "replacement kept");
                end;

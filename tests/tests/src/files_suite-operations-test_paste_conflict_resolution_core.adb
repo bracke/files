@@ -105,6 +105,38 @@ separate (Files_Suite.Operations)
             "rename-all leaves the non-colliding name alone");
       end;
 
+      --  A choice made for one item holds for it alone: a.txt skipped, then
+      --  Replace All for the rest overwrites b.txt and leaves a.txt alone.
+      declare
+         Skip_First : Files.Paste.Item_Decision_Vectors.Vector;
+      begin
+         Skip_First.Append (Files.Paste.Decision_Skip);
+         Skip_First.Append (Files.Paste.Decision_Pending);
+         Skip_First.Append (Files.Paste.Decision_Pending);
+         Files_Suite.Support.Assert_Equal
+           (Files.Paste.Next_Unresolved_Conflict (Items, Files.Paste.Policy_Ask, Skip_First, Existing),
+            2,
+            "after a.txt is decided, b.txt is the next to ask about");
+         Files_Suite.Support.Assert_Equal
+           (Files.Paste.Next_Unresolved_Conflict (Items, Files.Paste.Policy_Ask, None, Existing, After => 1),
+            2,
+            "the search for the next conflict starts after the one asked about");
+         Files_Suite.Support.Assert_Equal
+           (Files.Paste.Next_Unresolved_Conflict (Items, Files.Paste.Policy_Replace_All, Skip_First, Existing),
+            0,
+            "a policy decides every remaining conflict");
+         declare
+            Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
+              Files.Paste.Resolve (Items, Files.Paste.Policy_Replace_All, Skip_First, Existing);
+         begin
+            Assert (Actions.Element (1).Skip, "the item skipped by itself stays skipped under Replace All");
+            Assert (not Actions.Element (2).Skip and then Actions.Element (2).Replaced,
+                    "Replace All overwrites the item left undecided");
+            Assert (not Actions.Element (3).Skip and then not Actions.Element (3).Replaced,
+                    "and writes the one that did not collide");
+         end;
+      end;
+
       --  No conflicts: every policy writes each item to its desired path.
       declare
          Empty_Existing : Files.Types.String_Vectors.Vector;

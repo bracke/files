@@ -20,6 +20,21 @@ separate (Files_Suite.Operations)
       Model           : Files.Model.Window_Model;
       Routed          : Files.Controller.Controller_Result;
       Catalogue       : Zlib.Archive_Entry_Array (1 .. 2);
+
+      --  Whether Dir holds no ".files-work-" staging folder.
+      function No_Stage_Left return Boolean is
+         Search : Ada.Directories.Search_Type;
+         Found  : Ada.Directories.Directory_Entry_Type;
+         Clean  : Boolean := True;
+      begin
+         Ada.Directories.Start_Search (Search, Dir, ".files-work-*");
+         while Ada.Directories.More_Entries (Search) loop
+            Ada.Directories.Get_Next_Entry (Search, Found);
+            Clean := False;
+         end loop;
+         Ada.Directories.End_Search (Search);
+         return Clean;
+      end No_Stage_Left;
    begin
       Reset_Root;
 
@@ -167,4 +182,34 @@ separate (Files_Suite.Operations)
         (Routed.Operation.Status = Files.Operations.Operation_Failed
          and then not Ada.Directories.Exists (Join (Dir, "bundle (1)")),
          "extraction does not publish a tree without a verifiable identity");
+      Assert (No_Stage_Left, "and leaves no staging folder behind");
+
+      --  The safety gate, end to end: Makefile and makefile are one name on
+      --  a case-insensitive destination (macOS and Windows), so the archive
+      --  is refused whole -- no folder, no staging left -- rather than one
+      --  member silently overwriting the other. Elsewhere both come out.
+      Write_File (Source_Report, "upper");
+      Write_File (Source_Notes, "lower");
+      Names (1) := To_Unbounded_String ("Makefile");
+      Names (2) := To_Unbounded_String ("makefile");
+      Zlib.ZIP_Files (Inputs, Join (Dir, "cases.zip"), Names, Status => Build_Status);
+      Assert (Build_Status = Zlib.Ok, "the case-colliding archive is created");
+      Load := Files.File_System.Load_Directory (Dir, Settings);
+      Files.Model.Initialize (Model, Dir, Load.Items, Root);
+      Select_Name (Model, "cases.zip");
+      Routed := Files.Controller.Execute_Command (Files.Commands.Extract_Archive_Command, Model, Settings);
+      if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Linux) then
+         Files_Suite.Support.Assert_Equal
+           (Routed.Operation.Status, Files.Operations.Operation_Success,
+            "a case-sensitive destination takes both names");
+         Assert (Ada.Directories.Exists (Join (Join (Dir, "cases"), "Makefile"))
+                 and then Ada.Directories.Exists (Join (Join (Dir, "cases"), "makefile")),
+                 "and both members are there");
+      else
+         Files_Suite.Support.Assert_Equal
+           (Routed.Operation.Status, Files.Operations.Operation_Failed,
+            "a case-insensitive destination refuses names that fold together");
+         Assert (not Ada.Directories.Exists (Join (Dir, "cases")), "no folder is made for it");
+         Assert (No_Stage_Left, "and no staging folder is left behind");
+      end if;
    end Test_Extract_Selected_Operation;

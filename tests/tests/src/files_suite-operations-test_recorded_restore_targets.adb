@@ -84,7 +84,7 @@ separate (Files_Suite.Operations)
                      "Undo restores to its recorded destination despite changed, truncated or missing sidecars"
                      & ": status");
                   Assert
-                    (File_Has_Bytes (Source, "original bytes"),
+                    (File_Is (Source, "original bytes"),
                      "Undo restores to its recorded destination despite changed, truncated or missing sidecars"
                      & ": source restored");
                   Assert

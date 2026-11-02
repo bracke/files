@@ -12,10 +12,7 @@ separate (Files_Suite.Operations)
       procedure Await_Refresh (Expected_Reload : Boolean) is
          Applied : Boolean := False;
       begin
-         for Attempt in Files_Suite.Support.Polling loop
-            Applied := Files.Refresh_Jobs.Advance (Model, Settings) or else Applied;
-            exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
-         end loop;
+         Await_View (Model, Settings, Applied);
          Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model))
                  and then Applied = Expected_Reload, "the matching refresh completes with the expected listing update");
       end Await_Refresh;

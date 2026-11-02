@@ -27,12 +27,9 @@ separate (Files_Suite.Operations)
       Files.Model.Set_Background_Transfers (Model, True);
       Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Step.Status = Files.Operations.Operation_Success and then File_Has_Bytes (Path, "original recent bytes"),
+      Assert (Step.Status = Files.Operations.Operation_Success and then File_Is (Path, "original recent bytes"),
               "Undo restores the trashed bytes before the asynchronous listing is ready");
-      for Attempt in Files_Suite.Support.Polling loop
-         Applied := Files.Refresh_Jobs.Advance (Model, Settings) or else Applied;
-         exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
-      end loop;
+      Await_View (Model, Settings, Applied);
       Assert
         (Applied,
          "Undo's refresh immediately relists the restored Recent item without manual refresh or watcher fallback"

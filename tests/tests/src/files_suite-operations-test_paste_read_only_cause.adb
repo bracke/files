@@ -37,7 +37,7 @@ separate (Files_Suite.Operations)
            (To_String (Step.Error_Key), "error.io.denied",
             (if Background then "a helper's" else "a foreground") & " refused paste says permission was denied");
          Assert (not Ada.Directories.Exists (Join (Locked, "source.txt"))
-                 and then File_Has_Bytes (Source, "source bytes"),
+                 and then File_Is (Source, "source bytes"),
                  "the refused paste adds nothing and keeps its source");
       end loop;
    exception

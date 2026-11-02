@@ -152,7 +152,9 @@ separate (Files_Suite.Operations)
             Write_Binary_File (Scavenge_Control & ".second-returned", "returned");
          end Second_Scan;
       begin
-         for Attempt in Files_Suite.Support.Polling (Limit => 0.5) loop
+         for Attempt in Files_Suite.Support.Polling
+           (Limit => Files_Suite.Support.Seconds (Files_Suite.Support.Scaled (0.5)))
+         loop
             exit when Ada.Directories.Exists (Scavenge_Control & ".second-returned");
          end loop;
          Returned_Before_Release :=

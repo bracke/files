@@ -2197,6 +2197,9 @@ procedure Check_All is
    procedure Check_Clock_Arithmetic is
       Search : Ada.Directories.Search_Type;
       Item   : Ada.Directories.Directory_Entry_Type;
+      package Name_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+        (Element_Type => String, Hash => Ada.Strings.Hash, Equivalent_Elements => "=");
+      Time_Names : Name_Sets.Set;
 
       procedure Refuse (Path, What : String) is
       begin
@@ -2240,15 +2243,159 @@ procedure Check_All is
          then
             Refuse (Path, "subtracting Time_First");
          end if;
+         --  The operator spelled out does the same, and Files.Timing is where
+         --  it is done once, guarded.
+         if Ada.Directories.Simple_Name (Path) not in "files-timing.adb" | "files-timing.ads"
+           and then (Ada.Strings.Fixed.Index (Code, "Ada.Real_Time.""-""") > 0
+                     or else Ada.Strings.Fixed.Index (Code, "Ada.Calendar.""-""") > 0)
+         then
+            Refuse (Path, "subtracting times with the operator named");
+         end if;
+         --  Now - Last, where Last is a time some variable or field starts
+         --  at: the right operand is a name declared as a time in the file's
+         --  unit family (its last component, for a field).
+         declare
+            Index : Natural := Ada.Strings.Fixed.Index (Code, "-");
+         begin
+            while Index /= 0 loop
+               declare
+                  First  : Positive := Index + 1;
+                  Last   : Natural;
+                  Before : Integer;
+               begin
+                  while First <= Code'Last and then Code (First) in ' ' | ASCII.LF | ASCII.CR | ASCII.HT loop
+                     First := First + 1;
+                  end loop;
+                  Last := First - 1;
+                  while Last < Code'Last
+                    and then Code (Last + 1) in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_' | '.'
+                  loop
+                     Last := Last + 1;
+                  end loop;
+                  --  Binary only: a name, a literal or a parenthesis before it.
+                  Before := Index - 1;
+                  while Before >= Code'First and then Code (Before) in ' ' | ASCII.LF | ASCII.CR | ASCII.HT loop
+                     Before := Before - 1;
+                  end loop;
+                  if Last >= First
+                    and then Before >= Code'First
+                    and then Code (Before) in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_' | ')'
+                  then
+                     declare
+                        Operand : constant String := Code (First .. Last);
+                        Dot     : constant Natural := Ada.Strings.Fixed.Index (Operand, ".", Ada.Strings.Backward);
+                        Name    : constant String :=
+                          (if Dot = 0 then Operand else Operand (Dot + 1 .. Operand'Last));
+                     begin
+                        if Name /= "" and then Time_Names.Contains (Ada.Characters.Handling.To_Lower (Name)) then
+                           Refuse (Path, "subtracting the time " & Operand);
+                        end if;
+                     end;
+                  end if;
+               end;
+               exit when Index = Code'Last;
+               Index := Ada.Strings.Fixed.Index (Code (Index + 1 .. Code'Last), "-");
+            end loop;
+         end;
       end Check;
+
+      --  Every name declared with a time type: "Name : [aliased] [constant]
+      --  Ada.Real_Time.Time" or "... Ada.Calendar.Time".
+      procedure Collect (Path : String) is
+         Code : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
+      begin
+         for Type_Name of String_List'
+           [To_Unbounded_String ("Ada.Real_Time.Time"), To_Unbounded_String ("Ada.Calendar.Time")]
+         loop
+            declare
+               Pattern : constant String := To_String (Type_Name);
+               At_Type : Natural := Ada.Strings.Fixed.Index (Code, Pattern);
+            begin
+               while At_Type /= 0 loop
+                  declare
+                     After : constant Positive := At_Type + Pattern'Length;
+                     Colon : Natural := At_Type - 1;
+                  begin
+                     --  The whole type name, not Time_Span or Time_First.
+                     if After > Code'Last
+                       or else Code (After) not in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_' | '.'
+                     then
+                        --  Back over "constant", "aliased" and blanks to the colon.
+                        while Colon >= Code'First and then Code (Colon) /= ':'
+                          and then Code (Colon) not in ';' | '(' | ASCII.LF
+                        loop
+                           Colon := Colon - 1;
+                        end loop;
+                        if Colon >= Code'First and then Code (Colon) = ':' then
+                           declare
+                              Last  : Natural := Colon - 1;
+                              First : Natural;
+                           begin
+                              while Last >= Code'First and then Code (Last) = ' ' loop
+                                 Last := Last - 1;
+                              end loop;
+                              First := Last;
+                              while First > Code'First
+                                and then Code (First - 1) in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_'
+                              loop
+                                 First := First - 1;
+                              end loop;
+                              if Last >= First and then First >= Code'First then
+                                 Time_Names.Include (Ada.Characters.Handling.To_Lower (Code (First .. Last)));
+                              end if;
+                           end;
+                        end if;
+                     end if;
+                     exit when After > Code'Last;
+                     At_Type := Ada.Strings.Fixed.Index (Code (After .. Code'Last), Pattern);
+                  end;
+               end loop;
+            end;
+         end loop;
+      end Collect;
+
+      procedure For_Each_Source (Visit : not null access procedure (Path : String)) is
+      begin
+         Ada.Directories.Start_Search
+           (Search, Root & "/src", "*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);
+         while Ada.Directories.More_Entries (Search) loop
+            Ada.Directories.Get_Next_Entry (Search, Item);
+            Visit (Ada.Directories.Full_Name (Item));
+         end loop;
+         Ada.Directories.End_Search (Search);
+      end For_Each_Source;
+      --  The times a file can name: its own, and those of the specs and
+      --  bodies of its unit family (a stem that is a dash-prefix of its own).
+      procedure Check_With_Family (Path : String) is
+         Stem : constant String := Ada.Directories.Base_Name (Path);
+
+         procedure Collect_If_Family (Other : String) is
+            Other_Stem : constant String := Ada.Directories.Base_Name (Other);
+         begin
+            if Other_Stem = Stem
+              or else (Other_Stem'Length < Stem'Length
+                       and then Stem (Stem'First .. Stem'First + Other_Stem'Length - 1) = Other_Stem
+                       and then Stem (Stem'First + Other_Stem'Length) = '-')
+            then
+               Collect (Other);
+            end if;
+         end Collect_If_Family;
+
+         Family_Search : Ada.Directories.Search_Type;
+         Family_Item   : Ada.Directories.Directory_Entry_Type;
+      begin
+         Time_Names.Clear;
+         Ada.Directories.Start_Search
+           (Family_Search, Root & "/src", "*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);
+         while Ada.Directories.More_Entries (Family_Search) loop
+            Ada.Directories.Get_Next_Entry (Family_Search, Family_Item);
+            Collect_If_Family (Ada.Directories.Full_Name (Family_Item));
+         end loop;
+         Ada.Directories.End_Search (Family_Search);
+         Check (Path);
+      end Check_With_Family;
    begin
-      Ada.Directories.Start_Search
-        (Search, Root & "/src", "*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Item);
-         Check (Ada.Directories.Full_Name (Item));
-      end loop;
-      Ada.Directories.End_Search (Search);
+      For_Each_Source (Check_With_Family'Access);
    end Check_Clock_Arithmetic;
 
    procedure Check_Localization_Usage is
@@ -2356,8 +2503,14 @@ procedure Check_All is
       Pattern : String;
       Message : String) is
    begin
-      if Project_Tools.Files.File_Exists (Path)
-        and then Ada.Strings.Fixed.Index
+      --  A guard on a file that was renamed or split away guards nothing:
+      --  say so, rather than pass.
+      if not Project_Tools.Files.File_Exists (Path) then
+         Put_Line (Standard_Error, "guarded file is missing: " & Path & " (" & Message & ")");
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         raise Program_Error;
+      end if;
+      if Ada.Strings.Fixed.Index
           (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path))), Pattern) > 0
       then
          Put_Line (Standard_Error, Message);
@@ -2594,6 +2747,51 @@ procedure Check_All is
              To_Unbounded_String ("Target_For_Test"),
              To_Unbounded_String ("Path_Vectors")],
             "the model drives no background job");
+      end loop;
+
+      --  The model reads no disk: what it shows was read by an operation or
+      --  a job, so it can be rebuilt and tested without one. Names a model
+      --  unit may take from the packages that do I/O are the pure ones.
+      Require_Only_Names_From
+        ("files-model", "Ada.Directories", [To_Unbounded_String ("Simple_Name")],
+         "the model reads no disk");
+      Require_Only_Names_From
+        ("files-model", "GNAT.OS_Lib", [To_Unbounded_String ("Is_Absolute_Path")],
+         "the model reads no disk");
+      Require_Only_Names_From
+        ("files-model",
+         "Files.File_System",
+         [To_Unbounded_String ("Directory_Signature"),
+          To_Unbounded_String ("Directory_Size_Result"),
+          To_Unbounded_String ("Drop_Copy"),
+          To_Unbounded_String ("Drop_Move"),
+          To_Unbounded_String ("Drop_Import_Mode"),
+          To_Unbounded_String ("Make_Item"),
+          To_Unbounded_String ("Path_Result"),
+          To_Unbounded_String ("Path_Status"),
+          To_Unbounded_String ("Path_Valid"),
+          To_Unbounded_String ("Root_Entry"),
+          To_Unbounded_String ("Root_Entry_Vectors"),
+          To_Unbounded_String ("Root_Filesystem"),
+          To_Unbounded_String ("Root_Kind"),
+          To_Unbounded_String ("Root_Ready"),
+          To_Unbounded_String ("Sort_Items")],
+         "the model reads no disk");
+      for Banned of String_List'
+        [To_Unbounded_String ("Hostkit."),
+         To_Unbounded_String ("Ada.Text_IO"),
+         To_Unbounded_String ("Ada.Streams.Stream_IO"),
+         To_Unbounded_String ("Files.Capped_Files"),
+         To_Unbounded_String ("Files.Fs_Primitives")]
+      loop
+         Require_Not_Contains_In_Unit
+           (Root & "/src/files-model.adb",
+            To_String (Banned),
+            "the model reads no disk (" & To_String (Banned) & ")");
+         Require_Not_Contains
+           (Root & "/src/files-model.ads",
+            To_String (Banned),
+            "the model reads no disk (" & To_String (Banned) & ")");
       end loop;
    end Check_Event_Translation_Contract;
 
@@ -2930,8 +3128,6 @@ procedure Check_All is
       Fonts_Spec     : constant String := Root & "/src/files-fonts.ads";
       Application_Body : constant String := Root & "/src/files-application.adb";
       Windows_Body   : constant String := Root & "/src/files-application-windows.adb";
-      Vulkan_Body    : constant String := Root & "/src/files-rendering-vulkan.adb";
-      Vulkan_Spec    : constant String := Root & "/src/files-rendering-vulkan.ads";
       Tests          : constant String := Combined_Suite;
 
       procedure Check_Rendering_Unit
@@ -3092,6 +3288,20 @@ procedure Check_All is
            (Path,
             "Files.Model.Toggle_",
             Label & " must not mutate model state");
+         --  The snapshot and frame read nothing from disk: a stat per item
+         --  there would run on every rebuild.
+         for Banned of Project_Tools.Ada_Source.String_List'
+           [To_Unbounded_String ("Hostkit."),
+            To_Unbounded_String ("Ada.Text_IO"),
+            To_Unbounded_String ("Ada.Streams.Stream_IO"),
+            To_Unbounded_String ("Files.Capped_Files"),
+            To_Unbounded_String ("Files.Fs_Primitives")]
+         loop
+            Require_Not_Contains_In_Unit
+              (Path,
+               To_String (Banned),
+               Label & " must not do I/O (" & To_String (Banned) & ")");
+         end loop;
       end Check_Rendering_Unit;
    begin
       --  Rendering reads the file system's types and two capability queries;
@@ -3110,8 +3320,6 @@ procedure Check_All is
       Check_Rendering_Unit (Rendering_Spec, "rendering spec");
       Check_Rendering_Unit (Rendering_Body, "rendering body");
       Check_Rendering_Unit (Hit_Spec, "hit-testing spec");
-      Check_Rendering_Unit (Vulkan_Spec, "Vulkan rendering spec");
-      Check_Rendering_Unit (Vulkan_Body, "Vulkan rendering body");
 
       --  Lock the Files.* import boundary of the rendering layer through the
       --  shared helper. The allow-lists are the units each source actually
@@ -3146,6 +3354,52 @@ procedure Check_All is
         (Hit_Body,
          "Files.",
          [To_Unbounded_String ("Files.UI")]);
+
+      --  A subunit inherits its parent's context and may add with clauses
+      --  of its own, which the two lists above would not see. Every
+      --  files-rendering-* body is held to the union of the two, plus the
+      --  units the snapshot and frame subunits import for themselves.
+      declare
+         Search  : Ada.Directories.Search_Type;
+         Item    : Ada.Directories.Directory_Entry_Type;
+         Started : Boolean := False;
+         Family_Allowed : constant Project_Tools.Ada_Source.String_List :=
+           [To_Unbounded_String ("Files.Accessibility"),
+            To_Unbounded_String ("Files.Breadcrumbs"),
+            To_Unbounded_String ("Files.Command_Palette"),
+            To_Unbounded_String ("Files.Commands"),
+            To_Unbounded_String ("Files.Commands.Status"),
+            To_Unbounded_String ("Files.Extension_Labels"),
+            To_Unbounded_String ("Files.File_System"),
+            To_Unbounded_String ("Files.File_Types"),
+            To_Unbounded_String ("Files.Folder_Tree"),
+            To_Unbounded_String ("Files.Fonts"),
+            To_Unbounded_String ("Files.Grouping"),
+            To_Unbounded_String ("Files.Items"),
+            To_Unbounded_String ("Files.Localization"),
+            To_Unbounded_String ("Files.Model"),
+            To_Unbounded_String ("Files.Quick_Look"),
+            To_Unbounded_String ("Files.Settings"),
+            To_Unbounded_String ("Files.Shared_Bytes"),
+            To_Unbounded_String ("Files.Types"),
+            To_Unbounded_String ("Files.UI"),
+            To_Unbounded_String ("Files.UTF8")];
+      begin
+         Ada.Directories.Start_Search
+           (Search, Root & "/src", "files-rendering-*.adb", [Ada.Directories.Ordinary_File => True, others => False]);
+         Started := True;
+         while Ada.Directories.More_Entries (Search) loop
+            Ada.Directories.Get_Next_Entry (Search, Item);
+            Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), "Files.", Family_Allowed);
+         end loop;
+         Ada.Directories.End_Search (Search);
+      exception
+         when others =>
+            if Started then
+               Ada.Directories.End_Search (Search);
+            end if;
+            raise;
+      end;
 
       Require_Not_Contains
         (Fonts_Body,
@@ -3187,10 +3441,6 @@ procedure Check_All is
         (Rendering_Body,
          "Item_State_Inset",
          "main-view hover and selection blocks must include the item padding area");
-      Require_Not_Contains
-        (Vulkan_Body,
-         "Renderer.Command_Buffers (Positive (Image_Index) + 1)",
-         "Vulkan presentation must not convert zero image indexes to Positive before adding one");
       Require_Not_Contains_In_Unit
         (Root & "/src/files-rendering.adb",
          "Prefix & ""...""",
@@ -3204,14 +3454,6 @@ procedure Check_All is
          "procedure Decode_Next_Codepoint" & ASCII.LF
          & "           (Content   : String;",
          "text glyph rendering must not keep a local UTF-8 decoder");
-      Require_Not_Contains
-        (Root & "/src/files-rendering-vulkan.adb",
-         "mag_Filter               => Vk.FILTER_LINEAR",
-         "Vulkan atlas samplers must not blur UI atlases with linear magnification");
-      Require_Not_Contains
-        (Root & "/src/files-rendering-vulkan.adb",
-         "min_Filter               => Vk.FILTER_LINEAR",
-         "Vulkan atlas samplers must not blur UI atlases with linear minification");
    end Check_Rendering_Architecture;
 
    procedure Check_Icon_Assets is

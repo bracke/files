@@ -955,17 +955,7 @@ separate (Files.Rendering)
       --  covered control can be painted over the popup.  Overlay-specific
       --  tooltips (for example root rows) are registered afterwards by
       --  Draw_Overlay_Commands and remain available.
-      if Snapshot.Root_Selector_Open
-        or else Snapshot.Context_Menu_Open
-        or else Snapshot.Paste_Conflict_Open
-        or else Snapshot.Paste_Progress_Open
-        or else Snapshot.Quick_Look_Open
-        or else Snapshot.Label_Picker_Open
-        or else Snapshot.Sort_Menu_Open
-        or else Snapshot.Tree_Pick_Active
-        or else Snapshot.Command_Palette_Open
-        or else Snapshot.Settings_Pane_Open
-      then
+      if Any_Overlay_Open (Snapshot) then
          Result.Tooltips.Clear;
       end if;
 

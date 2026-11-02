@@ -58,7 +58,7 @@ separate (Files_Suite.Operations)
                  "refused source removal completes as a failed replacement");
          Assert (not Files.Model.Undo_Available (Model),
                  "rollback restores the original, preserves the source and leaves no unusable history: no history");
-         Assert (File_Has_Bytes (Dest, "original"),
+         Assert (File_Is (Dest, "original"),
                  "rollback restores the original, preserves the source and leaves no unusable history: original");
          Assert (File_Has_Bytes (Join (Locked, "keep"), "complete"),
                  "rollback restores the original, preserves the source and leaves no unusable history: source");

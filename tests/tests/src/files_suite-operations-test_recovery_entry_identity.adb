@@ -68,7 +68,7 @@ separate (Files_Suite.Operations)
                   Files.Operations.Operation_Failed,
                   "retry rejects a replacement behind the recovered completion marker: status");
                Assert
-                 (File_Has_Bytes (Dest, "unrelated replacement"),
+                 (File_Is (Dest, "unrelated replacement"),
                   "retry rejects a replacement behind the recovered completion marker: replacement kept");
                Assert
                  (Files.Model.Redo_Available (Model),
@@ -103,7 +103,7 @@ separate (Files_Suite.Operations)
          Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Assert (Step.Status = Files.Operations.Operation_Failed
-                 and then File_Has_Bytes (Dest, "unrelated replacement"),
+                 and then File_Is (Dest, "unrelated replacement"),
                  "recovered Undo refuses to delete the replacement");
          Mutation := Files.File_System.Delete_Permanently (Dest);
          Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Saved, Dest), "restore the owned output");

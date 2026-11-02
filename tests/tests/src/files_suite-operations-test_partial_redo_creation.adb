@@ -70,7 +70,7 @@ separate (Files_Suite.Operations)
                      "partial Redo retains completed A and the pending action across repeated failures"
                      & ": undo unavailable");
                   if not Missing_Source then
-                     Assert (File_Has_Bytes (Dest_B, "unrelated collision"),
+                     Assert (File_Is (Dest_B, "unrelated collision"),
                              "a pending Redo never claims or overwrites an unrelated destination");
                   end if;
                end loop;
@@ -103,7 +103,7 @@ separate (Files_Suite.Operations)
                   Files.Operations.Operation_Failed,
                   "a stale completion marker does not claim or overwrite a replacement: status");
                Assert
-                 (File_Has_Bytes (Dest_A, "unrelated replacement"),
+                 (File_Is (Dest_A, "unrelated replacement"),
                   "a stale completion marker does not claim or overwrite a replacement: replacement kept");
                Assert
                  (Files.Model.Redo_Available (Model),

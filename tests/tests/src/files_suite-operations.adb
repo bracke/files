@@ -1411,16 +1411,25 @@ package body Files_Suite.Operations is
 
    procedure Test_Folder_Size_Helper_Cancellation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-   procedure Await_View (Model : in out Files.Model.Window_Model; Settings : Files.Settings.Settings_Model) is
-      Applied : Boolean;
-      pragma Unreferenced (Applied);
+   procedure Await_View
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Applied  : out Boolean) is
    begin
+      Applied := False;
       for Attempt in Files_Suite.Support.Polling loop
-         Applied := Files.Refresh_Jobs.Advance (Model, Settings);
+         Applied := Files.Refresh_Jobs.Advance (Model, Settings) or else Applied;
          exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
       end loop;
       Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
               "the operation's reload completes");
+   end Await_View;
+
+   procedure Await_View (Model : in out Files.Model.Window_Model; Settings : Files.Settings.Settings_Model) is
+      Applied : Boolean;
+   begin
+      Await_View (Model, Settings, Applied);
+      pragma Unreferenced (Applied);
    end Await_View;
 
    procedure Test_Navigation_Defers_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;

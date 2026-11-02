@@ -268,6 +268,24 @@ package Files.Rendering is
       Label_Picker_Highlight         : Positive := 8;
    end record;
 
+   --  Whether a popup or modal panel is open, owning the pointer: one per
+   --  Files.Model.Input_Overlay. Tooltips of the controls it covers are not
+   --  drawn then, or one could be painted over the popup.
+   --
+   --  @param Snapshot Snapshot to inspect.
+   --  @return True when any input-owning overlay is open.
+   function Any_Overlay_Open (Snapshot : View_Snapshot) return Boolean is
+     (Snapshot.Root_Selector_Open
+      or else Snapshot.Context_Menu_Open
+      or else Snapshot.Paste_Conflict_Open
+      or else Snapshot.Paste_Progress_Open
+      or else Snapshot.Quick_Look_Open
+      or else Snapshot.Label_Picker_Open
+      or else Snapshot.Sort_Menu_Open
+      or else Snapshot.Tree_Pick_Active
+      or else Snapshot.Command_Palette_Open
+      or else Snapshot.Settings_Pane_Open);
+
    --  A context-menu row is either a selectable command or a non-selectable
    --  divider that visually groups the commands above and below it.
    type Context_Menu_Row_Kind is (Command_Row, Separator_Row);

@@ -28,7 +28,7 @@ separate (Files_Suite.Operations)
            (Metadata_Mode_Of (Source),
             8#640#,
             "metadata history refuses a replacement without changing its access bits: access bits");
-         Assert (File_Has_Bytes (Source, "unrelated replacement"),
+         Assert (File_Is (Source, "unrelated replacement"),
                  "metadata history refuses a replacement without changing its access bits: content");
          Assert ((if Forward then Files.Model.Redo_Available (Model) else Files.Model.Undo_Available (Model)),
                  "refused metadata history remains retryable");

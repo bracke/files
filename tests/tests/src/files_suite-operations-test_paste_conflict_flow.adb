@@ -151,6 +151,41 @@ separate (Files_Suite.Operations)
          "SRCB",
          "apply-to-all replaces the second item");
 
+      --  One item at a time: Skip for a.txt alone moves the dialog on to
+      --  b.txt, and Replace for it then finishes the paste. Copy, then cut:
+      --  a cut must leave the skipped item's source where it was.
+      for Cut in Boolean loop
+         Reset_Root;
+         Ada.Directories.Create_Path (Src_Dir);
+         Ada.Directories.Create_Path (Dest_Dir);
+         Write_File (Join (Src_Dir, "a.txt"), "SRCA");
+         Write_File (Join (Src_Dir, "b.txt"), "SRCB");
+         Write_File (Join (Dest_Dir, "a.txt"), "DESTA");
+         Write_File (Join (Dest_Dir, "b.txt"), "DESTB");
+         Arm_Model (Model, Two_File);
+         if Cut then
+            Files.Model.Set_Clipboard (Model, Files.Model.Clipboard_Paths (Model), Files.Model.Clipboard_Cut);
+         end if;
+         Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Paste_Conflict_Name (Model), "a.txt", "the dialog asks about a.txt first");
+         Resolved :=
+           Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Skip, False);
+         Assert (Files.Model.Paste_Conflict_Is_Active (Model), "a choice for one item leaves the other to ask about");
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Paste_Conflict_Name (Model), "b.txt", "the dialog moves on to b.txt");
+         Resolved :=
+           Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
+         Files_Suite.Support.Assert_Equal
+           (Resolved.Status, Files.Operations.Operation_Success, "the second choice finishes the paste");
+         Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "and closes the dialog");
+         Files_Suite.Support.Assert_Equal (Read (Join (Dest_Dir, "a.txt")), "DESTA", "the skipped item is untouched");
+         Files_Suite.Support.Assert_Equal (Read (Join (Dest_Dir, "b.txt")), "SRCB", "the replaced item is overwritten");
+         Assert (Ada.Directories.Exists (Join (Src_Dir, "a.txt")), "the skipped item's source stays");
+         Assert (Ada.Directories.Exists (Join (Src_Dir, "b.txt")) /= Cut,
+                 (if Cut then "a cut moves the replaced item's source" else "a copy keeps the replaced item's source"));
+      end loop;
+
       --  Cancel: the whole paste aborts with no filesystem change.
       Reset_Root;
       Ada.Directories.Create_Path (Src_Dir);

@@ -163,7 +163,7 @@ separate (Files_Suite.Operations)
                   Rejected := True;
             end;
             Assert
-              (Rejected and then File_Has_Bytes (Victim, "protected history target"),
+              (Rejected and then File_Is (Victim, "protected history target"),
                "history snapshots refuse a temporary symlink without truncating its target");
          else
             Files_Suite.Support.Link_Not_Made ("Test_Undo_Redo_History", Files_Suite.Support.Symbolic_Link);

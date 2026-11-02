@@ -436,6 +436,16 @@ package Files_Suite.Support is
    --  @return True when the sequence appears.
    function File_Has_Bytes (Path : String; Bytes : String) return Boolean;
 
+   --  Does the file hold exactly these bytes, and nothing else? Where a test
+   --  knows a file's whole content, this is the check: File_Has_Bytes also
+   --  passes for an append instead of a truncate, or a torn replace that left
+   --  old and new together.
+   --
+   --  @param Path File to read.
+   --  @param Bytes Its whole expected content, one Character per byte.
+   --  @return True when the file exists and holds exactly Bytes.
+   function File_Is (Path : String; Bytes : String) return Boolean;
+
    --  Create a file of Filler_Count copies of one byte followed by Trailer,
    --  written in chunks so the caller need not build a multi-megabyte String.
    --  For exercising the metadata readers' byte-scan caps, which only engage on

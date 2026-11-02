@@ -66,7 +66,7 @@ separate (Files_Suite.Operations)
                      Assert (Step.Status = Files.Operations.Operation_Failed
                              and then Files.Model.Undo_Available (Model),
                              "an unfinished restore stays available for another Undo attempt");
-                     Assert (File_Has_Bytes (Dest_A, "original A"),
+                     Assert (File_Is (Dest_A, "original A"),
                              "a failed Undo retry never deletes or relocates an already-restored original");
                      Assert (File_Has_Bytes (Held, "original B"), "the blocked original remains recoverable");
                      if Scenario = Move_Replace then
@@ -81,7 +81,7 @@ separate (Files_Suite.Operations)
                     (Step.Status,
                      Files.Operations.Operation_Success,
                      "Undo completes after the remaining original becomes available");
-                  Assert (File_Has_Bytes (Dest_A, "original A") and then File_Has_Bytes (Dest_B, "original B"),
+                  Assert (File_Is (Dest_A, "original A") and then File_Is (Dest_B, "original B"),
                           "all originals survive the successful retry");
                   Assert (not Files.Model.Undo_Available (Model) and then not Files.Model.Redo_Available (Model),
                           "the completed replacement recovery consumes its Undo-only entry");

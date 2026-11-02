@@ -23,11 +23,7 @@ separate (Files_Suite.Operations)
             (Kind => Files.Events.Command_Input_Action, Command => Files.Commands.Refresh_Directory_Command,
              others => <>), 16, Guikit.Input.No_Modifiers, Routed);
          Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)), "the refresh is scheduled");
-         Applied := False;
-         for Attempt in Files_Suite.Support.Polling loop
-            Applied := Files.Refresh_Jobs.Advance (Model, Settings) or else Applied;
-            exit when not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
-         end loop;
+         Await_View (Model, Settings, Applied);
          Assert (Applied and then Files.Model.Item_Count (Model) = 3,
                  "info metadata cannot invalidate a manual refresh started by the same action");
          Files.Operations.Ensure_Selected_Item_Extra (Model);
