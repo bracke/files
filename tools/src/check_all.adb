@@ -2953,6 +2953,7 @@ procedure Check_All is
             To_Unbounded_String ("Files.Transfer_Jobs"),
             To_Unbounded_String ("Files.Type_Ahead"),
             To_Unbounded_String ("Files.Types"),
+            To_Unbounded_String ("Files.Undo_Payloads"),
             To_Unbounded_String ("Files.UTF8")];
       begin
          Ada.Directories.Start_Search
@@ -4580,7 +4581,7 @@ procedure Check_All is
       Require_Tests ("settings", 34);
       Require_Tests ("startup", 28);
       Require_Tests ("commands", 38);
-      Require_Tests ("model", 50);
+      Require_Tests ("model", 51);
       Require_Tests ("interaction", 76);
       Require_Tests ("rendering", 91);
       Require_Tests ("operations", 271);

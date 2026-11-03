@@ -1,4 +1,5 @@
 with Ada.IO_Exceptions;
+with Files.Bounded_Streams;
 
 package body Files.Lease_Streams is
    use type Ada.Streams.Stream_Element_Offset;
@@ -113,5 +114,34 @@ package body Files.Lease_Streams is
    begin
       raise Program_Error;
    end Write;
+
+   function Read_Record
+     (Path      : String;
+      Header    : String;
+      Max_Bytes : Long_Long_Integer := Long_Long_Integer'Last)
+      return Item
+   is
+      Input : aliased Input_Stream;
+      Value : Item;
+   begin
+      if Open (Path, Input) /= Hostkit.Lease_Files.Opened or else Size (Input) > Max_Bytes then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      if Header /= ""
+        and then Files.Bounded_Streams.Input_String (Input'Access, Header'Length) /= Header
+      then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      Read_Body (Input'Access, Value);
+      if not End_Of_Stream (Input) or else not Is_Consistent (Value) then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      Release (Input);
+      return Value;
+   exception
+      when others =>
+         Release (Input);
+         raise;
+   end Read_Record;
 
 end Files.Lease_Streams;

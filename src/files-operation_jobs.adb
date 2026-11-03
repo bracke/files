@@ -20,14 +20,12 @@ with Files.Types;
 with Files.Paste;
 with Files.Process_Jobs;
 with Hostkit.Fs;
-with Hostkit.Lease_Files;
 with Files.Path_Checks;
 
 package body Files.Operation_Jobs is
    use Ada.Strings.Unbounded;
    use type Files.Operations.Operation_Status;
    use type Files.Model.Undo_Action_Kind;
-   use type Hostkit.Lease_Files.Open_Outcome;
 
    Request_Header : constant String := "files-operation-request-3";
    Result_Header : constant String := "files-operation-result-1";
@@ -140,50 +138,28 @@ package body Files.Operation_Jobs is
       Natural'Output (Stream, Work.View_Incarnation);
    end Write_Request;
 
-   function Read_Request (Path : String) return Request
-   is
-      Input : aliased Files.Lease_Streams.Input_Stream;
-      Work : Request;
+   procedure Read_Request_Body
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Work   : out Request) is
    begin
-      if Files.Lease_Streams.Open (Path, Input) /=
-          Hostkit.Lease_Files.Opened
-        or else Files.Lease_Streams.Size (Input) >
-          Long_Long_Integer (Files.Job_Records.Max_Transport_Bytes)
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      if Files.Job_Records.Read_String
-        (Input'Access, Request_Header'Length) /= Request_Header
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Work.Kind := Operation_Kind'Input (Input'Access);
-      Work.Root := To_Unbounded_String
-        (Files.Job_Records.Read_String
-           (Input'Access, Files.Job_Records.Max_Path_Length));
-      Work.Recent := Boolean'Input (Input'Access);
-      Work.Query := To_Unbounded_String
-        (Files.Job_Records.Read_String
-           (Input'Access, Files.Job_Records.Max_Text_Length));
-      Work.Selected := Files.Job_Records.Read_Items (Input'Access);
-      Work.Settings := Files.Job_Records.Read_Settings (Input'Access);
-      Work.Context_Revision := Natural'Input (Input'Access);
-      Work.View_Incarnation := Natural'Input (Input'Access);
-      if not Files.Lease_Streams.End_Of_Stream (Input) then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      if not Request_Path_Is_Consistent
-        (To_String (Work.Root), Work.Recent)
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Files.Lease_Streams.Release (Input);
-      return Work;
-   exception
-      when others =>
-         Files.Lease_Streams.Release (Input);
-         raise;
-   end Read_Request;
+      Work.Kind := Operation_Kind'Input (Stream);
+      Work.Root := To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Path_Length));
+      Work.Recent := Boolean'Input (Stream);
+      Work.Query := To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Text_Length));
+      Work.Selected := Files.Job_Records.Read_Items (Stream);
+      Work.Settings := Files.Job_Records.Read_Settings (Stream);
+      Work.Context_Revision := Natural'Input (Stream);
+      Work.View_Incarnation := Natural'Input (Stream);
+   end Read_Request_Body;
+
+   function Request_Is_Consistent (Work : Request) return Boolean is
+     (Request_Path_Is_Consistent (To_String (Work.Root), Work.Recent));
+
+   function Read_Request_Record is new Files.Lease_Streams.Read_Record
+     (Request, Read_Request_Body, Request_Is_Consistent);
+
+   function Read_Request (Path : String) return Request is
+     (Read_Request_Record (Path, Request_Header, Long_Long_Integer (Files.Job_Records.Max_Transport_Bytes)));
 
    procedure Write_Outcome
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
@@ -205,49 +181,30 @@ package body Files.Operation_Jobs is
       Write_Paths (Stream, Done.Moved_To);
    end Write_Outcome;
 
-   function Read_Outcome (Path : String) return Outcome
-   is
-      Input : aliased Files.Lease_Streams.Input_Stream;
-      Done : Outcome;
+   procedure Read_Outcome_Body
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Done   : out Outcome) is
    begin
-      if Files.Lease_Streams.Open (Path, Input) /=
-          Hostkit.Lease_Files.Opened
-        or else Files.Lease_Streams.Size (Input) >
-          Long_Long_Integer (Files.Job_Records.Max_Transport_Bytes)
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      if Files.Job_Records.Read_String
-        (Input'Access, Result_Header'Length) /= Result_Header
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Done.Kind := Operation_Kind'Input (Input'Access);
-      Done.Recent := Boolean'Input (Input'Access);
-      Done.Result := Files.Job_Records.Read_Operation_Result (Input'Access);
-      Done.Items := Files.Job_Records.Read_Items (Input'Access);
-      Done.Selection := To_Unbounded_String
-        (Files.Job_Records.Read_String
-           (Input'Access, Files.Job_Records.Max_Path_Length));
-      Done.Visible_Error := To_Unbounded_String
-        (Files.Job_Records.Read_String
-           (Input'Access, Files.Job_Records.Max_Error_Length));
-      Done.Signature := Files.Job_Records.Read_Signature (Input'Access);
-      Done.Moved_From := Read_Paths (Input'Access);
-      Done.Moved_To := Read_Paths (Input'Access);
-      if Natural (Done.Moved_From.Length) /= Natural (Done.Moved_To.Length) then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      if not Files.Lease_Streams.End_Of_Stream (Input) then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Files.Lease_Streams.Release (Input);
-      return Done;
-   exception
-      when others =>
-         Files.Lease_Streams.Release (Input);
-         raise;
-   end Read_Outcome;
+      Done.Kind := Operation_Kind'Input (Stream);
+      Done.Recent := Boolean'Input (Stream);
+      Done.Result := Files.Job_Records.Read_Operation_Result (Stream);
+      Done.Items := Files.Job_Records.Read_Items (Stream);
+      Done.Selection := To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Path_Length));
+      Done.Visible_Error :=
+        To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Error_Length));
+      Done.Signature := Files.Job_Records.Read_Signature (Stream);
+      Done.Moved_From := Read_Paths (Stream);
+      Done.Moved_To := Read_Paths (Stream);
+   end Read_Outcome_Body;
+
+   function Outcome_Is_Consistent (Done : Outcome) return Boolean is
+     (Natural (Done.Moved_From.Length) = Natural (Done.Moved_To.Length));
+
+   function Read_Outcome_Record is new Files.Lease_Streams.Read_Record
+     (Outcome, Read_Outcome_Body, Outcome_Is_Consistent);
+
+   function Read_Outcome (Path : String) return Outcome is
+     (Read_Outcome_Record (Path, Result_Header, Long_Long_Integer (Files.Job_Records.Max_Transport_Bytes)));
 
    function Start
      (Model : in out Files.Model.Window_Model;

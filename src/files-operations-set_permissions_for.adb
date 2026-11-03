@@ -32,8 +32,8 @@ begin
       begin
          Identities.Append (Identity);
          Undo_From.Append (To_Unbounded_String (Path));
-         Undo_To.Append (To_Unbounded_String (Natural'Image (Old_Mode)));
-         Undo_Forward.Append (To_Unbounded_String (Natural'Image (New_Mode)));
+         Undo_To.Append (To_Unbounded_String (Files.Undo_Payloads.Mode_Text (Old_Mode)));
+         Undo_Forward.Append (To_Unbounded_String (Files.Undo_Payloads.Mode_Text (New_Mode)));
          Record_Undo
            (Model, Files.Model.Undo_Set_Permissions, Undo_From, Undo_To,
             Forward => Undo_Forward,

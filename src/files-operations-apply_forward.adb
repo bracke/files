@@ -136,12 +136,9 @@ begin
                if New_Text = "" then
                   Succeeded := False;
                else
-                  begin
-                     New_Mode := Natural'Value (New_Text);
-                  exception
-                     when others =>
-                        Succeeded := False;
-                  end;
+                  if not Files.Undo_Payloads.Parse_Mode (New_Text, New_Mode) then
+                     Succeeded := False;
+                  end if;
 
                   if (New_Mode > 0 or else New_Text = "0")
                     and then not Change_Recorded_Mode (Action, Index, New_Mode)

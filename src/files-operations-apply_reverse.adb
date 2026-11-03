@@ -103,12 +103,9 @@ begin
                     Ada.Strings.Fixed.Trim (To_String (Action.To.Element (Index)), Ada.Strings.Both);
                   Old_Mode : Natural := 0;
                begin
-                  begin
-                     Old_Mode := Natural'Value (Old_Text);
-                  exception
-                     when others =>
-                        Succeeded := False;
-                  end;
+                  if not Files.Undo_Payloads.Parse_Mode (Old_Text, Old_Mode) then
+                     Succeeded := False;
+                  end if;
 
                   if Old_Mode > 0 or else Old_Text = "0" then
                      if not Change_Recorded_Mode (Action, Index, Old_Mode) then

@@ -108,21 +108,24 @@ package body Files.Folder_Size is
    function Result_Name (Index : Positive) return String is
      ("result-" & Ada.Strings.Fixed.Trim (Positive'Image (Index), Ada.Strings.Left));
 
+   --  What Write_Result refuses to write.
+   function Result_Is_Consistent (Result : Files.File_System.Directory_Size_Result) return Boolean is
+     (Result.Total_Bytes >= 0
+      and then Result.File_Count <= Result.Item_Count
+      and then
+        (Result.Available
+         or else
+           (Result.Total_Bytes = 0
+            and then Result.File_Count = 0
+            and then Result.Item_Count = 0
+            and then not Result.Capped)));
+
    procedure Write_Result
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Result : Files.File_System.Directory_Size_Result)
    is
    begin
-      if Result.Total_Bytes < 0
-        or else Result.File_Count > Result.Item_Count
-        or else
-          (not Result.Available
-           and then
-             (Result.Total_Bytes /= 0
-              or else Result.File_Count /= 0
-              or else Result.Item_Count /= 0
-              or else Result.Capped))
-      then
+      if not Result_Is_Consistent (Result) then
          raise Ada.Directories.Use_Error;
       end if;
       String'Output (Stream, Result_Header);
@@ -133,48 +136,24 @@ package body Files.Folder_Size is
       Boolean'Output (Stream, Result.Capped);
    end Write_Result;
 
+   procedure Read_Result_Body
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Result : out Files.File_System.Directory_Size_Result) is
+   begin
+      Result.Available := Boolean'Input (Stream);
+      Result.Total_Bytes := Long_Long_Integer'Input (Stream);
+      Result.File_Count := Natural'Input (Stream);
+      Result.Item_Count := Natural'Input (Stream);
+      Result.Capped := Boolean'Input (Stream);
+   end Read_Result_Body;
+
+   function Read_Result_Record is new Files.Lease_Streams.Read_Record
+     (Files.File_System.Directory_Size_Result, Read_Result_Body, Result_Is_Consistent);
+
    function Read_Result
      (Path : String)
-      return Files.File_System.Directory_Size_Result
-   is
-      Input : aliased Files.Lease_Streams.Input_Stream;
-      Result : Files.File_System.Directory_Size_Result;
-   begin
-      if not Open_Record (Path, Input) then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      if Files.Bounded_Streams.Input_String
-        (Input'Access, Result_Header'Length) /= Result_Header
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Result.Available := Boolean'Input (Input'Access);
-      Result.Total_Bytes := Long_Long_Integer'Input (Input'Access);
-      Result.File_Count := Natural'Input (Input'Access);
-      Result.Item_Count := Natural'Input (Input'Access);
-      Result.Capped := Boolean'Input (Input'Access);
-      if Result.Total_Bytes < 0
-        or else Result.File_Count > Result.Item_Count
-        or else
-          (not Result.Available
-           and then
-             (Result.Total_Bytes /= 0
-              or else Result.File_Count /= 0
-              or else Result.Item_Count /= 0
-              or else Result.Capped))
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      if not Files.Lease_Streams.End_Of_Stream (Input) then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Files.Lease_Streams.Release (Input);
-      return Result;
-   exception
-      when others =>
-         Files.Lease_Streams.Release (Input);
-         raise;
-   end Read_Result;
+      return Files.File_System.Directory_Size_Result is
+     (Read_Result_Record (Path, Result_Header, Long_Long_Integer (Max_Record_Bytes)));
 
    function Is_Queued (Scan : Session; Path : Unbounded_String) return Boolean is
      (for some Done of Scan.Done_Queue => Done.Path = Path);

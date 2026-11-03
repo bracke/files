@@ -6,7 +6,6 @@ with Files.Refresh_Jobs;
 with Files.Fs_Primitives;
 
 with Hostkit.Fs;
-with Hostkit.Host;
 
 package body Files.Operations.Support is
    use Ada.Strings.Unbounded;
@@ -60,38 +59,7 @@ package body Files.Operations.Support is
 
    function Executable_Is_Available
      (Executable : String)
-      return Boolean
-   is
-      use type Hostkit.Host.Kind;
-   begin
-      if Executable = "" then
-         return False;
-      end if;
-
-      for Character_Value of Executable loop
-         if Character_Value = '/'
-           or else
-             (Hostkit.Host.Current = Hostkit.Host.Windows
-              and then Character_Value = '\')
-         then
-            --  A path, not a name to be looked up: it has to be a regular file that
-            --  this host will actually run.
-            --
-            --  GNAT.OS_Lib.Is_Executable_File was the whole check, and on Windows it
-            --  answers True for a directory -- so an action whose "executable" was a
-            --  directory passed the preflight and got launched. It is the same shape
-            --  as the lstat-less Is_Symbolic_Link: a POSIX-flavoured helper that
-            --  quietly says yes there instead of failing.
-            return Files.Fs_Primitives.File_Exists (Executable)
-              and then Hostkit.Fs.Is_Executable (Executable);
-         end if;
-      end loop;
-
-      return Hostkit.Process.Locate (Executable) /= "";
-   exception
-      when others =>
-         return False;
-   end Executable_Is_Available;
+      return Boolean is (Hostkit.Process.Is_Runnable (Executable));
 
    function Reload_Current_Directory
      (Model       : in out Files.Model.Window_Model;

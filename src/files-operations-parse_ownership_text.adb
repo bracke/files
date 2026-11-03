@@ -3,66 +3,12 @@ function Parse_Ownership_Text
   (Text : String; User_Id, Group_Id : out Files.Types.Account_Id;
    User_Name, Group_Name : out Files.Types.UString) return Boolean
 is
-   First_Nul  : Natural := 0;
-   Second_Nul : Natural := 0;
+   Value  : Files.Undo_Payloads.Ownership;
+   Parsed : constant Boolean := Files.Undo_Payloads.Parse_Ownership (Text, Value);
 begin
-   User_Id := 0;
-   Group_Id := 0;
-   User_Name := Null_Unbounded_String;
-   Group_Name := Null_Unbounded_String;
-   if Text = "" then
-      return False;
-   end if;
-   for Index in Text'Range loop
-      if Text (Index) = ASCII.NUL then
-         First_Nul := Index;
-         exit;
-      end if;
-   end loop;
-   declare
-      Numeric_Last : constant Natural :=
-        (if First_Nul = 0 then Text'Last else First_Nul - 1);
-      Space : constant Natural := Ada.Strings.Fixed.Index
-        (Text (Text'First .. Numeric_Last), " ");
-   begin
-      if Space = 0 then
-         return False;
-      end if;
-      declare
-         User  : constant Files.Types.Parsed_Account_Id :=
-           Files.Types.Parse_Account_Id (Text (Text'First .. Space - 1));
-         Group : constant Files.Types.Parsed_Account_Id :=
-           Files.Types.Parse_Account_Id (Text (Space + 1 .. Numeric_Last));
-      begin
-         if not User.Valid or else not Group.Valid then
-            return False;
-         end if;
-         User_Id := User.Id;
-         Group_Id := Group.Id;
-      end;
-   end;
-   if First_Nul = 0 then
-      return True;
-   end if;
-   for Index in First_Nul + 1 .. Text'Last loop
-      if Text (Index) = ASCII.NUL then
-         Second_Nul := Index;
-         exit;
-      end if;
-   end loop;
-   if Second_Nul = 0 then
-      return False;
-   end if;
-   User_Name := To_Unbounded_String
-     (Text (First_Nul + 1 .. Second_Nul - 1));
-   Group_Name := To_Unbounded_String
-     (Text (Second_Nul + 1 .. Text'Last));
-   return True;
-exception
-   when others =>
-      User_Id := 0;
-      Group_Id := 0;
-      User_Name := Null_Unbounded_String;
-      Group_Name := Null_Unbounded_String;
-      return False;
+   User_Id := Value.User_Id;
+   Group_Id := Value.Group_Id;
+   User_Name := Value.User_Name;
+   Group_Name := Value.Group_Name;
+   return Parsed;
 end Parse_Ownership_Text;

@@ -77,6 +77,7 @@ package body Files_Suite.Model is
    procedure Test_Runtime_Sort_State (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Discovery (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Ownership_Image_Ids (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Undo_Payloads_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Discovery_Environment_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_Open_And_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_Eject_And_Open (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -154,6 +155,8 @@ package body Files_Suite.Model is
         (T, Test_Path_Input_Validation'Access, "path input validation");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Runtime_Sort_State'Access, "runtime sort state");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Undo_Payloads_Round_Trip'Access, "undo payloads for modes and ownership read back what was written");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Ownership_Image_Ids'Access, "an ownership undo payload holds every 32-bit id");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -284,6 +287,8 @@ package body Files_Suite.Model is
    procedure Test_Root_Discovery (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Ownership_Image_Ids (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Undo_Payloads_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Root_Discovery_Environment_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

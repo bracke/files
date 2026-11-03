@@ -37,6 +37,29 @@ package Files.Lease_Streams is
    --  @return True when all pinned bytes have been consumed.
    function End_Of_Stream (Item : Input_Stream) return Boolean;
 
+   --  Read one transport record whole, the one way every job reads its
+   --  records: open Path under its lease, refuse it past Max_Bytes, check its
+   --  Header (String'Output; none when ""), read the body, require the end of
+   --  the stream and a consistent value, and release the lease on every path.
+   --  Raises Ada.IO_Exceptions.Data_Error for a record that fails any of it.
+   generic
+      type Item is private;
+      --  Read the body's fields from Stream into Value.
+      with procedure Read_Body
+        (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+         Value  : out Item);
+      --  Whether Value is one a writer could have produced.
+      with function Is_Consistent (Value : Item) return Boolean;
+   --  @param Path The record's file.
+   --  @param Header Its leading String'Output header, or "" for none.
+   --  @param Max_Bytes The largest record accepted.
+   --  @return The value read.
+   function Read_Record
+     (Path      : String;
+      Header    : String;
+      Max_Bytes : Long_Long_Integer := Long_Long_Integer'Last)
+      return Item;
+
 private
    --  Read ahead in blocks: a record is decoded a field (often a byte) at a
    --  time, and a read per field was a syscall per field.

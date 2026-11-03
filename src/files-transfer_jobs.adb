@@ -184,51 +184,28 @@ package body Files.Transfer_Jobs is
       Boolean'Output (Stream, Result.Recovered);
    end Write_Result;
 
-   function Read_Transport_Result (Path : String) return Job_Result
+   procedure Read_Result_Body
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Result : out Job_Result)
    is
-      Input : aliased Files.Lease_Streams.Input_Stream;
-      Result : Job_Result;
+      function Text (Maximum : Natural) return Files.Types.UString is
+        (To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Maximum)));
    begin
-      if Files.Lease_Streams.Open (Path, Input) /=
-        Hostkit.Lease_Files.Opened
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      if Files.Bounded_Streams.Input_String
-        (Input'Access, Result_Header'Length) /= Result_Header
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Result.Mutation.Success := Boolean'Input (Input'Access);
-      Result.Mutation.Error_Key := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
-           (Input'Access, Max_Transport_Error_Length));
-      Result.Cancelled := Boolean'Input (Input'Access);
-      Result.Trashed := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
-           (Input'Access, Max_Transport_Path_Length));
-      Result.Trashed_Identity := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
-           (Input'Access, Max_Transport_Token_Length));
-      Result.Created_Identity := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
-           (Input'Access, Max_Transport_Token_Length));
-      Result.Created_Tree_Revision := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
-           (Input'Access, Max_Transport_Token_Length));
-      Result.Recovered := Boolean'Input (Input'Access);
-      if not Files.Lease_Streams.End_Of_Stream (Input)
-        or else not Result_Is_Consistent (Result)
-      then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Files.Lease_Streams.Release (Input);
-      return Result;
-   exception
-      when others =>
-         Files.Lease_Streams.Release (Input);
-         raise;
-   end Read_Transport_Result;
+      Result.Mutation.Success := Boolean'Input (Stream);
+      Result.Mutation.Error_Key := Text (Max_Transport_Error_Length);
+      Result.Cancelled := Boolean'Input (Stream);
+      Result.Trashed := Text (Max_Transport_Path_Length);
+      Result.Trashed_Identity := Text (Max_Transport_Token_Length);
+      Result.Created_Identity := Text (Max_Transport_Token_Length);
+      Result.Created_Tree_Revision := Text (Max_Transport_Token_Length);
+      Result.Recovered := Boolean'Input (Stream);
+   end Read_Result_Body;
+
+   function Read_Result_Record is new Files.Lease_Streams.Read_Record
+     (Job_Result, Read_Result_Body, Result_Is_Consistent);
+
+   function Read_Transport_Result (Path : String) return Job_Result is
+     (Read_Result_Record (Path, Result_Header));
 
    procedure Read_Replacement_Checkpoint
      (Path : String;

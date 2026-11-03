@@ -12,6 +12,7 @@ with GNAT.OS_Lib;
 
 with Files.Folder_Size;
 with Files.Preview_Decoder;
+with Files.Undo_Payloads;
 with Files.Shared_Bytes;
 with Files.Transfer_Jobs;
 with Files.Process_Jobs;
@@ -477,10 +478,8 @@ package body Files.Operations is
      (User_Id, Group_Id : Files.Types.Account_Id; User_Name, Group_Name : String)
       return String
    is
-     (Files.Types.Account_Image (User_Id)
-      & " "
-      & Files.Types.Account_Image (Group_Id)
-      & ASCII.NUL & User_Name & ASCII.NUL & Group_Name);
+     (Files.Undo_Payloads.Ownership_Text
+        ((User_Id, Group_Id, To_Unbounded_String (User_Name), To_Unbounded_String (Group_Name))));
 
    function Permissions_Editable_Selection
      (Model : Files.Model.Window_Model)

@@ -9,7 +9,7 @@ with Hostkit.Fs;
 
 with Files.Capped_Files;
 with Files.Localization;
-with Files.Operations;
+with Hostkit.Process;
 
 package body Files.Desktop_Applications is
    use Ada.Strings.Unbounded;
@@ -921,11 +921,7 @@ package body Files.Desktop_Applications is
           (Only_Show_In, Have_Only_Show_In,
            Not_Show_In, Have_Not_Show_In)
         and then
-          (not Have_Try_Exec
-           or else Files.Operations.Open_Action_Executable_Is_Available
-             (Files.Settings.Make_Action
-                (To_String (Try_Exec_Value),
-                 Files.Types.String_Vectors.Empty_Vector)))
+          (not Have_Try_Exec or else Hostkit.Process.Is_Runnable (To_String (Try_Exec_Value)))
       then
          App :=
            (Name         => Name_Value,

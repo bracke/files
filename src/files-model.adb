@@ -1,6 +1,5 @@
 with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
-with Ada.Strings.Fixed;
 
 with Files.Command_Palette;
 with Files.Type_Ahead;
@@ -8,6 +7,7 @@ with Files.UTF8;
 
 with Files.Model.Support;
 with Files.Path_Checks;
+with Files.Undo_Payloads;
 
 package body Files.Model is
 
