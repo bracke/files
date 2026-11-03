@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Model)
    procedure Test_Filetype_Detection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -18,9 +19,9 @@ separate (Files_Suite.Model)
       Line_Separator : constant String :=
         Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#2028#));
    begin
-      Files.Settings.Add_Extension_Mapping (Settings, "adb", "text/x-ada");
-      Files.Settings.Add_Extension_Mapping (Settings, "profile", "text/x-profile");
-      Files.Settings.Add_Icon_Mapping (Settings, "text/x-ada", "ada");
+      Files.Settings.Testing.Add_Extension_Mapping (Settings, "adb", "text/x-ada");
+      Files.Settings.Testing.Add_Extension_Mapping (Settings, "profile", "text/x-profile");
+      Files.Settings.Testing.Add_Icon_Mapping (Settings, "text/x-ada", "ada");
       Ada_Item := Files.File_System.Make_Item (Root, "main.adb", Files.Types.Regular_File_Item, Settings);
       Executable_Ada_Item := Files.File_System.Make_Item (Root, "tool.adb", Files.Types.Executable_Item, Settings);
       Symlink_Ada_Item := Files.File_System.Make_Item (Root, "link.adb", Files.Types.Symlink_Item, Settings);
@@ -195,7 +196,7 @@ separate (Files_Suite.Model)
         (Files.File_Types.Detect_Filetype (Settings, Files.Types.Other_Item, "socket"),
          "application/octet-stream",
          "other item filetype falls back deterministically without mapping");
-      Files.Settings.Add_Extension_Mapping (Settings, "backup.tar.gz", "application/x-backup");
+      Files.Settings.Testing.Add_Extension_Mapping (Settings, "backup.tar.gz", "application/x-backup");
       Files_Suite.Support.Assert_Equal
         (Files.File_Types.Detect_Filetype (Settings, Files.Types.Regular_File_Item, "weekly.backup.tar.gz"),
          "application/x-backup",

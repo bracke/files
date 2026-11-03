@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Item_Click_Selects_Without_Opening (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -34,7 +35,7 @@ separate (Files_Suite.Operations)
          2,
          "arrow key uses main view after item click");
       Files.Model.Focus_Path_Input (Model);
-      Files.Controller.Replace_Focused_Text (Model, "/tmp/typed-path");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "/tmp/typed-path");
       Routed := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 0);
       Files_Suite.Support.Assert_Equal
         (Routed.Status,

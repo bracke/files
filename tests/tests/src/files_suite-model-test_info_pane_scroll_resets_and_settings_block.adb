@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Model)
    procedure Test_Info_Pane_Scroll_Resets_And_Settings_Block (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -45,7 +46,7 @@ separate (Files_Suite.Model)
            Model,
            Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens over info pane");
-      Result := Files.Controller.Handle_Scroll (Model, Lines => 3);
+      Result := Files.Controller.Testing.Handle_Scroll (Model, Lines => 3);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,

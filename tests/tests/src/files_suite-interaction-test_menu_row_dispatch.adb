@@ -48,7 +48,7 @@ separate (Files_Suite.Interaction)
 
          Row_X := Menu.X + Menu.Width / 2;
          Row_Y :=
-           Files.Rendering.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
+           Files.Rendering.Testing.Context_Menu_Row_Top (Menu, Target_Row) + Menu.Row_Height / 2;
          Files_Suite.Support.Assert_Equal
            (Files.Rendering.Hit.Context_Menu_Row_At (Menu, Row_X, Row_Y),
             Target_Row,

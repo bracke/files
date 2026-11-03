@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Open_Shell_Environment (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -72,7 +73,7 @@ separate (Files_Suite.Operations)
             Ada.Environment_Variables.Clear ("COMSPEC");
             Ada.Environment_Variables.Set ("SHELL", Join (Root, "missing-shell"));
          end if;
-         Files.Settings.Add_Open_Action
+         Files.Settings.Testing.Add_Open_Action
            (Missing_Shell_Settings,
             "text/plain",
             Files.Settings.Make_Action ("cd", Files.Settings.String_Vectors.Empty_Vector, Use_Shell => True));

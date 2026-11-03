@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Settings)
    procedure Test_Embedded_Placeholders (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -22,7 +23,7 @@ separate (Files_Suite.Settings)
             "{stem}.suffix",
             "embedded stem placeholder remains literal");
          Assert
-           (Files.Settings.Has_Embedded_Placeholder (Embedded_Action),
+           (Files.Settings.Testing.Has_Embedded_Placeholder (Embedded_Action),
             "embedded placeholders are visible to safety checks");
          Assert
            (Files.Settings.Has_Unsafe_Placeholder_Usage (Embedded_Action),
@@ -32,13 +33,13 @@ separate (Files_Suite.Settings)
            (Files.Settings.Has_Unsafe_Placeholder_Usage (Embedded_Action),
             "executable placeholders make open actions unsafe");
       end;
-      Assert (Files.Settings.Has_Embedded_Placeholder ("prefix-{path}"), "embedded placeholder is unsafe");
-      Assert (not Files.Settings.Has_Embedded_Placeholder ("{path}"), "whole-argument placeholder is safe");
+      Assert (Files.Settings.Testing.Has_Embedded_Placeholder ("prefix-{path}"), "embedded placeholder is unsafe");
+      Assert (not Files.Settings.Testing.Has_Embedded_Placeholder ("{path}"), "whole-argument placeholder is safe");
       Assert
-        (not Files.Settings.Has_Embedded_Placeholder ("{unknown}"),
+        (not Files.Settings.Testing.Has_Embedded_Placeholder ("{unknown}"),
          "unknown placeholder token is not treated as a known placeholder");
       Assert
-        (not Files.Settings.Has_Embedded_Placeholder ("prefix-{unknown}"),
+        (not Files.Settings.Testing.Has_Embedded_Placeholder ("prefix-{unknown}"),
          "embedded unknown placeholder remains a literal argument");
 
       Lookup := Files.Settings.Lookup_Open_Action

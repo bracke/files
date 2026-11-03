@@ -80,10 +80,6 @@ is
    function Is_Within_Tree (Inner : String; Outer : String) return Boolean is
       I : constant String := Resolved_Directory (Inner);
       O : constant String := Resolved_Directory (Outer);
-
-      function Is_Separator (Value : Character) return Boolean is
-        (Value = '/'
-         or else (Files_Config.Alire_Host_OS = "windows" and then Value = '\'));
    begin
       if Hostkit.Fs.Is_Link (Outer) then
          return False; --  Copying a link never traverses its target tree.
@@ -93,12 +89,7 @@ is
       --  Resolve links before the boundary check. A destination alias can
       --  otherwise conceal that it points into the source tree. A root path
       --  already ends in a separator, so every longer path is beneath it.
-      return I = O
-        or else (I'Length > O'Length
-                 and then I (I'First .. I'First + O'Length - 1) = O
-                 and then
-                   (Is_Separator (O (O'Last))
-                    or else Is_Separator (I (I'First + O'Length))));
+      return Hostkit.Fs.Is_Same_Or_Inside (I, O);
    end Is_Within_Tree;
 begin
    if not Files.Fs_Primitives.Directory_Exists (Destination_Directory)

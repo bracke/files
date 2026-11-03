@@ -9,7 +9,7 @@ separate (Files_Suite.Operations)
       --  opting out of the host opener fallback that would otherwise resolve.
       Settings.Use_System_Default_Opener := False;
       Files.Model.Select_Visible (Model, 3);
-      Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings);
+      Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operations.Operation_Missing_Open_Action,

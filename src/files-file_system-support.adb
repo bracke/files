@@ -11,7 +11,6 @@ with Files.Job_Context;
 with Hostkit.Directory_Write_Access;
 with Files.File_Identities;
 with Files.Io_Errors;
-with Files_Config;
 with CryptoLib.Hashes;
 
 with Hostkit.Metadata;
@@ -614,14 +613,7 @@ package body Files.File_System.Support is
          declare
             Item : constant Copied_File := Copied_File_Maps.Element (Cursor);
             Path : constant String := To_String (Item.Path);
-            Published : constant String :=
-              (if Path = Stage then Destination
-               elsif Starts_With (Path, Stage & "/")
-                 or else
-                   (Files_Config.Alire_Host_OS = "windows"
-                    and then Starts_With (Path, Stage & "\"))
-               then Destination & Path (Path'First + Stage'Length .. Path'Last)
-               else Path);
+            Published : constant String := Hostkit.Fs.Rebase (Path, Stage, Destination);
          begin
             Items.Append (To_Unbounded_String (Copied_File_Maps.Key (Cursor)));
             Items.Append (Item.Source_Revision);

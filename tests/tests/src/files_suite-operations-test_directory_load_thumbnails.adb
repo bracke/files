@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Directory_Load_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -45,7 +46,7 @@ separate (Files_Suite.Operations)
 
          Assert (Found_Auto_Thumbnail, "auto-thumbnail image item is loaded");
 
-         Files.Settings.Add_Extension_Mapping (Extension_Settings, "webp", "application/octet-stream");
+         Files.Settings.Testing.Add_Extension_Mapping (Extension_Settings, "webp", "application/octet-stream");
          Write_File (Join (Root, "extension-only.webp"), "not a decoded image");
          Extension_Load := Files.File_System.Load_Directory_Generating_Thumbnails (Root, Extension_Settings);
          Found_Auto_Thumbnail := False;

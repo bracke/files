@@ -2197,6 +2197,32 @@ procedure Check_All is
          raise;
    end Check_Direct_Localization_Call_Keys_In_Tree;
 
+   --  Which host this is, is asked of Hostkit.Host.Current: the build's OS
+   --  string spelled the same question a second way, and the code around each
+   --  spelling drifted (a separator rule here, a path rule there).
+   procedure Check_Host_Questions is
+      Search : Ada.Directories.Search_Type;
+      Item   : Ada.Directories.Directory_Entry_Type;
+   begin
+      Ada.Directories.Start_Search
+        (Search, Root & "/src", "*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Item);
+         declare
+            Path : constant String := Ada.Directories.Full_Name (Item);
+            Code : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
+         begin
+            if Ada.Strings.Fixed.Index (Code, "Alire_Host_OS") > 0 then
+               Ada.Directories.End_Search (Search);
+               Put_Line (Standard_Error, Path & ": asks the build's OS string; use Hostkit.Host.Current");
+               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+               raise Program_Error;
+            end if;
+         end;
+      end loop;
+      Ada.Directories.End_Search (Search);
+   end Check_Host_Questions;
+
    --  Thumbnails are made on the refresh tasks and on the UI thread at once.
    --  A variable at the package level is shared by them, unguarded: one held
    --  the path being written and was overwritten mid-write. State belongs in
@@ -3522,6 +3548,7 @@ procedure Check_All is
          "Files.",
          [To_Unbounded_String ("Files.Accessibility"),
           To_Unbounded_String ("Files.Command_Palette"),
+          To_Unbounded_String ("Files.Display_Text"),
           To_Unbounded_String ("Files.File_System"),
           To_Unbounded_String ("Files.File_Types"),
           To_Unbounded_String ("Files.Fonts"),
@@ -4555,7 +4582,7 @@ procedure Check_All is
       Require_Tests ("commands", 38);
       Require_Tests ("model", 50);
       Require_Tests ("interaction", 76);
-      Require_Tests ("rendering", 90);
+      Require_Tests ("rendering", 91);
       Require_Tests ("operations", 271);
    end Check_Test_Subsystem_Coverage;
 
@@ -4583,6 +4610,7 @@ begin
    Check_Clock_Arithmetic;
    Check_Environment_Access;
    Check_Thumbnail_Package_State;
+   Check_Host_Questions;
    Check_Filetype_Detection_Order;
    Check_Event_Translation_Contract;
    Check_Test_Hooks;

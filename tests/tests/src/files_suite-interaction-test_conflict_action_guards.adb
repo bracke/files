@@ -9,12 +9,12 @@ separate (Files_Suite.Interaction)
       Items    : Files.Paste.Work_Item_Vectors.Vector;
       Existing : Files.Types.String_Vectors.Vector;
 
-      function Click (Button : Natural) return Files.Events.Input_Action is
+      function Click (Button : Files.Events.Conflict_Button_Kind) return Files.Events.Input_Action is
         (Kind            => Files.Events.Conflict_Click_Input_Action,
          Conflict_Button => Button,
          others          => <>);
 
-      procedure Apply (Button : Natural) is
+      procedure Apply (Button : Files.Events.Conflict_Button_Kind) is
       begin
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Click (Button), Base_Font,
@@ -54,16 +54,17 @@ separate (Files_Suite.Interaction)
       Files.Model.Begin_Paste_Conflict
         (Model, Items, Existing, Files.File_System.Drop_Copy, 1);
 
-      --  The public action payload is numeric. An unknown value must not take
-      --  the destructive fallback path and cancel the transfer.
+      --  The button is typed now, so no unknown value can be sent; an action
+      --  naming no button must still not take the destructive fallback path
+      --  and cancel the transfer.
       declare
          Revision : constant Natural := Files.Model.Revision (Model);
       begin
-         Apply (Natural'Last);
+         Apply (Files.Events.No_Conflict_Button);
          Assert
            (Files.Model.Paste_Conflict_Is_Active (Model)
             and then Files.Model.Revision (Model) = Revision,
-            "an unknown conflict button leaves the active dialog untouched");
+            "no conflict button leaves the active dialog untouched");
       end;
 
       Apply (Files.Events.Conflict_Button_Apply_All);

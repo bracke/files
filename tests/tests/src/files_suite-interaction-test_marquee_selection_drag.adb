@@ -73,10 +73,10 @@ separate (Files_Suite.Interaction)
               (Action.Kind,
                Files.Events.Marquee_Begin_Input_Action,
                "an empty-space press begins a marquee");
-            Assert (not Action.Toggle_Selection,
+            Assert (not Action.Additive,
                     "a plain empty-space marquee is not additive");
             Assert (Additive.Kind = Files.Events.Marquee_Begin_Input_Action
-                    and then Additive.Toggle_Selection,
+                    and then Additive.Additive,
                     "a Ctrl empty-space press begins an additive marquee");
          end;
 

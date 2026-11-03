@@ -25,7 +25,7 @@ begin
       --  or when asked for: on Linux a stray ~/.Trash is just a folder, and
       --  trashing into it would leave items nothing can restore.
       if Environment_Equals ("FILES_TRASH_BACKEND", "macos-home")
-        or else (Files_Config.Alire_Host_OS = "macos"
+        or else (Hostkit.Host.Current = Hostkit.Host.MacOS
                  and then not Environment_Equals ("FILES_TRASH_BACKEND", "xdg")
                  and then Ada.Directories.Exists (Join_Path (Home, ".Trash")))
       then
@@ -46,7 +46,7 @@ begin
    --  what lets it be exercised where it is not the default. Only the backend
    --  changes -- the base keeps whatever the layout above worked out, which is
    --  what the previous pair of functions did.
-   if Files_Config.Alire_Host_OS = "windows"
+   if Hostkit.Host.Current = Hostkit.Host.Windows
      and then not Environment_Equals ("FILES_TRASH_BACKEND", "xdg")
      and then not Environment_Equals ("FILES_TRASH_BACKEND", "macos-home")
    then

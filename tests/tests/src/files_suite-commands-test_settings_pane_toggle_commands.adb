@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Settings_Pane_Toggle_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -62,7 +63,7 @@ separate (Files_Suite.Commands)
               "save settings is enabled");
       Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Reset_Settings_Command, Model),
               "reset settings is enabled");
-      Files.Controller.Replace_Focused_Text (Model, "details");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "details");
       Result := Files.Controller.Execute_Command (Files.Commands.Reset_Settings_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,

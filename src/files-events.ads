@@ -32,14 +32,18 @@ package Files.Events is
       Search_Scope_Toggle_Input_Action,
       Label_Picker_Choice_Input_Action);
 
-   --  Button codes carried in Input_Action.Conflict_Button for a
-   --  Conflict_Click_Input_Action, identifying which paste-conflict-dialog
-   --  control was clicked.
-   Conflict_Button_Replace   : constant := 1;
-   Conflict_Button_Skip      : constant := 2;
-   Conflict_Button_Rename    : constant := 3;
-   Conflict_Button_Cancel    : constant := 4;
-   Conflict_Button_Apply_All : constant := 5;
+   --  Which paste-conflict-dialog control a Conflict_Click_Input_Action hit.
+   type Conflict_Button_Kind is
+     (No_Conflict_Button,
+      Conflict_Button_Replace,
+      Conflict_Button_Skip,
+      Conflict_Button_Rename,
+      Conflict_Button_Cancel,
+      Conflict_Button_Apply_All);
+
+   --  A permission bit as the info pane's grid numbers them: 0 is others'
+   --  execute, 8 the owner's read.
+   subtype Permission_Bit is Natural range 0 .. 8;
 
    type Scroll_Target is
      (Scroll_Auto,
@@ -49,24 +53,11 @@ package Files.Events is
       Scroll_Settings_Pane,
       Scroll_Command_Palette);
 
-   --  Translated input action. Several fields are reused per Kind. For a
-   --  Column_Resize_Begin_Input_Action the payload is packed into the shared
-   --  fields: Item_Index holds Files.Types.Detail_Column'Pos of the column the
-   --  drag resizes, Cursor_Position holds the separator's origin x edge, and
-   --  Scroll_Drag_Anchor holds the column's effective width at drag start. For a
-   --  Column_Reorder_Begin_Input_Action Item_Index holds the dragged optional
-   --  column's Detail_Column'Pos, Cursor_Position the press x, and Command the
-   --  sort command to apply should the press turn out to be a plain click rather
-   --  than a drag. For a
-   --  Breadcrumb_Click_Input_Action Item_Index holds the one-based breadcrumb
-   --  segment index. For a Tree_Click_Input_Action Item_Index holds the tree
-   --  node index and Toggle_Selection is True when the expander triangle was
-   --  clicked (expand/collapse) rather than the row label (navigate). For a
-   --  Marquee_Begin_Input_Action Cursor_Position and Settings_Field hold the
-   --  press-point x and y (the rubber-band origin) and Toggle_Selection is True
-   --  when the marquee is additive (Ctrl or Shift held at press). For a
-   --  Label_Picker_Choice_Input_Action Item_Index holds Files.Types.Color_Label
-   --  'Pos of the chosen swatch (0 for No_Label, i.e. clear).
+   --  Translated input action. Each kind reads the fields named for it:
+   --  Item_Index is an item (a breadcrumb segment, a tree node for a
+   --  Tree_Click_Input_Action, with Toggle_Selection for its expander), and the
+   --  drags, the label picker, the permission grid and the ownership editor
+   --  have their own typed fields below.
    type Input_Action is record
       Kind         : Input_Action_Kind := No_Input_Action;
       Command      : Files.Commands.Command_Id := Files.Commands.No_Command;
@@ -82,13 +73,27 @@ package Files.Events is
       Cursor_Position : Natural := 0;
       Settings_Field  : Natural := 0;
       Settings_Option : Natural := 0;
-      --  The paste-conflict dialog button of a Conflict_Click_Input_Action
-      --  (one of the Conflict_Button_* codes).
-      Conflict_Button : Natural := 0;
+      --  The paste-conflict dialog button of a Conflict_Click_Input_Action.
+      Conflict_Button : Conflict_Button_Kind := No_Conflict_Button;
       Activate     : Boolean := False;
       Toggle_Selection : Boolean := False;
       Range_Selection  : Boolean := False;
       Scroll_Drag_Anchor : Integer := 0;
+      --  A column resize or reorder: the column, and for a resize its width
+      --  when the drag began.
+      Column       : Files.Types.Optional_Detail_Column := Files.Types.Optional_Detail_Column'First;
+      Column_Width : Natural := 0;
+      --  Where a column or marquee drag began (framebuffer pixels), and
+      --  whether a marquee adds to the selection (Ctrl or Shift held).
+      Origin_X     : Natural := 0;
+      Origin_Y     : Natural := 0;
+      Additive     : Boolean := False;
+      --  The label picker's chosen swatch (No_Label clears).
+      Label        : Files.Types.Color_Label := Files.Types.No_Label;
+      --  The permission grid's bit, and whether the ownership editor edits
+      --  the group (else the owner).
+      Bit          : Permission_Bit := 0;
+      Edit_Group   : Boolean := False;
    end record;
 
    --  Translate a key and modifier state into an internal input action.

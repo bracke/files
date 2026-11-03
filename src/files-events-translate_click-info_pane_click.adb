@@ -23,9 +23,9 @@ begin
       begin
          if Cell.Present then
             Result :=
-              (Kind       => Permission_Toggle_Input_Action,
-               Item_Index => Cell.Bit,
-               others     => <>);
+              (Kind   => Permission_Toggle_Input_Action,
+               Bit    => Cell.Bit,
+               others => <>);
             return;
          end if;
       end;
@@ -39,7 +39,7 @@ begin
          if Cell.Present then
             Result :=
               (Kind       => Ownership_Edit_Input_Action,
-               Item_Index => (if Cell.Is_Group then 1 else 0),
+               Edit_Group => Cell.Is_Group,
                others     => <>);
             return;
          end if;

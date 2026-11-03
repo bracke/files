@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Save_Settings_Applies_Live (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -34,7 +35,7 @@ separate (Files_Suite.Commands)
          Files.Model.Set_Settings_Draft (Model, Draft);
       end;
 
-      Result := Files.Controller.Save_Settings (Model, Settings, Path);
+      Result := Files.Controller.Testing.Save_Settings (Model, Settings, Path);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Success,

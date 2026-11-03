@@ -12,7 +12,8 @@ separate (Files_Suite.Operations)
          Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
          Assert
-           (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Windows_Recycle_Bin,
+           (Files.File_System.Testing.Trash_Backend_Of_Current_Environment
+              = Files.File_System.Trash_Windows_Recycle_Bin,
             "trash backend can represent native Windows recycle-bin intent");
          Assert
            (Files.File_System.Testing.Trash_Capabilities_Of_Current_Environment.Native_Platform,
@@ -24,7 +25,7 @@ separate (Files_Suite.Operations)
             Request : constant Files.File_System.Native_Trash_Request :=
               Files.File_System.Testing.Native_Trash_Request_For (Join (Root, "missing-for-native-trash.txt"));
             Native_Result : constant Files.File_System.Native_Trash_Result :=
-              Files.File_System.Evaluate_Native_Trash (Request);
+              Files.File_System.Testing.Evaluate_Native_Trash (Request);
             Native_Execution : constant Files.File_System.Native_Trash_Result :=
               Files.File_System.Testing.Execute_Native_Trash (Request);
          begin
@@ -119,7 +120,7 @@ separate (Files_Suite.Operations)
          end;
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "macos");
          Assert
-           (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Macos_Native,
+           (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Macos_Native,
             "trash backend can represent native macOS trash intent");
       end Check;
    begin

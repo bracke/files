@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Controller_Rename_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -42,7 +43,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Rename_Text (Model),
          "old.txt.bak",
          "initial rename cursor appends text at the end");
-      Files.Controller.Replace_Focused_Text (Model, "new.tx");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "new.tx");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -76,7 +77,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Rename_Text (Model),
          "new.tt",
          "rename Delete removes character at cursor");
-      Files.Controller.Replace_Focused_Text (Model, "new.tx");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "new.tx");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),
          6,

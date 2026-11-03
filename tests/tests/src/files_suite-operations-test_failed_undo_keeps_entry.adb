@@ -22,7 +22,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "vanishing.txt");
 
-      Result := Files.Operations.Set_Permissions_For (Model, 8#600#, Settings);
+      Result := Files.Operations.Testing.Set_Permissions_For (Model, 8#600#, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operations.Operation_Success,

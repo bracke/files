@@ -666,9 +666,9 @@ separate (Files.Rendering.Build_Frame_Commands)
             --  to just the three numbers (hidden / visible / selected),
             --  slash-separated and label-less. The error line is never collapsed.
             Compact   : constant String :=
-              Natural_Text (Snapshot.Hidden_Count) & "/"
-              & Natural_Text (Snapshot.Visible_Count) & "/"
-              & Natural_Text (Snapshot.Selected_Count);
+              Grouped_Natural_Text (Snapshot.Hidden_Count) & "/"
+              & Grouped_Natural_Text (Snapshot.Visible_Count) & "/"
+              & Grouped_Natural_Text (Snapshot.Selected_Count);
             Use_Compact : constant Boolean :=
               Length (Snapshot.Last_Error_Key) = 0
               and then Saturating_Multiply (Files.UTF8.Display_Units (To_String (Info_Text)), Cell_W) > Counts_W;

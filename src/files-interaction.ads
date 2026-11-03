@@ -226,17 +226,21 @@ package Files.Interaction is
       Settings_Path : String)
       return Boolean;
 
-   --  Persist the settings model to the central settings file. A no-op when the
-   --  path is empty; a write that fails, or is not durable, is reported in the
-   --  window's error line.
+   --  Zoom to New_Size, from the keyboard or the wheel alike: the change goes
+   --  through the one settings policy (Controller.Commit_Settings) and Result
+   --  carries the font-size and glyph follow-ups Apply_Interaction_Result runs.
    --
-   --  @param Model Window whose error line reports a failed write.
-   --  @param Settings Settings model to serialize.
+   --  @param Model Window whose error line reports a refused or failed save.
+   --  @param Settings Live settings, replaced when the change is taken.
    --  @param Settings_Path Central settings file path (empty disables persistence).
-   procedure Persist_Settings
+   --  @param New_Size The font pixel size asked for, already clamped.
+   --  @param Result Its follow-ups are set; other fields are left alone.
+   procedure Apply_Zoom
      (Model         : in out Files.Model.Window_Model;
-      Settings      : Files.Settings.Settings_Model;
-      Settings_Path : String);
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      New_Size      : Positive;
+      Result        : in out Interaction_Result);
 
    --  Snapshot the currently selected visible items as an ascending set of
    --  one-based visible indices. The shell captures this at a marquee's press so

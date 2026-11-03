@@ -34,7 +34,7 @@ package body Files.Events is
    end Command_Action;
 
    function Conflict_Action
-     (Button   : Natural;
+     (Button   : Conflict_Button_Kind;
       Activate : Boolean := False)
       return Input_Action is
    begin
@@ -55,18 +55,17 @@ package body Files.Events is
          others   => <>);
    end Paste_Cancel_Action;
 
-   --  Build a label-picker swatch-choice action carrying the chosen label's
-   --  Files.Types.Color_Label'Pos in Item_Index (0 clears the label).
+   --  Build a label-picker swatch-choice action (No_Label clears the label).
    function Label_Choice_Action
-     (Label_Pos : Natural;
-      Activate  : Boolean := False)
+     (Label    : Files.Types.Color_Label;
+      Activate : Boolean := False)
       return Input_Action is
    begin
       return
-        (Kind       => Label_Picker_Choice_Input_Action,
-         Item_Index => Label_Pos,
-         Activate   => Activate,
-         others     => <>);
+        (Kind     => Label_Picker_Choice_Input_Action,
+         Label    => Label,
+         Activate => Activate,
+         others   => <>);
    end Label_Choice_Action;
 
    function Tree_Pick_Confirm_Action
@@ -126,16 +125,16 @@ package body Files.Events is
       return Input_Action is
    begin
       return
-        (Kind               => Column_Resize_Begin_Input_Action,
-         Item_Index         => Files.Types.Detail_Column'Pos (Column),
-         Cursor_Position    => Origin_X,
-         Scroll_Drag_Anchor => Origin_Width,
-         others             => <>);
+        (Kind         => Column_Resize_Begin_Input_Action,
+         Column       => Column,
+         Origin_X     => Origin_X,
+         Column_Width => Origin_Width,
+         others       => <>);
    end Column_Resize_Begin_Action;
 
    --  Build a details-header column-reorder drag-begin action. The dragged
-   --  column and the press x are packed into Item_Index and Cursor_Position, and
-   --  the column's sort command is carried in Command so the shell can fall back
+   --  column and the press x go in Column and Origin_X, and the column's sort
+   --  command is carried in Command so the shell can fall back
    --  to a sort when the press ends without crossing the drag threshold. The
    --  desktop shell owns the continuous drag, mirroring the resize drag.
    --
@@ -150,16 +149,15 @@ package body Files.Events is
       return Input_Action is
    begin
       return
-        (Kind            => Column_Reorder_Begin_Input_Action,
-         Command         => Sort_Command,
-         Item_Index      => Files.Types.Detail_Column'Pos (Column),
-         Cursor_Position => Origin_X,
-         others          => <>);
+        (Kind     => Column_Reorder_Begin_Input_Action,
+         Command  => Sort_Command,
+         Column   => Column,
+         Origin_X => Origin_X,
+         others   => <>);
    end Column_Reorder_Begin_Action;
 
-   --  Build a marquee (rubber-band) drag-begin action. The press-point origin is
-   --  packed into Cursor_Position (x) and Settings_Field (y), and Additive (Ctrl
-   --  or Shift held at press) rides in Toggle_Selection. The desktop shell owns
+   --  Build a marquee (rubber-band) drag-begin action from the press point and
+   --  whether it adds to the selection (Ctrl or Shift held at press). The desktop shell owns
    --  the continuous drag, mirroring the scrollbar and column drags.
    --
    --  @param Origin_X Press-point x coordinate in framebuffer pixels.
@@ -173,11 +171,11 @@ package body Files.Events is
       return Input_Action is
    begin
       return
-        (Kind             => Marquee_Begin_Input_Action,
-         Cursor_Position  => Origin_X,
-         Settings_Field   => Origin_Y,
-         Toggle_Selection => Additive,
-         others           => <>);
+        (Kind     => Marquee_Begin_Input_Action,
+         Origin_X => Origin_X,
+         Origin_Y => Origin_Y,
+         Additive => Additive,
+         others   => <>);
    end Marquee_Begin_Action;
 
    function Saturating_Negated_Triple (Value : Integer) return Integer is

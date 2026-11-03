@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Macos_Home_Trash_Fallback (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -15,7 +16,7 @@ separate (Files_Suite.Operations)
          Mutation := Files.File_System.Move_To_Trash (Join (Root, "mac-trash.txt"));
          Assert (Mutation.Success, "macOS-style home trash fallback moves files");
          Assert
-           (Files.File_System.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Macos_Home,
+           (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Macos_Home,
             "trash backend reports macOS-style home trash when present");
          Assert
            (Ada.Directories.Exists (Join (Join (Mac_Home, ".Trash"), "mac-trash.txt")),

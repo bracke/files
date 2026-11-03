@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Settings)
    procedure Test_Settings_Draft_Ignores_Orphan_Rows (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -79,7 +80,7 @@ separate (Files_Suite.Settings)
             0,
             "begin settings edit drops orphan filetype rows");
 
-         Files.Settings.Add_Extension_Mapping (Empty_Settings, "ada", "text/x-ada");
+         Files.Settings.Testing.Add_Extension_Mapping (Empty_Settings, "ada", "text/x-ada");
          Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
          Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
          Repair_Draft.Filetype_Index := Natural (Repair_Draft.Filetype_Keys.Length);

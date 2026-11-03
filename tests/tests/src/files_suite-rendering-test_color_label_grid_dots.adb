@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 separate (Files_Suite.Rendering)
    procedure Test_Color_Label_Grid_Dots (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,10 +15,10 @@ separate (Files_Suite.Rendering)
               Build_Frame_Commands (Snapshot, 1000, 800, 20);
          begin
             Assert
-              (Has_Rectangle_Colored (Frame, Files.Rendering.Label_Render_Color (Files.Types.Green)),
+              (Has_Rectangle_Colored (Frame, Files.Rendering.Testing.Label_Render_Color (Files.Types.Green)),
                "a green-labeled item draws a green corner dot");
             Assert
-              (not Has_Rectangle_Colored (Frame, Files.Rendering.Label_Render_Color (Files.Types.Red)),
+              (not Has_Rectangle_Colored (Frame, Files.Rendering.Testing.Label_Render_Color (Files.Types.Red)),
                "the green-labeled item draws no red dot");
          end;
       end;
@@ -29,10 +30,10 @@ separate (Files_Suite.Rendering)
            Build_Frame_Commands (Snapshot, 1000, 800, 20);
       begin
          Assert
-           (not Has_Rectangle_Colored (Frame, Files.Rendering.Label_Render_Color (Files.Types.Green)),
+           (not Has_Rectangle_Colored (Frame, Files.Rendering.Testing.Label_Render_Color (Files.Types.Green)),
             "an unlabeled grid draws no green dot");
          Assert
-           (not Has_Rectangle_Colored (Frame, Files.Rendering.Label_Render_Color (Files.Types.Blue)),
+           (not Has_Rectangle_Colored (Frame, Files.Rendering.Testing.Label_Render_Color (Files.Types.Blue)),
             "an unlabeled grid draws no blue dot");
       end;
 
@@ -48,11 +49,11 @@ separate (Files_Suite.Rendering)
               Build_Frame_Commands (Snapshot, 1000, 800, 20);
          begin
             Assert
-              (Has_Rectangle_Colored (Frame, Files.Rendering.Label_Render_Color (Files.Types.Purple)),
+              (Has_Rectangle_Colored (Frame, Files.Rendering.Testing.Label_Render_Color (Files.Types.Purple)),
                "a purple-labeled item draws a purple dot");
             Assert
-              (Files.Rendering.Label_Render_Color (Files.Types.Purple)
-                 /= Files.Rendering.Label_Render_Color (Files.Types.Green),
+              (Files.Rendering.Testing.Label_Render_Color (Files.Types.Purple)
+                 /= Files.Rendering.Testing.Label_Render_Color (Files.Types.Green),
                "distinct labels resolve to distinct dot colors");
          end;
       end;

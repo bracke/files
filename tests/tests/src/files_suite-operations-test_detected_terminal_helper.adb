@@ -12,14 +12,14 @@ separate (Files_Suite.Operations)
       if Ada.Directories.Exists (Shell_Path) then
          Ada.Environment_Variables.Set ("TERMINAL", Shell_Path);
          Files_Suite.Support.Assert_Equal
-           (Files.Operations.Detected_Terminal,
+           (Files.Operations.Testing.Detected_Terminal,
             Shell_Path,
             "an available TERMINAL override selects the configured terminal executable");
       end if;
 
       Ada.Environment_Variables.Set ("TERMINAL", Missing_Path);
       Assert
-        (Files.Operations.Detected_Terminal /= Missing_Path,
+        (Files.Operations.Testing.Detected_Terminal /= Missing_Path,
          "an unavailable TERMINAL override is ignored");
 
       --  Windows and macOS always have one, and used to be offered none: the
@@ -28,7 +28,7 @@ separate (Files_Suite.Operations)
       --  legitimately has no terminal emulator installed at all.
       if Hostkit.Host.Current in Hostkit.Host.Windows | Hostkit.Host.MacOS then
          Assert
-           (Files.Operations.Detected_Terminal /= "",
+           (Files.Operations.Testing.Detected_Terminal /= "",
             "this host always has a terminal to open, and one is found");
       end if;
    end Test_Detected_Terminal_Helper;

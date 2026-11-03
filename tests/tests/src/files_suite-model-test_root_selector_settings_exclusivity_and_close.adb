@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files.File_System.Testing;
 separate (Files_Suite.Model)
    procedure Test_Root_Selector_Settings_Exclusivity_And_Close (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -123,7 +124,7 @@ separate (Files_Suite.Model)
       Files.Model.Close_Root_Selector (Model);
 
       Result := Files.Controller.Execute_Command (Files.Commands.Open_Command_Palette_Command, Model, Settings);
-      Files.Controller.Replace_Focused_Text (Model, "view.details");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "view.details");
       Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector opens from palette state");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "drive selector closes command palette");

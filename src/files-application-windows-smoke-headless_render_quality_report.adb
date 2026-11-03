@@ -3,8 +3,8 @@ with Files.Shared_Bytes;
 separate (Files.Application.Windows.Smoke)
    function Headless_Render_Quality_Report
      (Startup : Startup_Result;
-      Width   : Natural := 1024;
-      Height  : Natural := 768)
+      Width   : Natural := Files.UI.Default_Window_Width;
+      Height  : Natural := Files.UI.Default_Window_Height)
       return Headless_Render_Quality_Result
    is
       Result : Headless_Render_Quality_Result :=

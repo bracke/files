@@ -3,7 +3,7 @@ separate (Files.Application.Windows)
      (Runtime : in out Runtime_Window)
    is
       Action : Files.Events.Input_Action;
-      Result : Files.Controller.Controller_Result;
+      Result : Files.Interaction.Interaction_Result;
       Offset : Integer;
       Window_W : Glfw.Size := 0;
       Window_H : Glfw.Size := 0;
@@ -30,18 +30,14 @@ separate (Files.Application.Windows)
             --  changing persisted UI state while any such overlay is open.
             if not Files.Model.Input_Owning_Overlay_Is_Open (Runtime.Model) then
                declare
-                  New_Size : constant Positive :=
-                    Files.Settings.Clamp_Font_Pixel_Size
-                      (Add_Pending_Scroll
-                         (Integer (Runtime.Font_Pixel_Size), Offset));
+                  Zoomed : Files.Interaction.Interaction_Result;
                begin
-                  if New_Size /= Runtime.Font_Pixel_Size then
-                     Runtime.Font_Pixel_Size := New_Size;
-                     Runtime.Settings.Font_Pixel_Size := Runtime.Font_Pixel_Size;
-                     Runtime.Text_Ready := False;
-                     Runtime.Glyph_Text_Valid := False;
-                     Persist_Settings (Runtime);
-                  end if;
+                  Files.Interaction.Apply_Zoom
+                    (Runtime.Model, Runtime.Settings, To_String (Runtime.Settings_Path),
+                     Files.Settings.Clamp_Font_Pixel_Size
+                       (Add_Pending_Scroll (Integer (Runtime.Font_Pixel_Size), Offset)),
+                     Zoomed);
+                  Apply_Interaction_Result (Runtime, Zoomed);
                end;
             end if;
             return;
@@ -78,10 +74,17 @@ separate (Files.Application.Windows)
          end;
       end if;
 
+      --  Dispatched like every other input, so the scroll gets the same
+      --  follow-ups.
       if Action.Kind = Files.Events.Scroll_Input_Action then
-         Result :=
-           Files.Controller.Handle_Targeted_Scroll
-             (Runtime.Model, Action.Scroll_Area, Action.Scroll_Lines);
-         pragma Unreferenced (Result);
+         Files.Interaction.Apply_Input_Action
+           (Model             => Runtime.Model,
+            Settings          => Runtime.Settings,
+            Settings_Path     => To_String (Runtime.Settings_Path),
+            Action            => Action,
+            Current_Font_Size => Runtime.Font_Pixel_Size,
+            Modifiers         => To_Modifiers (As_Window (Runtime.Handle)),
+            Result            => Result);
+         Apply_Interaction_Result (Runtime, Result);
       end if;
    end Handle_Scroll_Input;

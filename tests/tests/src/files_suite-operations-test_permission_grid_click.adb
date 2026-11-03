@@ -64,7 +64,7 @@ separate (Files_Suite.Operations)
             Files.Events.Permission_Toggle_Input_Action,
             "clicking a permission cell yields a permission-toggle action");
          Files_Suite.Support.Assert_Equal
-           (Action.Item_Index,
+           (Action.Bit,
             Target_Bit,
             "the toggle action carries the clicked cell bit");
 
@@ -85,21 +85,6 @@ separate (Files_Suite.Operations)
             "a stale permission action is inert after the info pane closes");
 
          Files.Model.Toggle_Info_Pane (Model);
-         Files.Interaction.Apply_Input_Action
-           (Model             => Model,
-            Settings          => Settings_Var,
-            Settings_Path     => "",
-            Action            =>
-              (Kind       => Files.Events.Permission_Toggle_Input_Action,
-               Item_Index => 9,
-               others     => <>),
-            Current_Font_Size => 16,
-            Modifiers         => Guikit.Input.No_Modifiers,
-            Result            => Result);
-         Files_Suite.Support.Assert_Equal
-           (Mode_Of (Sub),
-            Before,
-            "an invalid permission-bit payload does not change the mode");
 
          Files.Interaction.Apply_Input_Action
            (Model             => Model,

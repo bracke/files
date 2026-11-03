@@ -758,10 +758,10 @@ separate (Files.Rendering)
       --  Group counts with the locale's separator (12.345, not 12345), the same
       --  way sizes and paste-progress counts are shown, so no on-screen number
       --  is formatted inconsistently with the rest.
-      function Natural_Text (Value : Natural) return String is
+      function Grouped_Natural_Text (Value : Natural) return String is
       begin
          return Grouped_Integer_Text (Long_Long_Integer (Value));
-      end Natural_Text;
+      end Grouped_Natural_Text;
 
       function View_Mode_Label return String is
       begin
@@ -780,7 +780,7 @@ separate (Files.Rendering)
          --  Built from fragments so no letters-plus-space display literal is
          --  hard-coded: "N" + " " + localized "hidden".
          return
-           Natural_Text (Snapshot.Hidden_Count)
+           Grouped_Natural_Text (Snapshot.Hidden_Count)
            & " "
            & Files.Localization.Text ("status.hidden");
       end Hidden_Status_Text;
@@ -793,7 +793,7 @@ separate (Files.Rendering)
            To_Unbounded_String
              (Hidden_Status_Text
               & "  "
-              & Natural_Text (Snapshot.Visible_Count)
+              & Grouped_Natural_Text (Snapshot.Visible_Count)
               & " "
               & Files.Localization.Text ("status.visible")
               & "  "

@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Interaction)
    procedure Test_Settings_Command_Updates_Open_Pane (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -54,6 +55,6 @@ separate (Files_Suite.Interaction)
       Assert (not Settings.Show_Hidden_Files, "the reset command returns the settings to their defaults");
       Files_Suite.Support.Assert_Equal
         (Shown (Files.Settings.Default_View_Mode_Setting),
-         Files.Settings.Scalar_Text (Files.Settings.Default_Settings, Files.Settings.Default_View_Mode_Setting),
+         Files.Settings.Testing.Scalar_Text (Files.Settings.Default_Settings, Files.Settings.Default_View_Mode_Setting),
          "the pane shows the defaults after the reset");
    end Test_Settings_Command_Updates_Open_Pane;

@@ -26,7 +26,7 @@ separate (Files_Suite.Operations)
       Assert
         (not Files.File_System.Set_Permissions (Target, 8#10_000#).Success,
          "the filesystem API rejects permission bits outside 07777");
-      Result := Files.Operations.Set_Permissions_For
+      Result := Files.Operations.Testing.Set_Permissions_For
         (Model, 8#10_000#, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -37,7 +37,7 @@ separate (Files_Suite.Operations)
         (not Files.Model.Undo_Available (Model),
          "an invalid mode does not create an undo record");
 
-      Result := Files.Operations.Set_Permissions_For (Model, 8#600#, Settings);
+      Result := Files.Operations.Testing.Set_Permissions_For (Model, 8#600#, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operations.Operation_Success,

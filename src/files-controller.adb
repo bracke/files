@@ -598,6 +598,80 @@ package body Files.Controller is
       return Controller_Result
  is separate;
 
+   function Handle_Permission_Toggle
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Bit      : Natural)
+      return Controller_Result is
+   begin
+      if not Files.Model.Info_Pane_Is_Open (Model)
+        or else Files.Model.Input_Owning_Overlay_Is_Open (Model)
+        or else Bit > 8
+      then
+         return Make_Result (Controller_Ignored);
+      end if;
+      return Make_Result
+        (Controller_Command_Executed,
+         Operation => Files.Operations.Toggle_Permission_Bit (Model => Model, Bit => Bit, Settings => Settings));
+   end Handle_Permission_Toggle;
+
+   function Handle_Ownership_Edit
+     (Model : in out Files.Model.Window_Model;
+      Group : Boolean)
+      return Controller_Result is
+   begin
+      if not Files.Model.Info_Pane_Is_Open (Model)
+        or else Files.Model.Input_Owning_Overlay_Is_Open (Model)
+      then
+         return Make_Result (Controller_Ignored);
+      end if;
+      Files.Operations.Focus_Ownership_Input (Model, Editing_Group => Group);
+      return Make_Result (Controller_Text_Updated);
+   end Handle_Ownership_Edit;
+
+   function Handle_Conflict_Choice
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Choice   : Files.Operations.Conflict_Choice)
+      return Controller_Result is
+   begin
+      if not Files.Model.Paste_Conflict_Is_Active (Model) then
+         return Make_Result (Controller_Ignored);
+      end if;
+      return Make_Result
+        (Controller_Command_Executed,
+         Operation =>
+           Files.Operations.Resolve_Paste_Conflict
+             (Model     => Model,
+              Settings  => Settings,
+              Choice    => Choice,
+              Apply_All => Files.Model.Paste_Conflict_Apply_All (Model)));
+   end Handle_Conflict_Choice;
+
+   function Handle_Conflict_Apply_All_Toggle
+     (Model : in out Files.Model.Window_Model)
+      return Controller_Result is
+   begin
+      if not Files.Model.Paste_Conflict_Is_Active (Model) then
+         return Make_Result (Controller_Ignored);
+      end if;
+      Files.Model.Toggle_Paste_Conflict_Apply_All (Model);
+      return Make_Result (Controller_Command_Executed);
+   end Handle_Conflict_Apply_All_Toggle;
+
+   function Handle_Paste_Cancel
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Controller_Result is
+   begin
+      if not Files.Model.Paste_Execution_Is_Active (Model) then
+         return Make_Result (Controller_Ignored);
+      end if;
+      Files.Operations.Cancel_Paste_Execution (Model);
+      return Make_Result
+        (Controller_Command_Executed, Operation => Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
+   end Handle_Paste_Cancel;
+
    function Select_Root
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;

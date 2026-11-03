@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Interaction)
    procedure Test_Controller_Scroll_Contained_By_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,7 +15,7 @@ separate (Files_Suite.Interaction)
          Outcome     : Files.Controller.Controller_Result;
       begin
          Files.Model.Toggle_Sort_Menu (Model);
-         Outcome := Files.Controller.Handle_Scroll (Model, 3);
+         Outcome := Files.Controller.Testing.Handle_Scroll (Model, 3);
          Files_Suite.Support.Assert_Equal
            (Outcome.Status, Files.Controller.Controller_Ignored,
             "auto scrolling is contained while a non-scrolling overlay owns input (status)");

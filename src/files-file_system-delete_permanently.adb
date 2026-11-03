@@ -3,7 +3,7 @@ function Delete_Permanently
   (Path : String)
    return Mutation_Result
 is
-   Windows : constant Boolean := Files_Config.Alire_Host_OS = "windows";
+   Windows : constant Boolean := Hostkit.Host.Current = Hostkit.Host.Windows;
 
    function Has_Navigation_Component return Boolean is
       First : Positive := Path'First;

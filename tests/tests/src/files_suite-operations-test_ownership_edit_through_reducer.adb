@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Hostkit.Metadata;
 separate (Files_Suite.Operations)
    procedure Test_Ownership_Edit_Through_Reducer (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -66,7 +67,7 @@ separate (Files_Suite.Operations)
            (Action.Kind,
             Files.Events.Ownership_Edit_Input_Action,
             "clicking the owner value yields an ownership-edit action");
-         Files_Suite.Support.Assert_Equal (Action.Item_Index, 0, "the owner action targets the owner (not group)");
+         Assert (not Action.Edit_Group, "the owner action targets the owner (not group)");
 
          Files.Model.Toggle_Info_Pane (Model);
          Files.Interaction.Apply_Input_Action
@@ -82,20 +83,6 @@ separate (Files_Suite.Operations)
             "a stale ownership action cannot focus an editor in a closed pane");
 
          Files.Model.Toggle_Info_Pane (Model);
-         Files.Interaction.Apply_Input_Action
-           (Model             => Model,
-            Settings          => Settings_Var,
-            Settings_Path     => "",
-            Action            =>
-              (Kind       => Files.Events.Ownership_Edit_Input_Action,
-               Item_Index => 2,
-               others     => <>),
-            Current_Font_Size => 16,
-            Modifiers         => Guikit.Input.No_Modifiers,
-            Result            => Reduce);
-         Assert
-           (Files.Model.Focus (Model) /= Files.Types.Focus_Ownership_Input,
-            "an invalid ownership target does not focus the editor");
 
          Files.Interaction.Apply_Input_Action
            (Model             => Model,
@@ -116,7 +103,7 @@ separate (Files_Suite.Operations)
 
          --  Type the file's own numeric uid (a bare number is accepted as an
          --  id) and commit with Enter through the controller.
-         Files.Controller.Replace_Focused_Text
+         Files.Controller.Testing.Replace_Focused_Text
            (Model, Files.Types.Account_Image (Uid));
          Routed := Files.Controller.Handle_Key (Model, Settings_Var, Guikit.Input.Key_Return);
 

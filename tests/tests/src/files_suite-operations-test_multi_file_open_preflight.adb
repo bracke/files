@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Multi_File_Open_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -20,7 +21,7 @@ separate (Files_Suite.Operations)
          --  Windows has no /bin/sh, so this action failed on its own missing
          --  executable before the preflight reached the item the test is about.
          Preflight_Args.Append (To_Unbounded_String (Marker_Path));
-         Files.Settings.Add_Open_Action
+         Files.Settings.Testing.Add_Open_Action
            (Preflight_Settings,
             "text/plain",
             Files.Settings.Make_Action (Marker_Executable, Preflight_Args));
@@ -30,7 +31,7 @@ separate (Files_Suite.Operations)
          Files.Model.Select_Visible (Preflight_Model, 1);
          Files.Model.Toggle_Visible_Selection (Preflight_Model, 3);
          Preflight_Result :=
-           Files.Operations.Prepare_Open_Selected_Action (Preflight_Model, Preflight_Settings);
+           Files.Operations.Testing.Prepare_Open_Selected_Action (Preflight_Model, Preflight_Settings);
          Files_Suite.Support.Assert_Equal
            (Preflight_Result.Status,
             Files.Operations.Operation_Missing_Open_Action,
@@ -71,11 +72,11 @@ separate (Files_Suite.Operations)
          --  Windows has no /bin/sh, so this action failed on its own missing
          --  executable before the preflight reached the item the test is about.
          Preflight_Args.Append (To_Unbounded_String (Marker_Path));
-         Files.Settings.Add_Open_Action
+         Files.Settings.Testing.Add_Open_Action
            (Preflight_Settings,
             "text/plain",
             Files.Settings.Make_Action (Marker_Executable, Preflight_Args));
-         Files.Settings.Add_Open_Action
+         Files.Settings.Testing.Add_Open_Action
            (Preflight_Settings,
             "text/markdown",
             Files.Settings.Make_Action (Missing_Executable, Files.Settings.String_Vectors.Empty_Vector));
@@ -107,11 +108,11 @@ separate (Files_Suite.Operations)
          --  backgrounding shell wrapper, so a launched application's own exit
          --  code is no longer observable: even /bin/false reports success
          --  because the wrapper shell itself exits zero after backgrounding.
-         Files.Settings.Add_Open_Action
+         Files.Settings.Testing.Add_Open_Action
            (Detached_Settings,
             "text/plain",
             Files.Settings.Make_Action (No_Op_Executable, Files.Settings.String_Vectors.Empty_Vector));
-         Files.Settings.Add_Open_Action
+         Files.Settings.Testing.Add_Open_Action
            (Detached_Settings,
             "text/markdown",
             Files.Settings.Make_Action (Failing_Executable, Files.Settings.String_Vectors.Empty_Vector));

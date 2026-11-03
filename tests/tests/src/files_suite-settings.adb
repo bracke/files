@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 with Files.Items;
 with Ada.Directories;
 with Ada.Strings;
@@ -239,10 +240,10 @@ package body Files_Suite.Settings is
       Manual : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
    begin
       Manual.Use_System_Default_Opener := False;
-      Files.Settings.Add_Extension_Mapping (Manual, ".TXT", "text/first");
-      Files.Settings.Add_Extension_Mapping (Manual, " txt ", " text/second ");
-      Files.Settings.Add_Icon_Mapping (Manual, " text/second ", " first-icon ");
-      Files.Settings.Add_Icon_Mapping (Manual, "text/second", " second-icon ");
+      Files.Settings.Testing.Add_Extension_Mapping (Manual, ".TXT", "text/first");
+      Files.Settings.Testing.Add_Extension_Mapping (Manual, " txt ", " text/second ");
+      Files.Settings.Testing.Add_Icon_Mapping (Manual, " text/second ", " first-icon ");
+      Files.Settings.Testing.Add_Icon_Mapping (Manual, "text/second", " second-icon ");
       return Manual;
    end Settings_With_Direct_Mappings;
 
@@ -253,19 +254,19 @@ package body Files_Suite.Settings is
       Args   : Files.Types.String_Vectors.Vector;
    begin
       Args.Append (To_Unbounded_String ("{path}"));
-      Files.Settings.Add_Open_Action
+      Files.Settings.Testing.Add_Open_Action
         (Manual,
          "text/manual+META+shift+alt+control+shift",
          Files.Settings.Make_Action ("first", Args));
-      Files.Settings.Add_Open_Action
+      Files.Settings.Testing.Add_Open_Action
         (Manual,
          " text/manual+control+alt+meta+shift ",
          Files.Settings.Make_Action ("second", Args));
-      Files.Settings.Add_Open_Action
+      Files.Settings.Testing.Add_Open_Action
         (Manual,
          " text/spaced-manual + META + shift ",
          Files.Settings.Make_Action (" spaced-manual ", Args));
-      Files.Settings.Add_Open_Action
+      Files.Settings.Testing.Add_Open_Action
         (Manual,
          "image/svg+xml",
          Files.Settings.Make_Action ("svg-viewer", Args));

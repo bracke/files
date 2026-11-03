@@ -672,18 +672,7 @@ package body Files.Settings is
       Changed  : out Boolean)
    is
       --  Path moved along with From: From itself or an entry inside it.
-      function Moved (Path : String) return String is
-      begin
-         if Path = From then
-            return To;
-         elsif Path'Length > From'Length
-           and then Path (Path'First .. Path'First + From'Length - 1) = From
-           and then Path (Path'First + From'Length) in '/' | GNAT.OS_Lib.Directory_Separator
-         then
-            return To & Path (Path'First + From'Length .. Path'Last);
-         end if;
-         return Path;
-      end Moved;
+      function Moved (Path : String) return String is (Hostkit.Fs.Rebase (Path, From, To));
 
       procedure Rewrite (Paths : in out String_Vectors.Vector) is
       begin

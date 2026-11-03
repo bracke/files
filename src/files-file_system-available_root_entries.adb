@@ -250,7 +250,7 @@ begin
    --  happens to sit on -- so offering it here put a phantom "Filesystem" root
    --  at the top of the tree, ahead of, and duplicating, a real drive letter.
    --  The drive loop below is what enumerates roots there.
-   if Files_Config.Alire_Host_OS /= "windows" then
+   if Hostkit.Host.Current /= Hostkit.Host.Windows then
       Append_If_Directory ("/", Root_Filesystem);
    end if;
    Append_Proc_Mounts;

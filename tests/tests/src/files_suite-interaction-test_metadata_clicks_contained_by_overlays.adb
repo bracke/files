@@ -15,7 +15,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",
          (Kind       => Files.Events.Permission_Toggle_Input_Action,
-          Item_Index => 0,
+          Bit        => 0,
           others     => <>),
          Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert
@@ -26,7 +26,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",
          (Kind       => Files.Events.Ownership_Edit_Input_Action,
-          Item_Index => 0,
+          Edit_Group => False,
           others     => <>),
          Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert

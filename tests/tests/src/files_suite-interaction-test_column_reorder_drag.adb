@@ -60,7 +60,7 @@ separate (Files_Suite.Interaction)
             Files.Events.Column_Reorder_Begin_Input_Action,
             "a press on a header cell body begins a column reorder");
          Files_Suite.Support.Assert_Equal
-           (Files.Types.Detail_Column'Val (Action.Item_Index),
+           (Action.Column,
             Files.Types.Size_Column,
             "the reorder targets the column whose cell body was pressed");
          Files_Suite.Support.Assert_Equal

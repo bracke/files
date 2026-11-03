@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Settings)
    procedure Test_Open_Action_Token_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -46,7 +47,7 @@ separate (Files_Suite.Settings)
          Normalized_Args           : Files.Types.String_Vectors.Vector;
       begin
          Normalized_Args.Append (To_Unbounded_String ("{path}"));
-         Files.Settings.Add_Open_Action
+         Files.Settings.Testing.Add_Open_Action
            (Normalized_Draft_Settings,
             "text/plain+control+alt",
             Files.Settings.Make_Action ("existing", Normalized_Args));

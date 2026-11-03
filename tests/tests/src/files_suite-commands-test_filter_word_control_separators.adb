@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Filter_Word_Control_Separators (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,7 +10,7 @@ separate (Files_Suite.Commands)
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
       Files.Model.Focus_Filter_Input (Model);
-      Files.Controller.Replace_Focused_Text (Model, "alpha" & ASCII.LF & "beta");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & ASCII.LF & "beta");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),
@@ -21,14 +22,14 @@ separate (Files_Suite.Commands)
          "beta",
          "Control+Backspace removes previous word across line feed");
 
-      Files.Controller.Replace_Focused_Text (Model, "alpha" & ASCII.CR & "beta");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & ASCII.CR & "beta");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),
          6,
          "Control+Left treats carriage return as word separator");
 
-      Files.Controller.Replace_Focused_Text (Model, "alpha" & ASCII.VT & "beta");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & ASCII.VT & "beta");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),
@@ -40,7 +41,7 @@ separate (Files_Suite.Commands)
          "beta",
          "Control+Backspace removes previous word across vertical tab");
 
-      Files.Controller.Replace_Focused_Text (Model, "alpha" & ASCII.FF & "beta");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & ASCII.FF & "beta");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 5);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),
@@ -55,7 +56,7 @@ separate (Files_Suite.Commands)
       declare
          C1_Break : constant Character := Character'Val (133);
       begin
-         Files.Controller.Replace_Focused_Text (Model, "alpha" & C1_Break & "beta");
+         Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & C1_Break & "beta");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
@@ -67,7 +68,7 @@ separate (Files_Suite.Commands)
             "beta",
             "Control+Backspace removes previous word across C1 NEL");
 
-         Files.Controller.Replace_Focused_Text (Model, "alpha" & C1_Break & "beta");
+         Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & C1_Break & "beta");
          Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 5);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),

@@ -59,10 +59,10 @@ separate (Files_Suite.Interaction)
             Files.Events.Column_Resize_Begin_Input_Action,
             "a press on a header separator begins a column resize");
          Files_Suite.Support.Assert_Equal
-           (Files.Types.Detail_Column'Val (Action.Item_Index),
+           (Action.Column,
             Files.Types.Size_Column,
             "the resize targets the column whose left edge was pressed");
-         Assert (Action.Cursor_Position = Sep_X and then Action.Scroll_Drag_Anchor = Base_W,
+         Assert (Action.Origin_X = Sep_X and then Action.Column_Width = Base_W,
                  "the drag-begin action carries the separator origin and column width");
 
          --  Applying the begin action must not change the sort field: the
@@ -78,8 +78,8 @@ separate (Files_Suite.Interaction)
          --  Dragging the separator left by 40 px widens the size column by ~40.
          Files.Interaction.Apply_Column_Resize
            (Settings, Files.Types.Size_Column,
-            Origin_X     => Action.Cursor_Position,
-            Origin_Width => Action.Scroll_Drag_Anchor,
+            Origin_X     => Action.Origin_X,
+            Origin_Width => Action.Column_Width,
             Current_X    => Sep_X - 40,
             Result       => Result);
          Assert (Result.Settings_Changed, "the resize step reports a width change");
@@ -111,8 +111,8 @@ separate (Files_Suite.Interaction)
          --  A far rightward drag (raw width below the minimum) clamps up to it.
          Files.Interaction.Apply_Column_Resize
            (Settings, Files.Types.Size_Column,
-            Origin_X     => Action.Cursor_Position,
-            Origin_Width => Action.Scroll_Drag_Anchor,
+            Origin_X     => Action.Origin_X,
+            Origin_Width => Action.Column_Width,
             Current_X    => Sep_X + (Base_W - 10),
             Result       => Result);
          Files_Suite.Support.Assert_Equal

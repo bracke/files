@@ -1,3 +1,4 @@
+with Files.UI;
 with Ada.Command_Line;
 with Ada.Containers.Vectors;
 
@@ -184,8 +185,8 @@ package Files.Application is
    --  @return Newline-separated smoke-test status text.
    function Runtime_Smoke_Report
      (Result : Startup_Result;
-      Width  : Natural := 1024;
-      Height : Natural := 768;
+      Width  : Natural := Files.UI.Default_Window_Width;
+      Height : Natural := Files.UI.Default_Window_Height;
       Locale : String := "en")
       return String;
 

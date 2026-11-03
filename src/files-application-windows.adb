@@ -139,15 +139,6 @@ package body Files.Application.Windows is
      (Object => Desktop_Window,
       Name   => Window_Access);
 
-   --  Persist the runtime settings to the central settings file. The reducer
-   --  owns the actual serialization; this wrapper exists for the shell-only
-   --  GLFW/timing paths (live font zoom, window-size save on shutdown).
-   procedure Persist_Settings (Runtime : in out Runtime_Window) is
-   begin
-      Files.Interaction.Persist_Settings
-        (Runtime.Model, Runtime.Settings, To_String (Runtime.Settings_Path));
-   end Persist_Settings;
-
    --  Write any pending system-clipboard request the model recorded (for
    --  example from the Copy Path command) to the GLFW system clipboard, then
    --  clear it. A no-op when no request is pending.
@@ -1124,56 +1115,39 @@ package body Files.Application.Windows is
       end if;
 
       --  Column-resize begin likewise arms shell-owned drag state; the continuous
-      --  resize is applied per frame by Update_Column_Resize_Drag. The action's
-      --  payload is packed into the shared fields (see the Input_Action comment).
+      --  resize is applied per frame by Update_Column_Resize_Drag.
       if Action.Kind = Files.Events.Column_Resize_Begin_Input_Action then
-         if Action.Item_Index not in
-           Files.Types.Detail_Column'Pos (Files.Types.Optional_Detail_Column'First)
-             .. Files.Types.Detail_Column'Pos (Files.Types.Optional_Detail_Column'Last)
-           or else Action.Scroll_Drag_Anchor < 0
-         then
-            return;
-         end if;
          Runtime.Column_Resize.Active := True;
          Runtime.Column_Resize.Changed := False;
-         Runtime.Column_Resize.Target := Files.Types.Detail_Column'Val (Action.Item_Index);
-         Runtime.Column_Resize.Origin_X := Action.Cursor_Position;
-         Runtime.Column_Resize.Origin_W := Action.Scroll_Drag_Anchor;
+         Runtime.Column_Resize.Target := Action.Column;
+         Runtime.Column_Resize.Origin_X := Action.Origin_X;
+         Runtime.Column_Resize.Origin_W := Action.Column_Width;
          return;
       end if;
 
       --  Column-reorder begin arms shell-owned drag state; the drop (or the
       --  sort fallback for a press without a drag) is applied per frame by
-      --  Update_Column_Reorder_Drag. The payload is packed into the shared
-      --  fields (see the Input_Action comment).
+      --  Update_Column_Reorder_Drag.
       if Action.Kind = Files.Events.Column_Reorder_Begin_Input_Action then
-         if Action.Item_Index not in
-           Files.Types.Detail_Column'Pos (Files.Types.Optional_Detail_Column'First)
-             .. Files.Types.Detail_Column'Pos (Files.Types.Optional_Detail_Column'Last)
-         then
-            return;
-         end if;
          Runtime.Column_Reorder.Active := True;
-         Runtime.Column_Reorder.Target := Files.Types.Detail_Column'Val (Action.Item_Index);
-         Runtime.Column_Reorder.Origin_X := Action.Cursor_Position;
+         Runtime.Column_Reorder.Target := Action.Column;
+         Runtime.Column_Reorder.Origin_X := Action.Origin_X;
          Runtime.Column_Reorder.Started := False;
          Runtime.Column_Reorder.Sort := Action.Command;
          return;
       end if;
 
       --  Marquee begin arms shell-owned rubber-band state; the continuous
-      --  selection is applied per frame by Update_Marquee_Drag. The press point
-      --  and additive flag are packed into the shared fields (see the
-      --  Input_Action comment). The prior selection is snapshotted now so an
+      --  selection is applied per frame by Update_Marquee_Drag. The prior selection is snapshotted now so an
       --  additive drag can union against it without the per-frame reapply
       --  erasing it.
       if Action.Kind = Files.Events.Marquee_Begin_Input_Action then
          Runtime.Marquee.Active := True;
          Runtime.Marquee.Moved := False;
          Runtime.Marquee.Last_X := Integer'First;
-         Runtime.Marquee.Origin_X := Action.Cursor_Position;
-         Runtime.Marquee.Origin_Y := Action.Settings_Field;
-         Runtime.Marquee.Additive := Action.Toggle_Selection;
+         Runtime.Marquee.Origin_X := Action.Origin_X;
+         Runtime.Marquee.Origin_Y := Action.Origin_Y;
+         Runtime.Marquee.Additive := Action.Additive;
          Runtime.Marquee.Base := Files.Interaction.Selected_Visible_Indices (Runtime.Model);
          Runtime.Marquee.Rect_X := 0;
          Runtime.Marquee.Rect_Y := 0;
@@ -1418,9 +1392,11 @@ package body Files.Application.Windows is
               and then (Runtime.Settings.Window_Width /= Natural (Window_W)
                         or else Runtime.Settings.Window_Height /= Natural (Window_H))
             then
-               Runtime.Settings.Window_Width := Natural (Window_W);
-               Runtime.Settings.Window_Height := Natural (Window_H);
-               Persist_Settings (Runtime);
+               Files.Controller.Commit_Settings
+                 (Runtime.Model, Runtime.Settings,
+                  (Runtime.Settings with delta Window_Width => Natural (Window_W),
+                                               Window_Height => Natural (Window_H)),
+                  To_String (Runtime.Settings_Path));
             end if;
          end;
       end if;
@@ -2060,11 +2036,11 @@ package body Files.Application.Windows is
             Width           =>
               (if Startup.Settings.Window_Width > 0
                then Startup.Settings.Window_Width
-               else 1024),
+               else Files.UI.Default_Window_Width),
             Height          =>
               (if Startup.Settings.Window_Height > 0
                then Startup.Settings.Window_Height
-               else 768));
+               else Files.UI.Default_Window_Height));
       end loop;
 
       for Frame_Index in 1 .. 3 loop

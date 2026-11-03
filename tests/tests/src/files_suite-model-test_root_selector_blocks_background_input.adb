@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Model)
    procedure Test_Root_Selector_Blocks_Background_Input (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -40,7 +41,7 @@ separate (Files_Suite.Model)
         (Files.Model.Focus (Model),
          Files.Types.Focus_None,
          "blocked text focus leaves focus clear");
-      Result := Files.Controller.Handle_Scroll (Model, Lines => 3);
+      Result := Files.Controller.Testing.Handle_Scroll (Model, Lines => 3);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,

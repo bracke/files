@@ -55,36 +55,8 @@ is
    function Is_Same_Or_Inside
      (Child  : String;
       Parent : String)
-      return Boolean
-   is
-      Windows       : constant Boolean := Files_Config.Alire_Host_OS = "windows";
-      Clean_Child  : constant String := Normalized_Text (Child);
-      Clean_Parent : constant String := Normalized_Text (Parent);
-      Next         : Natural;
-
-      function Is_Separator (Value : Character) return Boolean is
-        (Value = '/' or else (Windows and then Value = '\'));
-   begin
-      if Clean_Child = "" or else Clean_Parent = "" then
-         return False;
-      elsif Clean_Child = Clean_Parent then
-         return True;
-      elsif Clean_Child'Length <= Clean_Parent'Length then
-         return False;
-      elsif Clean_Child (Clean_Child'First .. Clean_Child'First + Clean_Parent'Length - 1) /= Clean_Parent then
-         return False;
-      end if;
-
-      if Is_Separator (Clean_Parent (Clean_Parent'Last)) then
-         return True;
-      end if;
-
-      Next := Clean_Child'First + Clean_Parent'Length;
-      return Is_Separator (Clean_Child (Next));
-   exception
-      when others =>
-         return False;
-   end Is_Same_Or_Inside;
+      return Boolean is
+     (Hostkit.Fs.Is_Same_Or_Inside (Normalized_Text (Child), Normalized_Text (Parent)));
 
    --  A volume's trash (.Trash-$uid, .Trash/$uid), or anything in it: its
    --  files/ and info/ would go into themselves.

@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Model)
    procedure Test_Directory_Projection_Settings (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -13,8 +14,8 @@ separate (Files_Suite.Model)
       Write_File (Join (Dir, ".secret"));
       Write_File (Join (Dir, ".profile"));
       Write_File (Join (Dir, "afile.txt"), "a");
-      Files.Settings.Add_Extension_Mapping (Settings, "profile", "text/x-profile");
-      Files.Settings.Add_Extension_Mapping (Settings, "bin", "application/x-bin");
+      Files.Settings.Testing.Add_Extension_Mapping (Settings, "profile", "text/x-profile");
+      Files.Settings.Testing.Add_Extension_Mapping (Settings, "bin", "application/x-bin");
 
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Assert (Load.Success, "directory projection loads");

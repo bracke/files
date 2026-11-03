@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Settings)
    procedure Test_Controller_Settings_Save (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -18,7 +19,7 @@ separate (Files_Suite.Settings)
          --  replace it atomically, so only its presence matters here.
          Ada.Directories.Create_Path (Join (Root, "draft-config"));
          Write_File (Draft_Path, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
-         Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
+         Controller_Result := Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
          Files.Model.Begin_Settings_Edit (Draft_Model, Files.Settings.Make_Draft (Draft_Settings));
          --  Parse no longer injects the built-in mappings (the file is now
          --  authoritative), so seed this draft-editing test's mapping set from
@@ -39,29 +40,29 @@ separate (Files_Suite.Settings)
             Files.Types.Focus_Settings_Input,
             "controller settings command opens editable settings focus");
          Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_Right);
-         Files.Controller.Replace_Focused_Text (Draft_Model, "details");
+         Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "details");
          Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_Down);
-         Files.Controller.Replace_Focused_Text (Draft_Model, "true");
-         Files.Controller.Replace_Focused_Text (Draft_Model, "high_contrast");
-         Files.Controller.Replace_Focused_Text (Draft_Model, "files-high-contrast");
+         Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "true");
+         Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "high_contrast");
+         Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "files-high-contrast");
          Controller_Result := Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_N, Ctrl);
-         Files.Controller.Replace_Focused_Text (Draft_Model, "tmpdel");
-         Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-delete-me");
+         Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "tmpdel");
+         Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "text/x-delete-me");
          Controller_Result :=
            Files.Controller.Handle_Key (Draft_Model, Draft_Settings, Guikit.Input.Key_Delete, Ctrl);
-         Files.Controller.Replace_Focused_Text (Draft_Model, "cfg");
-         Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-config");
-         Files.Controller.Replace_Focused_Text (Draft_Model, "text/x-config");
-         Files.Controller.Replace_Focused_Text (Draft_Model, "text");
-         Files.Controller.Replace_Focused_Text (Draft_Model, "text/markdown");
-         Files.Controller.Replace_Focused_Text (Draft_Model, "reader {path}");
+         Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "cfg");
+         Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "text/x-config");
+         Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "text/x-config");
+         Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "text");
+         Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "text/markdown");
+         Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "reader {path}");
          declare
             Bad : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Draft_Model);
          begin
             Bad.Scalars (Files.Settings.Default_View_Mode_Setting) := To_Unbounded_String ("bad-view");
             Files.Model.Set_Settings_Draft (Draft_Model, Bad);
          end;
-         Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
+         Controller_Result := Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
          Files_Suite.Support.Assert_Equal
            (Controller_Result.Operation.Status,
             Files.Operations.Operation_Failed,
@@ -97,7 +98,8 @@ separate (Files_Suite.Settings)
             Good.Open_Action_Commands.Append (To_Unbounded_String ("reader {path}"));
             Files.Model.Set_Settings_Draft (Draft_Model, Good);
          end;
-         Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Join (Root, "settings-dir"));
+         Controller_Result :=
+           Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Join (Root, "settings-dir"));
          Files_Suite.Support.Assert_Equal
            (Controller_Result.Operation.Status,
             Files.Operations.Operation_Failed,
@@ -110,7 +112,7 @@ separate (Files_Suite.Settings)
            (Draft_Settings.Default_View,
             Loaded.Settings.Default_View,
             "controller settings save failure preserves live settings");
-         Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
+         Controller_Result := Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
          Files_Suite.Support.Assert_Equal
            (Controller_Result.Operation.Status,
             Files.Operations.Operation_Success,
@@ -176,7 +178,7 @@ separate (Files_Suite.Settings)
               (Files.Model.Settings_Pane_Is_Open (Missing_Model),
                "missing-current save fixture opens settings pane");
             Ada.Directories.Delete_Directory (Missing_Current_Path);
-            Missing_Result := Files.Controller.Save_Settings (Missing_Model, Missing_Settings, Draft_Path);
+            Missing_Result := Files.Controller.Testing.Save_Settings (Missing_Model, Missing_Settings, Draft_Path);
             Files_Suite.Support.Assert_Equal
               (Missing_Result.Operation.Status,
                Files.Operations.Operation_Failed,

@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files.File_System.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Controller_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -182,7 +183,7 @@ separate (Files_Suite.Operations)
         (Result.Command,
          Files.Commands.Focus_Path_Input_Command,
          "Control+L focuses path for branch");
-      Files.Controller.Replace_Focused_Text (Model, Branch);
+      Files.Controller.Testing.Replace_Focused_Text (Model, Branch);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,

@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Filter_Word_Unicode_Separators (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -12,7 +13,7 @@ separate (Files_Suite.Commands)
       declare
          NBSP : constant String := Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#00A0#));
       begin
-         Files.Controller.Replace_Focused_Text (Model, "alpha" & NBSP & "beta");
+         Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & NBSP & "beta");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
@@ -24,7 +25,7 @@ separate (Files_Suite.Commands)
             "beta",
             "Control+Backspace removes previous word across UTF-8 NBSP");
 
-         Files.Controller.Replace_Focused_Text (Model, "alpha" & NBSP & "beta");
+         Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & NBSP & "beta");
          Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 5);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
@@ -45,7 +46,7 @@ separate (Files_Suite.Commands)
          Nihongo : constant String := U (16#65E5#) & U (16#672C#) & U (16#8A9E#);  --  9 bytes
          Tesuto  : constant String := U (16#30C6#) & U (16#30B9#) & U (16#30C8#);  --  9 bytes
       begin
-         Files.Controller.Replace_Focused_Text (Model, Cafe & " " & Uber);
+         Files.Controller.Testing.Replace_Focused_Text (Model, Cafe & " " & Uber);
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
@@ -57,7 +58,7 @@ separate (Files_Suite.Commands)
             Uber,
             "Control+Backspace removes a whole multibyte word");
 
-         Files.Controller.Replace_Focused_Text (Model, Cafe & " " & Uber);
+         Files.Controller.Testing.Replace_Focused_Text (Model, Cafe & " " & Uber);
          Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 0);
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right, Ctrl);
          Assert (Files.Model.Text_Cursor_Position (Model) in 5 | 6, "Control+Right ends after the whole first word");
@@ -68,7 +69,7 @@ separate (Files_Suite.Commands)
             Cafe,
             "Control+Delete removes the next multibyte word");
 
-         Files.Controller.Replace_Focused_Text (Model, Nihongo & " " & Tesuto);
+         Files.Controller.Testing.Replace_Focused_Text (Model, Nihongo & " " & Tesuto);
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
@@ -84,7 +85,7 @@ separate (Files_Suite.Commands)
          Line_Separator : constant String :=
            Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#2028#));
       begin
-         Files.Controller.Replace_Focused_Text (Model, "alpha" & Line_Separator & "beta");
+         Files.Controller.Testing.Replace_Focused_Text (Model, "alpha" & Line_Separator & "beta");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left, Ctrl);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),

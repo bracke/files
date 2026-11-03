@@ -44,7 +44,7 @@ separate (Files_Suite.Operations)
             Action := (Kind => Files.Model.Undo_Delete_Created, From => Paths, Forward => Sources,
                        Create_Kind => Files.Model.Create_Copy, others => <>);
             Files.Model.Push_Redo (Model, Action);
-            Files.Operations.Settle_History (Model);
+            Files.Operations.Testing.Settle_History (Model);
          end if;
          Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", "1");
          Before := Now;

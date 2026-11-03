@@ -118,4 +118,31 @@ package body Files.File_System.Testing is
       return Roots;
    end Available_Roots;
 
+   function Is_User_Visible_Mount_Point (Mount_Point : String; Runtime_Gvfs : String) return Boolean
+     renames Files.File_System.Is_User_Visible_Mount_Point;
+
+   function Storable_Leaf_Name_At
+     (Name      : String;
+      Directory : String)
+      return Boolean
+     renames Files.File_System.Storable_Leaf_Name_At;
+
+   function Trash_Backend_Of_Current_Environment return Trash_Backend
+     renames Files.File_System.Trash_Backend_Of_Current_Environment;
+
+   function Evaluate_Native_Trash
+     (Request : Native_Trash_Request)
+      return Native_Trash_Result
+     renames Files.File_System.Evaluate_Native_Trash;
+
+   function Trash_Natively
+     (Request : Native_Trash_Request)
+      return Native_Trash_Result
+     renames Files.File_System.Trash_Natively;
+
+   function Trash_Deletion_Date
+     (Value : Ada.Calendar.Time)
+      return String
+     renames Files.File_System.Trash_Deletion_Date;
+
 end Files.File_System.Testing;

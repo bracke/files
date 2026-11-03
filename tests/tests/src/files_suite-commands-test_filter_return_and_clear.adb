@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Filter_Return_And_Clear (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -11,7 +12,7 @@ separate (Files_Suite.Commands)
       Ctrl_Shift (Guikit.Input.Shift_Key) := True;
       Files.Model.Focus_Filter_Input (Model);
       Files.Model.Select_Visible (Model, 2);
-      Files.Controller.Replace_Focused_Text (Model, "beta");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "beta");
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal

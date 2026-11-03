@@ -23,6 +23,11 @@ package Files.UI is
    --  The inset of a modal dialog's content from its frame.
    Dialog_Padding : constant := 12;
 
+   --  A window's size when the settings name none, and the size the smoke
+   --  runs render at.
+   Default_Window_Width  : constant := 1024;
+   Default_Window_Height : constant := 768;
+
    --  Calculate bottom-bar section and button rectangles, sizing the view-mode,
    --  sort, and info controls to their localized labels.
    --

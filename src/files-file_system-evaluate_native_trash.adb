@@ -10,8 +10,8 @@ begin
          declare
             --  Only a build for that desktop can reach its trash.
             Is_Target : constant Boolean :=
-              Files_Config.Alire_Host_OS =
-                (if Request.Backend = Trash_Windows_Recycle_Bin then "windows" else "macos");
+              Hostkit.Host.Current =
+                (if Request.Backend = Trash_Windows_Recycle_Bin then Hostkit.Host.Windows else Hostkit.Host.MacOS);
             Usable : constant Boolean := Is_Target and then Hostkit.Trash.Current.Available;
          begin
             --  "native_unavailable" and not "unavailable": the desktop trash is

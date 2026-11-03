@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Settings_Save_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -13,7 +14,7 @@ separate (Files_Suite.Operations)
            ("Test_Settings_Save_Read_Only_Cause", "a read-only directory does not refuse writes here");
          return;
       end if;
-      Saved := Files.Settings.Save_Text (Path, Files.Settings.Default_Settings_Text);
+      Saved := Files.Settings.Save_Text (Path, Files.Settings.Testing.Default_Settings_Text);
       Assert (not Saved.Success, "a read-only folder refuses the settings file");
       Assert_Equal (To_String (Saved.Error_Key), "error.io.denied", "the refused save says permission was denied");
       Saved := Files.Settings.Ensure_Default_File (Path);

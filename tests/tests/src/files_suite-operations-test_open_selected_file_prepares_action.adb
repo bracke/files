@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Open_Selected_File_Prepares_Action (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,7 +15,7 @@ separate (Files_Suite.Operations)
       Arguments.Append (To_Unbounded_String ("--readonly"));
       Arguments.Append (To_Unbounded_String ("{path}"));
       Arguments.Append (To_Unbounded_String ("{name}"));
-      Files.Settings.Add_Open_Action
+      Files.Settings.Testing.Add_Open_Action
         (Settings,
          "text/plain+control",
          Files.Settings.Make_Action (No_Op_Executable, Arguments));
@@ -22,7 +23,7 @@ separate (Files_Suite.Operations)
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Set_Error (Model, "error.open_action.missing");
 
-      Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
+      Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operations.Operation_Success,
@@ -123,7 +124,7 @@ separate (Files_Suite.Operations)
          Assert (not Lifecycle.Exit_Status_Known, "lifecycle records no exit status for a detached launch");
       end;
 
-      Files.Settings.Add_Open_Action
+      Files.Settings.Testing.Add_Open_Action
         (Settings,
          "text/plain",
          Files.Settings.Make_Action (No_Op_Executable, Files.Settings.String_Vectors.Empty_Vector));
@@ -147,7 +148,7 @@ separate (Files_Suite.Operations)
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Files.Model.Set_Error (Model, "error.open_action.execution");
-      Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
+      Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operations.Operation_Success,

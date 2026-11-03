@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Controller_Path_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -26,7 +27,7 @@ separate (Files_Suite.Commands)
       Files_Suite.Support.Assert_Equal (Files.Model.Last_Error_Key (Model), "", "path focus clears stale error state");
       Files.Model.Begin_Create_File (Model, "path-pending.txt");
       Files.Model.Focus_Path_Input (Model);
-      Files.Controller.Replace_Focused_Text (Model, "");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),
          0,
@@ -60,7 +61,7 @@ separate (Files_Suite.Commands)
          Files.Commands.Close_Command_Palette_Command,
          "Escape closes palette after path shortcut");
       Files.Model.Focus_Path_Input (Model);
-      Files.Controller.Replace_Focused_Text (Model, Join (Root, "missing-path-target"));
+      Files.Controller.Testing.Replace_Focused_Text (Model, Join (Root, "missing-path-target"));
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -102,7 +103,7 @@ separate (Files_Suite.Commands)
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "invalid path input preserves temporary create state");
       Assert (Files.Model.Rename_Is_Active (Model), "invalid path input preserves rename state");
 
-      Files.Controller.Replace_Focused_Text (Model, Target);
+      Files.Controller.Testing.Replace_Focused_Text (Model, Target);
       Assert (Files.Model.Path_Input_Is_Valid (Model), "path input edit clears stale validation state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Path_Input_Error_Key (Model),
@@ -157,7 +158,7 @@ separate (Files_Suite.Commands)
 
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Focus_Path_Input (Model);
-      Files.Controller.Replace_Focused_Text (Model, Join (Target, "loaded.txt"));
+      Files.Controller.Testing.Replace_Focused_Text (Model, Join (Target, "loaded.txt"));
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

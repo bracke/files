@@ -94,11 +94,21 @@ package body Files.Interaction is
       end case;
    end Observe_Settings_Command;
 
-   procedure Persist_Settings
+   procedure Apply_Zoom
      (Model         : in out Files.Model.Window_Model;
-      Settings      : Files.Settings.Settings_Model;
-      Settings_Path : String)
-      renames Files.Controller.Persist_Settings;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      New_Size      : Positive;
+      Result        : in out Interaction_Result) is
+   begin
+      if New_Size /= Settings.Font_Pixel_Size then
+         Files.Controller.Commit_Settings
+           (Model, Settings, (Settings with delta Font_Pixel_Size => New_Size), Settings_Path);
+         Result.Settings_Changed    := Settings.Font_Pixel_Size = New_Size;
+         Result.Font_Size_Changed   := Result.Settings_Changed;
+         Result.Needs_Glyph_Rebuild := Result.Settings_Changed;
+      end if;
+   end Apply_Zoom;
 
    --  Give every selected item Label (No_Label clears it) and close the label
    --  picker. An edit that would make the settings file too big to load again
@@ -340,6 +350,25 @@ package body Files.Interaction is
       end;
    end Confirm_Tree_Pick;
 
+   --  What every key and action dispatch ends with: whether the context menu
+   --  opened or closed, any item opened folded into the recent list, the
+   --  folder-size targets (at once when the items and selection stand), and
+   --  the selected item's lazily computed extra info.
+   procedure Finish_Dispatch
+     (Model                 : in out Files.Model.Window_Model;
+      Settings              : in out Files.Settings.Settings_Model;
+      Settings_Path         : String;
+      Context_Menu_At_Entry : Boolean;
+      Result                : in out Interaction_Result) is
+   begin
+      Result.Context_Menu_Changed :=
+        Result.Context_Menu_Changed
+        or else Files.Model.Context_Menu_Is_Open (Model) /= Context_Menu_At_Entry;
+      Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
+      Files.Operations.Update_Folder_Size (Model, Settings);
+      Files.Operations.Ensure_Selected_Item_Extra (Model);
+   end Finish_Dispatch;
+
    procedure Handle_Key
      (Model             : in out Files.Model.Window_Model;
       Settings          : in out Files.Settings.Settings_Model;
@@ -377,9 +406,9 @@ package body Files.Interaction is
       Result := (others => <>);
       --  Keyboard zoom is handled on this pure seam, not in the controller: the
       --  live font size is the shell's, not the model's. Ctrl+'=' / Ctrl+'+'
-      --  grows, Ctrl+'-' shrinks, and Ctrl+0 resets it. The shell's font-size sync and
-      --  glyph rebuild then run through Apply_Interaction_Result, and the
-      --  behaviour is exercisable through the genuine key seam in tests.
+      --  grows, Ctrl+'-' shrinks, and Ctrl+0 resets it, through Apply_Zoom as
+      --  Ctrl+wheel does. The shell's font-size sync and glyph rebuild then run
+      --  through Apply_Interaction_Result.
       if Zoom_Chord and then Zoom_Allowed then
          declare
             Old_Size : constant Positive := Settings.Font_Pixel_Size;
@@ -392,13 +421,7 @@ package body Files.Interaction is
                   when others =>
                      Files.Settings.Default_Font_Pixel_Size);
          begin
-            if New_Size /= Old_Size then
-               Files.Controller.Commit_Settings
-                 (Model, Settings, (Settings with delta Font_Pixel_Size => New_Size), Settings_Path);
-               Result.Settings_Changed    := Settings.Font_Pixel_Size = New_Size;
-               Result.Font_Size_Changed   := Result.Settings_Changed;
-               Result.Needs_Glyph_Rebuild := Result.Settings_Changed;
-            end if;
+            Apply_Zoom (Model, Settings, Settings_Path, New_Size, Result);
             --  Drop any parallel '=' / '-' / '0' character event so a zoomed
             --  keystroke never leaks a glyph into a focused text field.
             Result.Clear_Pending_Text := True;
@@ -515,19 +538,7 @@ package body Files.Interaction is
          Result.Clear_Pending_Text := True;
       end if;
 
-      Result.Context_Menu_Changed :=
-        Result.Context_Menu_Changed
-        or else Files.Model.Context_Menu_Is_Open (Model) /= Context_Menu_At_Entry;
-
-      --  Fold any item opened by this key press (Enter on the selection) into
-      --  the persisted recent list.
-      Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
-
-      --  Keep the info-pane folder-size cache aligned with keyboard-driven
-      --  selection changes; returns at once when the items and the
-      --  selection are as they were.
-      Files.Operations.Update_Folder_Size (Model, Settings);
-      Files.Operations.Ensure_Selected_Item_Extra (Model);
+      Finish_Dispatch (Model, Settings, Settings_Path, Context_Menu_At_Entry, Result);
    end Handle_Key;
 
    procedure Apply_Input_Action
@@ -589,14 +600,9 @@ package body Files.Interaction is
          when Files.Events.Label_Picker_Choice_Input_Action =>
             --  Apply the chosen color label to every selected item and persist
             --  through the same settings-write seam the favorite toggle uses,
-            --  then close the picker. A pos of zero clears the label (No_Label).
-            if Files.Model.Label_Picker_Is_Open (Model)
-              and then Action.Item_Index
-                in Files.Types.Color_Label'Pos (Files.Types.Color_Label'First)
-                   .. Files.Types.Color_Label'Pos (Files.Types.Color_Label'Last)
-            then
-               Apply_Label
-                 (Model, Settings, Settings_Path, Files.Types.Color_Label'Val (Action.Item_Index), Result);
+            --  then close the picker. No_Label clears the label.
+            if Files.Model.Label_Picker_Is_Open (Model) then
+               Apply_Label (Model, Settings, Settings_Path, Action.Label, Result);
             end if;
          when Files.Events.Path_Favorite_Toggle_Input_Action =>
             --  Toggle the current directory's favorite state directly by path,
@@ -678,76 +684,34 @@ package body Files.Interaction is
                Result.Clear_Pending_Text := True;
             end if;
          when Files.Events.Permission_Toggle_Input_Action =>
-            if Files.Model.Info_Pane_Is_Open (Model)
-              and then not Files.Model.Input_Owning_Overlay_Is_Open (Model)
-              and then Action.Item_Index <= 8
-            then
-               declare
-                  Toggle : constant Files.Operations.Operation_Result :=
-                    Files.Operations.Toggle_Permission_Bit
-                      (Model    => Model,
-                       Bit      => Action.Item_Index,
-                       Settings => Settings);
-                  pragma Unreferenced (Toggle);
-               begin
-                  null;
-               end;
-            end if;
+            Outcome := Files.Controller.Handle_Permission_Toggle (Model, Settings, Action.Bit);
+            Observe_Controller_Outcome (Outcome, Result);
          when Files.Events.Ownership_Edit_Input_Action =>
             --  Open the info-pane ownership editor prefilled with the current
             --  owner or group id; typing then Enter commits the change.
-            if Files.Model.Info_Pane_Is_Open (Model)
-              and then not Files.Model.Input_Owning_Overlay_Is_Open (Model)
-              and then Action.Item_Index <= 1
-            then
-               Files.Operations.Focus_Ownership_Input
-                 (Model, Editing_Group => Action.Item_Index = 1);
-            end if;
+            Outcome := Files.Controller.Handle_Ownership_Edit (Model, Group => Action.Edit_Group);
+            Observe_Controller_Outcome (Outcome, Result);
          when Files.Events.Conflict_Click_Input_Action =>
-            if Files.Model.Paste_Conflict_Is_Active (Model) then
-               case Action.Conflict_Button is
-                  when Files.Events.Conflict_Button_Apply_All =>
-                     Files.Model.Toggle_Paste_Conflict_Apply_All (Model);
-                  when Files.Events.Conflict_Button_Replace
-                     | Files.Events.Conflict_Button_Skip
-                     | Files.Events.Conflict_Button_Rename
-                     | Files.Events.Conflict_Button_Cancel =>
-                     declare
-                        Choice : constant Files.Operations.Conflict_Choice :=
-                          (if Action.Conflict_Button = Files.Events.Conflict_Button_Replace
-                           then Files.Operations.Choice_Replace
-                           elsif Action.Conflict_Button = Files.Events.Conflict_Button_Skip
-                           then Files.Operations.Choice_Skip
-                           elsif Action.Conflict_Button = Files.Events.Conflict_Button_Rename
-                           then Files.Operations.Choice_Rename
-                           else Files.Operations.Choice_Cancel);
-                        Outcome : constant Files.Operations.Operation_Result :=
-                          Files.Operations.Resolve_Paste_Conflict
-                            (Model     => Model,
-                             Settings  => Settings,
-                             Choice    => Choice,
-                             Apply_All => Files.Model.Paste_Conflict_Apply_All (Model));
-                        pragma Unreferenced (Outcome);
-                     begin
-                        null;
-                     end;
-                  when others =>
-                     null;
-               end case;
-            end if;
+            case Action.Conflict_Button is
+               when Files.Events.Conflict_Button_Apply_All =>
+                  Outcome := Files.Controller.Handle_Conflict_Apply_All_Toggle (Model);
+               when Files.Events.Conflict_Button_Replace =>
+                  Outcome := Files.Controller.Handle_Conflict_Choice (Model, Settings, Files.Operations.Choice_Replace);
+               when Files.Events.Conflict_Button_Skip =>
+                  Outcome := Files.Controller.Handle_Conflict_Choice (Model, Settings, Files.Operations.Choice_Skip);
+               when Files.Events.Conflict_Button_Rename =>
+                  Outcome := Files.Controller.Handle_Conflict_Choice (Model, Settings, Files.Operations.Choice_Rename);
+               when Files.Events.Conflict_Button_Cancel =>
+                  Outcome := Files.Controller.Handle_Conflict_Choice (Model, Settings, Files.Operations.Choice_Cancel);
+               when Files.Events.No_Conflict_Button =>
+                  Outcome := (others => <>);
+            end case;
+            Observe_Controller_Outcome (Outcome, Result);
          when Files.Events.Paste_Cancel_Input_Action =>
             --  Request cancellation of the in-flight paste, then finalize over
             --  the items completed so far (already-copied files are kept).
-            if Files.Model.Paste_Execution_Is_Active (Model) then
-               Files.Operations.Cancel_Paste_Execution (Model);
-               declare
-                  Outcome : constant Files.Operations.Operation_Result :=
-                    Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-                  pragma Unreferenced (Outcome);
-               begin
-                  null;
-               end;
-            end if;
+            Outcome := Files.Controller.Handle_Paste_Cancel (Model, Settings);
+            Observe_Controller_Outcome (Outcome, Result);
          when Files.Events.Search_Scope_Toggle_Input_Action =>
             --  Clicking the filter-bar scope chip cycles the search scope and
             --  re-runs the shared query in the new scope, replacing the view with
@@ -773,23 +737,7 @@ package body Files.Interaction is
             null;
       end case;
 
-      Result.Context_Menu_Changed :=
-        Result.Context_Menu_Changed
-        or else Files.Model.Context_Menu_Is_Open (Model) /= Context_Menu_At_Entry;
-
-      --  Fold any item opened by this action (double-click activation or an
-      --  Open command / palette result) into the persisted recent list.
-      Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
-
-      --  Refresh the info-pane folder-size cache for the (possibly changed)
-      --  selection; returns at once when nothing it depends on moved.
-      Files.Operations.Update_Folder_Size (Model, Settings);
-
-      --  Compute the selected item's extra info (folder child count, document
-      --  page/entry/line counts, symlink target) lazily for the info pane, so
-      --  navigation does not open every subfolder and read every document on
-      --  load. A no-op when the info pane is closed or the value is cached.
-      Files.Operations.Ensure_Selected_Item_Extra (Model);
+      Finish_Dispatch (Model, Settings, Settings_Path, Context_Menu_At_Entry, Result);
    end Apply_Input_Action;
 
    procedure Apply_Context_Menu_Command
@@ -946,7 +894,7 @@ package body Files.Interaction is
       Changed       : Boolean) is
    begin
       if Changed then
-         Persist_Settings (Model, Settings, Settings_Path);
+         Files.Controller.Persist_Settings (Model, Settings, Settings_Path);
       end if;
    end End_Column_Resize;
 

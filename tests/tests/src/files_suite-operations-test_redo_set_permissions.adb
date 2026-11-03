@@ -20,7 +20,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "redo-mode.txt");
 
-      Result := Files.Operations.Set_Permissions_For (Model, 8#600#, Settings);
+      Result := Files.Operations.Testing.Set_Permissions_For (Model, 8#600#, Settings);
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "chmod to 0600 succeeds");
       Files_Suite.Support.Assert_Equal (Mode_Of (Target), 8#600#, "mode reads back as 0600 after chmod");
 

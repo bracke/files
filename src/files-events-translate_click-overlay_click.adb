@@ -95,10 +95,7 @@ begin
                if Within (X, Swatch.X, Swatch.Width)
                  and then Within (Y, Swatch.Y, Swatch.Height)
                then
-                  Result := Label_Choice_Action
-                    (Files.Types.Color_Label'Pos
-                       (Files.Rendering.Label_For_Swatch (Index)),
-                     Activate);
+                  Result := Label_Choice_Action (Files.Rendering.Label_For_Swatch (Index), Activate);
                   return;
                end if;
             end;

@@ -91,7 +91,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",
          (Kind => Files.Events.Label_Picker_Choice_Input_Action,
-          Item_Index => Files.Types.Color_Label'Pos (Files.Types.Purple),
+          Label      => Files.Types.Purple,
           others => <>),
          Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert (Files.Settings.Label_Of (Settings, Files_Suite.Support.Join (Dir, "f" & Integer'(1)'Image))

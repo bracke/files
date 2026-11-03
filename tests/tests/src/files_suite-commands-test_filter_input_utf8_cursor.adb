@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Filter_Input_Utf8_Cursor (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -11,7 +12,7 @@ separate (Files_Suite.Commands)
          Combining_Text : constant String :=
            "e" & Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#0301#));
       begin
-         Files.Controller.Replace_Focused_Text (Model, "a" & Utf8_Text & "b");
+         Files.Controller.Testing.Replace_Focused_Text (Model, "a" & Utf8_Text & "b");
          Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Filter_Input, Cursor_Position => 2);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
@@ -57,7 +58,7 @@ separate (Files_Suite.Commands)
            (Files.Model.Text_Cursor_Position (Model),
             1,
             "filter Backspace lands before removed UTF-8 input");
-         Files.Controller.Replace_Focused_Text (Model, "a" & Utf8_Text & "b");
+         Files.Controller.Testing.Replace_Focused_Text (Model, "a" & Utf8_Text & "b");
          Files.Model.Set_Text_Cursor_Position (Model, 1);
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          Files_Suite.Support.Assert_Equal
@@ -69,7 +70,7 @@ separate (Files_Suite.Commands)
             1,
             "filter Delete keeps cursor before UTF-8 input");
 
-         Files.Controller.Replace_Focused_Text (Model, Combining_Text & "b");
+         Files.Controller.Testing.Replace_Focused_Text (Model, Combining_Text & "b");
          Files.Model.Set_Text_Cursor_Position (Model, 1);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Text_Cursor_Position (Model),
@@ -105,7 +106,7 @@ separate (Files_Suite.Commands)
            (Files.Model.Text_Cursor_Position (Model),
             0,
             "filter Backspace lands before removed combining sequence");
-         Files.Controller.Replace_Focused_Text (Model, Combining_Text & "b");
+         Files.Controller.Testing.Replace_Focused_Text (Model, Combining_Text & "b");
          Files.Model.Set_Text_Cursor_Position (Model, 0);
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          Files_Suite.Support.Assert_Equal
@@ -116,7 +117,7 @@ separate (Files_Suite.Commands)
            (Files.Model.Text_Cursor_Position (Model),
             0,
             "filter Delete keeps cursor before removed combining sequence");
-         Files.Controller.Replace_Focused_Text (Model, "e");
+         Files.Controller.Testing.Replace_Focused_Text (Model, "e");
          Result :=
            Files.Controller.Append_Focused_Text
              (Model, Files.Application.Windows.Text_Input_Bytes (Wide_Wide_Character'Val (16#0301#)));

@@ -19,7 +19,7 @@ separate (Files_Suite.Operations)
       Files.Model.Begin_Create_File (Model, "pending.txt");
       Files.Model.Set_Error (Model, "error.directory.load");
 
-      Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings);
+      Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operations.Operation_Disabled,

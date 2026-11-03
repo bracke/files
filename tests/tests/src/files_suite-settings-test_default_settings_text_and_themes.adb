@@ -1,7 +1,8 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Settings)
    procedure Test_Default_Settings_Text_And_Themes (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      Default_Text  : constant String := Files.Settings.Default_Settings_Text;
+      Default_Text  : constant String := Files.Settings.Testing.Default_Settings_Text;
       Default_Parse : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Default_Text);
    begin
       Assert (Default_Parse.Success, "default settings text parses");

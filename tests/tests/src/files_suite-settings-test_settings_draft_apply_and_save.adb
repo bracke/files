@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Settings)
    procedure Test_Settings_Draft_Apply_And_Save (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5,7 +6,7 @@ separate (Files_Suite.Settings)
       Saved  : Files.Settings.Settings_Write_Result;
 
       --  What the settings pane's Save does with a draft: apply it, then
-      --  write the result (Files.Controller.Save_Settings).
+      --  write the result (Files.Controller.Testing.Save_Settings).
       function Save_Draft
         (Path     : String;
          Settings : Files.Settings.Settings_Model;
@@ -38,7 +39,7 @@ separate (Files_Suite.Settings)
          Controller_Result : Files.Controller.Controller_Result;
          Lookup : Files.Settings.Action_Lookup_Result;
       begin
-         Controller_Result := Files.Controller.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
+         Controller_Result := Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
          Files_Suite.Support.Assert_Equal
            (Controller_Result.Operation.Status,
             Files.Operations.Operation_Disabled,

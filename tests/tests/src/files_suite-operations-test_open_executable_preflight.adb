@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Open_Executable_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -15,7 +16,7 @@ separate (Files_Suite.Operations)
       Arguments.Append (To_Unbounded_String ("{name}"));
       Files.Model.Select_Visible (Model, 1);
 
-      Files.Settings.Add_Open_Action
+      Files.Settings.Testing.Add_Open_Action
            (Settings,
             "text/plain",
             Files.Settings.Make_Action (Failing_Executable, Arguments));
@@ -44,7 +45,7 @@ separate (Files_Suite.Operations)
          "",
          "detached open action clears localized error key");
 
-      Files.Settings.Add_Open_Action
+      Files.Settings.Testing.Add_Open_Action
         (Settings,
          "text/plain",
          Files.Settings.Make_Action ("/tmp/files_missing_open_action_executable", Arguments));
@@ -68,7 +69,7 @@ separate (Files_Suite.Operations)
          "error.open_action.executable_missing",
          "missing open executable stores specific diagnostic key");
 
-      Files.Settings.Add_Open_Action
+      Files.Settings.Testing.Add_Open_Action
         (Settings,
          "text/plain",
          Files.Settings.Make_Action (Root, Arguments));
@@ -92,7 +93,7 @@ separate (Files_Suite.Operations)
          Unsafe_Arguments : Files.Settings.String_Vectors.Vector;
       begin
          Unsafe_Arguments.Append (To_Unbounded_String ("prefix-{path}"));
-         Files.Settings.Add_Open_Action
+         Files.Settings.Testing.Add_Open_Action
            (Settings,
             "text/unsafe-argument",
             Files.Settings.Make_Action (No_Op_Executable, Unsafe_Arguments));
@@ -109,7 +110,7 @@ separate (Files_Suite.Operations)
             Root,
             "unsafe open action does not navigate");
 
-         Files.Settings.Add_Open_Action
+         Files.Settings.Testing.Add_Open_Action
            (Settings,
             "text/unsafe-executable",
             Files.Settings.Make_Action ("{path}", Files.Types.String_Vectors.Empty_Vector));

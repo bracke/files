@@ -2578,7 +2578,7 @@ package Files.Model is
    --  Return the top undo entry's "from" (current) paths.
    --
    --  @param Model Model to inspect.
-   --  @return Vector of current locations, parallel to Undo_To_Paths.
+   --  @return Vector of current locations, parallel to the entry's To paths.
    function Undo_From_Paths
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector;

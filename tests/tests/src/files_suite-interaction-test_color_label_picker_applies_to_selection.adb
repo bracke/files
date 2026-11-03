@@ -17,7 +17,7 @@ separate (Files_Suite.Interaction)
       begin
          return
            (Kind       => Files.Events.Label_Picker_Choice_Input_Action,
-            Item_Index => Files.Types.Color_Label'Pos (Label),
+            Label      => Label,
             others     => <>);
       end Choose;
    begin
@@ -68,23 +68,8 @@ separate (Files_Suite.Interaction)
          Files.Types.Green,
          "a stale choice does not relabel the selection");
 
-      --  Public input actions carry a numeric payload. Reject a malformed
-      --  value without raising or dismissing the active picker.
-      Files.Model.Open_Label_Picker (Model);
-      Files.Interaction.Apply_Input_Action
-        (Model, Settings, "",
-         (Kind       => Files.Events.Label_Picker_Choice_Input_Action,
-          Item_Index => Files.Types.Color_Label'Pos (Files.Types.Color_Label'Last) + 1,
-          others     => <>),
-         Base_Font, Guikit.Input.No_Modifiers, Result);
-      Assert (Files.Model.Label_Picker_Is_Open (Model),
-              "an invalid choice leaves the picker available");
-      Files_Suite.Support.Assert_Equal
-        (Files.Settings.Label_Of (Settings, One),
-         Files.Types.Green,
-         "an invalid choice does not change labels");
-
       --  Choosing None clears every selected item's label.
+      Files.Model.Open_Label_Picker (Model);
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Choose (Files.Types.No_Label), Base_Font, Guikit.Input.No_Modifiers, Result);
       Files_Suite.Support.Assert_Equal

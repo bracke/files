@@ -9,7 +9,7 @@ begin
    --  volume trash turn it on.
    return not Environment_Equals ("FILES_TEST_VOLUME_TRASH", "off")
      and then Trash_Backend_Of_Current_Environment in Trash_Xdg_Data_Home | Trash_Home_Data
-     and then Files_Config.Alire_Host_OS /= "windows"
+     and then Hostkit.Host.Current /= Hostkit.Host.Windows
      and then Hostkit.Process.Current_User_Account (Uid);
 exception
    when others => return False;

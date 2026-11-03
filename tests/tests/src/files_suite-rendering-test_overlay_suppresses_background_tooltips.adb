@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 separate (Files_Suite.Rendering)
    --  A root selector opens directly beneath the toolbar.  Hovering the
    --  toolbar button that opened it must not draw that button's tooltip over
@@ -41,12 +42,12 @@ separate (Files_Suite.Rendering)
 
       --  Every input-owning overlay counts, each on its own. The case names
       --  them all, so a new overlay does not compile here until its flag is
-      --  listed -- and then this fails until Any_Overlay_Open lists it too.
+      --  listed -- and then this fails until Files.Rendering.Testing.Any_Overlay_Open lists it too.
       for Overlay in Files.Model.Input_Overlay loop
          declare
             One : View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
          begin
-            Assert (not Any_Overlay_Open (One), "the sample has no overlay open");
+            Assert (not Files.Rendering.Testing.Any_Overlay_Open (One), "the sample has no overlay open");
             case Overlay is
                when Files.Model.Settings_Pane_Overlay   => One.Settings_Pane_Open := True;
                when Files.Model.Command_Palette_Overlay => One.Command_Palette_Open := True;
@@ -59,7 +60,9 @@ separate (Files_Suite.Rendering)
                when Files.Model.Paste_Conflict_Overlay  => One.Paste_Conflict_Open := True;
                when Files.Model.Paste_Execution_Overlay => One.Paste_Progress_Open := True;
             end case;
-            Assert (Any_Overlay_Open (One), Files.Model.Input_Overlay'Image (Overlay) & " hides covered tooltips");
+            Assert
+              (Files.Rendering.Testing.Any_Overlay_Open (One),
+               Files.Model.Input_Overlay'Image (Overlay) & " hides covered tooltips");
          end;
       end loop;
    end Test_Overlay_Suppresses_Background_Tooltips;

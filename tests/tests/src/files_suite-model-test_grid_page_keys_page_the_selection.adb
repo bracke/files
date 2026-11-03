@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Model)
    procedure Test_Grid_Page_Keys_Page_The_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -23,7 +24,7 @@ separate (Files_Suite.Model)
       declare
          Before : constant Natural := Files.Model.Revision (Model);
       begin
-         Result := Files.Controller.Handle_Scroll (Model, Lines => -1);
+         Result := Files.Controller.Testing.Handle_Scroll (Model, Lines => -1);
          Files_Suite.Support.Assert_Equal
            (Result.Status,
             Files.Controller.Controller_Ignored,

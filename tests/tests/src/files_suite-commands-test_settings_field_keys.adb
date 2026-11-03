@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Settings_Field_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,7 +10,7 @@ separate (Files_Suite.Commands)
       Ctrl (Guikit.Input.Control_Key) := True;
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
       Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
-      Files.Controller.Replace_Focused_Text (Model, "details");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "details");
       Result := Files.Controller.Execute_Command (Files.Commands.Reset_Settings_Command, Model, Settings);
       --  Opening the pane now focuses the first setting, not the preamble action
       --  buttons. The settings caret is not movable -- it always rests at the end

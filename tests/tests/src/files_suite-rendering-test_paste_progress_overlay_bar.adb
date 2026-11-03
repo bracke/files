@@ -1,3 +1,4 @@
+with Files.Rendering.Testing;
 separate (Files_Suite.Rendering)
    --  Paste-progress overlay: exposes a Cancel affordance and a proportional
    --  progress bar while a long copy/move is in flight.
@@ -20,7 +21,7 @@ separate (Files_Suite.Rendering)
       Snap.Paste_Progress_Total := 10;
       Snap.Paste_Progress_Name := To_Unbounded_String ("bigfile.bin");
       Layout := Calculate_Layout (Snap, Width, Height, LH);
-      Panel  := Calculate_Paste_Progress_Layout (Snap, Layout, LH);
+      Panel  := Files.Rendering.Testing.Calculate_Paste_Progress_Layout (Snap, Layout, LH);
       Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
       Expected_Fill := (Panel.Bar_Width * Snap.Paste_Progress_Done) / Snap.Paste_Progress_Total;
       Assert

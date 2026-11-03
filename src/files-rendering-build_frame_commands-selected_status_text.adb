@@ -1,7 +1,7 @@
 separate (Files.Rendering.Build_Frame_Commands)
    function Selected_Status_Text return String is
       Count : constant String :=
-        Natural_Text (Snapshot.Selected_Count)
+        Grouped_Natural_Text (Snapshot.Selected_Count)
         & " "
         & Files.Localization.Text ("status.selected");
    begin

@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Return_And_Double_Click_Open (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -18,11 +19,11 @@ separate (Files_Suite.Operations)
       Files.Model.Select_Visible (Model, 1);
 
       Files.Model.Set_Error (Model, "error.open_action.missing");
-      Files.Settings.Add_Open_Action
+      Files.Settings.Testing.Add_Open_Action
         (Settings,
          "text/plain+control",
          Files.Settings.Make_Action (No_Op_Executable, Arguments));
-      Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
+      Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operations.Operation_Success,

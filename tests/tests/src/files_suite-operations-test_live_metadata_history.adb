@@ -30,7 +30,7 @@ separate (Files_Suite.Operations)
             Mutation := Files.File_System.Set_Permissions (Source, 8#600#);
             Assert (Mutation.Success, "simulate a permission change after the directory listing");
             Step := (if Toggle then Files.Operations.Toggle_Permission_Bit (Model, 8, Settings)
-                     else Files.Operations.Set_Permissions_For (Model, 8#750#, Settings));
+                     else Files.Operations.Testing.Set_Permissions_For (Model, 8#750#, Settings));
             Assert (Step.Status = Files.Operations.Operation_Success
                     and then Metadata_Mode_Of (Source) =
                       (if Hostkit.Metadata.Mode_Bits_Are_Native

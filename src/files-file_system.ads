@@ -329,16 +329,6 @@ package Files.File_System is
       Path         : String)
       return Directory_Change_Result;
 
-   --  Whether a mount point is one a user put there (a stick, a share), as
-   --  the root list shows them: "/" and anything under /mnt, /media,
-   --  /run/media, /Volumes, /System/Volumes or the session's gvfs directory,
-   --  but not those containers themselves.
-   --
-   --  @param Mount_Point Absolute mount point.
-   --  @param Runtime_Gvfs The session's gvfs directory, or "" when none.
-   --  @return True when the mount is listed as a root.
-   function Is_User_Visible_Mount_Point (Mount_Point : String; Runtime_Gvfs : String) return Boolean;
-
    --  Return available filesystem root locations with labels and source kind.
    --
    --  @return Root entries available on the host platform.
@@ -428,22 +418,6 @@ package Files.File_System is
       Directory : String)
       return Boolean;
 
-   --  Whether Name, the name of a file that already exists, can be stored in
-   --  Directory: only what that filesystem cannot hold is refused -- empty,
-   --  "." / "..", a separator or NUL on POSIX; Windows rules on a FAT, exFAT or
-   --  NTFS destination (which cannot store invalid UTF-8 either). A name
-   --  another program created ("notes " with a trailing space, bytes that are
-   --  not UTF-8) copies and moves like any other; Valid_Leaf_Name_At, for
-   --  names a user types, refuses those too.
-   --
-   --  @param Name Existing filename without parent path components.
-   --  @param Directory The directory the name will live in.
-   --  @return True when the destination can hold Name.
-   function Storable_Leaf_Name_At
-     (Name      : String;
-      Directory : String)
-      return Boolean;
-
    --  Return a deterministic available untitled file name in Directory_Path.
    --
    --  @param Directory_Path Directory to inspect.
@@ -457,30 +431,6 @@ package Files.File_System is
    --  @return True when Move_To_Trash can use a configured trash location.
    function Trash_Is_Available return Boolean;
 
-   --  Return the trash backend selected for the current environment.
-   --
-   --  @return Backend that Move_To_Trash will use, or Trash_Unavailable.
-   function Trash_Backend_Of_Current_Environment return Trash_Backend;
-
-   --  Evaluate native trash support for Request without deleting anything.
-   --
-   --  @param Request Native trash request metadata.
-   --  @return Native trash support result.
-   function Evaluate_Native_Trash
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result;
-
-   --  Hand Request's item to the desktop's own trash (the Windows Recycle Bin
-   --  or the macOS Trash). Nothing is attempted on a build that does not
-   --  target that desktop.
-   --
-   --  @param Request Native trash request for a native backend.
-   --  @return The evaluation, with Attempted and Completed set by the attempt.
-   function Trash_Natively
-     (Request : Native_Trash_Request)
-      return Native_Trash_Result
-     with Pre => Request.Backend in Trash_Windows_Recycle_Bin | Trash_Macos_Native;
-
    --  Validate whether an entry can be moved to the selected trash backend.
    --
    --  This performs non-mutating checks used before multi-item delete so later
@@ -491,14 +441,6 @@ package Files.File_System is
    function Move_To_Trash_Preflight
      (Path : String)
       return Mutation_Result;
-
-   --  Format a timestamp for freedesktop trashinfo DeletionDate metadata.
-   --
-   --  @param Value Time value to format.
-   --  @return Local timestamp in YYYY-MM-DDTHH:MM:SS form.
-   function Trash_Deletion_Date
-     (Value : Ada.Calendar.Time)
-      return String;
 
    --  Return the directory that holds trashed payloads for the current backend.
    --
@@ -921,6 +863,64 @@ package Files.File_System is
    function Read_Preview_Text
      (Path : String; Max_Bytes : Natural; Success : out Boolean) return String;
 private
+
+   --  Whether a mount point is one a user put there (a stick, a share), as
+   --  the root list shows them: "/" and anything under /mnt, /media,
+   --  /run/media, /Volumes, /System/Volumes or the session's gvfs directory,
+   --  but not those containers themselves.
+   --
+   --  @param Mount_Point Absolute mount point.
+   --  @param Runtime_Gvfs The session's gvfs directory, or "" when none.
+   --  @return True when the mount is listed as a root.
+   function Is_User_Visible_Mount_Point (Mount_Point : String; Runtime_Gvfs : String) return Boolean;
+
+   --  Whether Name, the name of a file that already exists, can be stored in
+   --  Directory: only what that filesystem cannot hold is refused -- empty,
+   --  "." / "..", a separator or NUL on POSIX; Windows rules on a FAT, exFAT or
+   --  NTFS destination (which cannot store invalid UTF-8 either). A name
+   --  another program created ("notes " with a trailing space, bytes that are
+   --  not UTF-8) copies and moves like any other; Valid_Leaf_Name_At, for
+   --  names a user types, refuses those too.
+   --
+   --  @param Name Existing filename without parent path components.
+   --  @param Directory The directory the name will live in.
+   --  @return True when the destination can hold Name.
+   function Storable_Leaf_Name_At
+     (Name      : String;
+      Directory : String)
+      return Boolean;
+
+   --  Return the trash backend selected for the current environment.
+   --
+   --  @return Backend that Move_To_Trash will use, or Trash_Unavailable.
+   function Trash_Backend_Of_Current_Environment return Trash_Backend;
+
+   --  Evaluate native trash support for Request without deleting anything.
+   --
+   --  @param Request Native trash request metadata.
+   --  @return Native trash support result.
+   function Evaluate_Native_Trash
+     (Request : Native_Trash_Request)
+      return Native_Trash_Result;
+
+   --  Hand Request's item to the desktop's own trash (the Windows Recycle Bin
+   --  or the macOS Trash). Nothing is attempted on a build that does not
+   --  target that desktop.
+   --
+   --  @param Request Native trash request for a native backend.
+   --  @return The evaluation, with Attempted and Completed set by the attempt.
+   function Trash_Natively
+     (Request : Native_Trash_Request)
+      return Native_Trash_Result
+     with Pre => Request.Backend in Trash_Windows_Recycle_Bin | Trash_Macos_Native;
+
+   --  Format a timestamp for freedesktop trashinfo DeletionDate metadata.
+   --
+   --  @param Value Time value to format.
+   --  @return Local timestamp in YYYY-MM-DDTHH:MM:SS form.
+   function Trash_Deletion_Date
+     (Value : Ada.Calendar.Time)
+      return String;
 
    --  Read at most Max_Bytes of a regular file, never following a link and
    --  never blocking on a FIFO. Complete is False when the file is longer.

@@ -1,22 +1,23 @@
 with Ada.Strings.Unbounded;
-with Files_Config;
+with Hostkit.Fs;
+with Hostkit.Host;
 
 package body Files.Breadcrumbs is
    use Ada.Strings.Unbounded;
+   use type Hostkit.Host.Kind;
 
    function Segments
      (Path : String)
       return Segment_Vectors.Vector
    is
-      Windows : constant Boolean := Files_Config.Alire_Host_OS = "windows";
+      Windows : constant Boolean := Hostkit.Host.Current = Hostkit.Host.Windows;
 
       --  Paths are not always spelled with '/'. A Windows path begins with a
       --  drive -- "C:\Users\..." -- and is separated by '\', so a splitter that
       --  knows only forward slashes finds no components at all and the breadcrumb
       --  bar comes out empty.  On POSIX, however, '\' is an ordinary filename
       --  byte and must not split a real name.
-      function Is_Separator (Value : Character) return Boolean is
-        (Value = '/' or else (Windows and then Value = '\'));
+      function Is_Separator (Value : Character) return Boolean renames Hostkit.Fs.Is_Separator;
 
       function Drive_Prefix return Natural is
       begin

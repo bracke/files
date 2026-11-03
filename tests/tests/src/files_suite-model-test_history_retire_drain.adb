@@ -1,3 +1,4 @@
+with Files.Operations.Testing;
 separate (Files_Suite.Model)
    procedure Test_History_Retire_Drain (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -46,7 +47,7 @@ separate (Files_Suite.Model)
       Assert (Ada.Directories.Exists (To_String (Backup)),
               "a model-only history mutation leaves the retired payload on disk");
 
-      Files.Operations.Settle_History (Model);
+      Files.Operations.Testing.Settle_History (Model);
       Assert (not Ada.Directories.Exists (To_String (Backup)),
               "settling the history deletes the payload its retired entry held");
    end Test_History_Retire_Drain;

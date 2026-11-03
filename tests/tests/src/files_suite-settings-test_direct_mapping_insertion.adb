@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Settings)
    procedure Test_Direct_Mapping_Insertion (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -6,26 +7,26 @@ separate (Files_Suite.Settings)
       --  Exercise the genuine missing-action lookups deterministically; the
       --  host opener fallback would otherwise resolve unmapped lookups.
       Manual.Use_System_Default_Opener := False;
-      Files.Settings.Add_Extension_Mapping (Manual, ".TXT", "text/first");
-      Files.Settings.Add_Extension_Mapping (Manual, " txt ", " text/second ");
+      Files.Settings.Testing.Add_Extension_Mapping (Manual, ".TXT", "text/first");
+      Files.Settings.Testing.Add_Extension_Mapping (Manual, " txt ", " text/second ");
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Filetype_For_Extension (Manual, "TXT"),
          "text/second",
          "direct extension mapping trims values and replaces existing entries");
-      Files.Settings.Add_Extension_Mapping (Manual, ".", "text/blank");
-      Files.Settings.Add_Extension_Mapping (Manual, "blank", "   ");
-      Files.Settings.Add_Extension_Mapping (Manual, "bad=extension", "text/bad");
-      Files.Settings.Add_Extension_Mapping (Manual, "bad" & ASCII.LF & "extension", "text/bad-key");
-      Files.Settings.Add_Extension_Mapping (Manual, "bad" & ASCII.VT & "extension", "text/bad-vtab-key");
-      Files.Settings.Add_Extension_Mapping (Manual, "bad" & C1_Break & "extension", "text/bad-c1-key");
-      Files.Settings.Add_Extension_Mapping
+      Files.Settings.Testing.Add_Extension_Mapping (Manual, ".", "text/blank");
+      Files.Settings.Testing.Add_Extension_Mapping (Manual, "blank", "   ");
+      Files.Settings.Testing.Add_Extension_Mapping (Manual, "bad=extension", "text/bad");
+      Files.Settings.Testing.Add_Extension_Mapping (Manual, "bad" & ASCII.LF & "extension", "text/bad-key");
+      Files.Settings.Testing.Add_Extension_Mapping (Manual, "bad" & ASCII.VT & "extension", "text/bad-vtab-key");
+      Files.Settings.Testing.Add_Extension_Mapping (Manual, "bad" & C1_Break & "extension", "text/bad-c1-key");
+      Files.Settings.Testing.Add_Extension_Mapping
         (Manual,
          "bad" & Line_Separator & "extension",
          "text/bad-unicode-key");
-      Files.Settings.Add_Extension_Mapping (Manual, "linebreak", "text/plain" & ASCII.LF & "bad");
-      Files.Settings.Add_Extension_Mapping (Manual, "formfeed", "text/plain" & ASCII.FF & "bad");
-      Files.Settings.Add_Extension_Mapping (Manual, "c1break", "text/plain" & C1_Break & "bad");
-      Files.Settings.Add_Extension_Mapping
+      Files.Settings.Testing.Add_Extension_Mapping (Manual, "linebreak", "text/plain" & ASCII.LF & "bad");
+      Files.Settings.Testing.Add_Extension_Mapping (Manual, "formfeed", "text/plain" & ASCII.FF & "bad");
+      Files.Settings.Testing.Add_Extension_Mapping (Manual, "c1break", "text/plain" & C1_Break & "bad");
+      Files.Settings.Testing.Add_Extension_Mapping
         (Manual,
          "unicodebreak",
          "text/plain" & Line_Separator & "bad");
@@ -73,26 +74,26 @@ separate (Files_Suite.Settings)
         (Files.Settings.Filetype_For_Extension (Manual, "unicodebreak"),
          "",
          "direct extension mapping ignores Unicode line-separator values");
-      Files.Settings.Add_Icon_Mapping (Manual, " text/second ", " first-icon ");
-      Files.Settings.Add_Icon_Mapping (Manual, "text/second", " second-icon ");
+      Files.Settings.Testing.Add_Icon_Mapping (Manual, " text/second ", " first-icon ");
+      Files.Settings.Testing.Add_Icon_Mapping (Manual, "text/second", " second-icon ");
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Icon_For_Filetype (Manual, "text/second"),
          "second-icon",
          "direct icon mapping trims values and replaces existing entries");
-      Files.Settings.Add_Icon_Mapping (Manual, "   ", "blank-icon");
-      Files.Settings.Add_Icon_Mapping (Manual, "text/blank-icon", "   ");
-      Files.Settings.Add_Icon_Mapping (Manual, "text/bad=icon", "bad-icon");
-      Files.Settings.Add_Icon_Mapping (Manual, "text/bad" & ASCII.LF & "icon", "bad-icon");
-      Files.Settings.Add_Icon_Mapping (Manual, "text/bad" & ASCII.VT & "icon", "bad-icon");
-      Files.Settings.Add_Icon_Mapping (Manual, "text/bad" & C1_Break & "icon", "bad-icon");
-      Files.Settings.Add_Icon_Mapping
+      Files.Settings.Testing.Add_Icon_Mapping (Manual, "   ", "blank-icon");
+      Files.Settings.Testing.Add_Icon_Mapping (Manual, "text/blank-icon", "   ");
+      Files.Settings.Testing.Add_Icon_Mapping (Manual, "text/bad=icon", "bad-icon");
+      Files.Settings.Testing.Add_Icon_Mapping (Manual, "text/bad" & ASCII.LF & "icon", "bad-icon");
+      Files.Settings.Testing.Add_Icon_Mapping (Manual, "text/bad" & ASCII.VT & "icon", "bad-icon");
+      Files.Settings.Testing.Add_Icon_Mapping (Manual, "text/bad" & C1_Break & "icon", "bad-icon");
+      Files.Settings.Testing.Add_Icon_Mapping
         (Manual,
          "text/bad" & Line_Separator & "icon",
          "bad-icon");
-      Files.Settings.Add_Icon_Mapping (Manual, "text/linebreak-icon", "icon" & ASCII.LF & "bad");
-      Files.Settings.Add_Icon_Mapping (Manual, "text/formfeed-icon", "icon" & ASCII.FF & "bad");
-      Files.Settings.Add_Icon_Mapping (Manual, "text/c1break-icon", "icon" & C1_Break & "bad");
-      Files.Settings.Add_Icon_Mapping
+      Files.Settings.Testing.Add_Icon_Mapping (Manual, "text/linebreak-icon", "icon" & ASCII.LF & "bad");
+      Files.Settings.Testing.Add_Icon_Mapping (Manual, "text/formfeed-icon", "icon" & ASCII.FF & "bad");
+      Files.Settings.Testing.Add_Icon_Mapping (Manual, "text/c1break-icon", "icon" & C1_Break & "bad");
+      Files.Settings.Testing.Add_Icon_Mapping
         (Manual,
          "text/unicodebreak-icon",
          "icon" & Line_Separator & "bad");

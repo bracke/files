@@ -14,7 +14,6 @@ with System;
 with GNAT.OS_Lib;
 
 with Files.File_Types;
-with Files_Config;
 
 with Hostkit.Metadata;
 with Hostkit.Fs;
@@ -33,6 +32,7 @@ with Hostkit.Trash;
 with Files.Bounded_Text_IO;
 
 package body Files.File_System is
+   use type Hostkit.Host.Kind;
 
    use Files.File_System.Support;
    use Files.File_System.Thumbnails;
@@ -615,8 +615,6 @@ package body Files.File_System is
       return Delete_From_Trash_Backend (Trashed_Path);
    end Delete_Trashed_Item;
 
-   use type Hostkit.Host.Kind;
-
    function Expand_User_Path (Path : String) return String is separate;
 
    function Normalize_Path
@@ -627,7 +625,7 @@ package body Files.File_System is
    function Join_Path
      (Parent_Path : String;
       Name        : String)
-      return String is separate;
+      return String renames Hostkit.Fs.Join;
 
    function Windows_Device_Basename (Name : String) return String is separate;
 

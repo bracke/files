@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 separate (Files_Suite.Operations)
    --  The root list shows "/" and what is mounted under /mnt, /media,
    --  /run/media, /Volumes, /System/Volumes and the session's gvfs directory, never those
@@ -11,7 +12,7 @@ separate (Files_Suite.Operations)
       procedure Check (Mount_Point : String; Expected : Boolean) is
       begin
          Assert
-           (Files.File_System.Is_User_Visible_Mount_Point (Mount_Point, Gvfs) = Expected,
+           (Files.File_System.Testing.Is_User_Visible_Mount_Point (Mount_Point, Gvfs) = Expected,
             Mount_Point & (if Expected then " is listed as a root" else " is not listed as a root"));
       end Check;
    begin
@@ -35,8 +36,8 @@ separate (Files_Suite.Operations)
       Check ("/run/media2/u/X", False);
       Check (Gvfs & "-other/x", False);
       --  No gvfs directory in this session: nothing is under it.
-      Assert (not Files.File_System.Is_User_Visible_Mount_Point (Gvfs & "/smb-share:x", ""),
+      Assert (not Files.File_System.Testing.Is_User_Visible_Mount_Point (Gvfs & "/smb-share:x", ""),
               "without a session gvfs directory its old path is not a root");
-      Assert (not Files.File_System.Is_User_Visible_Mount_Point ("/x", ""),
+      Assert (not Files.File_System.Testing.Is_User_Visible_Mount_Point ("/x", ""),
               "an empty gvfs directory does not make every path a root");
    end Test_User_Visible_Mount_Points;

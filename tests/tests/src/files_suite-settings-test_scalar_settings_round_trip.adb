@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Settings)
    --  Every scalar setting in the descriptor table round-trips: a model holding a
    --  non-default value writes it under its key, parses back to the same value,
@@ -26,8 +27,8 @@ separate (Files_Suite.Settings)
    begin
       for Setting in Files.Settings.Scalar_Setting loop
          declare
-            Key          : constant String := Files.Settings.Scalar_Key (Setting);
-            Default_Text : constant String := Files.Settings.Scalar_Text (Defaults, Setting);
+            Key          : constant String := Files.Settings.Testing.Scalar_Key (Setting);
+            Default_Text : constant String := Files.Settings.Testing.Scalar_Text (Defaults, Setting);
             Changed      : Files.Settings.Settings_Model := Defaults;
             Found        : Boolean := False;
          begin
@@ -36,10 +37,10 @@ separate (Files_Suite.Settings)
                   Candidate : Files.Settings.Settings_Model := Defaults;
                   Error     : Unbounded_String;
                begin
-                  Files.Settings.Set_Scalar (Candidate, Setting, To_String (Sample), Error);
+                  Files.Settings.Testing.Set_Scalar (Candidate, Setting, To_String (Sample), Error);
                   if not Found
                     and then Length (Error) = 0
-                    and then Files.Settings.Scalar_Text (Candidate, Setting) /= Default_Text
+                    and then Files.Settings.Testing.Scalar_Text (Candidate, Setting) /= Default_Text
                   then
                      Changed := Candidate;
                      Found := True;
@@ -49,7 +50,7 @@ separate (Files_Suite.Settings)
             Assert (Found, Key & " accepts one of the sample values as a non-default value");
 
             declare
-               Value  : constant String := Files.Settings.Scalar_Text (Changed, Setting);
+               Value  : constant String := Files.Settings.Testing.Scalar_Text (Changed, Setting);
                Text   : constant String := Files.Settings.To_Text (Changed);
                Parsed : constant Files.Settings.Settings_Parse_Result := Files.Settings.Parse (Text);
             begin
@@ -58,7 +59,7 @@ separate (Files_Suite.Settings)
                   Key & " is written under its key when it differs from the default");
                Assert (Parsed.Success, Key & " text with a non-default value parses");
                Files_Suite.Support.Assert_Equal
-                 (Files.Settings.Scalar_Text (Parsed.Settings, Setting),
+                 (Files.Settings.Testing.Scalar_Text (Parsed.Settings, Setting),
                   Value,
                   Key & " parses back to the written value");
 
@@ -68,13 +69,13 @@ separate (Files_Suite.Settings)
                     Files.Settings.Apply_Draft (Defaults, Draft);
                begin
                   Assert (Applied.Success, Key & " draft applies");
-                  if Files.Settings.Is_Pane_Setting (Setting) then
+                  if Files.Settings.Testing.Is_Pane_Setting (Setting) then
                      Files_Suite.Support.Assert_Equal
                        (To_String (Draft.Scalars (Setting)),
                         Value,
                         Key & " draft slot holds the value text");
                      Files_Suite.Support.Assert_Equal
-                       (Files.Settings.Scalar_Text (Applied.Settings, Setting),
+                       (Files.Settings.Testing.Scalar_Text (Applied.Settings, Setting),
                         Value,
                         Key & " survives the draft round trip");
                   else
@@ -83,7 +84,7 @@ separate (Files_Suite.Settings)
                         "",
                         Key & " has no draft slot");
                      Files_Suite.Support.Assert_Equal
-                       (Files.Settings.Scalar_Text (Applied.Settings, Setting),
+                       (Files.Settings.Testing.Scalar_Text (Applied.Settings, Setting),
                         Default_Text,
                         Key & " keeps the live value through a draft apply");
                   end if;
@@ -97,8 +98,8 @@ separate (Files_Suite.Settings)
          for Right in Files.Settings.Scalar_Setting loop
             if Left /= Right then
                Assert
-                 (Files.Settings.Scalar_Key (Left) /= Files.Settings.Scalar_Key (Right),
-                  Files.Settings.Scalar_Key (Left) & " is a unique key");
+                 (Files.Settings.Testing.Scalar_Key (Left) /= Files.Settings.Testing.Scalar_Key (Right),
+                  Files.Settings.Testing.Scalar_Key (Left) & " is a unique key");
             end if;
          end loop;
       end loop;

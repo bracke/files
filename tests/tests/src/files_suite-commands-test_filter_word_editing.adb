@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Filter_Word_Editing (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,7 +9,7 @@ separate (Files_Suite.Commands)
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
       Files.Model.Focus_Filter_Input (Model);
-      Files.Controller.Replace_Focused_Text (Model, "alpha beta-gamma");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "alpha beta-gamma");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),
          16,
@@ -76,5 +77,5 @@ separate (Files_Suite.Commands)
            (Files.UTF8.Previous_Boundary (Malformed, 3), 2,
             "overlong UTF-8 bytes remain separate cursor and deletion units (previous from 3)");
       end;
-      Files.Controller.Replace_Focused_Text (Model, "beta");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "beta");
    end Test_Filter_Word_Editing;

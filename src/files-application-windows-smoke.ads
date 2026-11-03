@@ -1,3 +1,4 @@
+with Files.UI;
 with Guikit.Frame_Analysis;
 with Interfaces;
 
@@ -10,8 +11,8 @@ package Files.Application.Windows.Smoke is
       Can_Run          : Boolean := False;
       Needs_Display    : Boolean := True;
       Needs_Vulkan     : Boolean := True;
-      Width            : Natural := 1024;
-      Height           : Natural := 768;
+      Width            : Natural := Files.UI.Default_Window_Width;
+      Height           : Natural := Files.UI.Default_Window_Height;
       Frame_Count      : Positive := 1;
       Input_Poll_Count : Positive := 1;
       Reason_Key       : UString;
@@ -150,8 +151,8 @@ package Files.Application.Windows.Smoke is
    --  @return Structured headless render-quality counters.
    function Headless_Render_Quality_Report
      (Startup : Startup_Result;
-      Width   : Natural := 1024;
-      Height  : Natural := 768)
+      Width   : Natural := Files.UI.Default_Window_Width;
+      Height  : Natural := Files.UI.Default_Window_Height)
       return Headless_Render_Quality_Result;
 
    --  Return the live-window smoke-test plan for the current environment.
@@ -160,8 +161,8 @@ package Files.Application.Windows.Smoke is
    --  @param Height Requested smoke window height in pixels.
    --  @return Plan describing whether a live smoke can run and why.
    function Live_Window_Smoke_Plan
-     (Width  : Natural := 1024;
-      Height : Natural := 768)
+     (Width  : Natural := Files.UI.Default_Window_Width;
+      Height : Natural := Files.UI.Default_Window_Height)
       return Live_Smoke_Plan;
 
    --  Evaluate a live-window smoke plan without opening a native window.

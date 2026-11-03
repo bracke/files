@@ -11,16 +11,16 @@ separate (Files_Suite.Operations)
       Big      : String (1 .. 70_000) := [others => 'a'];
    begin
       --  Pure match seam: case-insensitive substring, binary and empty handled.
-      Assert (Files.Operations.Content_Matches ("The Needle is here", "needle"),
+      Assert (Files.Operations.Testing.Content_Matches ("The Needle is here", "needle"),
               "content match is case-insensitive");
-      Assert (not Files.Operations.Content_Matches ("nothing relevant", "needle"),
+      Assert (not Files.Operations.Testing.Content_Matches ("nothing relevant", "needle"),
               "content match misses when the query is absent");
-      Assert (not Files.Operations.Content_Matches ("needle", ""),
+      Assert (not Files.Operations.Testing.Content_Matches ("needle", ""),
               "an empty query never matches");
-      Assert (not Files.Operations.Content_Matches ("", "needle"),
+      Assert (not Files.Operations.Testing.Content_Matches ("", "needle"),
               "empty bytes never match");
       Assert
-        (not Files.Operations.Content_Matches ("nee" & Character'Val (0) & "dle needle", "needle"),
+        (not Files.Operations.Testing.Content_Matches ("nee" & Character'Val (0) & "dle needle", "needle"),
          "binary bytes (NUL) are skipped even when the query text is present");
 
       Reset_Root;

@@ -19,16 +19,6 @@ use Guikit.Draw;
 package Files.Rendering is
    subtype UString is Files.Types.UString;
 
-   --  Return the palette color role that renders a color label's swatch/dot.
-   --  No_Label resolves to Muted_Text_Color; it is never drawn, so the value
-   --  only keeps the mapping total.
-   --
-   --  @param Label Color label to resolve.
-   --  @return The palette role drawn in that label's color.
-   function Label_Render_Color
-     (Label : Files.Types.Color_Label)
-      return Render_Color;
-
    --  The decoded thumbnail RGBA, wrapped so it takes no part in Item_Snapshot
    --  equality (its "=" is always True). Two snapshots that differ only in
    --  thumbnail pixels compare equal, so the per-frame frame-cache check no
@@ -268,24 +258,6 @@ package Files.Rendering is
       Label_Picker_Highlight         : Positive := 8;
    end record;
 
-   --  Whether a popup or modal panel is open, owning the pointer: one per
-   --  Files.Model.Input_Overlay. Tooltips of the controls it covers are not
-   --  drawn then, or one could be painted over the popup.
-   --
-   --  @param Snapshot Snapshot to inspect.
-   --  @return True when any input-owning overlay is open.
-   function Any_Overlay_Open (Snapshot : View_Snapshot) return Boolean is
-     (Snapshot.Root_Selector_Open
-      or else Snapshot.Context_Menu_Open
-      or else Snapshot.Paste_Conflict_Open
-      or else Snapshot.Paste_Progress_Open
-      or else Snapshot.Quick_Look_Open
-      or else Snapshot.Label_Picker_Open
-      or else Snapshot.Sort_Menu_Open
-      or else Snapshot.Tree_Pick_Active
-      or else Snapshot.Command_Palette_Open
-      or else Snapshot.Settings_Pane_Open);
-
    --  A context-menu row is either a selectable command or a non-selectable
    --  divider that visually groups the commands above and below it.
    type Context_Menu_Row_Kind is (Command_Row, Separator_Row);
@@ -331,40 +303,6 @@ package Files.Rendering is
       Height      : Natural;
       Line_Height : Positive := Files.UI.Base_Line_Height)
       return Context_Menu_Layout;
-
-   --  Return the top Y coordinate of a menu row, accounting for the smaller
-   --  height of any separator rows above it. Rows have variable heights, so a
-   --  simple row * Row_Height offset is not correct; callers (renderer and
-   --  hit-tests) use this to place and probe rows consistently.
-   --
-   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
-   --  @param Row Row index between 1 and Row_Count.
-   --  @return Top window Y coordinate of the row.
-   function Context_Menu_Row_Top
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
-      return Natural;
-
-   --  Return the left edge of the column containing a menu row.
-   --  Compact menus can split at a group boundary into two columns.
-   --
-   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
-   --  @param Row Row index between 1 and Row_Count.
-   --  @return Left window coordinate of the row's column.
-   function Context_Menu_Row_Left
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
-      return Natural;
-
-   --  Return the width of the column containing a menu row.
-   --
-   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
-   --  @param Row Row index between 1 and Row_Count.
-   --  @return Width of the row's column.
-   function Context_Menu_Row_Width
-     (Menu : Context_Menu_Layout;
-      Row  : Positive)
-      return Natural;
 
    --  Window layout geometry. Re-exported from Guikit.Draw so backends can
    --  consume it without depending on this package; existing
@@ -694,18 +632,6 @@ package Files.Rendering is
       Layout      : Layout_Metrics;
       Line_Height : Positive := Files.UI.Base_Line_Height)
       return Conflict_Dialog_Layout;
-
-   --  Compute the centered paste-progress overlay geometry for a window.
-   --
-   --  @param Snapshot View snapshot (used only for consistent sizing).
-   --  @param Layout Overall layout metrics for the window.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Panel, progress-bar, and Cancel-button rectangles for the overlay.
-   function Calculate_Paste_Progress_Layout
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
-      return Paste_Progress_Layout;
 
    type Text_Renderer is private;
 
@@ -1274,6 +1200,81 @@ package Files.Rendering is
       return Text_Render_Result;
 
 private
+
+   --  Return the palette color role that renders a color label's swatch/dot.
+   --  No_Label resolves to Muted_Text_Color; it is never drawn, so the value
+   --  only keeps the mapping total.
+   --
+   --  @param Label Color label to resolve.
+   --  @return The palette role drawn in that label's color.
+   function Label_Render_Color
+     (Label : Files.Types.Color_Label)
+      return Render_Color;
+
+   --  Whether a popup or modal panel is open, owning the pointer: one per
+   --  Files.Model.Input_Overlay. Tooltips of the controls it covers are not
+   --  drawn then, or one could be painted over the popup.
+   --
+   --  @param Snapshot Snapshot to inspect.
+   --  @return True when any input-owning overlay is open.
+   function Any_Overlay_Open (Snapshot : View_Snapshot) return Boolean is
+     (Snapshot.Root_Selector_Open
+      or else Snapshot.Context_Menu_Open
+      or else Snapshot.Paste_Conflict_Open
+      or else Snapshot.Paste_Progress_Open
+      or else Snapshot.Quick_Look_Open
+      or else Snapshot.Label_Picker_Open
+      or else Snapshot.Sort_Menu_Open
+      or else Snapshot.Tree_Pick_Active
+      or else Snapshot.Command_Palette_Open
+      or else Snapshot.Settings_Pane_Open);
+
+   --  Return the top Y coordinate of a menu row, accounting for the smaller
+   --  height of any separator rows above it. Rows have variable heights, so a
+   --  simple row * Row_Height offset is not correct; callers (renderer and
+   --  hit-tests) use this to place and probe rows consistently.
+   --
+   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
+   --  @param Row Row index between 1 and Row_Count.
+   --  @return Top window Y coordinate of the row.
+   function Context_Menu_Row_Top
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
+      return Natural;
+
+   --  Return the left edge of the column containing a menu row.
+   --  Compact menus can split at a group boundary into two columns.
+   --
+   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
+   --  @param Row Row index between 1 and Row_Count.
+   --  @return Left window coordinate of the row's column.
+   function Context_Menu_Row_Left
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
+      return Natural;
+
+   --  Return the width of the column containing a menu row.
+   --
+   --  @param Menu Layout returned by Calculate_Context_Menu_Layout.
+   --  @param Row Row index between 1 and Row_Count.
+   --  @return Width of the row's column.
+   function Context_Menu_Row_Width
+     (Menu : Context_Menu_Layout;
+      Row  : Positive)
+      return Natural;
+
+   --  Compute the centered paste-progress overlay geometry for a window.
+   --
+   --  @param Snapshot View snapshot (used only for consistent sizing).
+   --  @param Layout Overall layout metrics for the window.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Panel, progress-bar, and Cancel-button rectangles for the overlay.
+   function Calculate_Paste_Progress_Layout
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      Line_Height : Positive := Files.UI.Base_Line_Height)
+      return Paste_Progress_Layout;
+
    --  Layout seams shared by the body and the Files.Rendering.Hit child, so
    --  the renderer and the click hit-tests compute the same geometry.
 

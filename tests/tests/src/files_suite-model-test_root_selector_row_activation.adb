@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Model)
    procedure Test_Root_Selector_Row_Activation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -36,7 +37,7 @@ separate (Files_Suite.Model)
       Roots_A.Append (To_Unbounded_String (Target));
       Files.Model.Open_Root_Selector (Model, Roots_A);
       Files.Model.Focus_Path_Input (Model);
-      Files.Controller.Replace_Focused_Text (Model, "/tmp/root-click-edit");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "/tmp/root-click-edit");
       Files.Model.Open_Root_Selector (Model, Roots_A);
       Result := Files.Controller.Handle_Root_Click (Model, Settings, Root_Index => 1);
       Files_Suite.Support.Assert_Equal

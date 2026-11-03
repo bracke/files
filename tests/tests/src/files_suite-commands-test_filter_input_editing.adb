@@ -1,3 +1,4 @@
+with Files.Controller.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Filter_Input_Editing (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -157,7 +158,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Filter_Text (Model),
          "beta",
          "filter Delete at end leaves text unchanged");
-      Files.Controller.Replace_Focused_Text (Model, "b");
+      Files.Controller.Testing.Replace_Focused_Text (Model, "b");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),
          1,

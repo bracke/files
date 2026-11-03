@@ -72,8 +72,8 @@ package body Files.Application.Windows.Smoke is
 
    function Headless_Render_Quality_Report
      (Startup : Startup_Result;
-      Width   : Natural := 1024;
-      Height  : Natural := 768)
+      Width   : Natural := Files.UI.Default_Window_Width;
+      Height  : Natural := Files.UI.Default_Window_Height)
       return Headless_Render_Quality_Result
  is separate;
 
@@ -289,8 +289,8 @@ package body Files.Application.Windows.Smoke is
  is separate;
 
    function Live_Window_Smoke_Plan
-     (Width  : Natural := 1024;
-      Height : Natural := 768)
+     (Width  : Natural := Files.UI.Default_Window_Width;
+      Height : Natural := Files.UI.Default_Window_Height)
       return Live_Smoke_Plan
    is
       Caps : constant Desktop_Capabilities := Runtime_Capabilities;

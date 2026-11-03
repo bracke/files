@@ -1,3 +1,4 @@
+with Files.Settings.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Explicit_Shell_Open_Actions (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -28,11 +29,11 @@ separate (Files_Suite.Operations)
           ("literal" & Shell_Command_Separator & " exit 9");
       Shell_Arguments.Append (Injected_Argument);
       Shell_Arguments.Append (To_Unbounded_String ("{name}"));
-      Files.Settings.Add_Open_Action
+      Files.Settings.Testing.Add_Open_Action
         (Settings,
          "text/plain",
          Files.Settings.Make_Action (No_Op_Executable, Shell_Arguments, True));
-      Result := Files.Operations.Prepare_Open_Selected_Action (Model, Settings);
+      Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operations.Operation_Success,
@@ -69,7 +70,7 @@ separate (Files_Suite.Operations)
             & Exit_Status'Image);
       end;
 
-      Files.Settings.Add_Open_Action
+      Files.Settings.Testing.Add_Open_Action
         (Settings,
          "text/plain",
          Files.Settings.Make_Action ("cd", Files.Settings.String_Vectors.Empty_Vector, True));
@@ -87,7 +88,7 @@ separate (Files_Suite.Operations)
          Exit_Arguments : Files.Settings.String_Vectors.Vector;
       begin
          Exit_Arguments.Append (To_Unbounded_String ("7"));
-         Files.Settings.Add_Open_Action
+         Files.Settings.Testing.Add_Open_Action
            (Settings,
             "text/plain",
             Files.Settings.Make_Action ("exit", Exit_Arguments, True));
