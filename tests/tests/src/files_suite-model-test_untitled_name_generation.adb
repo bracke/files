@@ -37,7 +37,7 @@ separate (Files_Suite.Model)
         (Files.Model.Temporary_Item_Name (Model),
          (if Dangling_Untitled then "untitled 4.txt" else "untitled 2.txt"),
          "create uses the first suffix without an existing directory entry");
-      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Testing.Cancel_Create_File (Model);
       declare
          function Suffix_Text (Value : Natural) return String is
             Image : constant String := Natural'Image (Value);

@@ -23,10 +23,10 @@ function Try_Record_Undo
      (Path, Identity, Tree_Revision : String;
       Retain_Verified : Boolean) return Boolean
      renames Files.File_System.Creation_Matches;
-   function Valid_Natural_Image (Value : Files.Types.UString) return Boolean
-     renames Files.Model.Valid_Natural_Image;
-   function Valid_Ownership_Image (Value : Files.Types.UString) return Boolean
-     renames Files.Model.Valid_Ownership_Image;
+   function Valid_Natural_Image (Value : Files.Types.UString) return Boolean is
+     (Files.Undo_Payloads.Is_Mode_Text (To_String (Value)));
+   function Valid_Ownership_Image (Value : Files.Types.UString) return Boolean is
+     (Files.Undo_Payloads.Is_Ownership_Text (To_String (Value)));
    Identities, Tree_Revisions, Restore_Identities, Restore_Targets : Files.Types.String_Vectors.Vector;
    Targets : Files.Types.String_Vectors.Vector := To;
    Kept_From, Kept_To, Kept_Forward : Files.Types.String_Vectors.Vector;

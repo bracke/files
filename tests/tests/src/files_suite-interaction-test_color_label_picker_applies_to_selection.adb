@@ -10,15 +10,13 @@ separate (Files_Suite.Interaction)
       Model    : Files.Model.Window_Model;
       Open_Cmd : constant Files.Events.Input_Action :=
         (Kind    => Files.Events.Command_Input_Action,
-         Command => Files.Commands.Set_Color_Label_Command,
-         others  => <>);
+         Command => Files.Commands.Set_Color_Label_Command);
 
       function Choose (Label : Files.Types.Color_Label) return Files.Events.Input_Action is
       begin
          return
            (Kind       => Files.Events.Label_Picker_Choice_Input_Action,
-            Label      => Label,
-            others     => <>);
+            Label      => Label);
       end Choose;
    begin
       Files_Suite.Support.Reset_Root;

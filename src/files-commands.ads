@@ -281,6 +281,17 @@ package Files.Commands is
      (Id : Command_Id)
       return Boolean;
 
+   --  Whether a command changes the settings, either directly
+   --  (Requires_Settings_Path) or through the UI state they mirror
+   --  (Persists_Global_Ui_State): the interaction layer runs those through
+   --  its Execute_Command, which writes them back and refreshes an open pane.
+   --
+   --  @param Id Command identifier.
+   --  @return True when the command's effect reaches the settings.
+   function Routes_Through_Settings
+     (Id : Command_Id)
+      return Boolean;
+
    --  Join the full paths of the given items into a single newline-separated
    --  string, one path per line, in item order. Returns an empty string when no
    --  items are supplied. This is the pure, filesystem-free text seam the

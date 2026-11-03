@@ -31,7 +31,7 @@ begin
             Result := Column_Reorder_Begin_Action (Cell.Column, X, Cell.Command);
             return;
          elsif Cell.Command /= Files.Commands.No_Command then
-            Result := Command_Action (Cell.Command, Activate);
+            Result := Command_Action (Cell.Command);
             return;
          end if;
       end if;
@@ -75,9 +75,8 @@ begin
         (Kind             => Item_Click_Input_Action,
          Item_Index       => Item_Index,
          Activate         => Activate,
-         Toggle_Selection => Modifiers (Guikit.Input.Control_Key) and then not Modifiers (Guikit.Input.Shift_Key),
-         Range_Selection  => Modifiers (Guikit.Input.Shift_Key),
-         others           => <>);
+         Toggle_Item      => Modifiers (Guikit.Input.Control_Key) and then not Modifiers (Guikit.Input.Shift_Key),
+         Range_Selection  => Modifiers (Guikit.Input.Shift_Key));
       return;
    end if;
 
@@ -102,5 +101,5 @@ begin
       return;
    end if;
    Handled := False;
-   Result := No_Action (Activate);
+   Result := No_Action;
 end Main_View_Click;

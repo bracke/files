@@ -10,7 +10,7 @@ begin
       --  The path-bar favorite star takes precedence over the breadcrumb and
       --  path-input hit zones it sits inside: a click here toggles the
       --  current directory's favorite rather than focusing the path field.
-      Result := (Kind => Path_Favorite_Toggle_Input_Action, others => <>);
+      Result := (Kind => Path_Favorite_Toggle_Input_Action);
       return;
    elsif Breadcrumb_Index /= 0 then
       Result := Breadcrumb_Action (Breadcrumb_Index);
@@ -48,7 +48,7 @@ begin
       --  The scope chip sits inside the filter section and takes precedence
       --  over the filter input hit zone: a click here cycles the search scope
       --  rather than focusing the filter field.
-      Result := (Kind => Search_Scope_Toggle_Input_Action, others => <>);
+      Result := (Kind => Search_Scope_Toggle_Input_Action);
       return;
    elsif Within (X, Toolbar.Right_X, Toolbar.Right_Width)
      and then Within (Y, Toolbar_Input_Y, Toolbar_Input_H)
@@ -84,9 +84,9 @@ begin
    end if;
 
    if Command /= Files.Commands.No_Command then
-      Result := Command_Action (Command, Activate);
+      Result := Command_Action (Command);
       return;
    end if;
    Handled := False;
-   Result := No_Action (Activate);
+   Result := No_Action;
 end Toolbar_Click;

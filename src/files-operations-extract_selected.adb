@@ -1,3 +1,4 @@
+with Files.File_Types;
 separate (Files.Operations)
 function Extract_Selected
   (Model    : in out Files.Model.Window_Model;
@@ -38,16 +39,6 @@ is
          Verified_Count := Natural (Created.Length);
       end if;
    end Record_Progress;
-
-   function Trimmed_Image (Value : Positive) return String is (Files.Types.Natural_Text (Value));
-
-   --  Treat a name ending (case-insensitively) in .zip or .7z as an archive.
-   function Name_Is_Archive (Name : String) return Boolean is
-      Lower : constant String := Ada.Characters.Handling.To_Lower (Name);
-   begin
-      return Ada.Strings.Fixed.Tail (Lower, 4) = ".zip"
-        or else Ada.Strings.Fixed.Tail (Lower, 3) = ".7z";
-   end Name_Is_Archive;
 
    function Failed return Operation_Result is
    begin
@@ -96,7 +87,7 @@ begin
          if Destination = "" then
             return Failed;
          end if;
-         if Name_Is_Archive (Item_Name) then
+         if Files.File_Types.Is_Extractable_Archive (Item_Name) then
             declare
                Raw_Base : constant String := Ada.Directories.Base_Name (Item_Name);
                Base     : constant String := (if Raw_Base = "" then "archive" else Raw_Base);
@@ -111,7 +102,7 @@ begin
 
                   for N in 1 .. 9_999 loop
                      declare
-                        Candidate : constant String := Base & " (" & Trimmed_Image (N) & ")";
+                        Candidate : constant String := Base & " (" & Files.Types.Natural_Text (N) & ")";
                      begin
                         if not Exists_Safely (Ada.Directories.Compose (Destination, Candidate)) then
                            return Candidate;

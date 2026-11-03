@@ -36,13 +36,11 @@ package Files.Interaction is
       --  True when the shell must invalidate its rasterized glyph cache.
       Clear_Pending_Text   : Boolean := False;
       --  True when the shell must drop any buffered character input.
-      Context_Menu_Changed : Boolean := False;
-      --  True when the right-click context menu was opened or closed.
    end record;
 
-   --  Execute a single command, applying the settings-path-aware routing the
-   --  desktop shell previously performed inline (save/toggle/bookmark, global
-   --  UI-state sync, and the sort-change directory reload).
+   --  Execute a single command with the follow-ups a settings change needs:
+   --  a settings command's own (font size, glyphs), the UI state it changed
+   --  written back to the settings, and an open settings pane refreshed.
    --
    --  @param Model Window model to update.
    --  @param Settings Live settings model, updated in place when the command persists state.
@@ -60,13 +58,11 @@ package Files.Interaction is
       Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result            : out Interaction_Result);
 
-   --  Dispatch one keyboard press through the focus-aware controller, applying
-   --  the settings-path-aware routing the desktop shell previously performed
-   --  inline: a key that resolves to a settings-path command (save or
-   --  toggle-hidden) is re-run through Execute_Command so the in-out settings
-   --  handling and follow-up flags apply (including Clear_Pending_Text); any
-   --  other key keeps the controller's own result. This is the genuine live key
-   --  dispatch seam, distinct from translating a raw input action.
+   --  Dispatch one keyboard press through the focus-aware controller. A key
+   --  that ran a settings command gets the same follow-ups as Execute_Command
+   --  gives one, and Clear_Pending_Text; any other key keeps the controller's
+   --  own result. This is the live key dispatch seam, distinct from
+   --  translating a raw input action.
    --
    --  @param Model Window model to update.
    --  @param Settings Live settings model, updated in place when the key persists state.

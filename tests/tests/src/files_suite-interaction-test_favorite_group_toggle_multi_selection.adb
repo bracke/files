@@ -10,8 +10,7 @@ separate (Files_Suite.Interaction)
       Model    : Files.Model.Window_Model;
       Action   : constant Files.Events.Input_Action :=
         (Kind    => Files.Events.Command_Input_Action,
-         Command => Files.Commands.Toggle_Favorite_Command,
-         others  => <>);
+         Command => Files.Commands.Toggle_Favorite_Command);
    begin
       Files_Suite.Support.Reset_Root;
       Ada.Directories.Create_Path (Dir);

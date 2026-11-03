@@ -53,47 +53,71 @@ package Files.Events is
       Scroll_Settings_Pane,
       Scroll_Command_Palette);
 
-   --  Translated input action. Each kind reads the fields named for it:
-   --  Item_Index is an item (a breadcrumb segment, a tree node for a
-   --  Tree_Click_Input_Action, with Toggle_Selection for its expander), and the
-   --  drags, the label picker, the permission grid and the ownership editor
-   --  have their own typed fields below.
-   type Input_Action is record
-      Kind         : Input_Action_Kind := No_Input_Action;
-      Command      : Files.Commands.Command_Id := Files.Commands.No_Command;
-      Direction    : Guikit.Input.Navigation_Direction := Guikit.Input.Move_Right;
-      Item_Index   : Natural := 0;
-      Root_Index   : Natural := 0;
-      Result_Index : Natural := 0;
-      Click_X      : Integer := 0;  --  palette click coordinates (component hit-test)
-      Click_Y      : Integer := 0;
-      Scroll_Lines : Integer := 0;
-      Scroll_Area  : Scroll_Target := Scroll_Auto;
-      Focus_Target : Files.Types.Focus_Target := Files.Types.Focus_None;
-      Cursor_Position : Natural := 0;
-      Settings_Field  : Natural := 0;
-      Settings_Option : Natural := 0;
-      --  The paste-conflict dialog button of a Conflict_Click_Input_Action.
-      Conflict_Button : Conflict_Button_Kind := No_Conflict_Button;
-      Activate     : Boolean := False;
-      Toggle_Selection : Boolean := False;
-      Range_Selection  : Boolean := False;
-      Scroll_Drag_Anchor : Integer := 0;
-      --  A column resize or reorder: the column, and for a resize its width
-      --  when the drag began.
-      Column       : Files.Types.Optional_Detail_Column := Files.Types.Optional_Detail_Column'First;
-      Column_Width : Natural := 0;
-      --  Where a column or marquee drag began (framebuffer pixels), and
-      --  whether a marquee adds to the selection (Ctrl or Shift held).
-      Origin_X     : Natural := 0;
-      Origin_Y     : Natural := 0;
-      Additive     : Boolean := False;
-      --  The label picker's chosen swatch (No_Label clears).
-      Label        : Files.Types.Color_Label := Files.Types.No_Label;
-      --  The permission grid's bit, and whether the ownership editor edits
-      --  the group (else the owner).
-      Bit          : Permission_Bit := 0;
-      Edit_Group   : Boolean := False;
+   --  Translated input action: a kind, and only the fields that kind carries.
+   type Input_Action (Kind : Input_Action_Kind := No_Input_Action) is record
+      case Kind is
+         when Command_Input_Action =>
+            Command : Files.Commands.Command_Id := Files.Commands.No_Command;
+         when Selection_Input_Action =>
+            Direction : Guikit.Input.Navigation_Direction := Guikit.Input.Move_Right;
+            --  Shift held: the selection extends from its anchor.
+            Extend    : Boolean := False;
+         when Scroll_Input_Action | Scrollbar_Drag_Begin_Input_Action =>
+            Scroll_Lines       : Integer := 0;
+            Scroll_Area        : Scroll_Target := Scroll_Auto;
+            --  Where on the thumb a scrollbar drag took hold.
+            Scroll_Drag_Anchor : Integer := 0;
+         when Column_Resize_Begin_Input_Action | Column_Reorder_Begin_Input_Action | Marquee_Begin_Input_Action =>
+            --  Where the drag began (framebuffer pixels); for a column drag
+            --  the column, and for a resize its width when it began; for a
+            --  marquee, whether it adds to the selection (Ctrl or Shift).
+            Origin_X     : Natural := 0;
+            Origin_Y     : Natural := 0;
+            Column       : Files.Types.Optional_Detail_Column := Files.Types.Optional_Detail_Column'First;
+            Column_Width : Natural := 0;
+            Additive     : Boolean := False;
+            --  A reorder press that ends without crossing the drag threshold
+            --  is a click on the column: this sort.
+            Sort_Command : Files.Commands.Command_Id := Files.Commands.No_Command;
+         when Text_Click_Input_Action =>
+            Focus_Target    : Files.Types.Focus_Target := Files.Types.Focus_None;
+            Cursor_Position : Natural := 0;
+            --  The item whose rename field was clicked (0 for another field).
+            Field_Item      : Natural := 0;
+         when Settings_Click_Input_Action | Command_Result_Click_Input_Action =>
+            --  Where the click landed, for the component's own hit test.
+            Click_X : Integer := 0;
+            Click_Y : Integer := 0;
+         when Item_Click_Input_Action =>
+            Item_Index      : Natural := 0;
+            Activate        : Boolean := False;
+            Toggle_Item     : Boolean := False;
+            Range_Selection : Boolean := False;
+         when Root_Click_Input_Action =>
+            Root_Index : Natural := 0;
+         when Breadcrumb_Click_Input_Action =>
+            Segment_Index : Natural := 0;
+         when Tree_Click_Input_Action =>
+            Tree_Node : Natural := 0;
+            --  The click hit the node's expander, not its name.
+            Expander  : Boolean := False;
+         when Permission_Toggle_Input_Action =>
+            Bit : Permission_Bit := 0;
+         when Ownership_Edit_Input_Action =>
+            --  The group is edited, else the owner.
+            Edit_Group : Boolean := False;
+         when Conflict_Click_Input_Action =>
+            Conflict_Button : Conflict_Button_Kind := No_Conflict_Button;
+         when Label_Picker_Choice_Input_Action =>
+            --  The chosen swatch (No_Label clears).
+            Label : Files.Types.Color_Label := Files.Types.No_Label;
+         when No_Input_Action
+            | Path_Favorite_Toggle_Input_Action
+            | Tree_Pick_Confirm_Input_Action
+            | Paste_Cancel_Input_Action
+            | Search_Scope_Toggle_Input_Action =>
+            null;
+      end case;
    end record;
 
    --  Translate a key and modifier state into an internal input action.
@@ -128,14 +152,6 @@ package Files.Events is
       Activate    : Boolean := False;
       Modifiers   : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Line_Height : Positive := Files.UI.Base_Line_Height)
-      return Input_Action;
-
-   --  Translate a vertical scroll-wheel offset into an internal input action.
-   --
-   --  @param Y_Offset Positive GLFW-style wheel offsets scroll up; negative values scroll down.
-   --  @return Internal scroll input action or no action when the offset is zero.
-   function Translate_Scroll
-     (Y_Offset : Integer)
       return Input_Action;
 
    --  Translate a vertical scroll-wheel offset at a window coordinate.

@@ -161,7 +161,7 @@ separate (Files.Controller)
                   Old_Count : constant Natural := Files.Model.Selected_Count (Model);
                   Anchor    : Natural := Old_Index;
                begin
-                  if Action.Range_Selection and then Old_Count > 1 then
+                  if Action.Extend and then Old_Count > 1 then
                      declare
                         First_Selected : Natural := 0;
                         Last_Selected  : Natural := 0;
@@ -176,7 +176,7 @@ separate (Files.Controller)
                      end;
                   end if;
 
-                  if Action.Range_Selection
+                  if Action.Extend
                     and then Files.Model.Selection_Move_Would_Wrap (Model, Action.Direction)
                   then
                      --  Extending a range stops at the edge: wrapping would
@@ -184,7 +184,7 @@ separate (Files.Controller)
                      return Make_Result (Controller_Ignored);
                   end if;
                   Files.Model.Move_Selection (Model, Action.Direction);
-                  if Action.Range_Selection then
+                  if Action.Extend then
                      declare
                         New_Index : constant Natural := Files.Model.Selected_Index (Model);
                      begin

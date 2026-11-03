@@ -71,7 +71,6 @@ separate (Files_Suite.Interaction)
          Files.Commands.Copy_Selected_Items_Command,
 
          "the result echoes the dispatched command id");
-      Assert (Result.Context_Menu_Changed, "the result reports the menu closing");
       Assert (not Files.Model.Context_Menu_Is_Open (Model), "dispatching a menu row closes the menu");
       Assert
         (Files.Model.Clipboard_Mode_Of (Model) = Files.Model.Clipboard_Copy,
@@ -96,8 +95,8 @@ separate (Files_Suite.Interaction)
         (Result.Status /= Files.Controller.Controller_Command_Executed,
          "a stale menu-row action is inert after its menu closes (command executed)");
       Assert
-        (not Result.Context_Menu_Changed,
-         "a stale menu-row action is inert after its menu closes (context menu changed)");
+        (not Files.Model.Context_Menu_Is_Open (Model),
+         "a stale menu-row action is inert after its menu closes (menu stays closed)");
 
       --  A click that misses every menu row still closes the menu and must not
       --  leak follow-up flags from an earlier result stored in the same object.
@@ -119,9 +118,6 @@ separate (Files_Suite.Interaction)
       Assert
         (Result.Status /= Files.Controller.Controller_Command_Executed,
          "an item-only command is rejected by the open empty-area menu (command executed)");
-      Assert
-        (not Result.Context_Menu_Changed,
-         "an item-only command is rejected by the open empty-area menu (context menu changed)");
 
       Result.Settings_Changed := True;
       Result.Font_Size_Changed := True;
@@ -136,9 +132,6 @@ separate (Files_Suite.Interaction)
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
       Assert (not Files.Model.Context_Menu_Is_Open (Model), "a missed menu row still closes the menu");
-      Assert
-        (Result.Context_Menu_Changed,
-         "a missed menu row returns only its own context-menu follow-up (context menu changed)");
       Files_Suite.Support.Assert_Equal
         (Result.Command, Files.Commands.No_Command,
          "a missed menu row returns only its own context-menu follow-up (command)");
@@ -159,18 +152,16 @@ separate (Files_Suite.Interaction)
          "a missed menu row returns only its own context-menu follow-up (clear pending text)");
 
       --  Keyboard open/close routes mutate the same menu state through the
-      --  controller and must report the transition through the reducer result.
+      --  controller.
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_F10, Shift, Base_Font, Result);
       Assert
-        (Files.Model.Context_Menu_Is_Open (Model)
-         and then Result.Context_Menu_Changed,
-         "Shift+F10 reports opening the context menu");
+        (Files.Model.Context_Menu_Is_Open (Model),
+         "Shift+F10 opens the context menu");
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_Escape,
          Guikit.Input.No_Modifiers, Base_Font, Result);
       Assert
-        (not Files.Model.Context_Menu_Is_Open (Model)
-         and then Result.Context_Menu_Changed,
-         "Escape reports closing the context menu");
+        (not Files.Model.Context_Menu_Is_Open (Model),
+         "Escape closes the context menu");
    end Test_Menu_Row_Dispatch;

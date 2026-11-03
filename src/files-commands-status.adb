@@ -1,23 +1,14 @@
 with Files.Items;
-with Ada.Characters.Handling;
-with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with Files.File_System;
+with Files.File_Types;
 
 package body Files.Commands.Status is
 
    use Ada.Strings.Unbounded;
 
    use type Files.Types.Focus_Target;
-
-   --  Return whether a simple file name ends, case-insensitively, in a
-   --  recognized archive extension (.zip or .7z).
-   function Name_Is_Archive (Name : String) return Boolean is
-      Lower : constant String := Ada.Characters.Handling.To_Lower (Ada.Strings.Fixed.Tail (Name, 4));
-   begin
-      return Lower = ".zip" or else Ada.Strings.Fixed.Tail (Lower, 3) = ".7z";
-   end Name_Is_Archive;
 
    --  Return whether at least one selected item is a recognized archive.
    function Selection_Has_Archive (Model : Files.Model.Window_Model) return Boolean is
@@ -27,7 +18,7 @@ package body Files.Commands.Status is
       --  large folder for it cost more than the rest of the commands.
       procedure Check (Item : Files.Items.Directory_Item) is
       begin
-         Found := Found or else Name_Is_Archive (To_String (Item.Name));
+         Found := Found or else Files.File_Types.Is_Extractable_Archive (To_String (Item.Name));
       end Check;
    begin
       Files.Model.For_Each_Selected_Item (Model, Check'Access);

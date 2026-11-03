@@ -1,3 +1,4 @@
+with Files.Model.Testing;
 separate (Files_Suite.Interaction)
    procedure Test_Right_Click_Opens_Menu (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -50,7 +51,6 @@ separate (Files_Suite.Interaction)
       Assert (Found, "a layout cell exists for the right-clicked item");
       Assert (Files.Model.Context_Menu_Is_Open (Model), "right-click opens the context menu");
       Assert (Files.Model.Is_Selected (Model, 2), "right-click selects the unselected item under the cursor");
-      Assert (Result.Context_Menu_Changed, "the result reports the context-menu change");
       Assert
         (not Result.Settings_Changed,
          "right-click clears follow-up flags left by an earlier interaction (settings changed)");
@@ -105,7 +105,7 @@ separate (Files_Suite.Interaction)
          Files.Model.Begin_Tree_Pick (Model, Files.Model.Pick_Copy, Sources, "");
          Files.Model.Open_Tree_Panel (Model);
          Assert_Right_Click_Suppressed ("the destination picker");
-         Files.Model.Clear_Tree_Pick (Model);
+         Files.Model.Testing.Clear_Tree_Pick (Model);
          Files.Model.Close_Tree_Panel (Model);
       end;
    end Test_Right_Click_Opens_Menu;

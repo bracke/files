@@ -136,6 +136,9 @@ package body Files.File_Types is
       return "";
    end Filetype_For_Name;
 
+   function Is_Extractable_Archive (Name : String) return Boolean is
+     (Extension_Of (Name) in "zip" | "7z");
+
    function Detect_Filetype
      (Settings : Files.Settings.Settings_Model;
       Kind     : Files.Types.Item_Kind;

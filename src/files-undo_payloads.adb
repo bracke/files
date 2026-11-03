@@ -67,4 +67,16 @@ package body Files.Undo_Payloads is
          return False;
    end Parse_Mode;
 
+   function Is_Mode_Text (Text : String) return Boolean is
+      Mode : Natural;
+   begin
+      return Parse_Mode (Text, Mode);
+   end Is_Mode_Text;
+
+   function Is_Ownership_Text (Text : String) return Boolean is
+      Value : Ownership;
+   begin
+      return Parse_Ownership (Text, Value);
+   end Is_Ownership_Text;
+
 end Files.Undo_Payloads;

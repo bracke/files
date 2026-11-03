@@ -38,4 +38,12 @@ package Files.Undo_Payloads is
    --  @return True when Text is a mode payload.
    function Parse_Mode (Text : String; Mode : out Natural) return Boolean;
 
+   --  @param Text Recorded text.
+   --  @return Whether Parse_Mode would read it.
+   function Is_Mode_Text (Text : String) return Boolean;
+
+   --  @param Text Recorded text.
+   --  @return Whether Parse_Ownership would read it.
+   function Is_Ownership_Text (Text : String) return Boolean;
+
 end Files.Undo_Payloads;

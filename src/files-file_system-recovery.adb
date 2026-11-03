@@ -1,3 +1,4 @@
+with Files.File_System.Support;
 with Files.Diagnostics;
 with Files.File_Identities;
 with Files.Io_Errors;
@@ -18,6 +19,22 @@ with Files.Private_Directories;
 with Files.Path_Checks;
 
 package body Files.File_System.Recovery is
+
+   --  Remove a copied move's source atomically before recursive cleanup.
+   --  @param Path Source whose complete destination copy has been published.
+   --  @param Expected Identity and revision snapshot captured before copying.
+   --  @param Fallback_Key Error key for a failure with no more specific cause.
+   --  @param Set_Aside Set when the source had changed since the copy and
+   --    could not be put back: it is then only in its recovery stage, still
+   --    registered, and the caller must keep its copy.
+   --  @return Failure leaves the source at its pathname unless Set_Aside;
+   --    success vacates its pathname.
+   function Remove_Move_Source
+     (Path         : String;
+      Expected     : Support.Source_Snapshot;
+      Fallback_Key : String;
+      Set_Aside    : out Boolean) return Mutation_Result;
+
    use Ada.Strings.Unbounded;
    use Files.File_System.Support;
    use type Ada.Directories.File_Size;

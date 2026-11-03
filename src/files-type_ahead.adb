@@ -4,23 +4,6 @@ package body Files.Type_Ahead is
 
    use Ada.Strings.Unbounded;
 
-   function Starts_With_Case_Insensitive
-     (Name   : String;
-      Prefix : String)
-      return Boolean
-   is
-      Lower_Name   : constant String := Files.Types.Fold_Case (Name);
-      Lower_Prefix : constant String := Files.Types.Fold_Case (Prefix);
-   begin
-      if Lower_Prefix = "" then
-         return False;
-      elsif Lower_Name'Length < Lower_Prefix'Length then
-         return False;
-      else
-         return Lower_Name (Lower_Name'First .. Lower_Name'First + Lower_Prefix'Length - 1) = Lower_Prefix;
-      end if;
-   end Starts_With_Case_Insensitive;
-
    function Type_Ahead_Target
      (Names       : Files.Types.String_Vectors.Vector;
       Prefix      : String;

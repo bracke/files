@@ -115,24 +115,6 @@ package Files.Application is
       Settings_Path : String := "")
       return Startup_Result;
 
-   --  Replace the process-global keyboard-shortcut override table in
-   --  Files.Commands with the overrides persisted in Settings. Every unknown
-   --  command identifier is ignored, so a stale settings file never blocks
-   --  startup. Called during startup resolution and after the shortcut editor
-   --  rebinds a key.
-   --
-   --  @param Settings Settings model carrying the persisted overrides.
-   procedure Apply_Shortcut_Overrides
-     (Settings : Files.Settings.Settings_Model);
-
-   --  Sample the current directory's volume space into Model when its last
-   --  sample is stale (Files.Model.Volume_Space_Is_Current), so the snapshot
-   --  shows it without querying the disk itself.
-   --
-   --  @param Model Window model whose current directory is sampled.
-   procedure Sample_Volume_Space
-     (Model : in out Files.Model.Window_Model);
-
    --  Resolve the owner and group names of the items the info pane lists into
    --  Model (Files.Model.Set_Account_Name), so the snapshot shows names without
    --  an NSS lookup of its own. Does nothing while the model is unchanged
@@ -196,5 +178,13 @@ package Files.Application is
    --  desktop windows after resolving startup paths and settings.
    --  @return Success only when the selected mode completes without errors.
    function Run return Ada.Command_Line.Exit_Status;
+
+   --  Sample the current directory's volume space into Model when its last
+   --  sample is stale (Files.Model.Volume_Space_Is_Current), so the snapshot
+   --  shows it without querying the disk itself.
+   --
+   --  @param Model Window model whose current directory is sampled.
+   procedure Sample_Volume_Space
+     (Model : in out Files.Model.Window_Model);
 
 end Files.Application;

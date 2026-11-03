@@ -5,114 +5,82 @@ with Files.Rendering.Hit;
 with Files.UTF8;
 
 package body Files.Events is
+
+   --  Translate a vertical scroll-wheel offset into an internal input action.
+   --
+   --  @param Y_Offset Positive GLFW-style wheel offsets scroll up; negative values scroll down.
+   --  @return Internal scroll input action or no action when the offset is zero.
+   function Translate_Scroll
+     (Y_Offset : Integer)
+      return Input_Action;
+
    use Ada.Strings.Unbounded;
    use type Files.Commands.Command_Id;
    use type Files.Types.Focus_Target;
    use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;
 
-   function No_Action
-     (Activate : Boolean := False)
-      return Input_Action is
-   begin
-      return
-        (Kind     => No_Input_Action,
-         Activate => Activate,
-         others   => <>);
-   end No_Action;
+   function No_Action return Input_Action is (Kind => No_Input_Action);
 
    function Command_Action
-     (Command  : Files.Commands.Command_Id;
-      Activate : Boolean := False)
+     (Command : Files.Commands.Command_Id)
       return Input_Action is
    begin
       return
-        (Kind     => Command_Input_Action,
-         Command  => Command,
-         Activate => Activate,
-         others   => <>);
+        (Kind    => Command_Input_Action,
+         Command => Command);
    end Command_Action;
 
    function Conflict_Action
-     (Button   : Conflict_Button_Kind;
-      Activate : Boolean := False)
+     (Button : Conflict_Button_Kind)
       return Input_Action is
    begin
       return
         (Kind            => Conflict_Click_Input_Action,
-         Conflict_Button => Button,
-         Activate        => Activate,
-         others          => <>);
+         Conflict_Button => Button);
    end Conflict_Action;
 
-   function Paste_Cancel_Action
-     (Activate : Boolean := False)
-      return Input_Action is
-   begin
-      return
-        (Kind     => Paste_Cancel_Input_Action,
-         Activate => Activate,
-         others   => <>);
-   end Paste_Cancel_Action;
+   function Paste_Cancel_Action return Input_Action is (Kind => Paste_Cancel_Input_Action);
 
    --  Build a label-picker swatch-choice action (No_Label clears the label).
    function Label_Choice_Action
-     (Label    : Files.Types.Color_Label;
-      Activate : Boolean := False)
+     (Label : Files.Types.Color_Label)
       return Input_Action is
    begin
       return
-        (Kind     => Label_Picker_Choice_Input_Action,
-         Label    => Label,
-         Activate => Activate,
-         others   => <>);
+        (Kind  => Label_Picker_Choice_Input_Action,
+         Label => Label);
    end Label_Choice_Action;
 
-   function Tree_Pick_Confirm_Action
-     (Activate : Boolean := False)
-      return Input_Action is
-   begin
-      return
-        (Kind     => Tree_Pick_Confirm_Input_Action,
-         Activate => Activate,
-         others   => <>);
-   end Tree_Pick_Confirm_Action;
+   function Tree_Pick_Confirm_Action return Input_Action is (Kind => Tree_Pick_Confirm_Input_Action);
 
    function Scroll_Action
      (Target : Scroll_Target;
-      Lines  : Integer;
-      Activate : Boolean := False)
+      Lines  : Integer)
       return Input_Action is
    begin
       return
         (Kind         => Scroll_Input_Action,
-         Direction    => (if Lines < 0 then Guikit.Input.Move_Up else Guikit.Input.Move_Down),
          Scroll_Lines => Lines,
          Scroll_Area  => Target,
-         Activate     => Activate,
          others       => <>);
    end Scroll_Action;
 
    function Scroll_Drag_Begin_Action
      (Target   : Scroll_Target;
-      Anchor   : Integer;
-      Activate : Boolean := False)
+      Anchor   : Integer)
       return Input_Action is
    begin
       return
         (Kind               => Scrollbar_Drag_Begin_Input_Action,
-         Direction          => Guikit.Input.Move_Down,
          Scroll_Area        => Target,
-         Activate           => Activate,
          Scroll_Drag_Anchor => Anchor,
          others             => <>);
    end Scroll_Drag_Begin_Action;
 
-   --  Build a details-header column-resize drag-begin action. The target column,
-   --  the separator's origin x edge, and the column's effective width at drag
-   --  start are packed into the shared Item_Index, Cursor_Position, and
-   --  Scroll_Drag_Anchor fields (see the Input_Action record comment). The
-   --  desktop shell owns the continuous drag, mirroring the scrollbar drag.
+   --  Build a details-header column-resize drag-begin action: the target
+   --  column, the separator's x edge, and the column's width at drag start.
+   --  The desktop shell owns the continuous drag, mirroring the scrollbar drag.
    --
    --  @param Column Optional detail column the drag resizes.
    --  @param Origin_X Separator's x edge at drag start.
@@ -134,7 +102,7 @@ package body Files.Events is
 
    --  Build a details-header column-reorder drag-begin action. The dragged
    --  column and the press x go in Column and Origin_X, and the column's sort
-   --  command is carried in Command so the shell can fall back
+   --  command in Sort_Command so the shell can fall back
    --  to a sort when the press ends without crossing the drag threshold. The
    --  desktop shell owns the continuous drag, mirroring the resize drag.
    --
@@ -149,11 +117,11 @@ package body Files.Events is
       return Input_Action is
    begin
       return
-        (Kind     => Column_Reorder_Begin_Input_Action,
-         Command  => Sort_Command,
-         Column   => Column,
-         Origin_X => Origin_X,
-         others   => <>);
+        (Kind         => Column_Reorder_Begin_Input_Action,
+         Sort_Command => Sort_Command,
+         Column       => Column,
+         Origin_X     => Origin_X,
+         others       => <>);
    end Column_Reorder_Begin_Action;
 
    --  Build a marquee (rubber-band) drag-begin action from the press point and

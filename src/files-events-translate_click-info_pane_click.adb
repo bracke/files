@@ -12,7 +12,7 @@ begin
          else Info_Pane.Width),
         Info_Pane.Height)
    then
-      Result := Command_Action (Files.Commands.Toggle_Info_Pane_Command, Activate);
+      Result := Command_Action (Files.Commands.Toggle_Info_Pane_Command);
       return;
    end if;
 
@@ -23,9 +23,8 @@ begin
       begin
          if Cell.Present then
             Result :=
-              (Kind   => Permission_Toggle_Input_Action,
-               Bit    => Cell.Bit,
-               others => <>);
+              (Kind => Permission_Toggle_Input_Action,
+               Bit  => Cell.Bit);
             return;
          end if;
       end;
@@ -39,12 +38,11 @@ begin
          if Cell.Present then
             Result :=
               (Kind       => Ownership_Edit_Input_Action,
-               Edit_Group => Cell.Is_Group,
-               others     => <>);
+               Edit_Group => Cell.Is_Group);
             return;
          end if;
       end;
    end if;
    Handled := False;
-   Result := No_Action (Activate);
+   Result := No_Action;
 end Info_Pane_Click;

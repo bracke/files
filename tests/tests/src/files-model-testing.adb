@@ -86,4 +86,24 @@ package body Files.Model.Testing is
    function Item_At (Model : Window_Model; Index : Positive) return Files.Items.Directory_Item is
      (Model.Items (Index));
 
+   procedure Set_Folder_Size
+     (Model : in out Window_Model;
+      Path  : String;
+      Value : Files.File_System.Directory_Size_Result)
+     renames Files.Model.Set_Folder_Size;
+
+   procedure Clear_Tree_Pick
+     (Model : in out Window_Model)
+     renames Files.Model.Clear_Tree_Pick;
+
+   function Overlay_Is_Open
+     (Model   : Window_Model;
+      Overlay : Input_Overlay)
+      return Boolean
+     renames Files.Model.Overlay_Is_Open;
+
+   procedure Cancel_Create_File
+     (Model : in out Window_Model)
+     renames Files.Model.Cancel_Create_File;
+
 end Files.Model.Testing;

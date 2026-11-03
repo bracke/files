@@ -42,7 +42,6 @@ separate (Files_Suite.Interaction)
       Result.Font_Size_Changed := True;
       Result.Needs_Glyph_Rebuild := True;
       Result.Clear_Pending_Text := True;
-      Result.Context_Menu_Changed := True;
       Files.Interaction.Execute_Command
         (Model             => Model,
          Settings          => Settings,
@@ -63,9 +62,6 @@ separate (Files_Suite.Interaction)
       Assert
         (not Result.Clear_Pending_Text,
          "direct command execution clears unrelated follow-up flags (clear pending text)");
-      Assert
-        (not Result.Context_Menu_Changed,
-         "direct command execution clears unrelated follow-up flags (context menu changed)");
 
       --  With grouping active in the details view, Build_Snapshot inserts a
       --  non-selectable header row (Visible_Index zero) ahead of the items.

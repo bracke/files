@@ -103,8 +103,8 @@ package body Files.Interaction is
    begin
       if New_Size /= Settings.Font_Pixel_Size then
          Files.Controller.Commit_Settings
-           (Model, Settings, (Settings with delta Font_Pixel_Size => New_Size), Settings_Path);
-         Result.Settings_Changed    := Settings.Font_Pixel_Size = New_Size;
+           (Model, Settings, (Settings with delta Font_Pixel_Size => New_Size), Settings_Path,
+            Accepted => Result.Settings_Changed);
          Result.Font_Size_Changed   := Result.Settings_Changed;
          Result.Needs_Glyph_Rebuild := Result.Settings_Changed;
       end if;
@@ -128,10 +128,7 @@ package body Files.Interaction is
          Files.Settings.Set_Label (Updated, To_String (Item.Full_Path), Label);
       end loop;
       Files.Model.Close_Label_Picker (Model);
-      if not Files.Settings.Same_Content (Updated, Settings) then
-         Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path);
-         Result.Settings_Changed := Files.Settings.Same_Content (Settings, Updated);
-      end if;
+      Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted => Result.Settings_Changed);
    end Apply_Label;
 
    function Follow_Path_Moves
@@ -160,10 +157,11 @@ package body Files.Interaction is
       end loop;
       --  Longer paths can make the file too big to load again: then the
       --  labels stay where they were, and the error line says why.
-      if Changed then
-         Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path);
+      if not Changed then
+         return False;
       end if;
-      return Changed and then Files.Settings.Same_Content (Settings, Updated);
+      Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted => Changed);
+      return Changed;
    end Follow_Path_Moves;
 
    --  Fold any paths the model queued while opening items into the persisted
@@ -186,15 +184,16 @@ package body Files.Interaction is
          return;
       end if;
       declare
-         Updated : Files.Settings.Settings_Model := Settings;
+         Updated  : Files.Settings.Settings_Model := Settings;
+         Accepted : Boolean;
       begin
          for Path of Opened loop
             Files.Settings.Note_Recent (Updated, To_String (Path));
          end loop;
-         Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path);
+         Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted);
          --  Added to, not overwritten: a refused recent list must not hide
          --  the label moves just written.
-         Result.Settings_Changed := Result.Settings_Changed or else Files.Settings.Same_Content (Settings, Updated);
+         Result.Settings_Changed := Result.Settings_Changed or else Accepted;
       end;
    end Persist_Recent_Opens;
 
@@ -228,19 +227,20 @@ package body Files.Interaction is
          return False;
       end if;
 
-      Files.Controller.Commit_Settings
-        (Model, Settings,
-         (Settings with delta
-            Default_View     => New_View,
-            Sort_Field_Value => New_Sort,
-            Sort_Ascending   => New_Asc,
-            Info_Pane_Open   => New_Info),
-         Settings_Path);
-      --  Written, unless refused (Commit_Settings).
-      return Settings.Default_View = New_View
-        and then Settings.Sort_Field_Value = New_Sort
-        and then Settings.Sort_Ascending = New_Asc
-        and then Settings.Info_Pane_Open = New_Info;
+      declare
+         Accepted : Boolean;
+      begin
+         Files.Controller.Commit_Settings
+           (Model, Settings,
+            (Settings with delta
+               Default_View     => New_View,
+               Sort_Field_Value => New_Sort,
+               Sort_Ascending   => New_Asc,
+               Info_Pane_Open   => New_Info),
+            Settings_Path,
+            Accepted);
+         return Accepted;
+      end;
    end Sync_Global_UI_State;
 
    --  After a command (from a click, a shortcut or the palette) that changed
@@ -265,6 +265,31 @@ package body Files.Interaction is
       end if;
    end Refresh_Open_Pane;
 
+   --  What a command that may have changed the settings ends with: its own
+   --  settings follow-ups (Observe, when it is a settings command that ran),
+   --  the UI state it changed written back to the settings, and an open
+   --  settings pane shown the new values.
+   procedure Finish_Settings_Command
+     (Model             : in out Files.Model.Window_Model;
+      Settings          : in out Files.Settings.Settings_Model;
+      Settings_Path     : String;
+      Command           : Files.Commands.Command_Id;
+      Before            : Files.Settings.Settings_Model;
+      Current_Font_Size : Positive;
+      Observe           : Boolean;
+      Result            : in out Interaction_Result) is
+   begin
+      if Observe then
+         Observe_Settings_Command (Command, Before, Settings, Current_Font_Size, Result);
+      end if;
+      if Files.Commands.Persists_Global_Ui_State (Command)
+        and then Sync_Global_UI_State (Model, Settings, Settings_Path)
+      then
+         Result.Settings_Changed := True;
+      end if;
+      Refresh_Open_Pane (Model, Before, Settings);
+   end Finish_Settings_Command;
+
    procedure Execute_Command
      (Model             : in out Files.Model.Window_Model;
       Settings          : in out Files.Settings.Settings_Model;
@@ -275,8 +300,6 @@ package body Files.Interaction is
       Result            : out Interaction_Result)
    is
       Outcome : Files.Controller.Controller_Result;
-      Context_Menu_At_Entry : constant Boolean :=
-        Files.Model.Context_Menu_Is_Open (Model);
    begin
       Result := (others => <>);
       Result.Command := Command;
@@ -284,8 +307,6 @@ package body Files.Interaction is
       if not Files.Commands.Status.Is_Enabled (Command, Model) then
          Outcome := Files.Controller.Execute_Command (Command, Model, Settings, Modifiers);
          Result.Status := Outcome.Status;
-         Result.Context_Menu_Changed :=
-           Files.Model.Context_Menu_Is_Open (Model) /= Context_Menu_At_Entry;
          return;
       end if;
 
@@ -293,22 +314,13 @@ package body Files.Interaction is
          Before : constant Files.Settings.Settings_Model := Settings;
       begin
          Outcome := Files.Controller.Execute_Command (Command, Model, Settings, Settings_Path, Modifiers);
-         if Files.Commands.Requires_Settings_Path (Command) then
-            Observe_Settings_Command (Command, Before, Settings, Current_Font_Size, Result);
-         end if;
-
-         if Files.Commands.Persists_Global_Ui_State (Command)
-           and then Sync_Global_UI_State (Model, Settings, Settings_Path)
-         then
-            Result.Settings_Changed := True;
-         end if;
-
-         Refresh_Open_Pane (Model, Before, Settings);
+         Finish_Settings_Command
+           (Model, Settings, Settings_Path, Command, Before, Current_Font_Size,
+            Observe => Files.Commands.Requires_Settings_Path (Command),
+            Result  => Result);
       end;
 
       Result.Status := Outcome.Status;
-      Result.Context_Menu_Changed :=
-        Files.Model.Context_Menu_Is_Open (Model) /= Context_Menu_At_Entry;
    end Execute_Command;
 
    --  Confirm the modal copy/move destination picker.  Both keyboard Enter and
@@ -352,20 +364,16 @@ package body Files.Interaction is
       end;
    end Confirm_Tree_Pick;
 
-   --  What every key and action dispatch ends with: whether the context menu
-   --  opened or closed, any item opened folded into the recent list, the
+   --  What every key and action dispatch ends with: any item opened folded
+   --  into the recent list, the
    --  folder-size targets (at once when the items and selection stand), and
    --  the selected item's lazily computed extra info.
    procedure Finish_Dispatch
      (Model                 : in out Files.Model.Window_Model;
       Settings              : in out Files.Settings.Settings_Model;
       Settings_Path         : String;
-      Context_Menu_At_Entry : Boolean;
       Result                : in out Interaction_Result) is
    begin
-      Result.Context_Menu_Changed :=
-        Result.Context_Menu_Changed
-        or else Files.Model.Context_Menu_Is_Open (Model) /= Context_Menu_At_Entry;
       Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
       Files.Operations.Update_Folder_Size (Model, Settings);
       Files.Operations.Ensure_Selected_Item_Extra (Model);
@@ -443,31 +451,27 @@ package body Files.Interaction is
               Tree_Page_Rows => Tree_Page_Rows);
       begin
          Observe_Controller_Outcome (Outcome, Result);
-         --  Whether the command ran is what it did, not whether it is enabled
-         --  now: Clear Recent, say, disables itself by running.
-         if Files.Commands.Requires_Settings_Path (Outcome.Command)
-           and then Outcome.Status = Files.Controller.Controller_Command_Executed
-           and then (Outcome.Operation.Status /= Files.Operations.Operation_Disabled
-                     or else not Files.Settings.Same_Content (Before, Settings))
-         then
+         declare
+            --  Whether the command ran is what it did, not whether it is
+            --  enabled now: Clear Recent, say, disables itself by running.
+            Ran_Settings_Command : constant Boolean :=
+              Files.Commands.Requires_Settings_Path (Outcome.Command)
+              and then Outcome.Status = Files.Controller.Controller_Command_Executed
+              and then (Outcome.Operation.Status /= Files.Operations.Operation_Disabled
+                        or else not Files.Settings.Same_Content (Before, Settings));
+         begin
+            --  A view / info-pane change from the keyboard (Ctrl+1..4) has
+            --  already run inside Handle_Key; the tail writes it back.
+            Finish_Settings_Command
+              (Model, Settings, Settings_Path, Outcome.Command, Before, Current_Font_Size,
+               Observe => Ran_Settings_Command,
+               Result  => Result);
             --  The controller applied a settings shortcut (or Enter in the
-            --  palette). The shell then dropped any parallel character event;
-            --  surface that as a follow-up flag so Apply_Interaction_Result
-            --  performs the clear.
-            Observe_Settings_Command (Outcome.Command, Before, Settings, Current_Font_Size, Result);
-            Result.Clear_Pending_Text := True;
-         end if;
-         --  A view / info-pane change driven from the keyboard (Ctrl+1..4) has
-         --  already run inside Handle_Key; sync it to the settings so it
-         --  persists. Sync_Global_UI_State is idempotent -- it writes only when
-         --  the mirrored state actually differs -- so this is a no-op for any
-         --  other command.
-         if Files.Commands.Persists_Global_Ui_State (Outcome.Command)
-           and then Sync_Global_UI_State (Model, Settings, Settings_Path)
-         then
-            Result.Settings_Changed := True;
-         end if;
-         Refresh_Open_Pane (Model, Before, Settings);
+            --  palette); the shell drops any parallel character event.
+            if Ran_Settings_Command then
+               Result.Clear_Pending_Text := True;
+            end if;
+         end;
       end;
 
       --  A keyboard Enter on the open label picker applies the highlighted
@@ -540,7 +544,7 @@ package body Files.Interaction is
          Result.Clear_Pending_Text := True;
       end if;
 
-      Finish_Dispatch (Model, Settings, Settings_Path, Context_Menu_At_Entry, Result);
+      Finish_Dispatch (Model, Settings, Settings_Path, Result);
    end Handle_Key;
 
    procedure Apply_Input_Action
@@ -553,8 +557,6 @@ package body Files.Interaction is
       Result            : out Interaction_Result)
    is
       Outcome : Files.Controller.Controller_Result;
-      Context_Menu_At_Entry : constant Boolean :=
-        Files.Model.Context_Menu_Is_Open (Model);
    begin
       --  Callers reuse this record across input events. Reset every field before
       --  applying the branch-specific observations so a prior command's follow-up
@@ -565,9 +567,7 @@ package body Files.Interaction is
          when Files.Events.Command_Input_Action =>
             if not Command_Action_Is_Current (Model, Action.Command) then
                null;
-            elsif Files.Commands.Requires_Settings_Path (Action.Command)
-              or else Files.Commands.Persists_Global_Ui_State (Action.Command)
-            then
+            elsif Files.Commands.Routes_Through_Settings (Action.Command) then
                --  Route through Execute_Command so a runtime view / sort / info
                --  change (e.g. from the bottom bar) is synced to the settings and,
                --  for sort, the listing is re-loaded to match the new order.
@@ -597,7 +597,7 @@ package body Files.Interaction is
          when Files.Events.Breadcrumb_Click_Input_Action =>
             Outcome :=
               Files.Controller.Handle_Breadcrumb_Click
-                (Model, Settings, Action.Item_Index);
+                (Model, Settings, Action.Segment_Index);
             Observe_Controller_Outcome (Outcome, Result);
          when Files.Events.Label_Picker_Choice_Input_Action =>
             --  Apply the chosen color label to every selected item and persist
@@ -617,14 +617,14 @@ package body Files.Interaction is
                   Updated : Files.Settings.Settings_Model := Settings;
                begin
                   Files.Settings.Toggle_Favorite_Path (Updated, Files.Model.Current_Path (Model));
-                  Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path);
-                  Result.Settings_Changed := Files.Settings.Same_Content (Settings, Updated);
+                  Files.Controller.Commit_Settings
+                    (Model, Settings, Updated, Settings_Path, Accepted => Result.Settings_Changed);
                end;
             end if;
          when Files.Events.Tree_Click_Input_Action =>
             Outcome :=
               Files.Controller.Handle_Tree_Click
-                (Model, Settings, Action.Item_Index, Action.Toggle_Selection);
+                (Model, Settings, Action.Tree_Node, Action.Expander);
             Observe_Controller_Outcome (Outcome, Result);
          when Files.Events.Tree_Pick_Confirm_Input_Action =>
             --  Confirm the destination picker: copy or move the captured sources
@@ -645,8 +645,7 @@ package body Files.Interaction is
                   Command : constant Files.Commands.Command_Id := Files.Command_Palette.Selected_Command (Model);
                begin
                   if Command /= Files.Commands.No_Command
-                    and then (Files.Commands.Requires_Settings_Path (Command)
-                              or else Files.Commands.Persists_Global_Ui_State (Command))
+                    and then Files.Commands.Routes_Through_Settings (Command)
                     and then Files.Commands.Status.Is_Enabled (Command, Model)
                   then
                      Execute_Command
@@ -668,7 +667,7 @@ package body Files.Interaction is
                 (Model           => Model,
                  Target          => Action.Focus_Target,
                  Cursor_Position => Action.Cursor_Position,
-                 Item_Index      => Action.Item_Index);
+                 Item_Index      => Action.Field_Item);
             Observe_Controller_Outcome (Outcome, Result);
          when Files.Events.Settings_Click_Input_Action =>
             Outcome :=
@@ -739,7 +738,7 @@ package body Files.Interaction is
             null;
       end case;
 
-      Finish_Dispatch (Model, Settings, Settings_Path, Context_Menu_At_Entry, Result);
+      Finish_Dispatch (Model, Settings, Settings_Path, Result);
    end Apply_Input_Action;
 
    procedure Apply_Context_Menu_Command
@@ -791,7 +790,6 @@ package body Files.Interaction is
          --  persisted recent list.
          Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
       end if;
-      Result.Context_Menu_Changed := True;
    end Apply_Context_Menu_Command;
 
    procedure Apply_Right_Click
@@ -853,7 +851,6 @@ package body Files.Interaction is
       else
          Files.Model.Close_Context_Menu (Model);
       end if;
-      Result.Context_Menu_Changed := True;
    end Apply_Right_Click;
 
    procedure Apply_Column_Resize
@@ -914,8 +911,8 @@ package body Files.Interaction is
    begin
       Result := (others => <>);
       if Updated.Column_Order /= Settings.Column_Order then
-         Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path);
-         Result.Settings_Changed := Files.Settings.Same_Content (Settings, Updated);
+         Files.Controller.Commit_Settings
+           (Model, Settings, Updated, Settings_Path, Accepted => Result.Settings_Changed);
       end if;
    end Apply_Column_Reorder;
 

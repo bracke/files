@@ -99,7 +99,7 @@ separate (Files_Suite.Interaction)
             Before,
             "applying drag-begin leaves the main-view scroll offset to the shell");
          Assert
-           (Result.Command = Files.Commands.No_Command and then not Result.Context_Menu_Changed,
+           (Result.Command = Files.Commands.No_Command and then not Files.Model.Context_Menu_Is_Open (Model),
             "the drag-begin reducer branch produces no command or menu effect");
       end;
    end Test_Scrollbar_Drag_Begin;

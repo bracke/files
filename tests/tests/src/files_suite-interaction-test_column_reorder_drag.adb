@@ -64,7 +64,7 @@ separate (Files_Suite.Interaction)
             Files.Types.Size_Column,
             "the reorder targets the column whose cell body was pressed");
          Files_Suite.Support.Assert_Equal
-           (Action.Command,
+           (Action.Sort_Command,
             Files.Commands.Sort_By_Size_Command,
             "the reorder-begin action carries the column's sort command for the click fallback");
 
@@ -93,8 +93,7 @@ separate (Files_Suite.Interaction)
          Sort_Before  : constant Files.Types.Sort_Field := Files.Model.Sort_Field_Of (Model);
          Sort_Action  : constant Files.Events.Input_Action :=
            (Kind    => Files.Events.Command_Input_Action,
-            Command => Files.Commands.Sort_By_Size_Command,
-            others  => <>);
+            Command => Files.Commands.Sort_By_Size_Command);
       begin
          Files.Interaction.Apply_Input_Action
            (Model, Fresh, "", Sort_Action, Base_Font, Guikit.Input.No_Modifiers, Result);

@@ -17,6 +17,14 @@ package Files.File_Types is
       Dotfiles : Boolean := False)
       return String;
 
+   --  Whether Extract can open a file by this name: a ZIP or 7z archive, by
+   --  its extension in any case. Extract's enabling and the extraction both
+   --  ask this, so the command is never offered for a file it then skips.
+   --
+   --  @param Name File name to inspect.
+   --  @return True for a .zip or .7z name.
+   function Is_Extractable_Archive (Name : String) return Boolean;
+
    --  Determine a filetype from item kind, file name, and settings mappings.
    --
    --  @param Settings Settings model containing extension mappings.

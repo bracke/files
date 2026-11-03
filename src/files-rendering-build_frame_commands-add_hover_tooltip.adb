@@ -19,90 +19,23 @@ separate (Files.Rendering.Build_Frame_Commands)
          then Natural'Min (Raw_Text_W, Max_Tip_W - 2 * Padding)
          else 0);
 
-      --  Greedily wrap Raw at whitespace so each row fits in Cap cells; a
-      --  token wider than Cap is hard-split. Rows are joined with LF and
-      --  whitespace runs collapse — tooltip text is a single logical line.
-      function Wrap_Words (Raw : String; Cap : Positive) return String is
-         Out_Str   : UString := Null_Unbounded_String;
-         Have_Line : Boolean := False;
-         Cur       : UString := Null_Unbounded_String;
-         Cur_Units : Natural := 0;
+      --  The rows Raw takes in Width pixels, joined with LF: wrapped as the
+      --  info pane wraps (For_Each_Wrapped_Line), so the same text breaks the
+      --  same way in both.
+      function Wrap_Words (Raw : String; Width : Natural) return String is
+         Out_Str : UString := Null_Unbounded_String;
 
-         procedure Flush is
+         procedure Add_Row (Row : Natural; First : Integer; Last : Integer) is
          begin
-            if Have_Line then
+            if Row > 0 then
                Append (Out_Str, ASCII.LF);
             end if;
-            Append (Out_Str, Cur);
-            Have_Line := True;
-            Cur := Null_Unbounded_String;
-            Cur_Units := 0;
-         end Flush;
-
-         procedure Add_Word (Word : String) is
-            Word_Units : constant Natural := Files.UTF8.Display_Units (Word);
-         begin
-            if Word_Units = 0 then
-               return;
-            elsif Word_Units > Cap then
-               --  Longer than a whole row: flush, then hard-split the token.
-               if Cur_Units > 0 then
-                  Flush;
-               end if;
-               declare
-                  Pos : Integer := Word'First;
-               begin
-                  while Pos <= Word'Last loop
-                     declare
-                        Piece : constant String :=
-                          Files.UTF8.Prefix_By_Units (Word (Pos .. Word'Last), Cap);
-                        Stop  : constant Integer :=
-                          (if Piece'Length = 0 then Word'Last else Pos + Piece'Length - 1);
-                     begin
-                        Cur := To_Unbounded_String (Word (Pos .. Stop));
-                        Cur_Units := Files.UTF8.Display_Units (Word (Pos .. Stop));
-                        exit when Stop >= Word'Last;
-                        Flush;
-                        Pos := Stop + 1;
-                     end;
-                  end loop;
-               end;
-            elsif Cur_Units = 0 then
-               Cur := To_Unbounded_String (Word);
-               Cur_Units := Word_Units;
-            elsif Cur_Units + 1 + Word_Units <= Cap then
-               Append (Cur, ' ');
-               Append (Cur, Word);
-               Cur_Units := Cur_Units + 1 + Word_Units;
-            else
-               Flush;
-               Cur := To_Unbounded_String (Word);
-               Cur_Units := Word_Units;
+            if Last >= First then
+               Append (Out_Str, Raw (First .. Last));
             end if;
-         end Add_Word;
-
-         Word_First : Integer := Raw'First;
-         In_Word    : Boolean := False;
+         end Add_Row;
       begin
-         for Pos in Raw'Range loop
-            if Raw (Pos) = ' ' or else Raw (Pos) = ASCII.LF
-              or else Raw (Pos) = ASCII.CR or else Raw (Pos) = ASCII.HT
-            then
-               if In_Word then
-                  Add_Word (Raw (Word_First .. Pos - 1));
-                  In_Word := False;
-               end if;
-            elsif not In_Word then
-               Word_First := Pos;
-               In_Word := True;
-            end if;
-         end loop;
-         if In_Word then
-            Add_Word (Raw (Word_First .. Raw'Last));
-         end if;
-         if Cur_Units > 0 or else not Have_Line then
-            Flush;
-         end if;
+         For_Each_Wrapped_Line (Raw, Width, Line_Height, Add_Row'Access);
          return To_String (Out_Str);
       end Wrap_Words;
 
@@ -146,7 +79,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       --  from this single wrapped block so they cannot disagree.
       Capacity    : constant Natural := Text_W / Cell_W;
       Wrapped     : constant String :=
-        (if Capacity = 0 then Text_Raw else Wrap_Words (Text_Raw, Capacity));
+        (if Capacity = 0 then Text_Raw else Wrap_Words (Text_Raw, Text_W));
       Row_Count   : constant Positive := Line_Count (Wrapped);
       Line_Units  : constant Natural := Longest_Line_Units (Wrapped);
       Draw_Text_W : constant Natural :=

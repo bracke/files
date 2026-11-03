@@ -114,6 +114,22 @@ package Files.Controller is
       Updated       : Files.Settings.Settings_Model;
       Settings_Path : String);
 
+   --  Commit_Settings, saying whether the change took.
+   --
+   --  @param Model Window whose error line reports a refused change or a failed write.
+   --  @param Settings Live settings model, replaced by Updated when it is accepted.
+   --  @param Updated The settings with the change made.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @param Accepted True when Updated differed from Settings and is now the
+   --    live settings (written, or with the write's failure on the error line);
+   --    False when it changed nothing or was refused.
+   procedure Commit_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Updated       : Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Accepted      : out Boolean);
+
    --  Execute a command produced by a toolbar or bottom-bar hit test.
    --
    --  @param Id Command identifier from the clicked UI control.

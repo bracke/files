@@ -20,8 +20,8 @@ separate (Files_Suite.Operations)
       Write_Binary_File (Join (Root, "second.txt"), "second");
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",
-         (Kind => Files.Events.Command_Input_Action, Command => Files.Commands.Refresh_Directory_Command,
-          others => <>), 16, Guikit.Input.No_Modifiers, Routed);
+         (Kind => Files.Events.Command_Input_Action, Command => Files.Commands.Refresh_Directory_Command),
+         16, Guikit.Input.No_Modifiers, Routed);
       Await_View (Model, Settings, Applied);
       Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
               "the refresh finishes instead of being requested again");

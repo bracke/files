@@ -1156,7 +1156,7 @@ package body Files.Application.Windows is
          Runtime.Column_Reorder.Target := Action.Column;
          Runtime.Column_Reorder.Origin_X := Action.Origin_X;
          Runtime.Column_Reorder.Started := False;
-         Runtime.Column_Reorder.Sort := Action.Command;
+         Runtime.Column_Reorder.Sort := Action.Sort_Command;
          return;
       end if;
 
@@ -1235,7 +1235,7 @@ package body Files.Application.Windows is
       if not Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H)
         or else Frame_W <= 0 or else Frame_H <= 0
       then
-         return (Kind => Files.Events.No_Input_Action, others => <>);
+         return (Kind => Files.Events.No_Input_Action);
       end if;
 
       declare
@@ -1257,7 +1257,7 @@ package body Files.Application.Windows is
          if Action.Kind = Files.Events.Item_Click_Input_Action then
             Action.Item_Index := Current_Item_Index (Runtime, Slot, Action.Item_Index);
             if Action.Item_Index = 0 then
-               return (Kind => Files.Events.No_Input_Action, others => <>);
+               return (Kind => Files.Events.No_Input_Action);
             end if;
          end if;
          return Action;
@@ -1306,7 +1306,8 @@ package body Files.Application.Windows is
             --  A developer trace: field=value pairs, no prose.
             "x=" & Natural'Image (Item.Bounds.X) & ',' & "y=" & Natural'Image (Item.Bounds.Y)
             & ',' & "action=" & Files.Events.Input_Action_Kind'Image (Action.Kind)
-            & ',' & "item=" & Action.Item_Index'Image);
+            & ',' & "item="
+            & (if Action.Kind = Files.Events.Item_Click_Input_Action then Action.Item_Index'Image else " 0"));
          Dispatch_Click_Action (Runtime, Action, Guikit.Input.No_Modifiers);
          Files.Diagnostics.Trace
            ("Files.Application.Windows",
@@ -1685,8 +1686,7 @@ package body Files.Application.Windows is
                Dispatch_Click_Action
                  (Runtime,
                   (Kind    => Files.Events.Command_Input_Action,
-                   Command => Runtime.Column_Reorder.Sort,
-                   others  => <>),
+                   Command => Runtime.Column_Reorder.Sort),
                   Guikit.Input.No_Modifiers);
             end if;
          end;

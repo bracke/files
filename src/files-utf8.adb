@@ -76,49 +76,17 @@ package body Files.UTF8 is
       return 1;
    end Unit_Length;
 
-   function Is_Combining_Codepoint
-     (Codepoint : Natural)
-      return Boolean is
-   begin
-      return Is_Required_Zero_Width_Codepoint (Codepoint)
-        or else Codepoint in 16#FE00# .. 16#FE0F#
-        or else Codepoint in 16#E0100# .. 16#E01EF#;
-   end Is_Combining_Codepoint;
-
    function Is_Required_Zero_Width_Codepoint
      (Codepoint : Natural)
       return Boolean is
      (Guikit.Utf8.Is_Required_Zero_Width_Codepoint (Codepoint));
 
-   function Is_Wide_Codepoint
-     (Codepoint : Natural)
-      return Boolean is
-   begin
-      return Codepoint in 16#1100# .. 16#115F#
-        or else Codepoint = 16#2329#
-        or else Codepoint = 16#232A#
-        or else Codepoint in 16#2E80# .. 16#A4CF#
-        or else Codepoint in 16#AC00# .. 16#D7A3#
-        or else Codepoint in 16#F900# .. 16#FAFF#
-        or else Codepoint in 16#FE10# .. 16#FE19#
-        or else Codepoint in 16#FE30# .. 16#FE6F#
-        or else Codepoint in 16#FF00# .. 16#FF60#
-        or else Codepoint in 16#FFE0# .. 16#FFE6#
-        or else Codepoint in 16#1F300# .. 16#1FAFF#;
-   end Is_Wide_Codepoint;
+   --  The width tables are guikit's, which lays out and draws the text.
+   function Is_Combining_Codepoint (Codepoint : Natural) return Boolean
+     renames Guikit.Utf8.Is_Combining_Codepoint;
 
-   function Codepoint_Display_Units
-     (Codepoint : Natural)
-      return Natural is
-   begin
-      if Is_Combining_Codepoint (Codepoint) then
-         return 0;
-      elsif Is_Wide_Codepoint (Codepoint) then
-         return 2;
-      else
-         return 1;
-      end if;
-   end Codepoint_Display_Units;
+   function Codepoint_Display_Units (Codepoint : Natural) return Natural
+     renames Guikit.Utf8.Codepoint_Display_Units;
 
    function Codepoint_At_Offset
      (Content : String;

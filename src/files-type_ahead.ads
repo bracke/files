@@ -3,20 +3,6 @@ with Files.Types;
 --  Pure type-to-select (type-ahead) matching over a visible item projection.
 package Files.Type_Ahead is
 
-   --  Return whether Name begins with Prefix, comparing case-insensitively.
-   --
-   --  Both operands are lower-cased with the shared UTF-8-aware folding helper
-   --  before the leading bytes are compared, so ASCII and Latin-1 letters match
-   --  regardless of case.
-   --
-   --  @param Name UTF-8 encoded candidate name.
-   --  @param Prefix UTF-8 encoded prefix typed by the user.
-   --  @return True when Name starts with Prefix (case-insensitive).
-   function Starts_With_Case_Insensitive
-     (Name   : String;
-      Prefix : String)
-      return Boolean;
-
    --  Return the visible index of the first item whose name starts with Prefix.
    --
    --  The search begins at Start_Index (one-based, inclusive) and wraps around

@@ -780,8 +780,7 @@ package body Files_Suite.Interaction is
    is
       Action : constant Files.Events.Input_Action :=
         (Kind    => Files.Events.Command_Input_Action,
-         Command => Command,
-         others  => <>);
+         Command => Command);
    begin
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
@@ -897,8 +896,7 @@ package body Files_Suite.Interaction is
    is
       Action : constant Files.Events.Input_Action :=
         (Kind    => Files.Events.Command_Input_Action,
-         Command => Files.Commands.Select_Drive_Command,
-         others  => <>);
+         Command => Files.Commands.Select_Drive_Command);
       Result : Files.Interaction.Interaction_Result;
    begin
       Files.Interaction.Apply_Input_Action

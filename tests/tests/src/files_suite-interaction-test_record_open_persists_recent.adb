@@ -12,8 +12,7 @@ separate (Files_Suite.Interaction)
       Result   : Files.Interaction.Interaction_Result;
       Action   : constant Files.Events.Input_Action :=
         (Kind    => Files.Events.Command_Input_Action,
-         Command => Files.Commands.Open_Selected_Items_Command,
-         others  => <>);
+         Command => Files.Commands.Open_Selected_Items_Command);
    begin
       Files_Suite.Support.Reset_Root;
       Ada.Directories.Create_Path (Dir);

@@ -13,8 +13,7 @@ separate (Files_Suite.Interaction)
       Result   : Files.Interaction.Interaction_Result;
       Action   : constant Files.Events.Input_Action :=
         (Kind    => Files.Events.Command_Input_Action,
-         Command => Files.Commands.Navigate_Recent_Command,
-         others  => <>);
+         Command => Files.Commands.Navigate_Recent_Command);
    begin
       Files_Suite.Support.Reset_Root;
       Ada.Directories.Create_Path (Dir);
@@ -75,8 +74,7 @@ separate (Files_Suite.Interaction)
            Files.Operations.Navigate_Recent (Model, Settings);
          Clear_Action : constant Files.Events.Input_Action :=
            (Kind    => Files.Events.Command_Input_Action,
-            Command => Files.Commands.Clear_Recent_Command,
-            others  => <>);
+            Command => Files.Commands.Clear_Recent_Command);
          pragma Unreferenced (Rebuilt);
       begin
          Assert

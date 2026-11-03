@@ -7,7 +7,6 @@ with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 with Interfaces;
 with Hostkit.Fs;
-with Hostkit.Host;
 with Files.File_System;
 with Files.Job_Context;
 with Files.Types;
@@ -134,7 +133,6 @@ package body Files.Archive_Writing is
       Free_Inodes_Known  : Boolean;
       Destination        : String := "") return Boolean
    is
-      use type Hostkit.Host.Kind;
       subtype U64 is Interfaces.Unsigned_64;
       Dos_Rules          : constant Boolean :=
         Destination /= "" and then Hostkit.Fs.Uses_Dos_Filename_Rules (Destination);
@@ -158,8 +156,7 @@ package body Files.Archive_Writing is
         or else not Names_Are_Extractable
           (Entries,
            Dos_Rules        => Dos_Rules,
-           Case_Insensitive =>
-             Dos_Rules or else (Destination /= "" and then Hostkit.Host.Current = Hostkit.Host.MacOS))
+           Case_Insensitive => Destination /= "" and then Hostkit.Fs.Folds_Name_Case (Destination))
       then
          return False;
       end if;

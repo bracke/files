@@ -1,3 +1,4 @@
+with Files.Model.Testing;
 separate (Files_Suite.Interaction)
    procedure Test_Drop_Contained_By_Overlays
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -90,5 +91,5 @@ separate (Files_Suite.Interaction)
       Files.Model.Begin_Tree_Pick
         (Model, Files.Model.Pick_Copy, Sources, Files.Model.Current_Path (Model));
       Assert_Contained ("the destination picker");
-      Files.Model.Clear_Tree_Pick (Model);
+      Files.Model.Testing.Clear_Tree_Pick (Model);
    end Test_Drop_Contained_By_Overlays;

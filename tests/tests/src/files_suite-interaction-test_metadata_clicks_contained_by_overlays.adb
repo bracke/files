@@ -15,8 +15,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",
          (Kind       => Files.Events.Permission_Toggle_Input_Action,
-          Bit        => 0,
-          others     => <>),
+          Bit        => 0),
          Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert
         (Files.Model.Revision (Model) = Before
@@ -26,8 +25,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",
          (Kind       => Files.Events.Ownership_Edit_Input_Action,
-          Edit_Group => False,
-          others     => <>),
+          Edit_Group => False),
          Base_Font, Guikit.Input.No_Modifiers, Result);
       Assert
         (Files.Model.Revision (Model) = Before
@@ -37,8 +35,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",
          (Kind    => Files.Events.Command_Input_Action,
-          Command => Files.Commands.Toggle_Info_Pane_Command,
-          others  => <>),
+          Command => Files.Commands.Toggle_Info_Pane_Command),
          Base_Font, Guikit.Input.No_Modifiers, Result);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Revision (Model), Before,

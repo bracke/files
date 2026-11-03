@@ -10,12 +10,12 @@ separate (Files_Suite.Model)
       Assert (not Files.Model.Input_Owning_Overlay_Is_Open (Model), "no overlay is open at first");
       Assert (not Files.Model.Non_Text_Overlay_Owns_Input (Model), "nothing owns native input at first");
       for Overlay in Files.Model.Input_Overlay loop
-         Assert (not Files.Model.Overlay_Is_Open (Model, Overlay), "no single overlay is open at first");
+         Assert (not Files.Model.Testing.Overlay_Is_Open (Model, Overlay), "no single overlay is open at first");
       end loop;
 
       Roots.Append (Ada.Strings.Unbounded.To_Unbounded_String (Files_Suite.Support.Root));
       Files.Model.Open_Root_Selector (Model, Roots);
-      Assert (Files.Model.Overlay_Is_Open (Model, Files.Model.Root_Selector_Overlay), "the selector is open");
+      Assert (Files.Model.Testing.Overlay_Is_Open (Model, Files.Model.Root_Selector_Overlay), "the selector is open");
       Assert (Files.Model.Input_Owning_Overlay_Is_Open (Model), "the selector owns input");
       Assert
         (not Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Model.Root_Selector_Overlay),

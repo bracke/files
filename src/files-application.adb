@@ -28,6 +28,17 @@ with Guikit.Frame_Analysis;
 with Guikit.Vulkan;
 
 package body Files.Application is
+
+   --  Replace the process-global keyboard-shortcut override table in
+   --  Files.Commands with the overrides persisted in Settings. Every unknown
+   --  command identifier is ignored, so a stale settings file never blocks
+   --  startup. Called during startup resolution and after the shortcut editor
+   --  rebinds a key.
+   --
+   --  @param Settings Settings model carrying the persisted overrides.
+   procedure Apply_Shortcut_Overrides
+     (Settings : Files.Settings.Settings_Model);
+
    use Ada.Strings.Unbounded;
    use type Files.File_System.Path_Status;
    use type Files.Rendering.Text_Render_Status;

@@ -65,8 +65,6 @@ is
          return Make_Result (Operation_Failed, Error_Key, Directory);
    end Failed;
 
-   function Trimmed_Image (Value : Positive) return String is (Files.Types.Natural_Text (Value));
-
    --  Build the " (link)" / " (link N)" marker. The fragments are kept
    --  separate so no single string literal mixes a letter with a space,
    --  which the format-validation tooling rejects.
@@ -78,7 +76,7 @@ is
       if Value = 1 then
          return Open & Word & Close;
       else
-         return Open & Word & " " & Trimmed_Image (Value) & Close;
+         return Open & Word & " " & Files.Types.Natural_Text (Value) & Close;
       end if;
    end Link_Marker;
 begin

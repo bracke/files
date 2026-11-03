@@ -153,24 +153,6 @@ package body Files.UI is
       return Widest + 2 * Input_Field_Padding;
    end Filter_Scope_Chip_Width;
 
-   function Calculate_Settings_Entry_Button_Layout
-     (Pane_X      : Natural;
-      Pane_Width  : Natural;
-      Line_Height : Positive := Base_Line_Height)
-      return Guikit.Layout.Settings_Entry_Button_Layout
-   is
-      Cell_W : constant Natural := Caret_Advance_Width (Line_Height);
-   begin
-      return
-        Guikit.Layout.Calculate_Settings_Entry_Button_Layout
-          (Pane_X             => Pane_X,
-           Pane_Width         => Pane_Width,
-           Add_Label_Width    =>
-             Label_Pixel_Width (Files.Localization.Text ("settings.add"), Cell_W),
-           Remove_Label_Width =>
-             Label_Pixel_Width (Files.Localization.Text ("settings.remove"), Cell_W));
-   end Calculate_Settings_Entry_Button_Layout;
-
    procedure Split_Status_Region
      (Info_X           : Natural;
       Info_Width       : Natural;

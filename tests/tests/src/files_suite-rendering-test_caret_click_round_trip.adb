@@ -47,7 +47,7 @@ separate (Files_Suite.Rendering)
               (Action.Cursor_Position,
                3,
                "the click at the caret pixel resolves back to the drawn cursor index");
-            Files_Suite.Support.Assert_Equal (Action.Item_Index, 1, "the click carries the clicked row index");
+            Files_Suite.Support.Assert_Equal (Action.Field_Item, 1, "the click carries the clicked row index");
          end;
       end;
    end Test_Caret_Click_Round_Trip;

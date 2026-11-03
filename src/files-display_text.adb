@@ -15,6 +15,16 @@ with Humanize.Datetimes;
 with Humanize.Status;
 
 package body Files.Display_Text is
+
+   --  @param Value The time.
+   --  @param Format A Util.Dates.Formats pattern.
+   --  @return Value formatted in the time locale.
+   function Formatted_Time_Text (Value : Ada.Calendar.Time; Format : String) return String;
+
+   --  @param Value A number.
+   --  @return It in decimal, without the sign's blank.
+   function Integer_Text (Value : Long_Long_Integer) return String;
+
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
 

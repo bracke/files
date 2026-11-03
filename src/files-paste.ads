@@ -74,18 +74,6 @@ package Files.Paste is
       Name : String)
       return String;
 
-   --  The effective per-item decision for a policy and an optional override.
-   --  An explicit override wins; otherwise the policy maps to a decision
-   --  (Policy_Ask stays Decision_Pending).
-   --
-   --  @param Policy Batch-wide policy.
-   --  @param Override Per-item override (Decision_Pending when none).
-   --  @return The decision that applies to the item.
-   function Effective_Decision
-     (Policy   : Conflict_Policy;
-      Override : Item_Decision)
-      return Item_Decision;
-
    --  Index of the first conflicting item after position After whose effective
    --  decision is still Decision_Pending, or 0 when every remaining conflict is
    --  decided (or there are no conflicts).

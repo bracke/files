@@ -39,5 +39,5 @@ begin
       return;
    end if;
    Handled := False;
-   Result := No_Action (Activate);
+   Result := No_Action;
 end Scrollbar_Click;

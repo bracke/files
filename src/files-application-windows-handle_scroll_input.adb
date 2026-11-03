@@ -52,9 +52,9 @@ separate (Files.Application.Windows)
          --  Without viewport geometry there is no meaningful scroll target or
          --  maximum offset. Discard the event instead of accumulating invisible
          --  main/info offsets while the window is minimized.
-         Action := (Kind => Files.Events.No_Input_Action, others => <>);
+         Action := (Kind => Files.Events.No_Input_Action);
       elsif not Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H) then
-         Action := (Kind => Files.Events.No_Input_Action, others => <>);
+         Action := (Kind => Files.Events.No_Input_Action);
       else
          Refresh_Snapshot (Runtime);
          declare

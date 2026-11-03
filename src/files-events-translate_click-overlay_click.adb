@@ -13,10 +13,10 @@ begin
            Files.Rendering.Hit.Conflict_Hit_At (Frame, X, Y);
       begin
          if Hit.Kind = Files.Rendering.Conflict_Hit_Progress_Cancel then
-            Result := Paste_Cancel_Action (Activate);
+            Result := Paste_Cancel_Action;
             return;
          end if;
-         Result := No_Action (Activate);
+         Result := No_Action;
          return;
       end;
    end if;
@@ -34,27 +34,27 @@ begin
       begin
          case Hit.Kind is
             when Files.Rendering.Conflict_Hit_Replace =>
-               Result := Conflict_Action (Conflict_Button_Replace, Activate);
+               Result := Conflict_Action (Conflict_Button_Replace);
                return;
             when Files.Rendering.Conflict_Hit_Skip =>
-               Result := Conflict_Action (Conflict_Button_Skip, Activate);
+               Result := Conflict_Action (Conflict_Button_Skip);
                return;
             when Files.Rendering.Conflict_Hit_Rename =>
-               Result := Conflict_Action (Conflict_Button_Rename, Activate);
+               Result := Conflict_Action (Conflict_Button_Rename);
                return;
             when Files.Rendering.Conflict_Hit_Cancel =>
-               Result := Conflict_Action (Conflict_Button_Cancel, Activate);
+               Result := Conflict_Action (Conflict_Button_Cancel);
                return;
             when Files.Rendering.Conflict_Hit_Apply_All =>
-               Result := Conflict_Action (Conflict_Button_Apply_All, Activate);
+               Result := Conflict_Action (Conflict_Button_Apply_All);
                return;
             when Files.Rendering.Conflict_Hit_None
                | Files.Rendering.Conflict_Hit_Progress_Cancel =>
                if Close_Button_Hit (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height) then
-                  Result := Conflict_Action (Conflict_Button_Cancel, Activate);
+                  Result := Conflict_Action (Conflict_Button_Cancel);
                   return;
                end if;
-               Result := No_Action (Activate);
+               Result := No_Action;
                return;
          end case;
       end;
@@ -71,10 +71,10 @@ begin
          if Close_Button_Hit (QL.X, QL.Y, QL.Width, QL.Height)
            or else not (Within (X, QL.X, QL.Width) and then Within (Y, QL.Y, QL.Height))
          then
-            Result := Command_Action (Files.Commands.Toggle_Quick_Look_Command, Activate);
+            Result := Command_Action (Files.Commands.Toggle_Quick_Look_Command);
             return;
          end if;
-         Result := No_Action (Activate);
+         Result := No_Action;
          return;
       end;
    end if;
@@ -95,7 +95,7 @@ begin
                if Within (X, Swatch.X, Swatch.Width)
                  and then Within (Y, Swatch.Y, Swatch.Height)
                then
-                  Result := Label_Choice_Action (Files.Rendering.Label_For_Swatch (Index), Activate);
+                  Result := Label_Choice_Action (Files.Rendering.Label_For_Swatch (Index));
                   return;
                end if;
             end;
@@ -104,10 +104,10 @@ begin
            or else not (Within (X, Picker.X, Picker.Width)
                         and then Within (Y, Picker.Y, Picker.Height))
          then
-            Result := Command_Action (Files.Commands.Close_Command_Palette_Command, Activate);
+            Result := Command_Action (Files.Commands.Close_Command_Palette_Command);
             return;
          end if;
-         Result := No_Action (Activate);
+         Result := No_Action;
          return;
       end;
    end if;
@@ -119,7 +119,7 @@ begin
      and then Close_Button_Hit
        (Palette_Layout.X, Palette_Layout.Y, Palette_Layout.Width, Palette_Layout.Height)
    then
-      Result := Command_Action (Files.Commands.Close_Command_Palette_Command, Activate);
+      Result := Command_Action (Files.Commands.Close_Command_Palette_Command);
       return;
    end if;
 
@@ -131,14 +131,12 @@ begin
         and then Within (Y, Palette_Layout.Y, Palette_Layout.Height)
       then
          Result :=
-           (Kind     => Command_Result_Click_Input_Action,
-            Click_X  => X,
-            Click_Y  => Y,
-            Activate => Activate,
-            others   => <>);
+           (Kind    => Command_Result_Click_Input_Action,
+            Click_X => X,
+            Click_Y => Y);
          return;
       else
-         Result := No_Action (Activate);
+         Result := No_Action;
          return;
       end if;
    end if;
@@ -147,7 +145,7 @@ begin
      and then Close_Button_Hit
        (Settings_Pane.X, Settings_Pane.Y, Settings_Pane.Width, Settings_Pane.Height)
    then
-      Result := Command_Action (Files.Commands.Toggle_Settings_Pane_Command, Activate);
+      Result := Command_Action (Files.Commands.Toggle_Settings_Pane_Command);
       return;
    end if;
 
@@ -158,7 +156,7 @@ begin
          Result := Hit;
          return;
       elsif Snapshot.Settings_Pane_Open then
-         Result := No_Action (Activate);
+         Result := No_Action;
          return;
       end if;
    end;
@@ -167,16 +165,14 @@ begin
      and then Close_Button_Hit
        (Root_Layout.X, Root_Layout.Y, Root_Layout.Width, Root_Layout.Height)
    then
-      Result := Command_Action (Files.Commands.Close_Command_Palette_Command, Activate);
+      Result := Command_Action (Files.Commands.Close_Command_Palette_Command);
       return;
    end if;
 
    if Root_Index /= 0 then
       Result :=
         (Kind       => Root_Click_Input_Action,
-         Root_Index => Root_Index,
-         Activate   => Activate,
-         others     => <>);
+         Root_Index => Root_Index);
       return;
    elsif Snapshot.Root_Selector_Open then
       declare
@@ -184,18 +180,18 @@ begin
            Files.Rendering.Hit.Toolbar_Command_At (X, Y, Width, Line_Height);
       begin
          if Root_Command = Files.Commands.Select_Drive_Command then
-            Result := Command_Action (Root_Command, Activate);
+            Result := Command_Action (Root_Command);
             return;
          elsif Within (X, Root_Layout.X, Root_Layout.Width)
            and then Within (Y, Root_Layout.Y, Root_Layout.Height)
          then
-            Result := No_Action (Activate);
+            Result := No_Action;
             return;
          end if;
       end;
-      Result := Command_Action (Files.Commands.Close_Command_Palette_Command, Activate);
+      Result := Command_Action (Files.Commands.Close_Command_Palette_Command);
       return;
    end if;
    Handled := False;
-   Result := No_Action (Activate);
+   Result := No_Action;
 end Overlay_Click;

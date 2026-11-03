@@ -66,4 +66,36 @@ package Files.Model.Testing is
    --  @return The item.
    function Item_At (Model : Window_Model; Index : Positive) return Files.Items.Directory_Item;
 
+   --  Cache a recursive folder-size measurement for a directory path.
+   --
+   --  The cache holds one measurement at a time, keyed by Path, so a repeated
+   --  selection of the same directory reuses it instead of walking again.
+   --
+   --  @param Model Model to update.
+   --  @param Path Directory the measurement describes.
+   --  @param Value Recursive size totals for Path.
+   procedure Set_Folder_Size
+     (Model : in out Window_Model;
+      Path  : String;
+      Value : Files.File_System.Directory_Size_Result);
+   --  Clear the destination-picker sub-mode and its captured sources.
+   --
+   --  @param Model Model to update.
+   procedure Clear_Tree_Pick
+     (Model : in out Window_Model);
+   --  Return whether one input-owning overlay is open.
+   --
+   --  @param Model Model to inspect.
+   --  @param Overlay The overlay to ask about.
+   --  @return True while Overlay is open (or, for a paste, active).
+   function Overlay_Is_Open
+     (Model   : Window_Model;
+      Overlay : Input_Overlay)
+      return Boolean;
+   --  Cancel temporary create-file state.
+   --
+   --  @param Model Model to update.
+   procedure Cancel_Create_File
+     (Model : in out Window_Model);
+
 end Files.Model.Testing;

@@ -39,8 +39,7 @@ separate (Files_Suite.Interaction)
       declare
          Action : constant Files.Events.Input_Action :=
            (Kind    => Files.Events.Command_Input_Action,
-            Command => Files.Commands.Sort_By_Name_Command,
-            others  => <>);
+            Command => Files.Commands.Sort_By_Name_Command);
       begin
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);

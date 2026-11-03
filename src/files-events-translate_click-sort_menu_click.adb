@@ -11,19 +11,19 @@ begin
         Files.Rendering.Hit.Bottom_Bar_Sort_Menu_Command_At
           (X, Y, Width, Height, Snapshot.Sort_Field, Line_Height);
       if Command /= Files.Commands.No_Command then
-         Result := Command_Action (Command, Activate);
+         Result := Command_Action (Command);
          return;
       elsif Files.Rendering.Hit.Bottom_Bar_Sort_Menu_Contains
               (X, Y, Width, Height, Snapshot.Sort_Field, Line_Height)
       then
          --  Padding inside the menu is inert and must not fall through.
-         Result := No_Action (Activate);
+         Result := No_Action;
          return;
       else
-         Result := Command_Action (Files.Commands.Close_Command_Palette_Command, Activate);
+         Result := Command_Action (Files.Commands.Close_Command_Palette_Command);
          return;
       end if;
    end if;
    Handled := False;
-   Result := No_Action (Activate);
+   Result := No_Action;
 end Sort_Menu_Click;

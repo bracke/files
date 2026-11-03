@@ -1,3 +1,4 @@
+with Files.Model.Testing;
 separate (Files_Suite.Interaction)
    procedure Test_Text_Entry_Contained_By_Overlays
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -71,8 +72,7 @@ separate (Files_Suite.Interaction)
 
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "",
-            (Kind => Files.Events.Path_Favorite_Toggle_Input_Action,
-             others => <>),
+            (Kind => Files.Events.Path_Favorite_Toggle_Input_Action),
             Base_Font, Guikit.Input.No_Modifiers, Reduced);
          Assert
            (Files.Settings.Is_Favorite (Settings, Path_Before) = Favorite_Before
@@ -81,8 +81,7 @@ separate (Files_Suite.Interaction)
 
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "",
-            (Kind => Files.Events.Search_Scope_Toggle_Input_Action,
-             others => <>),
+            (Kind => Files.Events.Search_Scope_Toggle_Input_Action),
             Base_Font, Guikit.Input.No_Modifiers, Reduced);
          Assert
            (Files.Model.Search_Scope_Of (Model) = Scope_Before,
@@ -160,5 +159,5 @@ separate (Files_Suite.Interaction)
       Files.Model.Begin_Tree_Pick
         (Model, Files.Model.Pick_Copy, Sources, Files.Model.Current_Path (Model));
       Assert_Contained ("the destination picker");
-      Files.Model.Clear_Tree_Pick (Model);
+      Files.Model.Testing.Clear_Tree_Pick (Model);
    end Test_Text_Entry_Contained_By_Overlays;

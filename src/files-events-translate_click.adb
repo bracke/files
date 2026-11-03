@@ -104,11 +104,9 @@ separate (Files.Events)
       begin
          return
            (Kind            => Text_Click_Input_Action,
-            Item_Index      => Item_Index,
+            Field_Item      => Item_Index,
             Focus_Target    => Target,
-            Cursor_Position => Cursor,
-            Activate        => Activate,
-            others          => <>);
+            Cursor_Position => Cursor);
       end Text_Click;
 
       function Scroll_Click
@@ -131,7 +129,7 @@ separate (Files.Events)
          then
             return
               Scroll_Drag_Begin_Action
-                (Target, Integer (Y_Pos) - Integer (Thumb_Y), Activate);
+                (Target, Integer (Y_Pos) - Integer (Thumb_Y));
          end if;
 
          if Y_Pos < Thumb_Y then
@@ -147,10 +145,10 @@ separate (Files.Events)
          --  the exact adjustment so a page click cannot preserve hidden scroll.
          Adjustment := Integer (Requested) - Integer (Raw);
          if Adjustment = 0 then
-            return No_Action (Activate);
+            return No_Action;
          end if;
 
-         return Scroll_Action (Target, Adjustment, Activate);
+         return Scroll_Action (Target, Adjustment);
       end Scroll_Click;
 
       function Maximum_Line_Offset
@@ -180,10 +178,9 @@ separate (Files.Events)
             return
               Scroll_Drag_Begin_Action
                 (Scroll_Tree_Panel,
-                 Integer (Y) - Integer (Tree_Panel_L.Scrollbar_Thumb_Y),
-                 Activate);
+                 Integer (Y) - Integer (Tree_Panel_L.Scrollbar_Thumb_Y));
          elsif Tree_Page_Rows = 0 or else Count = 0 then
-            return No_Action (Activate);
+            return No_Action;
          elsif Y < Tree_Panel_L.Scrollbar_Thumb_Y then
             Requested :=
               (if Tree_Page_Rows >= Current
@@ -200,10 +197,10 @@ separate (Files.Events)
          --  adjustment so a track click cannot leave an invisible offset.
          Adjustment := Integer (Requested) - Integer (Raw);
          if Adjustment = 0 then
-            return No_Action (Activate);
+            return No_Action;
          end if;
 
-         return Scroll_Action (Scroll_Tree_Panel, Adjustment, Activate);
+         return Scroll_Action (Scroll_Tree_Panel, Adjustment);
       end Tree_Scroll_Click;
 
       --  Any click inside the open settings pane becomes a settings click
@@ -217,15 +214,12 @@ separate (Files.Events)
            or else not Within (X, Pane.X, Pane.Width)
            or else not Within (Y, Pane.Y, Pane.Height)
          then
-            return No_Action (Activate);
+            return No_Action;
          end if;
          return
-           (Kind         => Settings_Click_Input_Action,
-            Click_X      => X,
-            Click_Y      => Y,
-            Focus_Target => Files.Types.Focus_Settings_Input,
-            Activate     => Activate,
-            others       => <>);
+           (Kind    => Settings_Click_Input_Action,
+            Click_X => X,
+            Click_Y => Y);
       end Settings_Click_Hit;
 
       --  A click on an overlay panel's top-right close (X) button. The button
@@ -254,11 +248,9 @@ separate (Files.Events)
          return Input_Action is
       begin
          return
-           (Kind             => Tree_Click_Input_Action,
-            Item_Index       => Node_Index,
-            Activate         => Activate,
-            Toggle_Selection => Toggle,
-            others           => <>);
+           (Kind      => Tree_Click_Input_Action,
+            Tree_Node => Node_Index,
+            Expander  => Toggle);
       end Tree_Action;
 
       --  Build a breadcrumb click action carrying the segment index.
@@ -267,10 +259,8 @@ separate (Files.Events)
          return Input_Action is
       begin
          return
-           (Kind       => Breadcrumb_Click_Input_Action,
-            Item_Index => Segment_Index,
-            Activate   => Activate,
-            others     => <>);
+           (Kind          => Breadcrumb_Click_Input_Action,
+            Segment_Index => Segment_Index);
       end Breadcrumb_Action;
 
       --  The click regions, front to back. Each sets Handled when the click is
@@ -299,7 +289,7 @@ separate (Files.Events)
       --  framebuffer extent during scaling. They name no drawable pixel and
       --  must never activate a clipped control or dismiss a modal overlay.
       if Width = 0 or else Height = 0 or else X >= Width or else Y >= Height then
-         return No_Action (Activate);
+         return No_Action;
       end if;
 
       for Region of Regions loop
@@ -314,5 +304,5 @@ separate (Files.Events)
          end;
       end loop;
 
-      return No_Action (Activate);
+      return No_Action;
    end Translate_Click;

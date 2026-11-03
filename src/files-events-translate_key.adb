@@ -22,26 +22,22 @@ separate (Files.Events)
                return
                  (Kind            => Selection_Input_Action,
                   Direction       => Guikit.Input.Move_Left,
-                  Range_Selection => Modifiers (Guikit.Input.Shift_Key),
-                  others          => <>);
+                  Extend          => Modifiers (Guikit.Input.Shift_Key));
             when Guikit.Input.Key_Right =>
                return
                  (Kind            => Selection_Input_Action,
                   Direction       => Guikit.Input.Move_Right,
-                  Range_Selection => Modifiers (Guikit.Input.Shift_Key),
-                  others          => <>);
+                  Extend          => Modifiers (Guikit.Input.Shift_Key));
             when Guikit.Input.Key_Up =>
                return
                  (Kind            => Selection_Input_Action,
                   Direction       => Guikit.Input.Move_Up,
-                  Range_Selection => Modifiers (Guikit.Input.Shift_Key),
-                  others          => <>);
+                  Extend          => Modifiers (Guikit.Input.Shift_Key));
             when Guikit.Input.Key_Down =>
                return
                  (Kind            => Selection_Input_Action,
                   Direction       => Guikit.Input.Move_Down,
-                  Range_Selection => Modifiers (Guikit.Input.Shift_Key),
-                  others          => <>);
+                  Extend          => Modifiers (Guikit.Input.Shift_Key));
             when others =>
                null;
          end case;

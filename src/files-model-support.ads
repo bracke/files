@@ -127,25 +127,6 @@ private package Files.Model.Support is
    procedure Clear_Root_Selector_State
      (Model : in out Window_Model);
 
-   --  The number of complete key/value pairs across two parallel lists (the
-   --  shorter of the two lengths).
-   --
-   --  @param Keys Key list.
-   --  @param Values Value list.
-   --  @return Min of the two list lengths.
-   function Pair_Count
-     (Keys   : Files.Types.String_Vectors.Vector;
-      Values : Files.Types.String_Vectors.Vector)
-      return Natural;
-
-   --  Truncate Values to at most Count entries.
-   --
-   --  @param Values List to truncate in place.
-   --  @param Count Maximum number of entries to keep.
-   procedure Trim_To_Count
-     (Values : in out Files.Types.String_Vectors.Vector;
-      Count  : Natural);
-
    --  Bring a settings draft into a consistent state: pair up its parallel
    --  key/value mapping lists to equal length and clamp each selection index.
    --

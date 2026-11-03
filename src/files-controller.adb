@@ -205,6 +205,19 @@ package body Files.Controller is
       null;
    end Commit_Settings;
 
+   procedure Commit_Settings
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Updated       : Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Accepted      : out Boolean)
+   is
+      Changes : constant Boolean := not Files.Settings.Same_Content (Updated, Settings);
+   begin
+      Commit_Settings (Model, Settings, Updated, Settings_Path);
+      Accepted := Changes and then Files.Settings.Same_Content (Settings, Updated);
+   end Commit_Settings;
+
    procedure Persist_Settings
      (Model         : in out Files.Model.Window_Model;
       Settings      : Files.Settings.Settings_Model;

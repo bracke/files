@@ -23,7 +23,7 @@ separate (Files_Suite.Model)
          0,
          "direct create clears stale root selector entries");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "direct create closes stale command palette");
-      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Set_Filter (Model, "does-not-match-untitled");
       Files.Model.Set_Error (Model, "error.path.missing");
       Files.Model.Scroll_Main_View (Model, 4);

@@ -9,8 +9,7 @@ separate (Files_Suite.Interaction)
       Item     : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "Alpha.txt");
       Action   : constant Files.Events.Input_Action :=
         (Kind    => Files.Events.Command_Input_Action,
-         Command => Files.Commands.Toggle_Favorite_Command,
-         others  => <>);
+         Command => Files.Commands.Toggle_Favorite_Command);
    begin
       Files_Suite.Support.Reset_Root;
 
@@ -29,7 +28,7 @@ separate (Files_Suite.Interaction)
         (Model,
          Settings,
          Path,
-         (Kind => Files.Events.No_Input_Action, others => <>),
+         (Kind => Files.Events.No_Input_Action),
          Base_Font,
          Guikit.Input.No_Modifiers,
          Result);
@@ -54,9 +53,6 @@ separate (Files_Suite.Interaction)
       Assert
         (not Result.Clear_Pending_Text,
          "a reused interaction result does not retain follow-up flags from the prior action (clear pending text)");
-      Assert
-        (not Result.Context_Menu_Changed,
-         "a reused interaction result does not retain follow-up flags from the prior action (context menu changed)");
 
       --  Toggling the same selection again removes the favorite.
       Files.Interaction.Apply_Input_Action

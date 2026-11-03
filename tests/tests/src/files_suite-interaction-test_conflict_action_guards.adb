@@ -11,8 +11,7 @@ separate (Files_Suite.Interaction)
 
       function Click (Button : Files.Events.Conflict_Button_Kind) return Files.Events.Input_Action is
         (Kind            => Files.Events.Conflict_Click_Input_Action,
-         Conflict_Button => Button,
-         others          => <>);
+         Conflict_Button => Button);
 
       procedure Apply (Button : Files.Events.Conflict_Button_Kind) is
       begin
@@ -37,7 +36,7 @@ separate (Files_Suite.Interaction)
       begin
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "",
-            (Kind => Files.Events.Paste_Cancel_Input_Action, others => <>),
+            (Kind => Files.Events.Paste_Cancel_Input_Action),
             Base_Font, Guikit.Input.No_Modifiers, Result);
          Assert
            (Files.Model.Revision (Model) = Revision,

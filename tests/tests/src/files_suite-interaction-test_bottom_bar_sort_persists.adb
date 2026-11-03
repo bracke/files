@@ -20,7 +20,7 @@ separate (Files_Suite.Interaction)
 
       procedure Dispatch (Command : Files.Commands.Command_Id) is
          Action : constant Files.Events.Input_Action :=
-           (Kind => Files.Events.Command_Input_Action, Command => Command, Activate => True, others => <>);
+           (Kind => Files.Events.Command_Input_Action, Command => Command);
       begin
          Files.Interaction.Apply_Input_Action
            (Model             => Model,

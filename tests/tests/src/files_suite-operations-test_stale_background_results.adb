@@ -109,7 +109,7 @@ separate (Files_Suite.Operations)
         (Ada.Directories.Exists (Join (Root, "a (copy).txt"))
          and then Files.Model.Undo_Available (Model),
          "the round-trip stale result retains its file and Undo history");
-      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Testing.Cancel_Create_File (Model);
       Step := Complete_Operation
         (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
       Await_View (Model, Settings);
@@ -154,7 +154,7 @@ separate (Files_Suite.Operations)
         (not Ada.Directories.Exists (Join (Root, "a.txt"))
          and then Files.Model.Undo_Available (Model),
          "the stale-view destructive result retains its mutation and Undo history");
-      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Testing.Cancel_Create_File (Model);
       Step := Complete_Operation
         (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
       Await_View (Model, Settings);

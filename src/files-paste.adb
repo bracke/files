@@ -5,6 +5,18 @@ with Hostkit.Fs;
 
 package body Files.Paste is
 
+   --  The effective per-item decision for a policy and an optional override.
+   --  An explicit override wins; otherwise the policy maps to a decision
+   --  (Policy_Ask stays Decision_Pending).
+   --
+   --  @param Policy Batch-wide policy.
+   --  @param Override Per-item override (Decision_Pending when none).
+   --  @return The decision that applies to the item.
+   function Effective_Decision
+     (Policy   : Conflict_Policy;
+      Override : Item_Decision)
+      return Item_Decision;
+
    use Ada.Strings.Unbounded;
 
    package Path_Sets is new Ada.Containers.Indefinite_Hashed_Sets

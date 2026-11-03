@@ -108,10 +108,6 @@ package body Files.Model is
       return True;
    end Completion_Markers_Valid;
 
-   function Valid_Natural_Image (Value : UString) return Boolean is separate;
-
-   function Valid_Ownership_Image (Value : UString) return Boolean is separate;
-
    function Valid_Copy_Records
      (Values : Files.Types.String_Vectors.Vector) return Boolean
    is
@@ -147,8 +143,8 @@ package body Files.Model is
             return False;
          end if;
          for Value of Values loop
-            if (if Ownership then not Valid_Ownership_Image (Value)
-                else not Valid_Natural_Image (Value))
+            if (if Ownership then not Files.Undo_Payloads.Is_Ownership_Text (To_String (Value))
+                else not Files.Undo_Payloads.Is_Mode_Text (To_String (Value)))
             then
                return False;
             end if;

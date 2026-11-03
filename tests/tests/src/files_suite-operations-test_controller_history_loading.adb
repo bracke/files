@@ -148,7 +148,7 @@ separate (Files_Suite.Operations)
       Assert (Files.Model.Rename_Is_Active (Model), "failed forward preserves rename state");
       Ada.Directories.Create_Path (Second);
       Write_File (Join (Second, "two.txt"));
-      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Testing.Cancel_Create_File (Model);
 
       Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal

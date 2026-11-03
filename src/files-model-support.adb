@@ -8,6 +8,26 @@ with Files.Settings_Form;
 with Files.UTF8;
 
 package body Files.Model.Support is
+
+   --  The number of complete key/value pairs across two parallel lists (the
+   --  shorter of the two lengths).
+   --
+   --  @param Keys Key list.
+   --  @param Values Value list.
+   --  @return Min of the two list lengths.
+   function Pair_Count
+     (Keys   : Files.Types.String_Vectors.Vector;
+      Values : Files.Types.String_Vectors.Vector)
+      return Natural;
+
+   --  Truncate Values to at most Count entries.
+   --
+   --  @param Values List to truncate in place.
+   --  @param Count Maximum number of entries to keep.
+   procedure Trim_To_Count
+     (Values : in out Files.Types.String_Vectors.Vector;
+      Count  : Natural);
+
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
    use type Files.Types.Focus_Target;

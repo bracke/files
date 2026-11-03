@@ -37,7 +37,7 @@ separate (Files_Suite.Operations)
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "failed home preserves temporary create state");
       Assert (Files.Model.Rename_Is_Active (Model), "failed home preserves rename state");
       Assert (Files.Model.Command_Palette_Is_Open (Model), "failed home preserves command palette");
-      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Initialize (Model, First, Load.Items, First);
       Files.Model.Begin_Create_File (Model, "home-pending.txt");
       Files.Model.Open_Command_Palette (Model);

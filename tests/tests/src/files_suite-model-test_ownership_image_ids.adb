@@ -1,8 +1,8 @@
+with Files.Undo_Payloads;
 separate (Files_Suite.Model)
    procedure Test_Ownership_Image_Ids (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      function Valid (Text : String) return Boolean is
-        (Files.Model.Valid_Ownership_Image (Ada.Strings.Unbounded.To_Unbounded_String (Text)));
+      function Valid (Text : String) return Boolean renames Files.Undo_Payloads.Is_Ownership_Text;
       Nul : constant Character := ASCII.NUL;
    begin
       Assert (Valid ("1000 1000"), "an ordinary uid and gid are a payload");

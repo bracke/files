@@ -1,7 +1,5 @@
 with Files.File_System.Thumbnails;
 with Files.Images;
-with Files.Environment;
-with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Calendar.Formatting;
@@ -78,7 +76,7 @@ package body Files.Operations is
      (Action : Files.Settings.Open_Action)
       return Boolean is separate;
 
-   function Detected_Terminal return String is separate;
+   function Detected_Terminal return String renames Hostkit.Process.Default_Terminal;
 
    function Open_Terminal
      (Model    : in out Files.Model.Window_Model;

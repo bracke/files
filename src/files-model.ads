@@ -172,16 +172,6 @@ package Files.Model is
    --  own way out.
    subtype Escape_Closable_Overlay is Input_Overlay range Settings_Pane_Overlay .. Label_Picker_Overlay;
 
-   --  Return whether one input-owning overlay is open.
-   --
-   --  @param Model Model to inspect.
-   --  @param Overlay The overlay to ask about.
-   --  @return True while Overlay is open (or, for a paste, active).
-   function Overlay_Is_Open
-     (Model   : Window_Model;
-      Overlay : Input_Overlay)
-      return Boolean;
-
    --  The open overlay on top: the one whose own controls alone still act,
    --  and the one drawn on top (a paste in progress first, then the command
    --  palette, the settings pane, the context menu, the root selector, the
@@ -1327,12 +1317,6 @@ package Files.Model is
    procedure End_Tree_Pick
      (Model : in out Window_Model);
 
-   --  Clear the destination-picker sub-mode and its captured sources.
-   --
-   --  @param Model Model to update.
-   procedure Clear_Tree_Pick
-     (Model : in out Window_Model);
-
    --  Return the active destination-picker mode.
    --
    --  @param Model Model to inspect.
@@ -2191,12 +2175,6 @@ package Files.Model is
      (Model : Window_Model)
       return String;
 
-   --  Cancel temporary create-file state.
-   --
-   --  @param Model Model to update.
-   procedure Cancel_Create_File
-     (Model : in out Window_Model);
-
    --  Clear rename, temporary item, and edit focus state after a successful commit.
    --
    --  @param Model Model to update.
@@ -2454,19 +2432,6 @@ package Files.Model is
    --  @param Undo Undo stack, oldest first.
    --  @param Redo Redo stack, oldest first.
    procedure Set_History (Model : in out Window_Model; Undo, Redo : Undo_Entry_Vectors.Vector);
-
-   --  Return whether Value is a usable permission image for an undo entry.
-   --
-   --  @param Value Recorded permission value.
-   --  @return True when Value holds a natural number.
-   function Valid_Natural_Image (Value : UString) return Boolean;
-
-   --  Return whether Value is a usable ownership image for an undo entry:
-   --  "uid gid", optionally followed by NUL-separated user and group names.
-   --
-   --  @param Value Recorded ownership value.
-   --  @return True when Value holds two natural numbers and well-formed names.
-   function Valid_Ownership_Image (Value : UString) return Boolean;
 
    --  Start recording a performed action: advance the model revision and, for
    --  a completed rename or move, note each path move whether or not the
@@ -2952,19 +2917,6 @@ package Files.Model is
    procedure Clear_Paste_Execution
      (Model : in out Window_Model);
 
-   --  Cache a recursive folder-size measurement for a directory path.
-   --
-   --  The cache holds one measurement at a time, keyed by Path, so a repeated
-   --  selection of the same directory reuses it instead of walking again.
-   --
-   --  @param Model Model to update.
-   --  @param Path Directory the measurement describes.
-   --  @param Value Recursive size totals for Path.
-   procedure Set_Folder_Size
-     (Model : in out Window_Model;
-      Path  : String;
-      Value : Files.File_System.Directory_Size_Result);
-
    --  Forget every cached folder-size measurement.
    --
    --  @param Model Model to update.
@@ -3141,6 +3093,41 @@ package Files.Model is
      (Model : in out Window_Model);
 
 private
+
+   --  Cache a recursive folder-size measurement for a directory path.
+   --
+   --  The cache holds one measurement at a time, keyed by Path, so a repeated
+   --  selection of the same directory reuses it instead of walking again.
+   --
+   --  @param Model Model to update.
+   --  @param Path Directory the measurement describes.
+   --  @param Value Recursive size totals for Path.
+   procedure Set_Folder_Size
+     (Model : in out Window_Model;
+      Path  : String;
+      Value : Files.File_System.Directory_Size_Result);
+
+   --  Clear the destination-picker sub-mode and its captured sources.
+   --
+   --  @param Model Model to update.
+   procedure Clear_Tree_Pick
+     (Model : in out Window_Model);
+
+   --  Return whether one input-owning overlay is open.
+   --
+   --  @param Model Model to inspect.
+   --  @param Overlay The overlay to ask about.
+   --  @return True while Overlay is open (or, for a paste, active).
+   function Overlay_Is_Open
+     (Model   : Window_Model;
+      Overlay : Input_Overlay)
+      return Boolean;
+
+   --  Cancel temporary create-file state.
+   --
+   --  @param Model Model to update.
+   procedure Cancel_Create_File
+     (Model : in out Window_Model);
    package Natural_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Natural);

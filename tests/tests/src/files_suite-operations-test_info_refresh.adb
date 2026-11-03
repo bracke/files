@@ -20,8 +20,8 @@ separate (Files_Suite.Operations)
          Write_Binary_File (Join (Root, "new.txt"), "new");
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "",
-            (Kind => Files.Events.Command_Input_Action, Command => Files.Commands.Refresh_Directory_Command,
-             others => <>), 16, Guikit.Input.No_Modifiers, Routed);
+            (Kind => Files.Events.Command_Input_Action, Command => Files.Commands.Refresh_Directory_Command),
+            16, Guikit.Input.No_Modifiers, Routed);
          Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)), "the refresh is scheduled");
          Await_View (Model, Settings, Applied);
          Assert (Applied and then Files.Model.Item_Count (Model) = 3,

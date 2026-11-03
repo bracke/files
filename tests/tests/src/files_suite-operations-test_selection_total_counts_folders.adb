@@ -17,7 +17,7 @@ separate (Files_Suite.Operations)
 
       --  Publish a measured folder size (as the background scan would), then the
       --  combined total must count it (folder 500 + file 10). Info pane stays closed.
-      Files.Model.Set_Folder_Size
+      Files.Model.Testing.Set_Folder_Size
         (Model, Dir_Path, (Available => True, Total_Bytes => 500, others => <>));
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Assert (not Snapshot.Info_Pane_Open, "the info pane is closed");

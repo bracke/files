@@ -26,8 +26,8 @@ separate (Files_Suite.Model)
       end loop;
       Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
       Files.Model.Select_All_Visible (Model);
-      Files.Model.Set_Folder_Size (Model, Big, Sized);
-      Files.Model.Set_Folder_Size (Model, Small, Sized);
+      Files.Model.Testing.Set_Folder_Size (Model, Big, Sized);
+      Files.Model.Testing.Set_Folder_Size (Model, Small, Sized);
 
       Files.Model.Replace_Items (Model, Items);
       Assert (Files.Model.Folder_Size_Cached_For (Model, Big), "an unchanged folder keeps its size");

@@ -137,19 +137,6 @@ package Files.UI is
      (Line_Height : Positive := Base_Line_Height)
       return Natural;
 
-   --  Calculate settings add/remove button rectangles, sizing each button to
-   --  its localized label.
-   --
-   --  @param Pane_X Settings pane horizontal origin.
-   --  @param Pane_Width Settings pane width in pixels.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Right-aligned add/remove button layout.
-   function Calculate_Settings_Entry_Button_Layout
-     (Pane_X      : Natural;
-      Pane_Width  : Natural;
-      Line_Height : Positive := Base_Line_Height)
-      return Guikit.Layout.Settings_Entry_Button_Layout;
-
    --  Partition the bottom-bar status region into the interactive hidden-files
    --  toggle area on the left and, when a free-space field is present and there
    --  is room, a separate free-space field on the right divided by a one-pixel

@@ -113,8 +113,6 @@ is
          end if;
    end Collect;
 
-   function Trimmed_Image (Value : Positive) return String is (Files.Types.Natural_Text (Value));
-
    function Failed return Operation_Result is
    begin
       Files.Model.Set_Error (Model, "error.compress.failed");
@@ -174,7 +172,7 @@ begin
 
          for N in 1 .. 9_999 loop
             declare
-               Candidate : constant String := Base & " (" & Trimmed_Image (N) & ")";
+               Candidate : constant String := Base & " (" & Files.Types.Natural_Text (N) & ")";
             begin
                if not Exists_Safely
                         (Ada.Directories.Compose (Directory, Candidate, Extension))

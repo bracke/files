@@ -119,17 +119,6 @@ private package Files.File_System.Support is
    package Copied_File_Maps is new Ada.Containers.Indefinite_Ordered_Maps
      (Key_Type => String, Element_Type => Copied_File);
 
-   --  @param Batch Batch journal to load.
-   --  @return Verified source-to-destination records for this batch.
-   function Load_Links (Batch : Files.Copy_Context.Session) return Copied_File_Maps.Map;
-
-   --  @param Batch Batch journal to update.
-   --  @param Links Source identity records, including this newly published root.
-   --  @param Stage Private payload prefix to replace after publication.
-   --  @param Destination Published payload prefix.
-   procedure Save_Links
-     (Batch : Files.Copy_Context.Session; Links : Copied_File_Maps.Map; Stage, Destination : String);
-
    --  Copy privately and publish atomically without replacing an existing entry.
    --  @param Source_Path Source file, directory, or symbolic link.
    --  @param Destination_Path New destination pathname.
@@ -249,14 +238,6 @@ private package Files.File_System.Support is
    --    empty for a link or unsupported or unreadable entry.
    --    Raises when a directory cannot be completely verified.
    function Tree_Revision (Path : String) return String;
-
-   --  As Tree_Revision, optionally for recovery that must finish after
-   --  cancellation.
-   --
-   --  @param Path Existing entry to inspect without following symbolic links.
-   --  @param Check_Job_Cancellation False to keep going once the job is cancelled.
-   --  @return As Tree_Revision.
-   function Tree_Revision_Of (Path : String; Check_Job_Cancellation : Boolean) return String;
 
    --  Recursively copy a file or directory tree from Source_Path to
    --  Destination_Path (Depth guards against symlink cycles). The shared

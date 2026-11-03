@@ -19,6 +19,25 @@ with Files.Path_Checks;
 
 package body Files.File_System.Support is
 
+   --  @param Batch Batch journal to load.
+   --  @return Verified source-to-destination records for this batch.
+   function Load_Links (Batch : Files.Copy_Context.Session) return Copied_File_Maps.Map;
+
+   --  @param Batch Batch journal to update.
+   --  @param Links Source identity records, including this newly published root.
+   --  @param Stage Private payload prefix to replace after publication.
+   --  @param Destination Published payload prefix.
+   procedure Save_Links
+     (Batch : Files.Copy_Context.Session; Links : Copied_File_Maps.Map; Stage, Destination : String);
+
+   --  As Tree_Revision, optionally for recovery that must finish after
+   --  cancellation.
+   --
+   --  @param Path Existing entry to inspect without following symbolic links.
+   --  @param Check_Job_Cancellation False to keep going once the job is cancelled.
+   --  @return As Tree_Revision.
+   function Tree_Revision_Of (Path : String; Check_Job_Cancellation : Boolean) return String;
+
    --  The most entries one directory may list before it counts as hostile.
    Max_Directory_Entries : constant := 1_000_000;
    use Ada.Strings.Unbounded;

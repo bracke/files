@@ -35,7 +35,7 @@ separate (Files_Suite.Model)
          Files.Commands.Create_File_Command,
          "Control+N routes create-file command");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "Control+N adds temporary item");
-      Files.Model.Cancel_Create_File (Model);
+      Files.Model.Testing.Cancel_Create_File (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_None,

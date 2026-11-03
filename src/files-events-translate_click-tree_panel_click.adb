@@ -8,7 +8,7 @@ begin
            (Tree_Panel_L.X, Tree_Panel_L.Y,
             Tree_Panel_L.Width, Tree_Panel_L.Height)
       then
-         Result := Command_Action (Files.Commands.Toggle_Folder_Tree_Command, Activate);
+         Result := Command_Action (Files.Commands.Toggle_Folder_Tree_Command);
          return;
       end if;
 
@@ -33,12 +33,12 @@ begin
                if Within (X, Buttons.Choose_X, Buttons.Button_Width)
                  and then Within (Y, Buttons.Y, Buttons.Height)
                then
-                  Result := Tree_Pick_Confirm_Action (Activate);
+                  Result := Tree_Pick_Confirm_Action;
                   return;
                elsif Within (X, Buttons.Cancel_X, Buttons.Button_Width)
                  and then Within (Y, Buttons.Y, Buttons.Height)
                then
-                  Result := Command_Action (Files.Commands.Toggle_Folder_Tree_Command, Activate);
+                  Result := Command_Action (Files.Commands.Toggle_Folder_Tree_Command);
                   return;
                end if;
             end if;
@@ -55,17 +55,17 @@ begin
       then
          --  Consume clicks on the tree panel chrome so they do not fall
          --  through to items drawn behind the sidebar.
-         Result := No_Action (Activate);
+         Result := No_Action;
          return;
       end if;
 
       --  Destination picking is modal: only the tree and its Choose/Cancel
       --  controls are active until the operation is confirmed or cancelled.
       if Snapshot.Tree_Pick_Active then
-         Result := No_Action (Activate);
+         Result := No_Action;
          return;
       end if;
    end if;
    Handled := False;
-   Result := No_Action (Activate);
+   Result := No_Action;
 end Tree_Panel_Click;

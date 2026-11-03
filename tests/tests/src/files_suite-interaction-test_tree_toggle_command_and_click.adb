@@ -43,7 +43,7 @@ separate (Files_Suite.Interaction)
            (Action.Kind,
             Files.Events.Tree_Click_Input_Action,
             "a tree label coordinate translates to a tree click");
-         Assert (not Action.Toggle_Selection, "clicking the label navigates rather than toggles");
+         Assert (not Action.Expander, "clicking the label navigates rather than toggles");
 
          --  A tree action queued before another overlay opens must not navigate
          --  through that top-most surface.
