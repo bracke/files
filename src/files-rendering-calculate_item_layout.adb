@@ -27,7 +27,6 @@ separate (Files.Rendering)
            Details_Row_Padding);
       View : constant Guikit.Item_Grid.View_Kind := Grid_View (Snapshot.View_Mode);
       Columns : Guikit.Item_Grid.Detail_Column_Bounds;
-      Items   : Guikit.Item_Grid.Layout_Item_Vectors.Vector;
 
       --  By name, so a reordered or extended enum on either side fails to
       --  compile instead of mislabelling columns.
@@ -39,33 +38,33 @@ separate (Files.Rendering)
             when Files.Types.Filetype_Column    => Guikit.Item_Grid.Filetype_Column,
             when Files.Types.Created_Column     => Guikit.Item_Grid.Created_Column,
             when Files.Types.Permissions_Column => Guikit.Item_Grid.Permissions_Column);
+
+      --  Read in place: only the cells on screen ask for their name.
+      function Visible_Index_At (Position : Positive) return Natural is
+        (Snapshot.Items.Constant_Reference (Position).Visible_Index);
+      function Is_Header_At (Position : Positive) return Boolean is
+        (Snapshot.Items.Constant_Reference (Position).Is_Group_Header);
+      function Label_At (Position : Positive) return String is
+        (To_String (Snapshot.Items.Constant_Reference (Position).Name));
    begin
       for C in Files.Types.Detail_Column loop
          Columns (As_Grid_Column (C)) := (X => Geometry (C).X, Width => Geometry (C).Width);
       end loop;
 
-      --  Iterate by cursor reference: .Element returns Item_Snapshot by value,
-      --  copying each item just to read three fields.
-      Items.Reserve_Capacity (Snapshot.Items.Length);
-      for It of Snapshot.Items loop
-         Items.Append
-           (Guikit.Item_Grid.Layout_Item'
-              (Visible_Index => It.Visible_Index,
-               Group_Header  => It.Is_Group_Header,
-               Label         => It.Name));
-      end loop;
-
       return Guikit.Item_Grid.Calculate_Layout
-        (Items         => Items,
-         View          => View,
-         Content_X     => Content_X,
-         Content_Y     => Content_Y,
-         Content_W     => Content_W,
-         Content_H     =>
+        (Count            => Natural (Snapshot.Items.Length),
+         Visible_Index_At => Visible_Index_At'Access,
+         Is_Header_At     => Is_Header_At'Access,
+         Label_At         => Label_At'Access,
+         View             => View,
+         Content_X        => Content_X,
+         Content_Y        => Content_Y,
+         Content_W        => Content_W,
+         Content_H        =>
            --  The whole content below the header: the viewport plus all
            --  that scrolls, whatever the header takes.
            (if Whole_Content then Content_H + Main_View.Content_Height else Content_H),
-         Columns       => Columns,
-         Scroll_Pixels => (if Whole_Content then 0 else Main_View.Scroll_Pixels),
-         Line_Height   => Line_Height);
+         Columns          => Columns,
+         Scroll_Pixels    => (if Whole_Content then 0 else Main_View.Scroll_Pixels),
+         Line_Height      => Line_Height);
    end Calculate_Item_Layout;

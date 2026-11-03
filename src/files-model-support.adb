@@ -13,6 +13,38 @@ package body Files.Model.Support is
    use type Files.Types.Focus_Target;
    use type Files.Types.Group_Mode;
 
+   procedure Invalidate_Visible (Model : in out Window_Model) is
+   begin
+      Model.Visible_Cache_Valid := False;
+   end Invalidate_Visible;
+
+   --  The visible-row map, built when it was invalidated. The model is read
+   --  as a constant by the lookups; the map is a cache of what it holds, so
+   --  it is filled in through an unrestricted view (GNAT), as no reader can
+   --  tell.
+   procedure Ensure_Visible_Map (Model : Window_Model) is
+      type Model_Access is access all Window_Model;
+      Cache : constant Model_Access := Model'Unrestricted_Access;
+      Seen  : Natural := 0;
+   begin
+      if Model.Visible_Cache_Valid then
+         return;
+      end if;
+      Cache.Visible_Items.Clear;
+      Cache.Item_Visible_Rows.Clear;
+      Cache.Item_Visible_Rows.Reserve_Capacity (Model.Items.Length);
+      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+         if Item_Is_Visible (Model, Model.Items (Index)) then
+            Seen := Seen + 1;
+            Cache.Visible_Items.Append (Index);
+            Cache.Item_Visible_Rows.Append (Seen);
+         else
+            Cache.Item_Visible_Rows.Append (0);
+         end if;
+      end loop;
+      Cache.Visible_Cache_Valid := True;
+   end Ensure_Visible_Map;
+
    procedure Touch (Model : in out Window_Model) is
    begin
       Model.Revision_Value := Model.Revision_Value + 1;
@@ -267,46 +299,28 @@ package body Files.Model.Support is
    function Visible_To_Item_Index
      (Model         : Window_Model;
       Visible_Index : Positive)
-      return Natural
-   is
-      Seen : Natural := 0;
+      return Natural is
    begin
-      if not Model.Items.Is_Empty then
-         for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-            if Item_Is_Visible (Model, Model.Items (Index)) then
-               Seen := Seen + 1;
-               if Seen = Visible_Index then
-                  return Natural (Index);
-               end if;
-            end if;
-         end loop;
-      end if;
-
-      return 0;
+      Ensure_Visible_Map (Model);
+      return (if Visible_Index <= Natural (Model.Visible_Items.Length)
+              then Model.Visible_Items (Visible_Index) else 0);
    end Visible_To_Item_Index;
 
    function Item_To_Visible_Index
      (Model      : Window_Model;
       Item_Index : Positive)
-      return Natural
-   is
-      Seen : Natural := 0;
+      return Natural is
    begin
-      if Model.Items.Is_Empty or else Item_Index > Model.Items.Last_Index then
-         return 0;
-      end if;
-
-      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-         if Item_Is_Visible (Model, Model.Items (Index)) then
-            Seen := Seen + 1;
-            if Index = Item_Index then
-               return Seen;
-            end if;
-         end if;
-      end loop;
-
-      return 0;
+      Ensure_Visible_Map (Model);
+      return (if Item_Index <= Natural (Model.Item_Visible_Rows.Length)
+              then Model.Item_Visible_Rows (Item_Index) else 0);
    end Item_To_Visible_Index;
+
+   function Visible_Item_Count (Model : Window_Model) return Natural is
+   begin
+      Ensure_Visible_Map (Model);
+      return Natural (Model.Visible_Items.Length);
+   end Visible_Item_Count;
 
    function Selection_Contains
      (Model      : Window_Model;
@@ -586,6 +600,7 @@ package body Files.Model.Support is
          for Item of Model.Items loop
             Bands (Group_Band (Model, Labels, Item)).Append (Item);
          end loop;
+         Invalidate_Visible (Model);
          Model.Items.Clear;
          for Band of Bands loop
             Model.Items.Append (Band);
@@ -648,6 +663,7 @@ package body Files.Model.Support is
            (Model.Items,
             Model.Sort_Field_Value,
             Model.Sort_Ascending);
+         Invalidate_Visible (Model);
       end if;
       Group_Items (Model);
       Sorted_Index.Reserve_Capacity (Model.Items.Length);

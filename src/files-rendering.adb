@@ -1575,12 +1575,7 @@ package body Files.Rendering is
       end if;
       for Item of Drawn.Items loop
          if Item.Visible_Index = Index then
-            for Current in 1 .. Files.Model.Visible_Count (Model) loop
-               if Files.Model.Visible_Item (Model, Current).Full_Path = Item.Full_Path then
-                  return Current;
-               end if;
-            end loop;
-            return 0;
+            return Files.Model.Visible_Index_Of (Model, To_String (Item.Full_Path));
          end if;
       end loop;
       return 0;

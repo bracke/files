@@ -331,7 +331,7 @@ package body Files.Model is
         To_Unbounded_String
           (Ada.Directories.Simple_Name
              (To_String (Model.Paste_Exec.Actions.Element (Model.Paste_Exec.Cursor + 1).Source_Path)));
-      Support.Touch (Model);
+      Support.Touch_Header (Model);
    end Note_Paste_Action_Started;
 
    use type Ada.Calendar.Time;
@@ -572,8 +572,10 @@ package body Files.Model is
       Model.Refresh_Job := Released_Process;
       Model.Home_Path_Value := To_Unbounded_String (Home_Path);
       Model.Items := Items;
+      Support.Invalidate_Visible (Model);
       Model.Directory_Signature := Signature_From_Items (Directory_Path, Items);
       Model.Filter_Value := Null_Unbounded_String;
+      Support.Invalidate_Visible (Model);
       Model.Filter_Cursor := 0;
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
@@ -586,6 +588,7 @@ package body Files.Model is
       Model.Recent_View_Active := False;
       Model.Search_Scope_Value := Files.Types.Filter_Here;
       Model.Search_Results_Active := False;
+      Support.Invalidate_Visible (Model);
       Model.Recent_Open_Queue.Clear;
       Model.Focus_Value := Files.Types.Focus_None;
       Model.Path_Input_Value := To_Unbounded_String (Directory_Path);
@@ -640,6 +643,26 @@ package body Files.Model is
       Visible_Index : Positive)
       return Files.Items.Directory_Item
    is separate;
+
+   function Visible_Index_Of
+     (Model     : Window_Model;
+      Full_Path : String)
+      return Natural
+   is
+   begin
+      Ensure_Visible_Map (Model);
+      for Position in 1 .. Natural (Model.Visible_Items.Length) loop
+         if Model.Items (Model.Visible_Items (Position)).Full_Path = Full_Path then
+            return Position;
+         end if;
+      end loop;
+      if Temporary_Is_Visible (Model)
+        and then Visible_Item (Model, Visible_Count (Model)).Full_Path = Full_Path
+      then
+         return Visible_Count (Model);
+      end if;
+      return 0;
+   end Visible_Index_Of;
 
    function Visible_Rows
      (Model : Window_Model)
@@ -971,6 +994,7 @@ package body Files.Model is
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Model.Search_Scope_Value := Files.Types.Filter_Here;
       Model.Search_Results_Active := False;
+      Support.Invalidate_Visible (Model);
       Set_Current_Path (Model, New_Path);
       Model.Path_Input_Value := New_Path;
       Model.Path_Input_Cursor := Length (New_Path);
@@ -986,6 +1010,7 @@ package body Files.Model is
       Model.Info_Pane_Scroll := 0;
       Model.Main_View_Scroll := 0;
       Model.Filter_Value := Null_Unbounded_String;
+      Support.Invalidate_Visible (Model);
       Model.Filter_Cursor := 0;
       Model.Command_Palette_Open := False;
       Guikit.Command_Palette.Reset (Model.Command_Palette_View);
@@ -1009,6 +1034,7 @@ package body Files.Model is
       Model.Recent_View_Active := False;
       Leave_View (Model, To_Unbounded_String (Directory_Path));
       Model.Items := Items;
+      Support.Invalidate_Visible (Model);
       --  The model's order is the displayed order: keyboard and range
       --  selection walk it, so it must already be sorted by the model's field.
       Files.File_System.Sort_Items
@@ -1033,6 +1059,7 @@ package body Files.Model is
       Model.Recent_View_Active := True;
       Leave_View (Model, Null_Unbounded_String);
       Model.Items := Items;
+      Support.Invalidate_Visible (Model);
       Model.Directory_Signature := Signature_From_Items ("", Items);
    end Navigate_Recent;
 
@@ -1923,6 +1950,7 @@ package body Files.Model is
          Model.Focus_Value := Files.Types.Focus_None;
       end if;
       Model.Items := Items;
+      Support.Invalidate_Visible (Model);
       --  Order the loaded items by the active sort so the model's order matches
       --  the displayed order. Without this, arrow navigation (which walks the
       --  model's order) would move opposite to the display under descending sort
@@ -2172,12 +2200,12 @@ package body Files.Model is
    function Paste_Execution_Copy_Context (Model : Window_Model) return Files.Copy_Context.Session is
      (Model.Paste_Exec.Copy_Context);
 
-   function Folder_Scan (Model : Window_Model) return Files.Folder_Size.Session is (Model.Folder_Scan);
-
-   procedure Set_Folder_Scan (Model : in out Window_Model; Scan : Files.Folder_Size.Session) is
+   procedure Update_Folder_Scan
+     (Model  : in out Window_Model;
+      Change : not null access procedure (Scan : in out Files.Folder_Size.Session)) is
    begin
-      Model.Folder_Scan := Scan;
-   end Set_Folder_Scan;
+      Change (Model.Folder_Scan);
+   end Update_Folder_Scan;
 
    procedure Note_Folder_Sizes
      (Model    : in out Window_Model;
@@ -2231,8 +2259,9 @@ package body Files.Model is
       Space   : Volume_Space;
       Sampled : Ada.Calendar.Time) is
    begin
+      --  The bar and the free-space text are header: no row changes.
       if Model.Volume_Space_Value /= Space or else To_String (Model.Volume_Path) /= Path then
-         Support.Touch (Model);
+         Support.Touch_Header (Model);
       end if;
       Model.Volume_Space_Value := Space;
       Model.Volume_Path := To_Unbounded_String (Path);

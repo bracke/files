@@ -213,6 +213,23 @@ private package Files.Model.Support is
      (Model : Window_Model)
       return Selection_Flags;
 
+   --  Forget the visible-row map: call after any write of the items, their
+   --  order, the filter or whether search results are shown.
+   --
+   --  @param Model Model whose rows changed.
+   procedure Invalidate_Visible (Model : in out Window_Model);
+
+   --  Fill the visible-row map if it was invalidated.
+   --
+   --  @param Model Model to inspect.
+   procedure Ensure_Visible_Map (Model : Window_Model);
+
+   --  How many items are visible (the pending create row not counted).
+   --
+   --  @param Model Model to inspect.
+   --  @return The count.
+   function Visible_Item_Count (Model : Window_Model) return Natural;
+
    --  Note a change: Revision and Rows_Revision move.
    --
    --  @param Model Model that changed.

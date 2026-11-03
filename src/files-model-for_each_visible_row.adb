@@ -5,24 +5,13 @@ procedure For_Each_Visible_Row
    Visit : not null access procedure
      (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean))
 is
-   Filter   : constant String := To_String (Model.Filter_Value);
    Selected : constant Selection_Flags := Selected_Flags (Model);
 begin
-   for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-      declare
-         --  Referenced in place, never copied (thumbnail pixels included).
-         Item : Files.Items.Directory_Item renames Model.Items (Index);
-      begin
-         --  Same test as Item_Is_Visible, which every index mapping
-         --  (clicks, selection, rename) uses: search results show every
-         --  hit, including content matches whose name lacks the query.
-         if Model.Search_Results_Active
-           or else Filter = ""
-           or else Files.Types.Contains_Case_Insensitive (To_String (Item.Name), Filter)
-         then
-            Visit (Item, Natural (Index), Selected (Index));
-         end if;
-      end;
+   --  The visible rows as the cached map has them (Item_Is_Visible's test,
+   --  worked out once per listing and filter, not once per call).
+   Ensure_Visible_Map (Model);
+   for Index of Model.Visible_Items loop
+      Visit (Model.Items (Index), Index, Selected (Index));
    end loop;
 
    if Temporary_Is_Visible (Model) then

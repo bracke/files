@@ -459,6 +459,16 @@ package Files.Model is
       Visible_Index : Positive)
       return Files.Items.Directory_Item;
 
+   --  Find a visible item by its full path in one pass over the rows.
+   --
+   --  @param Model Model to inspect.
+   --  @param Full_Path Full path of the item to find.
+   --  @return Its one-based visible index, or zero when it is not visible.
+   function Visible_Index_Of
+     (Model     : Window_Model;
+      Full_Path : String)
+      return Natural;
+
    --  One visible row: the directory item plus whether it is selected.
    type Visible_Row is record
       Item       : Files.Items.Directory_Item;
@@ -2405,18 +2415,15 @@ package Files.Model is
    end record;
 
    --  The window's folder-size measurements: a handle the model holds as
-   --  data, which Files.Operations drives (targets, steps, cancels). The
-   --  model only releases it, when the view it measures is left.
+   --  data, which Files.Operations drives (targets, steps, cancels) in place,
+   --  since a copy is its queues' worth on every loop pass. The model only
+   --  releases it, when the view it measures is left.
    --
-   --  @param Model Window to inspect.
-   --  @return Its folder-size session.
-   function Folder_Scan (Model : Window_Model) return Files.Folder_Size.Session;
-
-   --  Store the window's folder-size session after driving it.
-   --
-   --  @param Model Window to update.
-   --  @param Scan Its folder-size session.
-   procedure Set_Folder_Scan (Model : in out Window_Model; Scan : Files.Folder_Size.Session);
+   --  @param Model Window whose folder-size session is driven.
+   --  @param Change Called once with the session, in place.
+   procedure Update_Folder_Scan
+     (Model  : in out Window_Model;
+      Change : not null access procedure (Scan : in out Files.Folder_Size.Session));
 
    --  Record finished measurements, those of directories still selected;
    --  the selected directories are looked up once per batch.
@@ -3213,6 +3220,13 @@ private
       Type_Ahead_Buffer_Value : UString;
       Selected_Item_Index  : Natural := 0;
       Selected_Item_Indexes : Natural_Vectors.Vector;
+      --  The visible rows, worked out once per listing, filter and search
+      --  (Support.Invalidate_Visible at every write of those): which item each
+      --  visible row is, and each item's row (0: hidden). A visible-index
+      --  lookup used to walk the items each time, about ten walks a key.
+      Visible_Cache_Valid : Boolean := False;
+      Visible_Items       : Natural_Vectors.Vector;
+      Item_Visible_Rows   : Natural_Vectors.Vector;
       --  Moved by scrolling alone (Scroll_Revision), apart from Revision:
       --  a scroll changes three numbers of the snapshot, not its items.
       Scroll_Revision_Value : Natural := 0;
@@ -3315,8 +3329,8 @@ private
       Account_Names         : Account_Name_Tables;
       Account_Names_Sampled : Natural := Natural'Last;
       --  The grouping the items are ordered by (Sync_Grouping): the effective
-      --  mode, the labels and day it was computed with, and the revision it
-      --  was last checked at.
+      --  mode, the labels and day it was computed with, and the rows
+      --  revision it was last checked at (a selection or scroll moves no item).
       Group_Mode_Value      : Files.Types.Group_Mode := Files.Types.No_Grouping;
       Group_Labels          : Files.Settings.Path_Label_Vectors.Vector;
       Group_Day             : Ada.Calendar.Time := Files.Types.Unknown_Time;

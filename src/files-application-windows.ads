@@ -295,6 +295,7 @@ private
    type Snapshot_Slot is range 1 .. 2;
    type Snapshot_Slot_Array is array (Snapshot_Slot) of Files.Rendering.View_Snapshot;
    type Slot_Listing_Array is array (Snapshot_Slot) of Natural;
+   type Slot_Generation_Array is array (Snapshot_Slot) of Natural;
 
    --  Everything besides the snapshot that a frame is built from: its size
    --  and the pointer. A frame is rebuilt only when these (or the snapshot,
@@ -458,14 +459,17 @@ private
       --  The model's listing revision each slot was built at: a click on a
       --  drawn item whose listing has changed since is matched by name.
       Slot_Listings   : Slot_Listing_Array := [others => 0];
+      --  Which build each slot holds (Slot_Contents: everything but the
+      --  scroll offsets; Slot_Rows: its items). Equal numbers mean equal
+      --  contents, so a patch into the other slot need not copy it first.
+      Slot_Contents   : Slot_Generation_Array := [others => 0];
+      Slot_Rows       : Slot_Generation_Array := [others => 0];
+      Last_Generation : Natural := 0;
       Current_Slot    : Snapshot_Slot := 1;
       Drawn_Slot      : Snapshot_Slot := 1;
       Snapshot_Valid  : Boolean := False;
-      --  Wall-clock minute the current snapshot was built in: relative times
-      --  and the Today / This week bands are computed from the clock.
-      Snapshot_Minute : Natural := 0;
-      --  When the current snapshot was built: during a paste, whose progress
-      --  no revision tracks, it is rebuilt at most every Paste_Progress_Interval.
+      --  When the current snapshot was built: during a paste its progress is
+      --  redrawn at most every Paste_Progress_Interval.
       Snapshot_Built_At : Ada.Real_Time.Time := Never;
       --  Model revision the current snapshot was built at. It is reused only
       --  while the model's revision still matches, so a background poll (file

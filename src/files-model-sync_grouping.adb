@@ -20,7 +20,7 @@ is
      or else (Mode = Files.Types.Group_By_Label and then Settings.Labels /= Model.Group_Labels)
      or else Today /= Model.Group_Day;
 begin
-   if not Inputs_Changed and then Model.Revision_Value = Model.Group_Synced_Revision then
+   if not Inputs_Changed and then Model.Rows_Revision_Value = Model.Group_Synced_Revision then
       return;
    end if;
    if Inputs_Changed then
@@ -44,5 +44,5 @@ begin
    elsif not Items_In_Group_Order (Model) then
       Resort_Items (Model, Field_Sort => False);
    end if;
-   Model.Group_Synced_Revision := Model.Revision_Value;
+   Model.Group_Synced_Revision := Model.Rows_Revision_Value;
 end Sync_Grouping;

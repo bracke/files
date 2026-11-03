@@ -543,12 +543,10 @@ package body Files.Application.Windows is
       --  Ten progress updates a second: a rebuild is O(items), and on every
       --  loop pass it held a core for the length of a paste in a large folder.
       Paste_Progress_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (100);
-      Minute : constant Natural := Wall_Clock_Minute;
       Now    : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
       Action : constant Files.Snapshot_Policy.Snapshot_Action :=
         Files.Snapshot_Policy.Action_For
           (Valid         => Runtime.Snapshot_Valid,
-           Same_Minute   => Runtime.Snapshot_Minute = Minute,
            Same_Revision => Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model),
            Same_Settings => Files.Settings.Same_Snapshot_Settings (Runtime.Settings, Runtime.Cached_Settings_Key),
            Same_Scroll   => Runtime.Cached_Scroll_Revision = Files.Model.Scroll_Revision (Runtime.Model),
@@ -568,8 +566,14 @@ package body Files.Application.Windows is
                declare
                   Other : constant Snapshot_Slot := (if Runtime.Drawn_Slot = 1 then 2 else 1);
                begin
-                  Runtime.Snapshots (Other) := Runtime.Snapshots (Runtime.Current_Slot);
-                  Runtime.Slot_Listings (Other) := Runtime.Slot_Listings (Runtime.Current_Slot);
+                  --  A scroll back and forth finds the other slot already
+                  --  holding this build: only its offsets are written below.
+                  if Runtime.Slot_Contents (Other) /= Runtime.Slot_Contents (Runtime.Current_Slot) then
+                     Runtime.Snapshots (Other) := Runtime.Snapshots (Runtime.Current_Slot);
+                     Runtime.Slot_Listings (Other) := Runtime.Slot_Listings (Runtime.Current_Slot);
+                     Runtime.Slot_Contents (Other) := Runtime.Slot_Contents (Runtime.Current_Slot);
+                     Runtime.Slot_Rows (Other) := Runtime.Slot_Rows (Runtime.Current_Slot);
+                  end if;
                   Runtime.Current_Slot := Other;
                end;
             end if;
@@ -593,19 +597,22 @@ package body Files.Application.Windows is
       begin
          if Runtime.Current_Slot = Runtime.Drawn_Slot then
             Runtime.Current_Slot := (if Runtime.Drawn_Slot = 1 then 2 else 1);
-            if Keep_Rows then
+            if Keep_Rows and then Runtime.Slot_Rows (Runtime.Current_Slot) /= Runtime.Slot_Rows (From) then
                Runtime.Snapshots (Runtime.Current_Slot).Items := Runtime.Snapshots (From).Items;
             end if;
          end if;
          Files.Rendering.Build_Snapshot_Into
            (Runtime.Snapshots (Runtime.Current_Slot), Runtime.Model, Runtime.Settings, Keep_Rows);
+         Runtime.Last_Generation := Runtime.Last_Generation + 1;
+         Runtime.Slot_Contents (Runtime.Current_Slot) := Runtime.Last_Generation;
+         Runtime.Slot_Rows (Runtime.Current_Slot) :=
+           (if Keep_Rows then Runtime.Slot_Rows (From) else Runtime.Last_Generation);
       end;
       Runtime.Cached_Rows_Revision := Files.Model.Rows_Revision (Runtime.Model);
       Runtime.Cached_Scroll_Revision := Files.Model.Scroll_Revision (Runtime.Model);
       Runtime.Slot_Listings (Runtime.Current_Slot) := Files.Model.Listing_Revision (Runtime.Model);
       Runtime.Cached_Model_Revision := Files.Model.Revision (Runtime.Model);
       Runtime.Cached_Settings_Key := Files.Settings.Snapshot_Settings_Key_Of (Runtime.Settings);
-      Runtime.Snapshot_Minute := Minute;
       Runtime.Snapshot_Built_At := Now;
       Runtime.Snapshot_Valid := True;
    end Refresh_Snapshot;
@@ -713,12 +720,21 @@ package body Files.Application.Windows is
       Fired    : Pressed_Key_Map := [others => False];
       Consumed : Boolean := False;
       Now      : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
-      Selected_Before : constant Natural := Files.Model.Selected_Index (Runtime.Model);
-      Path_Before     : constant String := Files.Model.Current_Path (Runtime.Model);
+      Selected_Before : Natural := 0;
+      Path_Before     : Ada.Strings.Unbounded.Unbounded_String;
    begin
       if Runtime.Handle = null then
          return;
       end if;
+      --  This runs on every pass of the loop; with no key event and no key
+      --  held nothing below can happen, and Selected_Index walks the items.
+      if Runtime.Handle.Pending_Input.Is_Empty
+        and then (for all Key in Tracked_Key => not Runtime.Pressed_Keys (Key))
+      then
+         return;
+      end if;
+      Selected_Before := Files.Model.Selected_Index (Runtime.Model);
+      Path_Before := To_Unbounded_String (Files.Model.Current_Path (Runtime.Model));
       Events := Runtime.Handle.Pending_Input;
       Runtime.Handle.Pending_Input.Clear;
       Runtime.Handle.Last_Was_Tracked_Press := False;
@@ -762,7 +778,7 @@ package body Files.Application.Windows is
       --  The selection follows the keyboard into view.
       if Runtime.Handle /= null
         and then (Files.Model.Selected_Index (Runtime.Model) /= Selected_Before
-                  or else Files.Model.Current_Path (Runtime.Model) /= Path_Before)
+                  or else Files.Model.Current_Path (Runtime.Model) /= To_String (Path_Before))
       then
          Reveal_Selection (Runtime);
       end if;

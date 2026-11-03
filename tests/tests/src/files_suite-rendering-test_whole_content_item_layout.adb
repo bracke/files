@@ -22,11 +22,22 @@ separate (Files_Suite.Rendering)
          Files_Suite.Support.Assert_Equal
            (Natural (Content.Length), 40, "the whole-content layout places every item");
          for Index in Content.First_Index .. Content.Last_Index loop
-            Files_Suite.Support.Assert_Equal
-              (Content.Element (Index).Y, Plain.Element (Index).Y,
-               "every item sits where it would with no scroll, row" & Index'Image);
+            --  The unscrolled screen layout gives a place only to the rows
+            --  it shows; below those, rows keep stacking.
+            if Plain.Element (Index).Height > 0 then
+               Files_Suite.Support.Assert_Equal
+                 (Content.Element (Index).Y, Plain.Element (Index).Y,
+                  "every item sits where it would with no scroll, row" & Index'Image);
+            end if;
+            if Index > Content.First_Index then
+               Assert (Content.Element (Index).Y > Content.Element (Index - 1).Y,
+                       "the content rows stack downward, row" & Index'Image);
+            end if;
             Assert (Content.Element (Index).Height > 0, "every item has its area, row" & Index'Image);
          end loop;
+         Assert (Plain.Last_Element.Height = 0 and then Plain.Last_Element.Width = 0
+                   and then Plain.Last_Element.Y = 0,
+                 "a cell not on screen is laid out as no area at all");
          for Index in Screen.First_Index .. Screen.Last_Index loop
             if Screen.Element (Index).Height > 0 then
                Files_Suite.Support.Assert_Equal

@@ -1,3 +1,4 @@
+with Files.Items;
 with Files.Types;
 
 --  Test-only queries of Files.Model: state the suite inspects and the program
@@ -58,4 +59,11 @@ package Files.Model.Testing is
    function Undo_To_Paths
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector;
+   --  The item at Index in the model's own order, visible or not.
+   --
+   --  @param Model Model to inspect.
+   --  @param Index Item index, 1 .. Item_Count.
+   --  @return The item.
+   function Item_At (Model : Window_Model; Index : Positive) return Files.Items.Directory_Item;
+
 end Files.Model.Testing;

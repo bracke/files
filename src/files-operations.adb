@@ -560,26 +560,32 @@ package body Files.Operations is
       or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)));
 
    procedure Poll_Folder_Sizes (Model : in out Files.Model.Window_Model) is
-      Scan  : Files.Folder_Size.Session := Files.Model.Folder_Scan (Model);
-      Taken : Files.Folder_Size.Measurement_Vectors.Vector;
+      Paused : constant Boolean := Folder_Sizes_Paused (Model);
+      Taken  : Files.Folder_Size.Measurement_Vectors.Vector;
+
+      procedure Poll (Scan : in out Files.Folder_Size.Session) is
+      begin
+         Files.Folder_Size.Step (Scan);
+         --  Handed over a few times a second, not one by one: each hand-over
+         --  gives the window a snapshot to patch.
+         if not Paused then
+            Files.Folder_Size.Take_Due (Scan, Ada.Real_Time.Clock, Taken);
+         end if;
+      end Poll;
    begin
-      Files.Folder_Size.Step (Scan);
-      --  Handed over a few times a second, not one by one: each hand-over
-      --  gives the window a snapshot to patch.
-      if not Folder_Sizes_Paused (Model) then
-         Files.Folder_Size.Take_Due (Scan, Ada.Real_Time.Clock, Taken);
-      end if;
-      Files.Model.Set_Folder_Scan (Model, Scan);
+      Files.Model.Update_Folder_Scan (Model, Poll'Access);
       Files.Model.Note_Folder_Sizes (Model, Taken);
    end Poll_Folder_Sizes;
 
    procedure Cancel_Folder_Scan (Model : in out Files.Model.Window_Model) is
-      Scan      : Files.Folder_Size.Session := Files.Model.Folder_Scan (Model);
-      Discarded : Files.Folder_Size.Measurement_Vectors.Vector;
+      procedure Cancel (Scan : in out Files.Folder_Size.Session) is
+         Discarded : Files.Folder_Size.Measurement_Vectors.Vector;
+      begin
+         Files.Folder_Size.Cancel (Scan);
+         Files.Folder_Size.Take_All (Scan, Discarded);
+      end Cancel;
    begin
-      Files.Folder_Size.Cancel (Scan);
-      Files.Folder_Size.Take_All (Scan, Discarded);
-      Files.Model.Set_Folder_Scan (Model, Scan);
+      Files.Model.Update_Folder_Scan (Model, Cancel'Access);
    end Cancel_Folder_Scan;
 
    procedure Update_Folder_Size
@@ -591,12 +597,24 @@ package body Files.Operations is
       --  Retargeted once the read or paste is done: the watch poll's read
       --  comes every few seconds, and cancelling here restarted any folder
       --  slower than that from scratch every time, so it never finished.
-      if Folder_Sizes_Paused (Model)
-        or else Files.Folder_Size.Targets_Set_For
-          (Files.Model.Folder_Scan (Model), Files.Model.Rows_Revision (Model), Files.Model.Selection_Revision (Model))
-      then
+      if Folder_Sizes_Paused (Model) then
          return;
       end if;
+      declare
+         Rows      : constant Natural := Files.Model.Rows_Revision (Model);
+         Selection : constant Natural := Files.Model.Selection_Revision (Model);
+         Current   : Boolean := False;
+
+         procedure Check (Scan : in out Files.Folder_Size.Session) is
+         begin
+            Current := Files.Folder_Size.Targets_Set_For (Scan, Rows, Selection);
+         end Check;
+      begin
+         Files.Model.Update_Folder_Scan (Model, Check'Access);
+         if Current then
+            return;
+         end if;
+      end;
       --  The helper process performs the recursive subtree walk. Here we only
       --  request selected directories; the frame loop polls for completed totals.
       --  Every selected directory is measured -- for any selection, not only when
@@ -621,12 +639,16 @@ package body Files.Operations is
             Files.Model.Prune_Folder_Sizes_To_Selection (Model);
             Files.Model.For_Each_Selected_Item (Model, Add'Access);
             declare
-               Scan : Files.Folder_Size.Session := Files.Model.Folder_Scan (Model);
+               Rows      : constant Natural := Files.Model.Rows_Revision (Model);
+               Selection : constant Natural := Files.Model.Selection_Revision (Model);
+
+               procedure Retarget (Scan : in out Files.Folder_Size.Session) is
+               begin
+                  Files.Folder_Size.Set_Targets (Scan, Targets);
+                  Files.Folder_Size.Note_Targets_Set_For (Scan, Rows, Selection);
+               end Retarget;
             begin
-               Files.Folder_Size.Set_Targets (Scan, Targets);
-               Files.Folder_Size.Note_Targets_Set_For
-                 (Scan, Files.Model.Rows_Revision (Model), Files.Model.Selection_Revision (Model));
-               Files.Model.Set_Folder_Scan (Model, Scan);
+               Files.Model.Update_Folder_Scan (Model, Retarget'Access);
             end;
          end;
       else

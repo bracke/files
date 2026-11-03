@@ -83,4 +83,7 @@ package body Files.Model.Testing is
       return Model.Undo_Stack.Last_Element.To;
    end Undo_To_Paths;
 
+   function Item_At (Model : Window_Model; Index : Positive) return Files.Items.Directory_Item is
+     (Model.Items (Index));
+
 end Files.Model.Testing;

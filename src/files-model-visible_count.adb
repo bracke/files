@@ -3,19 +3,6 @@ function Visible_Count
   (Model : Window_Model)
    return Natural
 is
-   Count : Natural := 0;
 begin
-   if not Model.Items.Is_Empty then
-      for Item of Model.Items loop
-         if Item_Is_Visible (Model, Item) then
-            Count := Count + 1;
-         end if;
-      end loop;
-   end if;
-
-   if Temporary_Is_Visible (Model) then
-      Count := Count + 1;
-   end if;
-
-   return Count;
+   return Visible_Item_Count (Model) + (if Temporary_Is_Visible (Model) then 1 else 0);
 end Visible_Count;
