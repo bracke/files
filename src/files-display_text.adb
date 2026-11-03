@@ -267,13 +267,16 @@ package body Files.Display_Text is
    end Group_Separator;
 
    function Grouped_Integer_Text (Value : Long_Long_Integer) return String is
-      Number_Text : constant String := Integer_Text (Value);
+      Text        : constant String := Integer_Text (Value);
+      --  The sign is not a digit: "-123" must not read "-,123".
+      Signed      : constant Boolean := Text'Length > 0 and then Text (Text'First) = '-';
+      Number_Text : constant String := (if Signed then Text (Text'First + 1 .. Text'Last) else Text);
       Separator  : constant String := Group_Separator;
       First_Size : Natural := Number_Text'Length mod 3;
       Result     : Unbounded_String;
    begin
       if Separator'Length = 0 or else Number_Text'Length <= 3 then
-         return Number_Text;
+         return Text;
       end if;
 
       if First_Size = 0 then
@@ -289,7 +292,7 @@ package body Files.Display_Text is
          Append (Result, Number_Text (Index));
       end loop;
 
-      return To_String (Result);
+      return (if Signed then "-" else "") & To_String (Result);
    end Grouped_Integer_Text;
 
    --  A size as humanize writes it in the number locale: decimal units in

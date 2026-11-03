@@ -87,6 +87,14 @@ package Files.Refresh_Jobs is
       Now     : Ada.Real_Time.Time;
       Changed : Boolean) return Boolean;
 
+   --  Note a change the watch reported while a refresh is still running: it
+   --  stays owed, and Watch_Refresh_Due pays it once that refresh is done
+   --  (a read already under way may have listed the folder before it).
+   --
+   --  @param Pacer This window's pacing.
+   --  @param Changed The watch reported a change.
+   procedure Owe_Watch_Refresh (Pacer : in out Watch_Pacer; Changed : Boolean);
+
    --  Whether a timed re-read may run. After a failed load it may, once per
    --  Load_Retry_Gap; otherwise always.
    --

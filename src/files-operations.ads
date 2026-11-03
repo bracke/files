@@ -1,3 +1,4 @@
+with Files.Preview_Decoder;
 with Files.Items;
 with Files.File_System;
 with Files.Model;
@@ -581,7 +582,10 @@ package Files.Operations is
    --  has it (Prepare_Quick_Look asked for it).
    --
    --  @param Model Window model whose preview to complete.
-   procedure Poll_Quick_Look (Model : in out Files.Model.Window_Model);
+   --  @param Owner Which window asks (one decode in flight per window).
+   procedure Poll_Quick_Look
+     (Model : in out Files.Model.Window_Model;
+      Owner : Files.Preview_Decoder.Requester);
 
    --  The size and modification time of Item as a preview remembers them
    --  (Quick_Look_Content.Source_Stamp).

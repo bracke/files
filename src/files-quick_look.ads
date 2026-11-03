@@ -18,6 +18,10 @@ package Files.Quick_Look is
    --  Cap on the number of text lines carried into the preview.
    Max_Preview_Lines : constant := 100;
 
+   --  The longest side the full-size preview image is decoded to: the large
+   --  icon tile's bound, so it is sharp within the panel.
+   Preview_Side : constant := 512;
+
    --  Cap on the number of leading bytes a caller should read for text preview.
    Max_Preview_Bytes : constant := 8192;
 

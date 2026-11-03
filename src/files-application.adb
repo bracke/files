@@ -483,6 +483,11 @@ package body Files.Application is
                               Items             => Load.Items,
                               Home_Path         => Home,
                               Default_View_Mode => Settings.Default_View);
+                           --  The signature the watch compares with, as navigation stores
+                           --  it: the one Initialize derives from the items never matches,
+                           --  and every startup folder was read again for nothing.
+                           Files.Model.Set_Directory_Signature
+                             (Window.Model, Files.File_System.Directory_State (To_String (Load.Path)));
                            Files.Operations.Settle_Current_Is_Trash (Window.Model);
                            Apply_Persisted_UI_State (Window.Model, Settings);
                            --  As on navigation, missing thumbnails are made by a

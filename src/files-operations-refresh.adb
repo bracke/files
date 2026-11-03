@@ -4,6 +4,10 @@ function Refresh
    Settings : Files.Settings.Settings_Model)
    return Operation_Result is
 begin
+   --  Asked for by the user, so folder sizes are measured again too: a
+   --  watched reload keeps them (a write deep inside a folder does not move
+   --  the folder's own time, so nothing there says they are stale).
+   Files.Model.Clear_Folder_Size (Model);
    if Files.Model.Background_Transfers (Model) then
       return Files.Refresh_Jobs.Start (Model, Settings, Force => True);
    end if;

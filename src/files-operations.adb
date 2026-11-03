@@ -11,7 +11,6 @@ with Ada.Strings.Unbounded;
 with GNAT.OS_Lib;
 
 with Files.Folder_Size;
-with Files.Preview_Decoder;
 with Files.Undo_Payloads;
 with Files.Shared_Bytes;
 with Files.Transfer_Jobs;
@@ -758,7 +757,6 @@ package body Files.Operations is
      (Item : Files.Items.Directory_Item)
       return Files.Quick_Look.Quick_Look_Content
    is
-      use type Files.Quick_Look.Content_Kind;
       Name     : constant String := To_String (Item.Name);
       Filetype : constant String := To_String (Item.Filetype);
       Icon_Id  : constant String := To_String (Item.Icon_Id);
@@ -772,9 +770,6 @@ package body Files.Operations is
          then ""
          else Files.File_System.Read_Preview_Text
                 (Path, Files.Quick_Look.Max_Preview_Bytes));
-      --  Preview resolution for the decoded original image, matching the icon
-      --  atlas's large-tile bound so it renders crisply within the panel.
-      Preview_Size : constant Positive := 512;
       Content : Files.Quick_Look.Quick_Look_Content :=
         Files.Quick_Look.Prepare_Content
           (Name           => Name,
@@ -787,13 +782,10 @@ package body Files.Operations is
            Image_Path     => Path,
            Raw_Bytes      => Raw);
    begin
-      Content.Source_Stamp := Quick_Look_Stamp (Item);
       --  The original image, so the preview scales the source rather than the
-      --  small thumbnail, decoded off the UI thread: the thumbnail shows until
-      --  Poll_Quick_Look hands the decoded one over.
-      if Content.Kind = Files.Quick_Look.Image_Content then
-         Files.Preview_Decoder.Request (Path, Preview_Size);
-      end if;
+      --  small thumbnail, is decoded off the UI thread: Poll_Quick_Look asks
+      --  for it, and the thumbnail shows until it is in.
+      Content.Source_Stamp := Quick_Look_Stamp (Item);
       return Content;
    end Prepare_Quick_Look;
 
@@ -804,7 +796,9 @@ package body Files.Operations is
             then " " & Ada.Calendar.Formatting.Image (Item.Modified_Time, Include_Time_Fraction => True)
             else "")));
 
-   procedure Poll_Quick_Look (Model : in out Files.Model.Window_Model) is
+   procedure Poll_Quick_Look
+     (Model : in out Files.Model.Window_Model;
+      Owner : Files.Preview_Decoder.Requester) is
       use type Files.Quick_Look.Content_Kind;
    begin
       if Files.Model.Quick_Look_Is_Open (Model) then
@@ -818,9 +812,12 @@ package body Files.Operations is
                   Path  : constant String := To_String (Content.Image_Path);
                   Image : Files.Images.Decoded_Image;
                   Ready : Boolean;
+                  Asked : Boolean;
                begin
-                  Files.Preview_Decoder.Take (Path, Image, Ready);
-                  if Ready and then Image.Available then
+                  Files.Preview_Decoder.Take (Owner, Path, Image, Ready, Asked);
+                  if not Asked then
+                     Files.Preview_Decoder.Request (Owner, Path, Files.Quick_Look.Preview_Side);
+                  elsif Ready and then Image.Available then
                      Files.Model.Set_Quick_Look_Image
                        (Model, Path, Files.Shared_Bytes.To_Shared (Image.Pixels), Image.Width, Image.Height);
                   end if;

@@ -1,3 +1,4 @@
+with Files.Preview_Decoder;
 with Files.Controller;
 with Files.Items;
 with Files.Environment;
@@ -946,7 +947,12 @@ package body Files.Application.Windows is
       begin
          --  A burst of writes is paced to one reload per gap, the last one
          --  owed and paid; a listing that cannot be read is retried slowly.
-         if Files.Refresh_Jobs.Watch_Refresh_Due (Runtime.Watch_Pacing, Now, Changed) then
+         --  While a read runs nothing is started, so nothing is paid: the
+         --  change stays owed until the read is in.
+         if Files.Process_Jobs.Active (Files.Model.Background_Refresh (Runtime.Model)) then
+            Files.Refresh_Jobs.Owe_Watch_Refresh (Runtime.Watch_Pacing, Changed);
+            return;
+         elsif Files.Refresh_Jobs.Watch_Refresh_Due (Runtime.Watch_Pacing, Now, Changed) then
             if Files.Refresh_Jobs.Retry_Due (Runtime.Watch_Pacing, Now, Load_Failed) then
                Result := Files.Operations.Refresh_If_Changed (Runtime.Model, Runtime.Settings);
             end if;
@@ -1012,7 +1018,8 @@ package body Files.Application.Windows is
                end if;
             end;
             Files.Operations.Poll_Folder_Sizes (Runtime.Model);
-            Files.Operations.Poll_Quick_Look (Runtime.Model);
+            Files.Operations.Poll_Quick_Look
+              (Runtime.Model, Files.Preview_Decoder.Requester (Runtime.A11y_Key));
          end if;
       end Poll;
    begin

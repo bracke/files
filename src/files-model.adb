@@ -1879,9 +1879,34 @@ package body Files.Model is
    procedure Swap_Items
      (Model  : in out Window_Model;
       Items  : Files.Items.Item_Vectors.Vector;
-      Sorted : Boolean) is
+      Sorted : Boolean)
+   is
+      package Time_Maps is new Ada.Containers.Ordered_Maps
+        (Key_Type => UString, Element_Type => Ada.Calendar.Time, "<" => Ada.Strings.Unbounded."<");
+      --  The listed times of the folders whose sizes are kept.
+      Measured_At : Time_Maps.Map;
    begin
-      Clear_Folder_Size (Model);
+      --  A refresh of the same folder keeps the sizes measured, and the
+      --  helper measuring the rest: clearing them on every reload restarted
+      --  a large folder's walk each time a download in the folder grew.
+      --  A folder whose own listing changed (its time moved) is measured
+      --  again; Update_Folder_Size prunes whatever is no longer selected.
+      if not Model.Folder_Sizes.Is_Empty then
+         for Item of Model.Items loop
+            if Model.Folder_Sizes.Contains (Item.Full_Path) then
+               Measured_At.Include (Item.Full_Path, Item.Modified_Time);
+            end if;
+         end loop;
+         for Item of Items loop
+            if Model.Folder_Sizes.Contains (Item.Full_Path)
+              and then
+                (not Measured_At.Contains (Item.Full_Path)
+                 or else Measured_At.Element (Item.Full_Path) /= Item.Modified_Time)
+            then
+               Model.Folder_Sizes.Delete (Item.Full_Path);
+            end if;
+         end loop;
+      end if;
       Support.Touch (Model);
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       if Model.Temporary_Active then

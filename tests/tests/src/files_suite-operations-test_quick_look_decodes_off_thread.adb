@@ -28,29 +28,49 @@ separate (Files_Suite.Operations)
       Write_Binary_File (First, Bytes);
       Write_Binary_File (Second, Bytes);
 
-      Files.Preview_Decoder.Request (First, 8);
-      for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Launch_Limit)) loop
-         Files.Preview_Decoder.Take (First, Image, Ready);
-         exit when Ready;
-      end loop;
-      Assert (Ready and then Image.Available, "the worker decodes a requested image");
-      Assert (Image.Width in 1 .. 8 and then Image.Height in 1 .. 8, "to the size asked for");
-      Files.Preview_Decoder.Take (First, Image, Ready);
-      Assert (not Ready, "and hands it out once");
+      declare
+         A : constant Files.Preview_Decoder.Requester := 101;
+         B : constant Files.Preview_Decoder.Requester := 102;
+         Asked : Boolean;
 
-      --  Moving on before the first is done: its result is never handed out.
-      Files.Preview_Decoder.Request (First, 8);
-      Files.Preview_Decoder.Request (Second, 8);
-      for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Launch_Limit)) loop
-         Files.Preview_Decoder.Take (Second, Image, Ready);
-         exit when Ready;
-      end loop;
-      Assert (Ready, "the file now previewed is decoded");
-      Files.Preview_Decoder.Take (First, Image, Ready);
-      Assert (not Ready, "the one left behind is not handed out");
+         procedure Await (Owner : Files.Preview_Decoder.Requester; Path : String) is
+         begin
+            Ready := False;
+            for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Launch_Limit)) loop
+               Files.Preview_Decoder.Take (Owner, Path, Image, Ready, Asked);
+               exit when Ready;
+            end loop;
+         end Await;
+      begin
+         Files.Preview_Decoder.Take (A, First, Image, Ready, Asked);
+         Assert (not Ready and then not Asked, "nothing is asked for before a request");
+         Files.Preview_Decoder.Request (A, First, 8);
+         Await (A, First);
+         Assert (Ready and then Image.Available, "the worker decodes a requested image");
+         Assert (Image.Width in 1 .. 8 and then Image.Height in 1 .. 8, "to the size asked for");
+         Files.Preview_Decoder.Take (A, First, Image, Ready, Asked);
+         Assert (not Ready and then not Asked, "and hands it out once");
+
+         --  Two windows at once: neither cancels the other.
+         Files.Preview_Decoder.Request (A, First, 8);
+         Files.Preview_Decoder.Request (B, Second, 8);
+         Await (A, First);
+         Assert (Ready, "the first window still gets its image when a second one asks");
+         Await (B, Second);
+         Assert (Ready, "and so does the second");
+
+         --  One window moving on before its first is done: that result is
+         --  never handed out.
+         Files.Preview_Decoder.Request (A, First, 8);
+         Files.Preview_Decoder.Request (A, Second, 8);
+         Await (A, Second);
+         Assert (Ready, "the file now previewed is decoded");
+         Files.Preview_Decoder.Take (A, First, Image, Ready, Asked);
+         Assert (not Ready and then not Asked, "the one left behind is not handed out");
+      end;
 
       --  Through the model: the preview opens at once, without its image,
-      --  and Poll_Quick_Look completes it.
+      --  and Poll_Quick_Look asks for it and completes it.
       declare
          Load : constant Files.File_System.Directory_Load_Result :=
            Files.File_System.Load_Directory (Root, Files.Settings.Default_Settings);
@@ -62,8 +82,11 @@ separate (Files_Suite.Operations)
       Assert
         (Files.Model.Quick_Look_Content_Of (Model).Kind = Files.Quick_Look.Image_Content,
          "the preview opens as an image");
+      Assert
+        (Files.Shared_Bytes.Is_Empty (Files.Model.Quick_Look_Content_Of (Model).Image_Pixels),
+         "without its decoded image: the decode is not done on the UI thread");
       for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Launch_Limit)) loop
-         Files.Operations.Poll_Quick_Look (Model);
+         Files.Operations.Poll_Quick_Look (Model, 103);
          exit when not Files.Shared_Bytes.Is_Empty (Files.Model.Quick_Look_Content_Of (Model).Image_Pixels);
       end loop;
       Assert

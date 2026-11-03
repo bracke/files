@@ -258,10 +258,16 @@ package body Files.Refresh_Jobs is
                        else To_Unbounded_String (Previous_Error)));
    begin
       if Files.Model.Paste_Execution_Is_Active (Model)
-        or else (not Force and then (Work.Recent or else Files.Model.Search_Results_Are_Active (Model)
-                 or else Files.Model.Rename_Is_Active (Model) or else Files.Model.Temporary_Item_Is_Active (Model)
-                 or else Files.Model.Command_Palette_Is_Open (Model)))
+        or else (not Force and then (Work.Recent or else Files.Model.Search_Results_Are_Active (Model)))
       then
+         return (Status => Files.Operations.Operation_Success, others => <>);
+      elsif not Force
+        and then (Files.Model.Rename_Is_Active (Model) or else Files.Model.Temporary_Item_Is_Active (Model)
+                  or else Files.Model.Command_Palette_Is_Open (Model))
+      then
+         --  Replacing the items now would drop the edit or close the palette:
+         --  the reload is owed, and Resume_Owed starts it once they are done.
+         Files.Model.Note_Owed_Refresh (Model, Force => False, Select_Name => Select_Name);
          return (Status => Files.Operations.Operation_Success, others => <>);
       end if;
       if not Force and then Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)) then
@@ -479,6 +485,11 @@ package body Files.Refresh_Jobs is
       Pacer.Last_Refresh := Now;
       return True;
    end Watch_Refresh_Due;
+
+   procedure Owe_Watch_Refresh (Pacer : in out Watch_Pacer; Changed : Boolean) is
+   begin
+      Pacer.Owed := Pacer.Owed or else Changed;
+   end Owe_Watch_Refresh;
 
    function Retry_Due
      (Pacer       : in out Watch_Pacer;

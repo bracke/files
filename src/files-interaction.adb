@@ -192,7 +192,9 @@ package body Files.Interaction is
             Files.Settings.Note_Recent (Updated, To_String (Path));
          end loop;
          Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path);
-         Result.Settings_Changed := Files.Settings.Same_Content (Settings, Updated);
+         --  Added to, not overwritten: a refused recent list must not hide
+         --  the label moves just written.
+         Result.Settings_Changed := Result.Settings_Changed or else Files.Settings.Same_Content (Settings, Updated);
       end;
    end Persist_Recent_Opens;
 

@@ -27,6 +27,12 @@ separate (Files_Suite.Operations)
         (not Files.Refresh_Jobs.Watch_Refresh_Due (Pacer, Start + Gap + Gap, False),
          "nothing is owed after it");
 
+      --  A change seen while a read runs stays owed and is paid after it.
+      Files.Refresh_Jobs.Owe_Watch_Refresh (Pacer, True);
+      Assert
+        (Files.Refresh_Jobs.Watch_Refresh_Due (Pacer, Start + Gap + Gap + Gap, False),
+         "a change owed during a read is refreshed once the gap allows");
+
       Assert (Files.Refresh_Jobs.Retry_Due (Pacer, Start, False), "a listing that loaded may be re-read");
       Assert (Files.Refresh_Jobs.Retry_Due (Pacer, Start, True), "the first retry after a failure runs");
       Assert

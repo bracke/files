@@ -146,6 +146,7 @@ package body Files_Suite.Rendering is
    procedure Test_Info_Pane_Height_Matches_Drawn (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Snapshot_Policy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Day_Labels_Across_Clock_Changes (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Grouped_Numbers_Keep_The_Sign (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Selection_Patch_Matches_Rebuild (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scroll_Patch_Matches_Rebuild (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scope_Chip_Has_Own_Tooltip (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -409,6 +410,8 @@ package body Files_Suite.Rendering is
         (T, Test_Selection_Patch_Matches_Rebuild'Access,
          "a selection change keeps the rows, and the patched snapshot equals a rebuilt one");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Grouped_Numbers_Keep_The_Sign'Access, "digit grouping leaves a negative number's sign alone");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Day_Labels_Across_Clock_Changes'Access,
          "yesterday and the weekdays survive a daylight-saving change");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -471,6 +474,8 @@ package body Files_Suite.Rendering is
    procedure Test_Snapshot_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Day_Labels_Across_Clock_Changes (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Grouped_Numbers_Keep_The_Sign (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Selection_Patch_Matches_Rebuild (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -3,66 +3,127 @@ with Ada.Strings.Unbounded;
 package body Files.Preview_Decoder is
    use Ada.Strings.Unbounded;
 
-   protected Slot is
-      procedure Put (Path : String; Size : Positive);
-      procedure Next (Found : out Boolean; Path : out Unbounded_String; Size : out Positive);
-      procedure Deliver (Path : Unbounded_String; Image : Files.Images.Decoded_Image);
-      procedure Collect (Path : String; Image : out Files.Images.Decoded_Image; Ready : out Boolean);
+   --  Windows asking at once: a few. The oldest slot goes when all are taken.
+   Max_Requesters : constant := 8;
+
+   type Request_State is record
+      Used    : Boolean := False;
+      Owner   : Requester := 0;
+      Path    : Unbounded_String;
+      Size    : Positive := 1;
+      Pending : Boolean := False;
+      Done    : Boolean := False;
+      Image   : Files.Images.Decoded_Image;
+      Stamp   : Natural := 0;
+   end record;
+
+   type Request_Array is array (1 .. Max_Requesters) of Request_State;
+
+   protected Slots is
+      procedure Put (Owner : Requester; Path : String; Size : Positive);
+      procedure Next
+        (Found : out Boolean;
+         Owner : out Requester;
+         Path  : out Unbounded_String;
+         Size  : out Positive);
+      procedure Deliver (Owner : Requester; Path : Unbounded_String; Image : Files.Images.Decoded_Image);
+      procedure Collect
+        (Owner : Requester;
+         Path  : String;
+         Image : out Files.Images.Decoded_Image;
+         Ready : out Boolean;
+         Asked : out Boolean);
       function Waiting return Boolean;
    private
-      Pending       : Boolean := False;
-      Pending_Path  : Unbounded_String;
-      Pending_Size  : Positive := 1;
-      Done          : Boolean := False;
-      Done_Path     : Unbounded_String;
-      Done_Image    : Files.Images.Decoded_Image;
-   end Slot;
+      States : Request_Array;
+      Clock  : Natural := 0;
+   end Slots;
 
-   protected body Slot is
-      procedure Put (Path : String; Size : Positive) is
+   protected body Slots is
+      function Slot_Of (Owner : Requester) return Natural is
       begin
-         Pending := True;
-         Pending_Path := To_Unbounded_String (Path);
-         Pending_Size := Size;
-         --  A result for another file is stale now.
-         if Done and then Done_Path /= Pending_Path then
-            Done := False;
-            Done_Image := (others => <>);
+         for Index in States'Range loop
+            if States (Index).Used and then States (Index).Owner = Owner then
+               return Index;
+            end if;
+         end loop;
+         return 0;
+      end Slot_Of;
+
+      procedure Put (Owner : Requester; Path : String; Size : Positive) is
+         Index : Natural := Slot_Of (Owner);
+      begin
+         if Index = 0 then
+            --  A free slot, else the one asked of longest ago.
+            for Candidate in States'Range loop
+               if not States (Candidate).Used then
+                  Index := Candidate;
+                  exit;
+               elsif Index = 0 or else States (Candidate).Stamp < States (Index).Stamp then
+                  Index := Candidate;
+               end if;
+            end loop;
          end if;
+         Clock := (if Clock = Natural'Last then 0 else Clock + 1);
+         States (Index) :=
+           (Used => True, Owner => Owner, Path => To_Unbounded_String (Path), Size => Size,
+            Pending => True, Done => False, Image => (others => <>), Stamp => Clock);
       end Put;
 
-      procedure Next (Found : out Boolean; Path : out Unbounded_String; Size : out Positive) is
+      procedure Next
+        (Found : out Boolean;
+         Owner : out Requester;
+         Path  : out Unbounded_String;
+         Size  : out Positive) is
       begin
-         Found := Pending;
-         Path := Pending_Path;
-         Size := Pending_Size;
-         Pending := False;
+         Found := False;
+         Owner := 0;
+         Path := Null_Unbounded_String;
+         Size := 1;
+         for State of States loop
+            if State.Used and then State.Pending then
+               State.Pending := False;
+               Found := True;
+               Owner := State.Owner;
+               Path := State.Path;
+               Size := State.Size;
+               return;
+            end if;
+         end loop;
       end Next;
 
-      procedure Deliver (Path : Unbounded_String; Image : Files.Images.Decoded_Image) is
+      procedure Deliver (Owner : Requester; Path : Unbounded_String; Image : Files.Images.Decoded_Image) is
+         Index : constant Natural := Slot_Of (Owner);
       begin
-         --  Kept only while nothing newer has been asked for.
-         if not Pending or else Pending_Path = Path then
-            Done := True;
-            Done_Path := Path;
-            Done_Image := Image;
+         --  Kept only while the owner still asks for this file.
+         if Index /= 0 and then States (Index).Path = Path and then not States (Index).Pending then
+            States (Index).Done := True;
+            States (Index).Image := Image;
          end if;
       end Deliver;
 
-      procedure Collect (Path : String; Image : out Files.Images.Decoded_Image; Ready : out Boolean) is
+      procedure Collect
+        (Owner : Requester;
+         Path  : String;
+         Image : out Files.Images.Decoded_Image;
+         Ready : out Boolean;
+         Asked : out Boolean)
+      is
+         Index : constant Natural := Slot_Of (Owner);
       begin
-         Ready := Done and then To_String (Done_Path) = Path;
+         Asked := Index /= 0 and then To_String (States (Index).Path) = Path;
+         Ready := Asked and then States (Index).Done;
          if Ready then
-            Image := Done_Image;
-            Done := False;
-            Done_Image := (others => <>);
+            Image := States (Index).Image;
+            States (Index) := (others => <>);
          else
             Image := (others => <>);
          end if;
       end Collect;
 
-      function Waiting return Boolean is (Pending);
-   end Slot;
+      function Waiting return Boolean is
+        (for some State of States => State.Used and then State.Pending);
+   end Slots;
 
    task Worker is
       entry Wake;
@@ -70,6 +131,7 @@ package body Files.Preview_Decoder is
 
    task body Worker is
       Found : Boolean;
+      Owner : Requester;
       Path  : Unbounded_String;
       Size  : Positive;
    begin
@@ -80,7 +142,7 @@ package body Files.Preview_Decoder is
             terminate;
          end select;
          loop
-            Slot.Next (Found, Path, Size);
+            Slots.Next (Found, Owner, Path, Size);
             exit when not Found;
             declare
                Image : Files.Images.Decoded_Image;
@@ -91,7 +153,7 @@ package body Files.Preview_Decoder is
                   when others =>
                      Image := (others => <>);
                end;
-               Slot.Deliver (Path, Image);
+               Slots.Deliver (Owner, Path, Image);
             end;
          end loop;
       end loop;
@@ -108,21 +170,23 @@ package body Files.Preview_Decoder is
       end select;
    end Kick;
 
-   procedure Request (Path : String; Size : Positive) is
+   procedure Request (Owner : Requester; Path : String; Size : Positive) is
    begin
-      Slot.Put (Path, Size);
+      Slots.Put (Owner, Path, Size);
       Kick;
    end Request;
 
    procedure Take
-     (Path  : String;
+     (Owner : Requester;
+      Path  : String;
       Image : out Files.Images.Decoded_Image;
-      Ready : out Boolean) is
+      Ready : out Boolean;
+      Asked : out Boolean) is
    begin
-      Slot.Collect (Path, Image, Ready);
+      Slots.Collect (Owner, Path, Image, Ready, Asked);
       --  A wake-up can be missed between the worker's last look and its
       --  return to waiting: asking again costs nothing.
-      if not Ready and then Slot.Waiting then
+      if not Ready and then Slots.Waiting then
          Kick;
       end if;
    end Take;
