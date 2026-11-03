@@ -307,6 +307,8 @@ package body Files_Suite.Operations is
    procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Decode_Emoji_Png_From_Font (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Image_Header_Bytes (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Watch_Pacing (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Thumbnail_Transport_Budget (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Permission_String_Agrees_With_The_Host (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Explicit_Thumbnail_Survives_The_Listing (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Invalid_Create_Names (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -769,6 +771,10 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Thumbnail_Cache_Is_Bounded'Access,
          "the thumbnail cache is pruned to its budget, oldest first");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Watch_Pacing'Access, "watch refreshes are paced and a failed load is retried slowly");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Thumbnail_Transport_Budget'Access, "a refresh carries thumbnails only up to its pixel budget");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Image_Header_Bytes'Access,
          "image headers: big-endian sizes clamp, and a PNG needs IHDR first");
@@ -1329,6 +1335,10 @@ package body Files_Suite.Operations is
    procedure Test_Decode_Emoji_Png_From_Font (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Image_Header_Bytes (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Watch_Pacing (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Thumbnail_Transport_Budget (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

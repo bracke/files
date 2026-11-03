@@ -4,7 +4,7 @@ with Files.Settings;
 with Files.Process_Jobs;
 with Files.Types;
 
-private with Ada.Real_Time;
+with Ada.Real_Time;
 
 --  Nonmodal directory reads and native watches execute outside the UI process.
 package Files.Refresh_Jobs is
@@ -62,6 +62,43 @@ package Files.Refresh_Jobs is
    --  @param Job Watch helper to stop without waiting for storage.
    procedure Release_Watch (Job : in out Watch_Session);
 
+   --  How often a window may re-read its folder on its own. A file being
+   --  written posts a change every 50 ms, and each one used to start a full
+   --  reload of the folder as soon as the last ended; a listing that cannot
+   --  be read was re-read, forced, on every poll.
+   type Watch_Pacer is private;
+
+   --  The shortest gap between two refreshes a watch asked for.
+   Watch_Refresh_Gap : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (2);
+
+   --  How long a listing that failed to load waits before the next try.
+   Load_Retry_Gap : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (30);
+
+   --  Whether to refresh now for the watch. A change seen while the last
+   --  refresh is too recent is owed, and a later call pays it, so the last
+   --  write of a burst is always shown.
+   --
+   --  @param Pacer This window's pacing.
+   --  @param Now The current time.
+   --  @param Changed The watch reported a change since the last call.
+   --  @return True when the caller should refresh now.
+   function Watch_Refresh_Due
+     (Pacer   : in out Watch_Pacer;
+      Now     : Ada.Real_Time.Time;
+      Changed : Boolean) return Boolean;
+
+   --  Whether a timed re-read may run. After a failed load it may, once per
+   --  Load_Retry_Gap; otherwise always.
+   --
+   --  @param Pacer This window's pacing.
+   --  @param Now The current time.
+   --  @param Load_Failed The listing on screen failed to load.
+   --  @return True when the caller may re-read.
+   function Retry_Due
+     (Pacer       : in out Watch_Pacer;
+      Now         : Ada.Real_Time.Time;
+      Load_Failed : Boolean) return Boolean;
+
    --  @param Directory Private refresh request/result directory.
    procedure Run_Helper (Directory : String);
 
@@ -85,6 +122,13 @@ private
    --  Publish one idempotent watch marker. False leaves the caller responsible
    --  for retrying because the native event has already been consumed.
    function Post_Watch_Notification (Directory : String) return Boolean;
+
+   type Watch_Pacer is record
+      Last_Refresh : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+      Refreshed    : Boolean := False;
+      Owed         : Boolean := False;
+      Retry_At     : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+   end record;
 
    type Watch_Session is record
       Process : Files.Process_Jobs.Session;

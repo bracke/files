@@ -211,6 +211,7 @@ it.error.rename.invalid_destination = La destinazione della rinomina non è vali
 it.error.rename.failed = Impossibile rinominare l'elemento.
 it.error.trash.unavailable = Il cestino non è disponibile su questa piattaforma.
 it.error.trash.failed = Impossibile spostare l'elemento nel cestino.
+it.error.trash.volume_unavailable = Questa unità non ha un cestino; l'elemento non è stato spostato.
 it.error.search.failed = Impossibile completare la ricerca.
 it.error.permanent_delete.refused = Eliminazione definitiva rifiutata per un percorso non sicuro.
 it.error.permanent_delete.failed = Impossibile eliminare definitivamente l'elemento.

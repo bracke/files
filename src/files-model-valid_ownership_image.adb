@@ -35,15 +35,12 @@ begin
       Numeric : constant String := Ada.Strings.Fixed.Trim
         (Text (Text'First .. Numeric_Last), Ada.Strings.Both);
       Space : constant Natural := Ada.Strings.Fixed.Index (Numeric, " ");
-      User, Group : Natural;
-      pragma Unreferenced (User, Group);
    begin
-      if Space = 0 then
-         return False;
-      end if;
-      User := Natural'Value (Numeric (Numeric'First .. Space - 1));
-      Group := Natural'Value (Numeric (Space + 1 .. Numeric'Last));
-      return True;
+      --  Every 32-bit id, as the writer (Account_Image) produces them: NFS's
+      --  nobody is 4294967294, past Natural'Last.
+      return Space /= 0
+        and then Files.Types.Parse_Account_Id (Numeric (Numeric'First .. Space - 1)).Valid
+        and then Files.Types.Parse_Account_Id (Numeric (Space + 1 .. Numeric'Last)).Valid;
    end;
 exception
    when others =>

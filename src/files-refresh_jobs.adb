@@ -453,6 +453,42 @@ package body Files.Refresh_Jobs is
          return False;
    end Advance;
 
+   function Watch_Refresh_Due
+     (Pacer   : in out Watch_Pacer;
+      Now     : Ada.Real_Time.Time;
+      Changed : Boolean) return Boolean
+   is
+      use type Ada.Real_Time.Time;
+   begin
+      Pacer.Owed := Pacer.Owed or else Changed;
+      if not Pacer.Owed
+        or else (Pacer.Refreshed and then Now < Pacer.Last_Refresh + Watch_Refresh_Gap)
+      then
+         return False;
+      end if;
+      Pacer.Owed := False;
+      Pacer.Refreshed := True;
+      Pacer.Last_Refresh := Now;
+      return True;
+   end Watch_Refresh_Due;
+
+   function Retry_Due
+     (Pacer       : in out Watch_Pacer;
+      Now         : Ada.Real_Time.Time;
+      Load_Failed : Boolean) return Boolean
+   is
+      use type Ada.Real_Time.Time;
+   begin
+      if not Load_Failed then
+         Pacer.Retry_At := Ada.Real_Time.Time_First;
+         return True;
+      elsif Now < Pacer.Retry_At then
+         return False;
+      end if;
+      Pacer.Retry_At := Now + Load_Retry_Gap;
+      return True;
+   end Retry_Due;
+
    procedure Run_Helper (Directory : String) is
       File : aliased Files.Exclusive_Streams.Output_Stream;
       Work : Request;
@@ -490,6 +526,7 @@ package body Files.Refresh_Jobs is
                      Done.Success := Loaded.Success;
                      Done.Reloaded := Loaded.Success;
                      Done.Items := Loaded.Items;
+                     Files.Job_Records.Fit_Thumbnails (Done.Items);
                      Done.Error_Key := Loaded.Error_Key;
                      --  Use the signature from before loading, so a concurrent
                      --  change during enumeration schedules another refresh.

@@ -135,7 +135,16 @@ begin
    --  directory -- the Recycle Bin is the shell's, not ours -- so those checks
    --  do not apply to it, and applying them anyway reported "no trash" on the
    --  one platform whose trash is always there.
+   --  But the Recycle Bin is not everywhere: asked to recycle from a network
+   --  share or a USB stick, the shell deletes the item for good, silently.
+   --  Refuse there, before anything is touched, so the user can choose a
+   --  permanent delete knowingly.
    if Uses_Native_Trash then
+      if Hostkit.Trash.Current.Uses_Recycle_Bin and then not Hostkit.Trash.Can_Hold (Path) then
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.trash.volume_unavailable"));
+      end if;
       return (Success => True, Error_Key => Null_Unbounded_String);
    end if;
 

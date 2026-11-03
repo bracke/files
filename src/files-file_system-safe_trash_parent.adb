@@ -16,15 +16,15 @@ function Safe_Trash_Parent (Parent : String; Shared : Boolean; Existing : Boolea
    --  share could swap the trash for a folder of the user's and have Empty
    --  Trash delete its contents, so that is refused like a new trash.
    --  Writable by everyone is never trusted.
-   Uid : Natural := 0;
+   Uid : Files.Types.Account_Id := 0;
    Own_Private_Group : constant Boolean :=
      Existing
-     and then Hostkit.Process.Current_User_Id (Uid)
+     and then Hostkit.Process.Current_User_Account (Uid)
      and then Revision.User_Id = Interfaces.Unsigned_64 (Uid)
      and then Revision.Group_Id <= Interfaces.Unsigned_64 (Files.Types.Account_Id'Last)
-     and then User_Name_For_Id (Files.Types.Account_Id (Uid)) /= ""
+     and then User_Name_For_Id (Uid) /= ""
      and then Group_Name_For_Id (Files.Types.Account_Id (Revision.Group_Id))
-                = User_Name_For_Id (Files.Types.Account_Id (Uid));
+                = User_Name_For_Id (Uid);
    Shared_Writable : constant Boolean :=
      (Revision.Mode and (if Own_Private_Group then 8#002# else 8#022#)) /= 0;
 begin

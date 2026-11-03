@@ -86,4 +86,26 @@ separate (Files_Suite.Operations)
         (Files.Model.Item_Count (Model),
          5,
          "same-count watcher refresh keeps replacement entry count");
+
+      --  Changes that leave the name, the count, the size and the newest
+      --  modification time alone: a chmod, and a same-size rewrite that puts
+      --  the old modification time back (cp -p, rsync -t). The listing shows
+      --  permissions and contents, so both must read as changed.
+      declare
+         Target : constant String := Join (Join (Root, "search"), "alpha-match.txt");
+         Stamp  : constant Long_Long_Integer := 1_600_000_000;
+      begin
+         Assert (Hostkit.Metadata.Set_File_Times (Target, Stamp, Stamp), "the test can set a file's times");
+         if Hostkit.Metadata.Permissions_Supported then
+            Before := Files.File_System.Directory_State (Join (Root, "search"));
+            Assert (Hostkit.Metadata.Set_Permissions (Target, 8#600#), "the test can change a mode");
+            Change := Files.File_System.Detect_Directory_Change (Before, Join (Root, "search"));
+            Assert (Change.Changed, "a chmod alone is a change");
+         end if;
+         Before := Files.File_System.Directory_State (Join (Root, "search"));
+         Write_File (Target, "ALPHA");
+         Assert (Hostkit.Metadata.Set_File_Times (Target, Stamp, Stamp), "the old time is put back");
+         Change := Files.File_System.Detect_Directory_Change (Before, Join (Root, "search"));
+         Assert (Change.Changed, "a same-size rewrite keeping the old modification time is a change");
+      end;
    end Test_Directory_Change_Watcher;

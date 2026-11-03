@@ -211,6 +211,7 @@ es.error.rename.invalid_destination = El destino del renombrado no es válido.
 es.error.rename.failed = No se pudo renombrar el elemento.
 es.error.trash.unavailable = La papelera no está disponible en esta plataforma.
 es.error.trash.failed = No se pudo mover el elemento a la papelera.
+es.error.trash.volume_unavailable = Esta unidad no tiene papelera; el elemento no se movió. Elimínelo definitivamente.
 es.error.search.failed = No se pudo completar la búsqueda.
 es.error.permanent_delete.refused = Se rechazó la eliminación permanente de una ruta insegura.
 es.error.permanent_delete.failed = No se pudo eliminar permanentemente el elemento.

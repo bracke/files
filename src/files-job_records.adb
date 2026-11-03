@@ -423,4 +423,21 @@ package body Files.Job_Records is
       end if;
       return Result;
    end Read_Operation_Result;
+   procedure Fit_Thumbnails (Items : in out Files.Items.Item_Vectors.Vector) is
+      Carried : Natural := 0;
+   begin
+      for Item of Items loop
+         declare
+            Size : constant Natural := Files.Shared_Bytes.Length (Item.Thumbnail_Pixels);
+         begin
+            if Size > Max_Thumbnail_Transport_Bytes - Carried then
+               Item.Thumbnail_Available := False;
+               Item.Thumbnail_Pixels := Files.Shared_Bytes.Empty;
+            else
+               Carried := Carried + Size;
+            end if;
+         end;
+      end loop;
+   end Fit_Thumbnails;
+
 end Files.Job_Records;

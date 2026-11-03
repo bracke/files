@@ -211,6 +211,7 @@ pt.error.rename.invalid_destination = O destino para mudar nome é inválido.
 pt.error.rename.failed = Não foi possível mudar o nome do item.
 pt.error.trash.unavailable = O lixo não está disponível nesta plataforma.
 pt.error.trash.failed = Não foi possível mover o item para o lixo.
+pt.error.trash.volume_unavailable = Esta unidade não tem lixo; o item não foi movido. Elimine-o permanentemente.
 pt.error.search.failed = Não foi possível concluir a pesquisa.
 pt.error.permanent_delete.refused = A eliminação permanente de um caminho inseguro foi recusada.
 pt.error.permanent_delete.failed = Não foi possível eliminar permanentemente o item.

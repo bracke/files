@@ -211,6 +211,7 @@ nb.error.rename.invalid_destination = Målet for omdøping er ugyldig.
 nb.error.rename.failed = Elementet kunne ikke få nytt navn.
 nb.error.trash.unavailable = Papirkurv er ikke tilgjengelig på denne plattformen.
 nb.error.trash.failed = Elementet kunne ikke flyttes til papirkurven.
+nb.error.trash.volume_unavailable = Stasjonen har ingen papirkurv; elementet ble ikke flyttet. Slett det permanent.
 nb.error.search.failed = Søket kunne ikke fullføres.
 nb.error.permanent_delete.refused = Permanent sletting av en usikker sti ble avvist.
 nb.error.permanent_delete.failed = Elementet kunne ikke slettes permanent.

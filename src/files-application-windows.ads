@@ -496,6 +496,8 @@ private
       Folder_Size_Revision : Natural := Natural'Last;
       Folder_Size_Busy     : Boolean := False;
       Watch : Files.Refresh_Jobs.Watch_Session;
+      --  How often the watch and the timed re-read may reload the folder.
+      Watch_Pacing : Files.Refresh_Jobs.Watch_Pacer;
    end record;
 
    package Runtime_Window_Vectors is new Ada.Containers.Vectors

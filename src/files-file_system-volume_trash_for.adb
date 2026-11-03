@@ -3,7 +3,7 @@ with Hostkit.Process;
 
 separate (Files.File_System)
 function Volume_Trash_For (Path : String) return String is
-   Uid : Natural;
+   Uid : Files.Types.Account_Id;
 
    --  Path's parent; "/" (or a drive root) is its own.
    function Parent_Of (Path : String) return String is
@@ -109,7 +109,7 @@ function Volume_Trash_For (Path : String) return String is
    Item_Device, Home_Device : Long_Long_Integer;
 begin
    if not Volume_Trash_Supported
-     or else not Hostkit.Process.Current_User_Id (Uid)
+     or else not Hostkit.Process.Current_User_Account (Uid)
      or else not Device_Of (Ada.Directories.Containing_Directory (Path), Item_Device)
      or else not Device_Of (Trash_Base_Path, Home_Device)
      or else Item_Device = Home_Device
@@ -120,7 +120,7 @@ begin
    declare
       --  The top of the item's filesystem: the highest ancestor on its device.
       Top : Unbounded_String := To_Unbounded_String (Ada.Directories.Containing_Directory (Path));
-      Id  : constant String := Natural_Text (Uid);
+      Id  : constant String := Files.Types.Account_Image (Uid);
    begin
       loop
          declare

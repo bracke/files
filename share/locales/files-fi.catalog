@@ -211,6 +211,7 @@ fi.error.rename.invalid_destination = Uudelleennimeämisen kohde on virheellinen
 fi.error.rename.failed = Kohdetta ei voitu nimetä uudelleen.
 fi.error.trash.unavailable = Roskakori ei ole käytettävissä tällä alustalla.
 fi.error.trash.failed = Kohdetta ei voitu siirtää roskakoriin.
+fi.error.trash.volume_unavailable = Asemalla ei ole roskakoria; kohdetta ei siirretty. Poista se pysyvästi.
 fi.error.search.failed = Hakua ei voitu suorittaa loppuun.
 fi.error.permanent_delete.refused = Turvattoman polun pysyvä poistaminen estettiin.
 fi.error.permanent_delete.failed = Kohdetta ei voitu poistaa pysyvästi.

@@ -4445,10 +4445,10 @@ procedure Check_All is
       Require_Tests ("settings", 34);
       Require_Tests ("startup", 28);
       Require_Tests ("commands", 38);
-      Require_Tests ("model", 49);
-      Require_Tests ("interaction", 75);
-      Require_Tests ("rendering", 86);
-      Require_Tests ("operations", 268);
+      Require_Tests ("model", 50);
+      Require_Tests ("interaction", 76);
+      Require_Tests ("rendering", 88);
+      Require_Tests ("operations", 270);
    end Check_Test_Subsystem_Coverage;
 
 begin

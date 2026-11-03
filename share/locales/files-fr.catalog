@@ -211,6 +211,7 @@ fr.error.rename.invalid_destination = La destination du renommage est invalide.
 fr.error.rename.failed = L'élément n'a pas pu être renommé.
 fr.error.trash.unavailable = La corbeille n'est pas disponible sur cette plateforme.
 fr.error.trash.failed = L'élément n'a pas pu être déplacé vers la corbeille.
+fr.error.trash.volume_unavailable = Ce lecteur n'a pas de corbeille ; l'élément n'a pas été déplacé.
 fr.error.search.failed = La recherche n'a pas pu être terminée.
 fr.error.permanent_delete.refused = La suppression définitive d'un chemin non sûr a été refusée.
 fr.error.permanent_delete.failed = L'élément n'a pas pu être supprimé définitivement.

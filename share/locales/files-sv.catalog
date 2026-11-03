@@ -211,6 +211,7 @@ sv.error.rename.invalid_destination = Målet för namnbytet är ogiltigt.
 sv.error.rename.failed = Objektet kunde inte byta namn.
 sv.error.trash.unavailable = Papperskorgen är inte tillgänglig på denna plattform.
 sv.error.trash.failed = Objektet kunde inte flyttas till papperskorgen.
+sv.error.trash.volume_unavailable = Enheten har ingen papperskorg; objektet flyttades inte. Ta bort det permanent.
 sv.error.search.failed = Sökningen kunde inte slutföras.
 sv.error.permanent_delete.refused = Permanent borttagning av en osäker sökväg nekades.
 sv.error.permanent_delete.failed = Objektet kunde inte tas bort permanent.

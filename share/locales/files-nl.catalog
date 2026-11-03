@@ -211,6 +211,7 @@ nl.error.rename.invalid_destination = Doel voor hernoemen is ongeldig.
 nl.error.rename.failed = Item kon niet worden hernoemd.
 nl.error.trash.unavailable = Prullenbak is niet beschikbaar op dit platform.
 nl.error.trash.failed = Item kon niet naar de prullenbak worden verplaatst.
+nl.error.trash.volume_unavailable = Dit station heeft geen prullenbak; het item is niet verplaatst.
 nl.error.search.failed = Zoeken kon niet worden voltooid.
 nl.error.permanent_delete.refused = Permanent verwijderen van een onveilig pad is geweigerd.
 nl.error.permanent_delete.failed = Item kon niet permanent worden verwijderd.

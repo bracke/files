@@ -1,3 +1,4 @@
+with Ada.Calendar.Arithmetic;
 with Files.File_System;
 with Ada.Calendar.Formatting;
 with Ada.Calendar.Time_Zones;
@@ -323,17 +324,26 @@ package body Files.Rendering is
             end;
          end if;
 
-         if Date = Today then
-            return Files.Localization.Text ("time.relative.today", Locale) & " " & Clock_Time_Text (Value);
-         elsif Date = Today - 86_400.0 then
-            return Files.Localization.Text ("time.relative.yesterday", Locale) & " " & Clock_Time_Text (Value);
-         else
-            for Days_Ago in 2 .. 6 loop
-               if Date = Today - Duration (Days_Ago) * 86_400.0 then
-                  return Files.Localization.Text (Weekday_Key (Value), Locale) & " " & Clock_Time_Text (Value);
-               end if;
-            end loop;
-         end if;
+         --  Whole days between two local midnights, rounded: across a
+         --  daylight-saving change a day is 23 or 25 hours, and counting
+         --  86,400-second steps missed "yesterday" and the weekdays.
+         declare
+            Whole_Days : Ada.Calendar.Arithmetic.Day_Count;
+            Seconds    : Duration;
+            Leap       : Ada.Calendar.Arithmetic.Leap_Seconds_Count;
+            Days_Ago   : Integer;
+         begin
+            Ada.Calendar.Arithmetic.Difference (Today, Date, Whole_Days, Seconds, Leap);
+            Days_Ago := Integer (Whole_Days) + (if Seconds >= 43_200.0 then 1
+                                                elsif Seconds <= -43_200.0 then -1 else 0);
+            if Days_Ago = 0 then
+               return Files.Localization.Text ("time.relative.today", Locale) & " " & Clock_Time_Text (Value);
+            elsif Days_Ago = 1 then
+               return Files.Localization.Text ("time.relative.yesterday", Locale) & " " & Clock_Time_Text (Value);
+            elsif Days_Ago in 2 .. 6 then
+               return Files.Localization.Text (Weekday_Key (Value), Locale) & " " & Clock_Time_Text (Value);
+            end if;
+         end;
 
          --  Older than a week: fall back to the full absolute date. Computed here
          --  (lazily) so recent files, which return above, never build it.

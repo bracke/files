@@ -214,6 +214,7 @@ de.error.rename.invalid_destination = Zielname ist ungültig.
 de.error.rename.failed = Element konnte nicht umbenannt werden.
 de.error.trash.unavailable = Papierkorb ist auf dieser Plattform nicht verfügbar.
 de.error.trash.failed = Element konnte nicht in den Papierkorb verschoben werden.
+de.error.trash.volume_unavailable = Dieses Laufwerk hat keinen Papierkorb; nichts wurde verschoben. Endgültig löschen?
 de.error.search.failed = Suche konnte nicht abgeschlossen werden.
 de.error.permanent_delete.refused = Dauerhaftes Löschen eines unsicheren Pfads wurde verweigert.
 de.error.permanent_delete.failed = Element konnte nicht dauerhaft gelöscht werden.

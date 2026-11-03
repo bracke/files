@@ -606,6 +606,7 @@ en.error.rename.failed = Item could not be renamed.
 en.error.rename.partial = Some items could not be renamed.
 en.error.trash.unavailable = Trash is unavailable on this platform.
 en.error.trash.failed = Item could not be moved to trash.
+en.error.trash.volume_unavailable = This drive has no trash; the item was not moved. Delete it permanently instead.
 en.error.trash.native_unavailable = Native trash integration is unavailable in this build.
 en.error.trash.restore_unavailable = Restoring trashed items is unavailable on this platform.
 en.error.trash.restore_failed = Item could not be restored from trash.

@@ -211,6 +211,7 @@ da.error.rename.invalid_destination = Destinationen for omdøbning er ugyldig.
 da.error.rename.failed = Elementet kunne ikke omdøbes.
 da.error.trash.unavailable = Papirkurven er ikke tilgængelig på denne platform.
 da.error.trash.failed = Elementet kunne ikke flyttes til papirkurven.
+da.error.trash.volume_unavailable = Drevet har ingen papirkurv; elementet blev ikke flyttet. Slet det permanent.
 da.error.search.failed = Søgningen kunne ikke fuldføres.
 da.error.permanent_delete.refused = Permanent sletning af en usikker sti blev afvist.
 da.error.permanent_delete.failed = Elementet kunne ikke slettes permanent.

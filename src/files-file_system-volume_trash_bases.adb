@@ -3,7 +3,7 @@ with Hostkit.Process;
 separate (Files.File_System)
 function Volume_Trash_Bases return Files.Types.String_Vectors.Vector is
    Result : Files.Types.String_Vectors.Vector;
-   Uid    : Natural;
+   Uid    : Files.Types.Account_Id;
 
    procedure Consider (Base : String) is
    begin
@@ -16,7 +16,7 @@ function Volume_Trash_Bases return Files.Types.String_Vectors.Vector is
       end if;
    end Consider;
 begin
-   if not Volume_Trash_Supported or else not Hostkit.Process.Current_User_Id (Uid) then
+   if not Volume_Trash_Supported or else not Hostkit.Process.Current_User_Account (Uid) then
       return Result;
    end if;
    declare
@@ -32,7 +32,7 @@ begin
          if Root.Kind in Root_Mount | Root_User_Mount then
             declare
                Top : constant String := To_String (Root.Path);
-               Id  : constant String := Natural_Text (Uid);
+               Id  : constant String := Files.Types.Account_Image (Uid);
             begin
                Consider (Join_Path (Join_Path (Top, ".Trash"), Id));
                Consider (Join_Path (Top, ".Trash-" & Id));

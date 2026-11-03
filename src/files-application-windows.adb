@@ -909,6 +909,7 @@ package body Files.Application.Windows is
    is
       Now    : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
       Result : Files.Operations.Operation_Result;
+      pragma Unreferenced (Result);
       Refreshed : Boolean;
       pragma Unreferenced (Refreshed);
    begin
@@ -931,26 +932,34 @@ package body Files.Application.Windows is
       --  Also service selections deferred by a cancelled or failed refresh.
       Files.Operations.Ensure_Selected_Item_Extra (Runtime.Model);
 
-      if Drain_Native_Watch (Runtime) then
-         declare
-            Native_Result : Files.Operations.Operation_Result;
-         begin
-            Native_Result := Files.Operations.Refresh_If_Changed (Runtime.Model, Runtime.Settings);
-            pragma Unreferenced (Native_Result);
-         end;
-         return;
-      end if;
+      declare
+         Changed     : constant Boolean := Drain_Native_Watch (Runtime);
+         Load_Failed : constant Boolean :=
+           Files.Model.Last_Error_Key (Runtime.Model) = "error.directory.load";
+      begin
+         --  A burst of writes is paced to one reload per gap, the last one
+         --  owed and paid; a listing that cannot be read is retried slowly.
+         if Files.Refresh_Jobs.Watch_Refresh_Due (Runtime.Watch_Pacing, Now, Changed) then
+            if Files.Refresh_Jobs.Retry_Due (Runtime.Watch_Pacing, Now, Load_Failed) then
+               Result := Files.Operations.Refresh_If_Changed (Runtime.Model, Runtime.Settings);
+            end if;
+            return;
+         elsif Changed then
+            return;
+         end if;
 
-      if Now < Runtime.Last_Watch_Poll + File_Watch_Poll_Interval
-        or else (Files.Refresh_Jobs.Watch_Is_Native (Runtime.Watch)
-                 and then Now < Runtime.Last_Watch_Poll + Native_Watch_Poll_Interval)
-      then
-         return;
-      end if;
+         if Now < Runtime.Last_Watch_Poll + File_Watch_Poll_Interval
+           or else (Files.Refresh_Jobs.Watch_Is_Native (Runtime.Watch)
+                    and then Now < Runtime.Last_Watch_Poll + Native_Watch_Poll_Interval)
+         then
+            return;
+         end if;
 
-      Runtime.Last_Watch_Poll := Now;
-      Result := Files.Operations.Refresh_If_Changed (Runtime.Model, Runtime.Settings);
-      pragma Unreferenced (Result);
+         Runtime.Last_Watch_Poll := Now;
+         if Files.Refresh_Jobs.Retry_Due (Runtime.Watch_Pacing, Now, Load_Failed) then
+            Result := Files.Operations.Refresh_If_Changed (Runtime.Model, Runtime.Settings);
+         end if;
+      end;
    end Handle_File_Watch_Poll;
 
    procedure Handle_All_File_Watch_Poll
