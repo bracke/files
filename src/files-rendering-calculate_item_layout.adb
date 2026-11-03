@@ -46,6 +46,7 @@ separate (Files.Rendering)
 
       --  Iterate by cursor reference: .Element returns Item_Snapshot by value,
       --  copying each item just to read three fields.
+      Items.Reserve_Capacity (Snapshot.Items.Length);
       for It of Snapshot.Items loop
          Items.Append
            (Guikit.Item_Grid.Layout_Item'

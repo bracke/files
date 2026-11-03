@@ -26,7 +26,7 @@ begin
    --  collapse can temporarily reduce the row count; the next scroll should
    --  normalize that stale offset rather than letting it resurface later.
    if Model.Tree_Panel_Scroll /= Wanted then
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Scroll_Revision_Value := Model.Scroll_Revision_Value + 1;
       Model.Tree_Panel_Scroll := Wanted;
    end if;
 end Scroll_Tree_Panel;

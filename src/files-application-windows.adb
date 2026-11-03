@@ -110,6 +110,9 @@ package body Files.Application.Windows is
    --  second, so it was dropped.)
    Event_Wait_Timeout : constant Duration := 0.016;
 
+   --  The wait while a background paste runs (see Any_Background_Paste).
+   Paste_Wait_Timeout : constant Duration := 0.001;
+
    --  How many frames to keep presenting after the last visible change before
    --  the present gate is allowed to skip. Presenting every frame keeps us on
    --  the compositor's frame clock, which is what keeps input paced at the
@@ -562,6 +565,27 @@ package body Files.Application.Windows is
         and then (not Files.Model.Paste_Execution_Is_Active (Runtime.Model)
                   or else not Files.Timing.Elapsed (Now, Runtime.Snapshot_Built_At, Paste_Progress_Interval))
       then
+         if Runtime.Cached_Scroll_Revision /= Files.Model.Scroll_Revision (Runtime.Model) then
+            --  Only an offset moved: the items stand. A copy with the new
+            --  offsets (about a millisecond for 20,000 items) instead of a
+            --  rebuild (thirty), into the other slot if this one is on screen.
+            if Runtime.Current_Slot = Runtime.Drawn_Slot then
+               declare
+                  Other : constant Snapshot_Slot := (if Runtime.Drawn_Slot = 1 then 2 else 1);
+               begin
+                  Runtime.Snapshots (Other) := Runtime.Snapshots (Runtime.Current_Slot);
+                  Runtime.Slot_Listings (Other) := Runtime.Slot_Listings (Runtime.Current_Slot);
+                  Runtime.Current_Slot := Other;
+               end;
+            end if;
+            Runtime.Snapshots (Runtime.Current_Slot).Main_View_Scroll_Lines :=
+              Files.Model.Main_View_Scroll_Lines (Runtime.Model);
+            Runtime.Snapshots (Runtime.Current_Slot).Info_Pane_Scroll_Lines :=
+              Files.Model.Info_Pane_Scroll_Lines (Runtime.Model);
+            Runtime.Snapshots (Runtime.Current_Slot).Tree_Panel_Scroll_Rows :=
+              Files.Model.Tree_Panel_Scroll_Rows (Runtime.Model);
+            Runtime.Cached_Scroll_Revision := Files.Model.Scroll_Revision (Runtime.Model);
+         end if;
          return;
       end if;
 
@@ -569,6 +593,7 @@ package body Files.Application.Windows is
          Runtime.Current_Slot := (if Runtime.Drawn_Slot = 1 then 2 else 1);
       end if;
       Runtime.Snapshots (Runtime.Current_Slot) := Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+      Runtime.Cached_Scroll_Revision := Files.Model.Scroll_Revision (Runtime.Model);
       Runtime.Slot_Listings (Runtime.Current_Slot) := Files.Model.Listing_Revision (Runtime.Model);
       Runtime.Cached_Model_Revision := Files.Model.Revision (Runtime.Model);
       Runtime.Cached_Settings_Key := Files.Settings.Snapshot_Settings_Key_Of (Runtime.Settings);
@@ -934,6 +959,20 @@ package body Files.Application.Windows is
       For_Each_Window (Runtime_Windows, Handle_File_Watch_Poll'Access);
    end Handle_All_File_Watch_Poll;
 
+   --  Whether any window is carrying out a paste through a helper process.
+   function Any_Background_Paste (Runtime_Windows : Runtime_Window_Vectors.Vector) return Boolean is
+   begin
+      for Runtime of Runtime_Windows loop
+         if Runtime.Handle /= null
+           and then Files.Model.Paste_Execution_Is_Active (Runtime.Model)
+           and then Files.Model.Background_Transfers (Runtime.Model)
+         then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Any_Background_Paste;
+
    --  Each window polls and publishes only its own folder measurements.
    procedure Poll_All_Folder_Sizes (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
       procedure Poll (Runtime : in out Runtime_Window) is
@@ -1101,6 +1140,7 @@ package body Files.Application.Windows is
       if Action.Kind = Files.Events.Marquee_Begin_Input_Action then
          Runtime.Marquee_Active := True;
          Runtime.Marquee_Moved := False;
+         Runtime.Marquee_Last_X := Integer'First;
          Runtime.Marquee_Origin_X := Action.Cursor_Position;
          Runtime.Marquee_Origin_Y := Action.Settings_Field;
          Runtime.Marquee_Additive := Action.Toggle_Selection;
@@ -1478,6 +1518,10 @@ package body Files.Application.Windows is
             Marquee_Rect_Y   => 0,
             Marquee_Rect_W   => 0,
             Marquee_Rect_H   => 0,
+            Marquee_Last_X        => Integer'First,
+            Marquee_Last_Y        => Integer'First,
+            Marquee_Last_Scroll   => 0,
+            Marquee_Auto_Scrolled => False,
             Last_Click_Item => 0,
             Last_Click_Path => Null_Unbounded_String,
             Last_Click_Time => Never,
@@ -1510,6 +1554,7 @@ package body Files.Application.Windows is
             Snapshot_Valid       => False,
             Snapshot_Minute      => 0,
             Snapshot_Built_At    => Never,
+            Cached_Scroll_Revision => 0,
             Cached_Model_Revision => 0,
             Cached_Settings_Key  => <>,
             Cached_Frame         => <>,
@@ -2081,7 +2126,11 @@ package body Files.Application.Windows is
       Guikit.Vulkan.Poll_Events;
 
       while Any_Window_Open (Runtime_Windows) loop
-         Guikit.Vulkan.Wait_For_Events (Event_Wait_Timeout);
+         --  A background paste starts its next item only on a loop pass:
+         --  waiting out the full timeout after each made a paste of many
+         --  small files take minutes. While one runs, look again at once.
+         Guikit.Vulkan.Wait_For_Events
+           (if Any_Background_Paste (Runtime_Windows) then Paste_Wait_Timeout else Event_Wait_Timeout);
          Release_Closed_Windows (Runtime_Windows);
          exit when not Any_Window_Open (Runtime_Windows);
          Event_Loop_Pass (Runtime_Windows, State);

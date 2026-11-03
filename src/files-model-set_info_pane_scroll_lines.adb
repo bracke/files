@@ -7,6 +7,6 @@ begin
       return;
    end if;
 
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Model.Scroll_Revision_Value := Model.Scroll_Revision_Value + 1;
    Model.Info_Pane_Scroll := Lines;
 end Set_Info_Pane_Scroll_Lines;

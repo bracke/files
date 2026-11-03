@@ -43,6 +43,17 @@ separate (Files.Application.Windows)
          end if;
       end if;
 
+      --  Held still, with no auto-scroll going: the band is where it was.
+      --  Laying out every item to find that out again held a core.
+      if X_Frame = Runtime.Marquee_Last_X
+        and then Y_Frame = Runtime.Marquee_Last_Y
+        and then Files.Model.Main_View_Scroll_Lines (Runtime.Model) = Runtime.Marquee_Last_Scroll
+        and then not Runtime.Marquee_Auto_Scrolled
+      then
+         return;
+      end if;
+      Runtime.Marquee_Auto_Scrolled := False;
+
       --  The selection this drag move sets bumps the model revision, so the
       --  render that follows rebuilds the snapshot once; laying out here reuses
       --  the current one (normally the frame just drawn).
@@ -89,6 +100,7 @@ separate (Files.Application.Windows)
                             (0, Integer'Min (Integer (Current) + Step, Integer (Max_Lines))));
                   begin
                      if New_Lines /= Current then
+                        Runtime.Marquee_Auto_Scrolled := True;
                         Files.Model.Set_Main_View_Scroll_Lines (Runtime.Model, New_Lines);
                         --  Rebuild against the new scroll, then re-anchor the
                         --  origin by the scroll's actual pixel shift (which the
@@ -154,6 +166,9 @@ separate (Files.Application.Windows)
             Runtime.Marquee_Rect_Y := Rect_Y;
             Runtime.Marquee_Rect_W := Rect_W;
             Runtime.Marquee_Rect_H := Rect_H;
+            Runtime.Marquee_Last_X := X_Frame;
+            Runtime.Marquee_Last_Y := Y_Frame;
+            Runtime.Marquee_Last_Scroll := Files.Model.Main_View_Scroll_Lines (Runtime.Model);
          end;
       end;
    end Update_Marquee_Drag;

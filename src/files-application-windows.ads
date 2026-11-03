@@ -377,6 +377,13 @@ private
       Marquee_Rect_Y   : Natural := 0;
       Marquee_Rect_W   : Natural := 0;
       Marquee_Rect_H   : Natural := 0;
+      --  Where the last pass found the cursor and the scroll, and whether it
+      --  auto-scrolled: with neither moved and no scroll under way, the band
+      --  and its selection are what they were, and the pass does nothing.
+      Marquee_Last_X        : Integer := Integer'First;
+      Marquee_Last_Y        : Integer := Integer'First;
+      Marquee_Last_Scroll   : Natural := 0;
+      Marquee_Auto_Scrolled : Boolean := False;
       Last_Click_Item : Natural := 0;
       Last_Click_Path : Ada.Strings.Unbounded.Unbounded_String;
       Last_Click_Time : Ada.Real_Time.Time := Never;
@@ -452,6 +459,8 @@ private
       --  while the model's revision still matches, so a background poll (file
       --  watch, folder sizes) that changed nothing forces no O(items) rebuild.
       Cached_Model_Revision : Natural := 0;
+      --  Scroll revision the current snapshot's offsets were taken at.
+      Cached_Scroll_Revision : Natural := 0;
       --  Snapshot-relevant settings (theme, columns, visibility, favorites,
       --  labels) the current snapshot was built with. With the model revision
       --  these are the whole of Build_Snapshot's inputs, so the snapshot is

@@ -30,19 +30,25 @@ begin
 
    if not Model.Items.Is_Empty and then not Previous_Paths.Is_Empty then
       for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-         if Item_Is_Visible (Model, Model.Items.Element (Index))
-           and then Previous_Paths.Contains (To_String (Model.Items.Element (Index).Full_Path))
-         then
-            --  Indexes ascend and the list was cleared above, so each is
-            --  new; appending directly avoids a linear duplicate check.
-            Model.Selected_Item_Indexes.Append (Natural (Index));
-            if First_Selected = 0 then
-               First_Selected := Natural (Index);
+         declare
+            --  Read in place: Element copied the whole item, three times.
+            Item : Files.Items.Directory_Item renames Model.Items (Index);
+            Path : constant String := To_String (Item.Full_Path);
+         begin
+            if Item_Is_Visible (Model, Item)
+              and then Previous_Paths.Contains (Path)
+            then
+               --  Indexes ascend and the list was cleared above, so each is
+               --  new; appending directly avoids a linear duplicate check.
+               Model.Selected_Item_Indexes.Append (Natural (Index));
+               if First_Selected = 0 then
+                  First_Selected := Natural (Index);
+               end if;
+               if Path = Primary_Path then
+                  Primary_Selected := Natural (Index);
+               end if;
             end if;
-            if To_String (Model.Items.Element (Index).Full_Path) = Primary_Path then
-               Primary_Selected := Natural (Index);
-            end if;
-         end if;
+         end;
       end loop;
    end if;
 

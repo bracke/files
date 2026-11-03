@@ -19,7 +19,7 @@ begin
    end if;
 
    if Wanted /= Current then
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Scroll_Revision_Value := Model.Scroll_Revision_Value + 1;
       Model.Info_Pane_Scroll := Wanted;
    end if;
 end Scroll_Info_Pane;

@@ -128,6 +128,11 @@ begin
       --  equal.
       Sorting.Sort (Order);
 
+      --  Already in order (a listing the helper sorted the same way): keep
+      --  the items where they are instead of copying every one.
+      if (for all Position in Order.First_Index .. Order.Last_Index => Order (Position) = Position) then
+         return;
+      end if;
       Sorted.Reserve_Capacity (Ada.Containers.Count_Type (Count));
       for Index of Order loop
          Sorted.Append (Items (Index));

@@ -12,6 +12,6 @@ begin
       return;
    end if;
 
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Model.Scroll_Revision_Value := Model.Scroll_Revision_Value + 1;
    Model.Tree_Panel_Scroll := Value;
 end Set_Tree_Panel_Scroll_Rows;

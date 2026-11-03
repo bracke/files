@@ -50,6 +50,15 @@ package Files.Model is
      (Model : Window_Model)
       return Natural;
 
+   --  Moves when only a scroll offset changed (the main view, the info pane,
+   --  the folder tree), which Revision does not: the snapshot's items stand,
+   --  and a view refreshing its snapshot copies it with the new offsets
+   --  rather than rebuilding it.
+   --
+   --  @param Model Model to inspect.
+   --  @return The scroll revision.
+   function Scroll_Revision (Model : Window_Model) return Natural;
+
    --  Return the generation of model state that a background listing depends
    --  on. Unlike Revision, ordinary interaction such as selection,
    --  scrolling, focus, and overlay changes does not advance this value.
@@ -3178,6 +3187,9 @@ private
       Type_Ahead_Buffer_Value : UString;
       Selected_Item_Index  : Natural := 0;
       Selected_Item_Indexes : Natural_Vectors.Vector;
+      --  Moved by scrolling alone (Scroll_Revision), apart from Revision:
+      --  a scroll changes three numbers of the snapshot, not its items.
+      Scroll_Revision_Value : Natural := 0;
       Selection_Columns   : Positive := 1;
       Selection_Page_Rows_Value : Positive := 10;
       View_Value           : Files.Types.View_Mode := Files.Types.Small_Icons;

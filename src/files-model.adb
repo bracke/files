@@ -357,6 +357,8 @@ package body Files.Model is
 
    use Files.Model.Support;
 
+   function Scroll_Revision (Model : Window_Model) return Natural is (Model.Scroll_Revision_Value);
+
    function Revision
      (Model : Window_Model)
       return Natural is
@@ -1149,6 +1151,8 @@ package body Files.Model is
       Visible_Count : Natural := 0;
       Taken         : Flag_Vectors.Vector := Flag_Vectors.To_Vector (False, Model.Items.Length);
       Temporary_Taken : Boolean := False;
+      Chosen        : Natural_Vectors.Vector;
+      Primary       : Natural := 0;
    begin
       for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
          if Support.Item_Is_Visible (Model, Model.Items (Index)) then
@@ -1160,7 +1164,6 @@ package body Files.Model is
          Visible_Count := Visible_Count + 1;
          Visible_Items.Append (Temporary_Item_Index);
       end if;
-      Clear_Selection (Model);
       for Visible of Indexes loop
          if Visible <= Visible_Count then
             declare
@@ -1169,19 +1172,27 @@ package body Files.Model is
                if Item = Temporary_Item_Index then
                   if not Temporary_Taken then
                      Temporary_Taken := True;
-                     Model.Selected_Item_Indexes.Append (Item);
+                     Chosen.Append (Item);
                   end if;
-                  Model.Selected_Item_Index := Item;
+                  Primary := Item;
                elsif Item in 1 .. Natural (Taken.Length) then
                   if not Taken (Item) then
                      Taken (Item) := True;
-                     Model.Selected_Item_Indexes.Append (Item);
+                     Chosen.Append (Item);
                   end if;
-                  Model.Selected_Item_Index := Item;
+                  Primary := Item;
                end if;
             end;
          end if;
       end loop;
+      --  A rubber band that has not moved asks for the selection it already
+      --  has; changing nothing then leaves the snapshot to be reused.
+      if Natural_Vectors."=" (Chosen, Model.Selected_Item_Indexes) and then Primary = Model.Selected_Item_Index then
+         return;
+      end if;
+      Clear_Selection (Model);
+      Model.Selected_Item_Indexes := Chosen;
+      Model.Selected_Item_Index := Primary;
       Reconcile_Rename_With_Selection (Model);
    end Select_Visible_Set;
 

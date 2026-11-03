@@ -164,6 +164,16 @@ separate (Files_Suite.Interaction)
             3,
             "the additive marquee selects exactly the union");
 
+         --  The same band again (a drag held still) changes nothing, so the
+         --  view keeps the snapshot it has instead of rebuilding it.
+         declare
+            Revision : constant Natural := Files.Model.Revision (Model);
+         begin
+            Files.Interaction.Apply_Marquee_Selection (Model, Hits, Additive => True, Base => Base);
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Revision (Model), Revision, "re-applying the same band leaves the revision alone");
+         end;
+
          --  A zero-area marquee (a press that never dragged) selects nothing new.
          Empty := Files.Rendering.Hit.Items_In_Rect (Cells, Rect_X, Rect_Y, 0, 0);
          Assert (Empty.Is_Empty, "a zero-area marquee touches no items");
