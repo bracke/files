@@ -590,36 +590,29 @@ package body Files.Refresh_Jobs is
          Hostkit.Fs.Join (Directory, "changed.claimed")));
 
    function Post_Watch_Notification (Directory : String) return Boolean is
-      File      : Files.Exclusive_Streams.Output_Stream;
-      Temporary : constant String := Hostkit.Fs.Join (Directory, "changed.tmp");
-      Target    : constant String := Hostkit.Fs.Join (Directory, "changed");
-      --  A temporary left by a failed publish would make every later
-      --  create-new fail, silently ending native watching for this helper.
-      procedure Remove_Temporary is
-      begin
-         if not Hostkit.Fs.Is_Link (Temporary)
-           and then Ada.Directories.Exists (Temporary)
-           and then Ada.Directories.Kind (Temporary) = Ada.Directories.Ordinary_File
-         then
-            Ada.Directories.Delete_File (Temporary);
-         end if;
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
-      end Remove_Temporary;
+      File   : Files.Exclusive_Streams.Output_Stream;
+      Target : constant String := Hostkit.Fs.Join (Directory, "changed");
+
+      function Posted return Boolean is
+        (not Hostkit.Fs.Is_Link (Target)
+         and then Ada.Directories.Exists (Target)
+         and then Ada.Directories.Kind (Target) = Ada.Directories.Ordinary_File);
    begin
-      Files.Exclusive_Streams.Create (File, Temporary);
-      Files.Exclusive_Streams.Close (File);
-      if Files.Durable_Writes.Published (Files.Durable_Writes.Publish (Temporary, Target)) then
+      --  One unread marker says it all: the window re-reads the folder, not
+      --  the events. And it is made in place, with no sync: it carries no
+      --  data, and a crash loses only a hint the next poll gives again. As a
+      --  durable publish it cost two fsyncs per event under steady writes.
+      if Posted then
          return True;
       end if;
-      Remove_Temporary;
-      return False;
+      Files.Exclusive_Streams.Create (File, Target);
+      Files.Exclusive_Streams.Close (File);
+      return True;
    exception
       when others =>
          Close (File);
-         Remove_Temporary;
-         return False;
+         --  Made meanwhile by nobody else, but answer by what is there.
+         return Posted;
    end Post_Watch_Notification;
 
    function Poll_Watch (Job : in out Watch_Session) return Boolean is
@@ -697,8 +690,11 @@ package body Files.Refresh_Jobs is
          Files.Lease_Streams.Release (Input);
          Hostkit.Watch.Watch_Path (Watch, Path);
       end;
-      if Hostkit.Watch.Is_Active (Watch) then
-         --  Tell the window its timed re-read can relax (Watch_Is_Native).
+      if Hostkit.Watch.Is_Active (Watch) and then Hostkit.Watch.Sees_File_Writes then
+         --  Tell the window its timed re-read can relax (Watch_Is_Native):
+         --  only where the watch also hears a file grow, since the listing
+         --  shows sizes and times (not so on macOS, whose kqueue hears a
+         --  directory's entries only).
          declare
             Marker : Files.Exclusive_Streams.Output_Stream;
          begin

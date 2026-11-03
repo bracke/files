@@ -469,6 +469,7 @@ package body Files_Suite.Operations is
    procedure Test_Stage_Record_Cleanup (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transfer_Cancellation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Background_Transfers (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Paste_Helper_Refused (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Replace_Trash_Failure (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Cross_Device_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Drop_Import_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -633,6 +634,8 @@ package body Files_Suite.Operations is
         (T, Test_Transfer_Cancellation'Access, "a transfer cancels between chunks without losing its source");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Background_Transfers'Access, "background transfers preserve content, ownership, and cancellation");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Paste_Helper_Refused'Access, "a background paste whose helper cannot start ends with an error");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Replace_Trash_Failure'Access, "a failed trash operation during Replace preserves the original");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1764,6 +1767,7 @@ package body Files_Suite.Operations is
    procedure Test_Transfer_Cancellation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Background_Transfers (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Paste_Helper_Refused (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Replace_Trash_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

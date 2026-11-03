@@ -1,3 +1,4 @@
+with Files.File_System.Thumbnails.Testing;
 with Files.File_System.Thumbnails;
 separate (Files_Suite.Operations)
    procedure Test_Png_Thumbnail_Decoding (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -59,16 +60,18 @@ separate (Files_Suite.Operations)
          --  which first allocated the entire attacker-controlled expansion.
          Write_Binary_File
            (Source, Minimal_Png_RGB (2, 2, Raster & Byte (99)));
+         --  The pure-Ada path refuses it; what gdk-pixbuf (which may read it)
+         --  makes of it after that is its own affair, so the bound is held
+         --  on that path alone.
+         Assert
+           (not Files.File_System.Thumbnails.Testing.Png_Fast_Path
+              (Source, 2, Join (Root, "png-inflate-overrun.ppm")),
+            "PNG inflate rejects output beyond the declared raster budget");
          Generated := Files.File_System.Thumbnails.Generate_Thumbnail
            (Source, Thumbnail_Cache, Size => 2);
          Assert
            (Generated.Status = Files.File_System.Thumbnails.Thumbnail_Generated,
-            "an invalid PNG expansion falls back to a generated thumbnail");
-         Assert
-           (not File_Has_Bytes
-              (To_String (Generated.Thumbnail_Path),
-               Pixel & Pixel & Pixel & Pixel),
-            "PNG inflate rejects output beyond the declared raster budget");
+            "an invalid PNG expansion still gets a thumbnail");
       end;
 
       Write_Binary_File
@@ -118,9 +121,8 @@ separate (Files_Suite.Operations)
          Assert
            (File_Has_Bytes
               (To_String (Generated.Thumbnail_Path),
+               --  One row: a 2 x 1 picture keeps its proportions.
                Byte (255) & Byte (255) & Byte (255)
-               & Byte (0) & Byte (0) & Byte (255)
-               & Byte (255) & Byte (255) & Byte (255)
                & Byte (0) & Byte (0) & Byte (255))
             and then not File_Has_Bytes
               (To_String (Generated.Thumbnail_Path),
@@ -146,15 +148,12 @@ separate (Files_Suite.Operations)
            Byte (0)
            & Byte (255) & Byte (0) & Byte (0)
            & Byte (0) & Byte (0) & Byte (255);
+         --  One row each: a 2 x 1 picture keeps its proportions.
          Expected : constant String :=
            Byte (255) & Byte (255) & Byte (255)
-           & Byte (0) & Byte (0) & Byte (255)
-           & Byte (255) & Byte (255) & Byte (255)
            & Byte (0) & Byte (0) & Byte (255);
          Hidden : constant String :=
            Byte (255) & Byte (0) & Byte (0)
-           & Byte (0) & Byte (0) & Byte (255)
-           & Byte (255) & Byte (0) & Byte (0)
            & Byte (0) & Byte (0) & Byte (255);
          Generated : Files.File_System.Thumbnails.Thumbnail_Result;
       begin

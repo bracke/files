@@ -582,6 +582,10 @@ package body Files.Process_Jobs is
       end if;
       Arguments.Append (To_Unbounded_String (Mode));
       Arguments.Append (Job.Shared.Directory);
+      if Test_Refuse_Next_Launch then
+         Test_Refuse_Next_Launch := False;
+         raise Ada.Directories.Use_Error;
+      end if;
       if Hostkit.Spawn.Start
         (Hostkit.Fs.Own_Executable, Arguments, (others => <>), Job.Shared.Process) /= Hostkit.Spawn.Spawn_Ok
       then

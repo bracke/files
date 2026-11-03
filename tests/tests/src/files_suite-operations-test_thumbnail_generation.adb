@@ -138,6 +138,36 @@ separate (Files_Suite.Operations)
               (Red > 200 and then Green < 60 and then Blue < 60,
                "the decoded JPEG keeps its red (got" & Red'Image & "," & Green'Image & "," & Blue'Image & ")");
          end;
+         --  And its thumbnail is made from those pixels, not the stand-in a
+         --  failed decode falls back to: the cached PPM's first pixel is red.
+         declare
+            Made   : constant Files.File_System.Thumbnails.Thumbnail_Result :=
+              Files.File_System.Thumbnails.Generate_Thumbnail (Jpeg_Source, Thumbnail_Cache, Size => 8);
+            Raw    : constant String := Project_Tools.Files.Read_Raw_File (To_String (Made.Thumbnail_Path));
+            Lines  : Natural := 0;
+            First  : Natural := 0;
+         begin
+            Assert (Made.Status = Files.File_System.Thumbnails.Thumbnail_Generated, "the JPEG gets a thumbnail");
+            --  A PPM header is three lines: magic, size, depth.
+            for Index in Raw'Range loop
+               if Raw (Index) = ASCII.LF then
+                  Lines := Lines + 1;
+                  if Lines = 3 then
+                     First := Index + 1;
+                     exit;
+                  end if;
+               end if;
+            end loop;
+            Assert (First > 0 and then First + 2 <= Raw'Last, "the thumbnail holds pixels");
+            Assert
+              (Character'Pos (Raw (First)) > 200
+               and then Character'Pos (Raw (First + 1)) < 60
+               and then Character'Pos (Raw (First + 2)) < 60,
+               "the JPEG's thumbnail is red, from its pixels (got"
+               & Natural'Image (Character'Pos (Raw (First))) & ","
+               & Natural'Image (Character'Pos (Raw (First + 1))) & ","
+               & Natural'Image (Character'Pos (Raw (First + 2))) & ")");
+         end;
       end;
 
       Write_File

@@ -164,4 +164,16 @@ package Files.File_System.Thumbnails is
       Cached          : Cache_Index)
       return Cached_Thumbnail;
 
+private
+
+   --  The pure-Ada PNG path: decode Source_Path and write its thumbnail to
+   --  Target_Path, or answer False for a PNG it will not read (then gdk-pixbuf
+   --  is tried). In the private part so the suite can hold it to its bounds
+   --  directly, since gdk-pixbuf may read what it refuses.
+   function Try_Write_Decoded_Png_Thumbnail
+     (Source_Path : String;
+      Size        : Positive;
+      Target_Path : String)
+      return Boolean;
+
 end Files.File_System.Thumbnails;

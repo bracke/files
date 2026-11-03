@@ -7,4 +7,7 @@ package Files.Process_Jobs.Testing is
    --  Release the owner in tests that exercise abandoned-transport cleanup.
    --  @param Job Reserved transport whose lease is relinquished.
    procedure Release_Owner (Job : Session);
+
+   --  Make the next Launch fail as a refused spawn does (a process limit).
+   procedure Refuse_Next_Launch;
 end Files.Process_Jobs.Testing;

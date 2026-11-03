@@ -58,6 +58,9 @@ package Files.Process_Jobs is
    function Cancellation_Requested (Directory : String) return Boolean;
 
 private
+   --  Test seam: the next Launch is refused as a failed spawn is.
+   Test_Refuse_Next_Launch : Boolean := False;
+   pragma Atomic (Test_Refuse_Next_Launch);
    type State;
    type State_Access is access State;
    type State is record

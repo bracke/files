@@ -49,7 +49,6 @@ separate (Files_Suite.Operations)
          Directory : constant String := Join (Root, "watch-notifications");
          Changed   : constant String := Join (Directory, "changed");
          Claimed   : constant String := Join (Directory, "changed.claimed");
-         Temporary : constant String := Join (Directory, "changed.tmp");
       begin
          Ada.Directories.Create_Directory (Directory);
          Write_Binary_File (Changed, "");
@@ -68,11 +67,11 @@ separate (Files_Suite.Operations)
            (Files.Refresh_Jobs.Testing.Claim_Notification (Directory),
             "a notification published after the claim remains for the next poll");
          Ada.Directories.Delete_File (Claimed);
-         Ada.Directories.Create_Directory (Temporary);
+         Ada.Directories.Create_Directory (Changed);
          Assert
            (not Files.Refresh_Jobs.Testing.Post_Notification (Directory),
             "a watch marker reports a transient publication failure");
-         Ada.Directories.Delete_Directory (Temporary);
+         Ada.Directories.Delete_Directory (Changed);
          Assert
            (Files.Refresh_Jobs.Testing.Post_Notification (Directory)
             and then Ada.Directories.Exists (Changed),

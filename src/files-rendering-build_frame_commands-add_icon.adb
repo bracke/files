@@ -244,22 +244,36 @@ separate (Files.Rendering.Build_Frame_Commands)
       if Overlay
         or else (Use_Thumbnail and then Item.Thumbnail_Available and then Length (Item.Thumbnail_Path) > 0)
       then
-         Result.Icons.Append
-           (Icon_Command'
-              (X          => X,
-               Y          => Y,
-               Size       => Draw_Size,
-               Icon_Id    => To_Unbounded_String (Resolved_Name),
-               Theme_Name => To_Unbounded_String (Icon_Theme_Name),
-               Asset_Path => Resolved_Asset_Path,
-               Thumbnail_Width  => (if Use_Thumbnail then Item.Thumbnail_Width else 0),
-               Thumbnail_Height => (if Use_Thumbnail then Item.Thumbnail_Height else 0),
-               Thumbnail_Pixels =>
-                 (if Use_Thumbnail then Item.Thumbnail.Pixels else Files.Shared_Bytes.Empty),
-               Overlay          => Overlay,
-               Draw_Width       => 0,
-               Draw_Height      => 0,
-               others           => <>));
+         declare
+            --  A thumbnail keeps its proportions: fitted into the icon's
+            --  square and centred in it, rather than stretched to fill it.
+            Thumb_W : constant Natural := (if Use_Thumbnail then Item.Thumbnail_Width else 0);
+            Thumb_H : constant Natural := (if Use_Thumbnail then Item.Thumbnail_Height else 0);
+            Longest : constant Natural := Natural'Max (Thumb_W, Thumb_H);
+            Fit_W   : constant Natural :=
+              (if Longest = 0 or else Thumb_W = Thumb_H then 0
+               else Positive'Max (1, Thumb_W * Draw_Size / Longest));
+            Fit_H   : constant Natural :=
+              (if Longest = 0 or else Thumb_W = Thumb_H then 0
+               else Positive'Max (1, Thumb_H * Draw_Size / Longest));
+         begin
+            Result.Icons.Append
+              (Icon_Command'
+                 (X          => (if Fit_W > 0 then X + (Draw_Size - Fit_W) / 2 else X),
+                  Y          => (if Fit_H > 0 then Y + (Draw_Size - Fit_H) / 2 else Y),
+                  Size       => Draw_Size,
+                  Icon_Id    => To_Unbounded_String (Resolved_Name),
+                  Theme_Name => To_Unbounded_String (Icon_Theme_Name),
+                  Asset_Path => Resolved_Asset_Path,
+                  Thumbnail_Width  => (if Use_Thumbnail then Item.Thumbnail_Width else 0),
+                  Thumbnail_Height => (if Use_Thumbnail then Item.Thumbnail_Height else 0),
+                  Thumbnail_Pixels =>
+                    (if Use_Thumbnail then Item.Thumbnail.Pixels else Files.Shared_Bytes.Empty),
+                  Overlay          => Overlay,
+                  Draw_Width       => Fit_W,
+                  Draw_Height      => Fit_H,
+                  others           => <>));
+         end;
       end if;
 
       --  Overlay icons are rasterized from the same asset path, but must not

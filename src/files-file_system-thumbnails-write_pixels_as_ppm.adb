@@ -20,8 +20,17 @@ procedure Write_Pixels_As_Ppm
 is
    use Ada.Streams;
 
+   --  The source fitted into Size x Size with its proportions kept: the
+   --  longer side is Size. Scaling each side to Size on its own squashed
+   --  every picture that is not square.
+   Longest  : constant Positive := Positive'Max (1, Natural'Max (Source_Width, Source_Height));
+   Out_W    : constant Positive :=
+     (if Source_Width >= Source_Height then Size else Positive'Max (1, Source_Width * Size / Longest));
+   Out_H    : constant Positive :=
+     (if Source_Height >= Source_Width then Size else Positive'Max (1, Source_Height * Size / Longest));
+
    Output : Stream_IO.File_Type;
-   Row_Bytes : Stream_Element_Array (1 .. Stream_Element_Offset (Size) * 3);
+   Row_Bytes : Stream_Element_Array (1 .. Stream_Element_Offset (Out_W) * 3);
 
    procedure Put_Header (Text : String) is
       Buffer : Stream_Element_Array (1 .. Text'Length);
@@ -42,14 +51,14 @@ begin
    Stream_IO.Create (Output, Stream_IO.Out_File, Target_Path, Form => "shared=no");
    Put_Header
      ("P6" & ASCII.LF
-      & Natural_Text (Size) & " " & Natural_Text (Size) & ASCII.LF
+      & Natural_Text (Out_W) & " " & Natural_Text (Out_H) & ASCII.LF
       & "255" & ASCII.LF);
 
-   for Row in 0 .. Size - 1 loop
-      for Column in 0 .. Size - 1 loop
+   for Row in 0 .. Out_H - 1 loop
+      for Column in 0 .. Out_W - 1 loop
          declare
-            Source_Row    : constant Natural := Row * Source_Height / Size;
-            Source_Column : constant Natural := Column * Source_Width / Size;
+            Source_Row    : constant Natural := Row * Source_Height / Out_H;
+            Source_Column : constant Natural := Column * Source_Width / Out_W;
             Source_Index  : constant Natural := Source_Row * Source_Width + Source_Column;
             Pixel         : constant Rgba_Pixel := Pixels.Element (Source_Index);
             At_Byte       : constant Stream_Element_Offset :=

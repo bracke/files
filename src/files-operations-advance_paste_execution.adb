@@ -21,10 +21,24 @@ is
             Result := (Cancelled => True, others => <>);
             return;
          end if;
-         Files.Transfer_Jobs.Start
-           (Job,
-            Files.Model.Paste_Execution_Action (Model, Files.Model.Paste_Execution_Cursor (Model) + 1),
-            Files.Model.Paste_Execution_Mode (Model), Files.Model.Paste_Execution_Copy_Context (Model));
+         begin
+            Files.Transfer_Jobs.Start
+              (Job,
+               Files.Model.Paste_Execution_Action (Model, Files.Model.Paste_Execution_Cursor (Model) + 1),
+               Files.Model.Paste_Execution_Mode (Model), Files.Model.Paste_Execution_Copy_Context (Model));
+         exception
+            when Failure : others =>
+               --  No helper (a process limit, a full temporary volume): the
+               --  paste ends here with the error, its finished part kept for
+               --  undo. Raising instead left it armed, and every loop pass
+               --  raised again before the window could repaint.
+               Files.Diagnostics.Note (Failure, "Files.Operations.Transfer");
+               Finished := True;
+               Result :=
+                 (Mutation => (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed")),
+                  others   => <>);
+               return;
+         end;
          Files.Model.Set_Paste_Job (Model, Job);
          Files.Model.Note_Paste_Action_Started (Model);
       end if;

@@ -19,12 +19,19 @@ separate (Files.File_System.Thumbnails)
       Decoded.Reserve_Capacity
         (Ada.Containers.Count_Type (Image.Width * Image.Height));
       for Index in 0 .. Image.Width * Image.Height - 1 loop
-         Decoded.Append
-           (Rgba_Pixel'
-              (Red   => Natural (Image.Pixels.Element (Index * 4)),
-               Green => Natural (Image.Pixels.Element (Index * 4 + 1)),
-               Blue  => Natural (Image.Pixels.Element (Index * 4 + 2)),
-               Alpha => Natural (Image.Pixels.Element (Index * 4 + 3))));
+         declare
+            --  The pixel vector is indexed from First_Index (1), not 0: read
+            --  from 0 and the first Element raised, which the handler below
+            --  turned into "not decoded" -- every JPEG got the stand-in.
+            Offset : constant Positive := Image.Pixels.First_Index + Index * 4;
+         begin
+            Decoded.Append
+              (Rgba_Pixel'
+                 (Red   => Natural (Image.Pixels.Element (Offset)),
+                  Green => Natural (Image.Pixels.Element (Offset + 1)),
+                  Blue  => Natural (Image.Pixels.Element (Offset + 2)),
+                  Alpha => Natural (Image.Pixels.Element (Offset + 3))));
+         end;
       end loop;
       Write_Pixels_As_Ppm (Target_Path, Size, Decoded, Image.Width, Image.Height);
       return True;

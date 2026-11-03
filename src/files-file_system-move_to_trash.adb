@@ -11,18 +11,20 @@ is
       Name            : String)
       return String
    is
-      --  A leaf holds at most 255 bytes, and the info file adds ".trashinfo"
-      --  and a uniquifying counter (".2" up to ".2147483647") to the name. A
-      --  longer name is cut down here -- keeping its extension, and never
-      --  inside a UTF-8 sequence -- or the item could never be trashed. Its
-      --  info file's Path= keeps the original, which restore uses.
-      Max_Base : constant Natural := 255 - 10 - 11;
+      --  A leaf holds at most 255 bytes. The freedesktop info file adds
+      --  ".trashinfo" to the name, and a clash adds a counter (".2" up to
+      --  ".2147483647"). A name with no room for what is added is cut down to
+      --  fit -- keeping its extension, never inside a UTF-8 sequence -- or the
+      --  item could never be trashed. The info file's Path= keeps the
+      --  original, which restore uses. The macOS home trash has no info file,
+      --  so there a name is cut only when a counter must be added.
+      Info_Room : constant Natural := (if Info_Directory = "" then 0 else 10);
 
-      function Shortened return String is
+      function Fit (Room : Natural) return String is
          Dot  : Natural := 0;
          Last : Natural;
       begin
-         if Info_Directory = "" or else Name'Length <= Max_Base then
+         if Name'Length <= Room then
             return Name;
          end if;
          for Index in reverse Name'Range loop
@@ -34,7 +36,7 @@ is
          if Dot <= Name'First or else Name'Last - Dot + 1 > 32 then
             Dot := Name'Last + 1;
          end if;
-         Last := Name'First + Max_Base - (Name'Last - Dot + 1) - 1;
+         Last := Name'First + Room - (Name'Last - Dot + 1) - 1;
          --  Back off a continuation byte so the cut ends a whole character.
          while Last >= Name'First
            and then Character'Pos (Name (Last + 1)) in 16#80# .. 16#BF#
@@ -42,9 +44,11 @@ is
             Last := Last - 1;
          end loop;
          return Name (Name'First .. Last) & Name (Dot .. Name'Last);
-      end Shortened;
+      end Fit;
 
-      Base      : constant String := Shortened;
+      --  Room for the info file's suffix and the longest counter.
+      Base      : constant String :=
+        (if Info_Directory = "" then Name else Fit (255 - Info_Room - 11));
       Counter   : Positive := 2;
       Candidate : Unbounded_String := To_Unbounded_String (Base);
    begin
@@ -55,7 +59,12 @@ is
                    (Ada.Directories.Exists (Join_Path (Info_Directory, To_String (Candidate) & ".trashinfo"))
                     or else Hostkit.Fs.Is_Link (Join_Path (Info_Directory, To_String (Candidate) & ".trashinfo"))))
       loop
-         Candidate := To_Unbounded_String (Base & "." & Natural_Text (Counter));
+         declare
+            Suffix : constant String := "." & Natural_Text (Counter);
+         begin
+            Candidate := To_Unbounded_String
+              ((if Info_Directory = "" then Fit (255 - Suffix'Length) else Base) & Suffix);
+         end;
          exit when Counter = Positive'Last;
          Counter := Counter + 1;
       end loop;

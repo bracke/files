@@ -16,4 +16,9 @@ package body Files.Process_Jobs.Testing is
          Files.Job_Transports.Release (Job.Shared.Owner);
       end if;
    end Release_Owner;
+
+   procedure Refuse_Next_Launch is
+   begin
+      Test_Refuse_Next_Launch := True;
+   end Refuse_Next_Launch;
 end Files.Process_Jobs.Testing;
