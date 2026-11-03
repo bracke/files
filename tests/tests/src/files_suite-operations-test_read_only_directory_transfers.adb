@@ -59,8 +59,10 @@ separate (Files_Suite.Operations)
          end loop;
       end Check_Backups;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Read_Only_Directory_Transfers", "needs Linux");
+      if Hostkit.Host.Current = Hostkit.Host.Windows then
+         Files_Suite.Support.Skip
+           ("Test_Read_Only_Directory_Transfers",
+            "needs POSIX mode bits (555, 444)");
          return;
       end if;
       Settings.Show_Hidden_Files := True;

@@ -33,7 +33,11 @@ separate (Files_Suite.Operations)
       end Check;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Move_Ownership", "needs Linux");
+         Files_Suite.Support.Skip
+           ("Test_Move_Ownership",
+            (if Hostkit.Host.Current = Hostkit.Host.Windows
+             then "no POSIX owning groups here"
+             else "the owning-group fixture is Linux-only C"));
          return;
       end if;
       Expected := Supplementary_Group;

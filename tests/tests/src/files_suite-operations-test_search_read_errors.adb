@@ -9,8 +9,10 @@ separate (Files_Suite.Operations)
       Denied : Unbounded_String;
       Read_Ok : Boolean;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Search_Read_Errors", "needs Linux");
+      if Hostkit.Host.Current = Hostkit.Host.Windows then
+         Files_Suite.Support.Skip
+           ("Test_Search_Read_Errors",
+            "needs mode 0 to make a folder unreadable");
          return;
       end if;
       for Background in Boolean loop

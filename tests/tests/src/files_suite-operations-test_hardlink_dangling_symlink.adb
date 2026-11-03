@@ -16,8 +16,10 @@ separate (Files_Suite.Operations)
       Step : Files.Operations.Operation_Result;
       Target : Unbounded_String;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Hardlink_Dangling_Symlink", "needs Linux");
+      if Hostkit.Host.Current = Hostkit.Host.MacOS then
+         Files_Suite.Support.Skip
+           ("Test_Hardlink_Dangling_Symlink",
+            "link() follows a symlink here; a dangling one fails");
          return;
       end if;
       Reset_Root;

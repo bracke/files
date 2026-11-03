@@ -11,10 +11,10 @@ separate (Files_Suite.Operations)
    begin
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
+      if Hostkit.Host.Current = Hostkit.Host.Windows then
          Files_Suite.Support.Skip
            ("Test_Released_Recovery_Goes_To_Trash",
-            "needs Linux");
+            "the Recycle Bin is reachable, so the release succeeds");
          return;
       end if;
       Reset_Root;

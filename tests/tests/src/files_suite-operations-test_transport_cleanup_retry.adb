@@ -13,10 +13,11 @@ separate (Files_Suite.Operations)
          end if;
       end Restore;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux or else Hostkit.Host.Is_Elevated then
+      if Hostkit.Host.Current = Hostkit.Host.Windows or else Hostkit.Host.Is_Elevated then
          Files_Suite.Support.Skip
            ("Test_Transport_Cleanup_Retry",
-            "needs Linux, not root");
+            (if Hostkit.Host.Is_Elevated then "an elevated process ignores mode 0"
+             else "needs mode 0 to make a transport undeletable"));
          return;
       end if;
       --  The hard-link alias below goes in the test root.

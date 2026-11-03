@@ -1,3 +1,4 @@
+with Ada.Characters.Handling;
 with Files.Items;
 with Files.Model.Testing;
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;

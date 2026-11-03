@@ -5,10 +5,6 @@ separate (Files_Suite.Operations)
       Dir      : constant String := Join (Root, "special-entries");
       Load     : Files.File_System.Directory_Load_Result;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Special_Entry_Metadata", "needs Linux");
-         return;
-      end if;
       Reset_Root;
       Ada.Directories.Create_Path (Join (Dir, "folder"));
       Assert (Hostkit.Fs.Create_Link ("folder", Join (Dir, "to-folder")), "prepare a link to a folder");

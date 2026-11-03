@@ -33,10 +33,6 @@ separate (Files_Suite.Operations)
       function Labeled_Anywhere return Boolean is
         (for some Entry_Label of Settings.Labels => Entry_Label.Label = Files.Types.Purple);
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Labels_Travel_Through_Trash", "needs Linux");
-         return;
-      end if;
       Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");

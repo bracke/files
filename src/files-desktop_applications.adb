@@ -85,8 +85,6 @@ package body Files.Desktop_Applications is
       return True;
    end Is_Valid_Group_Header;
 
-   function Environment_Value (Name : String) return String renames Files.Environment.Value;
-
    function Strip_Locale_Encoding (Locale : String) return String is
       Dot      : Natural := 0;
       Modifier : Natural := 0;
@@ -338,7 +336,7 @@ package body Files.Desktop_Applications is
       Not_Show_In      : Files.Types.String_Vectors.Vector;
       Have_Not         : Boolean) return Boolean
    is
-      Current : constant String := Environment_Value ("XDG_CURRENT_DESKTOP");
+      Current : constant String := Files.Environment.Value ("XDG_CURRENT_DESKTOP");
       First   : Integer := Current'First;
       Last    : Integer;
       Only_Matched : Boolean := False;
@@ -1093,8 +1091,8 @@ package body Files.Desktop_Applications is
          Append_Base (To_String (Base));
       end loop;
       if Bases.Is_Empty then
-         Append_Base (Environment_Value ("XDG_DATA_HOME"));
-         Append_List (Environment_Value ("XDG_DATA_DIRS"));
+         Append_Base (Files.Environment.Value ("XDG_DATA_HOME"));
+         Append_List (Files.Environment.Value ("XDG_DATA_DIRS"));
       end if;
       return Bases;
    exception

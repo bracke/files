@@ -15,7 +15,9 @@ separate (Files_Suite.Operations)
       Files_Suite.Support.Save (Environment, "FILES_TEST_DIRECTORY_RESTORE_FAULT");
       Files_Suite.Support.Save (Environment, "FILES_TEST_DIRECTORY_RESTORE_BLOCK");
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Recovery_Mode_Failure", "needs Linux");
+         Files_Suite.Support.Skip
+           ("Test_Recovery_Mode_Failure",
+            "the restore fault hooks chmod in Linux-only C");
          return;
       end if;
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");

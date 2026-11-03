@@ -98,11 +98,15 @@ separate (Files_Suite.Operations)
          Assert (Hostkit.Metadata.Set_File_Times (Target, Stamp, Stamp), "the test can set a file's times");
          if Hostkit.Metadata.Permissions_Supported then
             Before := Files.File_System.Directory_State (Join (Root, "search"));
+            --  Windows stamps a change from a clock that ticks every 15.6 ms;
+            --  a real change comes later than one tick after the last.
+            delay 0.05;
             Assert (Hostkit.Metadata.Set_Permissions (Target, 8#600#), "the test can change a mode");
             Change := Files.File_System.Detect_Directory_Change (Before, Join (Root, "search"));
             Assert (Change.Changed, "a chmod alone is a change");
          end if;
          Before := Files.File_System.Directory_State (Join (Root, "search"));
+         delay 0.05;
          Write_File (Target, "ALPHA");
          Assert (Hostkit.Metadata.Set_File_Times (Target, Stamp, Stamp), "the old time is put back");
          Change := Files.File_System.Detect_Directory_Change (Before, Join (Root, "search"));

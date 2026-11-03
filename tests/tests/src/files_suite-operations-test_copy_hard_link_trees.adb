@@ -22,10 +22,6 @@ separate (Files_Suite.Operations)
                  "writes through a copied link update only its actual hard-linked sibling");
       end Check;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Copy_Hard_Link_Trees", "needs Linux");
-         return;
-      end if;
       Reset_Root;
       Ada.Directories.Create_Path (Join (Source, "sub"));
       Write_Binary_File (Join (Source, "first"), "linked bytes");

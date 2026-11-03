@@ -18,8 +18,10 @@ separate (Files_Suite.Operations)
          end if;
       end Restore;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Failed_Move_Rollback", "needs Linux");
+      if Hostkit.Host.Current = Hostkit.Host.Windows then
+         Files_Suite.Support.Skip
+           ("Test_Failed_Move_Rollback",
+            "a mode-555 folder does not refuse an unlink here");
          return;
       end if;
       Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");

@@ -170,8 +170,10 @@ package body Files_Suite.Operations is
       Probe : constant String := Join (Directory, ".write-probe");
       Descriptor : GNAT.OS_Lib.File_Descriptor;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux
-        or else Hostkit.Host.Is_Elevated
+      --  Every host is asked: the probe below says where a mode does not
+      --  stop a write (Windows), and the refusal's mapping is host code
+      --  worth proving on macOS too.
+      if Hostkit.Host.Is_Elevated
         or else not Files.File_System.Set_Permissions (Directory, 8#555#).Success
       then
          return False;

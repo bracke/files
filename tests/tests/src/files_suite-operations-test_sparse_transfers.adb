@@ -29,7 +29,11 @@ separate (Files_Suite.Operations)
       end Check;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Sparse_Transfers", "needs Linux");
+         Files_Suite.Support.Skip
+           ("Test_Sparse_Transfers",
+            (if Hostkit.Host.Current = Hostkit.Host.Windows
+             then "the sparse-file fixture is Linux-only C"
+             else "the second test volume (HFS+) has no sparse files"));
          return;
       end if;
       Remote.Create ("files-test-sparse-move-");

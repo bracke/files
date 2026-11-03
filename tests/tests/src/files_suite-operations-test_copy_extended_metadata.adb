@@ -35,7 +35,9 @@ separate (Files_Suite.Operations)
       end Check;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Copy_Extended_Metadata", "needs Linux");
+         Files_Suite.Support.Skip
+           ("Test_Copy_Extended_Metadata",
+            "the xattr and POSIX ACL fixture is Linux C");
          return;
       end if;
       Reset_Root;

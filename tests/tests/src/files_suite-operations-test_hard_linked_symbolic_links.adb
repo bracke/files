@@ -24,8 +24,10 @@ separate (Files_Suite.Operations)
                  "hard-link preservation neither resolves nor alters a symbolic link target");
       end Check;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Hard_Linked_Symbolic_Links", "needs Linux");
+      if Hostkit.Host.Current = Hostkit.Host.MacOS then
+         Files_Suite.Support.Skip
+           ("Test_Hard_Linked_Symbolic_Links",
+            "link() follows a symlink here; a dangling one fails");
          return;
       end if;
       Reset_Root;

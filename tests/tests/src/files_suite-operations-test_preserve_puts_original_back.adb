@@ -24,7 +24,9 @@ separate (Files_Suite.Operations)
       Environment : Files_Suite.Support.Environment_Guard;
    begin
       if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Preserve_Puts_Original_Back", "needs Linux");
+         Files_Suite.Support.Skip
+           ("Test_Preserve_Puts_Original_Back",
+            "the stage-sync fault hooks fsync in Linux-only C");
          return;
       end if;
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");

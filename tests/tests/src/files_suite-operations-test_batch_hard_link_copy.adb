@@ -23,10 +23,6 @@ separate (Files_Suite.Operations)
                  "the copied family is independent of its source and unrelated identical files");
       end Check;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Batch_Hard_Link_Copy", "needs Linux");
-         return;
-      end if;
       for Background in Boolean loop
          Reset_Root;
          Ada.Directories.Create_Directory (Source);

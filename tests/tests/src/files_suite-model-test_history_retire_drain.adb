@@ -11,12 +11,6 @@ separate (Files_Suite.Model)
       Environment : Files_Suite.Support.Environment_Guard;
    begin
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip
-           ("Test_History_Retire_Drain",
-            "needs Linux");
-         return;
-      end if;
       Reset_Root;
       Write_Binary_File (Dest, "original");
       --  A native backend keeps a replaced original in a private recovery

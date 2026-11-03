@@ -36,10 +36,6 @@ separate (Files_Suite.Operations)
          return False;
       end Change_Source;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Move_Source_Changes", "needs Linux");
-         return;
-      end if;
       Reset_Root;
       Remote.Create ("files-test-source-changes-");
       if Remote.Path = "" then

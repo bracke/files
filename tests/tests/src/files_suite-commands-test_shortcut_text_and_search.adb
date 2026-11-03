@@ -72,8 +72,17 @@ separate (Files_Suite.Commands)
          Palette : Guikit.Command_Palette.Palette;
          Found   : Boolean := False;
       begin
+         --  A spelling the shown shortcut ("Ctrl+P") does not contain, so
+         --  only the hidden search text can find it.
+         Assert
+           (Ada.Strings.Fixed.Index
+              (Ada.Characters.Handling.To_Lower
+                 (Files.Commands.Shortcut_Display_Text
+                    (Files.Commands.Shortcut_For (Files.Commands.Open_Command_Palette_Command))),
+               "control+p") = 0,
+            "the shown shortcut does not spell control+p, so this tests the search text");
          Guikit.Command_Palette.Set_Commands (Palette, Files.Command_Palette.Commands (Model));
-         Guikit.Command_Palette.Set_Query (Palette, "ctrl+p");
+         Guikit.Command_Palette.Set_Query (Palette, "control+p");
          for C of Guikit.Command_Palette.Results (Palette) loop
             Found := Found
               or else C.Id = Files.Commands.Command_Id'Pos (Files.Commands.Open_Command_Palette_Command);

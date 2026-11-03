@@ -20,8 +20,10 @@ separate (Files_Suite.Operations)
          Assert (File_Has_Bytes (Join (Source, "original"), "original bytes"), "the source is unchanged");
       end Check_Source;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip ("Test_Copy_Destination_Revalidation", "needs Linux");
+      if Hostkit.Host.Current = Hostkit.Host.Windows then
+         Files_Suite.Support.Skip
+           ("Test_Copy_Destination_Revalidation",
+            "Normalize_Pathname resolves no links here");
          return;
       end if;
       Settings.Show_Hidden_Files := True;

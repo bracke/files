@@ -830,7 +830,8 @@ procedure Check_All is
      (Prefix       : String;
       Package_Name : String;
       Allowed      : String_List;
-      Message      : String)
+      Message      : String;
+      Short_Too    : Boolean := True)
    is
       Short  : constant String :=
         Package_Name (Ada.Strings.Fixed.Index (Package_Name, ".", Ada.Strings.Backward) + 1 .. Package_Name'Last);
@@ -852,8 +853,14 @@ procedure Check_All is
          From : Positive := Code'First;
          At_Name : Natural;
       begin
+         --  In full, or by the short name a child of the parent may use
+         --  ("use Process_Jobs;", "package PJ renames Process_Jobs;").
          if Ada.Strings.Fixed.Index (Code, "use " & Package_Name) > 0
            or else Ada.Strings.Fixed.Index (Code, "renames " & Package_Name) > 0
+           or else (Short_Too and then
+                    (for some Tail of String_List'[To_Unbounded_String (";"), To_Unbounded_String (",")] =>
+                      Ada.Strings.Fixed.Index (Code, "use " & Short & To_String (Tail)) > 0
+                      or else Ada.Strings.Fixed.Index (Code, "renames " & Short & To_String (Tail)) > 0))
          then
             Refuse (Path, "uses or renames " & Package_Name);
          end if;
@@ -872,7 +879,7 @@ procedure Check_All is
                --  Package_Name in full (Files.Folder_Size.), or the short
                --  name alone (Folder_Size.).
                Relevant : constant Boolean :=
-                 Alone (At_Name)
+                 (Short_Too and then Alone (At_Name))
                  or else (At_Name - Code'First >= Parent'Length
                           and then Code (At_Name - Parent'Length .. At_Name - 1) = Parent
                           and then Alone (At_Name - Parent'Length));
@@ -2190,6 +2197,52 @@ procedure Check_All is
          raise;
    end Check_Direct_Localization_Call_Keys_In_Tree;
 
+   --  Thumbnails are made on the refresh tasks and on the UI thread at once.
+   --  A variable at the package level is shared by them, unguarded: one held
+   --  the path being written and was overwritten mid-write. State belongs in
+   --  the subprogram, or in a protected object.
+   procedure Check_Thumbnail_Package_State is
+      procedure Check (Path : String) is
+         Code  : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
+         Start : Positive := Code'First;
+      begin
+         for Index in Code'Range loop
+            if Code (Index) = ASCII.LF or else Index = Code'Last then
+               declare
+                  Line  : constant String := Code (Start .. (if Code (Index) = ASCII.LF then Index - 1 else Index));
+                  Colon : constant Natural := Ada.Strings.Fixed.Index (Line, ":");
+               begin
+                  --  An object declared at the package's own level: three
+                  --  spaces, a name, a colon, and no constant, exception or
+                  --  renaming.
+                  if Line'Length > 4
+                    and then Line (Line'First .. Line'First + 2) = "   "
+                    and then Line (Line'First + 3) in 'A' .. 'Z'
+                    and then Colon > 0
+                    and then (for all C of Line (Line'First + 3 .. Colon - 1) =>
+                                C in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_' | ' ' | ',')
+                    and then Ada.Strings.Fixed.Index (Line, "constant") = 0
+                    and then Ada.Strings.Fixed.Index (Line, "exception") = 0
+                    and then Ada.Strings.Fixed.Index (Line, "renames") = 0
+                    and then Ada.Strings.Fixed.Index (Line, ":=") /= Colon
+                  then
+                     Put_Line
+                       (Standard_Error,
+                        Path & ": a package-level variable is shared by every task that makes thumbnails: "
+                        & Ada.Strings.Fixed.Trim (Line, Ada.Strings.Both));
+                     Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+                     raise Program_Error;
+                  end if;
+               end;
+               Start := Index + 1;
+            end if;
+         end loop;
+      end Check;
+   begin
+      Check (Root & "/src/files-file_system-thumbnails.ads");
+      Check (Root & "/src/files-file_system-thumbnails.adb");
+   end Check_Thumbnail_Package_State;
+
    --  A timer that subtracts from the clock (Clock - Since) overflows when
    --  Since is Time_First, the "never" many timers start from; that raised
    --  on every pass of the event loop and froze every window. Timers in src/
@@ -2412,10 +2465,15 @@ procedure Check_All is
          declare
             Path : constant String := Ada.Directories.Full_Name (Item);
             Code : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
+            Lower : constant String := Ada.Characters.Handling.To_Lower (Code);
          begin
+            --  Ada's own, Hostkit's (which Files.Environment wraps), a C
+            --  getenv bound by hand, GNAT's command-line environment.
             if Ada.Directories.Simple_Name (Path) not in "files-environment.adb" | "files-environment.ads"
-              and then (Ada.Strings.Fixed.Index (Code, "Ada.Environment_Variables") > 0
-                        or else Ada.Strings.Fixed.Index (Code, "Getenv") > 0)
+              and then (Ada.Strings.Fixed.Index (Lower, "ada.environment_variables") > 0
+                        or else Ada.Strings.Fixed.Index (Lower, "getenv") > 0
+                        or else Ada.Strings.Fixed.Index (Lower, "environment_value") > 0
+                        or else Ada.Strings.Fixed.Index (Lower, "command_line.environment") > 0)
             then
                Ada.Directories.End_Search (Search);
                Put_Line (Standard_Error, Path & ": reads the environment directly; use Files.Environment");
@@ -2613,6 +2671,36 @@ procedure Check_All is
          "the test of file type detection");
    end Check_Filetype_Detection_Order;
 
+   --  The units that reach the filesystem or start processes: event
+   --  translation, the model and rendering import none of them (Hostkit and
+   --  its children are the platform layer: spawning, shells, file metadata).
+   --  Each is a unit-name prefix, so children are caught too, and the with
+   --  clauses are parsed rather than matched as text, so "with Ada.Text_IO,
+   --  Ada.Directories;" or a clause split over lines cannot slip through.
+   Filesystem_Units : constant String_List :=
+     [To_Unbounded_String ("Hostkit"),
+      To_Unbounded_String ("Ada.Directories"),
+      To_Unbounded_String ("Ada.Streams.Stream_IO"),
+      To_Unbounded_String ("Ada.Text_IO"),
+      To_Unbounded_String ("Ada.Wide_Text_IO"),
+      To_Unbounded_String ("Ada.Wide_Wide_Text_IO"),
+      To_Unbounded_String ("Ada.Direct_IO"),
+      To_Unbounded_String ("Ada.Sequential_IO"),
+      To_Unbounded_String ("Text_IO"),
+      To_Unbounded_String ("Direct_IO"),
+      To_Unbounded_String ("Sequential_IO"),
+      To_Unbounded_String ("GNAT.OS_Lib"),
+      To_Unbounded_String ("System.OS_Lib"),
+      To_Unbounded_String ("GNAT.Directory_Operations"),
+      To_Unbounded_String ("GNAT.Expect"),
+      To_Unbounded_String ("GNAT.Sockets"),
+      To_Unbounded_String ("Ada.Command_Line"),
+      To_Unbounded_String ("Ada.Environment_Variables"),
+      To_Unbounded_String ("Interfaces.C"),
+      --  System covers its children: addresses, storage, machine code.
+      To_Unbounded_String ("System")];
+   No_Units : constant String_List := [1 .. 0 => <>];
+
    procedure Check_Event_Translation_Contract is
       Events_Spec : constant String := Root & "/src/files-events.ads";
       Events_Body : constant String := Root & "/src/files-events.adb";
@@ -2624,37 +2712,6 @@ procedure Check_All is
         [To_Unbounded_String ("Files.Rendering.Hit"),
          To_Unbounded_String ("Files.UTF8"),
          To_Unbounded_String ("Files.UI")];
-
-      --  Translation turns input into actions; it never reaches the
-      --  filesystem or starts processes. These are the units that would let
-      --  it (Hostkit and its children are the platform layer: spawning,
-      --  shells, file metadata); each is a unit-name prefix, so children are
-      --  caught too, and the with clauses are parsed rather than matched as
-      --  text, so "with Ada.Text_IO, Ada.Directories;" or a clause split over
-      --  lines cannot slip through.
-      Filesystem_Units : constant String_List :=
-        [To_Unbounded_String ("Hostkit"),
-         To_Unbounded_String ("Ada.Directories"),
-         To_Unbounded_String ("Ada.Streams.Stream_IO"),
-         To_Unbounded_String ("Ada.Text_IO"),
-         To_Unbounded_String ("Ada.Wide_Text_IO"),
-         To_Unbounded_String ("Ada.Wide_Wide_Text_IO"),
-         To_Unbounded_String ("Ada.Direct_IO"),
-         To_Unbounded_String ("Ada.Sequential_IO"),
-         To_Unbounded_String ("Text_IO"),
-         To_Unbounded_String ("Direct_IO"),
-         To_Unbounded_String ("Sequential_IO"),
-         To_Unbounded_String ("GNAT.OS_Lib"),
-         To_Unbounded_String ("System.OS_Lib"),
-         To_Unbounded_String ("GNAT.Directory_Operations"),
-         To_Unbounded_String ("GNAT.Expect"),
-         To_Unbounded_String ("GNAT.Sockets"),
-         To_Unbounded_String ("Ada.Command_Line"),
-         To_Unbounded_String ("Ada.Environment_Variables"),
-         To_Unbounded_String ("Interfaces.C"),
-         --  System covers its children: addresses, storage, machine code.
-         To_Unbounded_String ("System")];
-      No_Units : constant String_List := [1 .. 0 => <>];
 
       --  Nor does it bind to foreign code itself: no import, export or
       --  machine-level representation.
@@ -2786,6 +2843,20 @@ procedure Check_All is
       --  a job, so it can be rebuilt and tested without one. Names a model
       --  unit may take from the packages that do I/O are the pure ones.
       Require_Only_Names_From
+        ("files-model", "Files.Settings",
+         [To_Unbounded_String ("Settings_Model"),
+          To_Unbounded_String ("Settings_Draft"),
+          To_Unbounded_String ("Path_Label_Vectors"),
+          To_Unbounded_String ("Path_Sets")],
+         "the model reads no disk (settings are loaded and saved elsewhere)",
+         --  Settings is also what the model's parameters are called.
+         Short_Too => False);
+      Require_Only_Names_From
+        ("files-model", "Files.Desktop_Applications",
+         [To_Unbounded_String ("Application_Vectors")],
+         "the model reads no disk (applications are listed elsewhere)",
+         Short_Too => False);
+      Require_Only_Names_From
         ("files-model", "Ada.Directories", [To_Unbounded_String ("Simple_Name")],
          "the model reads no disk");
       Require_Only_Names_From
@@ -2863,6 +2934,14 @@ procedure Check_All is
          while Ada.Directories.More_Entries (Search) loop
             Ada.Directories.Get_Next_Entry (Search, Item);
             Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), "Files.", Allowed);
+            --  Nor any unit that does I/O, however it is spelled: a deny-list
+            --  of a few names let GNAT.Directory_Operations or a C import
+            --  through. Ada.Directories is held to Simple_Name above.
+            for Unit of Filesystem_Units loop
+               if To_String (Unit) /= "Ada.Directories" then
+                  Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), To_String (Unit), No_Units);
+               end if;
+            end loop;
          end loop;
          Ada.Directories.End_Search (Search);
       end;
@@ -2878,11 +2957,32 @@ procedure Check_All is
    --  the settings panel's state; the window layer (Files.Overlays) draws
    --  and localizes them.
    procedure Check_Command_And_Overlay_Layers is
+      Search : Ada.Directories.Search_Type;
+      Item   : Ada.Directories.Directory_Entry_Type;
+
+      --  The with clauses parsed (a list or a split clause cannot hide one),
+      --  and no qualified name either, in the spec, the body and every
+      --  subunit; the Status and Execution children are meant to use it.
+      procedure Check (Path : String) is
+      begin
+         Require_Only_Allowed_With_Clauses (Path, "Files.Model", No_Units);
+         Require_Not_Contains (Path, "Files.Model.", "Files.Commands must not read the model");
+      end Check;
    begin
-      Require_Not_Contains
-        (Root & "/src/files-commands.ads", "with Files.Model", "Files.Commands must not depend on the model");
-      Require_Not_Contains
-        (Root & "/src/files-commands.adb", "Files.Model.", "Files.Commands must not read the model");
+      Check (Root & "/src/files-commands.ads");
+      Check (Root & "/src/files-commands.adb");
+      Ada.Directories.Start_Search
+        (Search, Root & "/src", "files-commands-*.adb", [Ada.Directories.Ordinary_File => True, others => False]);
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Item);
+         if Ada.Strings.Fixed.Index
+              (To_String (Project_Tools.Text.Read_Text_File (Ada.Directories.Full_Name (Item))),
+               "separate (Files.Commands)") > 0
+         then
+            Check (Ada.Directories.Full_Name (Item));
+         end if;
+      end loop;
+      Ada.Directories.End_Search (Search);
       for Pattern of String_List'
         [To_Unbounded_String ("Build_Frame"),
          To_Unbounded_String ("Files.Localization")]
@@ -3471,6 +3571,9 @@ procedure Check_All is
          while Ada.Directories.More_Entries (Search) loop
             Ada.Directories.Get_Next_Entry (Search, Item);
             Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), "Files.", Family_Allowed);
+            for Unit of Filesystem_Units loop
+               Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), To_String (Unit), No_Units);
+            end loop;
          end loop;
          Ada.Directories.End_Search (Search);
       exception
@@ -4415,7 +4518,7 @@ procedure Check_All is
    --  that only looked for a package name in the suite text was satisfied by
    --  a with clause alone; a suite that lost its tests now fails here.
    procedure Check_Test_Subsystem_Coverage is
-      procedure Require_Tests (Suite : String; Minimum : Positive) is
+      procedure Require_Tests (Suite : String; Expected : Positive) is
          --  Registrations in code: one commented out is not counted.
          Text  : constant String :=
            Code_Of
@@ -4433,11 +4536,13 @@ procedure Check_All is
                From := At_Name + 1;
             end;
          end loop;
-         if Count < Minimum then
+         --  Exact, not a floor: a test added without the number moving here
+         --  hides the next one lost.
+         if Count /= Expected then
             Put_Line
               (Standard_Error,
                "the " & Suite & " test suite registers" & Natural'Image (Count)
-               & " tests, fewer than" & Positive'Image (Minimum));
+               & " tests, not the" & Positive'Image (Expected) & " expected here");
             Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
             raise Program_Error;
          end if;
@@ -4450,7 +4555,7 @@ procedure Check_All is
       Require_Tests ("commands", 38);
       Require_Tests ("model", 50);
       Require_Tests ("interaction", 76);
-      Require_Tests ("rendering", 89);
+      Require_Tests ("rendering", 90);
       Require_Tests ("operations", 271);
    end Check_Test_Subsystem_Coverage;
 
@@ -4477,6 +4582,7 @@ begin
    Check_Localization_Usage;
    Check_Clock_Arithmetic;
    Check_Environment_Access;
+   Check_Thumbnail_Package_State;
    Check_Filetype_Detection_Order;
    Check_Event_Translation_Contract;
    Check_Test_Hooks;
