@@ -5,7 +5,7 @@ procedure Open_Root_Selector
 is
    Entries : Files.File_System.Root_Entry_Vectors.Vector;
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    for Root of Roots loop
       Entries.Append
         (Files.File_System.Root_Entry'

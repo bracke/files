@@ -13,7 +13,7 @@ is
    Start    : Natural;
    Target   : Natural;
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Matched := False;
 
    if not Is_Printable_Run (Text) then

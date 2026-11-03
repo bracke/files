@@ -881,11 +881,27 @@ package body Files.Rendering is
       return Build_Snapshot (Model, Files.Settings.Default_Settings);
    end Build_Snapshot;
 
-   function Build_Snapshot
-     (Model    : Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return View_Snapshot
+   procedure Build_Snapshot_Into
+     (Snapshot  : in out View_Snapshot;
+      Model     : Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Keep_Rows : Boolean := False)
    is separate;
+
+   function Build_Snapshot
+     (Model     : Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Rows_From : access constant View_Snapshot := null)
+      return View_Snapshot
+   is
+   begin
+      return Result : View_Snapshot do
+         if Rows_From /= null then
+            Result.Items := Rows_From.Items;
+         end if;
+         Build_Snapshot_Into (Result, Model, Settings, Keep_Rows => Rows_From /= null);
+      end return;
+   end Build_Snapshot;
 
    function Calculate_Layout
      (Snapshot    : View_Snapshot;

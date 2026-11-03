@@ -8,6 +8,6 @@ begin
    if Model.Selection_Columns = Columns then
       return;
    end if;
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Selection_Columns := Columns;
 end Set_Selection_Grid_Columns;

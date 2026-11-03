@@ -5,7 +5,7 @@ function Rename_Set_All_Carets_Home
 is
    Changed : Boolean := False;
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
       declare
          Field : Rename_Field := Model.Rename_Fields.Element (Index);

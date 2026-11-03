@@ -4,7 +4,7 @@ function Palette_Click (Model : in out Window_Model; X : Integer; Y : Integer) r
      Guikit.Command_Palette.Click (Model.Command_Palette_View, X, Y);
 begin
    if Clicked then
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch (Model);
    end if;
    return Clicked;
 end Palette_Click;

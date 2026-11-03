@@ -11,7 +11,7 @@ is
    Step    : constant Natural := Natural (Page_Rows) * Stride;
    Next    : Natural;
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch_Selection (Model);
    if Count = 0 then
       Clear_Selection (Model);
       return;

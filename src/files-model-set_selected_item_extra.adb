@@ -14,7 +14,7 @@ begin
       Item.Filetype_Extra := To_Unbounded_String (Token);
       Item.Filetype_Extra_Loaded := True;
       if Token /= "" then
-         Model.Revision_Value := Model.Revision_Value + 1;
+         Touch (Model);
       end if;
       Model.Items.Replace_Element (Idx, Item);
    end;

@@ -4,7 +4,7 @@ procedure Select_Last_Visible
 is
    Count : constant Natural := Visible_Count (Model);
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch_Selection (Model);
    if Count = 0 then
       Clear_Selection (Model);
    else

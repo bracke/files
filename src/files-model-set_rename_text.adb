@@ -3,7 +3,7 @@ procedure Set_Rename_Text
   (Model : in out Window_Model;
    Text  : String) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
    if Model.Rename_Active and then not Model.Rename_Fields.Is_Empty then
       declare

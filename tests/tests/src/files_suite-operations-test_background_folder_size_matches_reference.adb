@@ -11,6 +11,7 @@ separate (Files_Suite.Operations)
       Path      : Ada.Strings.Unbounded.Unbounded_String;
       Result    : Files.File_System.Directory_Size_Result;
       Available : Boolean := False;
+      Taken     : Files.Folder_Size.Measurement_Vectors.Vector;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Deep);
@@ -26,8 +27,13 @@ separate (Files_Suite.Operations)
       Files.Folder_Size.Cancel (Scan);
       Files.Folder_Size.Request (Scan, Tree);
       for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
-         Files.Folder_Size.Step (Scan, Budget => 100_000);
-         Files.Folder_Size.Take (Scan, Path, Result, Available);
+         Files.Folder_Size.Step (Scan);
+         Files.Folder_Size.Take_All (Scan, Taken);
+         Available := not Taken.Is_Empty;
+         if Available then
+            Path := Taken.First_Element.Path;
+            Result := Taken.First_Element.Result;
+         end if;
          exit when Available or else not Files.Folder_Size.Is_Active (Scan);
       end loop;
 

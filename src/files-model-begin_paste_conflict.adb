@@ -7,7 +7,7 @@ procedure Begin_Paste_Conflict
    Index           : Positive;
    Clear_Clipboard : Boolean := True) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Claim_Overlay_Input (Model);
    Model.Paste_Conflict :=
      (Active           => True,

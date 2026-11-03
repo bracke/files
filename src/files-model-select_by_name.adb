@@ -4,7 +4,7 @@ function Select_By_Name
    Name  : String)
    return Boolean is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch_Selection (Model);
    Model.Selected_Item_Index := 0;
    Model.Selected_Item_Indexes.Clear;
    Reset_Quick_Look (Model);

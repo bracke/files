@@ -38,7 +38,7 @@ begin
 
    --  A key that moved no caret changes nothing to redraw.
    if Changed then
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch (Model);
    end if;
    return Changed;
 end Rename_Move_All_Carets;

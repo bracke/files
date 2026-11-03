@@ -635,6 +635,19 @@ package Files.Operations is
    --  @param Model Window model whose measurements to poll.
    procedure Poll_Folder_Sizes (Model : in out Files.Model.Window_Model);
 
+   --  Hand the open Quick Look preview its decoded image once the decoder
+   --  has it (Prepare_Quick_Look asked for it).
+   --
+   --  @param Model Window model whose preview to complete.
+   procedure Poll_Quick_Look (Model : in out Files.Model.Window_Model);
+
+   --  The size and modification time of Item as a preview remembers them
+   --  (Quick_Look_Content.Source_Stamp).
+   --
+   --  @param Item The previewed item.
+   --  @return Its stamp.
+   function Quick_Look_Stamp (Item : Files.Items.Directory_Item) return Files.Types.UString;
+
    --  Stop the window's folder-size measurement and discard what it had not
    --  yet published.
    --

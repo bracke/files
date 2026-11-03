@@ -5,7 +5,7 @@ procedure Set_Rename_Caret
    Visible_Index : Natural;
    Position      : Natural) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    if Visible_Index = 0 or else not Model.Rename_Active then
       return;
    end if;

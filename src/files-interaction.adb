@@ -524,7 +524,8 @@ package body Files.Interaction is
       Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
 
       --  Keep the info-pane folder-size cache aligned with keyboard-driven
-      --  selection changes. Cheap when the selected directory is unchanged.
+      --  selection changes; returns at once when the items and the
+      --  selection are as they were.
       Files.Operations.Update_Folder_Size (Model, Settings);
       Files.Operations.Ensure_Selected_Item_Extra (Model);
    end Handle_Key;
@@ -781,7 +782,7 @@ package body Files.Interaction is
       Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
 
       --  Refresh the info-pane folder-size cache for the (possibly changed)
-      --  selection. Cheap when the selected directory is unchanged.
+      --  selection; returns at once when nothing it depends on moved.
       Files.Operations.Update_Folder_Size (Model, Settings);
 
       --  Compute the selected item's extra info (folder child count, document

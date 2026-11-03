@@ -6,7 +6,7 @@ procedure Record_Paste_Execution_Replaced_Trash
    Original_Path : String;
    Verified : Boolean) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Paste_Exec.Replaced_Trash.Append (Trash_Path);
    Model.Paste_Exec.Replaced_Identities.Append (To_Unbounded_String (Identity));
    Model.Paste_Exec.Replaced_Targets.Append (To_Unbounded_String (Original_Path));

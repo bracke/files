@@ -5,7 +5,7 @@ procedure Move_Sort_Menu_Highlight
    Current : constant Natural :=
      (if Model.Sort_Menu_Highlight_Value = 0 then 1 else Model.Sort_Menu_Highlight_Value);
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Sort_Menu_Highlight_Value :=
      Integer'Max (1, Integer'Min (5, Current + Delta_Value));
 end Move_Sort_Menu_Highlight;

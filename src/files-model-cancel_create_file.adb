@@ -2,7 +2,7 @@ separate (Files.Model)
 procedure Cancel_Create_File
   (Model : in out Window_Model) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Temporary_Active := False;
    Model.Temporary_Is_Directory := False;
    Model.Temporary_Name_Value := Null_Unbounded_String;

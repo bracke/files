@@ -3,7 +3,7 @@ procedure Set_Error
   (Model     : in out Window_Model;
    Error_Key : String) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    --  Refresh requests also snapshot the current error so a completed load
    --  cannot clear or restore an error recorded after the request began.
    Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;

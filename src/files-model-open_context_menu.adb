@@ -6,7 +6,7 @@ procedure Open_Context_Menu
    Target     : Context_Menu_Target;
    Item_Index : Natural := 0) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Claim_Overlay_Input (Model);
    --  No keyboard highlight until the user arrows; a mouse-opened menu shows
    --  none pre-selected.

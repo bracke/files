@@ -43,6 +43,9 @@ package Files.Quick_Look is
       Image_Pixels   : Files.Shared_Bytes.Bytes;
       Image_Width    : Natural := 0;
       Image_Height   : Natural := 0;
+      --  The previewed file's size and modification time as listed, so a
+      --  refresh that finds it unchanged keeps the preview it has.
+      Source_Stamp   : UString;
    end record;
 
    --  Return whether Raw_Bytes looks like binary (non-text) data: it contains a

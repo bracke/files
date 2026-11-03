@@ -4,7 +4,7 @@ procedure Commit_Path_Input
    Result : Files.File_System.Path_Result;
    Items  : Files.Items.Item_Vectors.Vector) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    if Result.Status = Files.File_System.Path_Valid then
       Navigate_To (Model, To_String (Result.Directory_Path), Items);
       Model.Focus_Value := Files.Types.Focus_None;

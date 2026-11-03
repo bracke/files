@@ -4,7 +4,7 @@ procedure Apply_Sort
    Field     : Files.Types.Sort_Field;
    Ascending : Boolean) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Sort_Field_Value := Field;
    Model.Sort_Ascending   := Ascending;
    Resort_Items (Model);

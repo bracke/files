@@ -12,7 +12,7 @@ begin
       return;
    end if;
 
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Tree_Keyboard_Value := True;
    Model.Tree_Cursor_Value := Rows.First_Element.Path;
    for Row of Rows loop

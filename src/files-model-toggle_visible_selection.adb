@@ -5,7 +5,7 @@ procedure Toggle_Visible_Selection
 is
    Item_Index : Natural := Visible_To_Item_Index (Model, Visible_Index);
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch_Selection (Model);
    Reset_Type_Ahead (Model);
    if Item_Index = 0
      and then Temporary_Is_Visible (Model)

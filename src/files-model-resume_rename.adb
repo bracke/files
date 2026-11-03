@@ -3,7 +3,7 @@ procedure Resume_Rename
   (Model : in out Window_Model;
    Text  : String) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
    if not Rename_Is_Enabled (Model) then
       return;

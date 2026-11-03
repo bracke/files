@@ -46,7 +46,7 @@ begin
 
    --  A key that deleted nothing changes nothing to redraw.
    if Changed then
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch (Model);
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
    end if;
    return Changed;

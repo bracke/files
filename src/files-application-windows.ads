@@ -473,6 +473,8 @@ private
       Cached_Model_Revision : Natural := 0;
       --  Scroll revision the current snapshot's offsets were taken at.
       Cached_Scroll_Revision : Natural := 0;
+      --  Rows revision its rows were built at (Files.Model.Rows_Revision).
+      Cached_Rows_Revision : Natural := 0;
       --  Snapshot-relevant settings (theme, columns, visibility, favorites,
       --  labels) the current snapshot was built with. With the model revision
       --  these are the whole of Build_Snapshot's inputs, so the snapshot is
@@ -493,7 +495,8 @@ private
       --  The model revision and transfer state Update_Folder_Size last ran
       --  for: the loop wakes about 60 times a second, and the selection's
       --  targets change only with the model.
-      Folder_Size_Revision : Natural := Natural'Last;
+      Folder_Size_Rows      : Natural := Natural'Last;
+      Folder_Size_Selection : Natural := Natural'Last;
       Folder_Size_Busy     : Boolean := False;
       Watch : Files.Refresh_Jobs.Watch_Session;
       --  How often the watch and the timed re-read may reload the folder.

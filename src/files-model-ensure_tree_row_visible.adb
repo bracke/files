@@ -29,7 +29,7 @@ begin
    Wanted := Natural'Min (Wanted, Maximum);
 
    if Model.Tree_Panel_Scroll /= Wanted then
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch (Model);
       Model.Tree_Panel_Scroll := Wanted;
    end if;
 end Ensure_Tree_Row_Visible;

@@ -4,11 +4,14 @@ with Files.Environment;
 with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Strings.Fixed;
+with Ada.Calendar.Formatting;
+with Ada.Real_Time;
 with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
 
 with Files.Folder_Size;
+with Files.Preview_Decoder;
 with Files.Shared_Bytes;
 with Files.Transfer_Jobs;
 with Files.Process_Jobs;
@@ -559,32 +562,25 @@ package body Files.Operations is
       or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)));
 
    procedure Poll_Folder_Sizes (Model : in out Files.Model.Window_Model) is
-      Scan      : Files.Folder_Size.Session := Files.Model.Folder_Scan (Model);
-      Path      : Unbounded_String;
-      Result    : Files.File_System.Directory_Size_Result;
-      Available : Boolean;
+      Scan  : Files.Folder_Size.Session := Files.Model.Folder_Scan (Model);
+      Taken : Files.Folder_Size.Measurement_Vectors.Vector;
    begin
       Files.Folder_Size.Step (Scan);
-      loop
-         exit when Folder_Sizes_Paused (Model);
-         Files.Folder_Size.Take (Scan, Path, Result, Available);
-         exit when not Available;
-         Files.Model.Note_Folder_Size (Model, To_String (Path), Result);
-      end loop;
+      --  Handed over a few times a second, not one by one: each hand-over
+      --  gives the window a snapshot to patch.
+      if not Folder_Sizes_Paused (Model) then
+         Files.Folder_Size.Take_Due (Scan, Ada.Real_Time.Clock, Taken);
+      end if;
       Files.Model.Set_Folder_Scan (Model, Scan);
+      Files.Model.Note_Folder_Sizes (Model, Taken);
    end Poll_Folder_Sizes;
 
    procedure Cancel_Folder_Scan (Model : in out Files.Model.Window_Model) is
       Scan      : Files.Folder_Size.Session := Files.Model.Folder_Scan (Model);
-      Path      : Unbounded_String;
-      Result    : Files.File_System.Directory_Size_Result;
-      Available : Boolean;
+      Discarded : Files.Folder_Size.Measurement_Vectors.Vector;
    begin
       Files.Folder_Size.Cancel (Scan);
-      loop
-         Files.Folder_Size.Take (Scan, Path, Result, Available);
-         exit when not Available;
-      end loop;
+      Files.Folder_Size.Take_All (Scan, Discarded);
       Files.Model.Set_Folder_Scan (Model, Scan);
    end Cancel_Folder_Scan;
 
@@ -597,7 +593,10 @@ package body Files.Operations is
       --  Retargeted once the read or paste is done: the watch poll's read
       --  comes every few seconds, and cancelling here restarted any folder
       --  slower than that from scratch every time, so it never finished.
-      if Folder_Sizes_Paused (Model) then
+      if Folder_Sizes_Paused (Model)
+        or else Files.Folder_Size.Targets_Set_For
+          (Files.Model.Folder_Scan (Model), Files.Model.Rows_Revision (Model), Files.Model.Selection_Revision (Model))
+      then
          return;
       end if;
       --  The helper process performs the recursive subtree walk. Here we only
@@ -610,23 +609,25 @@ package body Files.Operations is
       then
          declare
             Targets : Files.Folder_Size.Path_Vectors.Vector;
+
+            --  Read in place: a copy of a large selection, on every change.
+            procedure Add (Item : Files.Items.Directory_Item) is
+            begin
+               if Item.Kind = Files.Types.Directory_Item
+                 and then not Files.Model.Folder_Size_Cached_For (Model, To_String (Item.Full_Path))
+               then
+                  Targets.Append (Item.Full_Path);
+               end if;
+            end Add;
          begin
             Files.Model.Prune_Folder_Sizes_To_Selection (Model);
-            for Item of Files.Model.Selected_Items (Model) loop
-               if Item.Kind = Files.Types.Directory_Item then
-                  declare
-                     Path : constant String := To_String (Item.Full_Path);
-                  begin
-                     if not Files.Model.Folder_Size_Cached_For (Model, Path) then
-                        Targets.Append (To_Unbounded_String (Path));
-                     end if;
-                  end;
-               end if;
-            end loop;
+            Files.Model.For_Each_Selected_Item (Model, Add'Access);
             declare
                Scan : Files.Folder_Size.Session := Files.Model.Folder_Scan (Model);
             begin
                Files.Folder_Size.Set_Targets (Scan, Targets);
+               Files.Folder_Size.Note_Targets_Set_For
+                 (Scan, Files.Model.Rows_Revision (Model), Files.Model.Selection_Revision (Model));
                Files.Model.Set_Folder_Scan (Model, Scan);
             end;
          end;
@@ -787,22 +788,48 @@ package body Files.Operations is
            Image_Path     => Path,
            Raw_Bytes      => Raw);
    begin
-      --  Decode the original image once here (Files.Quick_Look is pure), so the
-      --  preview scales the source rather than the small thumbnail.
+      Content.Source_Stamp := Quick_Look_Stamp (Item);
+      --  The original image, so the preview scales the source rather than the
+      --  small thumbnail, decoded off the UI thread: the thumbnail shows until
+      --  Poll_Quick_Look hands the decoded one over.
       if Content.Kind = Files.Quick_Look.Image_Content then
-         declare
-            Decoded : constant Files.Images.Decoded_Image :=
-              Files.Images.Decode_Image_To_Pixels (Path, Preview_Size);
-         begin
-            if Decoded.Available then
-               Content.Image_Pixels := Files.Shared_Bytes.To_Shared (Decoded.Pixels);
-               Content.Image_Width := Decoded.Width;
-               Content.Image_Height := Decoded.Height;
-            end if;
-         end;
+         Files.Preview_Decoder.Request (Path, Preview_Size);
       end if;
       return Content;
    end Prepare_Quick_Look;
+
+   function Quick_Look_Stamp (Item : Files.Items.Directory_Item) return Files.Types.UString is
+     (To_Unbounded_String
+        (Long_Long_Integer'Image (Item.Size)
+         & (if Item.Modified_Available
+            then " " & Ada.Calendar.Formatting.Image (Item.Modified_Time, Include_Time_Fraction => True)
+            else "")));
+
+   procedure Poll_Quick_Look (Model : in out Files.Model.Window_Model) is
+      use type Files.Quick_Look.Content_Kind;
+   begin
+      if Files.Model.Quick_Look_Is_Open (Model) then
+         declare
+            Content : Files.Quick_Look.Quick_Look_Content renames Files.Model.Quick_Look_Content_Of (Model);
+         begin
+            if Content.Kind = Files.Quick_Look.Image_Content
+              and then Files.Shared_Bytes.Is_Empty (Content.Image_Pixels)
+            then
+               declare
+                  Path  : constant String := To_String (Content.Image_Path);
+                  Image : Files.Images.Decoded_Image;
+                  Ready : Boolean;
+               begin
+                  Files.Preview_Decoder.Take (Path, Image, Ready);
+                  if Ready and then Image.Available then
+                     Files.Model.Set_Quick_Look_Image
+                       (Model, Path, Files.Shared_Bytes.To_Shared (Image.Pixels), Image.Width, Image.Height);
+                  end if;
+               end;
+            end if;
+         end;
+      end if;
+   end Poll_Quick_Look;
 
    procedure Begin_Paste_Execution
      (Model           : in out Files.Model.Window_Model;

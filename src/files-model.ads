@@ -12,6 +12,7 @@ with Files.Folder_Tree;
 with Files.Folder_Size;
 with Files.Paste;
 with Files.Quick_Look;
+with Files.Shared_Bytes;
 with Files.Settings;
 with Guikit.Command_Palette;
 with Guikit.Input;
@@ -46,6 +47,25 @@ package Files.Model is
    --  @param Model Model to inspect.
    --  @return Current change revision.
    function Revision
+     (Model : Window_Model)
+      return Natural;
+
+   --  Like Revision, but not moved by a change of the selection alone: the
+   --  rows a view shows (names, metadata, rename fields, cut marks, order)
+   --  are as they were while it holds, though which are selected may not be.
+   --
+   --  @param Model Model to inspect.
+   --  @return The rows revision.
+   function Rows_Revision
+     (Model : Window_Model)
+      return Natural;
+
+   --  Moved by every change of the selection and by nothing else: with
+   --  Rows_Revision, what the selected items are.
+   --
+   --  @param Model Model to inspect.
+   --  @return The selection revision.
+   function Selection_Revision
      (Model : Window_Model)
       return Natural;
 
@@ -1885,6 +1905,20 @@ package Files.Model is
    procedure Close_Quick_Look
      (Model : in out Window_Model);
 
+   --  Give the open preview its decoded image, if it still shows Path.
+   --
+   --  @param Model Model to update.
+   --  @param Path The file the image was decoded from.
+   --  @param Pixels Its RGBA pixels.
+   --  @param Width Its width.
+   --  @param Height Its height.
+   procedure Set_Quick_Look_Image
+     (Model  : in out Window_Model;
+      Path   : String;
+      Pixels : Files.Shared_Bytes.Bytes;
+      Width  : Natural;
+      Height : Natural);
+
    --  Toggle the Quick Look overlay. When opening, the previewed content is a
    --  metadata-only info card derived from the selected item without any
    --  filesystem read; when closing, the previewed content is dropped.
@@ -2384,15 +2418,14 @@ package Files.Model is
    --  @param Scan Its folder-size session.
    procedure Set_Folder_Scan (Model : in out Window_Model; Scan : Files.Folder_Size.Session);
 
-   --  Record a finished measurement, if Path is still a selected directory.
+   --  Record finished measurements, those of directories still selected;
+   --  the selected directories are looked up once per batch.
    --
    --  @param Model Window to update.
-   --  @param Path Measured directory.
-   --  @param Result Its size.
-   procedure Note_Folder_Size
-     (Model  : in out Window_Model;
-      Path   : String;
-      Result : Files.File_System.Directory_Size_Result);
+   --  @param Measured The finished measurements.
+   procedure Note_Folder_Sizes
+     (Model    : in out Window_Model;
+      Measured : Files.Folder_Size.Measurement_Vectors.Vector);
 
    --  Stack of undo/redo entries; the last element is the top of the stack.
    package Undo_Entry_Vectors is new Ada.Containers.Vectors
@@ -3266,6 +3299,12 @@ private
       --  differs, so snapshot invalidation follows the model automatically
       --  rather than relying on each call site to remember.
       Revision_Value : Natural := 0;
+      --  Bumped with Revision_Value by every mutator except those that move
+      --  only the selection (Support.Touch_Selection): while it holds, a view
+      --  snapshot's rows are still right but for their selected flags.
+      Rows_Revision_Value : Natural := 0;
+      --  Bumped with Revision_Value by every change of the selection.
+      Selection_Revision_Value : Natural := 0;
       --  The volume-space sample (Set_Volume_Space) and where and when it was
       --  taken; Volume_Sampled is meaningful only once Volume_Path is set.
       Volume_Space_Value : Volume_Space;

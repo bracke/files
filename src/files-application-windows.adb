@@ -91,8 +91,9 @@ package body Files.Application.Windows is
    --  How long a window whose text failed to load waits before trying again.
    Text_Retry_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (5);
    File_Watch_Poll_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
-   --  With a native watch announcing changes, the re-read only covers what a
-   --  watch can miss (a change made over the network to a mounted folder).
+   --  With the watch helper reporting changes (Watch_Is_Native), the re-read
+   --  only covers what it can miss (a change made over the network to a
+   --  mounted folder).
    --  Each re-read stats every entry, so in a large folder it is not free.
    Native_Watch_Poll_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (10);
    Type_Ahead_Timeout : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
@@ -559,12 +560,14 @@ package body Files.Application.Windows is
            Same_Revision => Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model),
            Same_Settings => Files.Settings.Same_Snapshot_Settings (Runtime.Settings, Runtime.Cached_Settings_Key),
            Same_Scroll   => Runtime.Cached_Scroll_Revision = Files.Model.Scroll_Revision (Runtime.Model),
+           Same_Rows     => Runtime.Cached_Rows_Revision = Files.Model.Rows_Revision (Runtime.Model),
+           Same_Row_Settings => Files.Settings.Same_Row_Settings (Runtime.Settings, Runtime.Cached_Settings_Key),
            Pasting       => Files.Model.Paste_Execution_Is_Active (Runtime.Model),
            Paste_Interval_Elapsed =>
              Files.Timing.Elapsed (Now, Runtime.Snapshot_Built_At, Paste_Progress_Interval));
       use type Files.Snapshot_Policy.Snapshot_Action;
    begin
-      if Action /= Files.Snapshot_Policy.Rebuild then
+      if Action in Files.Snapshot_Policy.Reuse | Files.Snapshot_Policy.Patch_Scroll then
          if Action = Files.Snapshot_Policy.Patch_Scroll then
             --  Only an offset moved: the items stand. A copy with the new
             --  offsets (about a millisecond for 20,000 items) instead of a
@@ -589,10 +592,23 @@ package body Files.Application.Windows is
          return;
       end if;
 
-      if Runtime.Current_Slot = Runtime.Drawn_Slot then
-         Runtime.Current_Slot := (if Runtime.Drawn_Slot = 1 then 2 else 1);
-      end if;
-      Runtime.Snapshots (Runtime.Current_Slot) := Files.Rendering.Build_Snapshot (Runtime.Model, Runtime.Settings);
+      declare
+         --  A selection change keeps the rows (a few milliseconds instead of
+         --  a whole rebuild in a large folder), taken from the current slot.
+         --  Built in place: a snapshot's copy is milliseconds of its own.
+         From      : constant Snapshot_Slot := Runtime.Current_Slot;
+         Keep_Rows : constant Boolean := Action = Files.Snapshot_Policy.Patch_Rows;
+      begin
+         if Runtime.Current_Slot = Runtime.Drawn_Slot then
+            Runtime.Current_Slot := (if Runtime.Drawn_Slot = 1 then 2 else 1);
+            if Keep_Rows then
+               Runtime.Snapshots (Runtime.Current_Slot).Items := Runtime.Snapshots (From).Items;
+            end if;
+         end if;
+         Files.Rendering.Build_Snapshot_Into
+           (Runtime.Snapshots (Runtime.Current_Slot), Runtime.Model, Runtime.Settings, Keep_Rows);
+      end;
+      Runtime.Cached_Rows_Revision := Files.Model.Rows_Revision (Runtime.Model);
       Runtime.Cached_Scroll_Revision := Files.Model.Scroll_Revision (Runtime.Model);
       Runtime.Slot_Listings (Runtime.Current_Slot) := Files.Model.Listing_Revision (Runtime.Model);
       Runtime.Cached_Model_Revision := Files.Model.Revision (Runtime.Model);
@@ -992,15 +1008,20 @@ package body Files.Application.Windows is
                  Files.Model.Paste_Execution_Is_Active (Runtime.Model)
                  or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Runtime.Model));
             begin
-               if Files.Model.Revision (Runtime.Model) /= Runtime.Folder_Size_Revision
+               --  Only the items and the selection decide what is measured: a
+               --  measurement arriving (which moves Revision) asks for nothing.
+               if Files.Model.Rows_Revision (Runtime.Model) /= Runtime.Folder_Size_Rows
+                 or else Files.Model.Selection_Revision (Runtime.Model) /= Runtime.Folder_Size_Selection
                  or else Busy /= Runtime.Folder_Size_Busy
                then
                   Files.Operations.Update_Folder_Size (Runtime.Model, Runtime.Settings);
-                  Runtime.Folder_Size_Revision := Files.Model.Revision (Runtime.Model);
+                  Runtime.Folder_Size_Rows := Files.Model.Rows_Revision (Runtime.Model);
+                  Runtime.Folder_Size_Selection := Files.Model.Selection_Revision (Runtime.Model);
                   Runtime.Folder_Size_Busy := Busy;
                end if;
             end;
             Files.Operations.Poll_Folder_Sizes (Runtime.Model);
+            Files.Operations.Poll_Quick_Look (Runtime.Model);
          end if;
       end Poll;
    begin

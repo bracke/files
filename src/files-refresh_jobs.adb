@@ -1,3 +1,4 @@
+with Files.Quick_Look;
 with Files.Helper_Modes;
 with Files.Items;
 with Files.Diagnostics;
@@ -406,6 +407,8 @@ package body Files.Refresh_Jobs is
             Previous_Scroll  : constant Natural := Files.Model.Main_View_Scroll_Lines (Model);
             Previewing       : constant Boolean := Files.Model.Quick_Look_Is_Open (Model);
             Previewed        : constant String := Files.Model.Quick_Look_Path (Model);
+            Previous_Preview : constant Files.Quick_Look.Quick_Look_Content :=
+              Files.Model.Quick_Look_Content_Of (Model);
          begin
             if Work.Recent then
                Files.Model.Navigate_Recent (Model, Done.Items);
@@ -432,9 +435,14 @@ package body Files.Refresh_Jobs is
               and then Previewed /= ""
               and then To_String (Files.Model.Selected_Item (Model).Full_Path) = Previewed
             then
-               --  Prepared afresh: the change being picked up may be to it.
+               --  Prepared afresh when the change being picked up is to it;
+               --  otherwise the preview it had, image and all, comes back.
                Files.Model.Open_Quick_Look
-                 (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selected_Item (Model)));
+                 (Model,
+                  (if Files.Operations.Quick_Look_Stamp (Files.Model.Selected_Item (Model))
+                      = Previous_Preview.Source_Stamp
+                   then Previous_Preview
+                   else Files.Operations.Prepare_Quick_Look (Files.Model.Selected_Item (Model))));
             end if;
          end;
       end if;
@@ -702,9 +710,25 @@ package body Files.Refresh_Jobs is
    end Poll_Watch;
 
    procedure Run_Watch_Helper (Directory : String) is
+      use type Ada.Real_Time.Time;
+      use type Ada.Real_Time.Time_Span;
+      use type Files.File_System.Directory_Signature;
       Watch : Hostkit.Watch.Watch_State;
       Pending : Boolean := False;
       Input : aliased Files.Lease_Streams.Input_Stream;
+      Watched : Unbounded_String;
+      --  Where the watch does not hear a file being written (macOS, Windows,
+      --  a filesystem with no notifications), this helper re-reads the
+      --  folder's signature itself and posts a change when it moved: one stat
+      --  per entry here, instead of the window starting a helper, a
+      --  transport and four fsyncs for every timed re-read.
+      Polls_Itself : Boolean := False;
+      Last_State   : Files.File_System.Directory_Signature;
+      Next_Scan    : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+
+      --  A second, and a second more per 20,000 entries.
+      function Scan_Gap (Entries : Natural) return Ada.Real_Time.Time_Span is
+        (Ada.Real_Time.Seconds (1) + Ada.Real_Time.Milliseconds (Natural'Min (Entries, 1_000_000) / 20));
    begin
       if not Open_Transport
         (Hostkit.Fs.Join (Directory, "request"), Input)
@@ -722,27 +746,42 @@ package body Files.Refresh_Jobs is
          end if;
          Files.Lease_Streams.Release (Input);
          Hostkit.Watch.Watch_Path (Watch, Path);
+         Watched := To_Unbounded_String (Path);
       end;
-      if Hostkit.Watch.Is_Active (Watch) and then Hostkit.Watch.Sees_File_Writes then
-         --  Tell the window its timed re-read can relax (Watch_Is_Native):
-         --  only where the watch also hears a file grow, since the listing
-         --  shows sizes and times (not so on macOS, whose kqueue hears a
-         --  directory's entries only).
-         declare
-            Marker : Files.Exclusive_Streams.Output_Stream;
-         begin
-            Files.Exclusive_Streams.Create (Marker, Hostkit.Fs.Join (Directory, "native"));
-            Files.Exclusive_Streams.Close (Marker);
-         exception
-            when Swallowed : others =>
-               Close (Marker);
-               Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
-         end;
+      Polls_Itself := not (Hostkit.Watch.Is_Active (Watch) and then Hostkit.Watch.Sees_File_Writes);
+      if Polls_Itself then
+         Last_State := Files.File_System.Directory_State (To_String (Watched));
+         Next_Scan := Ada.Real_Time.Clock + Scan_Gap (Last_State.Entry_Count);
       end if;
+      --  Tell the window its timed re-read can relax (Watch_Is_Native): this
+      --  helper reports what the listing shows, file growth included, either
+      --  from the watch or from its own re-reads.
+      declare
+         Marker : Files.Exclusive_Streams.Output_Stream;
+      begin
+         Files.Exclusive_Streams.Create (Marker, Hostkit.Fs.Join (Directory, "native"));
+         Files.Exclusive_Streams.Close (Marker);
+      exception
+         when Swallowed : others =>
+            Close (Marker);
+            Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
+      end;
       loop
          exit when Files.Job_Context.Cancelled;
          if Hostkit.Watch.Poll (Watch) then
             Pending := True;
+         end if;
+         if Polls_Itself and then Ada.Real_Time.Clock >= Next_Scan then
+            declare
+               State : constant Files.File_System.Directory_Signature :=
+                 Files.File_System.Directory_State (To_String (Watched));
+            begin
+               if State /= Last_State then
+                  Pending := True;
+                  Last_State := State;
+               end if;
+               Next_Scan := Ada.Real_Time.Clock + Scan_Gap (State.Entry_Count);
+            end;
          end if;
          if Pending and then Post_Watch_Notification (Directory) then
             Pending := False;

@@ -13,7 +13,7 @@ begin
    Model.Operation_Job := Released_Process;
    Model.Refresh_Job := Released_Process;
    Model.Operation_Label_Key := Null_Unbounded_String;
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Claim_Overlay_Input (Model);
    for Action of Actions loop
       if not Action.Skip then

@@ -5,7 +5,7 @@ procedure Begin_Undo_Record
    From  : Files.Types.String_Vectors.Vector;
    To    : Files.Types.String_Vectors.Vector) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    if Kind = Undo_None or else From.Is_Empty then
       return;
    end if;

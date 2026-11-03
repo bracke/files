@@ -2776,7 +2776,9 @@ procedure Check_All is
              To_Unbounded_String ("Active"),
              To_Unbounded_String ("Is_Active"),
              To_Unbounded_String ("Target_For_Test"),
-             To_Unbounded_String ("Path_Vectors")],
+             To_Unbounded_String ("Path_Vectors"),
+             --  Finished measurements handed to the model: data, not a job.
+             To_Unbounded_String ("Measurement_Vectors")],
             "the model drives no background job");
       end loop;
 
@@ -2850,6 +2852,7 @@ procedure Check_All is
             To_Unbounded_String ("Files.Quick_Look"),
             To_Unbounded_String ("Files.Settings"),
             To_Unbounded_String ("Files.Settings_Form"),
+            To_Unbounded_String ("Files.Shared_Bytes"),
             To_Unbounded_String ("Files.Transfer_Jobs"),
             To_Unbounded_String ("Files.Type_Ahead"),
             To_Unbounded_String ("Files.Types"),
@@ -4447,8 +4450,8 @@ procedure Check_All is
       Require_Tests ("commands", 38);
       Require_Tests ("model", 50);
       Require_Tests ("interaction", 76);
-      Require_Tests ("rendering", 88);
-      Require_Tests ("operations", 270);
+      Require_Tests ("rendering", 89);
+      Require_Tests ("operations", 271);
    end Check_Test_Subsystem_Coverage;
 
 begin

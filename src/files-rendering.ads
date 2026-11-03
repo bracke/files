@@ -739,10 +739,31 @@ package Files.Rendering is
    --  @param Model Source window model.
    --  @param Settings Loaded settings model.
    --  @return Immutable snapshot safe for rendering.
+   --
+   --  @param Rows_From A snapshot of this model whose rows are still right
+   --    but for which are selected (the model's Rows_Revision has not moved
+   --    since it was built): its rows are taken and only their selected
+   --    flags set, instead of building every row again.
    function Build_Snapshot
-     (Model    : Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
+     (Model     : Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Rows_From : access constant View_Snapshot := null)
       return View_Snapshot;
+
+   --  Build_Snapshot into Snapshot in place, which spares a large folder's
+   --  snapshot the two copies a function result costs.
+   --
+   --  @param Snapshot Rebuilt; with Keep_Rows its rows are kept.
+   --  @param Model Source window model.
+   --  @param Settings Settings model.
+   --  @param Keep_Rows Snapshot's rows are still right but for which are
+   --    selected (Files.Model.Rows_Revision has not moved since they were
+   --    built): only their selected flags are set.
+   procedure Build_Snapshot_Into
+     (Snapshot  : in out View_Snapshot;
+      Model     : Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Keep_Rows : Boolean := False);
 
    --  The model's visible index of the item drawn at Index in Drawn, a
    --  snapshot that may be older than the model's listing (a watched change,

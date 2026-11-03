@@ -7,6 +7,6 @@ begin
    Model.Paste_Exec_Job := Released_Transfer;
    Model.Operation_Job := Released_Process;
    Model.Operation_Label_Key := Null_Unbounded_String;
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Paste_Exec := (others => <>);
 end Clear_Paste_Execution;

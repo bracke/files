@@ -13,6 +13,26 @@ separate (Files_Suite.Operations)
       Before : Instant;
       Targets : Files.Folder_Size.Path_Vectors.Vector;
 
+      Pending : Files.Folder_Size.Measurement_Vectors.Vector;
+
+      --  One finished measurement at a time, as the old interface handed them.
+      procedure Take
+        (Scan      : in out Files.Folder_Size.Session;
+         Path      : out Unbounded_String;
+         Result    : out Files.File_System.Directory_Size_Result;
+         Available : out Boolean) is
+      begin
+         if Pending.Is_Empty then
+            Files.Folder_Size.Take_All (Scan, Pending);
+         end if;
+         Available := not Pending.Is_Empty;
+         if Available then
+            Path := Pending.First_Element.Path;
+            Result := Pending.First_Element.Result;
+            Pending.Delete_First;
+         end if;
+      end Take;
+
       procedure Cancel_Sizes is
       begin
          Files.Folder_Size.Cancel (Scan);
@@ -45,7 +65,7 @@ separate (Files_Suite.Operations)
       Reset_Root;
       Files.Folder_Size.Cancel (Scan);
       loop
-         Files.Folder_Size.Take (Scan, Path, Result, Available);
+         Take (Scan, Path, Result, Available);
          exit when not Available;
       end loop;
       Files.Folder_Size.Request (Scan, "relative-folder-size-target");
@@ -72,7 +92,7 @@ separate (Files_Suite.Operations)
       for Frame in 1 .. 50 loop
          Files.Folder_Size.Set_Targets (Scan, Targets);
          Files.Folder_Size.Step (Scan);
-         Files.Folder_Size.Take (Scan, Path, Result, Available);
+         Take (Scan, Path, Result, Available);
          Assert (not Available, "a stalled scan does not publish a partial total");
       end loop;
       Assert_Within (Before, Prompt_Limit, "repeated frame polling never waits for the helper's filesystem work");
@@ -94,7 +114,7 @@ separate (Files_Suite.Operations)
       Assert_Within (Before, Prompt_Limit, "repeated cancellation is prompt even while a size read is stalled");
       Assert (not Files.Folder_Size.Is_Active (Scan), "cancellation leaves no size request active");
       Await_Reaped (Started);
-      Files.Folder_Size.Take (Scan, Path, Result, Available);
+      Take (Scan, Path, Result, Available);
       Assert (not Available, "cancelled requests never publish stale measurements");
       Ada.Environment_Variables.Clear ("FILES_TEST_STALL_FOLDER_SIZES");
       Ada.Directories.Create_Path (Join (Root, "ready"));
@@ -102,7 +122,7 @@ separate (Files_Suite.Operations)
       Files.Folder_Size.Request (Scan, Join (Root, "ready"));
       for Attempt in Files_Suite.Support.Polling loop
          Files.Folder_Size.Step (Scan);
-         Files.Folder_Size.Take (Scan, Path, Result, Available);
+         Take (Scan, Path, Result, Available);
          exit when Available;
       end loop;
       --  A fresh request completes normally after a stalled scan was cancelled.
@@ -111,7 +131,7 @@ separate (Files_Suite.Operations)
       Files_Suite.Support.Assert_Equal (Result.Available, True, "it is available");
       Files_Suite.Support.Assert_Equal (Result.Total_Bytes, 8, "its byte total");
       Files_Suite.Support.Assert_Equal (Result.File_Count, 1, "its file count");
-      Files.Folder_Size.Take (Scan, Path, Result, Available);
+      Take (Scan, Path, Result, Available);
       Assert (not Available, "finished measurements are delivered once");
       for Invalid_Target in 1 .. 2 loop
          declare
@@ -119,11 +139,10 @@ separate (Files_Suite.Operations)
               (if Invalid_Target = 1 then Join (Root, "missing") else Join (Join (Root, "ready"), "data"));
          begin
             Files.Folder_Size.Request (Scan, Target);
-            Files.Folder_Size.Step (Scan, Budget => 0);
-            Assert (Files.Folder_Size.Is_Active (Scan), "zero budget leaves collection for a later frame");
+            Assert (Files.Folder_Size.Is_Active (Scan), "a request leaves collection for a later frame");
             for Attempt in Files_Suite.Support.Polling loop
                Files.Folder_Size.Step (Scan);
-               Files.Folder_Size.Take (Scan, Path, Result, Available);
+               Take (Scan, Path, Result, Available);
                exit when Available;
             end loop;
             Assert (Available,
@@ -135,6 +154,32 @@ separate (Files_Suite.Operations)
             Assert (not Result.Available,
                     "missing and non-directory roots produce unavailable measurements in the helper: unavailable");
          end;
+      end loop;
+
+      --  Several folders go to one helper, and each answer comes back as it
+      --  finishes, in the order asked.
+      Targets.Clear;
+      for Letter in Character range 'a' .. 'c' loop
+         declare
+            Name : constant String := "batch-" & Letter;
+         begin
+            Ada.Directories.Create_Path (Join (Root, Name));
+            Write_Binary_File (Join (Join (Root, Name), "data"), Name);
+            Targets.Append (To_Unbounded_String (Join (Root, Name)));
+         end;
+      end loop;
+      Files.Folder_Size.Set_Targets (Scan, Targets);
+      Files_Suite.Support.Assert_Equal
+        (Files.Folder_Size.Testing.Batch_Length (Scan), 3, "three folders go to one helper");
+      for Expected of Targets loop
+         for Attempt in Files_Suite.Support.Polling loop
+            Files.Folder_Size.Step (Scan);
+            Take (Scan, Path, Result, Available);
+            exit when Available;
+         end loop;
+         Assert (Available, "each folder of the batch is answered");
+         Files_Suite.Support.Assert_Equal (To_String (Path), To_String (Expected), "in the order asked");
+         Files_Suite.Support.Assert_Equal (Result.Total_Bytes, 7, "with its own size");
       end loop;
       Cancel_Sizes;
    exception

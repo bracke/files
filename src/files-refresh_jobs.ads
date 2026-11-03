@@ -50,10 +50,10 @@ package Files.Refresh_Jobs is
    --  @return True when its helper posted a change notification.
    function Poll_Watch (Job : in out Watch_Session) return Boolean;
 
-   --  Whether the helper established a native watch, so changes are
-   --  announced and a timed re-read is only a safety net. False while the
-   --  helper is starting, and for good where the host or filesystem gives
-   --  no notifications.
+   --  Whether the helper is up and reporting changes, so a timed re-read is
+   --  only a safety net: from the host's watch where it hears files being
+   --  written, otherwise from the helper's own re-reads of the folder's
+   --  signature. False while the helper is starting.
    --
    --  @param Job Native notification helper.
    --  @return True when the helper reported a native watch for its path.

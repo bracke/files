@@ -4,7 +4,7 @@ procedure Tree_Set_Children
    Index    : Positive;
    Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Files.Folder_Tree.Set_Children (Model.Folder_Tree_Value, Index, Children);
    Clamp_Tree_Panel_Scroll (Model);
    Reconcile_Tree_Pick_Target (Model, Index);

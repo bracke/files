@@ -92,6 +92,19 @@ package body Files.Settings is
       return Snapshot_Settings_Key_Of (Settings) = Key;
    end Same_Snapshot_Settings;
 
+   function Same_Row_Settings
+     (Settings : Settings_Model;
+      Key      : Snapshot_Settings_Key)
+      return Boolean is
+   begin
+      return Settings.Show_File_Extensions = Key.Show_File_Extensions
+        and then Settings.Theme = Key.Theme
+        and then Settings.Icon_Theme_Name = Key.Icon_Theme_Name
+        and then Files.Types."=" (Settings.Group_By, Key.Group_By)
+        and then String_Vectors."=" (Settings.Favorite_Paths, Key.Favorite_Paths)
+        and then Path_Label_Vectors."=" (Settings.Labels, Key.Labels);
+   end Same_Row_Settings;
+
    type Settings_Section is
      (No_Section,
       Filetypes_Section,

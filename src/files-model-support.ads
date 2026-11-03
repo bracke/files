@@ -213,6 +213,24 @@ private package Files.Model.Support is
      (Model : Window_Model)
       return Selection_Flags;
 
+   --  Note a change: Revision and Rows_Revision move.
+   --
+   --  @param Model Model that changed.
+   procedure Touch (Model : in out Window_Model);
+
+   --  Note a change of the selection alone: Revision and Selection_Revision
+   --  move, Rows_Revision does not. A mutator that changes anything else a
+   --  row shows must Touch.
+   --
+   --  @param Model Model that changed.
+   procedure Touch_Selection (Model : in out Window_Model);
+
+   --  Note a change no row shows and that is not the selection (a folder
+   --  size, the Quick Look preview, the type-ahead text): Revision moves.
+   --
+   --  @param Model Model that changed.
+   procedure Touch_Header (Model : in out Window_Model);
+
    --  Add Item_Index to the multi-selection (no-op when already present).
    --
    --  @param Model Model to update.

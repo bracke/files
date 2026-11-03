@@ -176,6 +176,19 @@ package Files.Settings is
      (Settings : Settings_Model)
       return Snapshot_Settings_Key;
 
+   --  Whether the settings a snapshot's rows read (favorites, labels, the
+   --  grouping, how names and icons show) are still those in Key: the detail
+   --  columns' widths, order and visibility and the free-space display are
+   --  drawn from the snapshot's header, so a column drag keeps the rows.
+   --
+   --  @param Settings Settings model to test.
+   --  @param Key Previously captured snapshot-input key.
+   --  @return True when the row inputs equal Key's.
+   function Same_Row_Settings
+     (Settings : Settings_Model;
+      Key      : Snapshot_Settings_Key)
+      return Boolean;
+
    --  Whether Settings still yields the snapshot-input key Key, i.e. nothing the
    --  view snapshot depends on has changed. Compares in place without building a
    --  new key, so it is cheap enough for the per-frame render reuse check.

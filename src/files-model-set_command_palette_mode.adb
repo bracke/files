@@ -4,7 +4,7 @@ procedure Set_Command_Palette_Mode
   (Model : in out Window_Model;
    Mode  : Palette_Mode) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Command_Palette_Mode := Mode;
    --  The command list is mode-specific; reload it and reset the query.
    Guikit.Command_Palette.Reset (Model.Command_Palette_View);

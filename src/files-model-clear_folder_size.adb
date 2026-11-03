@@ -6,7 +6,7 @@ begin
    --  last handle going.
    Model.Folder_Scan := Released_Scan;
    if not Model.Folder_Sizes.Is_Empty then
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch_Header (Model);
       Model.Folder_Sizes.Clear;
    end if;
 end Clear_Folder_Size;

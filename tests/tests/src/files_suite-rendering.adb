@@ -145,6 +145,7 @@ package body Files_Suite.Rendering is
    procedure Test_Info_Pane_Content_Clipped (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Height_Matches_Drawn (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Snapshot_Policy (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Selection_Patch_Matches_Rebuild (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scope_Chip_Has_Own_Tooltip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filetype_Labels_Omit_Document (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Overlay_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -400,6 +401,9 @@ package body Files_Suite.Rendering is
         (T, Test_Info_Pane_Height_Matches_Drawn'Access,
          "the info pane is laid out for exactly the height its wrapped text is drawn at");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Selection_Patch_Matches_Rebuild'Access,
+         "a selection change keeps the rows, and the patched snapshot equals a rebuilt one");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Snapshot_Policy'Access, "a window reuses, patches or rebuilds its snapshot by what changed");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Scope_Chip_Has_Own_Tooltip'Access,
@@ -457,6 +461,8 @@ package body Files_Suite.Rendering is
    procedure Test_Info_Pane_Content_Clipped (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Info_Pane_Height_Matches_Drawn (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Snapshot_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Selection_Patch_Matches_Rebuild (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Scope_Chip_Has_Own_Tooltip (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

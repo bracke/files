@@ -308,6 +308,7 @@ package body Files_Suite.Operations is
    procedure Test_Decode_Emoji_Png_From_Font (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Image_Header_Bytes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Watch_Pacing (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Quick_Look_Decodes_Off_Thread (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Transport_Budget (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Permission_String_Agrees_With_The_Host (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Explicit_Thumbnail_Survives_The_Listing (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -771,6 +772,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Thumbnail_Cache_Is_Bounded'Access,
          "the thumbnail cache is pruned to its budget, oldest first");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Quick_Look_Decodes_Off_Thread'Access,
+         "Quick Look decodes its image off the UI thread and drops what is no longer previewed");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Watch_Pacing'Access, "watch refreshes are paced and a failed load is retried slowly");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1337,6 +1341,8 @@ package body Files_Suite.Operations is
    procedure Test_Image_Header_Bytes (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Watch_Pacing (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Quick_Look_Decodes_Off_Thread (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Thumbnail_Transport_Budget (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

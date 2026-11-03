@@ -6,7 +6,7 @@ is
    Count   : constant Natural := Root_Count (Model);
    Current : constant Natural := Root_Selected_Index (Model);
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    if not Model.Root_Selector_Open or else Count = 0 then
       Model.Root_Selected := 0;
    elsif Current = 0 then

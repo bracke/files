@@ -14,7 +14,7 @@ begin
       return;
    end if;
 
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Reset_Type_Ahead (Model);
    Model.Focus_Value := Files.Types.Focus_Ownership_Input;
    Model.Ownership_Editing_Group_Value := Editing_Group;

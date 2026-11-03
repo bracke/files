@@ -3,7 +3,7 @@ separate (Files.Model)
 procedure Open_Command_Palette
   (Model : in out Window_Model) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Command_Palette_Open := True;
    Model.Command_Palette_Mode := Palette_Commands;
    Model.Open_With_Targets_Value.Clear;

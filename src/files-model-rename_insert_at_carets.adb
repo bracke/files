@@ -6,7 +6,7 @@ function Rename_Insert_At_Carets
 is
    Changed : Boolean := False;
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
    if Text = "" then
       return False;

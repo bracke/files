@@ -5,7 +5,7 @@ procedure Set_Settings_Draft
 is
    Normalized_Draft : Files.Settings.Settings_Draft := Draft;
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Normalize_Settings_Draft (Normalized_Draft);
    Model.Settings_Draft_Value := Normalized_Draft;
 end Set_Settings_Draft;

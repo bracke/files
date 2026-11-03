@@ -3,7 +3,7 @@ procedure Set_Filter
   (Model : in out Window_Model;
    Text  : String) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
    Model.Filter_Value := To_Unbounded_String (Text);
    Model.Filter_Cursor := Text'Length;

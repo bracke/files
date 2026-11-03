@@ -1,4 +1,4 @@
-separate (Files.Rendering.Build_Snapshot)
+separate (Files.Rendering.Build_Snapshot_Into)
    function Filetype_Extra
      (Item : Files.Items.Directory_Item)
       return UString

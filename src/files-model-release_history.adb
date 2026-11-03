@@ -6,5 +6,5 @@ begin
    Retire_Payloads (Model.Retired_Releases, Model.Redo_Stack);
    Model.Undo_Stack.Clear;
    Model.Redo_Stack.Clear;
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
 end Release_History;

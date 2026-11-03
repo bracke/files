@@ -48,7 +48,7 @@ as present-but-unverified.
 
 ## Rendering and UI components
 
-Two-phase render, each phase a subunit of `Files.Rendering`: `Files.Model` → `Build_Snapshot` (an immutable `View_Snapshot`, in `files-rendering-build_snapshot.adb`) → `Build_Frame_Commands` (a `Frame_Commands` draw list, in `files-rendering-build_frame_commands.adb`) → Vulkan. Input flows back the other way: `Files.Events` (translate to an `Input_Action`) → `Files.Interaction` (dispatch) → `Files.Controller` (apply to the model). Keep `files-rendering.adb` itself from regrowing — move any new large subprogram body into its own subunit.
+Two-phase render, each phase a subunit of `Files.Rendering`: `Files.Model` → `Build_Snapshot` (an immutable `View_Snapshot`, built in place by `Build_Snapshot_Into` in `files-rendering-build_snapshot_into.adb`) → `Build_Frame_Commands` (a `Frame_Commands` draw list, in `files-rendering-build_frame_commands.adb`) → Vulkan. Input flows back the other way: `Files.Events` (translate to an `Input_Action`) → `Files.Interaction` (dispatch) → `Files.Controller` (apply to the model). Keep `files-rendering.adb` itself from regrowing — move any new large subprogram body into its own subunit.
 
 Reusable UI pieces are black-box components in `../guikit` (`Guikit.Command_Palette`, `Settings_Panel`, `Segmented`, `Item_Grid`). files owns the domain (selection, rename, icon assets, localization) and maps it to each component's neutral inputs. **Whether a component is stateful fixes how it integrates — do not re-decide per component:**
 

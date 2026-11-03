@@ -5,12 +5,12 @@ with Ada.Strings.Hash;
 with Files.Commands.Status;
 with Files.Grouping;
 separate (Files.Rendering)
-   function Build_Snapshot
-     (Model    : Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return View_Snapshot
+   procedure Build_Snapshot_Into
+     (Snapshot  : in out View_Snapshot;
+      Model     : Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Keep_Rows : Boolean := False)
    is
-      Snapshot : View_Snapshot;
 
       function Complete_RGBA_Image
         (Width, Height : Natural;
@@ -70,6 +70,19 @@ separate (Files.Rendering)
       --  The selection, copied once for the selection total and the info pane.
       Selected : Files.Items.Item_Vectors.Vector;
    begin
+      --  Start from a blank snapshot, keeping only the rows when asked: the
+      --  previous header must not leak into this one.
+      declare
+         Rows : Item_Snapshot_Vectors.Vector;
+      begin
+         if Keep_Rows then
+            Rows.Move (Snapshot.Items);
+         end if;
+         Snapshot := (others => <>);
+         if Keep_Rows then
+            Snapshot.Items.Move (Rows);
+         end if;
+      end;
       Snapshot.Current_Path := To_Unbounded_String (Files.Model.Current_Path (Model));
       Snapshot.Current_Path_Is_Favorite :=
         Files.Settings.Is_Favorite (Settings, Files.Model.Current_Path (Model));
@@ -330,10 +343,35 @@ separate (Files.Rendering)
                   Is_Favorite        => Files.Settings.Is_Favorite (Paths, Full_Path),
                   Label              => Files.Settings.Label_Of (Paths, Full_Path)));
          end Add_Row;
+         --  The rows kept from the last build, in the same visible order (group headers
+         --  between them): only which are selected is set again.
+         procedure Reuse_Rows is
+            Row : Natural := 0;
+
+            procedure Mark
+              (Item       : Files.Items.Directory_Item;
+               Item_Index : Natural;
+               Selected   : Boolean)
+            is
+               pragma Unreferenced (Item, Item_Index);
+            begin
+               loop
+                  Row := Row + 1;
+                  exit when not Snapshot.Items (Row).Is_Group_Header;
+               end loop;
+               Snapshot.Items (Row).Selected := Selected;
+            end Mark;
+         begin
+            Files.Model.For_Each_Visible_Row (Model, Mark'Access);
+         end Reuse_Rows;
       begin
-         Files.Model.For_Each_Rename_Field (Model, Note_Rename'Access);
-         Snapshot.Items.Reserve_Capacity (Ada.Containers.Count_Type (Snapshot.Visible_Count) + 1);
-         Files.Model.For_Each_Visible_Row (Model, Add_Row'Access);
+         if Keep_Rows then
+            Reuse_Rows;
+         else
+            Files.Model.For_Each_Rename_Field (Model, Note_Rename'Access);
+            Snapshot.Items.Reserve_Capacity (Ada.Containers.Count_Type (Snapshot.Visible_Count) + 1);
+            Files.Model.For_Each_Visible_Row (Model, Add_Row'Access);
+         end if;
       end;
 
       --  Items arrive in the model's order, which the model keeps sorted by its
@@ -345,7 +383,8 @@ separate (Files.Rendering)
       --  with a non-selectable header row and never reorders: the drawn rows
       --  stay in the order keyboard and range selection walk. The header
       --  carries Visible_Index zero so hit-testing never selects it.
-      if Snapshot.View_Mode = Files.Types.Details
+      if not Keep_Rows
+        and then Snapshot.View_Mode = Files.Types.Details
         and then Snapshot.Group_By /= Files.Types.No_Grouping
         and then not Snapshot.Items.Is_Empty
       then
@@ -376,7 +415,7 @@ separate (Files.Rendering)
                end;
                Grouped.Append (Item);
             end loop;
-            Snapshot.Items := Grouped;
+            Snapshot.Items.Move (Grouped);
          end;
       end if;
 
@@ -534,6 +573,4 @@ separate (Files.Rendering)
             end if;
          end;
       end if;
-
-      return Snapshot;
-   end Build_Snapshot;
+   end Build_Snapshot_Into;

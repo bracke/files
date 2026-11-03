@@ -1,4 +1,4 @@
-separate (Files.Rendering.Build_Snapshot)
+separate (Files.Rendering.Build_Snapshot_Into)
    function Root_Display_Label
      (Path  : String;
       Label : String)

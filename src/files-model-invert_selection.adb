@@ -4,7 +4,7 @@ procedure Invert_Selection
 is
    Primary : Natural := 0;
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch_Selection (Model);
    Reset_Type_Ahead (Model);
 
    if Model.Items.Is_Empty then

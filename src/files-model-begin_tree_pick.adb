@@ -5,7 +5,7 @@ procedure Begin_Tree_Pick
    Sources        : Files.Types.String_Vectors.Vector;
    Initial_Target : String) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Tree_Pick_Mode_Value := Mode;
    Model.Tree_Pick_Opened_Panel := Mode /= Pick_None and then not Model.Tree_Panel_Open;
    if Mode /= Pick_None then

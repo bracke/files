@@ -18,7 +18,7 @@ is
    Primary_Selected : Natural := 0;
    Previous_Paths   : Path_Sets.Set;
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch_Selection (Model);
    Model.Selected_Item_Index := 0;
    Model.Selected_Item_Indexes.Clear;
    Reset_Quick_Look (Model);

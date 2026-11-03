@@ -19,7 +19,7 @@ begin
       end if;
    end loop;
    if not Folder_Size_Maps."=" (Model.Folder_Sizes, Kept) then
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch_Header (Model);
       Model.Folder_Sizes := Kept;
    end if;
 end Prune_Folder_Sizes_To_Selection;

@@ -2,7 +2,7 @@ separate (Files.Model)
 procedure Toggle_Settings_Pane
   (Model : in out Window_Model) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Settings_Pane_Open := not Model.Settings_Pane_Open;
    if Model.Settings_Pane_Open then
       Claim_Overlay_Input (Model);

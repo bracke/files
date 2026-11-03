@@ -3,7 +3,7 @@ procedure Set_Path_Input_Text
   (Model : in out Window_Model;
    Text  : String) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Path_Input_Value := To_Unbounded_String (Text);
    Model.Path_Input_Cursor := Text'Length;
    Model.Path_Input_Valid := True;

@@ -2,7 +2,7 @@ separate (Files.Model)
 procedure Toggle_Quick_Look
   (Model : in out Window_Model) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    if Model.Quick_Look_Active then
       Reset_Quick_Look (Model);
    elsif Selected_Count (Model) = 1 then

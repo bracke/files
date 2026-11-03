@@ -8,7 +8,7 @@ procedure Record_Paste_Execution_Write
    Tree_Revision : String;
    Verified    : Boolean) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Paste_Exec.Cursor := Model.Paste_Exec.Cursor + 1;
    Model.Paste_Exec.Done := Model.Paste_Exec.Done + 1;
    Model.Paste_Exec.Current := To_Unbounded_String (Name);

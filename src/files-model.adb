@@ -288,7 +288,7 @@ package body Files.Model is
       end loop;
       Model.Undo_Stack := Sanitized_Undo;
       Model.Redo_Stack := Sanitized_Redo;
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
    end Set_History;
 
    procedure Set_Background_Transfers (Model : in out Window_Model; Enabled : Boolean) is
@@ -304,7 +304,7 @@ package body Files.Model is
       Model.Operation_Job := Job;
       Model.Operation_Label_Key := To_Unbounded_String (Label_Key);
       Model.Paste_Exec.Current := To_Unbounded_String (Current_Path (Model));
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
    end Set_Background_Operation;
 
    function Background_Operation_Label (Model : Window_Model) return String is (To_String (Model.Operation_Label_Key));
@@ -331,7 +331,7 @@ package body Files.Model is
         To_Unbounded_String
           (Ada.Directories.Simple_Name
              (To_String (Model.Paste_Exec.Actions.Element (Model.Paste_Exec.Cursor + 1).Source_Path)));
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
    end Note_Paste_Action_Started;
 
    use type Ada.Calendar.Time;
@@ -343,6 +343,10 @@ package body Files.Model is
    use Files.Model.Support;
 
    function Scroll_Revision (Model : Window_Model) return Natural is (Model.Scroll_Revision_Value);
+
+   function Rows_Revision (Model : Window_Model) return Natural is (Model.Rows_Revision_Value);
+
+   function Selection_Revision (Model : Window_Model) return Natural is (Model.Selection_Revision_Value);
 
    function Revision
      (Model : Window_Model)
@@ -550,7 +554,7 @@ package body Files.Model is
    begin
       if Model.Current_Is_Trash_Value /= Is_Trash then
          Model.Current_Is_Trash_Value := Is_Trash;
-         Model.Revision_Value := Model.Revision_Value + 1;
+         Support.Touch (Model);
       end if;
    end Set_Current_Is_Trash;
 
@@ -562,7 +566,7 @@ package body Files.Model is
       Default_View_Mode : Files.Types.View_Mode := Files.Types.Small_Icons) is
    begin
       Clear_Folder_Size (Model);
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Set_Current_Path (Model, To_Unbounded_String (Directory_Path));
       Model.Refresh_Job := Released_Process;
@@ -926,12 +930,6 @@ package body Files.Model is
       Name  : String)
       return Boolean is separate;
 
-   --  Whether Path is one of the currently selected directories.
-   function Is_Selected_Directory
-     (Model : Window_Model;
-      Path  : String)
-      return Boolean is separate;
-
    procedure Set_Selection_Page_Rows (Model : in out Window_Model; Rows : Positive) is
    begin
       Model.Selection_Page_Rows_Value := Rows;
@@ -1000,7 +998,7 @@ package body Files.Model is
       Directory_Path : String;
       Items          : Files.Items.Item_Vectors.Vector) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
       --  Leaving the virtual recent view does not preserve it in history (its
       --  path is synthetic); an ordinary directory change pushes back history as
       --  usual.
@@ -1029,7 +1027,7 @@ package body Files.Model is
          Swap_Items (Model, Items, Sorted => False);
          return;
       end if;
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
       --  The initial entry records the departure point.
       Push_Back_History (Model);
       Model.Recent_View_Active := True;
@@ -1042,7 +1040,7 @@ package body Files.Model is
      (Model : in out Window_Model) is
       Previous : UString;
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
       if not Can_Go_Back (Model) then
          return;
       end if;
@@ -1061,7 +1059,7 @@ package body Files.Model is
      (Model : in out Window_Model) is
       Next : UString;
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
       if not Can_Go_Forward (Model) then
          return;
       end if;
@@ -1087,7 +1085,7 @@ package body Files.Model is
 
    procedure Return_To (Model : in out Window_Model; Mark : Navigation_Mark) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
       Model.Back_History := Mark.Back;
       Model.Forward_History := Mark.Forward;
       Model.Recent_View_Active := Mark.Recent;
@@ -1396,7 +1394,7 @@ package body Files.Model is
      (Model : in out Window_Model;
       Roots : Files.File_System.Root_Entry_Vectors.Vector) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
       Model.Root_Entries := Roots;
       Model.Root_Selector_Open := not Roots.Is_Empty;
       if Model.Root_Selector_Open then
@@ -1441,7 +1439,7 @@ package body Files.Model is
       Clamped : constant Natural :=
         Text_Boundary_At_Or_Before (Focused_Text_Value (Model), Position);
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
       case Model.Focus_Value is
          when Files.Types.Focus_Path_Input =>
             Model.Path_Input_Cursor := Clamped;
@@ -1475,7 +1473,7 @@ package body Files.Model is
    is
       Cursor : constant Natural := Text_Cursor_Position (Model);
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
       if Direction = Guikit.Input.Move_Left or else Direction = Guikit.Input.Move_Up then
          if Cursor > 0 then
             Set_Text_Cursor_Position (Model, Previous_Text_Boundary (Focused_Text_Value (Model), Cursor));
@@ -1488,7 +1486,7 @@ package body Files.Model is
    procedure Cancel_Focus_Or_Edit
      (Model : in out Window_Model) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
       Clear_Root_Selector_State (Model);
 
       if Model.Focus_Value = Files.Types.Focus_Path_Input then
@@ -1798,6 +1796,23 @@ package body Files.Model is
    procedure Close_Quick_Look
      (Model : in out Window_Model) is separate;
 
+   procedure Set_Quick_Look_Image
+     (Model  : in out Window_Model;
+      Path   : String;
+      Pixels : Files.Shared_Bytes.Bytes;
+      Width  : Natural;
+      Height : Natural) is
+   begin
+      if Model.Quick_Look_Active
+        and then To_String (Model.Quick_Look_Content_Value.Image_Path) = Path
+      then
+         Support.Touch_Header (Model);
+         Model.Quick_Look_Content_Value.Image_Pixels := Pixels;
+         Model.Quick_Look_Content_Value.Image_Width := Width;
+         Model.Quick_Look_Content_Value.Image_Height := Height;
+      end if;
+   end Set_Quick_Look_Image;
+
    procedure Toggle_Quick_Look
      (Model : in out Window_Model) is separate;
 
@@ -1839,7 +1854,7 @@ package body Files.Model is
    procedure Clear_Edit_State
      (Model : in out Window_Model) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Reset_Rename_State (Model);
       Model.Temporary_Active := False;
@@ -1867,7 +1882,7 @@ package body Files.Model is
       Sorted : Boolean) is
    begin
       Clear_Folder_Size (Model);
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       if Model.Temporary_Active then
          Cancel_Create_File (Model);
@@ -2122,7 +2137,7 @@ package body Files.Model is
      (Model     : in out Window_Model;
       Requested : Boolean) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
       Model.Paste_Exec.Cancelled := Requested;
    end Set_Paste_Cancelled;
 
@@ -2139,15 +2154,30 @@ package body Files.Model is
       Model.Folder_Scan := Scan;
    end Set_Folder_Scan;
 
-   procedure Note_Folder_Size
-     (Model  : in out Window_Model;
-      Path   : String;
-      Result : Files.File_System.Directory_Size_Result) is
+   procedure Note_Folder_Sizes
+     (Model    : in out Window_Model;
+      Measured : Files.Folder_Size.Measurement_Vectors.Vector)
+   is
+      use type Files.Types.Item_Kind;
+      Selected : Files.Settings.Path_Sets.Set;
    begin
-      if Is_Selected_Directory (Model, Path) then
-         Set_Folder_Size (Model, Path, Result);
+      if Measured.Is_Empty then
+         return;
       end if;
-   end Note_Folder_Size;
+      for Index of Model.Selected_Item_Indexes loop
+         if Index in Model.Items.First_Index .. Model.Items.Last_Index
+           and then Model.Items (Index).Kind = Files.Types.Directory_Item
+         then
+            Selected.Include (To_String (Model.Items (Index).Full_Path));
+         end if;
+      end loop;
+      for Done of Measured loop
+         if Selected.Contains (To_String (Done.Path)) then
+            Model.Folder_Sizes.Include (Done.Path, Done.Result);
+         end if;
+      end loop;
+      Support.Touch_Header (Model);
+   end Note_Folder_Sizes;
 
    procedure Set_Folder_Size
      (Model : in out Window_Model;
@@ -2177,7 +2207,7 @@ package body Files.Model is
       Sampled : Ada.Calendar.Time) is
    begin
       if Model.Volume_Space_Value /= Space or else To_String (Model.Volume_Path) /= Path then
-         Model.Revision_Value := Model.Revision_Value + 1;
+         Support.Touch (Model);
       end if;
       Model.Volume_Space_Value := Space;
       Model.Volume_Path := To_Unbounded_String (Path);
@@ -2216,7 +2246,7 @@ package body Files.Model is
       if Account_Name_Maps.Has_Element (Found) then
          if To_String (Account_Name_Maps.Element (Found)) /= Name then
             Names.Replace_Element (Found, To_Unbounded_String (Name));
-            Model.Revision_Value := Model.Revision_Value + 1;
+            Support.Touch (Model);
          end if;
          return;
       end if;
@@ -2224,7 +2254,7 @@ package body Files.Model is
          Names.Clear;
       end if;
       Names.Insert (Id, To_Unbounded_String (Name));
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Support.Touch (Model);
    end Set_Account_Name;
 
    function Account_Name_Known

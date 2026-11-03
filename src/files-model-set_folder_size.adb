@@ -4,6 +4,6 @@ procedure Set_Folder_Size
    Path  : String;
    Value : Files.File_System.Directory_Size_Result) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch_Header (Model);
    Model.Folder_Sizes.Include (To_Unbounded_String (Path), Value);
 end Set_Folder_Size;

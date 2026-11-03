@@ -4,7 +4,7 @@ procedure Take_Undo
    Action : out Undo_Entry;
    Found  : out Boolean) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    if Model.Undo_Stack.Is_Empty then
       Action := (others => <>);
       Found := False;

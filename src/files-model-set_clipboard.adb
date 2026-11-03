@@ -4,7 +4,7 @@ procedure Set_Clipboard
    Paths : Files.Types.String_Vectors.Vector;
    Mode  : Clipboard_Mode) is
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    Model.Clipboard_Paths_Value := Paths;
    Model.Clipboard_Mode_Value :=
      (if Paths.Is_Empty then Clipboard_None else Mode);

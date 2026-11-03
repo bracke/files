@@ -5,7 +5,7 @@ procedure Select_Sort_Field
 is
    use type Files.Types.Sort_Field;
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch (Model);
    if Model.Sort_Field_Value = Field then
       Model.Sort_Ascending := not Model.Sort_Ascending;
    else

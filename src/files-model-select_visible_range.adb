@@ -9,7 +9,7 @@ is
    Last  : Natural;
 
 begin
-   Model.Revision_Value := Model.Revision_Value + 1;
+   Touch_Selection (Model);
    Reset_Type_Ahead (Model);
    if Count = 0
      or else Natural (Anchor_Index) > Count

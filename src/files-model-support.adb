@@ -13,10 +13,27 @@ package body Files.Model.Support is
    use type Files.Types.Focus_Target;
    use type Files.Types.Group_Mode;
 
+   procedure Touch (Model : in out Window_Model) is
+   begin
+      Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Rows_Revision_Value := Model.Rows_Revision_Value + 1;
+   end Touch;
+
+   procedure Touch_Selection (Model : in out Window_Model) is
+   begin
+      Model.Revision_Value := Model.Revision_Value + 1;
+      Model.Selection_Revision_Value := Model.Selection_Revision_Value + 1;
+   end Touch_Selection;
+
+   procedure Touch_Header (Model : in out Window_Model) is
+   begin
+      Model.Revision_Value := Model.Revision_Value + 1;
+   end Touch_Header;
+
    procedure Reset_Quick_Look
      (Model : in out Window_Model) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch_Header (Model);
       Model.Quick_Look_Active        := False;
       Model.Quick_Look_Path_Value    := Null_Unbounded_String;
       Model.Quick_Look_Content_Value := (others => <>);
@@ -102,7 +119,7 @@ package body Files.Model.Support is
    procedure Reset_Rename_State
      (Model : in out Window_Model) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch (Model);
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Model.Rename_Active := False;
       Model.Rename_Fields.Clear;
@@ -151,7 +168,7 @@ package body Files.Model.Support is
      (Model : in out Window_Model;
       Field : Rename_Field) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch (Model);
       if Field.Item_Index = 0 and then Model.Temporary_Active then
          Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
          Model.Temporary_Name_Value := Field.Value;
@@ -161,7 +178,7 @@ package body Files.Model.Support is
    procedure Clear_Root_Selector_State
      (Model : in out Window_Model) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch (Model);
       Model.Root_Selector_Open := False;
       Model.Root_Entries.Clear;
       Model.Root_Selected := 0;
@@ -326,7 +343,7 @@ package body Files.Model.Support is
       Item_Index : Natural)
    is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch_Selection (Model);
       if Item_Index /= 0 and then not Selection_Contains (Model, Item_Index) then
          Model.Selected_Item_Indexes.Append (Item_Index);
       end if;
@@ -337,7 +354,7 @@ package body Files.Model.Support is
       Item_Index : Natural)
    is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch_Selection (Model);
       if not Model.Selected_Item_Indexes.Is_Empty then
          for Index in reverse Model.Selected_Item_Indexes.First_Index .. Model.Selected_Item_Indexes.Last_Index loop
             if Model.Selected_Item_Indexes.Element (Index) = Item_Index then
@@ -360,7 +377,7 @@ package body Files.Model.Support is
 
    procedure Reconcile_Rename_With_Selection (Model : in out Window_Model) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch_Selection (Model);
       if not Model.Rename_Active then
          return;
       end if;
@@ -375,6 +392,8 @@ package body Files.Model.Support is
       --  keeps a synchronized multi-rename in step with the live selection.
       for Index in reverse Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
          if not Selection_Contains (Model, Model.Rename_Fields.Element (Index).Item_Index) then
+            --  A row's rename field goes: the rows change.
+            Touch (Model);
             Model.Rename_Fields.Delete (Index);
          end if;
       end loop;
@@ -389,7 +408,7 @@ package body Files.Model.Support is
 
    procedure Reconcile_Selection (Model : in out Window_Model) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch_Selection (Model);
       if not Model.Selected_Item_Indexes.Is_Empty then
          for Index in reverse Model.Selected_Item_Indexes.First_Index .. Model.Selected_Item_Indexes.Last_Index loop
             declare
@@ -607,7 +626,7 @@ package body Files.Model.Support is
          return Natural (Index_Maps.Element (Found));
       end Index_Of;
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch (Model);
       for Item_Index of Model.Selected_Item_Indexes loop
          if Item_Index in 1 .. Natural (Model.Items.Last_Index) then
             Previous_Selection.Append (Model.Items.Element (Positive (Item_Index)));
@@ -697,7 +716,7 @@ package body Files.Model.Support is
    is
       Item_Index : constant Natural := Visible_To_Item_Index (Model, Visible_Index);
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch_Selection (Model);
       Model.Selected_Item_Index := Item_Index;
       Model.Selected_Item_Indexes.Clear;
       if Item_Index = 0
@@ -717,7 +736,7 @@ package body Files.Model.Support is
    procedure Clear_Overlay_State_For_Edit
      (Model : in out Window_Model) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch (Model);
       Clear_Root_Selector_State (Model);
       Model.Command_Palette_Open := False;
       Guikit.Command_Palette.Reset (Model.Command_Palette_View);
@@ -825,7 +844,7 @@ package body Files.Model.Support is
 
    procedure Reset_Settings_Panel (Model : in out Window_Model) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch (Model);
       Guikit.Settings_Panel.Reset (Model.Settings_Panel_View);
       Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Files.Settings_Form.Fields (Model));
    end Reset_Settings_Panel;
@@ -900,7 +919,7 @@ package body Files.Model.Support is
        Name         : String;
        Is_Directory : Boolean) is
    begin
-      Model.Revision_Value := Model.Revision_Value + 1;
+      Touch (Model);
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Clear_Overlay_State_For_Edit (Model);
       Model.Temporary_Active := True;
