@@ -53,7 +53,7 @@ separate (Files_Suite.Operations)
                   begin
                      Files_Suite.Support.Save (Fault, "FILES_TEST_TRANSFER_RESULT_LOSS");
                      Ada.Environment_Variables.Set ("FILES_TEST_TRANSFER_RESULT_LOSS", "source-replacement");
-                     Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move, False);
+                     Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move, False);
                      Step := Complete_Operation
                        (Model, Settings, Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
                      Await_View (Model, Settings);

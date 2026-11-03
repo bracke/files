@@ -3,7 +3,8 @@ procedure Begin_Paste_Execution
   (Model           : in out Window_Model;
    Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
    Mode            : Files.File_System.Drop_Import_Mode;
-   Clear_Clipboard : Boolean := True)
+   Clear_Clipboard : Boolean := True;
+   Batch           : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
 is
    Writes : Natural := 0;
 begin
@@ -24,8 +25,7 @@ begin
      (Active           => True,
       Actions          => Actions,
       Total            => Writes,
-      Copy_Context     =>
-        (if Writes > 1 then Files.Copy_Context.Create else Files.Copy_Context.Empty_Session),
+      Copy_Context     => Batch,
       Mode             => Mode,
       Clears_Clipboard => Clear_Clipboard,
       others           => <>);

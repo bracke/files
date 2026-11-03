@@ -45,7 +45,7 @@ separate (Files_Suite.Operations)
                   Actions.Clear;
                   Actions.Append (Files.Paste.Resolved_Action'
                     (To_Unbounded_String (Join (Root, "inbox/entry")), To_Unbounded_String (Source), False, True));
-                  Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy, False);
+                  Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy, False);
                   Step := Complete_Operation
                     (Model, Settings, Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
                   Await_View (Model, Settings);

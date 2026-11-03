@@ -13,7 +13,6 @@ with Files_Config;
 
 with Files.Folder_Size;
 with Files.Fs_Primitives;
-with Files.Paste;
 with Files.Shared_Bytes;
 with Files.Transfer_Jobs;
 with Files.Process_Jobs;
@@ -810,5 +809,23 @@ package body Files.Operations is
       end if;
       return Content;
    end Prepare_Quick_Look;
+
+   procedure Begin_Paste_Execution
+     (Model           : in out Files.Model.Window_Model;
+      Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
+      Mode            : Files.File_System.Drop_Import_Mode;
+      Clear_Clipboard : Boolean := True)
+   is
+      Writes : Natural := 0;
+   begin
+      for Action of Actions loop
+         if not Action.Skip then
+            Writes := Writes + 1;
+         end if;
+      end loop;
+      Files.Model.Begin_Paste_Execution
+        (Model, Actions, Mode, Clear_Clipboard,
+         Batch => (if Writes > 1 then Files.Copy_Context.Create else Files.Copy_Context.Empty_Session));
+   end Begin_Paste_Execution;
 
 end Files.Operations;

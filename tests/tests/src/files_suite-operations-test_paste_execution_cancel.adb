@@ -33,7 +33,7 @@ separate (Files_Suite.Operations)
 
       Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
-      Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
+      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
 
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal

@@ -32,7 +32,7 @@ separate (Files_Suite.Operations)
                Ada.Environment_Variables.Set ("FILES_TEST_TRANSFER_RESULT_LOSS",
                  (case Fault is when 1 => "missing", when 2 => "checkpoint", when 3 => "journal",
                   when others => "replacement"));
-               Files.Model.Begin_Paste_Execution (Model, Actions, Mode, False);
+               Files.Operations.Begin_Paste_Execution (Model, Actions, Mode, False);
                Step := Complete_Operation
                  (Model, Settings, Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
                Await_View (Model, Settings);

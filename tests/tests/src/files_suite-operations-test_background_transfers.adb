@@ -39,7 +39,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, True);
       Actions.Append (Action);
-      Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
+      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
       for Attempt in Files_Suite.Support.Polling loop
          Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
          exit when not Files.Model.Paste_Execution_Is_Active (Model);
@@ -54,7 +54,7 @@ separate (Files_Suite.Operations)
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
       Assert (not Ada.Directories.Exists (Dest), "undo removes a background copy");
 
-      Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
+      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
       Files.Operations.Cancel_Paste_Execution (Model);
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
       Assert (not Files.Model.Paste_Execution_Is_Active (Model), "cancellation before launch finalizes immediately");

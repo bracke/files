@@ -2793,6 +2793,44 @@ procedure Check_All is
             To_String (Banned),
             "the model reads no disk (" & To_String (Banned) & ")");
       end loop;
+      --  A deny-list misses a new way to the disk (it went through
+      --  Copy_Context, which makes a transport): every files-model* unit
+      --  may import only these. A new import is a decision made here.
+      Require_Only_Names_From
+        ("files-model", "Files.Copy_Context",
+         [To_Unbounded_String ("Session"), To_Unbounded_String ("Empty_Session")],
+         "the model makes no transport; Operations.Begin_Paste_Execution does");
+      declare
+         Search  : Ada.Directories.Search_Type;
+         Item    : Ada.Directories.Directory_Entry_Type;
+         Allowed : constant String_List :=
+           [To_Unbounded_String ("Files.Command_Palette"),
+            To_Unbounded_String ("Files.Copy_Context"),
+            To_Unbounded_String ("Files.Desktop_Applications"),
+            To_Unbounded_String ("Files.File_System"),
+            To_Unbounded_String ("Files.Folder_Size"),
+            To_Unbounded_String ("Files.Folder_Tree"),
+            To_Unbounded_String ("Files.Grouping"),
+            To_Unbounded_String ("Files.Items"),
+            To_Unbounded_String ("Files.Model.Support"),
+            To_Unbounded_String ("Files.Paste"),
+            To_Unbounded_String ("Files.Process_Jobs"),
+            To_Unbounded_String ("Files.Quick_Look"),
+            To_Unbounded_String ("Files.Settings"),
+            To_Unbounded_String ("Files.Settings_Form"),
+            To_Unbounded_String ("Files.Transfer_Jobs"),
+            To_Unbounded_String ("Files.Type_Ahead"),
+            To_Unbounded_String ("Files.Types"),
+            To_Unbounded_String ("Files.UTF8")];
+      begin
+         Ada.Directories.Start_Search
+           (Search, Root & "/src", "files-model*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);
+         while Ada.Directories.More_Entries (Search) loop
+            Ada.Directories.Get_Next_Entry (Search, Item);
+            Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), "Files.", Allowed);
+         end loop;
+         Ada.Directories.End_Search (Search);
+      end;
    end Check_Event_Translation_Contract;
 
    --  The test suite steers a few behaviours through FILES_TEST_* variables
@@ -2821,21 +2859,28 @@ procedure Check_All is
    end Check_Command_And_Overlay_Layers;
 
    procedure Check_Test_Hooks is
+      Hooks : constant Project_Tools.Files.Path_List :=
+        [To_Unbounded_String (Root & "/src/files-file_system-support.ads"),
+         To_Unbounded_String (Root & "/src/files-file_system-support.adb"),
+         To_Unbounded_String (Root & "/src/files-file_system-volume_trash_supported.adb"),
+         To_Unbounded_String (Root & "/src/files-file_system-volume_trash_bases.adb")];
       Unexpected : constant String :=
         Project_Tools.Ada_Source.First_Source_File_Containing
           (Root & "/src",
            "FILES_TEST_",
-           [To_Unbounded_String (Root & "/src/files-file_system-support.ads"),
-            To_Unbounded_String (Root & "/src/files-file_system-support.adb"),
-            To_Unbounded_String (Root & "/src/files-file_system-volume_trash_supported.adb"),
-            To_Unbounded_String (Root & "/src/files-file_system-volume_trash_bases.adb"),
-            To_Unbounded_String (Root & "/src/files-file_system-volume_trash_for.adb")]);
+           Hooks);
    begin
       if Unexpected /= "" then
          Put_Line (Standard_Error, Unexpected & ": reads a FILES_TEST_* variable outside the listed test hooks");
          Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
          raise Program_Error;
       end if;
+      --  And every listed hook still is one: a stale entry would let a new
+      --  hook into that file pass unreviewed.
+      for Hook of Hooks loop
+         Project_Tools.Files.Require_Contains
+           (To_String (Hook), "FILES_TEST_", To_String (Hook) & " is listed as a test hook but reads none");
+      end loop;
    end Check_Test_Hooks;
 
    procedure Check_Crate_Structure is

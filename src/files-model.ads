@@ -2702,11 +2702,14 @@ package Files.Model is
    --  @param Mode Copy or move mode for the whole batch.
    --  @param Clear_Clipboard Whether finalizing a move should clear the
    --    clipboard (True for clipboard paste, False for drag-and-drop).
+   --  @param Batch The copy context the writes share (hard links kept as
+   --    links), made by the caller: the model makes no transport itself.
    procedure Begin_Paste_Execution
      (Model           : in out Window_Model;
       Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
       Mode            : Files.File_System.Drop_Import_Mode;
-      Clear_Clipboard : Boolean := True);
+      Clear_Clipboard : Boolean := True;
+      Batch           : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);
 
    --  Select helper execution for a live window; headless callers can step synchronously.
    --  @param Model Window model to configure before starting a paste.

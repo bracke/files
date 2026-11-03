@@ -33,74 +33,73 @@ package body Files.Job_Helpers is
    end Run_Cleanup;
 
    function Run_If_Requested return Boolean is
+      Found : Boolean := False;
+      Mode  : Helper_Mode := Helper_Mode'First;
+
+      procedure Fail is
+      begin
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+      end Fail;
    begin
-      if Ada.Command_Line.Argument_Count = 1
-        and then Ada.Command_Line.Argument (1) = Flag (Scavenge)
-      then
-         if not Files.Job_Scavenger.Run then
-            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-         end if;
-         return True;
+      if Ada.Command_Line.Argument_Count >= 1 then
+         Mode := Mode_Of (Ada.Command_Line.Argument (1), Found);
       end if;
-      if Ada.Command_Line.Argument_Count not in 2 .. 3 then
+      if not Found then
          return False;
       end if;
-      declare
-         Mode      : constant String := Ada.Command_Line.Argument (1);
-         Directory : constant String := Ada.Command_Line.Argument (2);
-         Helper_Owner : Files.Job_Transports.Lease;
-      begin
-         if Mode in Flag (Transfer) | Flag (Operation) | Flag (Refresh) | Flag (Watch)
-           | Flag (Files.Helper_Modes.Folder_Size)
-         then
-            if Ada.Command_Line.Argument_Count /= 2
-              or else Files.Job_Transports.Recorded_Identity (Directory) = ""
-            then
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-               return True;
+      --  A helper flag is never a path to open: a mode given the wrong
+      --  arguments fails here rather than starting a window. And every mode
+      --  is answered below, or this does not compile.
+      case Mode is
+         when Scavenge =>
+            if Ada.Command_Line.Argument_Count /= 1 or else not Files.Job_Scavenger.Run then
+               Fail;
             end if;
-            if not Files.Job_Transports.Join_Helper (Directory, Helper_Owner) then
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-               return True;
-            end if;
-            Files.Job_Context.Initialize (Directory);
-            if Mode = Flag (Transfer) then
-               Files.Transfer_Jobs.Run_Helper (Directory);
-            elsif Mode = Flag (Operation) then
-               Files.Operation_Jobs.Run_Helper (Directory);
-            elsif Mode = Flag (Refresh) then
-               Files.Refresh_Jobs.Run_Helper (Directory);
-            elsif Mode = Flag (Files.Helper_Modes.Folder_Size) then
-               Files.Folder_Size.Run_Helper (Directory);
-            else
-               --  The other helpers finish on their own, and a transfer must
-               --  outlive a crashed window for its recovery to mean anything.
-               --  A watcher loops until cancelled and serves only its window,
-               --  so a window that died without cancelling it would leave it
-               --  polling forever.
-               --  Where the host cannot arrange it, cancellation still ends it.
-               declare
-                  Ignored : constant Boolean := Hostkit.Parent_Watch.End_With_Parent;
-               begin
-                  pragma Unreferenced (Ignored);
-                  Files.Refresh_Jobs.Run_Watch_Helper (Directory);
-               end;
-            end if;
-            return True;
-         elsif Mode = Flag (Cleanup) then
-            if Ada.Command_Line.Argument_Count /= 3 then
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-               return True;
-            end if;
-            if Files.Job_Cleanup.Run
-              (Directory, Ada.Command_Line.Argument (3)) /=
+         when Cleanup =>
+            if Ada.Command_Line.Argument_Count /= 3
+              or else Files.Job_Cleanup.Run (Ada.Command_Line.Argument (2), Ada.Command_Line.Argument (3)) /=
                 Files.Job_Cleanup.Cleanup_Removed
             then
-               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+               Fail;
             end if;
-            return True;
-         end if;
-      end;
-      return False;
+         when Transfer | Operation | Refresh | Watch | Files.Helper_Modes.Folder_Size =>
+            if Ada.Command_Line.Argument_Count /= 2 then
+               Fail;
+               return True;
+            end if;
+            declare
+               Directory    : constant String := Ada.Command_Line.Argument (2);
+               Helper_Owner : Files.Job_Transports.Lease;
+            begin
+               if Files.Job_Transports.Recorded_Identity (Directory) = ""
+                 or else not Files.Job_Transports.Join_Helper (Directory, Helper_Owner)
+               then
+                  Fail;
+                  return True;
+               end if;
+               Files.Job_Context.Initialize (Directory);
+               case Mode is
+                  when Transfer => Files.Transfer_Jobs.Run_Helper (Directory);
+                  when Operation => Files.Operation_Jobs.Run_Helper (Directory);
+                  when Refresh => Files.Refresh_Jobs.Run_Helper (Directory);
+                  when Files.Helper_Modes.Folder_Size => Files.Folder_Size.Run_Helper (Directory);
+                  when Watch =>
+                     --  The other helpers finish on their own, and a transfer
+                     --  must outlive a crashed window for its recovery to
+                     --  mean anything. A watcher loops until cancelled and
+                     --  serves only its window, so a window that died without
+                     --  cancelling it would leave it polling forever. Where
+                     --  the host cannot arrange it, cancellation still ends it.
+                     declare
+                        Ignored : constant Boolean := Hostkit.Parent_Watch.End_With_Parent;
+                     begin
+                        pragma Unreferenced (Ignored);
+                        Files.Refresh_Jobs.Run_Watch_Helper (Directory);
+                     end;
+                  when Scavenge | Cleanup => null;
+               end case;
+            end;
+      end case;
+      return True;
    end Run_If_Requested;
 end Files.Job_Helpers;

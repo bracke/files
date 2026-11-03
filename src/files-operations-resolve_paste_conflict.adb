@@ -71,7 +71,7 @@ begin
          --  resolved actions, and run the first batch (small pastes finish
          --  here; larger ones continue under the render loop).
          Files.Model.Clear_Paste_Conflict (Model);
-         Files.Model.Begin_Paste_Execution (Model, Actions, Mode, Clears_Clipboard);
+         Files.Operations.Begin_Paste_Execution (Model, Actions, Mode, Clears_Clipboard);
          return Advance_Paste_Execution (Model, Settings, Paste_Execution_First_Batch);
       end;
    end;

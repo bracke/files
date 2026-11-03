@@ -53,7 +53,7 @@ separate (Files_Suite.Operations)
                   else
                      Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
                      Actions.Append (Action);
-                     Files.Model.Begin_Paste_Execution (Model, Actions, Mode);
+                     Files.Operations.Begin_Paste_Execution (Model, Actions, Mode);
                      Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
                      Files_Suite.Support.Assert_Equal
                        (Step.Status,

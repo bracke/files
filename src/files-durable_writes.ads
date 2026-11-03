@@ -45,8 +45,9 @@ package Files.Durable_Writes is
    --  Write a private record file to be published: create Temporary anew
    --  (never over an entry already there), owner-only, write it through
    --  Write, flush and close it, and check it is still the file created.
-   --  Raises Ada.Directories.Use_Error on any failure, having removed what
-   --  it created. The caller checks the paths beforehand and publishes after.
+   --  Raises on any failure -- Ada.Directories.Use_Error where this refuses,
+   --  or the writer's own error -- having removed what it created. The
+   --  caller checks the paths beforehand and publishes after.
    --
    --  @param Temporary Path to create; nothing may exist there.
    --  @param Write Writes the record to the stream given.

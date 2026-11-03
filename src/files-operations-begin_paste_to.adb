@@ -87,7 +87,7 @@ begin
                 (Work, Files.Paste.Policy_Ask,
                  Files.Paste.Item_Decision_Vectors.Empty_Vector, Existing);
          begin
-            Files.Model.Begin_Paste_Execution (Model, Actions, Mode, From_Clipboard);
+            Files.Operations.Begin_Paste_Execution (Model, Actions, Mode, From_Clipboard);
             return Advance_Paste_Execution (Model, Settings, Paste_Execution_First_Batch);
          end;
       else

@@ -1,6 +1,7 @@
 with Files.Items;
 with Files.File_System;
 with Files.Model;
+with Files.Paste;
 with Files.Quick_Look;
 with Files.Settings;
 with Guikit.Input;
@@ -694,6 +695,20 @@ package Files.Operations is
       Retain_Verified_Main     : Natural := 0;
       Retain_Verified_Restores : Natural := 0;
    end record;
+
+   --  Arm a paste (Files.Model.Begin_Paste_Execution) with the copy context
+   --  its writes share when there is more than one: a batch transport, so
+   --  made here and not by the model.
+   --
+   --  @param Model Model to update.
+   --  @param Actions Fully resolved paste actions.
+   --  @param Mode Copy or move for the whole batch.
+   --  @param Clear_Clipboard Whether finishing a move clears the clipboard.
+   procedure Begin_Paste_Execution
+     (Model           : in out Files.Model.Window_Model;
+      Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
+      Mode            : Files.File_System.Drop_Import_Mode;
+      Clear_Clipboard : Boolean := True);
 
    --  Record a performed action in the undo history, keeping only members
    --  whose publication identity still matches the live entry. Created

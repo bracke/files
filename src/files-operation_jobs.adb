@@ -317,7 +317,7 @@ package body Files.Operation_Jobs is
       Actions.Append
         (Files.Paste.Resolved_Action'
            (Source_Path => Work.Root, Dest_Path => Work.Root, Skip => False, Replaced => False));
-      Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy, Clear_Clipboard => False);
+      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy, Clear_Clipboard => False);
       Files.Model.Set_Background_Operation
         (Model, Job,
          (case Kind is

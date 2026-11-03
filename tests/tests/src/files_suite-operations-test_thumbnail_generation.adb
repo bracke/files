@@ -11,8 +11,10 @@ separate (Files_Suite.Operations)
       Reset_Root;
       Write_Binary_File (Thumbnail_Source, Minimal_Png_Header (48, 32));
       Thumbnail := Files.File_System.Thumbnails.Generate_Thumbnail (Thumbnail_Source, Thumbnail_Cache, Size => 8);
-      Assert (Thumbnail.Status = Files.File_System.Thumbnails.Thumbnail_Generated, "thumbnail generation succeeds");
-      Assert (Thumbnail.Width = 8 and then Thumbnail.Height = 8, "thumbnail reports requested dimensions");
+      --  A PNG with only its header: no decoder reads it, and it still gets
+      --  the stand-in thumbnail.
+      Assert (Thumbnail.Status = Files.File_System.Thumbnails.Thumbnail_Generated,
+              "an image no decoder reads still gets a stand-in thumbnail");
       Assert
         (Ada.Directories.Exists (To_String (Thumbnail.Thumbnail_Path)),
          "thumbnail generation writes a cache artifact");
@@ -189,6 +191,35 @@ separate (Files_Suite.Operations)
       Assert
         (File_Has_Bytes (To_String (Thumbnail.Thumbnail_Path), Byte (0) & Byte (0) & Byte (255)),
          "decoded PPM thumbnail preserves source pixel colors: blue pixel");
+
+      --  An edited picture is a new thumbnail: the cache name follows the
+      --  source's revision, so the old one is not served for it.
+      declare
+         Before : constant String :=
+           Files.File_System.Thumbnails.Thumbnail_Path_For (Ppm_Thumbnail_Source, Thumbnail_Cache, Size => 2);
+         Moved  : Boolean;
+      begin
+         Write_File
+           (Ppm_Thumbnail_Source,
+            "P3" & ASCII.LF & "1 1" & ASCII.LF & "255" & ASCII.LF & "0 0 255" & ASCII.LF);
+         Moved := Hostkit.Metadata.Set_File_Times (Ppm_Thumbnail_Source, 1_700_000_000, 1_700_000_000);
+         Assert (Moved, "the edit gets a time of its own");
+         declare
+            After : constant String :=
+              Files.File_System.Thumbnails.Thumbnail_Path_For (Ppm_Thumbnail_Source, Thumbnail_Cache, Size => 2);
+         begin
+            Assert (After /= Before, "an edited picture has a thumbnail of its own");
+            Thumbnail := Files.File_System.Thumbnails.Generate_Thumbnail
+              (Ppm_Thumbnail_Source, Thumbnail_Cache, Size => 2);
+            Assert (To_String (Thumbnail.Thumbnail_Path) = After
+                    and then File_Is
+                      (After,
+                       "P6" & ASCII.LF & "2 2" & ASCII.LF & "255" & ASCII.LF
+                       & Byte (0) & Byte (0) & Byte (255) & Byte (0) & Byte (0) & Byte (255)
+                       & Byte (0) & Byte (0) & Byte (255) & Byte (0) & Byte (0) & Byte (255)),
+                    "made from what the picture is now: blue");
+         end;
+      end;
 
       Thumbnail :=
         Files.File_System.Thumbnails.Generate_Thumbnail (Join (Root, "missing.png"), Thumbnail_Cache, Size => 8);

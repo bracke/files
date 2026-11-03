@@ -1,3 +1,4 @@
+with Files.Helper_Modes;
 separate (Files_Suite.Operations)
    procedure Test_Unsafe_Recovery_Report (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -52,7 +53,7 @@ separate (Files_Suite.Operations)
          Errors : constant String := Join (Root, "unsafe-transport-errors");
          Result : Hostkit.Process.Process_Outcome;
       begin
-         Arguments.Append (To_Unbounded_String ("--files-scavenge"));
+         Arguments.Append (To_Unbounded_String (Files.Helper_Modes.Flag (Files.Helper_Modes.Scavenge)));
          Result := Hostkit.Process.Run_Captured
            (Hostkit.Fs.Own_Executable, Arguments,
             Stderr_Path => Errors, Timeout_Ms => 10_000);

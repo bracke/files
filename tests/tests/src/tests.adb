@@ -1,3 +1,4 @@
+with Files.Helper_Modes;
 with Ada.Command_Line;
 with Ada.Directories;
 with Ada.Environment_Variables;
@@ -39,6 +40,7 @@ with Hostkit.Spawn;
 with Test_Progress;
 
 procedure Tests is
+   package HM renames Files.Helper_Modes;
    use type AUnit.Status;
    use type Hostkit.Lease_Files.Open_Outcome;
 
@@ -461,7 +463,7 @@ begin
    end if;
 
    if Ada.Command_Line.Argument_Count = 1
-     and then Ada.Command_Line.Argument (1) = "--files-scavenge"
+     and then Ada.Command_Line.Argument (1) = HM.Flag (HM.Scavenge)
      and then Ada.Environment_Variables.Value ("FILES_TEST_STALL_SCAVENGER", "") /= ""
    then
       declare
@@ -479,7 +481,7 @@ begin
    end if;
 
    if Ada.Command_Line.Argument_Count = 1
-     and then Ada.Command_Line.Argument (1) = "--files-scavenge"
+     and then Ada.Command_Line.Argument (1) = HM.Flag (HM.Scavenge)
      and then Ada.Environment_Variables.Value
        ("FILES_TEST_FAIL_SCAVENGER_ONCE", "") /= ""
      and then not Ada.Directories.Exists
@@ -497,7 +499,7 @@ begin
    end if;
 
    if Ada.Command_Line.Argument_Count = 1
-     and then Ada.Command_Line.Argument (1) = "--files-scavenge"
+     and then Ada.Command_Line.Argument (1) = HM.Flag (HM.Scavenge)
      and then Ada.Environment_Variables.Value
        ("FILES_TEST_FAIL_SCAVENGER_UNTIL", "") /= ""
      and then not Ada.Directories.Exists
@@ -522,20 +524,20 @@ begin
    --  Refuse final result publication. Tests also remove the completed history
    --  before collection, leaving only the publication journal for recovery.
    if Ada.Command_Line.Argument_Count = 2
-     and then Ada.Command_Line.Argument (1) = "--files-operation"
+     and then Ada.Command_Line.Argument (1) = HM.Flag (HM.Operation)
      and then Ada.Environment_Variables.Value ("FILES_TEST_LOST_CREATION_METADATA", "") = "1"
    then
       Ada.Directories.Create_Directory (Ada.Command_Line.Argument (2) & "/result");
    end if;
    if Ada.Command_Line.Argument_Count = 2
      and then (Ada.Command_Line.Argument (1) = "--files-test-blocked"
-       or else (Ada.Command_Line.Argument (1) in "--files-refresh" | "--files-watch"
+       or else (Ada.Command_Line.Argument (1) in HM.Flag (HM.Refresh) | HM.Flag (HM.Watch)
          and then Ada.Environment_Variables.Value ("FILES_TEST_STALL_READS", "") = "1")
-       or else (Ada.Command_Line.Argument (1) = "--files-operation"
+       or else (Ada.Command_Line.Argument (1) = HM.Flag (HM.Operation)
          and then Ada.Environment_Variables.Value ("FILES_TEST_STALL_OPERATIONS", "") = "1")
-       or else (Ada.Command_Line.Argument (1) = "--files-transfer"
+       or else (Ada.Command_Line.Argument (1) = HM.Flag (HM.Transfer)
          and then Ada.Environment_Variables.Value ("FILES_TEST_STALL_TRANSFERS", "") /= "")
-       or else (Ada.Command_Line.Argument (1) = "--files-folder-size"
+       or else (Ada.Command_Line.Argument (1) = HM.Flag (HM.Folder_Size)
          and then Ada.Environment_Variables.Value ("FILES_TEST_STALL_FOLDER_SIZES", "") /= ""))
    then
       declare
@@ -543,10 +545,10 @@ begin
       begin
          Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Ada.Command_Line.Argument (2) & "/started");
          Ada.Text_IO.Close (File);
-         if Ada.Command_Line.Argument (1) in "--files-transfer" | "--files-folder-size" then
+         if Ada.Command_Line.Argument (1) in HM.Flag (HM.Transfer) | HM.Flag (HM.Folder_Size) then
             declare
                Marker : constant String := Ada.Environment_Variables.Value
-                 (if Ada.Command_Line.Argument (1) = "--files-transfer" then "FILES_TEST_STALL_TRANSFERS"
+                 (if Ada.Command_Line.Argument (1) = HM.Flag (HM.Transfer) then "FILES_TEST_STALL_TRANSFERS"
                   else "FILES_TEST_STALL_FOLDER_SIZES");
             begin
                Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Marker & ".tmp");
@@ -558,7 +560,7 @@ begin
          --  Held until the test cancels or kills it; the bound only ends a
          --  helper whose test has died without doing either.
          for Attempt in Files_Suite.Support.Polling (Limit => Helper_Hold_Limit, Interval => 0.1) loop
-            if Ada.Command_Line.Argument (1) = "--files-operation"
+            if Ada.Command_Line.Argument (1) = HM.Flag (HM.Operation)
               and then Files.Process_Jobs.Cancellation_Requested
                 (Ada.Command_Line.Argument (2))
             then
@@ -569,7 +571,7 @@ begin
       end;
    end if;
    if Ada.Command_Line.Argument_Count = 3
-     and then Ada.Command_Line.Argument (1) = "--files-cleanup"
+     and then Ada.Command_Line.Argument (1) = HM.Flag (HM.Cleanup)
      and then Ada.Environment_Variables.Value
        ("FILES_TEST_FAIL_CLEANUP_WORKER", "") /= ""
    then
@@ -589,7 +591,7 @@ begin
       end;
    end if;
    if Ada.Command_Line.Argument_Count = 3
-     and then Ada.Command_Line.Argument (1) = "--files-cleanup"
+     and then Ada.Command_Line.Argument (1) = HM.Flag (HM.Cleanup)
      and then Ada.Environment_Variables.Value ("FILES_TEST_SKIP_CLEANUP_ONCE", "") /= ""
      and then not Ada.Directories.Exists
        (Ada.Environment_Variables.Value ("FILES_TEST_SKIP_CLEANUP_ONCE"))
@@ -605,7 +607,7 @@ begin
       end;
    end if;
    if Ada.Command_Line.Argument_Count = 3
-     and then Ada.Command_Line.Argument (1) = "--files-cleanup"
+     and then Ada.Command_Line.Argument (1) = HM.Flag (HM.Cleanup)
      and then Ada.Environment_Variables.Value ("FILES_TEST_STALL_CLEANUP_WORKER", "") = "stop"
    then
       declare
@@ -623,7 +625,7 @@ begin
       end;
    end if;
    if Ada.Command_Line.Argument_Count = 3
-     and then Ada.Command_Line.Argument (1) = "--files-cleanup"
+     and then Ada.Command_Line.Argument (1) = HM.Flag (HM.Cleanup)
      and then Ada.Environment_Variables.Value ("FILES_TEST_STALL_CLEANUP_WORKER", "") = "1"
    then
       declare
@@ -641,7 +643,7 @@ begin
       end;
    end if;
    if Files.Job_Helpers.Run_If_Requested then
-      if Ada.Command_Line.Argument (1) = "--files-refresh"
+      if Ada.Command_Line.Argument (1) = HM.Flag (HM.Refresh)
         and then Ada.Environment_Variables.Value
           ("FILES_TEST_REFRESH_RESULT_INCONSISTENT", "") = "1"
       then
@@ -650,7 +652,7 @@ begin
             Success => False,
             Reloaded => True);
       end if;
-      if Ada.Command_Line.Argument (1) = "--files-operation"
+      if Ada.Command_Line.Argument (1) = HM.Flag (HM.Operation)
         and then Ada.Environment_Variables.Value
           ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH", "") = "1"
       then
@@ -658,14 +660,14 @@ begin
            (Ada.Command_Line.Argument (2) & "/result",
             Files.Operation_Jobs.Search_Names);
       end if;
-      if Ada.Command_Line.Argument (1) = "--files-operation"
+      if Ada.Command_Line.Argument (1) = HM.Flag (HM.Operation)
         and then Ada.Environment_Variables.Value
           ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH", "") = "1"
       then
          Files.Operation_Jobs.Testing.Replace_Result_Recent
            (Ada.Command_Line.Argument (2) & "/result", True);
       end if;
-      if Ada.Command_Line.Argument (1) = "--files-transfer"
+      if Ada.Command_Line.Argument (1) = HM.Flag (HM.Transfer)
         and then Ada.Environment_Variables.Value ("FILES_TEST_TRANSFER_RESULT_LOSS", "") /= ""
       then
          declare

@@ -105,7 +105,7 @@ separate (Files_Suite.Operations)
             Files.Model.Set_Background_Transfers (Model, Background);
             Actions.Append (Files.Paste.Resolved_Action'
               (To_Unbounded_String (Copy_Source), To_Unbounded_String (Source), False, True));
-            Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
+            Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
             Step := Complete_Operation
               (Model, Settings, Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
             Await_View (Model, Settings);

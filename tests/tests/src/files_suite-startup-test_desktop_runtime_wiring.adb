@@ -22,7 +22,7 @@ separate (Files_Suite.Startup)
       --  inotify/kqueue/FindFirstChangeNotification -- live in hostkit with
       --  them. What files still owns, and what this checks, is the wiring.
       Assert
-        (Files_Suite.Repository.Source_Contains ("Hostkit.Watch.Poll")
+        (Files_Suite.Repository.Source_Contains ("Files.Refresh_Jobs.Poll_Watch")
          and then Files_Suite.Repository.Source_Contains ("Drain_Native_Watch"),
          "native file watching is connected to the desktop event loop");
       --  "window code must not name inotify directly" is now a family-aware

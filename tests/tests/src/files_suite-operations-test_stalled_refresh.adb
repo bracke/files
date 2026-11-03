@@ -103,7 +103,7 @@ separate (Files_Suite.Operations)
                         (To_Unbounded_String (Join (Root, "source")),
                          To_Unbounded_String (Join (Root, "dest")), False, False));
       Before := Now;
-      Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
+      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
       Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
               "starting paste immediately releases an outstanding read");
       Files.Operations.Cancel_Paste_Execution (Model);

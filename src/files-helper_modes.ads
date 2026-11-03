@@ -18,4 +18,11 @@ package Files.Helper_Modes with Pure is
          when Scavenge    => "--files-scavenge",
          when Cleanup     => "--files-cleanup");
 
+   --  The mode a command-line flag starts, if it names one.
+   --
+   --  @param Argument A command-line argument.
+   --  @param Found Set True when Argument is a helper flag.
+   --  @return Its mode, when Found.
+   function Mode_Of (Argument : String; Found : out Boolean) return Helper_Mode;
+
 end Files.Helper_Modes;

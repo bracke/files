@@ -61,7 +61,7 @@ separate (Files_Suite.Operations)
          Actions.Clear;
          Actions.Append (Files.Paste.Resolved_Action'
            (To_Unbounded_String (Source), To_Unbounded_String (Join (Remote.Path, "source")), False, False));
-         Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move, False);
+         Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move, False);
          Step := Complete_Operation (Model, Settings, Files.Operations.Advance_Paste_Execution (Model, Settings, 1));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal

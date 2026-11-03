@@ -2066,7 +2066,8 @@ package body Files.Model is
      (Model           : in out Window_Model;
       Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
       Mode            : Files.File_System.Drop_Import_Mode;
-      Clear_Clipboard : Boolean := True)
+      Clear_Clipboard : Boolean := True;
+      Batch           : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
    is separate;
 
    function Paste_Execution_Is_Active

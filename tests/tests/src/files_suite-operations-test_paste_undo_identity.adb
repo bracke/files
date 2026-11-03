@@ -27,7 +27,7 @@ separate (Files_Suite.Operations)
                  (To_Unbounded_String (Join (Join (Root, "inbox"), "a.txt")), To_Unbounded_String (A), False, False));
                Actions.Append (Files.Paste.Resolved_Action'
                  (To_Unbounded_String (Join (Join (Root, "inbox"), "b.txt")), To_Unbounded_String (B), False, False));
-               Files.Model.Begin_Paste_Execution (Model, Actions, Mode, False);
+               Files.Operations.Begin_Paste_Execution (Model, Actions, Mode, False);
                for Attempt in Files_Suite.Support.Polling loop
                   Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
                   exit when Files.Model.Paste_Execution_Done (Model) = 1;

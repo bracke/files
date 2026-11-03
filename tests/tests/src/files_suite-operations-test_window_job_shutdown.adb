@@ -35,7 +35,7 @@ separate (Files_Suite.Operations)
          Marker := To_Unbounded_String (Files.Process_Jobs.Path (Job, "started"));
          Files.Process_Jobs.Launch (Job, "--files-test-blocked");
          Await_Started (To_String (Marker));
-         Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
+         Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
          Files.Model.Set_Background_Operation (Model, Job, "command.file.duplicate");
          Files.Process_Jobs.Reset (Job); --  The window is now its helper's only owner.
       end Attach_Operation;
@@ -59,7 +59,7 @@ separate (Files_Suite.Operations)
          case Scenario is
             when Operation_Job => Attach_Operation (Closing, Started);
             when Transfer_Job =>
-               Files.Model.Begin_Paste_Execution (Closing, Actions, Files.File_System.Drop_Copy);
+               Files.Operations.Begin_Paste_Execution (Closing, Actions, Files.File_System.Drop_Copy);
                Step := Files.Operations.Advance_Paste_Execution (Closing, Settings, 1);
                Assert (Step.Status = Files.Operations.Operation_Success
                        and then Files.Model.Paste_Execution_Is_Active (Closing), "start the stalled transfer");

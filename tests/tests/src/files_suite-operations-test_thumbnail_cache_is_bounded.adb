@@ -8,8 +8,8 @@ separate (Files_Suite.Operations)
       Digest_B : constant String (1 .. 64) := [others => 'b'];
       Digest_C : constant String (1 .. 64) := [others => 'c'];
 
-      --  Distinct sizes so the totals are unambiguous, and written oldest first
-      --  with a delay between them so the modification times genuinely order.
+      --  Distinct sizes so the totals are unambiguous, and modification times
+      --  set apart (Set_File_Times) so the age order is certain.
       Old_One : constant String := Join (Cache, "thumb_png_64_" & Digest_A & ".ppm");
       Old_Two : constant String := Join (Cache, "thumb_png_64_" & Digest_B & ".ppm");
       Newest  : constant String := Join (Cache, "thumb_png_64_" & Digest_C & ".ppm");

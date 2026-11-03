@@ -47,7 +47,7 @@ separate (Files_Suite.Operations)
          Files.Model.Initialize (Model, Remote.Path, Files.Items.Item_Vectors.Empty_Vector, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
-         Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
+         Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
          for Attempt in Files_Suite.Support.Polling loop
             Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
             exit when not Files.Model.Paste_Execution_Is_Active (Model);

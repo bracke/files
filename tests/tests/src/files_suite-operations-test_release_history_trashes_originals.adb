@@ -33,7 +33,7 @@ separate (Files_Suite.Operations)
             Replaced    => True));
       Files.Model.Initialize
         (Model, Dest_Dir, Files.File_System.Load_Directory (Dest_Dir, Settings).Items, Root);
-      Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
+      Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "the replacing paste runs");
       Assert (Files.Model.Undo_Available (Model), "and can be undone");

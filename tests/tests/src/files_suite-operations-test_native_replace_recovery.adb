@@ -70,7 +70,7 @@ separate (Files_Suite.Operations)
          for Background in Boolean loop
             Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Files.Model.Set_Background_Transfers (Model, Background);
-            Files.Model.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
+            Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
             for Attempt in Files_Suite.Support.Polling loop
                Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
                exit when not Files.Model.Paste_Execution_Is_Active (Model);

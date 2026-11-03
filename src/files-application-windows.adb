@@ -23,6 +23,7 @@ with Files.Job_Scavenger;
 with Files.Operations;
 with Files.Process_Jobs;
 with Files.Rendering.Hit;
+with Files.Snapshot_Policy;
 with Files.Timing;
 with Guikit.Layout;
 with Guikit.Settings_Panel;
@@ -557,15 +558,20 @@ package body Files.Application.Windows is
       Paste_Progress_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (100);
       Minute : constant Natural := Wall_Clock_Minute;
       Now    : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
+      Action : constant Files.Snapshot_Policy.Snapshot_Action :=
+        Files.Snapshot_Policy.Action_For
+          (Valid         => Runtime.Snapshot_Valid,
+           Same_Minute   => Runtime.Snapshot_Minute = Minute,
+           Same_Revision => Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model),
+           Same_Settings => Files.Settings.Same_Snapshot_Settings (Runtime.Settings, Runtime.Cached_Settings_Key),
+           Same_Scroll   => Runtime.Cached_Scroll_Revision = Files.Model.Scroll_Revision (Runtime.Model),
+           Pasting       => Files.Model.Paste_Execution_Is_Active (Runtime.Model),
+           Paste_Interval_Elapsed =>
+             Files.Timing.Elapsed (Now, Runtime.Snapshot_Built_At, Paste_Progress_Interval));
+      use type Files.Snapshot_Policy.Snapshot_Action;
    begin
-      if Runtime.Snapshot_Valid
-        and then Runtime.Snapshot_Minute = Minute
-        and then Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model)
-        and then Files.Settings.Same_Snapshot_Settings (Runtime.Settings, Runtime.Cached_Settings_Key)
-        and then (not Files.Model.Paste_Execution_Is_Active (Runtime.Model)
-                  or else not Files.Timing.Elapsed (Now, Runtime.Snapshot_Built_At, Paste_Progress_Interval))
-      then
-         if Runtime.Cached_Scroll_Revision /= Files.Model.Scroll_Revision (Runtime.Model) then
+      if Action /= Files.Snapshot_Policy.Rebuild then
+         if Action = Files.Snapshot_Policy.Patch_Scroll then
             --  Only an offset moved: the items stand. A copy with the new
             --  offsets (about a millisecond for 20,000 items) instead of a
             --  rebuild (thirty), into the other slot if this one is on screen.
