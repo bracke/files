@@ -224,7 +224,6 @@ begin
    if not Macos_Home then
       Info_Path := To_Unbounded_String (Join_Path (Info_Dir, To_String (Name) & ".trashinfo"));
       declare
-         use type GNAT.OS_Lib.File_Descriptor;
          Metadata : constant String :=
            "[Trash Info]" & ASCII.LF
            & "Path=" & Trash_Info_Path_Value (Info_Path_Text)

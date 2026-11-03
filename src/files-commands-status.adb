@@ -9,7 +9,6 @@ package body Files.Commands.Status is
 
    use Ada.Strings.Unbounded;
 
-   use type Files.File_System.Path_Status;
    use type Files.Types.Focus_Target;
 
    --  Return whether a simple file name ends, case-insensitively, in a

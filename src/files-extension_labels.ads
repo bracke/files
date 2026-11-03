@@ -1,5 +1,4 @@
 with Files.Shared_Bytes;
-with Files.Types;
 with Guikit.Draw;
 
 --  Prerendered file-extension labels for the large-icon extension tab.

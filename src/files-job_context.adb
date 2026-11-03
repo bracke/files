@@ -14,6 +14,7 @@ with Hostkit.Fs;
 with Hostkit.Lease_Files;
 with Files.File_Identities;
 with Files.Lease_Streams;
+with Files.Path_Checks;
 
 package body Files.Job_Context is
    use Ada.Strings.Unbounded;
@@ -81,10 +82,10 @@ package body Files.Job_Context is
       end loop;
    end Write;
 
-   function Nul_Free (Value : String) return Boolean renames Files.Fs_Primitives.Nul_Free;
+   function Nul_Free (Value : String) return Boolean renames Files.Path_Checks.Nul_Free;
 
    function Valid_Absolute_Path (Path : String) return Boolean is
-     (Files.Fs_Primitives.Valid_Absolute_Path (Path, Max_Record_Path_Length));
+     (Files.Path_Checks.Valid_Absolute_Path (Path, Max_Record_Path_Length));
 
    procedure Sync_Journal (Path : String);
 

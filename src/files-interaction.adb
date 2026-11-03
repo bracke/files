@@ -305,8 +305,7 @@ package body Files.Interaction is
    --  the user to select a different destination.
    procedure Confirm_Tree_Pick
      (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model;
-      Result   : in out Interaction_Result)
+      Settings : Files.Settings.Settings_Model)
    is
    begin
       if not Files.Model.Tree_Pick_Is_Active (Model) then
@@ -376,9 +375,9 @@ package body Files.Interaction is
       --  Start from a clean result so no flag leaks from a previous call when a
       --  caller reuses the same Result object across keystrokes.
       Result := (others => <>);
-      --  Keyboard zoom is handled on this pure seam (not the controller, whose
-      --  Settings are read-only): Ctrl+'=' / Ctrl+'+' grows, Ctrl+'-' shrinks,
-      --  and Ctrl+0 resets the live font size. The shell's font-size sync and
+      --  Keyboard zoom is handled on this pure seam, not in the controller: the
+      --  live font size is the shell's, not the model's. Ctrl+'=' / Ctrl+'+'
+      --  grows, Ctrl+'-' shrinks, and Ctrl+0 resets it. The shell's font-size sync and
       --  glyph rebuild then run through Apply_Interaction_Result, and the
       --  behaviour is exercisable through the genuine key seam in tests.
       if Zoom_Chord and then Zoom_Allowed then
@@ -447,9 +446,9 @@ package body Files.Interaction is
       end;
 
       --  A keyboard Enter on the open label picker applies the highlighted
-      --  swatch to the selection. The read-only controller cannot write settings,
-      --  so it is applied here on the in-out seam, exactly as the mouse
-      --  Label_Picker_Choice action does.
+      --  swatch to the selection through Apply_Label, the routine the mouse
+      --  Label_Picker_Choice_Input_Action uses, so both report the settings change
+      --  the same way.
       if Label_Picker_At_Entry
         and then Files.Model.Label_Picker_Is_Open (Model)
         and then Key = Guikit.Input.Key_Return
@@ -457,9 +456,10 @@ package body Files.Interaction is
          Apply_Label (Model, Settings, Settings_Path, Files.Model.Label_Picker_Highlight_Color (Model), Result);
       end if;
 
-      --  A keyboard Enter on the open context menu runs the highlighted command,
-      --  routed through Apply_Context_Menu_Command (which needs the settings path
-      --  the read-only controller lacks), exactly as clicking that row does.
+      --  A keyboard Enter on the open context menu runs the highlighted command
+      --  through Apply_Context_Menu_Command, exactly as clicking that row does
+      --  (it also carries the zoom and settings follow-ups only this layer
+      --  reports).
       if Context_Menu_At_Entry
         and then Files.Model.Context_Menu_Is_Open (Model)
         and then Key = Guikit.Input.Key_Return
@@ -486,13 +486,12 @@ package body Files.Interaction is
 
       --  A keyboard Enter with the destination-pick tree active confirms it: copy
       --  or move the captured sources into the highlighted directory, then close
-      --  the sidebar, exactly as the picker's Confirm button does. Needs the
-      --  settings the read-only controller cannot pass.
+      --  the sidebar, through the routine the picker's Confirm button uses.
       if Tree_Pick_At_Entry
         and then Files.Model.Tree_Pick_Is_Active (Model)
         and then Key = Guikit.Input.Key_Return
       then
-         Confirm_Tree_Pick (Model, Settings, Result);
+         Confirm_Tree_Pick (Model, Settings);
       end if;
 
       --  Space is a reserved grid shortcut (Quick Look), not a type-ahead
@@ -624,12 +623,12 @@ package body Files.Interaction is
             --  then close only after it starts successfully. Begin_Paste_To
             --  surfaces a localized error key (e.g. drop-into-self) on the model
             --  while the shared helper leaves the picker open for correction.
-            Confirm_Tree_Pick (Model, Settings, Result);
+            Confirm_Tree_Pick (Model, Settings);
          when Files.Events.Command_Result_Click_Input_Action =>
             --  The palette hit-tests the click and selects the row; a command
-            --  that needs the settings path is executed here (the controller's
-            --  generic Execute_Command has no path), otherwise the controller
-            --  activates the highlighted command.
+            --  that changes settings runs through this layer's Execute_Command,
+            --  which adds the follow-ups the shell needs, otherwise the
+            --  controller activates the highlighted command.
             if Files.Model.Command_Palette_Is_Open (Model)
               and then Files.Model.Palette_Click (Model, Action.Click_X, Action.Click_Y)
             then

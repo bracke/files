@@ -1,17 +1,13 @@
 with Files.Images;
 with Files.Environment;
 with Files.Diagnostics;
-with Ada.Characters.Handling;
 with Ada.Containers.Vectors;
 with Ada.Directories;
 with Ada.Streams;
-with Ada.Environment_Variables;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with Textrender.Fonts;
-
-with Files.File_System;
 
 with Files.Fs_Primitives;
 with Hostkit.Fs;
@@ -556,11 +552,11 @@ package body Files.Fonts is
       --  machine without root. Skipped when HOME is unset.
       function User_Font (Leaf : String) return String is
       begin
-         if not Ada.Environment_Variables.Exists ("HOME") then
+         if Files.Environment.Value ("HOME") = "" then
             return "";
          end if;
 
-         return Ada.Environment_Variables.Value ("HOME")
+         return Files.Environment.Value ("HOME")
            & "/.local/share/fonts/" & Leaf;
       exception
          when others =>

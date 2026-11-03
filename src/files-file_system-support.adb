@@ -1,7 +1,5 @@
-with Files.Fs_Primitives;
 with Files.Environment;
 with Files.Diagnostics;
-with Ada.Environment_Variables;
 with Ada.Exceptions;
 with Ada.Streams;
 with Ada.Unchecked_Deallocation;
@@ -18,6 +16,7 @@ with CryptoLib.Hashes;
 
 with Hostkit.Metadata;
 with Hostkit.Regular_Files;
+with Files.Path_Checks;
 
 package body Files.File_System.Support is
 
@@ -274,9 +273,9 @@ package body Files.File_System.Support is
          and then (for all Item of Root => Item /= ASCII.NUL)
          and then GNAT.OS_Lib.Is_Absolute_Path (Root));
    begin
-      if Ada.Environment_Variables.Exists ("FILES_TEST_TEMP") then
+      if Files.Environment.Is_Set ("FILES_TEST_TEMP") then
          declare
-            Root : constant String := Ada.Environment_Variables.Value ("FILES_TEST_TEMP");
+            Root : constant String := Files.Environment.Value ("FILES_TEST_TEMP");
          begin
             return (if Usable (Root) then Join_Path (Root, "data") else "");
          end;
@@ -568,10 +567,10 @@ package body Files.File_System.Support is
       Links : Copied_File_Maps.Map;
       Index : Positive := 1;
 
-      function Nul_Free (Value : String) return Boolean renames Files.Fs_Primitives.Nul_Free;
+      function Nul_Free (Value : String) return Boolean renames Files.Path_Checks.Nul_Free;
 
       function Valid_Absolute_Path (Path : String) return Boolean is
-        (Files.Fs_Primitives.Valid_Absolute_Path (Path));
+        (Files.Path_Checks.Valid_Absolute_Path (Path));
    begin
       if Natural (Items.Length) mod 6 /= 0 then
          raise Ada.Directories.Use_Error;

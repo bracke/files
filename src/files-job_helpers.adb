@@ -1,6 +1,5 @@
 with Files.Helper_Modes;
 with Ada.Command_Line;
-with Ada.Strings.Unbounded;
 with Files.Job_Cleanup;
 with Files.Job_Context;
 with Files.Job_Scavenger;
@@ -9,14 +8,11 @@ with Files.Operation_Jobs;
 with Files.Transfer_Jobs;
 with Files.Refresh_Jobs;
 with Files.Folder_Size;
-with Hostkit.Fs;
 with Hostkit.Parent_Watch;
 
 package body Files.Job_Helpers is
    use Files.Helper_Modes;
-   use Ada.Strings.Unbounded;
    use type Files.Job_Cleanup.Cleanup_Outcome;
-   use type Files.Job_Transports.Claim_Outcome;
 
    function Run_Cleanup
      (Directory          : String;

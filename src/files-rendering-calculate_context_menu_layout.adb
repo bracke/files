@@ -3,7 +3,7 @@ separate (Files.Rendering)
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Context_Menu_Layout
    is
       Result : Context_Menu_Layout;
@@ -78,8 +78,6 @@ separate (Files.Rendering)
       declare
          Single_Column_Width : constant Natural := Result.Width;
          Outer_Padding       : constant Natural := Saturating_Multiply (Result.Padding, 2);
-         Minimum_Column_W    : constant Natural :=
-           Natural'Max (Saturating_Multiply (Line_Height, 9), 180);
 
          function Rows_Height (First_Row, Last_Row : Positive) return Natural is
             Value : Natural := 0;

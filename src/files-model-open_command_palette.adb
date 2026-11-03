@@ -9,6 +9,8 @@ begin
    Model.Open_With_Targets_Value.Clear;
    Model.Open_With_Applications_Value.Clear;
    Claim_Overlay_Input (Model);
+   --  At the base line height (Files.UI.Base_Line_Height, which the model
+   --  may not name); Visit_Command_Palette sets the window's real one.
    Guikit.Command_Palette.Set_Configuration
      (Model.Command_Palette_View, Palette_Config (20));
    Guikit.Command_Palette.Reset (Model.Command_Palette_View);

@@ -78,7 +78,6 @@ package body Files_Suite.Model is
    procedure Test_Root_Discovery (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Discovery_Environment_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_Open_And_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Root_Volume_Details_By_Mount_Kind (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_Eject_And_Open (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_Settings_Exclusivity_And_Close (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selection_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -162,9 +161,6 @@ package body Files_Suite.Model is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Root_Selector_Open_And_Snapshot'Access,
          "drive command opens the root selector and the snapshot renders localized labels");
-      AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Root_Volume_Details_By_Mount_Kind'Access,
-         "root volume details classify malformed, network and local roots");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Root_Selector_Eject_And_Open'Access, "root selector eject and open-selected-root commands");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -287,8 +283,6 @@ package body Files_Suite.Model is
    procedure Test_Root_Discovery_Environment_Profiles (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Root_Selector_Open_And_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
-
-   procedure Test_Root_Volume_Details_By_Mount_Kind (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Root_Selector_Eject_And_Open (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

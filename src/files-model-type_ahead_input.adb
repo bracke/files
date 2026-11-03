@@ -9,7 +9,6 @@ is
    Combined : constant String := To_String (Model.Type_Ahead_Buffer_Value) & Text;
    Current  : constant Natural := Selected_Index (Model);
    Visible  : Files.Types.String_Vectors.Vector;
-   Count    : constant Natural := Visible_Count (Model);
    Prefix   : Unbounded_String;
    Start    : Natural;
    Target   : Natural;

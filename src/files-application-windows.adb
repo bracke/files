@@ -1,7 +1,7 @@
+with Files.Controller;
 with Files.Items;
 with Files.Environment;
 with Files.Diagnostics;
-with Ada.Environment_Variables;
 with Ada.Unchecked_Deallocation;
 with Interfaces.C;
 with Interfaces.C.Strings;
@@ -10,14 +10,12 @@ with System.Address_To_Access_Conversions;
 
 with Glfw.Input;
 with Glfw.Windows.Drop;
-with Glfw.Windows.Hints;
 with Glfw.Windows.Icon;
 with Glfw.Windows.Native;
 with Glfw.Windows.Vulkan;
 
 with Hostkit.Host;
 with Files.File_System;
-with Files.Folder_Size;
 with Files.Interaction;
 with Files.Job_Scavenger;
 with Files.Operations;
@@ -38,16 +36,12 @@ package body Files.Application.Windows is
    use type Glfw.Size;
    use type Files.Events.Input_Action_Kind;
    use type Files.Commands.Command_Id;
-   use type Files.Operations.Operation_Status;
    use type Files.Types.Focus_Target;
    use type Files.Types.Detail_Column;
    use type Files.Types.Item_Kind;
-   use type Files.Types.View_Mode;
    use type Files.Rendering.Text_Render_Status;
    use type Guikit.Vulkan.Vulkan_Status;
    use type Files.Rendering.View_Snapshot;
-   use type Interfaces.C.long;
-   use type Interfaces.C.unsigned;
    use type Interfaces.C.Strings.chars_ptr;
    use type System.Address;
 
@@ -1110,11 +1104,11 @@ package body Files.Application.Windows is
          then
             return;
          end if;
-         Runtime.Column_Resize_Active := True;
-         Runtime.Column_Resize_Changed := False;
-         Runtime.Column_Resize_Target := Files.Types.Detail_Column'Val (Action.Item_Index);
-         Runtime.Column_Resize_Origin_X := Action.Cursor_Position;
-         Runtime.Column_Resize_Origin_W := Action.Scroll_Drag_Anchor;
+         Runtime.Column_Resize.Active := True;
+         Runtime.Column_Resize.Changed := False;
+         Runtime.Column_Resize.Target := Files.Types.Detail_Column'Val (Action.Item_Index);
+         Runtime.Column_Resize.Origin_X := Action.Cursor_Position;
+         Runtime.Column_Resize.Origin_W := Action.Scroll_Drag_Anchor;
          return;
       end if;
 
@@ -1129,11 +1123,11 @@ package body Files.Application.Windows is
          then
             return;
          end if;
-         Runtime.Column_Reorder_Active := True;
-         Runtime.Column_Reorder_Target := Files.Types.Detail_Column'Val (Action.Item_Index);
-         Runtime.Column_Reorder_Origin_X := Action.Cursor_Position;
-         Runtime.Column_Reorder_Started := False;
-         Runtime.Column_Reorder_Sort := Action.Command;
+         Runtime.Column_Reorder.Active := True;
+         Runtime.Column_Reorder.Target := Files.Types.Detail_Column'Val (Action.Item_Index);
+         Runtime.Column_Reorder.Origin_X := Action.Cursor_Position;
+         Runtime.Column_Reorder.Started := False;
+         Runtime.Column_Reorder.Sort := Action.Command;
          return;
       end if;
 
@@ -1144,17 +1138,17 @@ package body Files.Application.Windows is
       --  additive drag can union against it without the per-frame reapply
       --  erasing it.
       if Action.Kind = Files.Events.Marquee_Begin_Input_Action then
-         Runtime.Marquee_Active := True;
-         Runtime.Marquee_Moved := False;
-         Runtime.Marquee_Last_X := Integer'First;
-         Runtime.Marquee_Origin_X := Action.Cursor_Position;
-         Runtime.Marquee_Origin_Y := Action.Settings_Field;
-         Runtime.Marquee_Additive := Action.Toggle_Selection;
-         Runtime.Marquee_Base := Files.Interaction.Selected_Visible_Indices (Runtime.Model);
-         Runtime.Marquee_Rect_X := 0;
-         Runtime.Marquee_Rect_Y := 0;
-         Runtime.Marquee_Rect_W := 0;
-         Runtime.Marquee_Rect_H := 0;
+         Runtime.Marquee.Active := True;
+         Runtime.Marquee.Moved := False;
+         Runtime.Marquee.Last_X := Integer'First;
+         Runtime.Marquee.Origin_X := Action.Cursor_Position;
+         Runtime.Marquee.Origin_Y := Action.Settings_Field;
+         Runtime.Marquee.Additive := Action.Toggle_Selection;
+         Runtime.Marquee.Base := Files.Interaction.Selected_Visible_Indices (Runtime.Model);
+         Runtime.Marquee.Rect_X := 0;
+         Runtime.Marquee.Rect_Y := 0;
+         Runtime.Marquee.Rect_W := 0;
+         Runtime.Marquee.Rect_H := 0;
          return;
       end if;
 
@@ -1491,88 +1485,13 @@ package body Files.Application.Windows is
         (Runtime_Window'
            (Handle          => Handle,
             A11y_Key        => Files.Accessibility.New_Window_Key,
-            Shown_Accessibility => <>,
             Model           => Startup_Window.Model,
             Settings        => Settings,
             Synced_Settings => Settings,
             Settings_Path   => Settings_Path,
-            Pressed_Keys    => [others => False],
-            Key_Pressed_At  => [others => Never],
-            Key_Last_Fired  => [others => Never],
-            Held_Physical   => [others => Glfw.Input.Keys.Unknown],
-            Left_Mouse_Down => False,
-            Drag_Source_Index => 0,
-            Scrollbar_Drag_Target => Files.Events.Scroll_Auto,
-            Scrollbar_Drag_Anchor => 0,
-            Column_Resize_Active => False,
-            Column_Resize_Changed => False,
-            Column_Resize_Target => Files.Types.Modified_Column,
-            Column_Resize_Origin_X => 0,
-            Column_Resize_Origin_W => 0,
-            Column_Reorder_Active => False,
-            Column_Reorder_Target => Files.Types.Modified_Column,
-            Column_Reorder_Origin_X => 0,
-            Column_Reorder_Started => False,
-            Column_Reorder_Sort => Files.Commands.No_Command,
-            Marquee_Active   => False,
-            Marquee_Origin_X => 0,
-            Marquee_Origin_Y => 0,
-            Marquee_Moved    => False,
-            Marquee_Additive => False,
-            Marquee_Base     => <>,
-            Marquee_Rect_X   => 0,
-            Marquee_Rect_Y   => 0,
-            Marquee_Rect_W   => 0,
-            Marquee_Rect_H   => 0,
-            Marquee_Last_X        => Integer'First,
-            Marquee_Last_Y        => Integer'First,
-            Marquee_Last_Scroll   => 0,
-            Marquee_Auto_Scrolled => False,
-            Last_Click_Item => 0,
-            Last_Click_Path => Null_Unbounded_String,
-            Last_Click_Time => Never,
-            Deferred_Click_Pending => False,
-            Deferred_Click  => <>,
-            Deferred_Modifiers => Guikit.Input.No_Modifiers,
-            Type_Ahead_Input_At => Never,
-            Text            => <>,
-            Text_Ready      => False,
             Font_Pixel_Size => Settings.Font_Pixel_Size,
-            Shown_Title => Null_Unbounded_String,
-            Text_Failed_Size => 0,
-            Text_Failed_At   => Ada.Real_Time.Time_First,
-            Glyph_Text => <>,
-            Glyph_Overlay_Text => <>,
-            Glyph_Text_Valid => False,
-            Text_Glyphs => <>,
-            Vulkan          => <>,
             Shown           => True,
-            Fallback_Frames => 0,
-            Frame_Cache_Valid    => False,
-            Presented_Once             => False,
-            Last_Present_Palette_Open  => False,
-            Last_Present_Settings_Open => False,
-            Present_Grace              => 0,
-            Snapshots            => <>,
-            Slot_Listings        => [others => 0],
-            Current_Slot         => 1,
-            Drawn_Slot           => 1,
-            Snapshot_Valid       => False,
-            Snapshot_Minute      => 0,
-            Snapshot_Built_At    => Never,
-            Cached_Scroll_Revision => 0,
-            Cached_Model_Revision => 0,
-            Cached_Settings_Key  => <>,
-            Cached_Frame         => <>,
-            Cached_Inputs        => <>,
-            Cached_Minute        => 0,
-            Last_Glyph_Count => 0,
-            Last_Missing_Glyph_Count => 0,
-            Last_Present_Status => Guikit.Vulkan.Vulkan_Not_Initialized,
-            Last_Watch_Poll => Never,
-            Folder_Size_Revision => Natural'Last,
-            Folder_Size_Busy     => False,
-            Watch => <>));
+            others          => <>));
       Files.Model.Set_Background_Transfers
         (Runtime_Windows.Reference (Runtime_Windows.Last_Index).Model, True);
       --  The screen reader looks at the window itself; answer it there.
@@ -1608,15 +1527,15 @@ package body Files.Application.Windows is
    --  the settings file is written once, here.
    procedure End_Column_Resize_Drag (Runtime : in out Runtime_Window) is
    begin
-      if Runtime.Column_Resize_Active then
+      if Runtime.Column_Resize.Active then
          Files.Interaction.End_Column_Resize
            (Model         => Runtime.Model,
             Settings      => Runtime.Settings,
             Settings_Path => To_String (Runtime.Settings_Path),
-            Changed       => Runtime.Column_Resize_Changed);
+            Changed       => Runtime.Column_Resize.Changed);
       end if;
-      Runtime.Column_Resize_Active := False;
-      Runtime.Column_Resize_Changed := False;
+      Runtime.Column_Resize.Active := False;
+      Runtime.Column_Resize.Changed := False;
    end End_Column_Resize_Drag;
 
    procedure Update_Column_Resize_Drag
@@ -1628,7 +1547,7 @@ package body Files.Application.Windows is
    is
       Result : Files.Interaction.Interaction_Result;
    begin
-      if not Runtime.Column_Resize_Active then
+      if not Runtime.Column_Resize.Active then
          return;
       elsif not Mouse_Down or else Window_W = 0 or else Frame_W = 0 then
          End_Column_Resize_Drag (Runtime);
@@ -1637,13 +1556,13 @@ package body Files.Application.Windows is
 
       Files.Interaction.Apply_Column_Resize
         (Settings     => Runtime.Settings,
-         Column       => Runtime.Column_Resize_Target,
-         Origin_X     => Runtime.Column_Resize_Origin_X,
-         Origin_Width => Runtime.Column_Resize_Origin_W,
+         Column       => Runtime.Column_Resize.Target,
+         Origin_X     => Runtime.Column_Resize.Origin_X,
+         Origin_Width => Runtime.Column_Resize.Origin_W,
          Current_X    => Scale_Coordinate (Cursor_X, Window_W, Frame_W),
          Result       => Result);
       if Result.Settings_Changed then
-         Runtime.Column_Resize_Changed := True;
+         Runtime.Column_Resize.Changed := True;
       end if;
    end Update_Column_Resize_Drag;
 
@@ -1664,20 +1583,20 @@ package body Files.Application.Windows is
    is
       X_Frame : Integer;
    begin
-      if not Runtime.Column_Reorder_Active then
+      if not Runtime.Column_Reorder.Active then
          return;
       elsif Window_W = 0 or else Window_H = 0 or else Frame_W = 0 or else Frame_H = 0 then
-         Runtime.Column_Reorder_Active := False;
-         Runtime.Column_Reorder_Started := False;
-         Runtime.Column_Reorder_Sort := Files.Commands.No_Command;
+         Runtime.Column_Reorder.Active := False;
+         Runtime.Column_Reorder.Started := False;
+         Runtime.Column_Reorder.Sort := Files.Commands.No_Command;
          return;
       end if;
 
       X_Frame := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
 
       if Mouse_Down then
-         if abs (X_Frame - Runtime.Column_Reorder_Origin_X) > Column_Reorder_Threshold then
-            Runtime.Column_Reorder_Started := True;
+         if abs (X_Frame - Runtime.Column_Reorder.Origin_X) > Column_Reorder_Threshold then
+            Runtime.Column_Reorder.Started := True;
          end if;
          return;
       end if;
@@ -1686,15 +1605,15 @@ package body Files.Application.Windows is
       --  reorder at the drop target; otherwise the press was a plain click and
       --  falls back to the column's sort command (if any), but only when the
       --  release still lands on the cell that was pressed.
-      Runtime.Column_Reorder_Active := False;
+      Runtime.Column_Reorder.Active := False;
 
       if not Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H) then
-         Runtime.Column_Reorder_Started := False;
-         Runtime.Column_Reorder_Sort := Files.Commands.No_Command;
+         Runtime.Column_Reorder.Started := False;
+         Runtime.Column_Reorder.Sort := Files.Commands.No_Command;
          return;
       end if;
 
-      if Runtime.Column_Reorder_Started then
+      if Runtime.Column_Reorder.Started then
          declare
             Y_Frame  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
             Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
@@ -1712,13 +1631,13 @@ package body Files.Application.Windows is
                  (Model         => Runtime.Model,
                   Settings      => Runtime.Settings,
                   Settings_Path => To_String (Runtime.Settings_Path),
-                  Column        => Runtime.Column_Reorder_Target,
+                  Column        => Runtime.Column_Reorder.Target,
                   To_Index      => Drop,
                   Result        => Result);
                Apply_Interaction_Result (Runtime, Result);
             end if;
          end;
-      elsif Runtime.Column_Reorder_Sort /= Files.Commands.No_Command then
+      elsif Runtime.Column_Reorder.Sort /= Files.Commands.No_Command then
          declare
             Y_Frame  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
             Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
@@ -1731,21 +1650,21 @@ package body Files.Application.Windows is
                 (Snapshot, Layout, Natural'Max (0, X_Frame), Y_Frame, Line_Height);
          begin
             if Cell.Present
-              and then Cell.Column = Runtime.Column_Reorder_Target
-              and then Cell.Command = Runtime.Column_Reorder_Sort
+              and then Cell.Column = Runtime.Column_Reorder.Target
+              and then Cell.Command = Runtime.Column_Reorder.Sort
             then
                Dispatch_Click_Action
                  (Runtime,
                   (Kind    => Files.Events.Command_Input_Action,
-                   Command => Runtime.Column_Reorder_Sort,
+                   Command => Runtime.Column_Reorder.Sort,
                    others  => <>),
                   Guikit.Input.No_Modifiers);
             end if;
          end;
       end if;
 
-      Runtime.Column_Reorder_Started := False;
-      Runtime.Column_Reorder_Sort := Files.Commands.No_Command;
+      Runtime.Column_Reorder.Started := False;
+      Runtime.Column_Reorder.Sort := Files.Commands.No_Command;
    end Update_Column_Reorder_Drag;
 
    --  Minimum pointer travel, in frame pixels, before an armed empty-space press
@@ -1792,16 +1711,16 @@ package body Files.Application.Windows is
          Runtime.Scrollbar_Drag_Anchor := 0;
       end if;
       End_Column_Resize_Drag (Runtime);
-      Runtime.Column_Reorder_Active := False;
-      Runtime.Column_Reorder_Started := False;
-      Runtime.Column_Reorder_Sort := Files.Commands.No_Command;
-      Runtime.Marquee_Active := False;
-      Runtime.Marquee_Moved := False;
-      Runtime.Marquee_Base.Clear;
-      Runtime.Marquee_Rect_X := 0;
-      Runtime.Marquee_Rect_Y := 0;
-      Runtime.Marquee_Rect_W := 0;
-      Runtime.Marquee_Rect_H := 0;
+      Runtime.Column_Reorder.Active := False;
+      Runtime.Column_Reorder.Started := False;
+      Runtime.Column_Reorder.Sort := Files.Commands.No_Command;
+      Runtime.Marquee.Active := False;
+      Runtime.Marquee.Moved := False;
+      Runtime.Marquee.Base.Clear;
+      Runtime.Marquee.Rect_X := 0;
+      Runtime.Marquee.Rect_Y := 0;
+      Runtime.Marquee.Rect_W := 0;
+      Runtime.Marquee.Rect_H := 0;
    end Cancel_Background_Gestures_For_Overlay;
 
    --  Append a component overlay's draw commands (its rectangles, text, icons and

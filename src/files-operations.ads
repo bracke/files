@@ -45,8 +45,8 @@ package Files.Operations is
 
    --  Spawn an open action's executable, optionally detached.
    --
-   --  When Detach is True the process is started through Files.Launcher and we do
-   --  not wait for it: the application a user opens a file in may run for hours.
+   --  When Detach is True the process is started through Hostkit.Process.Launch and
+   --  we do not wait for it: the application a user opens a file in may run for hours.
    --  There is therefore no exit status -- Exit_Status stays -1 -- and the result
    --  says only whether the launch began. This is the path the "Open With" picker
    --  and the system-default opener use.

@@ -2,7 +2,6 @@ with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Vectors;
 with Ada.Characters.Handling;
 with Ada.Directories;
-with Ada.Environment_Variables;
 with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Hash;
@@ -12,7 +11,7 @@ with Messages.Arguments;
 with Messages.Result;
 with Messages.Runtime;
 
-with Files_Config;
+with Files.Environment;
 with Files.Capped_Files;
 with Files.Resources;
 
@@ -189,9 +188,9 @@ package body Files.Localization is
    end Normalize_Locale;
 
    function System_Locale return String is
-      LC_All      : constant String := Ada.Environment_Variables.Value ("LC_ALL", "");
-      LC_Messages : constant String := Ada.Environment_Variables.Value ("LC_MESSAGES", "");
-      Lang        : constant String := Ada.Environment_Variables.Value ("LANG", "");
+      LC_All      : constant String := Files.Environment.Value ("LC_ALL");
+      LC_Messages : constant String := Files.Environment.Value ("LC_MESSAGES");
+      Lang        : constant String := Files.Environment.Value ("LANG");
    begin
       if Locale_Memo_Valid
         and then Locale_Memo_LC_All = LC_All
@@ -216,7 +215,7 @@ package body Files.Localization is
    --  System_Locale's answer worked out afresh from the environment.
    function Message_Locale_Variable return String is
       function Set (Name : String) return String is
-        (Ada.Strings.Fixed.Trim (Ada.Environment_Variables.Value (Name, ""), Ada.Strings.Both));
+        (Ada.Strings.Fixed.Trim (Files.Environment.Value (Name), Ada.Strings.Both));
       LC_All      : constant String := Set ("LC_ALL");
       LC_Messages : constant String := Set ("LC_MESSAGES");
    begin
@@ -318,13 +317,9 @@ package body Files.Localization is
 
    function Environment_Locale (Name : String) return String is
    begin
-      if not Ada.Environment_Variables.Exists (Name) then
-         return "";
-      end if;
-
       declare
          Value : constant String :=
-           Ada.Strings.Fixed.Trim (Ada.Environment_Variables.Value (Name), Ada.Strings.Both);
+           Ada.Strings.Fixed.Trim (Files.Environment.Value (Name), Ada.Strings.Both);
       begin
          if Value'Length = 0 then
             return "";
@@ -336,8 +331,8 @@ package body Files.Localization is
 
    function Environment_Portable_Locale (Name : String) return Boolean is
    begin
-      return Ada.Environment_Variables.Exists (Name)
-        and then Portable_Locale (Ada.Environment_Variables.Value (Name));
+      return Files.Environment.Is_Set (Name)
+        and then Portable_Locale (Files.Environment.Value (Name));
    end Environment_Portable_Locale;
 
    function Native_System_Locale return String is
@@ -371,9 +366,7 @@ package body Files.Localization is
          return "";
       end Existing_Value;
    begin
-      if Ada.Environment_Variables.Exists ("HOME") then
-         Home := To_Unbounded_String (Ada.Environment_Variables.Value ("HOME"));
-      end if;
+      Home := To_Unbounded_String (Files.Environment.Value ("HOME"));
 
       if Length (Home) > 0 then
          declare

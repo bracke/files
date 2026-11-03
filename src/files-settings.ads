@@ -215,10 +215,9 @@ package Files.Settings is
    --  value, whether the value is quoted, whether the settings pane edits it,
    --  and whether it is written only when it differs from the default) and one
    --  arm in each of the Scalar_Text and Set_Scalar case statements. Parse,
-   --  To_Text, Make_Draft, Apply_Draft, the draft validation text and
-   --  Field_Diagnostic all iterate this type, so adding a scalar setting means
-   --  adding a literal, a table row and the two arms -- the compiler insists on
-   --  the arms.
+   --  To_Text, Make_Draft, Apply_Draft and the draft validation text all
+   --  iterate this type, so adding a scalar setting means adding a literal, a
+   --  table row and the two arms -- the compiler insists on the arms.
    type Scalar_Setting is
      (Default_View_Mode_Setting,
       Show_Hidden_Files_Setting,
@@ -678,16 +677,6 @@ package Files.Settings is
    function Validate_Draft
      (Draft : Settings_Draft)
       return Settings_Parse_Result;
-
-   --  Validate a single draft field value.
-   --
-   --  @param Field Settings field index used by the settings editor.
-   --  @param Text Candidate field text.
-   --  @return Empty string when valid, otherwise a deterministic diagnostic key.
-   function Field_Diagnostic
-     (Field : Natural;
-      Text  : String)
-      return String;
 
    --  Apply a valid settings draft to an existing settings model.
    --

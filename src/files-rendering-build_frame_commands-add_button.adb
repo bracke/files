@@ -4,7 +4,8 @@ separate (Files.Rendering.Build_Frame_Commands)
       Button_W : Natural;
       Selected : Boolean;
       Hovered  : Boolean := False;
-      Pressed  : Boolean := False)
+      Pressed  : Boolean := False;
+      Enabled  : Boolean := True)
    is
       Button_Y : constant Natural :=
         (if Layout.Bottom_Bar_Height >= 1 then Bottom_Y + 1 else Bottom_Y);
@@ -17,7 +18,9 @@ separate (Files.Rendering.Build_Frame_Commands)
          Button_Y,
          Button_W,
          Button_H,
+         --  A disabled button answers no pointer.
          (if Selected then Selection_Color
+          elsif not Enabled then Bottom_Bar_Color
           elsif Pressed then Pressed_Color
           elsif Hovered then Hover_Color
           else Bottom_Bar_Color));

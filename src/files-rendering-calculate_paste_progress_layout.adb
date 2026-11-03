@@ -2,11 +2,11 @@ separate (Files.Rendering)
    function Calculate_Paste_Progress_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Paste_Progress_Layout
    is
       pragma Unreferenced (Snapshot);
-      Pad       : constant Natural := 12;
+      Pad       : constant Natural := Files.UI.Dialog_Padding;
       Max_Width : constant Natural := Saturating_Multiply (Line_Height, 22);
       Margin    : constant Natural := Saturating_Multiply (Line_Height, 2);
       Inner_W   : constant Natural :=

@@ -35,7 +35,6 @@ is
    --  Every listed entry counts toward the scan cap; only names that match
    --  and folders to descend into are built into full items.
    function Include (Name : String; Kind : Files.Types.Item_Kind) return Boolean is
-      use type Files.Types.Item_Kind;
    begin
       Scanned := Scanned + 1;
       return Kind = Files.Types.Directory_Item

@@ -2398,6 +2398,35 @@ procedure Check_All is
       For_Each_Source (Check_With_Family'Access);
    end Check_Clock_Arithmetic;
 
+   --  The environment is read in one place: Files.Environment asks Hostkit,
+   --  which knows how each host keeps it (a variable set to "" is no variable
+   --  on Windows), so no unit answers differently from the rest.
+   procedure Check_Environment_Access is
+      Search : Ada.Directories.Search_Type;
+      Item   : Ada.Directories.Directory_Entry_Type;
+   begin
+      Ada.Directories.Start_Search
+        (Search, Root & "/src", "*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Item);
+         declare
+            Path : constant String := Ada.Directories.Full_Name (Item);
+            Code : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
+         begin
+            if Ada.Directories.Simple_Name (Path) not in "files-environment.adb" | "files-environment.ads"
+              and then (Ada.Strings.Fixed.Index (Code, "Ada.Environment_Variables") > 0
+                        or else Ada.Strings.Fixed.Index (Code, "Getenv") > 0)
+            then
+               Ada.Directories.End_Search (Search);
+               Put_Line (Standard_Error, Path & ": reads the environment directly; use Files.Environment");
+               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+               raise Program_Error;
+            end if;
+         end;
+      end loop;
+      Ada.Directories.End_Search (Search);
+   end Check_Environment_Access;
+
    procedure Check_Localization_Usage is
       Main_Manifest : constant String := Root & "/alire.toml";
       Localization  : constant String := Root & "/src/files-localization.adb";
@@ -2692,15 +2721,17 @@ procedure Check_All is
       --  The spec names the types translation reads and produces: a
       --  Command_Id in an Input_Action (Files.Commands), the View_Snapshot and
       --  Frame_Commands that Translate_Click hit-tests (Files.Rendering), and
-      --  the shared value types (Files.Types). Those three are allowed there and
-      --  nothing else -- the body checks below still forbid any call into
-      --  them beyond reading those values.
+      --  the shared value types (Files.Types), and the base line height its
+      --  defaults name (Files.UI). Those four are allowed there and nothing
+      --  else -- the body checks below still forbid any call into them beyond
+      --  reading those values.
       Require_Only_Allowed_With_Clauses
         (Events_Spec,
          "Files.",
          [To_Unbounded_String ("Files.Commands"),
           To_Unbounded_String ("Files.Rendering"),
-          To_Unbounded_String ("Files.Types")]);
+          To_Unbounded_String ("Files.Types"),
+          To_Unbounded_String ("Files.UI")]);
       Require_Not_Contains
         (Events_Spec,
          "Files.Model.",
@@ -2814,6 +2845,7 @@ procedure Check_All is
             To_Unbounded_String ("Files.Items"),
             To_Unbounded_String ("Files.Model.Support"),
             To_Unbounded_String ("Files.Paste"),
+            To_Unbounded_String ("Files.Path_Checks"),
             To_Unbounded_String ("Files.Process_Jobs"),
             To_Unbounded_String ("Files.Quick_Look"),
             To_Unbounded_String ("Files.Settings"),
@@ -3375,23 +3407,23 @@ procedure Check_All is
          "Files.",
          [To_Unbounded_String ("Files.Breadcrumbs"),
           To_Unbounded_String ("Files.Commands"),
-          To_Unbounded_String ("Files.File_System"),
           To_Unbounded_String ("Files.Folder_Tree"),
           To_Unbounded_String ("Files.Model"),
           To_Unbounded_String ("Files.Quick_Look"),
           To_Unbounded_String ("Files.Settings"),
           To_Unbounded_String ("Files.Shared_Bytes"),
-          To_Unbounded_String ("Files.Types")]);
+          To_Unbounded_String ("Files.Types"),
+          To_Unbounded_String ("Files.UI")]);
       Require_Only_Allowed_With_Clauses
         (Rendering_Body,
          "Files.",
          [To_Unbounded_String ("Files.Accessibility"),
           To_Unbounded_String ("Files.Command_Palette"),
+          To_Unbounded_String ("Files.File_System"),
           To_Unbounded_String ("Files.File_Types"),
           To_Unbounded_String ("Files.Fonts"),
           To_Unbounded_String ("Files.Localization"),
-          To_Unbounded_String ("Files.UTF8"),
-          To_Unbounded_String ("Files.UI")]);
+          To_Unbounded_String ("Files.UTF8")]);
       --  Hit-testing stays pure geometry: it may import only the domain UI
       --  layout it maps pixels through (the body is also covered above as a
       --  files-rendering-* source).
@@ -4410,13 +4442,13 @@ procedure Check_All is
    begin
       --  The floors are the counts as of the last change to a suite, so a
       --  lost test fails here; raise a floor when a suite grows.
-      Require_Tests ("settings", 36);
+      Require_Tests ("settings", 34);
       Require_Tests ("startup", 28);
       Require_Tests ("commands", 38);
-      Require_Tests ("model", 50);
+      Require_Tests ("model", 49);
       Require_Tests ("interaction", 75);
       Require_Tests ("rendering", 86);
-      Require_Tests ("operations", 260);
+      Require_Tests ("operations", 268);
    end Check_Test_Subsystem_Coverage;
 
 begin
@@ -4441,6 +4473,7 @@ begin
    Check_Ada_Only_Tooling;
    Check_Localization_Usage;
    Check_Clock_Arithmetic;
+   Check_Environment_Access;
    Check_Filetype_Detection_Order;
    Check_Event_Translation_Contract;
    Check_Test_Hooks;

@@ -2,7 +2,11 @@ separate (Files_Suite.Commands)
    procedure Test_Command_Identifiers_Registered (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
    begin
-      Files_Suite.Support.Assert_Equal (Files.Commands.Command_Count, 73, "all expected commands are registered");
+      Files_Suite.Support.Assert_Equal
+        (Natural'(Files.Commands.Registered_Command_Id'Pos (Files.Commands.Registered_Command_Id'Last)
+           - Files.Commands.Registered_Command_Id'Pos (Files.Commands.Registered_Command_Id'First) + 1),
+         73,
+         "all expected commands are registered");
       Assert (Files.Commands.Contains ("status.free_space_toggle"),
               "free/used-space toggle command identifier is registered");
       Assert (Files.Commands.Contains ("navigate.recent"), "recent-view command identifier is registered");

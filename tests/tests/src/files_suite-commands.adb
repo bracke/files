@@ -13,6 +13,7 @@ with AUnit.Test_Cases;
 
 with Files.Application;
 with Files.Application.Windows;
+with Files.Command_Palette;
 with Files.Commands;
 with Files.Controller;
 with Files.File_System;
@@ -20,6 +21,7 @@ with Files.Localization;
 with Files.Model;
 with Files.Operations;
 with Files.Settings;
+with Guikit.Command_Palette;
 with Guikit.Input;
 with Files.Types;
 with Files.UTF8;
@@ -29,7 +31,6 @@ package body Files_Suite.Commands is
 
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;
-   use type Files.Commands.Command_Placement;
    use type Files.Operations.Operation_Status;
    use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;
@@ -55,7 +56,7 @@ package body Files_Suite.Commands is
    procedure Test_Command_Shortcut_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shortcut_Text_And_Search (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shortcut_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Command_Placements (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Selection_Command_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shortcut_Overrides (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Controller_Path_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filter_Focus_And_Palette (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -123,7 +124,7 @@ package body Files_Suite.Commands is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Shortcut_Dispatch'Access, "shortcuts dispatch through the command registry");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Command_Placements'Access, "commands are placed in the toolbar, bottom bar, or palette");
+        (T, Test_Selection_Command_Shortcuts'Access, "selection commands have their shortcuts");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Shortcut_Overrides'Access, "shortcut parsing, override resolution, and conflict lookup");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -219,7 +220,7 @@ package body Files_Suite.Commands is
 
    procedure Test_Shortcut_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-   procedure Test_Command_Placements (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Selection_Command_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Shortcut_Overrides (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

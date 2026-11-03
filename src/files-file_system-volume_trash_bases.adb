@@ -24,7 +24,7 @@ begin
       --  not read at all, so Empty Trash in a test can only reach trashes the
       --  tests made, never a real drive's.
       Roots : constant Root_Entry_Vectors.Vector :=
-        (if Ada.Environment_Variables.Exists ("FILES_TEST_VOLUME_TRASH")
+        (if Files.Environment.Is_Set ("FILES_TEST_VOLUME_TRASH")
          then Root_Entry_Vectors.Empty_Vector
          else Available_Root_Entries);
    begin

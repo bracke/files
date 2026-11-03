@@ -1,3 +1,4 @@
+with Ada.Environment_Variables;
 with Ada.Strings.Unbounded;
 
 with Hostkit.Process;
@@ -12,5 +13,21 @@ package body Files.Environment is
       end if;
       return "";
    end Value;
+
+   function Is_Set (Name : String) return Boolean is
+      Found : Ada.Strings.Unbounded.Unbounded_String;
+   begin
+      return Hostkit.Process.Environment_Value (Name, Found);
+   end Is_Set;
+
+   procedure Set (Name : String; Value : String) is
+   begin
+      Ada.Environment_Variables.Set (Name, Value);
+   end Set;
+
+   procedure Clear (Name : String) is
+   begin
+      Ada.Environment_Variables.Clear (Name);
+   end Clear;
 
 end Files.Environment;

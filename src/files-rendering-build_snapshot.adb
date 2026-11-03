@@ -12,8 +12,6 @@ separate (Files.Rendering)
    is
       Snapshot : View_Snapshot;
 
-      function Natural_Text (Value : Natural) return String renames Files.Types.Natural_Text;
-
       function Complete_RGBA_Image
         (Width, Height : Natural;
          Pixel_Count   : Ada.Containers.Count_Type) return Boolean

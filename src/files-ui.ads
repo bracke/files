@@ -12,6 +12,17 @@ with Guikit.Segmented;
 --  Files.Localization; the geometry it composes from does not.
 package Files.UI is
 
+   --  The text line height every layout is measured at before the font
+   --  size scales it, and the one a caller that names none gets.
+   Base_Line_Height : constant := 20;
+
+   --  The inset of the bottom bar's status fields (the counts and the free
+   --  space) from their edges, which the splitter and the renderer share.
+   Status_Field_Padding : constant := 4;
+
+   --  The inset of a modal dialog's content from its frame.
+   Dialog_Padding : constant := 12;
+
    --  Calculate bottom-bar section and button rectangles, sizing the view-mode,
    --  sort, and info controls to their localized labels.
    --
@@ -23,7 +34,7 @@ package Files.UI is
    function Calculate_Bottom_Bar_Layout
      (Width       : Natural;
       Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Base_Line_Height)
       return Guikit.Layout.Bottom_Bar_Layout;
 
    --  Width of the sort dropdown menu: sized to the widest sort-field label (plus
@@ -33,7 +44,7 @@ package Files.UI is
    --  @param Line_Height Text line height in pixels.
    --  @return Sort-menu width in pixels.
    function Sort_Menu_Width
-     (Line_Height : Positive := 20)
+     (Line_Height : Positive := Base_Line_Height)
       return Natural;
 
    --  Height of the toolbar at Line_Height, as the layout and every hit-test
@@ -60,7 +71,7 @@ package Files.UI is
    function Sort_Menu_Visible_Width
      (Width       : Natural;
       Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Base_Line_Height)
       return Natural;
 
    --  Geometry of the open sort dropdown: the menu rectangle (it opens upward
@@ -89,7 +100,7 @@ package Files.UI is
      (Width       : Natural;
       Height      : Natural;
       Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Base_Line_Height)
       return Sort_Menu_Layout;
 
    --  The sort field a dropdown row shows: rows follow Sort_Field's
@@ -118,7 +129,7 @@ package Files.UI is
    --  @param Line_Height Text line height in pixels.
    --  @return Scope chip width in pixels that fits the longest scope label.
    function Filter_Scope_Chip_Width
-     (Line_Height : Positive := 20)
+     (Line_Height : Positive := Base_Line_Height)
       return Natural;
 
    --  Calculate settings add/remove button rectangles, sizing each button to
@@ -131,7 +142,7 @@ package Files.UI is
    function Calculate_Settings_Entry_Button_Layout
      (Pane_X      : Natural;
       Pane_Width  : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Base_Line_Height)
       return Guikit.Layout.Settings_Entry_Button_Layout;
 
    --  Partition the bottom-bar status region into the interactive hidden-files
@@ -149,6 +160,8 @@ package Files.UI is
    --  @param Divider_X X of the dividing rule, or zero when there is no field.
    --  @param Free_Field_X Left edge of the free-space text box, or zero.
    --  @param Free_Field_Width Width of the free-space text box, or zero.
+   --  @param Free_Region_Width Width of the free-space field's interactive
+   --    region, from the divider to the region's right edge, or zero.
    --  @param Line_Height Text line height used to reserve a legible count field.
    procedure Split_Status_Region
      (Info_X           : Natural;
@@ -158,6 +171,7 @@ package Files.UI is
       Divider_X        : out Natural;
       Free_Field_X     : out Natural;
       Free_Field_Width : out Natural;
-      Line_Height      : Positive := 20);
+      Free_Region_Width : out Natural;
+      Line_Height      : Positive := Base_Line_Height);
 
 end Files.UI;

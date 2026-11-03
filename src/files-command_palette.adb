@@ -47,7 +47,12 @@ package body Files.Command_Palette is
                Result.Append
                  (Guikit.Command_Palette.Command'
                     (Id          => Files.Commands.Command_Id'Pos (Id),
-                     Identifier  => To_Unbounded_String (Files.Commands.Identifier (Id)),
+                     --  Searched, never shown: the command's name and every
+                     --  spelling of its shortcuts ("ctrl+p", "option+...", the
+                     --  secondary one), so typing a shortcut finds it.
+                     Identifier  =>
+                       To_Unbounded_String
+                         (Files.Commands.Identifier (Id) & ASCII.HT & Files.Commands.Shortcut_Search_Text (Id)),
                      Label       => Localized (Files.Commands.Name_Key (Id)),
                      Description => Localized (Files.Commands.Description_Key (Id)),
                      Shortcut    =>

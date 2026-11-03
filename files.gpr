@@ -15,7 +15,7 @@ project Files is
    package Compiler is
       for Default_Switches ("Ada") use
         Files_Config.Ada_Compiler_Switches &
-          ("-gnat2022", "-gnatyM120", "-gnatX", "-gnatwU", "-gnatwC", "-gnatwe");
+          ("-gnat2022", "-gnatyM120", "-gnatX", "-gnatwu", "-gnatwC", "-gnatwe");
    end Compiler;
 
    --  Bytes out as bytes in. Alire's generated switches carry -gnatW8 and the

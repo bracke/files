@@ -8,19 +8,8 @@ is
    File   : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
    Buffer : Ada.Streams.Stream_Element_Array (1 .. 32);
    Last   : Ada.Streams.Stream_Element_Offset;
-
-   function Is_PNG return Boolean is
-   begin
-      --  Width and height are meaningful only in the mandatory first IHDR
-      --  chunk.  A signature alone is not enough: arbitrary bytes at these
-      --  offsets must not be presented as image dimensions.
-      return Last >= 24
-        and then Matches_Signature (Buffer, Last, Files.Images.PNG_Magic)
-        and then Buffer (9 .. 12) = [0, 0, 0, 13]
-        and then Buffer (13 .. 16) =
-          [Character'Pos ('I'), Character'Pos ('H'),
-           Character'Pos ('D'), Character'Pos ('R')];
-   end Is_PNG;
+   Width  : Natural;
+   Height : Natural;
 
    function JPEG_Token return String is
       Segment_Buffer : Ada.Streams.Stream_Element_Array (1 .. 9);
@@ -124,13 +113,11 @@ begin
    end if;
    Read_Descriptor (File, Buffer, Last);
 
-   if Filetype = "image/png" and then Is_PNG then
-      declare
-         Token : constant String := "image.dimensions|" & Dimensions_Text (U32_BE (Buffer, 17), U32_BE (Buffer, 21));
-      begin
-         Close_Read_Descriptor (File);
-         return Token;
-      end;
+   --  Width and height mean something only in the mandatory first IHDR
+   --  chunk; a signature alone is not enough.
+   if Filetype = "image/png" and then Files.Images.PNG_Header (Buffer (1 .. Last), Width, Height) then
+      Close_Read_Descriptor (File);
+      return "image.dimensions|" & Dimensions_Text (Width, Height);
    elsif Filetype = "image/jpeg"
      and then Last >= 2
      and then Buffer (1) = 16#FF#

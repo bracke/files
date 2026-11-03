@@ -24,9 +24,9 @@ begin
          Result := Make_Result (Controller_Selection_Moved);
          return;
       else
-         --  Enter is applied on the Interaction seam (choosing a label writes
-         --  settings, which the read-only controller cannot); every other key
-         --  is consumed so the grid behind the picker stays put.
+         --  Enter is applied on the Interaction seam, by the routine a click on
+         --  a swatch uses; every other key is consumed so the grid behind the
+         --  picker stays put.
          Result := Make_Result (Controller_Ignored);
          return;
       end if;

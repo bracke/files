@@ -22,7 +22,6 @@ package body Files.Job_Transports is
    use type Ada.Directories.File_Kind;
    use type Ada.Streams.Stream_Element_Array;
    use type Ada.Streams.Stream_Element_Offset;
-   use type Hostkit.Lease_Files.Lease_Identity;
    use type Hostkit.Lease_Files.Open_Outcome;
    use type Interfaces.Unsigned_64;
    use type Files.Private_Directories.Create_Result;
@@ -629,7 +628,6 @@ package body Files.Job_Transports is
    is
       Search       : Ada.Directories.Search_Type;
       Item         : Ada.Directories.Directory_Entry_Type;
-      Lease_Path   : constant String := Hostkit.Fs.Join (Directory, Lease_Name);
       Marker_Path  : constant String := Hostkit.Fs.Join (Directory, Marker_Name);
       Marker_Temp  : constant String := Marker_Path & ".tmp";
       Witness_Name : constant String := Witness_Path (Directory);

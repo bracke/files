@@ -14,7 +14,6 @@ separate (Files.Application.Windows)
       --  to re-present, so an idle frame whose commands are unchanged skips the
       --  glyph/vertex/submit/present work entirely.
       Frame_Rebuilt : Boolean := False;
-      use type Ada.Real_Time.Time;
       use type Ada.Real_Time.Time_Span;
       use type Guikit.Draw.Text_Command_Vectors.Vector;
    begin
@@ -116,11 +115,11 @@ separate (Files.Application.Windows)
             Has_Press      => Has_Press_Now,
             Drag_Item      => Runtime.Drag_Source_Index,
             Has_Drag       => Has_Drag_Now,
-            Marquee_Active => Runtime.Marquee_Active,
-            Marquee_X      => Runtime.Marquee_Rect_X,
-            Marquee_Y      => Runtime.Marquee_Rect_Y,
-            Marquee_W      => Runtime.Marquee_Rect_W,
-            Marquee_H      => Runtime.Marquee_Rect_H);
+            Marquee_Active => Runtime.Marquee.Active,
+            Marquee_X      => Runtime.Marquee.Rect_X,
+            Marquee_Y      => Runtime.Marquee.Rect_Y,
+            Marquee_W      => Runtime.Marquee.Rect_W,
+            Marquee_H      => Runtime.Marquee.Rect_H);
          Inputs_Match : constant Boolean :=
            Runtime.Frame_Cache_Valid
            and then Runtime.Cached_Minute = Current_Minute
@@ -148,11 +147,11 @@ separate (Files.Application.Windows)
                  Drag_X      => Hover_X,
                  Drag_Y      => Hover_Y,
                  Has_Drag    => Has_Drag_Now,
-                 Marquee_Active => Runtime.Marquee_Active,
-                 Marquee_X   => Runtime.Marquee_Rect_X,
-                 Marquee_Y   => Runtime.Marquee_Rect_Y,
-                 Marquee_W   => Runtime.Marquee_Rect_W,
-                 Marquee_H   => Runtime.Marquee_Rect_H);
+                 Marquee_Active => Runtime.Marquee.Active,
+                 Marquee_X   => Runtime.Marquee.Rect_X,
+                 Marquee_Y   => Runtime.Marquee.Rect_Y,
+                 Marquee_W   => Runtime.Marquee.Rect_W,
+                 Marquee_H   => Runtime.Marquee.Rect_H);
             Runtime.Cached_Inputs := Inputs;
             Runtime.Cached_Minute := Current_Minute;
             Runtime.Frame_Cache_Valid := True;

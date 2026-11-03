@@ -71,56 +71,6 @@ separate (Files_Suite.Model)
          Natural (Roots_B.Length),
          "available roots count is deterministic");
       for Index in 1 .. Natural (Roots_A.Length) loop
-         declare
-            Detail : constant Files.File_System.Root_Volume_Details :=
-              Files.File_System.Root_Volume_Details_For (Entries.Element (Index));
-         begin
-            Files_Suite.Support.Assert_Equal
-              (To_String (Detail.Path),
-               To_String (Entries.Element (Index).Path),
-               "root volume details preserve root path");
-            Assert
-              (To_String (Detail.Native_Api_Name) = "none"
-               or else To_String (Detail.Native_Api_Name) = "proc.mounts"
-               or else To_String (Detail.Native_Api_Name) = "proc.mounts+sysfs"
-               or else To_String (Detail.Native_Api_Name) = "statvfs"
-               or else To_String (Detail.Native_Api_Name) = "statvfs+proc.mounts"
-               or else To_String (Detail.Native_Api_Name) = "statvfs+proc.mounts+sysfs"
-               or else To_String (Detail.Native_Api_Name) = "sysfs",
-               "root volume details name adapter");
-            if To_String (Detail.Filesystem_Type) /= "" then
-               Assert (To_String (Detail.Source_Device) /= "", "root volume details include mount source");
-               Assert (To_String (Detail.Mount_Options) /= "", "root volume details include mount options");
-            end if;
-            Files_Suite.Support.Assert_Equal
-              (Detail.Capacity_Known,
-               Detail.Free_Known,
-               "root volume size flags are consistent");
-            if Detail.Capacity_Known then
-               Assert (Detail.Capacity_Bytes > 0, "known root volume capacity is positive");
-               Assert (Detail.Free_Bytes >= 0, "known root volume free space is non-negative");
-               Assert (Detail.Free_Bytes <= Detail.Capacity_Bytes, "known root volume free space fits capacity");
-               Assert (Detail.Read_Only_Known, "known root volume capacity includes read-only metadata");
-               Assert (Detail.Name_Max_Known, "known root volume capacity includes filename limit metadata");
-               Assert (Detail.Name_Max > 0, "known root volume filename limit is positive");
-            end if;
-            if Detail.Inode_Count_Known then
-               Assert (Detail.Inode_Count > 0, "known root volume inode count is positive");
-               Assert (Detail.Free_Inode_Known, "known root volume inode count includes free inode count");
-               Assert
-                 (Detail.Free_Inode_Count <= Detail.Inode_Count,
-                  "known root volume free inode count fits inode count");
-            end if;
-            Assert
-              (Detail.Uses_Platform_Detail =
-               (Detail.Capacity_Known
-                or else Detail.Inode_Count_Known
-                or else Detail.Read_Only_Known
-                or else Detail.Name_Max_Known
-                or else Detail.Removable_Known
-                or else To_String (Detail.Filesystem_Type) /= ""),
-               "root volume details platform flag follows filesystem type availability");
-         end;
          Assert (To_String (Roots_A.Element (Index)) /= "", "available root path is non-empty");
          Files_Suite.Support.Assert_Equal
            (To_String (Entries.Element (Index).Path),

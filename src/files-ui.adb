@@ -11,7 +11,7 @@ package body Files.UI is
    function Calculate_Bottom_Bar_Layout
      (Width       : Natural;
       Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Base_Line_Height)
       return Guikit.Layout.Bottom_Bar_Layout
    is
       Cell_W : constant Natural := Caret_Advance_Width (Line_Height);
@@ -42,7 +42,7 @@ package body Files.UI is
    end Calculate_Bottom_Bar_Layout;
 
    function Sort_Menu_Width
-     (Line_Height : Positive := 20)
+     (Line_Height : Positive := Base_Line_Height)
       return Natural
    is
       Cell_W : constant Natural := Caret_Advance_Width (Line_Height);
@@ -77,7 +77,7 @@ package body Files.UI is
      (Width       : Natural;
       Height      : Natural;
       Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Base_Line_Height)
       return Sort_Menu_Layout
    is
       Bottom    : constant Bottom_Bar_Layout :=
@@ -107,7 +107,7 @@ package body Files.UI is
    function Sort_Menu_Visible_Width
      (Width       : Natural;
       Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Base_Line_Height)
       return Natural is
      (Calculate_Sort_Menu_Layout (Width, 0, Sort_Field, Line_Height).Width);
 
@@ -133,7 +133,7 @@ package body Files.UI is
    end View_Mode_Segments;
 
    function Filter_Scope_Chip_Width
-     (Line_Height : Positive := 20)
+     (Line_Height : Positive := Base_Line_Height)
       return Natural
    is
       Cell_W : constant Natural := Caret_Advance_Width (Line_Height);
@@ -156,7 +156,7 @@ package body Files.UI is
    function Calculate_Settings_Entry_Button_Layout
      (Pane_X      : Natural;
       Pane_Width  : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Base_Line_Height)
       return Guikit.Layout.Settings_Entry_Button_Layout
    is
       Cell_W : constant Natural := Caret_Advance_Width (Line_Height);
@@ -179,9 +179,10 @@ package body Files.UI is
       Divider_X        : out Natural;
       Free_Field_X     : out Natural;
       Free_Field_Width : out Natural;
-      Line_Height      : Positive := 20)
+      Free_Region_Width : out Natural;
+      Line_Height      : Positive := Base_Line_Height)
    is
-      Pad        : constant Natural := 4;
+      Pad        : constant Natural := Status_Field_Padding;
       Div_Gap    : constant Natural := 8;
       Count_Cell : constant Natural := Caret_Advance_Width (Line_Height);
       --  Preserve enough room for a representative compact count such as
@@ -201,6 +202,7 @@ package body Files.UI is
          Divider_X        := 0;
          Free_Field_X     := 0;
          Free_Field_Width := 0;
+         Free_Region_Width := 0;
          return;
       end if;
 
@@ -208,6 +210,9 @@ package body Files.UI is
       Divider_X        := (if Free_Field_X > Div_Gap then Free_Field_X - Div_Gap else 0);
       Toggle_Width     := (if Divider_X > Info_X then Divider_X - Info_X else 0);
       Free_Field_Width := Saturating_Add (Free_Label_Width, Pad);
+      Free_Region_Width :=
+        (if Saturating_Add (Info_X, Info_Width) > Divider_X then Saturating_Add (Info_X, Info_Width) - Divider_X
+         else 0);
    end Split_Status_Region;
 
 end Files.UI;

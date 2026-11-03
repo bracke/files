@@ -215,7 +215,6 @@ separate (Files.Application.Windows.Smoke)
          --  A pass that raised every time after startup froze every window
          --  once; it is counted, and any count fails the smoke.
          declare
-            use type Interfaces.Unsigned_32;
             Window : Runtime_Window renames Runtime_Windows (1);
             Settle_Passes : constant := 10;
             Before : Interfaces.Unsigned_32;

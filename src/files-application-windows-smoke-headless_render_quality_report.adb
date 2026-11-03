@@ -1,5 +1,4 @@
 with Files.Shared_Bytes;
-with Ada.Calendar;
 
 separate (Files.Application.Windows.Smoke)
    function Headless_Render_Quality_Report
@@ -46,7 +45,7 @@ separate (Files.Application.Windows.Smoke)
                    (Snapshot    => Snapshot,
                     Width       => Width,
                     Height      => Height,
-                    Line_Height => 20);
+                    Line_Height => Files.UI.Base_Line_Height);
                Drag_Snapshot : Files.Rendering.View_Snapshot := Snapshot;
                Text     : Files.Rendering.Text_Renderer;
                Text_Status : constant Files.Rendering.Text_Render_Status :=
@@ -114,7 +113,7 @@ separate (Files.Application.Windows.Smoke)
                       (Snapshot        => Drag_Snapshot,
                        Width           => Width,
                        Height          => Height,
-                       Line_Height     => 20,
+                       Line_Height     => Files.UI.Base_Line_Height,
                        Hover_X         => Natural'Min (Width, 96),
                        Hover_Y         => Natural'Min (Height, 96),
                        Has_Hover       => Width > 0 and then Height > 0,

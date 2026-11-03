@@ -166,9 +166,6 @@ package body Files.Archive_Writing is
 
       for Member of Entries loop
          declare
-            Name : constant String := To_String (Member.Name);
-            Is_Directory_Entry : constant Boolean :=
-              Name /= "" and then Name (Name'Last) = '/';
             Path_Bytes : constant U64 :=
               U64 (Ada.Strings.Unbounded.Length (Member.Name));
          begin

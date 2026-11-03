@@ -6,7 +6,7 @@ separate (Files.Rendering)
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := 20;
+      Line_Height : Positive := Files.UI.Base_Line_Height;
       Hover_X     : Natural := 0;
       Hover_Y     : Natural := 0;
       Has_Hover   : Boolean := False;
@@ -568,24 +568,7 @@ separate (Files.Rendering)
             Border_Color => Border_Color);
       end Add_Input_Field;
 
-      procedure Add_Drop_Shadow
-        (X        : Natural;
-         Y        : Natural;
-         Shadow_W : Natural;
-         Shadow_H : Natural) is
-      begin
-         Guikit.Widgets.Draw_Drop_Shadow
-           (Rectangles  => Result.Rectangles,
-            Clip_Width  => Layout.Width,
-            Clip_Height => Layout.Height,
-            X           => X,
-            Y           => Y,
-            Width       => Shadow_W,
-            Height      => Shadow_H,
-            Color       => Shadow_Color);
-      end Add_Drop_Shadow;
-
-      --  Add_Drop_Shadow into the overlay layer, so an overlay panel's shadow
+      --  A drop shadow in the overlay layer, so an overlay panel's shadow
       --  composites on top of the main grid content like the panel itself.
       procedure Add_Overlay_Drop_Shadow
         (X        : Natural;
@@ -720,7 +703,8 @@ separate (Files.Rendering)
          Button_W : Natural;
          Selected : Boolean;
          Hovered  : Boolean := False;
-         Pressed  : Boolean := False)
+         Pressed  : Boolean := False;
+         Enabled  : Boolean := True)
  is separate;
 
       function Command_Label (Id : Files.Commands.Command_Id) return UString is
@@ -862,16 +846,6 @@ separate (Files.Rendering)
       begin
          return Info_Value (Label_Key, Files.Localization.Text ("status.missing_metadata"));
       end Missing_Info;
-
-      function Integer_Text (Value : Long_Long_Integer) return String is
-         Image : constant String := Long_Long_Integer'Image (Value);
-      begin
-         if Image'Length > 0 and then Image (Image'First) = ' ' then
-            return Image (Image'First + 1 .. Image'Last);
-         end if;
-
-         return Image;
-      end Integer_Text;
 
       function Time_Text
         (Available : Boolean;

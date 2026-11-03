@@ -12,10 +12,10 @@ separate (Files.Application.Windows)
       X_Frame : Integer;
       Y_Frame : Integer;
    begin
-      if not Runtime.Marquee_Active then
+      if not Runtime.Marquee.Active then
          return;
       elsif Window_W = 0 or else Window_H = 0 or else Frame_W = 0 or else Frame_H = 0 then
-         Runtime.Marquee_Active := False;
+         Runtime.Marquee.Active := False;
          return;
       end if;
 
@@ -27,17 +27,17 @@ separate (Files.Application.Windows)
          --  whatever selection the drag produced. A press that never crossed the
          --  threshold left the selection untouched, so an empty-space click that
          --  did not drag stays a no-op.
-         Runtime.Marquee_Active := False;
-         Runtime.Marquee_Rect_W := 0;
-         Runtime.Marquee_Rect_H := 0;
+         Runtime.Marquee.Active := False;
+         Runtime.Marquee.Rect_W := 0;
+         Runtime.Marquee.Rect_H := 0;
          return;
       end if;
 
-      if not Runtime.Marquee_Moved then
-         if abs (X_Frame - Runtime.Marquee_Origin_X) > Marquee_Drag_Threshold
-           or else abs (Y_Frame - Runtime.Marquee_Origin_Y) > Marquee_Drag_Threshold
+      if not Runtime.Marquee.Moved then
+         if abs (X_Frame - Runtime.Marquee.Origin_X) > Marquee_Drag_Threshold
+           or else abs (Y_Frame - Runtime.Marquee.Origin_Y) > Marquee_Drag_Threshold
          then
-            Runtime.Marquee_Moved := True;
+            Runtime.Marquee.Moved := True;
          else
             return;
          end if;
@@ -45,14 +45,14 @@ separate (Files.Application.Windows)
 
       --  Held still, with no auto-scroll going: the band is where it was.
       --  Laying out every item to find that out again held a core.
-      if X_Frame = Runtime.Marquee_Last_X
-        and then Y_Frame = Runtime.Marquee_Last_Y
-        and then Files.Model.Main_View_Scroll_Lines (Runtime.Model) = Runtime.Marquee_Last_Scroll
-        and then not Runtime.Marquee_Auto_Scrolled
+      if X_Frame = Runtime.Marquee.Last_X
+        and then Y_Frame = Runtime.Marquee.Last_Y
+        and then Files.Model.Main_View_Scroll_Lines (Runtime.Model) = Runtime.Marquee.Last_Scroll
+        and then not Runtime.Marquee.Auto_Scrolled
       then
          return;
       end if;
-      Runtime.Marquee_Auto_Scrolled := False;
+      Runtime.Marquee.Auto_Scrolled := False;
 
       --  The selection this drag move sets bumps the model revision, so the
       --  render that follows rebuilds the snapshot once; laying out here reuses
@@ -100,7 +100,7 @@ separate (Files.Application.Windows)
                             (0, Integer'Min (Integer (Current) + Step, Integer (Max_Lines))));
                   begin
                      if New_Lines /= Current then
-                        Runtime.Marquee_Auto_Scrolled := True;
+                        Runtime.Marquee.Auto_Scrolled := True;
                         Files.Model.Set_Main_View_Scroll_Lines (Runtime.Model, New_Lines);
                         --  Rebuild against the new scroll, then re-anchor the
                         --  origin by the scroll's actual pixel shift (which the
@@ -112,8 +112,8 @@ separate (Files.Application.Windows)
                         Main_View :=
                           Files.Rendering.Calculate_Main_View_Layout
                             (Runtime.Snapshots (Runtime.Current_Slot), Layout, Line_Height);
-                        Runtime.Marquee_Origin_Y :=
-                          Runtime.Marquee_Origin_Y
+                        Runtime.Marquee.Origin_Y :=
+                          Runtime.Marquee.Origin_Y
                           - (Integer (Main_View.Scroll_Pixels) - Integer (Old_Px));
                      end if;
                   end;
@@ -139,8 +139,8 @@ separate (Files.Application.Windows)
             Rect_H : Natural;
          begin
             Files.Rendering.Marquee_Rect
-              (Start_X   => Natural'Max (0, Runtime.Marquee_Origin_X),
-               Start_Y   => Natural'Max (0, Runtime.Marquee_Origin_Y),
+              (Start_X   => Natural'Max (0, Runtime.Marquee.Origin_X),
+               Start_Y   => Natural'Max (0, Runtime.Marquee.Origin_Y),
                Current_X => Natural'Max (0, X_Frame),
                Current_Y => Natural'Max (0, Y_Frame),
                X         => Rect_X,
@@ -148,8 +148,8 @@ separate (Files.Application.Windows)
                Width     => Rect_W,
                Height    => Rect_H);
             Files.Rendering.Marquee_Rect
-              (Start_X   => Natural'Max (0, Runtime.Marquee_Origin_X),
-               Start_Y   => Natural'Max (0, Runtime.Marquee_Origin_Y + Scroll),
+              (Start_X   => Natural'Max (0, Runtime.Marquee.Origin_X),
+               Start_Y   => Natural'Max (0, Runtime.Marquee.Origin_Y + Scroll),
                Current_X => Natural'Max (0, X_Frame),
                Current_Y => Natural'Max (0, Y_Frame + Scroll),
                X         => Band_X,
@@ -160,15 +160,15 @@ separate (Files.Application.Windows)
               (Model    => Runtime.Model,
                Hits     =>
                  Files.Rendering.Hit.Items_In_Rect (Items, Band_X, Band_Y, Band_W, Band_H),
-               Additive => Runtime.Marquee_Additive,
-               Base     => Runtime.Marquee_Base);
-            Runtime.Marquee_Rect_X := Rect_X;
-            Runtime.Marquee_Rect_Y := Rect_Y;
-            Runtime.Marquee_Rect_W := Rect_W;
-            Runtime.Marquee_Rect_H := Rect_H;
-            Runtime.Marquee_Last_X := X_Frame;
-            Runtime.Marquee_Last_Y := Y_Frame;
-            Runtime.Marquee_Last_Scroll := Files.Model.Main_View_Scroll_Lines (Runtime.Model);
+               Additive => Runtime.Marquee.Additive,
+               Base     => Runtime.Marquee.Base);
+            Runtime.Marquee.Rect_X := Rect_X;
+            Runtime.Marquee.Rect_Y := Rect_Y;
+            Runtime.Marquee.Rect_W := Rect_W;
+            Runtime.Marquee.Rect_H := Rect_H;
+            Runtime.Marquee.Last_X := X_Frame;
+            Runtime.Marquee.Last_Y := Y_Frame;
+            Runtime.Marquee.Last_Scroll := Files.Model.Main_View_Scroll_Lines (Runtime.Model);
          end;
       end;
    end Update_Marquee_Drag;

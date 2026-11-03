@@ -1,6 +1,6 @@
 with Files.Model;
 with Files.Refresh_Jobs;
-with Files.Controller;
+with Files.UI;
 with Guikit.Vulkan;
 with Glfw;
 with Glfw.Input.Mouse;
@@ -26,7 +26,6 @@ package Files.Application.Windows is
    Desktop_Error : exception;
 
    --  What this host offers a desktop run, found without opening a window.
-   --  (What file drops can do is Files.Drop_Events.Profile.)
    type Desktop_Capabilities is record
       Display_Available       : Boolean := False;
       Vulkan_Available        : Boolean := False;
@@ -303,7 +302,7 @@ private
    type Frame_Inputs is record
       Width          : Natural := 0;
       Height         : Natural := 0;
-      Line_Height    : Positive := 20;
+      Line_Height    : Positive := Files.UI.Base_Line_Height;
       Hover_X        : Natural := 0;
       Hover_Y        : Natural := 0;
       Has_Hover      : Boolean := False;
@@ -315,6 +314,60 @@ private
       Marquee_Y      : Natural := 0;
       Marquee_W      : Natural := 0;
       Marquee_H      : Natural := 0;
+   end record;
+
+   --  Details-header column-resize drag state, owned by the shell exactly like
+   --  the scrollbar drag. Active gates a live resize; Target names the column,
+   --  Origin_X the separator edge, and Origin_W the column's width when the
+   --  drag began, so each move sets width = origin +/- pointer delta. Changed
+   --  records that a move resized the column in memory, so the drag's end
+   --  writes the settings once.
+   type Column_Resize_Drag is record
+      Active   : Boolean := False;
+      Changed  : Boolean := False;
+      Target   : Files.Types.Detail_Column := Files.Types.Modified_Column;
+      Origin_X : Integer := 0;
+      Origin_W : Natural := 0;
+   end record;
+
+   --  Details-header column-reorder drag state, owned by the shell like the
+   --  resize drag. Active gates a live reorder; Target names the dragged
+   --  column, Origin_X the press x, Started records whether the pointer has
+   --  crossed the drag threshold (distinguishing a reorder from a sort click),
+   --  and Sort the sort to apply on a click without a drag.
+   type Column_Reorder_Drag is record
+      Active   : Boolean := False;
+      Target   : Files.Types.Detail_Column := Files.Types.Modified_Column;
+      Origin_X : Integer := 0;
+      Started  : Boolean := False;
+      Sort     : Files.Commands.Command_Id := Files.Commands.No_Command;
+   end record;
+
+   --  Rubber-band (marquee) selection drag state, owned by the shell like the
+   --  drags above. Active gates the gesture; Origin_X/Y is the press point;
+   --  Moved records whether the pointer crossed the drag threshold (below it a
+   --  press is a plain empty-space click that leaves the selection untouched);
+   --  Additive unions with Base (the selection captured at press) for a
+   --  Ctrl/Shift marquee; Rect_* is the live rectangle surfaced to the
+   --  renderer while Active.
+   type Marquee_Drag_State is record
+      Active   : Boolean := False;
+      Origin_X : Integer := 0;
+      Origin_Y : Integer := 0;
+      Moved    : Boolean := False;
+      Additive : Boolean := False;
+      Base     : Files.Rendering.Visible_Index_Vectors.Vector;
+      Rect_X   : Natural := 0;
+      Rect_Y   : Natural := 0;
+      Rect_W   : Natural := 0;
+      Rect_H   : Natural := 0;
+      --  Where the last pass found the cursor and the scroll, and whether it
+      --  auto-scrolled: with neither moved and no scroll under way, the band
+      --  and its selection are what they were, and the pass does nothing.
+      Last_X        : Integer := Integer'First;
+      Last_Y        : Integer := Integer'First;
+      Last_Scroll   : Natural := 0;
+      Auto_Scrolled : Boolean := False;
    end record;
 
    type Runtime_Window is record
@@ -339,51 +392,10 @@ private
       Drag_Source_Index : Natural := 0;
       Scrollbar_Drag_Target : Files.Events.Scroll_Target := Files.Events.Scroll_Auto;
       Scrollbar_Drag_Anchor : Integer := 0;
-      --  Details-header column-resize drag state, owned by the shell exactly like
-      --  the scrollbar drag above. Active gates a live resize; Target names the
-      --  column, Origin_X the separator edge, and Origin_Width the column's width
-      --  when the drag began, so each move sets width = origin +/- pointer delta.
-      --  Changed records that a move resized the column in memory, so the drag's
-      --  end writes the settings once.
-      Column_Resize_Active  : Boolean := False;
-      Column_Resize_Changed : Boolean := False;
-      Column_Resize_Target  : Files.Types.Detail_Column := Files.Types.Modified_Column;
-      Column_Resize_Origin_X : Integer := 0;
-      Column_Resize_Origin_W : Natural := 0;
-      --  Details-header column-reorder drag state, owned by the shell like the
-      --  resize drag. Active gates a live reorder; Target names the dragged
-      --  column, Origin_X the press x, Started records whether the pointer has
-      --  crossed the drag threshold (distinguishing a reorder from a sort
-      --  click), and Sort_Command the sort to apply on a click without a drag.
-      Column_Reorder_Active  : Boolean := False;
-      Column_Reorder_Target  : Files.Types.Detail_Column := Files.Types.Modified_Column;
-      Column_Reorder_Origin_X : Integer := 0;
-      Column_Reorder_Started  : Boolean := False;
-      Column_Reorder_Sort    : Files.Commands.Command_Id := Files.Commands.No_Command;
-      --  Rubber-band (marquee) selection drag state, owned by the shell like the
-      --  drags above. Active gates the gesture; Origin_X/Y is the press point;
-      --  Moved records whether the pointer crossed the drag threshold (below it a
-      --  press is a plain empty-space click that leaves the selection untouched);
-      --  Additive unions with Base (the selection captured at press) for a
-      --  Ctrl/Shift marquee; Rect_* is the live rectangle surfaced to the
-      --  renderer while Active.
-      Marquee_Active   : Boolean := False;
-      Marquee_Origin_X : Integer := 0;
-      Marquee_Origin_Y : Integer := 0;
-      Marquee_Moved    : Boolean := False;
-      Marquee_Additive : Boolean := False;
-      Marquee_Base     : Files.Rendering.Visible_Index_Vectors.Vector;
-      Marquee_Rect_X   : Natural := 0;
-      Marquee_Rect_Y   : Natural := 0;
-      Marquee_Rect_W   : Natural := 0;
-      Marquee_Rect_H   : Natural := 0;
-      --  Where the last pass found the cursor and the scroll, and whether it
-      --  auto-scrolled: with neither moved and no scroll under way, the band
-      --  and its selection are what they were, and the pass does nothing.
-      Marquee_Last_X        : Integer := Integer'First;
-      Marquee_Last_Y        : Integer := Integer'First;
-      Marquee_Last_Scroll   : Natural := 0;
-      Marquee_Auto_Scrolled : Boolean := False;
+      --  The three drags the shell owns besides the scrollbar's.
+      Column_Resize   : Column_Resize_Drag;
+      Column_Reorder  : Column_Reorder_Drag;
+      Marquee         : Marquee_Drag_State;
       Last_Click_Item : Natural := 0;
       Last_Click_Path : Ada.Strings.Unbounded.Unbounded_String;
       Last_Click_Time : Ada.Real_Time.Time := Never;

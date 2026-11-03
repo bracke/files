@@ -4,8 +4,6 @@ with Ada.Strings.Unbounded;
 
 package body Files.Commands is
    use Ada.Strings.Unbounded;
-   use type Files.File_System.Path_Status;
-   use type Files.Types.Focus_Target;
    use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;
 
@@ -28,7 +26,6 @@ package body Files.Commands is
       --  Localization key of the display name, set only where it is not the
       --  default (Name_Key_Prefix & Identifier): a few older keys predate it.
       Name_Key           : Unbounded_String;
-      Placement          : Command_Placement := Command_Palette_Only;
       --  Built-in primary shortcut (user overrides replace it at run time),
       --  and a fixed alternative accelerator.
       Primary            : Shortcut;
@@ -44,18 +41,18 @@ package body Files.Commands is
 
    Traits : constant array (Command_Id) of Command_Traits :=
      [No_Command =>
-        (Identifier => +"", Placement => No_Placement, others => <>),
+        (Identifier => +"", others => <>),
       Select_Small_Icons_Command =>
-        (Identifier => +"view.small", Placement => Bottom_Bar, Primary => (True, GI.Key_1, Ctrl),
+        (Identifier => +"view.small", Primary => (True, GI.Key_1, Ctrl),
          With_Text_Focus | Persists_UI_State => True, others => <>),
       Select_Large_Icons_Command =>
-        (Identifier => +"view.large", Placement => Bottom_Bar, Primary => (True, GI.Key_2, Ctrl),
+        (Identifier => +"view.large", Primary => (True, GI.Key_2, Ctrl),
          With_Text_Focus | Persists_UI_State => True, others => <>),
       Select_Details_Command =>
-        (Identifier => +"view.details", Placement => Bottom_Bar, Primary => (True, GI.Key_3, Ctrl),
+        (Identifier => +"view.details", Primary => (True, GI.Key_3, Ctrl),
          With_Text_Focus | Persists_UI_State => True, others => <>),
       Toggle_Info_Pane_Command =>
-        (Identifier => +"info.toggle", Placement => Bottom_Bar, Primary => (True, GI.Key_4, Ctrl),
+        (Identifier => +"info.toggle", Primary => (True, GI.Key_4, Ctrl),
          With_Text_Focus | Persists_UI_State => True, others => <>),
       Toggle_Hidden_Files_Command =>
         (Identifier => +"view.toggle_hidden", With_Settings_Pane | With_Text_Focus => True, others => <>),
@@ -67,7 +64,7 @@ package body Files.Commands is
         (Identifier => +"settings.toggle", Primary => (True, GI.Key_Comma, Ctrl),
          With_Settings_Pane | With_Text_Focus => True, others => <>),
       Toggle_Sort_Menu_Command =>
-        (Identifier => +"sort.menu.toggle", Name_Key => +"command.sort.menu", Placement => Bottom_Bar, others => <>),
+        (Identifier => +"sort.menu.toggle", Name_Key => +"command.sort.menu", others => <>),
       Sort_By_Name_Command =>
         (Identifier => +"sort.name", Persists_UI_State => True, others => <>),
       Sort_By_Size_Command =>
@@ -79,27 +76,27 @@ package body Files.Commands is
       Sort_By_Changed_Command =>
         (Identifier => +"sort.changed", Persists_UI_State => True, others => <>),
       Focus_Path_Input_Command =>
-        (Identifier => +"path.focus", Placement => Toolbar_Middle, Primary => (True, GI.Key_L, Ctrl),
+        (Identifier => +"path.focus", Primary => (True, GI.Key_L, Ctrl),
          With_Text_Focus => True, others => <>),
       Navigate_Home_Command =>
-        (Identifier => +"navigate.home", Placement => Toolbar_Left, Primary => (True, GI.Key_Home, Alt),
+        (Identifier => +"navigate.home", Primary => (True, GI.Key_Home, Alt),
          With_Text_Focus => True, others => <>),
       Navigate_Back_Command =>
-        (Identifier => +"navigate.back", Placement => Toolbar_Left, Primary => (True, GI.Key_Left, Alt),
+        (Identifier => +"navigate.back", Primary => (True, GI.Key_Left, Alt),
          With_Text_Focus => True, others => <>),
       Navigate_Forward_Command =>
-        (Identifier => +"navigate.forward", Placement => Toolbar_Left, Primary => (True, GI.Key_Right, Alt),
+        (Identifier => +"navigate.forward", Primary => (True, GI.Key_Right, Alt),
          With_Text_Focus => True, others => <>),
       Navigate_Parent_Command =>
-        (Identifier => +"navigate.parent", Placement => Toolbar_Left, Primary => (True, GI.Key_Up, Alt),
+        (Identifier => +"navigate.parent", Primary => (True, GI.Key_Up, Alt),
          With_Text_Focus => True, others => <>),
       Create_File_Command =>
-        (Identifier => +"file.create", Placement => Toolbar_Left, Primary => (True, GI.Key_N, Ctrl), others => <>),
+        (Identifier => +"file.create", Primary => (True, GI.Key_N, Ctrl), others => <>),
       New_Folder_Command =>
-        (Identifier => +"file.new_folder", Placement => Toolbar_Left, Primary => (True, GI.Key_N, Ctrl_Shift),
+        (Identifier => +"file.new_folder", Primary => (True, GI.Key_N, Ctrl_Shift),
          others => <>),
       Delete_Selected_Items_Command =>
-        (Identifier => +"file.delete_selected", Name_Key => +"command.file.delete", Placement => Toolbar_Left,
+        (Identifier => +"file.delete_selected", Name_Key => +"command.file.delete",
          Primary => (True, GI.Key_Delete, None), Secondary => (True, GI.Key_Backspace, None), others => <>),
       Delete_Selected_Permanently_Command =>
         (Identifier => +"file.delete_permanently", Primary => (True, GI.Key_Delete, Shift), others => <>),
@@ -127,7 +124,7 @@ package body Files.Commands is
       Generate_Thumbnails_Command =>
         (Identifier => +"file.generate_thumbnails", others => <>),
       Focus_Filter_Input_Command =>
-        (Identifier => +"filter.focus", Placement => Toolbar_Right, Primary => (True, GI.Key_F, Ctrl),
+        (Identifier => +"filter.focus", Primary => (True, GI.Key_F, Ctrl),
          With_Text_Focus => True, others => <>),
       Open_Command_Palette_Command =>
         (Identifier => +"palette.open", Primary => (True, GI.Key_P, Ctrl),
@@ -136,14 +133,14 @@ package body Files.Commands is
         (Identifier => +"palette.close", Primary => (True, GI.Key_Escape, None),
          With_Root_Selector | With_Settings_Pane | With_Text_Focus => True, others => <>),
       Select_Drive_Command =>
-        (Identifier => +"drive.select", Placement => Toolbar_Left, Primary => (True, GI.Key_D, Ctrl),
+        (Identifier => +"drive.select", Primary => (True, GI.Key_D, Ctrl),
          With_Root_Selector => True, others => <>),
       Open_Selected_Root_Command =>
         (Identifier => +"drive.open_selected", With_Root_Selector => True, others => <>),
       Eject_Selected_Root_Command =>
         (Identifier => +"drive.eject_selected", With_Root_Selector => True, others => <>),
       Clear_Filter_Command =>
-        (Identifier => +"filter.clear", Placement => Toolbar_Right, Primary => (True, GI.Key_F, Ctrl_Shift),
+        (Identifier => +"filter.clear", Primary => (True, GI.Key_F, Ctrl_Shift),
          With_Text_Focus => True, others => <>),
       Select_All_Command =>
         (Identifier => +"selection.select_all", Primary => (True, GI.Key_A, Ctrl), others => <>),
@@ -332,10 +329,6 @@ package body Files.Commands is
       return String
  is separate;
 
-   function Placement_For
-     (Id : Command_Id)
-      return Command_Placement is (Traits (Id).Placement);
-
    function Command_Palette_Visible
      (Id : Command_Id)
       return Boolean is
@@ -346,13 +339,6 @@ package body Files.Commands is
    function Requires_Settings_Path (Id : Command_Id) return Boolean is (Id in Settings_Command_Id);
 
    function Persists_Global_Ui_State (Id : Command_Id) return Boolean is (Traits (Id).Persists_UI_State);
-
-   function Command_Count return Natural is
-   begin
-      return Command_Id'Pos (Registered_Command_Id'Last)
-        - Command_Id'Pos (Registered_Command_Id'First)
-        + 1;
-   end Command_Count;
 
    function Contains
      (Identifier_Text : String)

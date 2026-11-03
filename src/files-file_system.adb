@@ -1,16 +1,13 @@
+with Ada.Streams;
+with Files.Shared_Bytes;
 with Files.Environment;
 with Files.Diagnostics;
 with Ada.Characters.Handling;
 with Ada.Containers.Ordered_Maps;
 with Ada.Directories;
-with Ada.Environment_Variables;
-with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
-
-with Interfaces.C;
-with Interfaces.C.Strings;
 
 with System;
 
@@ -40,11 +37,6 @@ package body Files.File_System is
    use Files.File_System.Support;
    use Files.File_System.Thumbnails;
    use Ada.Strings.Unbounded;
-   use type Interfaces.C.int;
-   use type Interfaces.C.long;
-   use type Interfaces.C.unsigned;
-   use type Interfaces.C.unsigned_long;
-   use type Interfaces.C.Strings.chars_ptr;
    use type Ada.Calendar.Time;
    use type Ada.Directories.File_Kind;
    use type Ada.Streams.Stream_Element;
@@ -53,8 +45,6 @@ package body Files.File_System is
    use type System.Address;
    use type Files.Types.Sort_Field;
    use type Files.Types.Item_Kind;
-
-   package Stream_IO renames Ada.Streams.Stream_IO;
 
    function Read_Bounded_Regular_File
      (Path : String; Max_Bytes : Natural;
@@ -76,8 +66,6 @@ package body Files.File_System is
    is separate;
 
    use type Ada.Streams.Stream_Element_Array;
-
-   use type Ada.Streams.Stream_IO.Count;
 
    use type GNAT.OS_Lib.File_Descriptor;
 
@@ -144,11 +132,6 @@ package body Files.File_System is
    function Symlink_Target_Token (Path : String) return String;
 
    function U16_BE
-     (Buffer : Ada.Streams.Stream_Element_Array;
-      Start  : Ada.Streams.Stream_Element_Offset)
-      return Natural;
-
-   function U32_BE
      (Buffer : Ada.Streams.Stream_Element_Array;
       Start  : Ada.Streams.Stream_Element_Offset)
       return Natural;
@@ -231,11 +214,6 @@ package body Files.File_System is
    function Directory_Count_Token (Path : String) return String is separate;
 
    function U16_BE
-     (Buffer : Ada.Streams.Stream_Element_Array;
-      Start  : Ada.Streams.Stream_Element_Offset)
-      return Natural is separate;
-
-   function U32_BE
      (Buffer : Ada.Streams.Stream_Element_Array;
       Start  : Ada.Streams.Stream_Element_Offset)
       return Natural is separate;
@@ -403,11 +381,6 @@ package body Files.File_System is
       Max_Depth   : Natural := 64)
       return Directory_Size_Result
    is separate;
-
-   function Is_Directory (Item : Directory_Item) return Boolean is
-   begin
-      return Item.Kind = Files.Types.Directory_Item;
-   end Is_Directory;
 
    function Original_Path (Trashed_Path : String) return String;
 
@@ -700,49 +673,9 @@ package body Files.File_System is
       return Recursive_Search_Result
    is separate;
 
-   type Volume_Size_Info is record
-      Capacity_Bytes   : Long_Long_Integer := 0;
-      Free_Bytes       : Long_Long_Integer := 0;
-      Inode_Count      : Long_Long_Integer := 0;
-      Free_Inode_Count : Long_Long_Integer := 0;
-      Name_Max         : Natural := 0;
-      Read_Only        : Boolean := False;
-      Known            : Boolean := False;
-      Inodes_Known     : Boolean := False;
-      Name_Max_Known   : Boolean := False;
-      Read_Only_Known  : Boolean := False;
-   end record;
-
-   type Mount_Metadata is record
-      Source_Device   : Unbounded_String;
-      Filesystem_Type : Unbounded_String;
-      Mount_Options   : Unbounded_String;
-      Removable       : Boolean := False;
-      Removable_Known : Boolean := False;
-      Found           : Boolean := False;
-   end record;
-
-   procedure Volume_Size_For
-     (Path : String;
-      Info : out Volume_Size_Info);
-
-   function Mount_Metadata_For_Root (Path : String) return Mount_Metadata;
-
    function Root_Label (Path : String; Kind : Root_Kind) return String is separate;
 
    function Available_Root_Entries return Root_Entry_Vectors.Vector is separate;
-
-   procedure Volume_Size_For
-     (Path : String;
-      Info : out Volume_Size_Info)
-   is separate;
-
-   function Mount_Metadata_For_Root (Path : String) return Mount_Metadata is separate;
-
-   function Root_Volume_Details_For
-     (Root : Root_Entry)
-      return Root_Volume_Details
-   is separate;
 
    function Mutation_Leaf_Name (Path : String) return String;
 

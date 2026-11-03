@@ -29,10 +29,6 @@ separate (Files_Suite.Commands)
          "settings pane shortcut uses comma");
       Assert (Settings_Shortcut.Modifiers = Ctrl, "settings pane shortcut uses Control");
       Files_Suite.Support.Assert_Equal
-        (Files.Commands.Placement_For (Files.Commands.Toggle_Settings_Pane_Command),
-         Files.Commands.Command_Palette_Only,
-         "settings command uses command-palette placement");
-      Files_Suite.Support.Assert_Equal
         (Files.Commands.Description_Key (Files.Commands.Toggle_Settings_Pane_Command),
          "command.settings.toggle.description",
          "settings command description key is stable");

@@ -129,7 +129,6 @@ package Files_Suite.Support is
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Controller.Controller_Status);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Focus_Target);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Guikit.Input.Key_Code);
-   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Commands.Command_Placement);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Events.Input_Action_Kind);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Color_Label);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Account_Id);

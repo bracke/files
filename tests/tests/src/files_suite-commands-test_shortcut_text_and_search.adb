@@ -64,4 +64,20 @@ separate (Files_Suite.Commands)
         (Files.Commands.Shortcut_Search_Text (Files.Commands.No_Command),
          "",
          "no-command has no shortcut search text");
+
+      --  The palette searches those spellings too: typing an alias finds the
+      --  command although neither its name nor its shown shortcut says it.
+      declare
+         Model   : Files.Model.Window_Model;
+         Palette : Guikit.Command_Palette.Palette;
+         Found   : Boolean := False;
+      begin
+         Guikit.Command_Palette.Set_Commands (Palette, Files.Command_Palette.Commands (Model));
+         Guikit.Command_Palette.Set_Query (Palette, "ctrl+p");
+         for C of Guikit.Command_Palette.Results (Palette) loop
+            Found := Found
+              or else C.Id = Files.Commands.Command_Id'Pos (Files.Commands.Open_Command_Palette_Command);
+         end loop;
+         Assert (Found, "the palette finds a command by a shortcut alias");
+      end;
    end Test_Shortcut_Text_And_Search;

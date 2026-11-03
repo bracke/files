@@ -2,13 +2,12 @@ with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
 with Ada.Strings.Fixed;
 
-with GNAT.OS_Lib;
-
 with Files.Command_Palette;
 with Files.Type_Ahead;
 with Files.UTF8;
 
 with Files.Model.Support;
+with Files.Path_Checks;
 
 package body Files.Model is
 
@@ -69,21 +68,7 @@ package body Files.Model is
    end Unique_Nonempty_Values;
 
    function Valid_Absolute_Path (Value : UString) return Boolean is
-      Path : constant String := To_String (Value);
-   begin
-      if Path = "" then
-         return False;
-      end if;
-      for Item of Path loop
-         if Item = ASCII.NUL then
-            return False;
-         end if;
-      end loop;
-      return GNAT.OS_Lib.Is_Absolute_Path (Path);
-   exception
-      when others =>
-         return False;
-   end Valid_Absolute_Path;
+     (Files.Path_Checks.Valid_Absolute_Path (To_String (Value)));
 
    function Absolute_Paths
      (Values : Files.Types.String_Vectors.Vector) return Boolean is
@@ -941,6 +926,7 @@ package body Files.Model is
       Name  : String)
       return Boolean is separate;
 
+   --  Whether Path is one of the currently selected directories.
    function Is_Selected_Directory
      (Model : Window_Model;
       Path  : String)

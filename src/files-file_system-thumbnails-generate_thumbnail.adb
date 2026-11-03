@@ -1,3 +1,5 @@
+with Files.Durable_Writes;
+
 separate (Files.File_System.Thumbnails)
 function Generate_Thumbnail
   (Source_Path      : String;
@@ -5,23 +7,30 @@ function Generate_Thumbnail
    Size            : Positive := 64)
    return Thumbnail_Result
 is
-   File : Stream_IO.File_Type;
-   Temp : Unbounded_String;
+   --  Locals, not package state: listings on the refresh tasks and the
+   --  Generate Thumbnails command on the UI thread run this at once.
+   File          : Stream_IO.File_Type;
+   Target        : Unbounded_String;
+   Temp          : Unbounded_String;
    Temp_Identity : Unbounded_String;
+   Checksum      : Natural;
+   Size_Bias     : Natural;
 
-   procedure Remove_Owned_Temp is
-   begin
-      if Length (Temp) > 0
-        and then Length (Temp_Identity) > 0
-        and then Files.File_Identities.Token (To_String (Temp)) = To_String (Temp_Identity)
-        and then Ada.Directories.Exists (To_String (Temp))
-      then
-         Ada.Directories.Delete_File (To_String (Temp));
-      end if;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
-   end Remove_Owned_Temp;
+   function Failed (Status : Thumbnail_Status; Error_Key : String) return Thumbnail_Result is
+     (Status         => Status,
+      Source_Path    => To_Unbounded_String (Source_Path),
+      Thumbnail_Path => Target,
+      Width          => Size,
+      Height         => Size,
+      Error_Key      => To_Unbounded_String (Error_Key));
+
+   function Generated return Thumbnail_Result is
+     (Status         => Thumbnail_Generated,
+      Source_Path    => To_Unbounded_String (Ada.Directories.Full_Name (Source_Path)),
+      Thumbnail_Path => Target,
+      Width          => Size,
+      Height         => Size,
+      Error_Key      => Null_Unbounded_String);
 
    function Publish_Temp (Target_Path : String) return Boolean is
    begin
@@ -41,31 +50,11 @@ is
 
 begin
    if Size > Max_Thumbnail_Dimension then
-      return
-        (Status         => Thumbnail_Failed,
-         Source_Path    => To_Unbounded_String (Source_Path),
-         Thumbnail_Path => Null_Unbounded_String,
-         Width          => Size,
-         Height         => Size,
-         Error_Key      => To_Unbounded_String ("error.thumbnail.failed"));
-   end if;
-
-   if not Ada.Directories.Exists (Source_Path) then
-      return
-        (Status         => Thumbnail_Source_Missing,
-         Source_Path    => To_Unbounded_String (Source_Path),
-         Thumbnail_Path => Null_Unbounded_String,
-         Width          => Size,
-         Height         => Size,
-         Error_Key      => To_Unbounded_String ("error.thumbnail.source_missing"));
+      return Failed (Thumbnail_Failed, "error.thumbnail.failed");
+   elsif not Ada.Directories.Exists (Source_Path) then
+      return Failed (Thumbnail_Source_Missing, "error.thumbnail.source_missing");
    elsif Ada.Directories.Kind (Source_Path) /= Ada.Directories.Ordinary_File then
-      return
-        (Status         => Thumbnail_Unsupported,
-         Source_Path    => To_Unbounded_String (Source_Path),
-         Thumbnail_Path => Null_Unbounded_String,
-         Width          => Size,
-         Height         => Size,
-         Error_Key      => To_Unbounded_String ("error.thumbnail.unsupported"));
+      return Failed (Thumbnail_Unsupported, "error.thumbnail.unsupported");
    end if;
 
    Ada.Directories.Create_Path
@@ -116,13 +105,7 @@ begin
      or else Try_Write_Gdk_Pixbuf_Thumbnail (Source_Path, Size, To_String (Temp))
    then
       if Publish_Temp (To_String (Target)) then
-         return
-           (Status         => Thumbnail_Generated,
-            Source_Path    => To_Unbounded_String (Ada.Directories.Full_Name (Source_Path)),
-            Thumbnail_Path => Target,
-            Width          => Size,
-            Height         => Size,
-            Error_Key      => Null_Unbounded_String);
+         return Generated;
       end if;
       raise Ada.Directories.Use_Error;
    end if;
@@ -181,25 +164,12 @@ begin
       raise Ada.Directories.Use_Error;
    end if;
 
-   return
-     (Status         => Thumbnail_Generated,
-      Source_Path    => To_Unbounded_String (Ada.Directories.Full_Name (Source_Path)),
-      Thumbnail_Path => Target,
-      Width          => Size,
-      Height         => Size,
-      Error_Key      => Null_Unbounded_String);
+   return Generated;
 exception
    when others =>
       if Stream_IO.Is_Open (File) then
          Stream_IO.Close (File);
       end if;
-      Remove_Owned_Temp;
-
-      return
-        (Status         => Thumbnail_Failed,
-         Source_Path    => To_Unbounded_String (Source_Path),
-         Thumbnail_Path => Target,
-         Width          => Size,
-         Height         => Size,
-         Error_Key      => To_Unbounded_String ("error.thumbnail.failed"));
+      Files.Durable_Writes.Remove_Owned (To_String (Temp), To_String (Temp_Identity));
+      return Failed (Thumbnail_Failed, "error.thumbnail.failed");
 end Generate_Thumbnail;

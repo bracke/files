@@ -1,3 +1,4 @@
+with Files.File_System;
 with Ada.Calendar.Formatting;
 with Ada.Calendar.Time_Zones;
 with Ada.Containers;
@@ -11,7 +12,6 @@ with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
 
-with Textrender;
 with Util.Dates;
 with Util.Dates.Formats;
 with Util.Properties;
@@ -26,7 +26,6 @@ with Humanize.Bytes;
 with Humanize.Datetimes;
 with Humanize.Status;
 with Files.UTF8;
-with Files.UI;
 
 package body Files.Rendering is
 
@@ -135,12 +134,8 @@ package body Files.Rendering is
    Main_Content_Padding : constant Natural := 8;
    --  The grid's own spacing (Guikit.Item_Grid draws the grid).
    Main_Grid_Gap : constant Natural := Guikit.Item_Grid.Main_Grid_Gap;
-   Item_Content_Padding : constant Natural := Guikit.Item_Grid.Item_Content_Padding;
-   Item_Icon_Text_Gap : constant Natural := Guikit.Item_Grid.Item_Icon_Text_Gap;
    Details_Column_Padding : constant Natural := Guikit.Item_Grid.Details_Column_Padding;
    Command_Palette_Padding : constant Natural := Guikit.Layout.Palette_Padding;
-   Command_Result_Row_Padding : constant Natural := Guikit.Layout.Palette_Result_Row_Padding;
-   Command_Palette_Scrollbar_Gap : constant Natural := 8;
    --  The main-view scrollbar is an overlay drawn over the content's right
    --  margin (Main_Content_Padding), not a reserved gutter, so it must be no
    --  wider than that margin or it paints over -- and steals clicks from -- the
@@ -532,11 +527,6 @@ package body Files.Rendering is
       return Text;
    end Number_Symbol;
 
-   function Decimal_Separator return String is
-   begin
-      return Number_Symbol ("number.decimal", ".");
-   end Decimal_Separator;
-
    function Group_Separator return String is
    begin
       return Number_Symbol ("number.group", ",");
@@ -567,21 +557,6 @@ package body Files.Rendering is
 
       return To_String (Result);
    end Grouped_Integer_Text;
-
-   function Localized_Number_Text
-     (Tenths       : Long_Long_Integer;
-      Use_Decimal  : Boolean)
-      return String
-   is
-      Whole   : constant Long_Long_Integer := Tenths / 10;
-      Decimal : constant Long_Long_Integer := Tenths mod 10;
-   begin
-      if not Use_Decimal or else Decimal = 0 then
-         return Grouped_Integer_Text (Whole);
-      end if;
-
-      return Grouped_Integer_Text (Whole) & Decimal_Separator & Integer_Text (Decimal);
-   end Localized_Number_Text;
 
    --  A size as humanize writes it in the number locale: decimal units in
    --  CLDR's names ("4.5 MB", "4,5 Mo", "2 кБ"), one decimal at most.
@@ -756,19 +731,6 @@ package body Files.Rendering is
       end if;
    end Bounded_Product_Divide;
 
-   function Visible_Row_Count
-     (Available_Height : Natural;
-      Row_Height       : Natural)
-      return Natural is
-   begin
-      if Available_Height = 0 or else Row_Height = 0 then
-         return 0;
-      end if;
-
-      return Available_Height / Row_Height
-        + (if Available_Height mod Row_Height = 0 then 0 else 1);
-   end Visible_Row_Count;
-
    function Saturating_Integer_Add
      (Left  : Integer;
       Right : Natural)
@@ -919,7 +881,7 @@ package body Files.Rendering is
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Layout_Metrics
    is
       Toolbar    : constant Natural := Files.UI.Toolbar_Height (Line_Height);
@@ -963,7 +925,7 @@ package body Files.Rendering is
    function Calculate_Item_Layout
      (Snapshot      : View_Snapshot;
       Layout        : Layout_Metrics;
-      Line_Height   : Positive := 20;
+      Line_Height   : Positive := Files.UI.Base_Line_Height;
       Whole_Content : Boolean := False)
       return Item_Layout_Vectors.Vector
  is separate;
@@ -971,7 +933,7 @@ package body Files.Rendering is
    function Calculate_Main_View_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Main_View_Layout
  is separate;
 
@@ -993,14 +955,14 @@ package body Files.Rendering is
    function Calculate_Conflict_Dialog_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Conflict_Dialog_Layout
  is separate;
 
    function Calculate_Paste_Progress_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Paste_Progress_Layout
  is separate;
 
@@ -1008,7 +970,7 @@ package body Files.Rendering is
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Context_Menu_Layout
  is separate;
 
@@ -1100,7 +1062,7 @@ package body Files.Rendering is
 
    function Calculate_Command_Palette_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Command_Palette_Layout is
    begin
       --  The palette always carries a title, so reserve the same title band the
@@ -1117,7 +1079,7 @@ package body Files.Rendering is
 
    function Calculate_Quick_Look_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Quick_Look_Layout
    is
       Padding   : constant Natural := Natural'Max (Command_Palette_Padding, Line_Height / 2);
@@ -1156,7 +1118,7 @@ package body Files.Rendering is
 
    function Calculate_Label_Picker_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Label_Picker_Layout
    is
       Count           : constant Positive := Label_Picker_Swatch_Count;
@@ -1231,7 +1193,7 @@ package body Files.Rendering is
    function Calculate_Root_Selector_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Root_Selector_Layout
    is
       Preferred_Width : constant Natural := Natural'Max (Layout.Width / 3, Saturating_Multiply (Line_Height, 18));
@@ -1266,7 +1228,7 @@ package body Files.Rendering is
 
    function Path_Favorite_Star_Region
      (Width       : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Path_Favorite_Star_Bounds
    is
       Toolbar      : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Width);
@@ -1291,7 +1253,7 @@ package body Files.Rendering is
 
    function Path_Bar_Content_Offset
      (Width       : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Natural
    is
       Star : constant Path_Favorite_Star_Bounds :=
@@ -1308,7 +1270,7 @@ package body Files.Rendering is
    function Calculate_Breadcrumb_Layout
      (Snapshot    : View_Snapshot;
       Width       : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Breadcrumb_Segment_Layout_Vectors.Vector
  is separate;
 
@@ -1340,7 +1302,7 @@ package body Files.Rendering is
    function Calculate_Tree_Panel_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Tree_Panel_Layout
  is separate;
 
@@ -1383,13 +1345,13 @@ package body Files.Rendering is
    function Calculate_Tree_Row_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Tree_Panel_Layout;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Tree_Row_Layout_Vectors.Vector
  is separate;
 
    function Tree_Pick_Buttons
      (Panel       : Tree_Panel_Layout;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Tree_Pick_Button_Layout
    is
       pragma Unreferenced (Line_Height);
@@ -1772,7 +1734,7 @@ package body Files.Rendering is
    function Calculate_Info_Pane_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Info_Pane_Layout
  is separate;
 
@@ -1781,7 +1743,7 @@ package body Files.Rendering is
       Panel_Y      : Natural;
       Panel_Width  : Natural;
       Panel_Height : Natural;
-      Line_Height  : Positive := 20)
+      Line_Height  : Positive := Files.UI.Base_Line_Height)
       return Close_Button_Layout
    is
       Inset   : constant Natural := Natural'Max (4, Line_Height / 4);
@@ -1804,7 +1766,7 @@ package body Files.Rendering is
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := 20;
+      Line_Height : Positive := Files.UI.Base_Line_Height;
       Hover_X     : Natural := 0;
       Hover_Y     : Natural := 0;
       Has_Hover   : Boolean := False;
@@ -1833,7 +1795,7 @@ package body Files.Rendering is
       Font_Path    : String;
       Pixel_Size   : Positive := 16;
       Cell_Width   : Positive := 10;
-      Cell_Height  : Positive := 20;
+      Cell_Height  : Positive := Files.UI.Base_Line_Height;
       Atlas_Width  : Positive := 1024;
       Atlas_Height : Positive := 1024)
       return Text_Render_Status

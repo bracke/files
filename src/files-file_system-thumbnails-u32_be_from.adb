@@ -4,16 +4,9 @@ function U32_BE_From
    Index : Natural)
    return Natural
 is
-   use type Interfaces.Unsigned_32;
-   Value : constant Interfaces.Unsigned_32 :=
-     Interfaces.Unsigned_32 (Byte_At (Data, Index)) * 16#1000000#
-     + Interfaces.Unsigned_32 (Byte_At (Data, Index + 1)) * 16#10000#
-     + Interfaces.Unsigned_32 (Byte_At (Data, Index + 2)) * 16#100#
-     + Interfaces.Unsigned_32 (Byte_At (Data, Index + 3));
+   Word : constant Ada.Streams.Stream_Element_Array (0 .. 3) :=
+     [for Offset in Ada.Streams.Stream_Element_Offset range 0 .. 3 =>
+        Ada.Streams.Stream_Element (Byte_At (Data, Index + Natural (Offset)))];
 begin
-   --  Compute in Unsigned_32 (modular, no overflow) and clamp: a crafted
-   --  PNG length/dimension with the high bit set exceeds Natural'Last, and
-   --  the old Natural arithmetic overflowed into a Constraint_Error.
-   --  Callers reject the resulting too-large dimension anyway.
-   return Natural (Interfaces.Unsigned_32'Min (Value, Interfaces.Unsigned_32 (Natural'Last)));
+   return Files.Images.U32_BE (Word, 0);
 end U32_BE_From;

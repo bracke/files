@@ -1,12 +1,10 @@
 with Files.Helper_Modes;
 with Files.Items;
-with Files.Fs_Primitives;
 with Files.Diagnostics;
 with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
-with GNAT.OS_Lib;
 with Files.Bounded_Streams;
 with Files.File_System;
 with Files.Durable_Writes;
@@ -17,12 +15,12 @@ with Files.Lease_Streams;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
 with Hostkit.Watch;
+with Files.Path_Checks;
 
 package body Files.Refresh_Jobs is
    use Ada.Strings.Unbounded;
    use type Ada.Directories.File_Kind;
    use type Files.Operations.Operation_Status;
-   use type Files.Settings.Settings_Model;
    use type Hostkit.Lease_Files.Open_Outcome;
 
    Max_Watch_Path_Length : constant := 32 * 1024;
@@ -48,10 +46,8 @@ package body Files.Refresh_Jobs is
       Error_Key : Files.Types.UString;
    end record;
 
-   function Nul_Free (Value : String) return Boolean renames Files.Fs_Primitives.Nul_Free;
-
    function Valid_Absolute_Path (Path : String) return Boolean is
-     (Files.Fs_Primitives.Valid_Absolute_Path (Path));
+     (Files.Path_Checks.Valid_Absolute_Path (Path));
 
    function Request_Paths_Are_Consistent
      (Root, Previous_Path : String;

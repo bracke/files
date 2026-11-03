@@ -3,7 +3,6 @@ with Files.File_Identities;
 with Files.Io_Errors;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Directories;
-with Ada.Environment_Variables;
 with Ada.Streams;
 with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
@@ -16,6 +15,7 @@ with Files.Bounded_Streams;
 with Files.Exclusive_Streams;
 with Files.Lease_Streams;
 with Files.Private_Directories;
+with Files.Path_Checks;
 
 package body Files.File_System.Recovery is
    use Ada.Strings.Unbounded;
@@ -53,19 +53,7 @@ package body Files.File_System.Recovery is
    end Record_Is_Regular;
 
    function Valid_Absolute_Path (Path : String) return Boolean is
-   begin
-      if Path = "" then
-         return False;
-      end if;
-      for Item of Path loop
-         if Item = Character'Val (0) then
-            return False;
-         end if;
-      end loop;
-      return GNAT.OS_Lib.Is_Absolute_Path (Path);
-   exception
-      when others => return False;
-   end Valid_Absolute_Path;
+     (Files.Path_Checks.Valid_Absolute_Path (Path));
 
    procedure Write_Bounded
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
@@ -532,7 +520,6 @@ package body Files.File_System.Recovery is
       Set_Aside    : out Boolean) return Mutation_Result
    is
       use type Files.Types.String_Vectors.Vector;
-      use type Support.Source_Snapshot;
       Backup : UString;
       Committed : Boolean := False;
       Failed : constant Mutation_Result :=

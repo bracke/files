@@ -11,7 +11,6 @@ function Try_Record_Undo
    Restore_Trash : Files.Types.String_Vectors.Vector :=
      Files.Types.String_Vectors.Empty_Vector;
    Provenance  : Undo_Provenance := (others => <>)) return Boolean is
-   use type Files.Model.Undo_Create_Kind;
    Original_Identities : Files.Types.String_Vectors.Vector renames Provenance.Identities;
    Original_Tree_Revisions : Files.Types.String_Vectors.Vector renames Provenance.Tree_Revisions;
    Original_Restore_Identities : Files.Types.String_Vectors.Vector renames Provenance.Restore_Identities;

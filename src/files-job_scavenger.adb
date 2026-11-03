@@ -1,8 +1,8 @@
 with Files.Helper_Modes;
 with Files.Diagnostics;
+with Files.Environment;
 with Ada.Directories;
 with Ada.Containers.Indefinite_Hashed_Sets;
-with Ada.Environment_Variables;
 with Ada.Real_Time;
 with Ada.Streams;
 with Ada.Strings.Hash;
@@ -79,12 +79,12 @@ package body Files.Job_Scavenger is
          Directory : constant String := To_String (Report_Directory);
          Target : constant String := Hostkit.Fs.Join (Directory, Report_Name);
       begin
-         if Ada.Environment_Variables.Value (Report_Environment, "") = Directory then
+         if Files.Environment.Value (Report_Environment) = Directory then
             if Previous_Report_Existed then
-               Ada.Environment_Variables.Set
+               Files.Environment.Set
                  (Report_Environment, To_String (Previous_Report_Directory));
             else
-               Ada.Environment_Variables.Clear (Report_Environment);
+               Files.Environment.Clear (Report_Environment);
             end if;
          end if;
          if Ada.Directories.Exists (Directory)
@@ -196,7 +196,7 @@ package body Files.Job_Scavenger is
             (if Label /= "" then Label else "recovery.unsafe_transport") & ": " & Directory);
          declare
             Target_Directory : constant String :=
-              Ada.Environment_Variables.Value (Report_Environment, "");
+              Files.Environment.Value (Report_Environment);
          begin
             if Target_Directory /= ""
               and then Ada.Directories.Exists (Target_Directory)
@@ -434,15 +434,15 @@ package body Files.Job_Scavenger is
       --  application startup and serializes each transport through its lease.
       if Length (Report_Directory) = 0 then
          Previous_Report_Existed :=
-           Ada.Environment_Variables.Exists (Report_Environment);
+           Files.Environment.Is_Set (Report_Environment);
          if Previous_Report_Existed then
             Previous_Report_Directory := To_Unbounded_String
-              (Ada.Environment_Variables.Value (Report_Environment));
+              (Files.Environment.Value (Report_Environment));
          end if;
          Report_Directory := To_Unbounded_String
            (Hostkit.Fs.Create_Temporary_Directory ("files-recovery-report-"));
          if Length (Report_Directory) > 0 then
-            Ada.Environment_Variables.Set
+            Files.Environment.Set
               (Report_Environment, To_String (Report_Directory));
          end if;
       end if;

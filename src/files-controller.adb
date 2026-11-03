@@ -4,7 +4,6 @@ with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
-with Guikit.Layout;
 with Guikit.Settings_Panel;
 
 with Files.Desktop_Applications;
@@ -27,7 +26,6 @@ package body Files.Controller is
    use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;
    use type Guikit.Input.Navigation_Direction;
-   use type Files.Types.String_Vectors.Vector;
 
    --  Overlays without a text-entry surface own native character input.  This
    --  predicate lives at the controller boundary because GLFW character and

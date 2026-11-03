@@ -6,9 +6,6 @@ with Ada.Streams.Stream_IO;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
-with Interfaces.C;
-with Interfaces.C.Strings;
-
 with System;
 
 with GNAT.OS_Lib;
@@ -20,6 +17,7 @@ with Files.File_Types;
 with Hostkit.Fs;
 with Files.File_System.Support;
 with Files.Images;
+with Interfaces;
 with Files.File_Identities;
 with Files.Private_Directories;
 with Ada.Characters;
@@ -32,18 +30,12 @@ package body Files.File_System.Thumbnails is
 
    use Files.File_System.Support;
    use Ada.Strings.Unbounded;
-   use type Interfaces.C.int;
-   use type Interfaces.C.long;
-   use type Interfaces.C.unsigned;
-   use type Interfaces.C.unsigned_long;
-   use type Interfaces.C.Strings.chars_ptr;
    use type Ada.Calendar.Time;
    use type Ada.Directories.File_Kind;
    use type Ada.Streams.Stream_Element;
    use type Ada.Streams.Stream_Element_Offset;
 
    use type System.Address;
-   use type Files.Types.Sort_Field;
    use type Files.Types.Item_Kind;
 
    package Stream_IO renames Ada.Streams.Stream_IO;
@@ -222,12 +214,6 @@ package body Files.File_System.Thumbnails is
       Target_Path : String)
       return Boolean
    is separate;
-
-   Checksum  : Natural := 0;
-
-   Size_Bias : Natural := 0;
-
-   Target    : Unbounded_String;
 
    function Generate_Thumbnail
      (Source_Path      : String;

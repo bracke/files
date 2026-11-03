@@ -5,11 +5,6 @@ package body Glfw.Windows.Drop is
       return Raw_Drop_Callback
    with Import, Convention => C, External_Name => "glfwSetDropCallback";
 
-   function Raw_Get_Window_User_Pointer
-     (Window : System.Address)
-      return System.Address
-   with Import, Convention => C, External_Name => "glfwGetWindowUserPointer";
-
    procedure Set_Drop_Callback
      (Window   : not null access Glfw.Windows.Window;
       Callback : Raw_Drop_Callback)

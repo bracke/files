@@ -2,7 +2,6 @@ with Files.Environment;
 with Files.Diagnostics;
 with Ada.Containers.Indefinite_Ordered_Sets;
 with Ada.Directories;
-with Ada.Environment_Variables;
 with Ada.Strings.Unbounded;
 with GNAT.OS_Lib;
 

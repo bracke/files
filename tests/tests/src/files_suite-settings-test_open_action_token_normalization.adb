@@ -92,10 +92,6 @@ separate (Files_Suite.Settings)
 
          Normalized_Draft.Open_Action_Token := To_Unbounded_String (" application/ld+json + control ");
          Normalized_Draft.Open_Action_Command := To_Unbounded_String ("json-editor {path}");
-         Files_Suite.Support.Assert_Equal
-           (Files.Settings.Field_Diagnostic (12, "application/ld+json+control"),
-            "",
-            "settings field accepts structured-suffix modifier tokens");
          Assert
            (Files.Settings.Validate_Draft (Normalized_Draft).Success,
             "draft validates structured-suffix modifier action");

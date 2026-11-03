@@ -6,7 +6,7 @@ separate (Files.Events)
       Width       : Natural;
       Height      : Natural;
       Y_Offset    : Integer;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Input_Action
    is
       Action  : Input_Action := Translate_Scroll (Y_Offset);

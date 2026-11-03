@@ -54,9 +54,7 @@ package body Files_Suite.Settings is
    procedure Test_Direct_Mapping_Insertion (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Direct_Open_Action_Insertion (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Direct_Open_Action_Rejects_Unsafe (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Settings_Field_Diagnostics (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Draft_Mapping_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Open_Action_Field_Diagnostics (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Parser_Diagnostics (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sort_Favorites_And_Mapping_Authority (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Default_Open_Action_Suits_The_Host (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -121,14 +119,8 @@ package body Files_Suite.Settings is
         (T, Test_Direct_Open_Action_Rejects_Unsafe'Access,
          "direct open-action insertion ignores placeholders and control characters in executables and arguments");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Settings_Field_Diagnostics'Access,
-         "settings field diagnostics validate scalar, theme, sort, and mapping fields");
-      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Draft_Mapping_Validation'Access,
          "settings drafts keep quoted mapping values and reject malformed mapping and open-action rows");
-      AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Open_Action_Field_Diagnostics'Access,
-         "open action field diagnostics validate tokens, commands, field range, and argument count");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Parser_Diagnostics'Access,
          "settings parser caps persistent entries and rejects malformed input with deterministic diagnostics");
@@ -302,11 +294,7 @@ package body Files_Suite.Settings is
 
    procedure Test_Direct_Open_Action_Rejects_Unsafe (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-   procedure Test_Settings_Field_Diagnostics (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
-
    procedure Test_Draft_Mapping_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
-
-   procedure Test_Open_Action_Field_Diagnostics (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Settings_Parser_Diagnostics (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

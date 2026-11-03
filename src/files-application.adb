@@ -2,7 +2,6 @@ with Files.Items;
 with Files.Environment;
 with Ada.Calendar;
 with Ada.Directories;
-with Ada.Environment_Variables;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
@@ -25,12 +24,12 @@ with Files.Icon_Assets;
 with Files.Localization;
 with Files.Operations;
 with Files.Rendering;
+with Files.UI;
 with Guikit.Frame_Analysis;
 with Guikit.Vulkan;
 
 package body Files.Application is
    use Ada.Strings.Unbounded;
-   use type Ada.Directories.File_Kind;
    use type Files.File_System.Path_Status;
    use type Files.Rendering.Text_Render_Status;
 
@@ -639,7 +638,7 @@ package body Files.Application is
                 (Snapshot    => Snapshot,
                  Width       => Width,
                  Height      => Height,
-                 Line_Height => 20,
+                 Line_Height => Files.UI.Base_Line_Height,
                  Hover_X     => 5,
                  Hover_Y     => 5,
                  Has_Hover   => Width > 0 and then Height > 0);

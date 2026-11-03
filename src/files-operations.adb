@@ -3,16 +3,12 @@ with Files.Images;
 with Files.Environment;
 with Ada.Characters.Handling;
 with Ada.Directories;
-with Ada.Environment_Variables;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
 
-with Files_Config;
-
 with Files.Folder_Size;
-with Files.Fs_Primitives;
 with Files.Shared_Bytes;
 with Files.Transfer_Jobs;
 with Files.Process_Jobs;
@@ -45,8 +41,6 @@ package body Files.Operations is
    use type Files.File_System.Thumbnails.Thumbnail_Status;
    use type Files.Types.Item_Kind;
    use type Files.File_System.Path_Status;
-   use type GNAT.OS_Lib.Argument_List_Access;
-   use type GNAT.OS_Lib.String_Access;
    use type Ada.Directories.File_Kind;
    use type Files.File_System.Drop_Import_Mode;
    use type Files.Model.Undo_Action_Kind;

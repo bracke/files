@@ -638,13 +638,13 @@ separate (Files.Rendering.Build_Frame_Commands)
       --  separate, non-interactive field, so the toggle's hover/press/tooltip
       --  affordances stop at the divider rather than spanning the whole region.
       declare
-         Pad       : constant Natural := 4;
+         Pad       : constant Natural := Files.UI.Status_Field_Padding;
          Cell_W    : constant Natural := Guikit.Layout.Caret_Advance_Width (Line_Height);
          Free_Text : constant String := Free_Space_Label (Snapshot);
          Free_W    : constant Natural := Free_Space_Label_Width (Snapshot, Line_Height);
          --  The counts/free split, shared with the click hit-test so the toggle's
          --  hover/press/tooltip area and the separate free-space field agree.
-         Toggle_W, Divider_X, Free_X, Free_Field_W : Natural;
+         Toggle_W, Divider_X, Free_X, Free_Field_W, Free_Region_W : Natural;
          --  Fill the whole button height (matching the neighbouring bottom-bar
          --  controls and this control's own full-height hit region), not just
          --  the padding-inset content box, so hover/press has no uncovered
@@ -657,7 +657,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       begin
          Files.UI.Split_Status_Region
            (Bottom.Info_X, Bottom.Info_Width, Free_W,
-            Toggle_W, Divider_X, Free_X, Free_Field_W, Line_Height);
+            Toggle_W, Divider_X, Free_X, Free_Field_W, Free_Region_W, Line_Height);
          declare
             Show_Free : constant Boolean := Free_Field_W > 0;
             Counts_W  : constant Natural := (if Toggle_W > 2 * Pad then Toggle_W - 2 * Pad else 0);
@@ -696,20 +696,15 @@ separate (Files.Rendering.Build_Frame_Commands)
                    & Files.Localization.Text ("status.selected")
                    & ")");
          begin
-            Add_Rect
-              (Bottom.Info_X,
-               Info_Btn_Y,
-               Toggle_W,
-               Info_Btn_H,
-               (if not Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command)
-                then Bottom_Bar_Color
-                elsif Is_Pressed (Bottom.Info_X, Bottom_Y, Toggle_W, Layout.Bottom_Bar_Height)
-                then Pressed_Color
-                elsif Has_Hover
-                  and then Contains_Point
-                    (Bottom.Info_X, Bottom_Y, Toggle_W, Layout.Bottom_Bar_Height, Hover_X, Hover_Y)
-                then Hover_Color
-                else Bottom_Bar_Color));
+            Add_Button
+              (Bottom.Info_X, Toggle_W,
+               Selected => False,
+               Hovered  =>
+                 Has_Hover
+                 and then Contains_Point
+                   (Bottom.Info_X, Bottom_Y, Toggle_W, Layout.Bottom_Bar_Height, Hover_X, Hover_Y),
+               Pressed  => Is_Pressed (Bottom.Info_X, Bottom_Y, Toggle_W, Layout.Bottom_Bar_Height),
+               Enabled  => Snapshot.Command_Enabled (Files.Commands.Toggle_Hidden_Files_Command));
             Add_Text
               (Saturating_Add (Bottom.Info_X, Pad),
                Bottom_Content_Y,
@@ -721,29 +716,21 @@ separate (Files.Rendering.Build_Frame_Commands)
             if Show_Free then
                declare
                   --  The free field's interactive region: from the divider to the
-                  --  right edge of the info area, mirroring the click hit-test.
+                  --  right edge of the info area, as the click hit-test has it.
                   Free_Region_X : constant Natural := Divider_X;
-                  Free_Region_W : constant Natural :=
-                    (if Saturating_Add (Bottom.Info_X, Bottom.Info_Width) > Divider_X
-                     then Saturating_Add (Bottom.Info_X, Bottom.Info_Width) - Divider_X
-                     else Free_Field_W);
                begin
                   --  Clicking the field toggles free/used space, so it gets the
                   --  same hover/press affordance as the neighbouring toggles.
-                  Add_Rect
-                    (Free_Region_X,
-                     Info_Btn_Y,
-                     Free_Region_W,
-                     Info_Btn_H,
-                     (if not Snapshot.Command_Enabled (Files.Commands.Toggle_Free_Space_Display_Command)
-                      then Bottom_Bar_Color
-                      elsif Is_Pressed (Free_Region_X, Bottom_Y, Free_Region_W, Layout.Bottom_Bar_Height)
-                      then Pressed_Color
-                      elsif Has_Hover
-                        and then Contains_Point
-                          (Free_Region_X, Bottom_Y, Free_Region_W, Layout.Bottom_Bar_Height, Hover_X, Hover_Y)
-                      then Hover_Color
-                      else Bottom_Bar_Color));
+                  Add_Button
+                    (Free_Region_X, Free_Region_W,
+                     Selected => False,
+                     Hovered  =>
+                       Has_Hover
+                       and then Contains_Point
+                         (Free_Region_X, Bottom_Y, Free_Region_W, Layout.Bottom_Bar_Height, Hover_X, Hover_Y),
+                     Pressed  => Is_Pressed (Free_Region_X, Bottom_Y, Free_Region_W, Layout.Bottom_Bar_Height),
+                     Enabled  =>
+                       Snapshot.Command_Enabled (Files.Commands.Toggle_Free_Space_Display_Command));
                   --  Span the full bar height (matching the button fills), not
                   --  just the inset content band, so the divider reaches top to
                   --  bottom.

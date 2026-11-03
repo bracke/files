@@ -9,7 +9,7 @@ separate (Files.Events)
       Height      : Natural;
       Activate    : Boolean := False;
       Modifiers   : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Input_Action
    is
       Layout         : constant Files.Rendering.Layout_Metrics :=
@@ -67,12 +67,6 @@ separate (Files.Events)
          Right : Natural)
          return Natural
         renames Guikit.Layout.Saturating_Add;
-
-      function Saturating_Multiply
-        (Value  : Natural;
-         Factor : Natural)
-         return Natural
-        renames Guikit.Layout.Saturating_Multiply;
 
       --  Text_Width and Focused let a click on a focused, scrolled field
       --  (see Files.Rendering.Input_Scroll_Columns) land on the character

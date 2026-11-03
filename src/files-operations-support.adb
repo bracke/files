@@ -1,8 +1,5 @@
 with Hostkit.Process;
-with Ada.Environment_Variables;
 with Ada.Strings.Unbounded;
-
-with GNAT.OS_Lib;
 
 with Files.File_System;
 with Files.Refresh_Jobs;
@@ -13,7 +10,6 @@ with Hostkit.Host;
 
 package body Files.Operations.Support is
    use Ada.Strings.Unbounded;
-   use type GNAT.OS_Lib.String_Access;
 
    function Empty_Action return Files.Settings.Open_Action is
    begin

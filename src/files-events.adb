@@ -3,7 +3,6 @@ with Ada.Strings.Unbounded;
 with Guikit.Layout;
 with Files.Rendering.Hit;
 with Files.UTF8;
-with Files.UI;
 
 package body Files.Events is
    use Ada.Strings.Unbounded;
@@ -79,16 +78,6 @@ package body Files.Events is
          Activate => Activate,
          others   => <>);
    end Tree_Pick_Confirm_Action;
-
-   function Selection_Action
-     (Direction : Guikit.Input.Navigation_Direction)
-      return Input_Action is
-   begin
-      return
-        (Kind      => Selection_Input_Action,
-         Direction => Direction,
-         others    => <>);
-   end Selection_Action;
 
    function Scroll_Action
      (Target : Scroll_Target;
@@ -223,7 +212,7 @@ package body Files.Events is
       Height      : Natural;
       Activate    : Boolean := False;
       Modifiers   : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Input_Action
  is separate;
 
@@ -246,7 +235,7 @@ package body Files.Events is
       Width       : Natural;
       Height      : Natural;
       Y_Offset    : Integer;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Input_Action
  is separate;
 

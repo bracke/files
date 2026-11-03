@@ -2,7 +2,7 @@ separate (Files.Rendering)
    function Calculate_Item_Layout
      (Snapshot      : View_Snapshot;
       Layout        : Layout_Metrics;
-      Line_Height   : Positive := 20;
+      Line_Height   : Positive := Files.UI.Base_Line_Height;
       Whole_Content : Boolean := False)
       return Item_Layout_Vectors.Vector
    is

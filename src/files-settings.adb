@@ -1,8 +1,6 @@
 with Ada.Directories;
-with Ada.Environment_Variables;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
-with Ada.Text_IO;
 with GNAT.OS_Lib;
 
 with Hostkit.Fs;
@@ -1211,12 +1209,6 @@ package body Files.Settings is
    function Validate_Draft
      (Draft : Settings_Draft)
       return Settings_Parse_Result is separate;
-
-   function Field_Diagnostic
-     (Field : Natural;
-      Text  : String)
-      return String
- is separate;
 
    function Apply_Draft
      (Settings : Settings_Model;

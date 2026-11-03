@@ -1,5 +1,4 @@
 with Files.Items;
-with Files.File_System;
 with Guikit.Input;
 with Files.Types;
 
@@ -132,14 +131,6 @@ package Files.Commands is
          | Toggle_Favorite_Command
          | Clear_Recent_Command;
 
-   type Command_Placement is
-     (No_Placement,
-      Toolbar_Left,
-      Toolbar_Middle,
-      Toolbar_Right,
-      Bottom_Bar,
-      Command_Palette_Only);
-
    type Shortcut is record
       Present   : Boolean := False;
       Key       : Guikit.Input.Key_Code := Guikit.Input.Key_Unknown;
@@ -262,14 +253,6 @@ package Files.Commands is
      (Id : Command_Id)
       return String;
 
-   --  Return placement metadata for toolbar or bottom-bar commands.
-   --
-   --  @param Id Command identifier.
-   --  @return Placement metadata.
-   function Placement_For
-     (Id : Command_Id)
-      return Command_Placement;
-
    --  Return whether a command should appear in the command palette.
    --
    --  @param Id Command identifier.
@@ -297,11 +280,6 @@ package Files.Commands is
    function Persists_Global_Ui_State
      (Id : Command_Id)
       return Boolean;
-
-   --  Return number of registered commands.
-   --
-   --  @return Registered command count.
-   function Command_Count return Natural;
 
    --  Join the full paths of the given items into a single newline-separated
    --  string, one path per line, in item order. Returns an empty string when no

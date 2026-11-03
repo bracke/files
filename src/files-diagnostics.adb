@@ -1,4 +1,4 @@
-with Ada.Environment_Variables;
+with Files.Environment;
 with Ada.Text_IO;
 
 package body Files.Diagnostics is
@@ -7,7 +7,7 @@ package body Files.Diagnostics is
      (Occurrence : Ada.Exceptions.Exception_Occurrence;
       Where      : String) is
    begin
-      if Ada.Environment_Variables.Exists ("FILES_DIAGNOSTICS") then
+      if Files.Environment.Is_Set ("FILES_DIAGNOSTICS") then
          Ada.Text_IO.Put_Line
            (Ada.Text_IO.Standard_Error,
             --  A developer trace, not prose: a fixed marker for grep.
@@ -49,7 +49,7 @@ package body Files.Diagnostics is
 
    procedure Trace (Where : String; Message : String) is
    begin
-      if Ada.Environment_Variables.Exists ("FILES_DIAGNOSTICS") then
+      if Files.Environment.Is_Set ("FILES_DIAGNOSTICS") then
          Ada.Text_IO.Put_Line
            --  Its own marker: a trace is no failure, and CI fails on the
            --  exception marker (files-diagnostics:) alone.

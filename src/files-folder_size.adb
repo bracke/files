@@ -1,16 +1,15 @@
 with Files.Helper_Modes;
-with Files.Fs_Primitives;
 with Ada.Directories;
 with Ada.Containers.Hashed_Sets;
 with Ada.IO_Exceptions;
 with Ada.Streams;
 with Ada.Strings.Unbounded.Hash;
-with GNAT.OS_Lib;
 with Files.Bounded_Streams;
 with Files.Exclusive_Streams;
 with Files.Lease_Streams;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
+with Files.Path_Checks;
 
 package body Files.Folder_Size is
    use Ada.Strings.Unbounded;
@@ -27,7 +26,7 @@ package body Files.Folder_Size is
    Result_Header : constant String := "files-folder-size-result-1";
 
    function Request_Path_Is_Valid (Path : String) return Boolean is
-     (Files.Fs_Primitives.Valid_Absolute_Path (Path, Max_Request_Path_Length));
+     (Files.Path_Checks.Valid_Absolute_Path (Path, Max_Request_Path_Length));
 
    procedure Close (File : in out Files.Exclusive_Streams.Output_Stream) is
    begin

@@ -1,12 +1,10 @@
 with Files.Copy_Context;
 with Ada.Calendar;
-with Ada.Streams;
 with Ada.Containers.Vectors;
 
 with Files.Settings;
 with Files.Fs_Primitives;
 with Files.Items;
-with Files.Shared_Bytes;
 with Files.Types;
 
 --  Filesystem inspection, directory loading, and mutation result modeling.
@@ -153,37 +151,6 @@ package Files.File_System is
    package Root_Entry_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
       Element_Type => Root_Entry);
-
-   type Root_Volume_Details is record
-      Path                 : UString;
-      Label                : UString;
-      Native_Api_Name      : UString;
-      Filesystem_Type      : UString;
-      Source_Device        : UString;
-      Mount_Options        : UString;
-      Capacity_Bytes       : Long_Long_Integer := 0;
-      Free_Bytes           : Long_Long_Integer := 0;
-      Inode_Count          : Long_Long_Integer := 0;
-      Free_Inode_Count     : Long_Long_Integer := 0;
-      Capacity_Known       : Boolean := False;
-      Free_Known           : Boolean := False;
-      Inode_Count_Known    : Boolean := False;
-      Free_Inode_Known     : Boolean := False;
-      Read_Only            : Boolean := False;
-      Read_Only_Known      : Boolean := False;
-      Name_Max             : Natural := 0;
-      Name_Max_Known       : Boolean := False;
-      Removable_Known      : Boolean := False;
-      Removable            : Boolean := False;
-      Ejectable            : Boolean := False;
-      Network_Mount        : Boolean := False;
-      Remote_Protocol      : UString;
-      Offline_Possible     : Boolean := False;
-      Auth_May_Be_Required : Boolean := False;
-      Latency_Sensitive    : Boolean := False;
-      Special_Error_Recovery : Boolean := False;
-      Uses_Platform_Detail : Boolean := False;
-   end record;
 
    --  Normalize an existing filesystem path to a directory path.
    --
@@ -385,14 +352,6 @@ package Files.File_System is
    --  @param Kind Root classification.
    --  @return Label token for the renderer.
    function Root_Label (Path : String; Kind : Root_Kind) return String;
-
-   --  Return best-effort volume details for a discovered root.
-   --
-   --  @param Root Root entry to describe.
-   --  @return Volume details and known platform metadata flags.
-   function Root_Volume_Details_For
-     (Root : Root_Entry)
-      return Root_Volume_Details;
 
    --  Build an item value for tests and pure model setup.
    --

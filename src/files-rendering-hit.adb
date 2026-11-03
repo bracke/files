@@ -157,7 +157,7 @@ package body Files.Rendering.Hit is
       Layout      : Layout_Metrics;
       X           : Natural;
       Y           : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Detail_Header_Cell
    is
       Header    : constant Details_Header_Layout :=
@@ -199,7 +199,7 @@ package body Files.Rendering.Hit is
       Layout      : Layout_Metrics;
       X           : Natural;
       Y           : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Natural
    is
       use type Files.Types.Detail_Column;
@@ -253,7 +253,7 @@ package body Files.Rendering.Hit is
       Layout      : Layout_Metrics;
       X           : Natural;
       Y           : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Detail_Column_Separator
    is
       Header    : constant Details_Header_Layout :=
@@ -359,7 +359,7 @@ package body Files.Rendering.Hit is
      (X           : Natural;
       Y           : Natural;
       Width       : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Files.Commands.Command_Id
    is
       Toolbar  : constant Toolbar_Layout := Calculate_Toolbar_Layout (Width);
@@ -400,7 +400,7 @@ package body Files.Rendering.Hit is
       Height           : Natural;
       Sort_Field       : Files.Types.Sort_Field;
       Free_Label_Width : Natural := 0;
-      Line_Height      : Positive := 20)
+      Line_Height      : Positive := Files.UI.Base_Line_Height)
       return Files.Commands.Command_Id
    is
       Bottom   : constant Bottom_Bar_Layout := Files.UI.Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
@@ -409,11 +409,11 @@ package body Files.Rendering.Hit is
       --  The hidden-files toggle occupies only the counts area; when a free-space
       --  field is split off, the toggle stops at the divider and the free field
       --  is its own, non-interactive region.
-      Toggle_Width, Divider_X, Free_Field_X, Free_Field_Width : Natural;
+      Toggle_Width, Divider_X, Free_Field_X, Free_Field_Width, Free_Region_Width : Natural;
    begin
       Files.UI.Split_Status_Region
         (Bottom.Info_X, Bottom.Info_Width, Free_Label_Width,
-         Toggle_Width, Divider_X, Free_Field_X, Free_Field_Width, Line_Height);
+         Toggle_Width, Divider_X, Free_Field_X, Free_Field_Width, Free_Region_Width, Line_Height);
       if Width = 0
         or else Height = 0
         or else X >= Width
@@ -438,12 +438,7 @@ package body Files.Rendering.Hit is
          return Files.Commands.Toggle_Hidden_Files_Command;
       elsif Within (X, Bottom.Info_Pane_X, Bottom.Info_Pane_Width) then
          return Files.Commands.Toggle_Info_Pane_Command;
-      elsif Free_Field_Width > 0
-        and then Within
-          (X, Divider_X,
-           (if Saturating_Add (Bottom.Info_X, Bottom.Info_Width) > Divider_X
-            then Saturating_Add (Bottom.Info_X, Bottom.Info_Width) - Divider_X else 0))
-      then
+      elsif Free_Field_Width > 0 and then Within (X, Divider_X, Free_Region_Width) then
          --  The free-space field (right of the divider) toggles between showing
          --  free and used disk space.
          return Files.Commands.Toggle_Free_Space_Display_Command;
@@ -458,7 +453,7 @@ package body Files.Rendering.Hit is
       Width       : Natural;
       Height      : Natural;
       Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Files.Commands.Command_Id
    is
       --  No sort button, no menu: its width is then 0.
@@ -486,7 +481,7 @@ package body Files.Rendering.Hit is
       Width       : Natural;
       Height      : Natural;
       Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Boolean
    is
       Menu        : constant Files.UI.Sort_Menu_Layout :=

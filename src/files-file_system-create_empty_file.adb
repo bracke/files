@@ -3,7 +3,6 @@ function Create_Empty_File
   (Path : String)
    return Mutation_Result
 is
-   use type GNAT.OS_Lib.File_Descriptor;
    Descriptor : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
    Identity : UString;
    Closed : Boolean;

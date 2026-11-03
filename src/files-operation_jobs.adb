@@ -1,6 +1,5 @@
 with Files.Helper_Modes;
 with Files.Items;
-with Files.Fs_Primitives;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
 with Files.Diagnostics;
@@ -8,7 +7,6 @@ with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
-with GNAT.OS_Lib;
 
 with Files.Job_Context;
 with Files.Job_Records;
@@ -23,12 +21,12 @@ with Files.Paste;
 with Files.Process_Jobs;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
+with Files.Path_Checks;
 
 package body Files.Operation_Jobs is
    use Ada.Strings.Unbounded;
    use type Files.Operations.Operation_Status;
    use type Files.Model.Undo_Action_Kind;
-   use type Files.Settings.Settings_Model;
    use type Hostkit.Lease_Files.Open_Outcome;
 
    Request_Header : constant String := "files-operation-request-3";
@@ -111,10 +109,8 @@ package body Files.Operation_Jobs is
       return Paths;
    end Read_Paths;
 
-   function Nul_Free (Value : String) return Boolean renames Files.Fs_Primitives.Nul_Free;
-
    function Valid_Absolute_Path (Path : String) return Boolean is
-     (Files.Fs_Primitives.Valid_Absolute_Path (Path));
+     (Files.Path_Checks.Valid_Absolute_Path (Path));
 
    function Request_Path_Is_Consistent
      (Root   : String;

@@ -2,7 +2,7 @@ separate (Files.Rendering)
    function Calculate_Info_Pane_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Info_Pane_Layout
    is
       function Total_Info_Rows return Natural is
@@ -28,7 +28,6 @@ separate (Files.Rendering)
 
       Pane_X        : constant Natural := Layout.Main_Width;
       Bar_W         : constant Natural := Natural'Min (Scrollbar_Width, Layout.Info_Pane_Width);
-      Text_W        : constant Natural := Info_Text_Width (Layout, Bar_W);
       --  The combined selection total is now the last line of the Contents
       --  section (counted by Total_Info_Rows), so no header rows are reserved.
       Content_Rows  : constant Natural := Total_Info_Rows;

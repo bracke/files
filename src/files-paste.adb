@@ -34,20 +34,6 @@ package body Files.Paste is
       return Hostkit.Fs.Join (Dir, Name);
    end Desired_Path;
 
-   --  Whether Path is present in a vector of full paths.
-   function Contains
-     (Paths : Files.Types.String_Vectors.Vector;
-      Path  : String)
-      return Boolean is
-   begin
-      for Existing of Paths loop
-         if To_String (Existing) = Path then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Contains;
-
    function Effective_Decision
      (Policy   : Conflict_Policy;
       Override : Item_Decision)

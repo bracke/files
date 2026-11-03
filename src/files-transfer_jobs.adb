@@ -1,12 +1,9 @@
 with Files.Helper_Modes;
-with Files.Fs_Primitives;
 with Files.Diagnostics;
 with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
-
-with GNAT.OS_Lib;
 
 with Hostkit.Fs;
 with Files.Bounded_Streams;
@@ -16,10 +13,10 @@ with Files.Job_Context;
 with Files.File_Identities;
 with Files.Lease_Streams;
 with Hostkit.Lease_Files;
+with Files.Path_Checks;
 
 package body Files.Transfer_Jobs is
    use Ada.Strings.Unbounded;
-   use type Ada.Directories.File_Kind;
    use type Hostkit.Lease_Files.Open_Outcome;
 
    Max_Transport_Path_Length : constant := 32 * 1024;
@@ -29,7 +26,7 @@ package body Files.Transfer_Jobs is
    Result_Header : constant String := "files-transfer-result-1";
 
    function Valid_Absolute_Path (Path : String) return Boolean is
-     (Files.Fs_Primitives.Valid_Absolute_Path (Path));
+     (Files.Path_Checks.Valid_Absolute_Path (Path));
 
    function Request_Is_Consistent
      (Action : Files.Paste.Resolved_Action;

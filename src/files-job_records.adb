@@ -1,17 +1,15 @@
-with Files.Fs_Primitives;
 with Ada.Calendar;
 with Ada.Containers;
 with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Strings.Unbounded;
 
-with GNAT.OS_Lib;
-
 with Interfaces;
 
 with Files.Bounded_Streams;
 with Files.Shared_Bytes;
 with Files.Types;
+with Files.Path_Checks;
 
 package body Files.Job_Records is
    use Ada.Strings.Unbounded;
@@ -29,11 +27,11 @@ package body Files.Job_Records is
    Max_Thumbnail_Dimension : constant := 2_048;
    Max_Thumbnail_Bytes : constant := 2_048 * 2_048 * 4;
 
-   function Nul_Free (Value : String) return Boolean renames Files.Fs_Primitives.Nul_Free;
+   function Nul_Free (Value : String) return Boolean renames Files.Path_Checks.Nul_Free;
 
    function Valid_Absolute_Path
      (Value : Files.Types.UString) return Boolean is
-       (Files.Fs_Primitives.Valid_Absolute_Path (To_String (Value)));
+       (Files.Path_Checks.Valid_Absolute_Path (To_String (Value)));
 
    function Signature_Is_Consistent
      (Value : Files.File_System.Directory_Signature) return Boolean is

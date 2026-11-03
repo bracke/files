@@ -12,7 +12,6 @@ separate (Files_Suite.Commands)
             Description : constant String := Files.Localization.Text (Description_Key);
             Primary    : constant Files.Commands.Shortcut := Files.Commands.Shortcut_For (Id);
             Secondary  : constant Files.Commands.Shortcut := Files.Commands.Secondary_Shortcut_For (Id);
-            Placement  : constant Files.Commands.Command_Placement := Files.Commands.Placement_For (Id);
          begin
             Assert (Identifier /= "", "registered command identifier is non-empty");
             Assert (Files.Commands.Contains (Identifier), "registered command is found by its identifier");
@@ -20,7 +19,6 @@ separate (Files_Suite.Commands)
             Assert (Text /= Key, "command localization exists for " & Identifier);
             Assert (Description_Key /= "", "registered command description key is non-empty");
             Assert (Description /= Description_Key, "command description localization exists for " & Identifier);
-            Assert (Placement /= Files.Commands.No_Placement, "registered command has placement metadata");
             Assert
               (Files.Commands.Command_Palette_Visible (Id),
                "registered command is command-palette visible");

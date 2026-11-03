@@ -14,7 +14,6 @@ with Files.Paste;
 with Files.Quick_Look;
 with Files.Settings;
 with Guikit.Command_Palette;
-with Guikit.Draw;
 with Guikit.Input;
 with Guikit.Settings_Panel;
 with Files.Types;
@@ -3052,16 +3051,6 @@ package Files.Model is
       Path  : String)
       return Files.File_System.Directory_Size_Result;
 
-   --  Return whether Path is one of the currently selected directories.
-   --
-   --  @param Model Model to inspect.
-   --  @param Path Absolute path to test against the selection.
-   --  @return True when a selected item is a directory whose full path is Path.
-   function Is_Selected_Directory
-     (Model : Window_Model;
-      Path  : String)
-      return Boolean;
-
    --  Record a recoverable error key.
    --
    --  @param Model Model to update.
@@ -3131,7 +3120,8 @@ private
 
    --  Cache of recursive folder-size measurements, keyed by absolute path. Holds
    --  one entry per measured selected directory so a multi-item selection can
-   --  show each folder's size; pruned to the selection by Prune_Folder_Sizes.
+   --  show each folder's size; pruned to the selection by
+   --  Prune_Folder_Sizes_To_Selection.
    use type Files.File_System.Directory_Size_Result;
    package Folder_Size_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => UString,

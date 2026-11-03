@@ -3,7 +3,6 @@ with Ada.Containers.Vectors;
 
 with Files.Breadcrumbs;
 with Files.Commands;
-with Files.File_System;
 with Files.Folder_Tree;
 with Files.Shared_Bytes;
 with Guikit.Draw;
@@ -13,6 +12,7 @@ with Files.Model;
 with Files.Quick_Look;
 with Files.Settings;
 with Files.Types;
+with Files.UI;
 use Guikit.Draw;
 
 --  Immutable render snapshots and layout calculations.
@@ -329,7 +329,7 @@ package Files.Rendering is
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Context_Menu_Layout;
 
    --  Return the top Y coordinate of a menu row, accounting for the smaller
@@ -692,7 +692,7 @@ package Files.Rendering is
    function Calculate_Conflict_Dialog_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Conflict_Dialog_Layout;
 
    --  Compute the centered paste-progress overlay geometry for a window.
@@ -704,7 +704,7 @@ package Files.Rendering is
    function Calculate_Paste_Progress_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Paste_Progress_Layout;
 
    type Text_Renderer is private;
@@ -770,7 +770,7 @@ package Files.Rendering is
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Layout_Metrics;
 
    --  Calculate item rectangles for the active view mode.
@@ -786,7 +786,7 @@ package Files.Rendering is
    function Calculate_Item_Layout
      (Snapshot      : View_Snapshot;
       Layout        : Layout_Metrics;
-      Line_Height   : Positive := 20;
+      Line_Height   : Positive := Files.UI.Base_Line_Height;
       Whole_Content : Boolean := False)
       return Item_Layout_Vectors.Vector;
 
@@ -799,7 +799,7 @@ package Files.Rendering is
    function Calculate_Main_View_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Main_View_Layout;
 
    --  The main-view scroll, in lines, that shows the item with Visible_Index
@@ -933,7 +933,7 @@ package Files.Rendering is
    --  @return Command-palette layout rectangles.
    function Calculate_Command_Palette_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Command_Palette_Layout;
 
    --  Calculate the centered Quick Look overlay panel rectangle and its inner
@@ -944,7 +944,7 @@ package Files.Rendering is
    --  @return Quick Look panel and content-region geometry.
    function Calculate_Quick_Look_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Quick_Look_Layout;
 
    --  Calculate the centered color-label picker overlay panel rectangle and its
@@ -955,7 +955,7 @@ package Files.Rendering is
    --  @return Label-picker panel and swatch geometry.
    function Calculate_Label_Picker_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Label_Picker_Layout;
 
    --  Calculate root-selector dropdown rectangle.
@@ -967,7 +967,7 @@ package Files.Rendering is
    function Calculate_Root_Selector_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Root_Selector_Layout;
 
    --  Calculate root-selector row rectangles.
@@ -994,7 +994,7 @@ package Files.Rendering is
    function Calculate_Breadcrumb_Layout
      (Snapshot    : View_Snapshot;
       Width       : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Breadcrumb_Segment_Layout_Vectors.Vector;
 
    --  Rectangle of the clickable favorite-star toggle at the left of the path
@@ -1006,7 +1006,7 @@ package Files.Rendering is
    --  @return Star bounds; Visible is False when the path bar is too narrow.
    function Path_Favorite_Star_Region
      (Width       : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Path_Favorite_Star_Bounds;
 
    --  Inset of the path and filter input boxes inside their toolbar sections.
@@ -1040,7 +1040,7 @@ package Files.Rendering is
    --  @return Reserved width in pixels, or zero when the star is not shown.
    function Path_Bar_Content_Offset
      (Width       : Natural;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Natural;
 
    --  Calculate the folder-tree sidebar panel rectangle.
@@ -1052,7 +1052,7 @@ package Files.Rendering is
    function Calculate_Tree_Panel_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Tree_Panel_Layout;
 
    --  Return the number of tree rows that fit below the title and above any
@@ -1092,7 +1092,7 @@ package Files.Rendering is
    function Calculate_Tree_Row_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Tree_Panel_Layout;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Tree_Row_Layout_Vectors.Vector;
 
    --  Calculate the destination picker's Choose/Cancel button bar geometry from
@@ -1104,7 +1104,7 @@ package Files.Rendering is
    --  @return Button-bar rectangles; Visible is False when they do not fit.
    function Tree_Pick_Buttons
      (Panel       : Tree_Panel_Layout;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Tree_Pick_Button_Layout;
 
    --  Calculate info-pane content and scrollbar geometry.
@@ -1116,7 +1116,7 @@ package Files.Rendering is
    function Calculate_Info_Pane_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := 20)
+      Line_Height : Positive := Files.UI.Base_Line_Height)
       return Info_Pane_Layout;
 
    type Close_Button_Layout is record
@@ -1146,7 +1146,7 @@ package Files.Rendering is
       Panel_Y      : Natural;
       Panel_Width  : Natural;
       Panel_Height : Natural;
-      Line_Height  : Positive := 20)
+      Line_Height  : Positive := Files.UI.Base_Line_Height)
       return Close_Button_Layout;
 
    --  Build a backend-neutral render command list from an immutable snapshot.
@@ -1179,7 +1179,7 @@ package Files.Rendering is
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := 20;
+      Line_Height : Positive := Files.UI.Base_Line_Height;
       Hover_X     : Natural := 0;
       Hover_Y     : Natural := 0;
       Has_Hover   : Boolean := False;
@@ -1217,7 +1217,7 @@ package Files.Rendering is
       Font_Path    : String;
       Pixel_Size   : Positive := 16;
       Cell_Width   : Positive := 10;
-      Cell_Height  : Positive := 20;
+      Cell_Height  : Positive := Files.UI.Base_Line_Height;
       Atlas_Width  : Positive := 1024;
       Atlas_Height : Positive := 1024)
       return Text_Render_Status;
@@ -1410,7 +1410,7 @@ private
       Pixel_Size   : Positive := 16;
       Font_Path    : UString;
       Cell_Width   : Positive := 10;
-      Cell_Height  : Positive := 20;
+      Cell_Height  : Positive := Files.UI.Base_Line_Height;
       Atlas_Width  : Positive := 1024;
       Atlas_Height : Positive := 1024;
    end record;

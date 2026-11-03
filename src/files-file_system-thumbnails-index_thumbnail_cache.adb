@@ -1,7 +1,6 @@
 with Files.Timing;
 separate (Files.File_System.Thumbnails)
 function Index_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is
-   use type Ada.Calendar.Time;
    Stamp : Ada.Calendar.Time;
    Index : Cache_Index;
    --  The remembered listing, answering for the cache in place.

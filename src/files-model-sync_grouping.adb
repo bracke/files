@@ -5,7 +5,6 @@ procedure Sync_Grouping
   (Model    : in out Window_Model;
    Settings : Files.Settings.Settings_Model)
 is
-   use type Ada.Calendar.Time;
    use type Files.Settings.Path_Label_Vectors.Vector;
    use type Files.Types.Group_Mode;
    use type Files.Types.View_Mode;

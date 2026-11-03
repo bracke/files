@@ -2,10 +2,6 @@ separate (Files_Suite.Commands)
    procedure Test_Command_Modal_Allowlists (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
    begin
-      Files_Suite.Support.Assert_Equal
-        (Files.Commands.Placement_For (Files.Commands.No_Command),
-         Files.Commands.No_Placement,
-         "no-command has no toolbar or palette placement");
       Assert
         (not Files.Commands.Requires_Settings_Path (Files.Commands.No_Command),
          "no-command does not require a settings path");

@@ -19,6 +19,42 @@ package body Files.Images is
 
    Max_Decode_Source_Bytes : constant Natural := 128 * 1024 * 1024;
 
+   function U32_BE
+     (Data  : Ada.Streams.Stream_Element_Array;
+      First : Ada.Streams.Stream_Element_Offset)
+      return Natural
+   is
+      Value : constant Long_Long_Integer :=
+        Long_Long_Integer (Data (First)) * 16#100_0000#
+        + Long_Long_Integer (Data (First + 1)) * 16#1_0000#
+        + Long_Long_Integer (Data (First + 2)) * 16#100#
+        + Long_Long_Integer (Data (First + 3));
+   begin
+      return Natural (Long_Long_Integer'Min (Value, Long_Long_Integer (Natural'Last)));
+   end U32_BE;
+
+   function PNG_Header
+     (Data   : Ada.Streams.Stream_Element_Array;
+      Width  : out Natural;
+      Height : out Natural)
+      return Boolean
+   is
+      use type Ada.Streams.Stream_Element_Array;
+      --  The signature, then IHDR's length (13) and type.
+      Start : constant Ada.Streams.Stream_Element_Array :=
+        PNG_Magic & [0, 0, 0, 13]
+        & [Character'Pos ('I'), Character'Pos ('H'), Character'Pos ('D'), Character'Pos ('R')];
+   begin
+      Width := 0;
+      Height := 0;
+      if Data'Length < 24 or else Data (Data'First .. Data'First + Start'Length - 1) /= Start then
+         return False;
+      end if;
+      Width := U32_BE (Data, Data'First + 16);
+      Height := U32_BE (Data, Data'First + 20);
+      return True;
+   end PNG_Header;
+
    function Loader_New return System.Address
      with Import, Convention => C, External_Name => "gdk_pixbuf_loader_new";
 

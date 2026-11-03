@@ -1,4 +1,3 @@
-with Files.Fs_Primitives;
 with Ada.Real_Time;
 with Ada.Containers;
 with Ada.Streams;
@@ -12,6 +11,7 @@ with Files.Lease_Streams;
 with Files.Types;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
+with Files.Path_Checks;
 
 package body Files.History_Journal is
    use Ada.Strings.Unbounded;
@@ -27,7 +27,7 @@ package body Files.History_Journal is
    Max_Field_Length : constant := 32 * 1024;
 
    function Valid_Directory (Directory : String) return Boolean is
-     (Files.Fs_Primitives.Valid_Absolute_Path (Directory, Max_Field_Length));
+     (Files.Path_Checks.Valid_Absolute_Path (Directory, Max_Field_Length));
 
    procedure Write_Vector
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
