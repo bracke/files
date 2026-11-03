@@ -17,11 +17,17 @@ separate (Files_Suite.Operations)
       Scan    : Files.Folder_Size.Session;
 
       --  Note what was handed over: every folder counted, with its total.
-      procedure Note (Taken : Files.Folder_Size.Measurement_Vectors.Vector; Seen : in out Count_Maps.Map) is
+      procedure Note
+        (Taken : Files.Folder_Size.Measurement_Vectors.Vector;
+         Seen  : in out Count_Maps.Map;
+         What  : String) is
       begin
          for Done of Taken loop
             Assert (Done.Result.Available and then Done.Result.File_Count = 1 and then Done.Result.Total_Bytes = 3,
-                    "each folder is measured: one file of three bytes");
+                    What & ": each folder is measured: one file of three bytes; "
+                    & Ada.Strings.Unbounded.To_String (Done.Path) & " gave available="
+                    & Done.Result.Available'Image & " files=" & Done.Result.File_Count'Image
+                    & " bytes=" & Done.Result.Total_Bytes'Image & " items=" & Done.Result.Item_Count'Image);
             if Seen.Contains (Done.Path) then
                Seen.Replace (Done.Path, Seen.Element (Done.Path) + 1);
             else
@@ -73,7 +79,7 @@ separate (Files_Suite.Operations)
          for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
             Files.Folder_Size.Step (Scan);
             Files.Folder_Size.Take_All (Scan, Taken);
-            Note (Taken, Seen);
+            Note (Taken, Seen, "over several helpers");
             exit when Natural (Seen.Length) >= Folders and then not Files.Folder_Size.Is_Active (Scan);
          end loop;
          Expect_All_Once (Seen, "over several helpers");
@@ -104,7 +110,7 @@ separate (Files_Suite.Operations)
          for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
             Files.Folder_Size.Step (Scan);
             Files.Folder_Size.Take_Due (Scan, Now, Taken);
-            Note (Taken, Seen);
+            Note (Taken, Seen, "handed over at the interval");
             declare
                Working : constant Boolean := Files.Folder_Size.Is_Active (Scan);
             begin
@@ -112,7 +118,7 @@ separate (Files_Suite.Operations)
                --  (Step alone queues more; nothing has run in between).
                Files.Folder_Size.Take_Due (Scan, Now + Ada.Real_Time.Milliseconds (100), Taken);
                Assert (not Working or else Taken.Is_Empty, "nothing is handed over within the interval while working");
-               Note (Taken, Seen);
+               Note (Taken, Seen, "handed over at the interval");
             end;
             Now := Now + Files.Folder_Size.Hand_Over_Interval;
             exit when Natural (Seen.Length) >= Folders and then not Files.Folder_Size.Is_Active (Scan);

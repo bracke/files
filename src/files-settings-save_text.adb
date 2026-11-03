@@ -11,10 +11,18 @@ separate (Files.Settings)
       --  a symlinked settings file (stow, home-manager, a dotfiles repo) with
       --  a plain file and silently detach it. Write through to the link's
       --  target instead; results still name the path the user configured.
-      Target : constant String :=
-        (if Hostkit.Fs.Is_Link (Path)
-         then GNAT.OS_Lib.Normalize_Pathname (Path, Resolve_Links => True)
-         else Path);
+      --  Hostkit resolves it: GNAT's Normalize_Pathname follows no link on
+      --  Windows, and the save replaced the link there. A dangling link has
+      --  no final path; the lexical resolution names where it points.
+      function Link_Target return String is
+         Resolved : constant String := Hostkit.Fs.Real_Path (Path);
+      begin
+         return
+           (if Resolved /= "" then Resolved
+            else GNAT.OS_Lib.Normalize_Pathname (Path, Resolve_Links => True));
+      end Link_Target;
+
+      Target : constant String := (if Hostkit.Fs.Is_Link (Path) then Link_Target else Path);
       Parent : constant String := Parent_Directory (Target);
       Temp   : Unbounded_String;
       Temp_Identity : Unbounded_String;
