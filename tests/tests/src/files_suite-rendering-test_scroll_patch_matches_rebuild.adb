@@ -18,9 +18,9 @@ separate (Files_Suite.Rendering)
          Before   : constant String := Offsets;
       begin
          Change.all;
-         if Step = "scroll the view" then
-            Assert (Offsets /= Before, "the view does scroll here");
-         end if;
+         --  Each step really scrolls: a step that moved nothing would prove
+         --  nothing about the patch.
+         Assert (Offsets /= Before, Step & ": an offset moves");
          Files_Suite.Support.Assert_Equal (Files.Model.Revision (Model), Revision, Step & ": the revision stays");
          Assert
            ((Files.Model.Scroll_Revision (Model) /= Scroll) = (Offsets /= Before),
@@ -52,7 +52,25 @@ separate (Files_Suite.Rendering)
          end loop;
          Files.Model.Initialize (Model, Files_Suite.Support.Root, Items, Files_Suite.Support.Root);
       end;
+      --  The info pane and the tree scroll only while open, and the tree only
+      --  when it has rows to scroll through.
       Files.Model.Open_Tree_Panel (Model);
+      declare
+         Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
+      begin
+         for Index in 1 .. 8 loop
+            Roots.Append
+              (Files.Folder_Tree.Entry_Seed'
+                 (Path =>
+                    To_Unbounded_String (Files_Suite.Support.Join (Files_Suite.Support.Root, "dir" & Index'Image)),
+                  Name => To_Unbounded_String ("dir" & Index'Image)));
+         end loop;
+         Files.Model.Seed_Tree (Model, Roots);
+      end;
+      Files.Model.Select_Visible (Model, 1);
+      if not Files.Model.Info_Pane_Is_Open (Model) then
+         Files.Model.Toggle_Info_Pane (Model);
+      end if;
       Check ("scroll the view", Main'Access);
       Check ("set the view's offset", Main_Set'Access);
       Check ("scroll the info pane", Info'Access);

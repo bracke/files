@@ -57,7 +57,10 @@ separate (Files_Suite.Operations)
               Files.Job_Transports.Claim_Refused,
             "lease claims distinguish a live owner from invalid identity input: wrong identity refused");
       end;
-      if Hostkit.Host.Current = Hostkit.Host.Linux then
+      if Hostkit.Host.Current = Hostkit.Host.Windows then
+         --  A held lease is locked and hidden there: it cannot be replaced.
+         Skip ("Test_Transport_Lease_Claims", "a held lease file cannot be replaced here");
+      else
          declare
             Replacement_Job : Files.Process_Jobs.Session;
             Directory : Files.Types.UString;

@@ -356,6 +356,7 @@ package body Files_Suite.Operations is
    procedure Test_Folder_Size_Is_Lazy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Background_Folder_Size_Matches_Reference
      (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Folder_Size_Batches_And_Hand_Over (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Folder_Size_Multi_Selection
      (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Selection_Total_Counts_Folders
@@ -862,6 +863,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Background_Folder_Size_Matches_Reference'Access,
          "background folder-size scan matches the synchronous Directory_Size");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Folder_Size_Batches_And_Hand_Over'Access,
+         "folder sizes for more than one helper's worth: each once, a kept helper, a paced hand-over");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Folder_Size_Multi_Selection'Access,
          "a multi-item selection caches each selected folder's recursive size");
@@ -1596,6 +1600,7 @@ package body Files_Suite.Operations is
    --  The background scan must produce exactly the same totals as the
    --  synchronous Directory_Size for a subtree within the entry/depth guards.
    procedure Test_Background_Folder_Size_Matches_Reference (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Folder_Size_Batches_And_Hand_Over (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    --  A multi-item selection measures every selected directory: each folder's
    --  recursive size is cached under its own path so the info pane can show a

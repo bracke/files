@@ -21,12 +21,13 @@ separate (Files_Suite.Settings)
          "ensured settings file contains default mappings");
       Saved := Files.Settings.Save_Text (Saved_Path, "[settings]" & ASCII.LF & "default_view_mode = large" & ASCII.LF);
       Assert (Saved.Success, "settings text can be saved to a new path");
-      if Hostkit.Host.Current = Hostkit.Host.Linux then
-         declare
-            Linked : constant String := Saved_Path & ".link";
-            Result : Files.Settings.Settings_Write_Result;
-         begin
-            Assert (Hostkit.Fs.Create_Link (Saved_Path, Linked), "prepare a symlinked settings file");
+      declare
+         Linked : constant String := Saved_Path & ".link";
+         Result : Files.Settings.Settings_Write_Result;
+      begin
+         if not Files_Suite.Support.Create_Symlink (Saved_Path, Linked) then
+            Files_Suite.Support.Link_Not_Made ("Test_Settings_Ensure_And_Save_Text");
+         else
             Result := Files.Settings.Save_Text
               (Linked, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
             Assert (Result.Success and then Hostkit.Fs.Is_Link (Linked),
@@ -38,8 +39,8 @@ separate (Files_Suite.Settings)
             Saved := Files.Settings.Save_Text
               (Saved_Path, "[settings]" & ASCII.LF & "default_view_mode = large" & ASCII.LF);
             Assert (Hostkit.Fs.Delete_Link (Linked), "remove the test link");
-         end;
-      end if;
+         end if;
+      end;
       if Hostkit.Metadata.Mode_Bits_Are_Native then
          declare
             Available : Boolean := False;

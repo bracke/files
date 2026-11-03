@@ -1,3 +1,4 @@
+with Files.Model.Testing;
 with Guikit.Input;
 separate (Files_Suite.Rendering)
    --  The window keeps a snapshot's rows across a change of the selection
@@ -69,6 +70,34 @@ separate (Files_Suite.Rendering)
            (Files.Rendering.Build_Snapshot (Model, Settings, Rows_From => Before'Access)
             = Files.Rendering.Build_Snapshot (Model, Settings),
             "a column drag's patched snapshot is the rebuilt one");
+      end;
+
+      --  A selection change during a synchronized multi-rename drops the
+      --  field of the row it leaves: the window may keep the rows only if
+      --  that left them as a rebuild draws them.
+      declare
+         Rows : Natural;
+      begin
+         Files.Model.Select_Visible (Model, 1);
+         Files.Model.Toggle_Visible_Selection (Model, 2);
+         Files.Model.Toggle_Rename (Model);
+         Files_Suite.Support.Assert_Equal
+           (Files.Model.Testing.Rename_Field_Count (Model), 2, "the multi-rename opens two fields");
+         declare
+            Before : aliased constant Files.Rendering.View_Snapshot :=
+              Files.Rendering.Build_Snapshot (Model, Settings);
+         begin
+            Rows := Files.Model.Rows_Revision (Model);
+            Files.Model.Toggle_Visible_Selection (Model, 2);
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Testing.Rename_Field_Count (Model), 1, "deselecting a row drops its rename field");
+            Assert
+              (Files.Model.Rows_Revision (Model) /= Rows
+               or else Files.Rendering.Build_Snapshot (Model, Settings, Rows_From => Before'Access)
+                 = Files.Rendering.Build_Snapshot (Model, Settings),
+               "a selection change during a multi-rename keeps the rows only as a rebuild draws them");
+         end;
+         Files.Model.Toggle_Rename (Model);
       end;
 
       --  And a change a row shows moves it: the filter hides rows.

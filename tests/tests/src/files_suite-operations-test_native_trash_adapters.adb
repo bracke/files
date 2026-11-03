@@ -118,6 +118,29 @@ separate (Files_Suite.Operations)
                Ada.Directories.Delete_File (Victim);
             end if;
          end;
+         --  The Recycle Bin is not on a network share: asked to recycle there,
+         --  the shell deletes the item for good. The same file, reached
+         --  through this machine's administrative share, is refused before
+         --  anything is touched.
+         if Hostkit.Host.Current = Hostkit.Host.Windows
+           and then Root'Length > 2 and then Root (Root'First + 1) = ':'
+         then
+            declare
+               Victim : constant String := Join (Root, "on-a-share.txt");
+               Shared : constant String :=
+                 "\\localhost\" & Root (Root'First) & "$" & Join (Root (Root'First + 2 .. Root'Last), "on-a-share.txt");
+            begin
+               Write_File (Victim, "keep me");
+               Assert (Path_Exists (Shared), "the file is reachable through \\localhost\" & Root (Root'First) & "$");
+               Mutation := Files.File_System.Move_To_Trash_Preflight (Shared);
+               Assert (not Mutation.Success, "recycling from a network share is refused");
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Mutation.Error_Key), "error.trash.volume_unavailable",
+                  "a share is refused as a volume the Recycle Bin does not hold");
+               Assert (Path_Exists (Victim), "the refused file is untouched");
+               Ada.Directories.Delete_File (Victim);
+            end;
+         end if;
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "macos");
          Assert
            (Files.File_System.Testing.Trash_Backend_Of_Current_Environment = Files.File_System.Trash_Macos_Native,

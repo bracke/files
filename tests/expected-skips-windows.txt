@@ -12,11 +12,11 @@ Test_Cross_Device_Recovery: a mode-555 folder does not refuse an unlink here
 Test_Decode_Emoji_Png_From_Font: the Noto Color Emoji font is not installed
 Test_Deep_Tree_Copy: the 1025-deep fixture passes the host's path limit
 Test_Emoji_Draws_As_Colour_Icons: the Noto Color Emoji font is not installed
+Test_Exclusive_New_Files: needs native POSIX mode bits
 Test_Failed_Move_Rollback: a mode-555 folder does not refuse an unlink here
 Test_Failed_Replace_Rollback: a mode-555 folder does not refuse an unlink here
 Test_Fifo_Never_Blocks: Windows has no FIFOs
 Test_Invalid_UTF8_Names: Windows file names cannot hold bytes that are not UTF-8
-Test_Modified_Time_Is_Local: local time is UTC here
 Test_Move_Ownership: no POSIX owning groups here
 Test_Move_Without_Read_Access: needs native POSIX mode bits
 Test_Paste_Read_Only_Cause: a read-only directory does not refuse writes here
@@ -27,11 +27,13 @@ Test_Released_Recovery_Goes_To_Trash: the Recycle Bin is reachable, so the relea
 Test_Rename_Trash_Delete_Read_Only_Cause: a read-only directory does not refuse writes here
 Test_Reserve_Exception_Safety: needs Linux or macOS
 Test_Search_Read_Errors: needs mode 0 to make a folder unreadable
+Test_Settings_Load_File_Inputs: Windows has no /dev/null special file
 Test_Settings_Save_Read_Only_Cause: a read-only directory does not refuse writes here
 Test_Sparse_Transfers: the sparse-file fixture is Linux-only C
 Test_Staging_Default_ACL: the default-ACL fixture is a Linux POSIX ACL
 Test_Stray_Home_Trash_Stays_Freedesktop: only Linux and macOS read a ~/.Trash folder; Windows uses the Recycle Bin
 Test_Transport_Cleanup_Retry: needs mode 0 to make a transport undeletable
+Test_Transport_Lease_Claims: a held lease file cannot be replaced here
 Test_Trash_Long_Name: the name passes the Windows path limit
 Test_Trash_Refuses_Volume_Trash: Windows has no freedesktop volume trash
 Test_Trash_Source_Verification: the trash fault hooks utimensat in Linux-only C

@@ -1,4 +1,5 @@
 with Ada.Calendar;
+with Ada.Calendar.Time_Zones;
 with Files.Display_Text;
 separate (Files_Suite.Rendering)
    --  A day is 23 or 25 hours across a daylight-saving change; counting
@@ -32,7 +33,21 @@ separate (Files_Suite.Rendering)
            (Files.Display_Text.Calendar_Days_Ago (Local (Change_Day + 2, 8), Local (Change_Day + 1, 12)), -1,
             Where & ": tomorrow is a day ahead");
       end Check;
+
+      --  Whether the local zone's offset differs across Change_Day: only
+      --  then does the check above cross a clock change.
+      function Crosses (Change_Day : Ada.Calendar.Day_Number) return Boolean is
+         use type Ada.Calendar.Time_Zones.Time_Offset;
+      begin
+         return Ada.Calendar.Time_Zones.UTC_Time_Offset (Local (Change_Day - 5, 8))
+           /= Ada.Calendar.Time_Zones.UTC_Time_Offset (Local (Change_Day + 1, 12));
+      end Crosses;
    begin
+      if not Crosses (8) and then not Crosses (29) then
+         Files_Suite.Support.Skip
+           ("Test_Day_Labels_Across_Clock_Changes", "the local zone has no clock change in March 2026");
+         return;
+      end if;
       Check (8, "North America");
       Check (29, "Europe");
    end Test_Day_Labels_Across_Clock_Changes;

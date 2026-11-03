@@ -1,6 +1,6 @@
-with Ada.Environment_Variables;
 with Ada.Strings.Unbounded;
 
+with Hostkit.Environment;
 with Hostkit.Process;
 
 package body Files.Environment is
@@ -22,12 +22,12 @@ package body Files.Environment is
 
    procedure Set (Name : String; Value : String) is
    begin
-      Ada.Environment_Variables.Set (Name, Value);
+      Hostkit.Environment.Set (Name, Value);
    end Set;
 
    procedure Clear (Name : String) is
    begin
-      Ada.Environment_Variables.Clear (Name);
+      Hostkit.Environment.Clear (Name);
    end Clear;
 
 end Files.Environment;

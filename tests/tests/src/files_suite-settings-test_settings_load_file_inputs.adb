@@ -90,7 +90,9 @@ separate (Files_Suite.Settings)
             Files_Suite.Support.Link_Not_Made ("Test_Settings_Load_File_Inputs", Files_Suite.Support.Symbolic_Link);
          end if;
       end;
-      if Hostkit.Host.Current = Hostkit.Host.Linux then
+      if Hostkit.Host.Current = Hostkit.Host.Windows then
+         Files_Suite.Support.Skip ("Test_Settings_Load_File_Inputs", "Windows has no /dev/null special file");
+      else
          Loaded := Files.Settings.Load_File ("/dev/null");
          Assert
            (not Loaded.Success

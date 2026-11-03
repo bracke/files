@@ -2223,15 +2223,22 @@ procedure Check_All is
       Ada.Directories.End_Search (Search);
    end Check_Host_Questions;
 
-   --  Thumbnails are made on the refresh tasks and on the UI thread at once.
-   --  A variable at the package level is shared by them, unguarded: one held
+   --  Thumbnails are made on the refresh tasks and on the UI thread at once,
+   --  and images are decoded there and on the Quick Look decoder's task. A
+   --  variable at the package level is shared by them, unguarded: one held
    --  the path being written and was overwritten mid-write. State belongs in
    --  the subprogram, or in a protected object.
-   procedure Check_Thumbnail_Package_State is
+   procedure Check_Shared_Package_State is
       procedure Check (Path : String) is
          Code  : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
          Start : Positive := Code'First;
       begin
+         --  A subprogram's subunit declares only its own locals.
+         if Ada.Strings.Fixed.Index (Code, "separate") = Code'First
+           and then Ada.Strings.Fixed.Index (Code, "package body") = 0
+         then
+            return;
+         end if;
          for Index in Code'Range loop
             if Code (Index) = ASCII.LF or else Index = Code'Last then
                declare
@@ -2254,7 +2261,7 @@ procedure Check_All is
                   then
                      Put_Line
                        (Standard_Error,
-                        Path & ": a package-level variable is shared by every task that makes thumbnails: "
+                        Path & ": a package-level variable is shared by every task that runs this code: "
                         & Ada.Strings.Fixed.Trim (Line, Ada.Strings.Both));
                      Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
                      raise Program_Error;
@@ -2264,10 +2271,31 @@ procedure Check_All is
             end if;
          end loop;
       end Check;
+
+      procedure Check_All (Pattern : String) is
+         Search : Ada.Directories.Search_Type;
+         Item   : Ada.Directories.Directory_Entry_Type;
+         Found  : Boolean := False;
+      begin
+         Ada.Directories.Start_Search
+           (Search, Root & "/src", Pattern, [Ada.Directories.Ordinary_File => True, others => False]);
+         while Ada.Directories.More_Entries (Search) loop
+            Ada.Directories.Get_Next_Entry (Search, Item);
+            Found := True;
+            Check (Ada.Directories.Full_Name (Item));
+         end loop;
+         Ada.Directories.End_Search (Search);
+         if not Found then
+            Put_Line (Standard_Error, "src/" & Pattern & ": no source matches; update Check_Shared_Package_State");
+            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+            raise Program_Error;
+         end if;
+      end Check_All;
    begin
-      Check (Root & "/src/files-file_system-thumbnails.ads");
-      Check (Root & "/src/files-file_system-thumbnails.adb");
-   end Check_Thumbnail_Package_State;
+      Check_All ("files-file_system-thumbnails.ad?");
+      Check_All ("files-images*.ad?");
+      Check_All ("files-preview_decoder.ad?");
+   end Check_Shared_Package_State;
 
    --  A timer that subtracts from the clock (Clock - Since) overflows when
    --  Since is Time_First, the "never" many timers start from; that raised
@@ -2497,6 +2525,7 @@ procedure Check_All is
             --  getenv bound by hand, GNAT's command-line environment.
             if Ada.Directories.Simple_Name (Path) not in "files-environment.adb" | "files-environment.ads"
               and then (Ada.Strings.Fixed.Index (Lower, "ada.environment_variables") > 0
+                        or else Ada.Strings.Fixed.Index (Lower, "hostkit.environment") > 0
                         or else Ada.Strings.Fixed.Index (Lower, "getenv") > 0
                         or else Ada.Strings.Fixed.Index (Lower, "environment_value") > 0
                         or else Ada.Strings.Fixed.Index (Lower, "command_line.environment") > 0)
@@ -4579,12 +4608,12 @@ procedure Check_All is
       --  The floors are the counts as of the last change to a suite, so a
       --  lost test fails here; raise a floor when a suite grows.
       Require_Tests ("settings", 34);
-      Require_Tests ("startup", 28);
+      Require_Tests ("startup", 29);
       Require_Tests ("commands", 38);
       Require_Tests ("model", 53);
       Require_Tests ("interaction", 76);
-      Require_Tests ("rendering", 92);
-      Require_Tests ("operations", 271);
+      Require_Tests ("rendering", 93);
+      Require_Tests ("operations", 272);
    end Check_Test_Subsystem_Coverage;
 
 begin
@@ -4610,7 +4639,7 @@ begin
    Check_Localization_Usage;
    Check_Clock_Arithmetic;
    Check_Environment_Access;
-   Check_Thumbnail_Package_State;
+   Check_Shared_Package_State;
    Check_Host_Questions;
    Check_Filetype_Detection_Order;
    Check_Event_Translation_Contract;
