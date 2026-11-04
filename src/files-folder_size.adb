@@ -238,22 +238,38 @@ package body Files.Folder_Size is
    end Cancel;
 
    --  Read the results the helper has published since the last call.
-   procedure Collect (Scan : in out Session) is
+   --  Take the helper's published results, in order. A result that is there
+   --  but will not open yet (on Windows, a file just renamed into place can
+   --  refuse its lease for a moment: CI saw this answer a folder as
+   --  unmeasured) is read again on a later pass while the helper runs. Once
+   --  the helper has Finished, a few short retries, then it is unmeasured.
+   procedure Collect (Scan : in out Session; Finished : Boolean) is
    begin
       while Scan.Next_Result <= Natural (Scan.Batch.Length) loop
          declare
             Name : constant String :=
               Files.Process_Jobs.Path (Scan.Job, Result_Name (Scan.Next_Result));
             Result : Files.File_System.Directory_Size_Result;
+            Read   : Boolean := False;
          begin
             exit when not Ada.Directories.Exists (Name);
-            begin
-               Result := Read_Result (Name);
-            exception
-               when Swallowed : others =>
-                  Files.Diagnostics.Note (Swallowed, "Files.Folder_Size");
-                  Result := (others => <>);
-            end;
+            for Attempt in 1 .. (if Finished then 5 else 1) loop
+               begin
+                  Result := Read_Result (Name);
+                  Read := True;
+                  exit;
+               exception
+                  when Swallowed : others =>
+                     Files.Diagnostics.Note (Swallowed, "Files.Folder_Size");
+                     if Finished and then Attempt < 5 then
+                        delay 0.02;
+                     end if;
+               end;
+            end loop;
+            if not Read then
+               exit when not Finished;
+               Result := (others => <>);
+            end if;
             Scan.Done_Queue.Append (Measurement'(Path => Scan.Batch (Scan.Next_Result), Result => Result));
             Scan.Next_Result := Scan.Next_Result + 1;
          end;
@@ -274,7 +290,7 @@ package body Files.Folder_Size is
       if Cancelled then
          return;
       end if;
-      Collect (Scan);
+      Collect (Scan, Finished);
       if not Finished then
          return;
       end if;
