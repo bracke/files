@@ -34,9 +34,7 @@ begin
 
       Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
       Settle_Current_Is_Trash (Model);
-      Files.Model.Set_Directory_Signature
-        (Model,
-         Files.File_System.Directory_State (To_String (Load.Path)));
+      Files.Model.Set_Directory_Signature (Model, Load.Signature);
       if Close_Selector then
          Files.Model.Close_Root_Selector (Model);
       end if;

@@ -214,7 +214,16 @@ separate (Files.Controller)
             --  Apply_Settings_Command instead of calling this one.
             null;
          when Files.Commands.Pure_Command_Id =>
-            Files.Commands.Execution.Execute (Id, Model);
+            declare
+               Had_Results : constant Boolean := Files.Model.Search_Results_Are_Active (Model);
+            begin
+               Files.Commands.Execution.Execute (Id, Model);
+               --  Clearing the filter ends a search: the folder's own listing
+               --  replaces the results, as when the scope chip goes back.
+               if Id = Files.Commands.Clear_Filter_Command and then Had_Results then
+                  Operation := Files.Operations.Refresh (Model, Settings);
+               end if;
+            end;
       end case;
 
       if Operation.Status = Files.Operations.Operation_Disabled

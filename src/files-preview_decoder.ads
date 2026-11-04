@@ -20,7 +20,9 @@ package Files.Preview_Decoder is
    procedure Request (Owner : Requester; Path : String; Size : Positive);
 
    --  Owner's decoded preview of Path, once the worker has finished it.
-   --  Each result is handed out once.
+   --  A decoded image is handed out once; a failure (Available False) is
+   --  reported on every Take until Owner asks for another file, so the
+   --  caller never re-requests a file that cannot be decoded.
    --
    --  @param Owner The window asking.
    --  @param Path The file it previews.

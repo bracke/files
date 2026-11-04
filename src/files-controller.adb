@@ -506,8 +506,9 @@ package body Files.Controller is
       Saved     : constant Files.Settings.Settings_Write_Result :=
         Commit_Settings (Model, Settings, Updated, Settings_Path);
    begin
-      --  Refused: nothing changed, nothing to list again.
-      if Reload and then Files.Settings.Same_Content (Settings, Updated) then
+      --  List again only after a change that was taken (Settings now holds
+      --  Updated); an unchanged or refused one leaves the listing as it is.
+      if Reload and then Changes and then Files.Settings.Same_Content (Settings, Updated) then
          Operation := Files.Operations.Refresh (Model, Settings);
       end if;
       if Operation.Status = Files.Operations.Operation_Failed then

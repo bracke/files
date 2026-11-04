@@ -41,12 +41,10 @@ begin
          Old_Full : constant String := To_String (Target.Old_Full_Path);
          Old_Name : constant String := To_String (Target.Old_Name);
          New_Name : constant String := To_String (Target.New_Name);
-         --  A recursive search lists items from below the current folder;
-         --  a rename keeps each one in its own folder.
-         Parent   : constant String :=
-           (if Files.Model.Search_Results_Are_Active (Model)
-            then Ada.Directories.Containing_Directory (Old_Full)
-            else Current_Dir);
+         --  A rename keeps each item in its own folder: a search or Recent
+         --  lists items from other folders, and the listing a search left
+         --  behind can outlive its flag until the reload lands.
+         Parent   : constant String := Ada.Directories.Containing_Directory (Old_Full);
       begin
          --  An unchanged name stays as it is, whatever it holds; a new one
          --  is a name the user typed.

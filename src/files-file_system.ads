@@ -26,11 +26,24 @@ package Files.File_System is
    subtype Directory_Item is Files.Items.Directory_Item;
    package Item_Vectors renames Files.Items.Item_Vectors;
 
+   type Directory_Signature is record
+      Path               : UString;
+      Exists             : Boolean := False;
+      Entry_Count        : Natural := 0;
+      Entry_State_Checksum : Natural := 0;
+      Latest_Modified    : Ada.Calendar.Time := Files.Types.Unknown_Time;
+      Latest_Modified_Known : Boolean := False;
+   end record;
+
+   --  Signature: the directory's change signature, taken while it was
+   --  listed, when the load was asked for one (Load_Directory_Deferring_Thumbnails);
+   --  otherwise, or when it could not be taken, one that never matches.
    type Directory_Load_Result is record
       Success   : Boolean := False;
       Path      : UString;
       Items     : Item_Vectors.Vector;
       Error_Key : UString;
+      Signature : Directory_Signature;
    end record;
 
    type Recursive_Search_Result is record
@@ -39,15 +52,6 @@ package Files.File_System is
       Query     : UString;
       Items     : Item_Vectors.Vector;
       Error_Key : UString;
-   end record;
-
-   type Directory_Signature is record
-      Path               : UString;
-      Exists             : Boolean := False;
-      Entry_Count        : Natural := 0;
-      Entry_State_Checksum : Natural := 0;
-      Latest_Modified    : Ada.Calendar.Time := Files.Types.Unknown_Time;
-      Latest_Modified_Known : Boolean := False;
    end record;
 
    type Directory_Change_Result is record
@@ -220,6 +224,8 @@ package Files.File_System is
    --  @param Name Entry name Include is asked about.
    --  @param Kind Entry kind Include is asked about.
    --  @param Generate_Thumbnails Whether to decode images lacking a cached thumbnail.
+   --  @param With_Signature Whether to take the directory's change signature
+   --    in the same pass (Path's own entries, hidden or not, before Include).
    --  @return Loaded directory model or a recoverable error result.
    function Load_Directory_Filtered
      (Path     : String;
@@ -227,12 +233,15 @@ package Files.File_System is
       Options  : Files.Types.Listing_Options;
       Include  : access function
         (Name : String; Kind : Files.Types.Item_Kind) return Boolean;
-      Generate_Thumbnails : Boolean := False)
+      Generate_Thumbnails : Boolean := False;
+      With_Signature      : Boolean := False)
       return Directory_Load_Result;
 
    --  Load_Directory for a listing the UI waits on: thumbnails come from the
    --  cache only, and generating the missing ones -- decoding every new photo
-   --  of a camera folder -- is left to a background listing.
+   --  of a camera folder -- is left to a background listing. The result
+   --  carries the directory's signature, taken in the same pass, so a file
+   --  created during the load is either listed or seen as a change.
    --
    --  @param Path Directory path to load.
    --  @param Settings Settings model used for filtering and item metadata.

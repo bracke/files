@@ -223,6 +223,16 @@ package body Files.Operations is
 
    function Is_Trash_Child (Path : String) return Boolean is separate;
 
+   --  How many numbered names (" 2", " (copy 3)") a new entry tries before
+   --  giving up on a free one.
+   Max_Name_Attempts : constant := 9_999;
+
+   function Leaf_Extension_Start (Name : String) return Natural is separate;
+
+   function Leaf_Extension (Name : String) return String is separate;
+
+   function Leaf_Base (Name : String) return String is separate;
+
    function Compress_Selected
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
@@ -235,12 +245,6 @@ package body Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
    is separate;
-
-   function Leaf_Extension_Start (Name : String) return Natural is separate;
-
-   function Leaf_Extension (Name : String) return String is separate;
-
-   function Leaf_Base (Name : String) return String is separate;
 
    function Duplicate_Selected
      (Model    : in out Files.Model.Window_Model;

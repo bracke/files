@@ -389,7 +389,12 @@ separate (Files.Rendering)
         and then not Snapshot.Items.Is_Empty
       then
          declare
-            Today    : constant Ada.Calendar.Time := Files.Grouping.Day_Start (Ada.Calendar.Clock);
+            --  The day the model banded its items by, so headers match the
+            --  order even when the clock has passed midnight since.
+            Today    : constant Ada.Calendar.Time :=
+              (if Files.Model.Grouping_Day (Model) = Files.Types.Unknown_Time
+               then Files.Grouping.Day_Start (Ada.Calendar.Clock)
+               else Files.Model.Grouping_Day (Model));
             Grouped  : Item_Snapshot_Vectors.Vector;
             Previous : Natural := 0;
          begin

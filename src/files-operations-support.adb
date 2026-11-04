@@ -119,9 +119,7 @@ package body Files.Operations.Support is
          end if;
 
          Files.Model.Replace_Items (Model, Load.Items);
-         Files.Model.Set_Directory_Signature
-           (Model,
-            Files.File_System.Directory_State (Files.Model.Current_Path (Model)));
+         Files.Model.Set_Directory_Signature (Model, Load.Signature);
          if Select_Name /= "" then
             declare
                Selection_Restored : constant Boolean := Files.Model.Select_By_Name (Model, Select_Name);

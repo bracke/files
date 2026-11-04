@@ -97,17 +97,14 @@ begin
          Name   : constant String := To_String (Item.Name);
          Ext    : constant String := Leaf_Extension (Name);
          Base   : constant String := Leaf_Base (Name);
-         --  A search result's link belongs beside its source.
-         Link_Directory : constant String :=
-           (if Files.Model.Search_Results_Are_Active (Model)
-            then Ada.Directories.Containing_Directory (Source)
-            else Directory);
+         --  A link belongs beside its source, wherever the listing came from.
+         Link_Directory : constant String := Ada.Directories.Containing_Directory (Source);
 
          --  A directory-unique link stem (without extension), e.g. "report
          --  (link)" or "report (link 2)" when earlier choices already exist.
          function Unique_Stem return String is
          begin
-            for N in 1 .. 9_999 loop
+            for N in 1 .. Max_Name_Attempts loop
                declare
                   Candidate : constant String := Base & Link_Marker (N);
                begin

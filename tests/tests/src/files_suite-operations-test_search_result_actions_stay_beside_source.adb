@@ -28,6 +28,7 @@ separate (Files_Suite.Operations)
       begin
          Load := Files.File_System.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
+         Files.Model.Set_Background_Transfers (Model, False);
          Files.Model.Set_Filter (Model, Query);
          Result := Files.Operations.Run_Recursive_Search (Model, Settings);
          Assert (Files.Model.Search_Results_Are_Active (Model) and then Files.Model.Item_Count (Model) = 1,
@@ -65,5 +66,51 @@ separate (Files_Suite.Operations)
       Assert (Hostkit.Fs.Is_Link (Join (Deep, "summary (link).txt"))
               and then not Path_Exists (Join (Root, "summary (link).txt")),
               "the link is made beside its source");
+
+      --  The window runs these through a helper process, which rebuilds the
+      --  model from its request: the results still count as results there.
+      Search ("summary.txt");
+      Files.Model.Set_Background_Transfers (Model, True);
+      Result := Files.Operations.Duplicate_Selected (Model, Settings);
+      Result := Complete_Operation (Model, Settings, Result);
+      Assert (Entries (Deep) = 4 and then Entries (Root) = 1,
+              "a helper's duplicate of a search result is made beside its source");
+
+      Load := Files.File_System.Load_Directory (Deep, Settings);
+      Files.Model.Initialize (Model, Deep, Load.Items, Root);
+      Files.Model.Set_Background_Transfers (Model, False);
+      Assert (Files.Model.Select_By_Name (Model, "summary.txt"), "the file to archive is listed");
+      Result := Files.Operations.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive);
+      Assert (Path_Exists (Join (Deep, "summary.zip")), "an archive is made beside the file");
+      Search ("summary.zip");
+      Files.Model.Set_Background_Transfers (Model, True);
+      Result := Files.Operations.Extract_Selected (Model, Settings);
+      Result := Complete_Operation (Model, Settings, Result);
+      Assert (Path_Exists (Join (Join (Deep, "summary"), "summary.txt"))
+              and then not Path_Exists (Join (Root, "summary")),
+              "a helper extracts a search result beside the archive, not into the search root");
+      Project_Tools.Files.Delete_Tree (Join (Deep, "summary"));
+
+      --  Clearing the filter ends the search: the folder's own listing comes
+      --  back. Until it does, an action on a listed result still keeps to the
+      --  result's own folder.
+      Search ("summary.txt");
+      declare
+         Cleared : constant Files.Controller.Controller_Result :=
+           Files.Controller.Execute_Command (Files.Commands.Clear_Filter_Command, Model, Settings);
+         pragma Unreferenced (Cleared);
+      begin
+         Assert (not Files.Model.Search_Results_Are_Active (Model)
+                 and then Files.Model.Item_Count (Model) = Entries (Root)
+                 and then Files.Model.Select_By_Name (Model, "a"),
+                 "Clear Filter lists the search root again, not the results");
+      end;
+      Search ("summary (copy).txt");
+      Files.Model.Clear_Filter (Model);
+      Files.Model.Toggle_Rename (Model);
+      Files.Model.Set_Rename_Text (Model, "notes.txt");
+      Result := Files.Operations.Commit_Rename (Model, Settings);
+      Assert (Path_Exists (Join (Deep, "notes.txt")) and then not Path_Exists (Join (Root, "notes.txt")),
+              "a result still listed after Clear Filter renames in its own folder");
       Project_Tools.Files.Delete_Tree (Join (Root, "a"));
    end Test_Search_Result_Actions_Stay_Beside_Source;

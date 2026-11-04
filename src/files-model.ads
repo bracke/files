@@ -354,6 +354,14 @@ package Files.Model is
      (Model    : in out Window_Model;
       Settings : Files.Settings.Settings_Model);
 
+   --  The day Sync_Grouping last banded the items by (the start of today
+   --  then), so band headers drawn later agree with the order across
+   --  midnight; Unknown_Time before the first sync.
+   --
+   --  @param Model Model to query.
+   --  @return The start of the day the bands are relative to.
+   function Grouping_Day (Model : Window_Model) return Ada.Calendar.Time;
+
    --  A copy of Model in group order, for a one-off render of a model that is
    --  not updated in place.
    --

@@ -63,10 +63,42 @@ separate (Files_Suite.Operations)
          --  never handed out.
          Files.Preview_Decoder.Request (A, First, 8);
          Files.Preview_Decoder.Request (A, Second, 8);
-         Await (A, Second);
-         Assert (Ready, "the file now previewed is decoded");
          Files.Preview_Decoder.Take (A, First, Image, Ready, Asked);
-         Assert (not Ready and then not Asked, "the one left behind is not handed out");
+         Assert (not Ready and then not Asked, "the one left behind is no longer asked for");
+         for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Launch_Limit)) loop
+            Files.Preview_Decoder.Take (A, First, Image, Ready, Asked);
+            Assert (not Ready, "the one left behind is never handed out");
+            Files.Preview_Decoder.Take (A, Second, Image, Ready, Asked);
+            exit when Ready;
+         end loop;
+         Assert (Ready, "the file now previewed is decoded");
+
+         --  Two windows previewing the same file each get it.
+         Files.Preview_Decoder.Request (A, First, 8);
+         Files.Preview_Decoder.Request (B, First, 8);
+         Await (A, First);
+         Assert (Ready and then Image.Available, "one window gets a file another also asks for");
+         Await (B, First);
+         Assert (Ready and then Image.Available, "and so does the other");
+
+         --  A file that does not decode is reported, and stays reported: the
+         --  window does not ask for it again on every poll.
+         Write_Binary_File (Join (Root, "broken.jpg"), "not a picture");
+         Files.Preview_Decoder.Request (A, Join (Root, "broken.jpg"), 8);
+         Await (A, Join (Root, "broken.jpg"));
+         Assert (Ready and then not Image.Available, "an undecodable file is reported as such");
+         Files.Preview_Decoder.Take (A, Join (Root, "broken.jpg"), Image, Ready, Asked);
+         Assert (Asked and then Ready and then not Image.Available,
+                 "the failure is still there on the next poll, so nothing asks again");
+
+         --  More windows than slots: the one asked of longest ago gives way.
+         for Owner in Files.Preview_Decoder.Requester range 201 .. 209 loop
+            Files.Preview_Decoder.Request (Owner, First, 8);
+         end loop;
+         Await (209, First);
+         Assert (Ready, "the newest of many windows gets its preview");
+         Files.Preview_Decoder.Take (201, First, Image, Ready, Asked);
+         Assert (not Asked, "the oldest of nine windows lost its slot to the ninth");
       end;
 
       --  Through the model: the preview opens at once, without its image,

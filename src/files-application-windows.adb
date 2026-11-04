@@ -570,7 +570,7 @@ package body Files.Application.Windows is
                   --  holding this build: only its offsets are written below.
                   if Runtime.Slot_Contents (Other) /= Runtime.Slot_Contents (Runtime.Current_Slot) then
                      Runtime.Snapshots (Other) := Runtime.Snapshots (Runtime.Current_Slot);
-                     Runtime.Slot_Listings (Other) := Runtime.Slot_Listings (Runtime.Current_Slot);
+                     Runtime.Slot_Model_Rows (Other) := Runtime.Slot_Model_Rows (Runtime.Current_Slot);
                      Runtime.Slot_Contents (Other) := Runtime.Slot_Contents (Runtime.Current_Slot);
                      Runtime.Slot_Rows (Other) := Runtime.Slot_Rows (Runtime.Current_Slot);
                   end if;
@@ -610,7 +610,7 @@ package body Files.Application.Windows is
       end;
       Runtime.Cached_Rows_Revision := Files.Model.Rows_Revision (Runtime.Model);
       Runtime.Cached_Scroll_Revision := Files.Model.Scroll_Revision (Runtime.Model);
-      Runtime.Slot_Listings (Runtime.Current_Slot) := Files.Model.Listing_Revision (Runtime.Model);
+      Runtime.Slot_Model_Rows (Runtime.Current_Slot) := Files.Model.Rows_Revision (Runtime.Model);
       Runtime.Cached_Model_Revision := Files.Model.Revision (Runtime.Model);
       Runtime.Cached_Settings_Key := Files.Settings.Snapshot_Settings_Key_Of (Runtime.Settings);
       Runtime.Snapshot_Built_At := Now;
@@ -1204,8 +1204,8 @@ package body Files.Application.Windows is
    end Hit_Slot;
 
    --  The model's visible index of the item drawn at Index in Slot. The
-   --  frame on screen can be older than the listing (a watched change, a key
-   --  that navigated): an index into it then names a different item, so the
+   --  frame on screen can be older than the rows (a watched change, a key
+   --  that navigated or sorted): an index into it then names a different item, so the
    --  drawn item is found again (Item_Now), and a click on one that is gone
    --  lands nowhere (0).
    function Current_Item_Index
@@ -1214,7 +1214,7 @@ package body Files.Application.Windows is
       Index   : Natural)
       return Natural is
    begin
-      if Index = 0 or else Runtime.Slot_Listings (Slot) = Files.Model.Listing_Revision (Runtime.Model) then
+      if Index = 0 or else Runtime.Slot_Model_Rows (Slot) = Files.Model.Rows_Revision (Runtime.Model) then
          return Index;
       end if;
       return Files.Rendering.Item_Now (Runtime.Snapshots (Slot), Index, Runtime.Model);

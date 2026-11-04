@@ -112,9 +112,7 @@ begin
 
             Files.Model.Navigate_To (Model, To_String (Load.Path), Load.Items);
             Settle_Current_Is_Trash (Model);
-            Files.Model.Set_Directory_Signature
-              (Model,
-               Files.File_System.Directory_State (To_String (Load.Path)));
+            Files.Model.Set_Directory_Signature (Model, Load.Signature);
             --  Opening a folder records it too: recent folders are useful.
             Files.Model.Note_Recent_Open (Model, To_String (Load.Path));
             Files.Model.Set_Error (Model, "");

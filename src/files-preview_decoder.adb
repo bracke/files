@@ -115,7 +115,12 @@ package body Files.Preview_Decoder is
          Ready := Asked and then States (Index).Done;
          if Ready then
             Image := States (Index).Image;
-            States (Index) := (others => <>);
+            --  A decoded image is handed out once. A failure stays in the
+            --  slot, so the next poll learns it again instead of asking for
+            --  the same undecodable file over and over.
+            if Image.Available then
+               States (Index) := (others => <>);
+            end if;
          else
             Image := (others => <>);
          end if;

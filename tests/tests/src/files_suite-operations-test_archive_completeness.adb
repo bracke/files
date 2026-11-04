@@ -48,9 +48,29 @@ separate (Files_Suite.Operations)
          Files.Model.Select_All_Visible (Model);
          Step := Complete_Operation
            (Model, Settings, Files.Operations.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
-         Assert (Step.Status = Files.Operations.Operation_Failed
-                 and then not Ada.Directories.Exists (Join (Join (Root, "two"), "same.zip")),
-                 "duplicate archive entry names cannot overwrite or silently replace a selected input");
+         --  Two inputs with one name are both kept: the second as "same 2.txt",
+         --  so neither overwrites nor silently replaces the other.
+         Files_Suite.Support.Assert_Equal
+           (Step.Status, Files.Operations.Operation_Success, "two inputs sharing a name are archived together");
+         declare
+            --  Beside the first selected input: Recent lists the newest first.
+            Archive : constant String :=
+              (if Ada.Directories.Exists (Join (Join (Root, "two"), "same.zip"))
+               then Join (Join (Root, "two"), "same.zip")
+               else Join (Join (Root, "one"), "same.zip"));
+            Out_Dir : constant String := Join (Root, "unpacked");
+            Status  : Zlib.Status_Code;
+            use type Zlib.Status_Code;
+         begin
+            Ada.Directories.Create_Path (Out_Dir);
+            Zlib.Extract_Archive_File_To_Directory (Archive, Out_Dir, "", Status);
+            Assert (Status = Zlib.Ok, "the archive beside the first input reads back: " & Archive);
+            Assert (Ada.Directories.Exists (Join (Out_Dir, "same.txt"))
+                    and then Ada.Directories.Exists (Join (Out_Dir, "same 2.txt"))
+                    and then Project_Tools.Files.Read_Raw_File (Join (Out_Dir, "same.txt"))
+                             /= Project_Tools.Files.Read_Raw_File (Join (Out_Dir, "same 2.txt")),
+                    "duplicate archive entry names cannot overwrite or silently replace a selected input");
+         end;
          Await_View (Model, Settings);
       end loop;
       --  The archive writers cannot hold a symbolic link: the archive is still

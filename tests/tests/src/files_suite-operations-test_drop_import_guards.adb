@@ -52,6 +52,26 @@ separate (Files_Suite.Operations)
           (Sources, Join (Root, "tree"), Files.File_System.Drop_Copy);
       Assert (not Plans.Success, "copying a directory into itself is rejected");
 
+      --  However the destination is spelled: in another letter case where
+      --  names fold case, or through a link into the tree.
+      if Hostkit.Fs.Folds_Name_Case (Root) then
+         Plans :=
+           Files.File_System.Plan_Drop_Import
+             (Sources, Join (Join (Root, "TREE"), "Sub"), Files.File_System.Drop_Copy);
+         Assert (not Plans.Success, "a destination spelled in another case is still inside the tree");
+      end if;
+      if Hostkit.Fs.Create_Link (Join (Join (Root, "tree"), "sub"), Join (Root, "alias")) then
+         Plans :=
+           Files.File_System.Plan_Drop_Import (Sources, Join (Root, "alias"), Files.File_System.Drop_Copy);
+         Assert (not Plans.Success, "a destination reached through a link is still inside the tree");
+         declare
+            Removed : Boolean;
+         begin
+            GNAT.OS_Lib.Delete_File (Join (Root, "alias"), Removed);
+            Assert (Removed, "the alias link is removed");
+         end;
+      end if;
+
       if Hostkit.Host.Current /= Hostkit.Host.Windows then
          --  A backslash is an ordinary filename byte on POSIX.  This sibling
          --  starts with the source name but is not inside the source tree.

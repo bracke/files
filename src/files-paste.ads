@@ -104,12 +104,16 @@ package Files.Paste is
    --  @param Policy Batch-wide policy.
    --  @param Overrides Per-item overrides (may be empty; missing entries are Pending).
    --  @param Existing Full destination paths known to exist.
+   --  @param Fold_Names Whether the destination folds case
+   --    (Hostkit.Fs.Folds_Name_Case): two items whose names differ only in
+   --    case then claim one destination, and the second is renamed.
    --  @return One resolved action per work item, in order.
    function Resolve
      (Items     : Work_Item_Vectors.Vector;
       Policy    : Conflict_Policy;
       Overrides : Item_Decision_Vectors.Vector;
-      Existing  : Files.Types.String_Vectors.Vector)
+      Existing  : Files.Types.String_Vectors.Vector;
+      Fold_Names : Boolean := False)
       return Resolved_Action_Vectors.Vector;
 
 end Files.Paste;

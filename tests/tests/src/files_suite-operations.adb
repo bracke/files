@@ -323,6 +323,7 @@ package body Files_Suite.Operations is
    procedure Test_Labels_Forget_Deleted_And_Follow_Background (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Labels_Travel_Through_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Search_Result_Actions_Stay_Beside_Source (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Compress_Same_Names (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Commit_Multi_Rename (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Type_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -815,6 +816,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Search_Result_Actions_Stay_Beside_Source'Access,
          "renaming, duplicating or linking a search result keeps it in its own folder");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Compress_Same_Names'Access,
+         "Compressing two same-named items keeps both");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Commit_Multi_Rename'Access, "commit synchronized multi-rename best-effort");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1379,6 +1383,8 @@ package body Files_Suite.Operations is
    procedure Test_Leaf_Name_Rules (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Search_Result_Actions_Stay_Beside_Source (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Compress_Same_Names (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Labels_Travel_Through_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

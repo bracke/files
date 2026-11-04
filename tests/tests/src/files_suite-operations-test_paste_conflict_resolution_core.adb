@@ -70,6 +70,35 @@ separate (Files_Suite.Operations)
             "a second same-named item is kept under a unique name instead of replacing the first: unique destination");
       end;
 
+      --  On a destination that folds case, Readme.md and README.md are one
+      --  name: with an existing readme.md only the first replaces it, and
+      --  without one the second still does not write over the first.
+      declare
+         Cased   : Files.Paste.Work_Item_Vectors.Vector;
+         Actions : Files.Paste.Resolved_Action_Vectors.Vector;
+         Folded_Existing : Files.Types.String_Vectors.Vector;
+         No_Existing     : Files.Types.String_Vectors.Vector;
+      begin
+         Cased.Append (Work_Item ("Readme.md"));
+         Cased.Append (Work_Item ("README.md"));
+         Folded_Existing.Append (To_Unbounded_String (Dest ("Readme.md")));
+         Folded_Existing.Append (To_Unbounded_String (Dest ("README.md")));
+         Actions := Files.Paste.Resolve
+           (Cased, Files.Paste.Policy_Replace_All, None, Folded_Existing, Fold_Names => True);
+         Assert (Actions.Element (1).Replaced, "the first case-twin replaces the existing entry");
+         Assert (not Actions.Element (2).Replaced and then not Actions.Element (2).Skip
+                 and then Files.Types.Fold_Case (To_String (Actions.Element (2).Dest_Path))
+                          /= Files.Types.Fold_Case (Dest ("readme.md")),
+                 "the second case-twin is kept under another name, not replacing the first's copy");
+         Actions := Files.Paste.Resolve (Cased, Files.Paste.Policy_Ask, None, No_Existing, Fold_Names => True);
+         Assert (Files.Types.Fold_Case (To_String (Actions.Element (2).Dest_Path))
+                 /= Files.Types.Fold_Case (To_String (Actions.Element (1).Dest_Path)),
+                 "without an existing entry the case-twins still get two names");
+         Actions := Files.Paste.Resolve (Cased, Files.Paste.Policy_Ask, None, No_Existing);
+         Assert (To_String (Actions.Element (2).Dest_Path) = Dest ("README.md"),
+                 "where names keep their case, both keep their names");
+      end;
+
       --  Skip_All: colliding ones are skipped, the free one is written.
       declare
          Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=

@@ -456,9 +456,10 @@ private
       --  Snapshot_Valid is False until the first build and after any change
       --  the keys below do not see (a replaced model).
       Snapshots       : Snapshot_Slot_Array;
-      --  The model's listing revision each slot was built at: a click on a
-      --  drawn item whose listing has changed since is matched by name.
-      Slot_Listings   : Slot_Listing_Array := [others => 0];
+      --  The model's rows revision each slot was built at: a click on a
+      --  drawn item whose rows have changed since (a new listing, a sort, a
+      --  regroup) is matched by path.
+      Slot_Model_Rows : Slot_Listing_Array := [others => 0];
       --  Which build each slot holds (Slot_Contents: everything but the
       --  scroll offsets; Slot_Rows: its items). Equal numbers mean equal
       --  contents, so a patch into the other slot need not copy it first.

@@ -303,13 +303,21 @@ package body Files.File_System is
    --  else.
    function Trash_Base_Of (Trashed_Path : String) return String;
 
+   --  Count the entry Name of the directory Result.Path into Result, as
+   --  Directory_State does for each entry it reads.
+   procedure Add_To_Signature
+     (Result : in out Directory_Signature;
+      Name   : String)
+   is separate;
+
    function Load_Directory_Filtered
      (Path     : String;
       Settings : Files.Settings.Settings_Model;
       Options  : Files.Types.Listing_Options;
       Include  : access function
         (Name : String; Kind : Files.Types.Item_Kind) return Boolean;
-      Generate_Thumbnails : Boolean := False)
+      Generate_Thumbnails : Boolean := False;
+      With_Signature      : Boolean := False)
       return Directory_Load_Result
    is separate;
 

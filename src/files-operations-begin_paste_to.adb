@@ -85,7 +85,8 @@ begin
             Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
               Files.Paste.Resolve
                 (Work, Files.Paste.Policy_Ask,
-                 Files.Paste.Item_Decision_Vectors.Empty_Vector, Existing);
+                 Files.Paste.Item_Decision_Vectors.Empty_Vector, Existing,
+                 Fold_Names => Hostkit.Fs.Folds_Name_Case (Directory));
          begin
             Files.Operations.Begin_Paste_Execution (Model, Actions, Mode, From_Clipboard);
             return Advance_Paste_Execution (Model, Settings, Paste_Execution_First_Batch);

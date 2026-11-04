@@ -125,9 +125,13 @@ package body Files.Paste is
      (Dir      : String;
       Name     : String;
       Existing : Path_Sets.Set;
-      Claimed  : Path_Sets.Set)
+      Claimed  : Path_Sets.Set;
+      Fold     : Boolean)
       return String
    is
+      function Key (Path : String) return String is
+        (if Fold then Files.Types.Fold_Case (Path) else Path);
+
       Dot       : constant Natural := Extension_Start (Name);
       Stem      : constant String :=
         (if Dot = 0 then Name else Name (Name'First .. Dot - 1));
@@ -136,8 +140,8 @@ package body Files.Paste is
       Counter   : Positive := 2;
       Candidate : Unbounded_String := To_Unbounded_String (Desired_Path (Dir, Name));
    begin
-      while Existing.Contains (To_String (Candidate))
-        or else Claimed.Contains (To_String (Candidate))
+      while Existing.Contains (Key (To_String (Candidate)))
+        or else Claimed.Contains (Key (To_String (Candidate)))
       loop
          Candidate :=
            To_Unbounded_String
@@ -152,11 +156,26 @@ package body Files.Paste is
      (Items     : Work_Item_Vectors.Vector;
       Policy    : Conflict_Policy;
       Overrides : Item_Decision_Vectors.Vector;
-      Existing  : Files.Types.String_Vectors.Vector)
+      Existing  : Files.Types.String_Vectors.Vector;
+      Fold_Names : Boolean := False)
       return Resolved_Action_Vectors.Vector
    is
+      --  The name a set holds a path under: folded where the destination
+      --  folds case, so Readme.md and README.md are one destination there.
+      function Key (Path : String) return String is
+        (if Fold_Names then Files.Types.Fold_Case (Path) else Path);
+
+      function Key_Set return Path_Sets.Set is
+         Result : Path_Sets.Set;
+      begin
+         for Path of Existing loop
+            Result.Include (Key (To_String (Path)));
+         end loop;
+         return Result;
+      end Key_Set;
+
       Actions : Resolved_Action_Vectors.Vector;
-      Existing_Set : constant Path_Sets.Set := To_Set (Existing);
+      Existing_Set : constant Path_Sets.Set := Key_Set;
       --  Destinations already assigned earlier in this batch; a second item that
       --  would resolve to the same path is uniquified so it cannot clobber the
       --  first even before either is written to disk.
@@ -170,7 +189,7 @@ package body Files.Paste is
                Dest_Path   => To_Unbounded_String (Dest),
                Skip        => False,
                Replaced    => Replaced));
-         Claimed.Include (Dest);
+         Claimed.Include (Key (Dest));
       end Emit_Write;
    begin
       for Index in Items.First_Index .. Items.Last_Index loop
@@ -179,15 +198,15 @@ package body Files.Paste is
             Dir      : constant String := To_String (Item.Dest_Dir);
             Name     : constant String := To_String (Item.Dest_Name);
             Desired  : constant String := Desired_Path (Dir, Name);
-            Conflict : constant Boolean := Existing_Set.Contains (Desired);
+            Conflict : constant Boolean := Existing_Set.Contains (Key (Desired));
          begin
             if not Conflict then
                --  No on-disk conflict: write to the desired name, but still
                --  uniquify against earlier same-batch claims to avoid clobber.
-               if Claimed.Contains (Desired) then
+               if Claimed.Contains (Key (Desired)) then
                   Emit_Write
                     (Item.Source_Path,
-                     Unique_Path (Dir, Name, Existing_Set, Claimed), False);
+                     Unique_Path (Dir, Name, Existing_Set, Claimed, Fold_Names), False);
                else
                   Emit_Write (Item.Source_Path, Desired, False);
                end if;
@@ -198,17 +217,17 @@ package body Files.Paste is
                      --  later same-named item would otherwise replace the copy
                      --  this batch just wrote (sending it to the trash) and
                      --  leave Undo two entries for one path; keep both instead.
-                     if Claimed.Contains (Desired) then
+                     if Claimed.Contains (Key (Desired)) then
                         Emit_Write
                           (Item.Source_Path,
-                           Unique_Path (Dir, Name, Existing_Set, Claimed), False);
+                           Unique_Path (Dir, Name, Existing_Set, Claimed, Fold_Names), False);
                      else
                         Emit_Write (Item.Source_Path, Desired, True);
                      end if;
                   when Decision_Rename =>
                      Emit_Write
                        (Item.Source_Path,
-                        Unique_Path (Dir, Name, Existing_Set, Claimed), False);
+                        Unique_Path (Dir, Name, Existing_Set, Claimed, Fold_Names), False);
                   when Decision_Skip | Decision_Pending =>
                      --  Skip, and treat an undecided conflict as Skip so the
                      --  destination is never silently overwritten.

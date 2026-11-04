@@ -135,9 +135,42 @@ begin
       return Failed;
    end if;
 
-   for Item of Items loop
-      Collect (To_String (Item.Full_Path), To_String (Item.Name));
-   end loop;
+   --  Items from a search or Recent can share a name ("readme.txt" from two
+   --  folders): the later one is stored as "readme 2.txt" rather than the
+   --  archive failing. Compared folded, so it also extracts on a volume
+   --  that folds case.
+   declare
+      Top_Names : Archive_Name_Sets.Set;
+
+      function Entry_For (Name : String) return String is
+         Base : constant String := Leaf_Base (Name);
+         Ext  : constant String := Leaf_Extension (Name);
+      begin
+         if not Top_Names.Contains (Files.Types.Fold_Case (Name)) then
+            return Name;
+         end if;
+         for N in 2 .. Max_Name_Attempts loop
+            declare
+               Candidate : constant String :=
+                 Base & " " & Files.Types.Natural_Text (N) & (if Ext = "" then "" else "." & Ext);
+            begin
+               if not Top_Names.Contains (Files.Types.Fold_Case (Candidate)) then
+                  return Candidate;
+               end if;
+            end;
+         end loop;
+         return Name;
+      end Entry_For;
+   begin
+      for Item of Items loop
+         declare
+            Name : constant String := Entry_For (To_String (Item.Name));
+         begin
+            Top_Names.Include (Files.Types.Fold_Case (Name));
+            Collect (To_String (Item.Full_Path), Name);
+         end;
+      end loop;
+   end;
 
    if Collection_Failed or else Input_Paths.Is_Empty then
       return Failed;
@@ -170,7 +203,7 @@ begin
             return Base & "." & Extension;
          end if;
 
-         for N in 1 .. 9_999 loop
+         for N in 1 .. Max_Name_Attempts loop
             declare
                Candidate : constant String := Base & " (" & Files.Types.Natural_Text (N) & ")";
             begin

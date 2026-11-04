@@ -1,6 +1,7 @@
 separate (Files_Suite.Operations)
    procedure Test_Directory_Change_Watcher (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      use type Files.File_System.Directory_Signature;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Before   : Files.File_System.Directory_Signature;
       Change   : Files.File_System.Directory_Change_Result;
@@ -112,4 +113,17 @@ separate (Files_Suite.Operations)
          Change := Files.File_System.Detect_Directory_Change (Before, Join (Root, "search"));
          Assert (Change.Changed, "a same-size rewrite keeping the old modification time is a change");
       end;
+
+      --  A listing the UI waits on takes the signature in the same pass, so
+      --  it agrees with a separate read of the unchanged folder -- hidden
+      --  entries included, though the listing leaves them out.
+      Write_File (Join (Join (Root, "search"), ".hidden"), "h");
+      Load := Files.File_System.Load_Directory_Deferring_Thumbnails (Join (Root, "search"), Settings);
+      Assert (Load.Signature = Files.File_System.Directory_State (Join (Root, "search")),
+              "the listing's own signature is the folder's signature");
+      Assert (not Files.File_System.Detect_Directory_Change (Load.Signature, Join (Root, "search")).Changed,
+              "so a watch comparing with it sees no change");
+      Write_File (Join (Join (Root, "search"), "later.txt"), "late");
+      Assert (Files.File_System.Detect_Directory_Change (Load.Signature, Join (Root, "search")).Changed,
+              "and a file made after the listing is a change");
    end Test_Directory_Change_Watcher;

@@ -14,6 +14,12 @@ is
    --  name (from different directories) would resolve to the same target and
    --  the second would silently overwrite the first.
    Claimed : Files.Types.String_Vectors.Vector;
+   --  Whether the destination folds case: Report.txt and report.txt are then
+   --  one destination, and the second must be renamed, not written over it.
+   Folds   : Boolean := False;
+
+   function Key (Path : String) return String is
+     (if Folds then Files.Types.Fold_Case (Path) else Path);
 
    function Extension_Start (Name : String) return Natural is
    begin
@@ -28,7 +34,7 @@ is
    function Is_Claimed (Path : String) return Boolean is
    begin
       for Existing of Claimed loop
-         if To_String (Existing) = Path then
+         if Key (To_String (Existing)) = Key (Path) then
             return True;
          end if;
       end loop;
@@ -56,8 +62,15 @@ is
       return To_String (Full);
    end Available_Destination;
 
+   --  Path with its links resolved: Hostkit.Fs.Real_Path, which also follows
+   --  Windows reparse points and gives the names' stored case there, where
+   --  Normalize_Pathname resolves nothing.
    function Resolved_Directory (Path : String) return String is
+      Real : constant String := Hostkit.Fs.Real_Path (Path);
    begin
+      if Real /= "" then
+         return Real;
+      end if;
       return GNAT.OS_Lib.Normalize_Pathname
         (Path, Resolve_Links => True);
    exception
@@ -89,7 +102,34 @@ is
       --  Resolve links before the boundary check. A destination alias can
       --  otherwise conceal that it points into the source tree. A root path
       --  already ends in a separator, so every longer path is beneath it.
-      return Hostkit.Fs.Is_Same_Or_Inside (I, O);
+      --  Where names fold case, C:\Data\Proj and c:\data\proj are one folder.
+      if Hostkit.Fs.Is_Same_Or_Inside (I, O)
+        or else (Hostkit.Fs.Folds_Name_Case (O)
+                 and then Hostkit.Fs.Is_Same_Or_Inside (Files.Types.Fold_Case (I), Files.Types.Fold_Case (O)))
+      then
+         return True;
+      end if;
+      --  And by identity, whatever the spelling: Outer is the folder itself
+      --  or one of Inner's ancestors.
+      declare
+         Ancestor : Unbounded_String := To_Unbounded_String (I);
+      begin
+         loop
+            if Hostkit.Metadata.Same_File (To_String (Ancestor), Outer) then
+               return True;
+            end if;
+            declare
+               Parent : constant String := Ada.Directories.Containing_Directory (To_String (Ancestor));
+            begin
+               exit when Parent = To_String (Ancestor);
+               Ancestor := To_Unbounded_String (Parent);
+            end;
+         end loop;
+      exception
+         when Ada.Directories.Use_Error | Ada.Directories.Name_Error =>
+            null; --  Past the root: no ancestor is Outer.
+      end;
+      return False;
    end Is_Within_Tree;
 begin
    if not Files.Fs_Primitives.Directory_Exists (Destination_Directory)
@@ -97,6 +137,7 @@ begin
       Result.Error_Key := To_Unbounded_String ("error.drop.invalid_destination");
       return Result;
    end if;
+   Folds := Hostkit.Fs.Folds_Name_Case (Destination_Directory);
 
    for Source of Source_Paths loop
       declare

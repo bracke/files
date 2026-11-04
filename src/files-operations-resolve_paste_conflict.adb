@@ -60,7 +60,10 @@ begin
 
       declare
          Actions : constant Files.Paste.Resolved_Action_Vectors.Vector :=
-           Files.Paste.Resolve (Work, Policy, Overrides, Existing);
+           Files.Paste.Resolve
+             (Work, Policy, Overrides, Existing,
+              Fold_Names =>
+                not Work.Is_Empty and then Hostkit.Fs.Folds_Name_Case (To_String (Work.First_Element.Dest_Dir)));
          --  Carry the clipboard-clearing intent (clipboard paste vs
          --  drag-and-drop) captured when the conflict dialog was armed, since
          --  Clear_Paste_Conflict below resets it.

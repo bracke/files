@@ -756,6 +756,8 @@ package body Files.Model is
       Settings : Files.Settings.Settings_Model)
    is separate;
 
+   function Grouping_Day (Model : Window_Model) return Ada.Calendar.Time is (Model.Group_Day);
+
    procedure Toggle_Sort_Menu
      (Model : in out Window_Model) is separate;
 

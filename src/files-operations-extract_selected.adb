@@ -79,10 +79,9 @@ begin
       declare
          Item_Name : constant String := To_String (Item.Name);
          Full_Path : constant String := To_String (Item.Full_Path);
-         Destination : constant String :=
-           (if Files.Model.In_Recent_View (Model) or else Files.Model.Search_Results_Are_Active (Model)
-            then Ada.Directories.Containing_Directory (Full_Path)
-            else Directory);
+         --  Beside the archive, wherever the listing came from (a search
+         --  or Recent lists items from other folders).
+         Destination : constant String := Ada.Directories.Containing_Directory (Full_Path);
       begin
          if Destination = "" then
             return Failed;
@@ -100,7 +99,7 @@ begin
                      return Base;
                   end if;
 
-                  for N in 1 .. 9_999 loop
+                  for N in 1 .. Max_Name_Attempts loop
                      declare
                         Candidate : constant String := Base & " (" & Files.Types.Natural_Text (N) & ")";
                      begin

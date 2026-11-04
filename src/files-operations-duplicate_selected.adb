@@ -102,10 +102,7 @@ begin
             Source : constant String := To_String (Item.Full_Path);
             --  Recent and search results can select paths from several
             --  folders; each duplicate belongs beside its source.
-            Destination_Directory : constant String :=
-              (if Files.Model.In_Recent_View (Model) or else Files.Model.Search_Results_Are_Active (Model)
-               then Ada.Directories.Containing_Directory (Source)
-               else Directory);
+            Destination_Directory : constant String := Ada.Directories.Containing_Directory (Source);
             Name   : constant String := To_String (Item.Name);
             Ext    : constant String := Leaf_Extension (Name);
             Base   : constant String := Leaf_Base (Name);
@@ -114,7 +111,7 @@ begin
             --  (copy)" or "report (copy 2)" when earlier choices already exist.
             function Unique_Stem return String is
             begin
-               for N in 1 .. 9_999 loop
+               for N in 1 .. Max_Name_Attempts loop
                   declare
                      Candidate : constant String := Base & Copy_Marker (N);
                   begin

@@ -4613,7 +4613,7 @@ procedure Check_All is
       Require_Tests ("model", 53);
       Require_Tests ("interaction", 76);
       Require_Tests ("rendering", 93);
-      Require_Tests ("operations", 272);
+      Require_Tests ("operations", 273);
    end Check_Test_Subsystem_Coverage;
 
 begin

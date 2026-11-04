@@ -32,9 +32,7 @@ begin
 
       Files.Model.Commit_Path_Input (Model, Path_Result, Load.Items);
       Settle_Current_Is_Trash (Model);
-      Files.Model.Set_Directory_Signature
-        (Model,
-         Files.File_System.Directory_State (To_String (Path_Result.Directory_Path)));
+      Files.Model.Set_Directory_Signature (Model, Load.Signature);
       Files.Model.Set_Error (Model, "");
       --  Last, once the listing it refreshes is the current one.
       Support.Generate_Missing_Thumbnails (Model, Settings, Load.Items);
