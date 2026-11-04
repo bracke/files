@@ -29,7 +29,9 @@ package body Files.Job_Cleanup is
          return not Ada.Directories.Exists (Directory)
            and then not Hostkit.Fs.Is_Link (Directory);
       exception
-         when others => return False;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Job_Cleanup");
+            return False;
       end Directory_Gone;
    begin
       for Attempt in 1 .. Attempt_Limit loop
@@ -97,6 +99,8 @@ package body Files.Job_Cleanup is
       end loop;
       return (if Directory_Gone then Cleanup_Removed else Cleanup_Failed);
    exception
-      when others => return Cleanup_Failed;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Cleanup");
+         return Cleanup_Failed;
    end Run;
 end Files.Job_Cleanup;

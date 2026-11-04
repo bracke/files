@@ -25,6 +25,7 @@ begin
       end;
    end loop;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return False;
 end Path_Can_Be_Directory;

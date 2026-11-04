@@ -8,7 +8,8 @@ is
    begin
       return Candidate /= "" and then Files.Fs_Primitives.Exists (Candidate);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return False;
    end Exists_Safely;
 begin
@@ -24,15 +25,19 @@ begin
       return
         (Success   => False,
          Error_Key => To_Unbounded_String ("error.permissions.failed"));
-   elsif Hostkit.Metadata.Set_Permissions (Path, Mode) then
-      return (Success => True, Error_Key => Null_Unbounded_String);
-   else
-      return
-        (Success   => False,
-         Error_Key => To_Unbounded_String ("error.permissions.failed"));
    end if;
+   --  A full disk, a refused permission or a read-only volume is said as
+   --  such, not as the generic failure.
+   Files.Io_Errors.Reset;
+   Files.Io_Errors.Clear_Os_Error;
+   if Hostkit.Metadata.Set_Permissions (Path, Mode) then
+      return (Success => True, Error_Key => Null_Unbounded_String);
+   end if;
+   Files.Io_Errors.Capture;
+   return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.permissions.failed"));
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return
         (Success   => False,
          Error_Key => To_Unbounded_String ("error.permissions.failed"));

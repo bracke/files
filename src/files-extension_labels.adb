@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Containers;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Real_Time;
@@ -280,7 +281,8 @@ package body Files.Extension_Labels is
             begin
                Made := Rasterize (Ext, Height, Theme);
             exception
-               when others =>
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.Extension_Labels");
                   --  Kept as an empty label: one that cannot be drawn is not
                   --  tried again on every frame.
                   Made := (Width => 0, Height => 0, Pixels => Files.Shared_Bytes.Empty);
@@ -290,7 +292,8 @@ package body Files.Extension_Labels is
       end if;
       return Cache.Element (Key);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Extension_Labels");
          return (Width => 0, Height => 0,
                  Pixels => Files.Shared_Bytes.Empty);
    end Label_For;

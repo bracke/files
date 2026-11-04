@@ -57,28 +57,11 @@ is
       end if;
    end Copy_Marker;
 
+   --  Copy_Tree commits one selection at a time. If a later source
+   --  fails, reload so the earlier copies are not hidden by a stale
+   --  model, and retain the failure after that reload clears errors.
    function Failed return Operation_Result is
-   begin
-      --  Copy_Tree commits one selection at a time. If a later source
-      --  fails, reload so the earlier copies are not hidden by a stale
-      --  model, and retain the failure after that reload clears errors.
-      if Created.Is_Empty then
-         Files.Model.Set_Error (Model, "error.duplicate.failed");
-      else
-         declare
-            Reload : constant Operation_Result :=
-              Reload_With_Error (Model, Settings, "error.duplicate.failed");
-            pragma Unreferenced (Reload);
-         begin
-            null;
-         end;
-      end if;
-      return Make_Result (Operation_Failed, "error.duplicate.failed", Directory);
-   exception
-      when others =>
-         Files.Model.Set_Error (Model, "error.duplicate.failed");
-         return Make_Result (Operation_Failed, "error.duplicate.failed", Directory);
-   end Failed;
+     (Batch_Failed (Model, Settings, "error.duplicate.failed", Directory, Wrote_Some => not Created.Is_Empty));
 begin
    if Files.Model.Selection_Includes_Temporary (Model) then
       return Disabled (Model, "error.create.pending");
@@ -109,22 +92,8 @@ begin
 
             --  A directory-unique copy stem (without extension), e.g. "report
             --  (copy)" or "report (copy 2)" when earlier choices already exist.
-            function Unique_Stem return String is
-            begin
-               for N in 1 .. Max_Name_Attempts loop
-                  declare
-                     Candidate : constant String := Base & Copy_Marker (N);
-                  begin
-                     if not Exists_Safely
-                              (Ada.Directories.Compose (Destination_Directory, Candidate, Ext))
-                     then
-                        return Candidate;
-                     end if;
-                  end;
-               end loop;
-
-               return Base & Copy_Marker (1);
-            end Unique_Stem;
+            function Stem (Attempt : Natural) return String is (Base & Copy_Marker (Attempt));
+            function Unique_Stem return String is (First_Free_Name (Destination_Directory, Ext, Stem'Access));
 
             Dest_Path : constant String :=
               Ada.Directories.Compose (Destination_Directory, Unique_Stem, Ext);
@@ -157,6 +126,7 @@ begin
    --  Reload the active view; an ordinary folder selects the first copy.
    return Reload_Current_Directory (Model, Settings, To_String (First_Created));
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Operations");
       return Failed;
 end Duplicate_Selected;

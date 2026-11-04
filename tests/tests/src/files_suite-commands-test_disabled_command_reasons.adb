@@ -17,7 +17,7 @@ separate (Files_Suite.Commands)
          Assert (Status.Enabled = Files.Commands.Status.Is_Enabled (Id, Model), Context & ": Is_Enabled agrees");
          Files_Suite.Support.Assert_Equal (Files.Commands.Reason_Key (Status.Reason), Key, Context & ": reason");
          Files.Model.Set_Error (Model, "");
-         Result := Files.Controller.Execute_Command (Id, Model, Settings);
+         Result := Files.Controller.Execute_Non_Settings_Command (Id, Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Status, Files.Controller.Controller_Ignored, Context & ": the controller ignores it");
          Files_Suite.Support.Assert_Equal (Files.Model.Last_Error_Key (Model), Key, Context & ": error line");

@@ -26,7 +26,7 @@ separate (Files_Suite.Operations)
       Assert (not Ada.Directories.Exists (Original), "rename removed the old name");
       Assert (Files.Model.Undo_Available (Model), "undo is available after a rename");
 
-      Routed := Files.Controller.Execute_Command (Files.Commands.Undo_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Undo_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,

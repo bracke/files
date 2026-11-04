@@ -99,8 +99,6 @@ package body Files.Paste is
       return 0;
    end Next_Unresolved_Conflict;
 
-   --  One-based position of the last '.' that starts an extension (not a leading
-   --  dot), or 0 when the name has no extension.
    function Extension_Start (Name : String) return Natural is
    begin
       for Index in reverse Name'Range loop
@@ -110,12 +108,6 @@ package body Files.Paste is
       end loop;
       return 0;
    end Extension_Start;
-
-   function Image_No_Space (Value : Natural) return String is
-      Image : constant String := Natural'Image (Value);
-   begin
-      return Image (Image'First + 1 .. Image'Last);
-   end Image_No_Space;
 
    --  A destination path derived from Desired that collides with neither
    --  Existing nor Claimed, formed by inserting " N" before the extension. This
@@ -145,7 +137,7 @@ package body Files.Paste is
       loop
          Candidate :=
            To_Unbounded_String
-             (Desired_Path (Dir, Stem & " " & Image_No_Space (Counter) & Extension));
+             (Desired_Path (Dir, Stem & " " & Files.Types.Natural_Text (Counter) & Extension));
          exit when Counter = Positive'Last;
          Counter := Counter + 1;
       end loop;

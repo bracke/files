@@ -272,29 +272,7 @@ package body Files.Settings is
       return Boolean
  is separate;
 
-   function Trim (Text : String) return String is
-      First : Natural := Text'First;
-      Last  : Natural := Text'Last;
-
-      function Is_Settings_Space (Value : Character) return Boolean is
-      begin
-         return Value = ' ' or else Value = ASCII.HT or else Value = ASCII.CR;
-      end Is_Settings_Space;
-   begin
-      while First <= Last and then Is_Settings_Space (Text (First)) loop
-         First := First + 1;
-      end loop;
-
-      while Last >= First and then Is_Settings_Space (Text (Last)) loop
-         Last := Last - 1;
-      end loop;
-
-      if First > Last then
-         return "";
-      end if;
-
-      return Text (First .. Last);
-   end Trim;
+   function Trim (Text : String) return String renames Files.Types.Trim_Blanks;
 
    function Starts_With (Text : String; Prefix : String) return Boolean renames Files.Types.Starts_With;
 

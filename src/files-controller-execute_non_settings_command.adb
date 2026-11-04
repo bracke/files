@@ -1,7 +1,7 @@
 with Files.Commands.Execution;
 with Files.Commands.Status;
 separate (Files.Controller)
-   function Execute_Command
+   function Execute_Non_Settings_Command
      (Id        : Files.Commands.Command_Id;
       Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
@@ -234,4 +234,4 @@ separate (Files.Controller)
       end if;
 
       return Make_Result (Controller_Command_Executed, Id, Operation);
-   end Execute_Command;
+   end Execute_Non_Settings_Command;

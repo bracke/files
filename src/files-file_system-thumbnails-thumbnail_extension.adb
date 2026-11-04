@@ -13,6 +13,7 @@ begin
 
    return "file";
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
       return "file";
 end Thumbnail_Extension;

@@ -46,7 +46,8 @@ begin
       return Make_Result (Operation_Success, Path => Directory);
    end;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Operations");
       Files.Model.Set_Error (Model, "error.terminal.unavailable");
       return Make_Result (Operation_Failed, "error.terminal.unavailable", Directory);
 end Open_Terminal;

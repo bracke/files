@@ -21,7 +21,8 @@ separate (Files_Suite.Rendering)
          Menu_Open    : View_Snapshot := Base;
          Closed_Frame : constant Frame_Commands :=
            Build_Frame_Commands
-             (Base, 1000, 800, 20, Hover_X => HX, Hover_Y => HY, Has_Hover => True);
+             (Base, 1000, 800, 20,
+        Pointer => (Hover_X => HX, Hover_Y => HY, Has_Hover => True, others => <>));
       begin
          Assert
            (Cell_Has_Hover_Highlight (Closed_Frame, Cell),
@@ -31,7 +32,8 @@ separate (Files_Suite.Rendering)
          declare
             Open_Frame : constant Frame_Commands :=
               Build_Frame_Commands
-                (Menu_Open, 1000, 800, 20, Hover_X => HX, Hover_Y => HY, Has_Hover => True);
+                (Menu_Open, 1000, 800, 20,
+        Pointer => (Hover_X => HX, Hover_Y => HY, Has_Hover => True, others => <>));
          begin
             Assert
               (not Cell_Has_Hover_Highlight (Open_Frame, Cell),

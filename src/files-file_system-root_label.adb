@@ -20,6 +20,7 @@ begin
          return "root.favorite|" & Ada.Directories.Simple_Name (Path);
    end case;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return Path;
 end Root_Label;

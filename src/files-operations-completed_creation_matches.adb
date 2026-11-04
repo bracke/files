@@ -19,6 +19,7 @@ begin
       else Expected_Tree_Revision /= ""
         and then Files.File_System.Tree_Revision (Path) = Expected_Tree_Revision);
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Operations");
       return False;
 end Completed_Creation_Matches;

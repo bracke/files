@@ -21,7 +21,7 @@ begin
               Files.Commands.Sort_Command (Files.Model.Sort_Menu_Highlight_Field (Model));
          begin
             Files.Model.Close_Sort_Menu (Model);
-            Result := Execute_Command (Command, Model, Settings, Modifiers);
+            Result := Execute_Non_Settings_Command (Command, Model, Settings, Modifiers);
             return;
          end;
       else

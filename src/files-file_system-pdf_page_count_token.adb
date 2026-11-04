@@ -72,7 +72,8 @@ begin
    Close_Read_Descriptor (File);
    return "document.pdf.pages|" & Natural_Text (Count);
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       Close_Read_Descriptor (File);
       return "document.kind|pdf";
 end Pdf_Page_Count_Token;

@@ -1,3 +1,4 @@
+with Files.Paste;
 separate (Files.File_System)
 function Plan_Drop_Import
   (Source_Paths          : Files.Types.String_Vectors.Vector;
@@ -21,15 +22,7 @@ is
    function Key (Path : String) return String is
      (if Folds then Files.Types.Fold_Case (Path) else Path);
 
-   function Extension_Start (Name : String) return Natural is
-   begin
-      for Index in reverse Name'Range loop
-         if Name (Index) = '.' and then Index > Name'First then
-            return Index;
-         end if;
-      end loop;
-      return 0;
-   end Extension_Start;
+   function Extension_Start (Name : String) return Natural renames Files.Paste.Extension_Start;
 
    function Is_Claimed (Path : String) return Boolean is
    begin
@@ -52,7 +45,7 @@ is
       Full      : Unbounded_String :=
         To_Unbounded_String (Join_Path (Destination_Directory, To_String (Candidate)));
    begin
-      while (Ada.Directories.Exists (To_String (Full)) or else Hostkit.Fs.Is_Link (To_String (Full)))
+      while Files.Fs_Primitives.Entry_Exists (To_String (Full))
         or else Is_Claimed (To_String (Full)) loop
          Candidate := To_Unbounded_String (Stem & " " & Natural_Text (Counter) & Extension);
          Full := To_Unbounded_String (Join_Path (Destination_Directory, To_String (Candidate)));
@@ -74,7 +67,8 @@ is
       return GNAT.OS_Lib.Normalize_Pathname
         (Path, Resolve_Links => True);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return "";
    end Resolved_Directory;
 
@@ -147,7 +141,7 @@ begin
       begin
          Plan.Source_Path := Source;
          Plan.Mode := Mode;
-         if not (Ada.Directories.Exists (Source_Text) or else Hostkit.Fs.Is_Link (Source_Text)) then
+         if not Files.Fs_Primitives.Entry_Exists (Source_Text) then
             Plan.Valid := False;
             Plan.Error_Key := To_Unbounded_String ("error.drop.invalid_source");
             Result.Plans.Append (Plan);
@@ -186,7 +180,8 @@ begin
             Result.Plans.Append (Plan);
          end if;
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System");
             Result.Plans.Append
               (Drop_Import_Plan'
                  (Source_Path      => Source,

@@ -78,13 +78,7 @@ begin
             null;
          else
             Files.Model.Set_Error (Model, To_String (Preflight.Error_Key));
-            declare
-               Reload : constant Operation_Result :=
-                 Reload_With_Error (Model, Settings, To_String (Preflight.Error_Key));
-               pragma Unreferenced (Reload);
-            begin
-               null;
-            end;
+            Reload_With_Error (Model, Settings, To_String (Preflight.Error_Key));
             return Make_Result
               (Operation_Failed, To_String (Preflight.Error_Key), To_String (Item.Full_Path));
          end if;
@@ -95,12 +89,7 @@ begin
       exit when Files.Job_Context.Cancelled;
       if not Exists_Safely (To_String (Item.Full_Path)) then
          Files.Model.Set_Error (Model, "error.trash.failed");
-         declare
-            Reload : constant Operation_Result := Reload_With_Error (Model, Settings, "error.trash.failed");
-            pragma Unreferenced (Reload);
-         begin
-            null;
-         end;
+         Reload_With_Error (Model, Settings, "error.trash.failed");
          return Make_Result (Operation_Failed, "error.trash.failed", To_String (Item.Full_Path));
       end if;
    end loop;
@@ -125,13 +114,7 @@ begin
             if Natural (Undo_From.Length) /= Recorded_Count then
                Record_Progress;
             end if;
-            declare
-               Reload : constant Operation_Result :=
-                 Reload_With_Error (Model, Settings, To_String (Mutation.Error_Key));
-               pragma Unreferenced (Reload);
-            begin
-               null;
-            end;
+            Reload_With_Error (Model, Settings, To_String (Mutation.Error_Key));
             return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
          end if;
          Undo_From.Append (Trashed);
@@ -162,7 +145,8 @@ begin
 
    return Make_Result (Operation_Success, Path => To_String (First_Path));
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Operations");
       Files.Model.Set_Error (Model, "error.trash.failed");
       return Make_Result (Operation_Failed, "error.trash.failed", Files.Model.Current_Path (Model));
 end Delete_Selected;

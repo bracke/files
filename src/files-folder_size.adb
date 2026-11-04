@@ -1,10 +1,11 @@
+with Files.Diagnostics;
 with Files.Helper_Modes;
 with Ada.Directories;
 with Ada.Containers.Hashed_Sets;
 with Ada.IO_Exceptions;
 with Ada.Streams;
 with Ada.Strings.Unbounded.Hash;
-with Ada.Strings.Fixed;
+with Files.Types;
 with Files.Bounded_Streams;
 with Files.Job_Context;
 with Files.Exclusive_Streams;
@@ -22,7 +23,7 @@ package body Files.Folder_Size is
       Hash                => Ada.Strings.Unbounded.Hash,
       Equivalent_Elements => Ada.Strings.Unbounded."=");
 
-   Max_Request_Path_Length : constant := 32 * 1024;
+   Max_Request_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
    Max_Record_Bytes : constant := 64 * 1024;
    --  A batch request: up to Max_Batch paths, within this many bytes.
    Max_Request_Bytes : constant := 1024 * 1024;
@@ -106,7 +107,7 @@ package body Files.Folder_Size is
 
    --  The helper publishes the Index-th result under this name once written.
    function Result_Name (Index : Positive) return String is
-     ("result-" & Ada.Strings.Fixed.Trim (Positive'Image (Index), Ada.Strings.Left));
+     ("result-" & Files.Types.Natural_Text (Index));
 
    --  What Write_Result refuses to write.
    function Result_Is_Consistent (Result : Files.File_System.Directory_Size_Result) return Boolean is
@@ -177,12 +178,13 @@ package body Files.Folder_Size is
          return;
       end if;
       Files.Process_Jobs.Reserve (Scan.Job);
-      Files.Exclusive_Streams.Create (File, Files.Process_Jobs.Path (Scan.Job, "request"));
+      Files.Exclusive_Streams.Create (File, Files.Process_Jobs.Path (Scan.Job, Files.Process_Jobs.Request_File));
       Write_Request (File'Access, Scan.Batch);
       Files.Exclusive_Streams.Close (File);
       Files.Process_Jobs.Launch (Scan.Job, Files.Helper_Modes.Flag (Files.Helper_Modes.Folder_Size));
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Folder_Size");
          Close (File);
          Files.Process_Jobs.Reset (Scan.Job);
          --  Every directory of the batch is answered, unmeasured.
@@ -248,14 +250,17 @@ package body Files.Folder_Size is
             begin
                Result := Read_Result (Name);
             exception
-               when others => Result := (others => <>);
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.Folder_Size");
+                  Result := (others => <>);
             end;
             Scan.Done_Queue.Append (Measurement'(Path => Scan.Batch (Scan.Next_Result), Result => Result));
             Scan.Next_Result := Scan.Next_Result + 1;
          end;
       end loop;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Folder_Size");
          null;
    end Collect;
 
@@ -327,7 +332,8 @@ package body Files.Folder_Size is
    end Request;
 
    procedure Run_Helper (Directory : String) is
-      Paths : constant Path_Vectors.Vector := Read_Request (Hostkit.Fs.Join (Directory, "request"));
+      Paths : constant Path_Vectors.Vector :=
+        Read_Request (Hostkit.Fs.Join (Directory, Files.Process_Jobs.Request_File));
    begin
       for Index in 1 .. Natural (Paths.Length) loop
          exit when Files.Job_Context.Cancelled;

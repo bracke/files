@@ -8,6 +8,7 @@ begin
       File := GNAT.OS_Lib.Invalid_FD;
    end if;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       File := GNAT.OS_Lib.Invalid_FD;
 end Close_Read_Descriptor;

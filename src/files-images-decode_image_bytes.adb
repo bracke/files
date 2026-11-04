@@ -108,7 +108,8 @@ begin
 
    return Result;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Images");
       Release_Loader;
 
       return (Available => False, Width => 0, Height => 0,

@@ -1,3 +1,4 @@
+with Files.Job_Records;
 with Files.Helper_Modes;
 with Files.Diagnostics;
 with Ada.Directories;
@@ -19,8 +20,8 @@ package body Files.Transfer_Jobs is
    use Ada.Strings.Unbounded;
    use type Hostkit.Lease_Files.Open_Outcome;
 
-   Max_Transport_Path_Length : constant := 32 * 1024;
-   Max_Transport_Token_Length : constant := 2 * 1024;
+   Max_Transport_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
+   Max_Transport_Token_Length : constant := Files.Bounded_Streams.Max_Token_Length;
    Max_Transport_Error_Length : constant := 256;
    Request_Header : constant String := "files-transfer-request-1";
    Result_Header : constant String := "files-transfer-result-1";
@@ -64,14 +65,7 @@ package body Files.Transfer_Jobs is
    procedure Write_String
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Value : String;
-      Max_Length : Natural)
-   is
-   begin
-      if Value'Length > Max_Length then
-         raise Ada.Directories.Use_Error;
-      end if;
-      String'Output (Stream, Value);
-   end Write_String;
+      Max_Length : Natural) renames Files.Bounded_Streams.Output_String;
 
    procedure Write_Action
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
@@ -259,7 +253,7 @@ package body Files.Transfer_Jobs is
    begin
       Files.Process_Jobs.Reserve (Job.Process);
       Files.Exclusive_Streams.Create
-        (File, Files.Process_Jobs.Path (Job.Process, "request"));
+        (File, Files.Process_Jobs.Path (Job.Process, Files.Process_Jobs.Request_File));
       Write_Request
         (File'Access, Action, Mode, Files.Copy_Context.Directory (Batch));
       Files.Exclusive_Streams.Close (File);
@@ -293,7 +287,7 @@ package body Files.Transfer_Jobs is
                Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
          end;
          Read_Transport_Request
-           (Files.Process_Jobs.Path (Job.Process, "request"),
+           (Files.Process_Jobs.Path (Job.Process, Files.Process_Jobs.Request_File),
             Action, Mode, Batch_Directory);
          begin
             Read_Replacement_Checkpoint
@@ -334,7 +328,7 @@ package body Files.Transfer_Jobs is
       Files.Process_Jobs.Poll (Job.Process, Finished, Cancelled);
       if Finished then
          Result := Read_Transport_Result
-           (Files.Process_Jobs.Path (Job.Process, "result"));
+           (Files.Process_Jobs.Path (Job.Process, Files.Process_Jobs.Result_File));
          if not Result.Mutation.Success then
             Recover;
          end if;
@@ -348,7 +342,8 @@ package body Files.Transfer_Jobs is
          end if;
       end if;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
          Result.Mutation := (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
          Result.Cancelled := Cancelled and then Length (Result.Trashed) = 0;
          if Finished then
@@ -382,22 +377,12 @@ package body Files.Transfer_Jobs is
       function Cancelled return Boolean is (Files.Process_Jobs.Cancellation_Requested (Directory));
 
       procedure Save is
-         Output : aliased Files.Exclusive_Streams.Output_Stream;
+         procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
+         begin
+            Write_Result (Stream, Result);
+         end Write;
       begin
-         Files.Exclusive_Streams.Create
-           (Output, Hostkit.Fs.Join (Directory, "result.tmp"));
-         Write_Result (Output'Access, Result);
-         Files.Exclusive_Streams.Close (Output);
-         if not Files.Durable_Writes.Published
-           (Files.Durable_Writes.Publish
-              (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result")))
-         then
-            raise Ada.Directories.Use_Error;
-         end if;
-      exception
-         when others =>
-            Files.Exclusive_Streams.Close_Safely (Output);
-            raise;
+         Files.Job_Records.Publish_Result (Directory, Write'Access);
       end Save;
 
       procedure Roll_Back is
@@ -419,7 +404,7 @@ package body Files.Transfer_Jobs is
       end Roll_Back;
    begin
       Read_Transport_Request
-        (Hostkit.Fs.Join (Directory, "request"),
+        (Hostkit.Fs.Join (Directory, Files.Process_Jobs.Request_File),
          Action, Mode, Batch_Directory);
       if Length (Batch_Directory) > 0 then
          Batch := Files.Copy_Context.Borrow
@@ -486,7 +471,8 @@ package body Files.Transfer_Jobs is
             end if;
          end if;
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
             Result.Mutation := (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
             Roll_Back;
       end;
@@ -507,7 +493,8 @@ package body Files.Transfer_Jobs is
                null;
             end;
          exception
-            when others =>
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
                Files.Exclusive_Streams.Close_Safely (File);
          end;
       end if;

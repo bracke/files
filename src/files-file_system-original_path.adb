@@ -115,7 +115,8 @@ function Original_Path (Trashed_Path : String) return String is
       end;
       return To_String (Result);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return "";
    end Read_Original_Path;
 
@@ -137,7 +138,7 @@ function Original_Path (Trashed_Path : String) return String is
          return False;
       end if;
       loop
-         if Ada.Directories.Exists (To_String (Current)) or else Hostkit.Fs.Is_Link (To_String (Current)) then
+         if Files.Fs_Primitives.Entry_Exists (To_String (Current)) then
             declare
                Real : constant String := Hostkit.Fs.Real_Path (To_String (Current));
             begin
@@ -153,7 +154,9 @@ function Original_Path (Trashed_Path : String) return String is
       end loop;
       return False;
    exception
-      when others => return False;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
+         return False;
    end Stays_On_Volume;
 
    --  The home trash or the volume trash that holds it.
@@ -191,5 +194,7 @@ begin
       end;
    end;
 exception
-   when others => return "";
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
+      return "";
 end Original_Path;

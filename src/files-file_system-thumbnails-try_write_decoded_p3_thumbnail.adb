@@ -55,7 +55,8 @@ separate (Files.File_System.Thumbnails)
          Value := Natural'Value (To_String (Token));
          return True;
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
             return False;
       end Next_Natural;
 
@@ -131,6 +132,7 @@ separate (Files.File_System.Thumbnails)
       Write_Pixels_As_Ppm (Target_Path, Size, Pixels, Source_Width, Source_Height);
       return True;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
          return False;
    end Try_Write_Decoded_P3_Thumbnail;

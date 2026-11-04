@@ -16,7 +16,8 @@ separate (Files_Suite.Model)
       Write_File (Join (Target, "inside.txt"));
       --  A three-row selector opened over a focused path input.
       Files.Model.Initialize (Model, Root, Sample_Items, Root);
-      Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Focus_Path_Input_Command, Model, Settings);
       Roots_A.Append (To_Unbounded_String (Root));
       Roots_A.Append (To_Unbounded_String (Target));
       Roots_A.Append (To_Unbounded_String (Ada.Directories.Full_Name (Root)));
@@ -90,7 +91,8 @@ separate (Files_Suite.Model)
          Files.Controller.Controller_Ignored,
          "same palette search cursor click is ignored over root selector");
       Files.Model.Close_Command_Palette (Model);
-      Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Focus_Path_Input_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -100,7 +102,8 @@ separate (Files_Suite.Model)
          Files.Types.Focus_None,
          "blocked direct path focus leaves focus clear");
       Files.Model.Set_Error (Model, "error.path.missing");
-      Result := Files.Controller.Execute_Command (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -110,7 +113,8 @@ separate (Files_Suite.Model)
         (Files.Model.Last_Error_Key (Model),
          "error.path.missing",
          "modal command block does not replace existing error");
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -121,14 +125,15 @@ separate (Files_Suite.Model)
         (Files.Model.Last_Error_Key (Model),
          "error.path.missing",
          "root selector settings block preserves existing error");
-      Result := Files.Controller.Execute_Command (Files.Commands.Open_Command_Palette_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Open_Command_Palette_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Open_Command_Palette_Command,
          "root selector allows direct palette command");
       Assert (Files.Model.Command_Palette_Is_Open (Model), "direct palette command opens over root selector");
       Files.Model.Close_Command_Palette (Model);
-      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Select_Drive_Command,

@@ -52,15 +52,10 @@ separate (Files.Events)
       Item_Index     : Natural := 0;
 
       function Within
-        (Value      : Natural;
-         Start      : Natural;
-         Extent     : Natural)
-         return Boolean is
-      begin
-         return Extent > 0
-           and then Value >= Start
-           and then Value - Start < Extent;
-      end Within;
+        (Value  : Natural;
+         Start  : Natural;
+         Extent : Natural)
+         return Boolean renames Guikit.Layout.Within;
 
       function Saturating_Add
         (Left  : Natural;

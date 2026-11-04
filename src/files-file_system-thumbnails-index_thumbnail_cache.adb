@@ -23,6 +23,7 @@ begin
    end if;
    return Index;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
       return List_Thumbnail_Cache (Cache_Directory);
 end Index_Thumbnail_Cache;

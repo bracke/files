@@ -1,3 +1,5 @@
+with Ada.Directories;
+with Files.Diagnostics;
 with Hostkit.Process;
 with Ada.Strings.Unbounded;
 
@@ -5,23 +7,30 @@ with Files.File_System;
 with Files.Refresh_Jobs;
 with Files.Fs_Primitives;
 
-with Hostkit.Fs;
-
 package body Files.Operations.Support is
    use Ada.Strings.Unbounded;
+
+   function First_Free_Name
+     (Directory : String;
+      Extension : String;
+      Name      : not null access function (Attempt : Natural) return String;
+      First     : Natural := 1)
+      return String is
+   begin
+      for Attempt in First .. Max_Name_Attempts loop
+         if not Exists_Safely (Ada.Directories.Compose (Directory, Name (Attempt), Extension)) then
+            return Name (Attempt);
+         end if;
+      end loop;
+      return Name (First);
+   end First_Free_Name;
 
    function Empty_Action return Files.Settings.Open_Action is
    begin
       return Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector);
    end Empty_Action;
 
-   function Exists_Safely (Path : String) return Boolean is
-   begin
-      return Files.Fs_Primitives.Exists (Path) or else Hostkit.Fs.Is_Link (Path);
-   exception
-      when others =>
-         return False;
-   end Exists_Safely;
+   function Exists_Safely (Path : String) return Boolean renames Files.Fs_Primitives.Entry_Exists;
 
    function Make_Result
      (Status      : Operation_Status;
@@ -150,19 +159,42 @@ package body Files.Operations.Support is
       end Reload_In_Place;
    end Reload_Current_Directory;
 
-   function Reload_With_Error
+   function Batch_Failed
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Error_Key  : String;
+      Directory  : String;
+      Wrote_Some : Boolean)
+      return Operation_Result is
+   begin
+      if Wrote_Some then
+         Reload_With_Error (Model, Settings, Error_Key);
+      else
+         Files.Model.Set_Error (Model, Error_Key);
+      end if;
+      return Make_Result (Operation_Failed, Error_Key, Directory);
+   exception
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.Operations.Support");
+         Files.Model.Set_Error (Model, Error_Key);
+         return Make_Result (Operation_Failed, Error_Key, Directory);
+   end Batch_Failed;
+
+   procedure Reload_With_Error
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Error_Key : String) return Operation_Result
+      Error_Key : String)
    is
       Reload : Operation_Result;
+      pragma Unreferenced (Reload);
    begin
+      --  Set before the reload is scheduled (a background one keeps it) and
+      --  again after one done here, which clears the error it finds.
       Files.Model.Set_Error (Model, Error_Key);
       Reload := Reload_Current_Directory (Model, Settings);
       if not Files.Model.Background_Transfers (Model) then
          Files.Model.Set_Error (Model, Error_Key);
       end if;
-      return Reload;
    end Reload_With_Error;
 
    procedure Generate_Missing_Thumbnails

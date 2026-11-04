@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Files.Items;
 with Ada.Strings;
 with Ada.Strings.Fixed;
@@ -66,7 +67,8 @@ package body Files.Application.Windows.Smoke is
 
       return True;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Application.Windows.Smoke");
          return False;
    end Headless_Smoke_Test;
 

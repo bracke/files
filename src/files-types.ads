@@ -44,6 +44,13 @@ package Files.Types is
    --  @return Its decimal digits.
    function Natural_Text (Value : Natural) return String;
 
+   --  Text without the spaces, tabs and carriage returns around it, as a
+   --  line of a settings or desktop-entry file is read.
+   --
+   --  @param Text A line or a field of one.
+   --  @return Text trimmed.
+   function Trim_Blanks (Text : String) return String;
+
    --  Read a decimal id: ASCII digits only, at most 4294967295. Never raises.
    --
    --  @param Text Candidate decimal id.

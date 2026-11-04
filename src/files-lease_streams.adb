@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.IO_Exceptions;
 with Files.Bounded_Streams;
 
@@ -33,7 +34,8 @@ package body Files.Lease_Streams is
       Item.Block_Count := 0;
       return Hostkit.Lease_Files.Opened;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Lease_Streams");
          Release (Item);
          return Hostkit.Lease_Files.Error;
    end Open;

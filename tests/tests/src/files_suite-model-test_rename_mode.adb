@@ -93,7 +93,8 @@ separate (Files_Suite.Model)
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
       Assert (Files.Model.Rename_Is_Active (Model), "rename can be entered again");
-      Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Focus_Path_Input_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_Path_Input,
@@ -108,7 +109,8 @@ separate (Files_Suite.Model)
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
       Assert (Files.Model.Rename_Is_Active (Model), "rename can be entered after path focus Escape");
-      Result := Files.Controller.Execute_Command (Files.Commands.Focus_Filter_Input_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Focus_Filter_Input_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_Filter_Input,

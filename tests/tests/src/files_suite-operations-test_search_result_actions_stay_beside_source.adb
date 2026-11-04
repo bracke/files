@@ -97,7 +97,7 @@ separate (Files_Suite.Operations)
       Search ("summary.txt");
       declare
          Cleared : constant Files.Controller.Controller_Result :=
-           Files.Controller.Execute_Command (Files.Commands.Clear_Filter_Command, Model, Settings);
+           Files.Controller.Execute_Non_Settings_Command (Files.Commands.Clear_Filter_Command, Model, Settings);
          pragma Unreferenced (Cleared);
       begin
          Assert (not Files.Model.Search_Results_Are_Active (Model)

@@ -13,7 +13,7 @@ separate (Files_Suite.Model)
       Files.Model.Initialize (Model, Root, Items, Root);
       Files.Model.Set_Filter (Model, "does-not-match-untitled");
       --  A pending "untitled 2.txt" create in a filtered, empty listing.
-      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
 
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F2);
       Files_Suite.Support.Assert_Equal
@@ -42,7 +42,8 @@ separate (Files_Suite.Model)
          "direct create cancel clears rename focus");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_N, Ctrl);
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "Control+N can add temporary item after direct cancel");
-      Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Focus_Path_Input_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_Path_Input,
@@ -59,7 +60,7 @@ separate (Files_Suite.Model)
          0,
          "path-focus Escape removes temporary item from projection");
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Down);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
@@ -79,7 +80,7 @@ separate (Files_Suite.Model)
          "cancelled temporary item disappears from projection");
       Assert (not Ada.Directories.Exists (Join (Root, "untitled 3.txt")), "Escape does not create a file");
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
       Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 1);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,

@@ -33,7 +33,8 @@ separate (Files_Suite.Commands)
       Assert (not Files.Model.Context_Menu_Is_Open (Model), "Escape closes the context menu");
 
       --  Sort menu.
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Sort_Menu_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Sort_Menu_Command, Model, Settings);
       Assert (Files.Model.Sort_Menu_Is_Open (Model), "sort menu opens");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Sort_Menu_Is_Open (Model), "Escape closes the sort menu");

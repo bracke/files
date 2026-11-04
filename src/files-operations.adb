@@ -223,10 +223,6 @@ package body Files.Operations is
 
    function Is_Trash_Child (Path : String) return Boolean is separate;
 
-   --  How many numbered names (" 2", " (copy 3)") a new entry tries before
-   --  giving up on a free one.
-   Max_Name_Attempts : constant := 9_999;
-
    function Leaf_Extension_Start (Name : String) return Natural is separate;
 
    function Leaf_Extension (Name : String) return String is separate;

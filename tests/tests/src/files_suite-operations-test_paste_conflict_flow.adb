@@ -54,7 +54,7 @@ separate (Files_Suite.Operations)
       Write_File (Join (Src_Dir, "a.txt"), "SRC");
       Write_File (Join (Dest_Dir, "a.txt"), "DEST");
       Arm_Model (Model, One_File);
-      Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       pragma Unreferenced (Routed);
       Assert (Files.Model.Paste_Conflict_Is_Active (Model), "a colliding paste arms the conflict dialog");
       Files_Suite.Support.Assert_Equal
@@ -81,7 +81,7 @@ separate (Files_Suite.Operations)
       Write_File (Join (Src_Dir, "a.txt"), "SRC");
       Write_File (Join (Dest_Dir, "a.txt"), "DEST");
       Arm_Model (Model, One_File);
-      Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       Resolved :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Skip, False);
       Files_Suite.Support.Assert_Equal
@@ -102,7 +102,7 @@ separate (Files_Suite.Operations)
       Write_File (Join (Src_Dir, "a.txt"), "SRC");
       Write_File (Join (Dest_Dir, "a.txt"), "DEST");
       Arm_Model (Model, One_File);
-      Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       Resolved :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Rename, False);
       Files_Suite.Support.Assert_Equal
@@ -120,7 +120,7 @@ separate (Files_Suite.Operations)
          "rename writes the source under a unique name");
 
       --  Undo of the completed rename paste removes the created copy.
-      Routed := Files.Controller.Execute_Command (Files.Commands.Undo_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Undo_Command, Model, Settings);
       Assert (not Ada.Directories.Exists (Join (Dest_Dir, "a 2.txt")), "undo removes the pasted copy");
       Assert (Ada.Directories.Exists (Join (Dest_Dir, "a.txt")), "undo keeps the pre-existing original");
 
@@ -133,7 +133,7 @@ separate (Files_Suite.Operations)
       Write_File (Join (Dest_Dir, "a.txt"), "DEST");
       Write_File (Join (Dest_Dir, "b.txt"), "DEST");
       Arm_Model (Model, Two_File);
-      Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       Assert (Files.Model.Paste_Conflict_Is_Active (Model), "two collisions arm the dialog");
       Resolved :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, True);
@@ -166,7 +166,7 @@ separate (Files_Suite.Operations)
          if Cut then
             Files.Model.Set_Clipboard (Model, Files.Model.Clipboard_Paths (Model), Files.Model.Clipboard_Cut);
          end if;
-         Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+         Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Paste_Conflict_Name (Model), "a.txt", "the dialog asks about a.txt first");
          Resolved :=
@@ -193,7 +193,7 @@ separate (Files_Suite.Operations)
       Write_File (Join (Src_Dir, "a.txt"), "SRC");
       Write_File (Join (Dest_Dir, "a.txt"), "DEST");
       Arm_Model (Model, One_File);
-      Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       Resolved :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Cancel, False);
       Files_Suite.Support.Assert_Equal
@@ -216,7 +216,7 @@ separate (Files_Suite.Operations)
       Write_File (Join (Src_Dir, "a.txt"), "SRC");
       if Hostkit.Fs.Create_Link ("missing-target", Join (Dest_Dir, "a.txt")) then
          Arm_Model (Model, One_File);
-         Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+         Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
          Assert (Files.Model.Paste_Conflict_Is_Active (Model), "a dangling link at the name arms the conflict dialog");
          Resolved :=
            Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);

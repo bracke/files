@@ -151,7 +151,7 @@ separate (Files.Controller)
                --  Shift+Delete must never delete the selection behind the field.
                return Make_Result (Controller_Ignored);
             end if;
-            return Execute_Command (Action.Command, Model, Settings, Modifiers);
+            return Execute_Non_Settings_Command (Action.Command, Model, Settings, Modifiers);
          when Files.Events.Selection_Input_Action =>
             if Files.Model.Focus (Model) = Files.Types.Focus_None
               and then not Files.Model.Settings_Pane_Is_Open (Model)

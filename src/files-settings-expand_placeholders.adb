@@ -1,5 +1,6 @@
 with Files.File_Types;
 
+with Files.Diagnostics;
 separate (Files.Settings)
    function Expand_Placeholders
      (Action : Open_Action;
@@ -110,7 +111,8 @@ separate (Files.Settings)
 
          return Ada.Directories.Simple_Name (Value);
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Settings");
             return Value;
       end Safe_Simple_Name;
 
@@ -142,7 +144,8 @@ separate (Files.Settings)
 
          return Ada.Directories.Containing_Directory (Value);
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Settings");
             return "";
       end Safe_Containing_Directory;
 

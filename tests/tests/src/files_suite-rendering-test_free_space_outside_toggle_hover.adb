@@ -22,7 +22,8 @@ separate (Files_Suite.Rendering)
          --  in the bottom bar covers Check_X.
          function Highlight_At (Hover_At, Check_X : Natural) return Boolean is
             Frame : constant Frame_Commands :=
-              Build_Frame_Commands (Snap, 1000, 800, 20, Hover_X => Hover_At, Hover_Y => HY, Has_Hover => True);
+              Build_Frame_Commands (Snap, 1000, 800, 20,
+        Pointer => (Hover_X => Hover_At, Hover_Y => HY, Has_Hover => True, others => <>));
          begin
             for R of Frame.Rectangles loop
                if R.Color = Hover_Color and then R.Y >= Bottom_Y

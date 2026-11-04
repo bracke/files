@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
 
@@ -265,7 +266,8 @@ package body Files.Model is
              and then Action.Create_Kind = Create_Copy
              and then Valid_Copy_Records (Action.Copy_Records)));
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Model");
          return False;
    end History_Entry_Usable;
 

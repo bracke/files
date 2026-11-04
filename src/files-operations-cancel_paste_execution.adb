@@ -14,12 +14,16 @@ begin
    begin
       Files.Transfer_Jobs.Cancel (Files.Model.Paste_Job (Model));
    exception
-      when others => Requested := False;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Operations");
+         Requested := False;
    end;
    begin
       Files.Process_Jobs.Cancel (Files.Model.Background_Operation (Model));
    exception
-      when others => Requested := False;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Operations");
+         Requested := False;
    end;
    Files.Model.Set_Paste_Cancelled (Model, Requested);
 end Cancel_Paste_Execution;

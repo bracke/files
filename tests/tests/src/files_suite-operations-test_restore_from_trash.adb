@@ -43,7 +43,7 @@ separate (Files_Suite.Operations)
       Files_Suite.Support.Assert_Equal (Files.Model.Selected_Count (Model), 1, "restore selects the trashed item");
 
       Result :=
-        Files.Controller.Execute_Command (Files.Commands.Restore_From_Trash_Command, Model, Settings);
+        Files.Controller.Execute_Non_Settings_Command (Files.Commands.Restore_From_Trash_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Success,
@@ -70,7 +70,7 @@ separate (Files_Suite.Operations)
       Files.Operations.Settle_Current_Is_Trash (Model);
       Select_Name (Model, "restore-me.txt");
       Result :=
-        Files.Controller.Execute_Command
+        Files.Controller.Execute_Non_Settings_Command
           (Files.Commands.Delete_Selected_Permanently_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,

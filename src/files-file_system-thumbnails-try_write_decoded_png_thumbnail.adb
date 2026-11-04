@@ -87,7 +87,8 @@ separate (Files.File_System.Thumbnails)
          end loop;
          return GNAT.CRC32.Get_Value (Context) = Expected;
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
             return False;
       end Chunk_Crc_Is_Valid;
 
@@ -367,7 +368,8 @@ separate (Files.File_System.Thumbnails)
             Zlib.Close (Filter);
             return True;
          exception
-            when others =>
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
                Close_Filter;
                return False;
          end Inflate_Raster;
@@ -469,7 +471,8 @@ separate (Files.File_System.Thumbnails)
       Write_Pixels_As_Ppm (Target_Path, Size, Pixels, Width, Height);
       return True;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
          if File /= GNAT.OS_Lib.Invalid_FD then
             GNAT.OS_Lib.Close (File);
          end if;

@@ -41,7 +41,7 @@ separate (Files_Suite.Operations)
          Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
          Paths.Append (To_Unbounded_String (Join (Src_Dir, Incoming)));
          Files.Model.Set_Clipboard (Model, Paths, Files.Model.Clipboard_Copy);
-         Routed := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+         Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
          Assert
            (Files.Model.Paste_Conflict_Is_Active (Model),
             "on a case-insensitive destination, pasting a " & Script

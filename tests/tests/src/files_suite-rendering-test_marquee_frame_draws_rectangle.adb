@@ -7,11 +7,13 @@ separate (Files_Suite.Rendering)
       Active   : constant Frame_Commands :=
         Build_Frame_Commands
           (Snapshot, 1000, 800, 20,
-           Marquee_Active => True,
-           Marquee_X      => 100,
-           Marquee_Y      => 120,
-           Marquee_W      => 200,
-           Marquee_H      => 150);
+           Pointer =>
+             (Marquee_Active => True,
+              Marquee_X => 100,
+              Marquee_Y => 120,
+              Marquee_W => 200,
+              Marquee_H => 150,
+              others => <>));
    begin
       Assert (not Has_Rectangle_Colored (Idle, Marquee_Color),
               "no marquee rectangle is drawn while the marquee is inactive");

@@ -30,7 +30,8 @@ begin
       return True;
    end;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Images");
       Width := 0;
       Height := 0;
       return False;

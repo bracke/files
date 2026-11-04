@@ -140,7 +140,7 @@ package body Files_Suite.Support is
       Model : in out Files.Model.Window_Model)
    is
       Result : constant Files.Controller.Controller_Result :=
-        Files.Controller.Execute_Command (Id, Model, Files.Settings.Default_Settings);
+        Files.Controller.Execute_Non_Settings_Command (Id, Model, Files.Settings.Default_Settings);
       pragma Unreferenced (Result);
    begin
       null;

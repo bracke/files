@@ -85,7 +85,8 @@ begin
             end loop;
          end;
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Operations");
             Read_Error := To_Unbounded_String
               (if Depth = 0 then "error.directory.load" else "error.search.failed");
       end Visit;
@@ -112,7 +113,8 @@ begin
       return Make_Result (Operation_Success, Path => Root);
    end;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Operations");
       Files.Model.Set_Error (Model, "error.search.failed");
       return Make_Result (Operation_Failed, "error.search.failed", Root);
 end Run_Content_Search;

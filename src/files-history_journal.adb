@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Real_Time;
 with Ada.Containers;
 with Ada.Streams;
@@ -354,7 +355,8 @@ package body Files.History_Journal is
       Files.Model.Set_History (Model, Undo, Redo);
       return True;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.History_Journal");
          Files.Lease_Streams.Release (Input);
          return False;
    end Restore;

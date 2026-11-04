@@ -32,7 +32,8 @@ begin
    Safe_End_Search (Search, Started);
    return Result;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
       Safe_End_Search (Search, Started);
       return (Listed => False, Names => Thumbnail_Name_Sets.Empty_Set, Generate => True, Shared => False);
 end List_Thumbnail_Cache;

@@ -44,7 +44,7 @@ begin
             Error_Key => To_Unbounded_String ("error.trash.restore_parent_missing"));
       end if;
 
-      if Ada.Directories.Exists (To_String (Original)) or else Hostkit.Fs.Is_Link (To_String (Original)) then
+      if Files.Fs_Primitives.Entry_Exists (To_String (Original)) then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.trash.restore_exists"));
@@ -65,7 +65,8 @@ begin
          begin
             Outcome := Support.Move_No_Replace_Outcome (Trashed_Path, To_String (Original));
          exception
-            when others =>
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.File_System");
                Outcome := Hostkit.Fs.Move_Refused;
          end;
          if Outcome /= Hostkit.Fs.Moved and then not Support.Copy_May_Replace_Move (Outcome) then
@@ -85,7 +86,8 @@ begin
                  (Trashed_Path, To_String (Original), Identity, Revision,
                   Preserve_Ownership => True, Check_Job_Cancellation => False);
             exception
-               when others =>
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.File_System");
                   return
                     (Success   => False,
                      Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
@@ -111,8 +113,9 @@ begin
       return (Success => True, Error_Key => Null_Unbounded_String);
    end;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return
         (Success   => False,
-         Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
+         Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
 end Restore_From_Trash_Backend;

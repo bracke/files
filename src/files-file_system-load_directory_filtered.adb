@@ -122,7 +122,8 @@ begin
              (if With_Signature and then Signed then Signature
               else Directory_Signature'(Path => Normalized_Path, others => <>)));
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return (Success => False, Path => To_Unbounded_String (Path),
               Items => Items, Error_Key => To_Unbounded_String ("error.directory.load"), Signature => <>);
 end Load_Directory_Filtered;

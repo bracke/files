@@ -51,7 +51,8 @@ package body Files.Recovery_CLI is
       end loop;
       Ada.Directories.End_Search (Search);
    exception
-      when others =>
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.Recovery_CLI");
          if Open then
             begin
                Ada.Directories.End_Search (Search);
@@ -76,7 +77,9 @@ package body Files.Recovery_CLI is
          end;
       end loop;
    exception
-      when others => Fail (Files.Localization.Text ("cli.recovery.error.list_all"));
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Recovery_CLI");
+         Fail (Files.Localization.Text ("cli.recovery.error.list_all"));
    end List_Registered;
 
    procedure Apply (Path : String; Restore : Boolean) is

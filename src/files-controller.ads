@@ -33,14 +33,17 @@ package Files.Controller is
       Text  : String)
       return Controller_Result;
 
-   --  Execute a command through the controller's filesystem-aware routing.
+   --  Execute a command through the controller's filesystem-aware routing,
+   --  without the settings file: a command that changes settings
+   --  (Files.Commands.Requires_Settings_Path) is reported, not applied. The
+   --  window runs commands through Execute_Command, which applies those.
    --
    --  @param Id Command identifier.
    --  @param Model Window model to update.
    --  @param Settings Settings model used by operations.
    --  @param Modifiers Active modifier keys.
    --  @return Controller result with any operation details.
-   function Execute_Command
+   function Execute_Non_Settings_Command
      (Id        : Files.Commands.Command_Id;
       Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;

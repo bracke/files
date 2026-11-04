@@ -12,13 +12,14 @@ separate (Files_Suite.Operations)
       Write_File (Join (First, "one.txt"));
       Load := Files.File_System.Load_Directory (First, Settings);
       Files.Model.Initialize (Model, First, Load.Items, First);
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
       Write_File (Join (First, "fresh.txt"));
       Files.Model.Begin_Create_File (Model, "pending.txt");
       Files.Model.Select_Visible (Model, 3);
       Files.Model.Scroll_Info_Pane (Model, Lines => 4);
       Files.Model.Open_Command_Palette (Model);
-      Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Success,
@@ -44,7 +45,8 @@ separate (Files_Suite.Operations)
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Write_File (Join (First, "later.txt"));
       Files.Model.Open_Command_Palette (Model);
-      Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Success,
@@ -57,7 +59,8 @@ separate (Files_Suite.Operations)
 
       Project_Tools.Files.Delete_Tree (First);
       Files.Model.Open_Command_Palette (Model);
-      Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Failed,

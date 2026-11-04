@@ -25,7 +25,8 @@ separate (Files_Suite.Model)
             Ready => Files.File_System.Root_Ready,
             Removable => False));
       Files.Model.Open_Root_Selector (Model, Entries);
-      Result := Files.Controller.Execute_Command (Files.Commands.Open_Selected_Root_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Open_Selected_Root_Command, Model, Settings);
       Files.Model.Navigate_To (Model, Root, Files.Items.Item_Vectors.Empty_Vector);
       Files.Model.Toggle_Settings_Pane (Model);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens before direct root selector call");
@@ -42,7 +43,7 @@ separate (Files_Suite.Model)
         (not Files.Model.Settings_Pane_Is_Open (Model),
          "string root selector overload closes settings pane");
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Select_Drive_Command,
@@ -53,7 +54,7 @@ separate (Files_Suite.Model)
          Root,
          "second drive selector click does not navigate");
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector reopens after toggle close");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
@@ -74,9 +75,10 @@ separate (Files_Suite.Model)
          Root,
          "root selector Escape does not navigate");
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector can reopen after Escape");
-      Result := Files.Controller.Execute_Command (Files.Commands.Close_Command_Palette_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Close_Command_Palette_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Close_Command_Palette_Command,
@@ -86,9 +88,10 @@ separate (Files_Suite.Model)
         (Files.Model.Root_Count (Model),
          0,
          "close command clears closed root selector entries");
-      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector reopens after close command");
-      Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Focus_Path_Input_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -103,9 +106,10 @@ separate (Files_Suite.Model)
         (Files.Model.Root_Count (Model),
          0,
          "direct close clears closed root selector entries");
-      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector reopens after blocked path focus");
-      Result := Files.Controller.Execute_Command (Files.Commands.Open_Command_Palette_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Open_Command_Palette_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Open_Command_Palette_Command,
@@ -123,9 +127,10 @@ separate (Files_Suite.Model)
       Assert (Files.Model.Root_Selector_Is_Open (Model), "Escape leaves root selector open after palette closes");
       Files.Model.Close_Root_Selector (Model);
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Open_Command_Palette_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Open_Command_Palette_Command, Model, Settings);
       Files.Controller.Testing.Replace_Focused_Text (Model, "view.details");
-      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector opens from palette state");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "drive selector closes command palette");
       Files_Suite.Support.Assert_Equal

@@ -1,3 +1,4 @@
+with Files.Fs_Primitives;
 separate (Files.Operations)
 function Begin_Paste_To
   (Model          : in out Files.Model.Window_Model;
@@ -25,11 +26,12 @@ is
             Desired : constant String :=
               Files.Paste.Desired_Path (To_String (Item.Dest_Dir), To_String (Item.Dest_Name));
          begin
-            if Ada.Directories.Exists (Desired) or else Hostkit.Fs.Is_Link (Desired) then
+            if Files.Fs_Primitives.Entry_Exists (Desired) then
                Result.Append (To_Unbounded_String (Desired));
             end if;
          exception
-            when others =>
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Operations");
                --  Unknowable: treat it as taken, so the user is asked.
                Result.Append (To_Unbounded_String (Desired));
          end;

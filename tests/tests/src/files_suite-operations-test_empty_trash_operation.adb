@@ -58,7 +58,7 @@ separate (Files_Suite.Operations)
          "empty trash is enabled in the non-empty trash view");
 
       --  Emptying purges every payload and sidecar and reloads an empty view.
-      Result := Files.Controller.Execute_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Success,

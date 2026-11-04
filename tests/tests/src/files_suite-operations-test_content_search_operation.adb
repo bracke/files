@@ -50,7 +50,7 @@ separate (Files_Suite.Operations)
          "content search is enabled once the filter has text");
 
       Routed :=
-        Files.Controller.Execute_Command (Files.Commands.Search_Contents_Command, Model, Settings);
+        Files.Controller.Execute_Non_Settings_Command (Files.Commands.Search_Contents_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Command,
          Files.Commands.Search_Contents_Command,
@@ -79,7 +79,7 @@ separate (Files_Suite.Operations)
 
       --  Search_Recursive_Command uses the Names scope on the same query.
       Routed :=
-        Files.Controller.Execute_Command (Files.Commands.Search_Recursive_Command, Model, Settings);
+        Files.Controller.Execute_Non_Settings_Command (Files.Commands.Search_Recursive_Command, Model, Settings);
       Assert
         (Files.Model.Search_Scope_Of (Model) = Files.Types.Search_Names,
          "recursive name search sets the Search_Names scope");
@@ -96,7 +96,7 @@ separate (Files_Suite.Operations)
       --  A byte cap cannot silently omit a match beyond the preview window.
       Write_File (Join (Search_Root, "oversize.txt"), Big);
       Files.Model.Set_Filter (Model, "needle");
-      Routed := Files.Controller.Execute_Command (Files.Commands.Search_Contents_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Search_Contents_Command, Model, Settings);
       Assert (Routed.Operation.Status = Files.Operations.Operation_Failed
               and then Files.Model.Last_Error_Key (Model) = "error.search.failed",
               "content search reports an incomplete oversized file instead of silently skipping it");
@@ -104,7 +104,7 @@ separate (Files_Suite.Operations)
       --  An empty query performs no search.
       Files.Model.Set_Filter (Model, "");
       Routed :=
-        Files.Controller.Execute_Command (Files.Commands.Search_Contents_Command, Model, Settings);
+        Files.Controller.Execute_Non_Settings_Command (Files.Commands.Search_Contents_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operations.Operation_Disabled,

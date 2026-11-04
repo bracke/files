@@ -8,7 +8,6 @@ with Ada.Streams;
 with Ada.Strings.Unbounded;
 with Files.Bounded_Streams;
 with Files.File_System;
-with Files.Durable_Writes;
 with Files.Exclusive_Streams;
 with Files.Job_Context;
 with Files.Job_Records;
@@ -24,7 +23,7 @@ package body Files.Refresh_Jobs is
    use type Files.Operations.Operation_Status;
    use type Hostkit.Lease_Files.Open_Outcome;
 
-   Max_Watch_Path_Length : constant := 32 * 1024;
+   Max_Watch_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
    Request_Header : constant String := "files-refresh-request-1";
    Result_Header : constant String := "files-refresh-result-1";
 
@@ -276,7 +275,7 @@ package body Files.Refresh_Jobs is
       Cancel (Model);
       Files.Process_Jobs.Reserve (Job);
       Files.Exclusive_Streams.Create
-        (File, Files.Process_Jobs.Path (Job, "request"));
+        (File, Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
       Write_Request (File'Access, Work);
       Files.Job_Records.Validate_Size (Files.Exclusive_Streams.Size (File));
       Files.Exclusive_Streams.Close (File);
@@ -286,7 +285,8 @@ package body Files.Refresh_Jobs is
       Files.Model.Clear_Owed_Refresh (Model);
       return (Status => Files.Operations.Operation_Success, Path => Work.Root, others => <>);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
          Close (File);
          if Length (Work.Error_Key) = 0 then
             Files.Model.Set_Error (Model, "error.directory.load");
@@ -340,13 +340,14 @@ package body Files.Refresh_Jobs is
       begin
          declare
             Stale : constant Request :=
-              Read_Request (Files.Process_Jobs.Path (Job, "request"));
+              Read_Request (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
          begin
             Files.Model.Note_Owed_Refresh
               (Model, Stale.Force, To_String (Stale.Selection));
          end;
       exception
-         when others =>
+         when Failure : others =>
+            Files.Diagnostics.Note (Failure, "Files.Refresh_Jobs");
             Files.Model.Note_Owed_Refresh (Model, False, "");
       end Owe_Reload;
    begin
@@ -360,7 +361,7 @@ package body Files.Refresh_Jobs is
       --  Read only the request header from local transport. A navigation or edit
       --  must discard even a helper still blocked on the previous directory.
       Read_Request_Identity
-        (Files.Process_Jobs.Path (Job, "request"),
+        (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File),
          Requested_Root, Requested_Context_Revision);
       if Requested_Root /= Files.Model.Current_Path (Model) then
          Cancel (Model);
@@ -382,7 +383,7 @@ package body Files.Refresh_Jobs is
          return False;
       end if;
       Cancel (Model); --  Job keeps the finished transport alive through result collection.
-      Work := Read_Request (Files.Process_Jobs.Path (Job, "request"));
+      Work := Read_Request (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
       Matching := Work.Root = Files.Model.Current_Path (Model)
         and then Work.Recent = Files.Model.In_Recent_View (Model)
         and then Work.Context_Revision = Files.Model.Listing_Revision (Model)
@@ -395,7 +396,7 @@ package body Files.Refresh_Jobs is
       if not Matching or else Cancelled then
          return False;
       end if;
-      Done := Read_Outcome (Files.Process_Jobs.Path (Job, "result"));
+      Done := Read_Outcome (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Result_File));
       if not Done.Success then
          if Length (Work.Error_Key) = 0 then
             Files.Model.Set_Error (Model, To_String (Done.Error_Key));
@@ -459,7 +460,8 @@ package body Files.Refresh_Jobs is
       Files.Operations.Ensure_Selected_Item_Extra (Model);
       return Done.Reloaded;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
          Cancel (Model);
          if Matching and then Length (Work.Error_Key) = 0 then
             Files.Model.Set_Error (Model, "error.directory.load");
@@ -533,11 +535,15 @@ package body Files.Refresh_Jobs is
    end Watch_Step;
 
    procedure Run_Helper (Directory : String) is
-      File : aliased Files.Exclusive_Streams.Output_Stream;
       Work : Request;
       Done : Outcome;
+
+      procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
+      begin
+         Write_Outcome (Stream, Done);
+      end Write;
    begin
-      Work := Read_Request (Hostkit.Fs.Join (Directory, "request"));
+      Work := Read_Request (Hostkit.Fs.Join (Directory, Files.Process_Jobs.Request_File));
       if Work.Recent then
          for Path of Files.Settings.Recent_Paths (Work.Settings) loop
             declare
@@ -578,21 +584,7 @@ package body Files.Refresh_Jobs is
             end if;
          end;
       end if;
-      Files.Exclusive_Streams.Create
-        (File, Hostkit.Fs.Join (Directory, "result.tmp"));
-      Write_Outcome (File'Access, Done);
-      Files.Job_Records.Validate_Size (Files.Exclusive_Streams.Size (File));
-      Files.Exclusive_Streams.Close (File);
-      if not Files.Durable_Writes.Published
-        (Files.Durable_Writes.Publish
-           (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result")))
-      then
-         raise Ada.Directories.Use_Error;
-      end if;
-   exception
-      when others =>
-         Close (File);
-         raise;
+      Files.Job_Records.Publish_Result (Directory, Write'Access);
    end Run_Helper;
 
    procedure Release_Watch (Job : in out Watch_Session) is
@@ -610,7 +602,8 @@ package body Files.Refresh_Jobs is
       end if;
       return Job.Native and then Files.Process_Jobs.Active (Job.Process);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
          return False;
    end Watch_Is_Native;
 
@@ -647,14 +640,15 @@ package body Files.Refresh_Jobs is
       end if;
       Files.Process_Jobs.Reserve (Job.Process);
       Files.Exclusive_Streams.Create
-        (File, Files.Process_Jobs.Path (Job.Process, "request"));
+        (File, Files.Process_Jobs.Path (Job.Process, Files.Process_Jobs.Request_File));
       Files.Job_Records.Write_String
         (File'Access, Path, Max_Watch_Path_Length);
       Files.Exclusive_Streams.Close (File);
       Files.Process_Jobs.Launch (Job.Process, Files.Helper_Modes.Flag (Files.Helper_Modes.Watch));
       Job.Path := To_Unbounded_String (Path);
    exception
-      when others =>
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.Refresh_Jobs");
          Close (File);
          Release_Watch (Job);
          Note_Failure;
@@ -685,7 +679,8 @@ package body Files.Refresh_Jobs is
       Files.Exclusive_Streams.Close (File);
       return True;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
          Close (File);
          --  Made meanwhile by nobody else, but answer by what is there.
          return Posted;
@@ -741,7 +736,9 @@ package body Files.Refresh_Jobs is
       end if;
       return False;
    exception
-      when others => return False;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
+         return False;
    end Poll_Watch;
 
    procedure Run_Watch_Helper (Directory : String) is
@@ -766,7 +763,7 @@ package body Files.Refresh_Jobs is
         (Ada.Real_Time.Seconds (1) + Ada.Real_Time.Milliseconds (Natural'Min (Entries, 1_000_000) / 20));
    begin
       if not Open_Transport
-        (Hostkit.Fs.Join (Directory, "request"), Input)
+        (Hostkit.Fs.Join (Directory, Files.Process_Jobs.Request_File), Input)
       then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
@@ -825,7 +822,8 @@ package body Files.Refresh_Jobs is
       end loop;
       Hostkit.Watch.Release (Watch);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
          Files.Lease_Streams.Release (Input);
          Hostkit.Watch.Release (Watch);
    end Run_Watch_Helper;

@@ -21,6 +21,27 @@ private package Files.Operations.Support is
    --  @return True when Path exists, False when it does not or the test failed.
    function Exists_Safely (Path : String) return Boolean;
 
+   --  How many numbered names (" 2", " (copy 3)") a new entry tries before
+   --  giving up on a free one.
+   Max_Name_Attempts : constant := 9_999;
+
+   --  The first of Name (First), Name (First + 1), ... (up to
+   --  Max_Name_Attempts) that names nothing in Directory, with Extension
+   --  ("" for none), or Name (First) when all are taken: how a duplicate,
+   --  a link, an archive or an extracted folder finds its name.
+   --  @param Directory Where the new entry goes.
+   --  @param Extension Its extension, without the dot.
+   --  @param Name The candidate stem for an attempt.
+   --  @param First The first attempt (0 where the bare name comes first).
+   --  @param Attempt An attempt number.
+   --  @return The free stem.
+   function First_Free_Name
+     (Directory : String;
+      Extension : String;
+      Name      : not null access function (Attempt : Natural) return String;
+      First     : Natural := 1)
+      return String;
+
    --  Construct an Operation_Result, folding an open action's fields into the
    --  flat result record.
    --
@@ -78,15 +99,32 @@ private package Files.Operations.Support is
       Preserve_Selection : Boolean := False)
       return Operation_Result;
 
-   --  Finalize an operation error before scheduling its reload.
+   --  A batch (duplicate, extract, links) stopped by a failure: when some
+   --  of it was already written the listing is reloaded so that output shows
+   --  (and the error survives the reload), otherwise only the error is set.
+   --  @param Model Window that ran the batch.
+   --  @param Settings Directory settings for the reload.
+   --  @param Error_Key The failure reported.
+   --  @param Directory The directory the result names.
+   --  @param Wrote_Some Whether earlier items of the batch were written.
+   --  @return The failed result.
+   function Batch_Failed
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Error_Key  : String;
+      Directory  : String;
+      Wrote_Some : Boolean)
+      return Operation_Result;
+
+   --  Finalize an operation error before scheduling its reload: the error
+   --  is what the operation reports, whatever the reload does.
    --  @param Model Window whose error and listing to update.
    --  @param Settings Directory settings for the reload.
    --  @param Error_Key Operation error to preserve through completion.
-   --  @return Immediate reload result.
-   function Reload_With_Error
+   procedure Reload_With_Error
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Error_Key : String) return Operation_Result;
+      Error_Key : String);
 
    --  A listing loaded with Load_Directory_Deferring_Thumbnails: when an
    --  image in it still lacks a thumbnail, start the background listing

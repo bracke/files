@@ -106,7 +106,8 @@ is
          end if;
       end if;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Operations");
          Collection_Failed := True;
          if Started then
             Ada.Directories.End_Search (Search);
@@ -118,7 +119,8 @@ is
       Files.Model.Set_Error (Model, "error.compress.failed");
       return Make_Result (Operation_Failed, "error.compress.failed", Directory);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Operations");
          return Make_Result (Operation_Failed, "error.compress.failed", Directory);
    end Failed;
 begin
@@ -195,28 +197,10 @@ begin
 
       --  A directory-unique simple archive name, e.g. "report.zip" or
       --  "report (1).zip" when the first choice already exists.
+      function Stem (Attempt : Natural) return String is
+        (if Attempt = 0 then Base else Base & " (" & Files.Types.Natural_Text (Attempt) & ")");
       function Unique_Name return String is
-      begin
-         if not Exists_Safely
-                  (Ada.Directories.Compose (Directory, Base, Extension))
-         then
-            return Base & "." & Extension;
-         end if;
-
-         for N in 1 .. Max_Name_Attempts loop
-            declare
-               Candidate : constant String := Base & " (" & Files.Types.Natural_Text (N) & ")";
-            begin
-               if not Exists_Safely
-                        (Ada.Directories.Compose (Directory, Candidate, Extension))
-               then
-                  return Candidate & "." & Extension;
-               end if;
-            end;
-         end loop;
-
-         return Base & "." & Extension;
-      end Unique_Name;
+        (First_Free_Name (Directory, Extension, Stem'Access, First => 0) & "." & Extension);
 
       Archive_Name : constant String := Unique_Name;
       Output_Path  : constant String := Ada.Directories.Compose (Directory, Archive_Name);
@@ -292,6 +276,7 @@ begin
          raise;
    end;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Operations");
       return Failed;
 end Compress_Selected;

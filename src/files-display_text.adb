@@ -1,8 +1,9 @@
+with Files.Grouping;
 with Ada.Calendar.Arithmetic;
 with Ada.Calendar.Formatting;
 with Ada.Calendar.Time_Zones;
 with Ada.Strings;
-with Ada.Strings.Fixed;
+with Files.Types;
 with Ada.Strings.Unbounded;
 
 with Util.Dates;
@@ -67,7 +68,7 @@ package body Files.Display_Text is
 
          for Index in 1 .. 12 loop
             declare
-               Image : constant String := Ada.Strings.Fixed.Trim (Natural'Image (Index), Ada.Strings.Both);
+               Image : constant String := Files.Types.Natural_Text (Index);
             begin
                Set_Text ("util.month" & Image & ".short", "time.month" & Image & ".short");
                Set_Text ("util.month" & Image & ".long", "time.month" & Image & ".long");
@@ -76,7 +77,7 @@ package body Files.Display_Text is
 
          for Index in 0 .. 6 loop
             declare
-               Image : constant String := Ada.Strings.Fixed.Trim (Natural'Image (Index), Ada.Strings.Both);
+               Image : constant String := Files.Types.Natural_Text (Index);
             begin
                Set_Text ("util.day" & Image & ".short", "time.day" & Image & ".short");
                Set_Text ("util.day" & Image & ".long", "time.day" & Image & ".long");
@@ -140,15 +141,7 @@ package body Files.Display_Text is
       end case;
    end Weekday_Key;
 
-   function Day_Start (Value : Ada.Calendar.Time) return Ada.Calendar.Time is
-      Year    : Ada.Calendar.Year_Number;
-      Month   : Ada.Calendar.Month_Number;
-      Day     : Ada.Calendar.Day_Number;
-      Seconds : Ada.Calendar.Day_Duration;
-   begin
-      Ada.Calendar.Split (Value, Year, Month, Day, Seconds);
-      return Ada.Calendar.Time_Of (Year, Month, Day);
-   end Day_Start;
+   function Day_Start (Value : Ada.Calendar.Time) return Ada.Calendar.Time renames Files.Grouping.Day_Start;
 
    --  A time the calendar cannot handle around Now (a modification time
    --  centuries away: "-" overflows Duration past about 292 years, a split

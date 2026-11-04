@@ -28,7 +28,8 @@ separate (Files_Suite.Operations)
       Assert (Load.Success, "undo-safe setup loads the ordinary directory");
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
       Select_Name (Model, "empty-undo.txt");
-      Result := Files.Controller.Execute_Command (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Success,
@@ -37,7 +38,7 @@ separate (Files_Suite.Operations)
 
       --  Navigate into the trash and empty it: the pending restore's source path
       --  is now permanently gone.
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Trash_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Trash_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Navigated,
@@ -45,7 +46,7 @@ separate (Files_Suite.Operations)
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
          "the trashed item is visible in the trash view");
-      Result := Files.Controller.Execute_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Success,
@@ -53,7 +54,7 @@ separate (Files_Suite.Operations)
       Assert (Files.Model.Undo_Available (Model), "the dangling restore undo entry is still present");
 
       --  Undoing the restore whose source was emptied must fail safely, not crash.
-      Result := Files.Controller.Execute_Command (Files.Commands.Undo_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Undo_Command, Model, Settings);
       Assert
         (Result.Operation.Status /= Files.Operations.Operation_Success,
          "undoing a restore whose trashed source was emptied fails safely");

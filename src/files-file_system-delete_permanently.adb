@@ -51,7 +51,8 @@ is
            or else (Full'Length = 1 and then Full (Full'First) = '/');
       end;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return True;
    end Unsafe_Target;
 begin
@@ -60,7 +61,7 @@ begin
       return
         (Success   => False,
          Error_Key => To_Unbounded_String ("error.permanent_delete.refused"));
-   elsif not (Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path)) then
+   elsif not Files.Fs_Primitives.Entry_Exists (Path) then
       return
         (Success   => False,
          Error_Key => To_Unbounded_String ("error.path.missing"));
@@ -75,7 +76,8 @@ begin
    Support.Delete_Tree (Path);
    return (Success => True, Error_Key => Null_Unbounded_String);
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       --  The delete raises straight from the refused unlink or rmdir, so
       --  errno still says why.
       Files.Io_Errors.Capture;

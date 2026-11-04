@@ -46,6 +46,7 @@ begin
 
    return Loaded;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
       return Loaded;
 end Thumbnail_For_Item;

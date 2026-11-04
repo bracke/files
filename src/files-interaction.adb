@@ -305,7 +305,7 @@ package body Files.Interaction is
       Result.Command := Command;
 
       if not Files.Commands.Status.Is_Enabled (Command, Model) then
-         Outcome := Files.Controller.Execute_Command (Command, Model, Settings, Modifiers);
+         Outcome := Files.Controller.Execute_Non_Settings_Command (Command, Model, Settings, Modifiers);
          Result.Status := Outcome.Status;
          return;
       end if;

@@ -32,7 +32,9 @@ function Volume_Trash_For (Path : String) return String is
       end loop;
       return False;
    exception
-      when others => return False;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
+         return False;
    end Device_Of;
 
    --  Base, made usable: created owner-only with files/ and info/ if absent.
@@ -43,7 +45,9 @@ function Volume_Trash_For (Path : String) return String is
       Files.Private_Directories.Ensure (Join_Path (Base, "info"));
       return (if Valid_Volume_Trash_Base (Base) then Base else "");
    exception
-      when others => return "";
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
+         return "";
    end Prepared;
 
    --  Remember Base for the trash view, which lists volume trashes on mounts
@@ -159,5 +163,7 @@ begin
       end;
    end;
 exception
-   when others => return "";
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
+      return "";
 end Volume_Trash_For;

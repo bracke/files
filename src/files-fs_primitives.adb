@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Directories;
 
 with Hostkit.Fs;
@@ -12,12 +13,22 @@ package body Files.Fs_Primitives is
       return Ada.Directories.Exists (Path);
    end Exists;
 
+   function Entry_Exists (Path : String) return Boolean is
+   begin
+      return Path /= "" and then (Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path));
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Fs_Primitives");
+         return False;
+   end Entry_Exists;
+
    function File_Exists (Path : String) return Boolean is
    begin
       return Ada.Directories.Exists (Path)
         and then Ada.Directories.Kind (Path) = Ada.Directories.Ordinary_File;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Fs_Primitives");
          return False;
    end File_Exists;
 
@@ -26,7 +37,8 @@ package body Files.Fs_Primitives is
       return Ada.Directories.Exists (Path)
         and then Ada.Directories.Kind (Path) = Ada.Directories.Directory;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Fs_Primitives");
          return False;
    end Directory_Exists;
 
@@ -85,7 +97,8 @@ package body Files.Fs_Primitives is
          return Parent;
       end;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Fs_Primitives");
          return "";
    end Parent_Directory;
 

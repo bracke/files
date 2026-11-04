@@ -48,7 +48,8 @@ package body Files.Process_Jobs is
       Hostkit.Lease_Files.Release (Handle);
       return Valid;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Process_Jobs");
          Hostkit.Lease_Files.Release (Handle);
          return False;
    end Valid_Cancellation_Marker;
@@ -259,7 +260,9 @@ package body Files.Process_Jobs is
          return not Ada.Directories.Exists (To_String (Item.Directory))
            and then not Hostkit.Fs.Is_Link (To_String (Item.Directory));
       exception
-         when others => return False;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Process_Jobs");
+            return False;
       end Transport_Gone;
 
       function Launch_Cleanup return Boolean is
@@ -512,7 +515,8 @@ package body Files.Process_Jobs is
          Job.Shared := null;
       end if;
    exception
-      when others =>
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.Process_Jobs");
          --  Controlled finalization must not replace an active exception with
          --  a cleanup failure. Preserve the durable transport and let the
          --  orphan reaper retry whenever possible.
@@ -524,7 +528,8 @@ package body Files.Process_Jobs is
                Ensure_Reaper;
                Submit_Or_Abandon (Job.Shared);
             exception
-               when others =>
+               when Failure : others =>
+                  Files.Diagnostics.Note (Failure, "Files.Process_Jobs");
                   --  The durable marker is sufficient for startup recovery.
                   --  Drop the in-memory lease and registration as a last
                   --  resort so finalization itself remains exception-safe.

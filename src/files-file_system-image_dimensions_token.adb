@@ -134,7 +134,8 @@ begin
    Close_Read_Descriptor (File);
    return "";
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       Close_Read_Descriptor (File);
       return "";
 end Image_Dimensions_Token;

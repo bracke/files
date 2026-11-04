@@ -150,7 +150,7 @@ separate (Files_Suite.Operations)
         (Files.Commands.Status.Is_Enabled (Files.Commands.Extract_Archive_Command, Model),
          "extract command is enabled when an archive is selected");
 
-      Routed := Files.Controller.Execute_Command (Files.Commands.Extract_Archive_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Extract_Archive_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,
@@ -170,7 +170,7 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "bundle.zip");
       Files.File_Identities.Testing.Set_Unavailable (True);
       begin
-         Routed := Files.Controller.Execute_Command
+         Routed := Files.Controller.Execute_Non_Settings_Command
            (Files.Commands.Extract_Archive_Command, Model, Settings);
          Files.File_Identities.Testing.Set_Unavailable (False);
       exception
@@ -197,7 +197,7 @@ separate (Files_Suite.Operations)
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "cases.zip");
-      Routed := Files.Controller.Execute_Command (Files.Commands.Extract_Archive_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Extract_Archive_Command, Model, Settings);
       if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Linux) then
          Files_Suite.Support.Assert_Equal
            (Routed.Operation.Status, Files.Operations.Operation_Success,

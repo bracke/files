@@ -28,7 +28,7 @@ separate (Files_Suite.Operations)
         (Files.Commands.Status.Is_Enabled (Files.Commands.Copy_To_Command, Model),
          "copy-to is enabled with a real selection");
 
-      Routed := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Copy_To_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,

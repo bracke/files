@@ -48,5 +48,7 @@ begin
    end;
    return Result;
 exception
-   when others => return Result;
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
+      return Result;
 end Volume_Trash_Bases;

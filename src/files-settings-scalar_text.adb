@@ -38,7 +38,7 @@ separate (Files.Settings)
          when Icon_Theme_Setting =>
             return To_String (Settings.Icon_Theme_Name);
          when Font_Pixel_Size_Setting =>
-            return Trim (Positive'Image (Settings.Font_Pixel_Size));
+            return Files.Types.Natural_Text (Settings.Font_Pixel_Size);
          when Info_Pane_Open_Setting =>
             return Boolean_Name (Settings.Info_Pane_Open);
          when Use_System_Default_Opener_Setting =>
@@ -58,10 +58,10 @@ separate (Files.Settings)
             | Detail_Column_Width_Filetype_Setting
             | Detail_Column_Width_Created_Setting
             | Detail_Column_Width_Permissions_Setting =>
-            return Trim (Natural'Image (Settings.Column_Widths (Column)));
+            return Files.Types.Natural_Text (Settings.Column_Widths (Column));
          when Window_Width_Setting =>
-            return Trim (Natural'Image (Settings.Window_Width));
+            return Files.Types.Natural_Text (Settings.Window_Width);
          when Window_Height_Setting =>
-            return Trim (Natural'Image (Settings.Window_Height));
+            return Files.Types.Natural_Text (Settings.Window_Height);
       end case;
    end Scalar_Text;

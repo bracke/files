@@ -1,6 +1,7 @@
 with Ada.Command_Line;
 with Ada.Characters.Handling;
 with Ada.Containers.Indefinite_Hashed_Sets;
+with Ada.Containers.Indefinite_Vectors;
 with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
@@ -2690,6 +2691,118 @@ procedure Check_All is
       Ada.Directories.End_Search (Search);
    end Check_Visible_Cache_Invalidation;
 
+   --  A handler that catches everything and carries on must say what it
+   --  caught (Files.Diagnostics.Note), or a failure vanishes without a trace
+   --  even with FILES_DIAGNOSTICS set: a "when others" exception handler in
+   --  src/ either raises or names its occurrence and notes it. Files.Diagnostics
+   --  and Files.Environment (which Note is built on) are exempt.
+   procedure Check_Swallowing_Handlers is
+      Search : Ada.Directories.Search_Type;
+      Item   : Ada.Directories.Directory_Entry_Type;
+
+      procedure Check_File (Path : String) is
+         Code  : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
+         package Line_Vectors is new Ada.Containers.Indefinite_Vectors (Positive, String);
+         Lines : Line_Vectors.Vector;
+
+         function Indent (Line : String) return Natural is
+         begin
+            for Index in Line'Range loop
+               if Line (Index) /= ' ' then
+                  return Index - Line'First;
+               end if;
+            end loop;
+            return Line'Length;
+         end Indent;
+
+         function Blank (Line : String) return Boolean is (Indent (Line) = Line'Length);
+
+         function Trimmed (Line : String) return String is (Ada.Strings.Fixed.Trim (Line, Ada.Strings.Both));
+
+         procedure Refuse (At_Line : Positive; Why : String) is
+         begin
+            Put_Line
+              (Standard_Error, Path & ":" & Ada.Strings.Fixed.Trim (At_Line'Image, Ada.Strings.Left) & ": " & Why);
+            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+            raise Program_Error;
+         end Refuse;
+
+         First : Positive := Code'First;
+      begin
+         for Index in Code'Range loop
+            if Code (Index) = ASCII.LF then
+               Lines.Append (Code (First .. Index - 1));
+               First := Index + 1;
+            end if;
+         end loop;
+         if First <= Code'Last then
+            Lines.Append (Code (First .. Code'Last));
+         end if;
+         for Number in Lines.First_Index .. Lines.Last_Index loop
+            declare
+               Line   : constant String := Lines (Number);
+               Text   : constant String := Trimmed (Line);
+               Arrow  : constant Natural := Ada.Strings.Fixed.Index (Text, "others =>");
+               Margin : constant Natural := Indent (Line);
+            begin
+               if Text'Length > 5 and then Text (Text'First .. Text'First + 4) = "when " and then Arrow > 0 then
+                  declare
+                     --  The choice parameter, if named: "when E : others =>".
+                     Colon   : constant Natural := Ada.Strings.Fixed.Index (Text (Text'First .. Arrow), ":");
+                     Name    : constant String :=
+                       (if Colon = 0 then "" else Trimmed (Text (Text'First + 5 .. Colon - 1)));
+                     Handler : Boolean := False;
+                     Body_Of : Unbounded_String :=
+                       To_Unbounded_String (Text (Arrow + 9 .. Text'Last));
+                  begin
+                     --  An exception handler: the nearest line above at a
+                     --  smaller indent is "exception" (other choices between).
+                     for Above in reverse Lines.First_Index .. Number - 1 loop
+                        if not Blank (Lines (Above)) and then Indent (Lines (Above)) < Margin then
+                           Handler := Trimmed (Lines (Above)) = "exception";
+                           exit;
+                        end if;
+                     end loop;
+                     if Handler then
+                        for Below in Number + 1 .. Lines.Last_Index loop
+                           exit when not Blank (Lines (Below)) and then Indent (Lines (Below)) <= Margin;
+                           Append (Body_Of, ASCII.LF & Lines (Below));
+                        end loop;
+                        declare
+                           Statements : constant String := Ada.Characters.Handling.To_Lower (To_String (Body_Of));
+                        begin
+                           if Ada.Strings.Fixed.Index (Statements, "raise") = 0
+                             and then Ada.Strings.Fixed.Index (Statements, "reraise_occurrence") = 0
+                           then
+                              if Name = "" then
+                                 Refuse (Number, "a 'when others' handler carries on without noting what it caught");
+                              elsif Ada.Strings.Fixed.Index
+                                      (Statements, Ada.Characters.Handling.To_Lower (Name)) = 0
+                              then
+                                 Refuse (Number, "a handler names " & Name & " and carries on without using it");
+                              end if;
+                           end if;
+                        end;
+                     end if;
+                  end;
+               end if;
+            end;
+         end loop;
+      end Check_File;
+   begin
+      Ada.Directories.Start_Search
+        (Search, Root & "/src", "*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Item);
+         if Ada.Directories.Simple_Name (Item)
+           not in "files-diagnostics.ads" | "files-diagnostics.adb" | "files-environment.ads" | "files-environment.adb"
+         then
+            Check_File (Ada.Directories.Full_Name (Item));
+         end if;
+      end loop;
+      Ada.Directories.End_Search (Search);
+   end Check_Swallowing_Handlers;
+
    procedure Check_Localization_Usage is
       Main_Manifest : constant String := Root & "/alire.toml";
       Localization  : constant String := Root & "/src/files-localization.adb";
@@ -3116,6 +3229,8 @@ procedure Check_All is
            [To_Unbounded_String ("Files.Command_Palette"),
             To_Unbounded_String ("Files.Copy_Context"),
             To_Unbounded_String ("Files.Desktop_Applications"),
+            --  A handler's trace of what it carried on past, not model I/O.
+            To_Unbounded_String ("Files.Diagnostics"),
             To_Unbounded_String ("Files.File_System"),
             To_Unbounded_String ("Files.Folder_Size"),
             To_Unbounded_String ("Files.Folder_Tree"),
@@ -4798,6 +4913,7 @@ begin
    Check_Clock_Arithmetic;
    Check_Environment_Access;
    Check_Visible_Cache_Invalidation;
+   Check_Swallowing_Handlers;
    Check_Shared_Package_State;
    Check_Host_Questions;
    Check_Filetype_Detection_Order;

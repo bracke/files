@@ -24,5 +24,7 @@ begin
       return "";
    end;
 exception
-   when others => return "";
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
+      return "";
 end Trash_Base_Of;

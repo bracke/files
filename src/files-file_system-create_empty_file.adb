@@ -21,7 +21,7 @@ begin
    if Descriptor = GNAT.OS_Lib.Invalid_FD then
       --  Before the existence check, whose own calls overwrite errno.
       Files.Io_Errors.Capture;
-      if Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path) then
+      if Files.Fs_Primitives.Entry_Exists (Path) then
          return (Success => False, Error_Key => To_Unbounded_String ("error.file.exists"));
       end if;
       raise Ada.Directories.Use_Error;
@@ -35,7 +35,8 @@ begin
    end if;
    return (Success => True, Error_Key => Null_Unbounded_String);
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       declare
          --  Chosen before the cleanup below can record a cause of its own.
          Failed : constant Mutation_Result :=

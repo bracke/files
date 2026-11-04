@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Vectors;
 with Ada.Characters.Handling;
@@ -365,61 +366,41 @@ package body Files.Localization is
 
          return "";
       end Existing_Value;
+
+      --  Where a locale is configured, in order: the Plasma desktop's own
+      --  setting (in the home folder), then the system's. In each the
+      --  category's key comes before the general LANG.
+      type Source is record
+         Path    : Unbounded_String;
+         Section : Unbounded_String;
+      end record;
+      Plasma : constant String := "/.config/plasma-localerc";
    begin
       Home := To_Unbounded_String (Files.Environment.Value ("HOME"));
-
-      if Length (Home) > 0 then
-         declare
-            Plasma : constant String := To_String (Home) & "/.config/plasma-localerc";
-            Value  : constant String := Existing_Value (Plasma, "Formats", Category_Key);
-         begin
-            if Value /= "" then
-               return Value;
+      declare
+         Sources : constant array (Positive range <>) of Source :=
+           [(To_Unbounded_String (if Length (Home) > 0 then To_String (Home) & Plasma else ""),
+             To_Unbounded_String ("Formats")),
+            (To_Unbounded_String ("/etc/locale.conf"), Null_Unbounded_String),
+            (To_Unbounded_String ("/etc/default/locale"), Null_Unbounded_String)];
+      begin
+         for Place of Sources loop
+            if Length (Place.Path) > 0 then
+               for General in Boolean loop
+                  declare
+                     Value : constant String :=
+                       Existing_Value
+                         (To_String (Place.Path), To_String (Place.Section),
+                          (if General then "LANG" else Category_Key));
+                  begin
+                     if Value /= "" then
+                        return Value;
+                     end if;
+                  end;
+               end loop;
             end if;
-         end;
-
-         declare
-            Plasma : constant String := To_String (Home) & "/.config/plasma-localerc";
-            Value  : constant String := Existing_Value (Plasma, "Formats", "LANG");
-         begin
-            if Value /= "" then
-               return Value;
-            end if;
-         end;
-      end if;
-
-      declare
-         Value : constant String := Existing_Value ("/etc/locale.conf", "", Category_Key);
-      begin
-         if Value /= "" then
-            return Value;
-         end if;
+         end loop;
       end;
-
-      declare
-         Value : constant String := Existing_Value ("/etc/locale.conf", "", "LANG");
-      begin
-         if Value /= "" then
-            return Value;
-         end if;
-      end;
-
-      declare
-         Value : constant String := Existing_Value ("/etc/default/locale", "", Category_Key);
-      begin
-         if Value /= "" then
-            return Value;
-         end if;
-      end;
-
-      declare
-         Value : constant String := Existing_Value ("/etc/default/locale", "", "LANG");
-      begin
-         if Value /= "" then
-            return Value;
-         end if;
-      end;
-
       return "";
    end Configured_Category_Locale;
 
@@ -509,7 +490,8 @@ package body Files.Localization is
          return "";
       end;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Localization");
          return "";
    end Locale_Config_Value;
 

@@ -116,4 +116,12 @@ package Files.Paste is
       Fold_Names : Boolean := False)
       return Resolved_Action_Vectors.Vector;
 
+   --  One-based position of the last '.' that starts an extension (not a
+   --  leading dot), or 0 when the name has none: where a numbered copy's
+   --  " 2" goes, for a paste and a drop alike.
+   --
+   --  @param Name A leaf name.
+   --  @return The extension's dot, or 0.
+   function Extension_Start (Name : String) return Natural;
+
 end Files.Paste;

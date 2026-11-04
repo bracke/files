@@ -101,13 +101,7 @@ begin
       begin
          Files.Model.Set_Error (Model, To_String (First_Error_Key));
          if Need_Reload then
-            declare
-               Reload : constant Operation_Result :=
-                 Reload_With_Error (Model, Settings, To_String (First_Error_Key));
-               pragma Unreferenced (Reload);
-            begin
-               null;
-            end;
+            Reload_With_Error (Model, Settings, To_String (First_Error_Key));
          end if;
          return
            Make_Result

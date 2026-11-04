@@ -81,7 +81,8 @@ is
          end loop;
       end;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          Result.Error_Key := To_Unbounded_String
            (if Depth = 0 then "error.directory.load" else "error.search.failed");
    end Visit;
@@ -97,7 +98,8 @@ begin
    Result.Success := Length (Result.Error_Key) = 0;
    return Result;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       Result.Success := False;
       Result.Error_Key := To_Unbounded_String ("error.search.failed");
       return Result;

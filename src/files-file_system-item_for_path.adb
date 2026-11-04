@@ -88,7 +88,8 @@ begin
              (Full, Kind, Item.Mode_Bits,
               Item.Mode_Available and then Hostkit.Metadata.Mode_Bits_Are_Native));
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          Item.Metadata_Error := True;
          Item.Error_Key := To_Unbounded_String ("error.metadata.read");
    end;

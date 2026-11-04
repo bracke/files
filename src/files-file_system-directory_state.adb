@@ -26,7 +26,8 @@ begin
    Support.For_Each_Entry (Path, Add_Entry'Access);
    return Result;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       --  A bounded enumeration failure may happen after some entries were
       --  accumulated.  Once the scan is unavailable none of those partial
       --  counters or timestamps are authoritative.

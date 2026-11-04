@@ -12,5 +12,7 @@ begin
      and then Hostkit.Host.Current /= Hostkit.Host.Windows
      and then Hostkit.Process.Current_User_Account (Uid);
 exception
-   when others => return False;
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
+      return False;
 end Volume_Trash_Supported;

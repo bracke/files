@@ -41,7 +41,7 @@ separate (Files_Suite.Model)
          0,
          "clear selection resets info pane scroll");
       Result :=
-        Files.Controller.Execute_Command
+        Files.Controller.Execute_Non_Settings_Command
           (Files.Commands.Toggle_Settings_Pane_Command,
            Model,
            Settings);
@@ -84,7 +84,7 @@ separate (Files_Suite.Model)
          0,
          "blocked PageDown leaves info pane still");
       Result :=
-        Files.Controller.Execute_Command
+        Files.Controller.Execute_Non_Settings_Command
           (Files.Commands.Toggle_Settings_Pane_Command,
            Model,
            Settings);

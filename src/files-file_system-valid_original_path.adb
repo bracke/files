@@ -11,6 +11,7 @@ begin
    end loop;
    return True;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return False;
 end Valid_Original_Path;

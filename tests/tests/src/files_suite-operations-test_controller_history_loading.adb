@@ -24,7 +24,7 @@ separate (Files_Suite.Operations)
       Write_File (Join (First, "later.txt"));
       Load := Files.File_System.Load_Directory (First, Settings);
       Files.Model.Initialize (Model, First, Load.Items, First);
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
 
       Load := Files.File_System.Load_Directory (Second, Settings);
       Files.Model.Open_Root_Selector (Model, Files.File_System.Testing.Available_Roots);
@@ -35,7 +35,7 @@ separate (Files_Suite.Operations)
          "direct navigation clears stale root selector entries");
       Files.Model.Begin_Create_File (Model, "history-pending.txt");
       Files.Model.Select_Visible (Model, 2);
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Success,
@@ -54,7 +54,8 @@ separate (Files_Suite.Operations)
       Files_Suite.Support.Assert_Equal (Files.Model.Focus (Model), Files.Types.Focus_None, "back clears rename focus");
       Files.Model.Begin_Create_File (Model, "forward-history-pending.txt");
       Files.Model.Select_Visible (Model, 3);
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Forward_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Success,
@@ -77,7 +78,7 @@ separate (Files_Suite.Operations)
 
       Project_Tools.Files.Delete_Tree (First);
       Files.Model.Begin_Create_File (Model, "failed-history-pending.txt");
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Failed,
@@ -101,7 +102,7 @@ separate (Files_Suite.Operations)
       Write_File (Join (First, "one.txt"));
       Write_File (Join (First, "fresh.txt"));
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Success,
@@ -110,7 +111,8 @@ separate (Files_Suite.Operations)
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Rename (Model);
       Files.Model.Set_Rename_Text (Model, "one-renamed.txt");
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Forward_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Failed,
@@ -126,7 +128,8 @@ separate (Files_Suite.Operations)
          "failed forward restores rename focus");
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Files.Model.Begin_Create_File (Model, "failed-forward-pending.txt");
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Forward_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Failed,
@@ -150,7 +153,8 @@ separate (Files_Suite.Operations)
       Write_File (Join (Second, "two.txt"));
       Files.Model.Testing.Cancel_Create_File (Model);
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Forward_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Success,
@@ -159,7 +163,7 @@ separate (Files_Suite.Operations)
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Rename (Model);
       Files.Model.Set_Rename_Text (Model, "two-renamed.txt");
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Failed,

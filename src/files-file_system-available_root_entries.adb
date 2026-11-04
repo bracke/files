@@ -226,7 +226,8 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
 
       Safe_End_Search (Search, Started);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          Safe_End_Search (Search, Started);
          null;
    end Append_Children;

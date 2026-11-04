@@ -30,28 +30,7 @@ package body Files.Desktop_Applications is
    --  Strip a trailing or leading run of desktop-file whitespace from Text.
    --  Lines are split on LF, so accepting a trailing CR is what makes ordinary
    --  CRLF desktop files parse the same way as their LF equivalents.
-   function Trim_Blanks (Text : String) return String is
-      First : Integer := Text'First;
-      Last  : Integer := Text'Last;
-   begin
-      while First <= Last
-        and then
-          (Text (First) = ' '
-           or else Text (First) = ASCII.HT
-           or else Text (First) = ASCII.CR)
-      loop
-         First := First + 1;
-      end loop;
-      while Last >= First
-        and then
-          (Text (Last) = ' '
-           or else Text (Last) = ASCII.HT
-           or else Text (Last) = ASCII.CR)
-      loop
-         Last := Last - 1;
-      end loop;
-      return Text (First .. Last);
-   end Trim_Blanks;
+   function Trim_Blanks (Text : String) return String renames Files.Types.Trim_Blanks;
 
    procedure Parse_Boolean
      (Value  : String;
@@ -933,7 +912,8 @@ package body Files.Desktop_Applications is
               (App, Files.Types.String_Vectors.Empty_Vector).Executable) /= "";
       end if;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Desktop_Applications");
          Found := False;
    end Parse_Desktop_File;
 
@@ -1040,7 +1020,8 @@ package body Files.Desktop_Applications is
 
       Ada.Directories.End_Search (Search);
    exception
-      when others =>
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.Desktop_Applications");
          begin
             Ada.Directories.End_Search (Search);
          exception
@@ -1092,7 +1073,8 @@ package body Files.Desktop_Applications is
       end if;
       return Bases;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Desktop_Applications");
          return Files.Types.String_Vectors.Empty_Vector;
    end Data_Directories;
 
@@ -1135,7 +1117,8 @@ package body Files.Desktop_Applications is
       Application_Sorting.Sort (Collected);
       return Collected;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Desktop_Applications");
          return Application_Vectors.Empty_Vector;
    end Available_Applications;
 

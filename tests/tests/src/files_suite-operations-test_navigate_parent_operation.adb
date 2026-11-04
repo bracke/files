@@ -32,7 +32,7 @@ separate (Files_Suite.Operations)
         (Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Parent_Command, Model),
          "navigate-parent is enabled in a nested directory");
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Parent_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Parent_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Navigated,
@@ -43,7 +43,7 @@ separate (Files_Suite.Operations)
          "navigate-parent moves to the parent directory");
       Assert (Files.Model.Can_Go_Back (Model), "navigate-parent records history for back");
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Success,
@@ -54,7 +54,8 @@ separate (Files_Suite.Operations)
          "back restores the origin child directory");
       Assert (Files.Model.Can_Go_Forward (Model), "back leaves the way forward");
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Forward_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Success,

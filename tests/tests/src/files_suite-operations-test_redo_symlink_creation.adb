@@ -18,7 +18,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "report.txt");
 
-      Routed := Files.Controller.Execute_Command (Files.Commands.Create_Symlink_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_Symlink_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,

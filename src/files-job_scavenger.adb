@@ -1,3 +1,4 @@
+with Files.Fs_Primitives;
 with Files.Helper_Modes;
 with Files.Diagnostics;
 with Files.Environment;
@@ -65,7 +66,8 @@ package body Files.Job_Scavenger is
       Hostkit.Lease_Files.Release (Report);
       return Valid;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Scavenger");
          Hostkit.Lease_Files.Release (Report);
          return False;
    end Has_Unrecoverable;
@@ -220,7 +222,8 @@ package body Files.Job_Scavenger is
          end;
       end if;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Scavenger");
          Hostkit.Lease_Files.Release (Report);
    end Report_Unrecoverable;
 
@@ -510,7 +513,9 @@ package body Files.Job_Scavenger is
            and then (for all Position in First_Hex .. Name'Last =>
              Name (Position) in '0' .. '9' | 'a' .. 'f');
       exception
-         when others => return False;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Job_Scavenger");
+            return False;
       end Is_Current_Name;
 
       procedure Scan (Retry_Needed : out Boolean) is
@@ -583,8 +588,7 @@ package body Files.Job_Scavenger is
                                   (Directory, To_String (Incomplete_Identity)).Success;
                            begin
                               if not Removed
-                                or else Ada.Directories.Exists (Directory)
-                                or else Hostkit.Fs.Is_Link (Directory)
+                                or else Files.Fs_Primitives.Entry_Exists (Directory)
                               then
                                  Retry_Needed := True;
                               else
@@ -604,14 +608,17 @@ package body Files.Job_Scavenger is
                   end if;
                end if;
             exception
-               when others => Retry_Needed := True;
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.Job_Scavenger");
+                  Retry_Needed := True;
             end;
          end loop;
          Ada.Directories.End_Search (Search);
          Open := False;
          Files.Job_Transports.Scavenge_Witnesses;
       exception
-         when others =>
+         when Failure : others =>
+            Files.Diagnostics.Note (Failure, "Files.Job_Scavenger");
             Retry_Needed := True;
             if Open then
                begin

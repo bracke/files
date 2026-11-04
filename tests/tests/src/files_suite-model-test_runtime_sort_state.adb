@@ -78,14 +78,15 @@ separate (Files_Suite.Model)
          "zulu",
          "default snapshot does not group directories before files");
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Sort_Menu_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Sort_Menu_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Toggle_Sort_Menu_Command,
          "sort menu command is routed");
       Assert (Files.Model.Sort_Menu_Is_Open (Model), "sort menu opens");
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Size_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Sort_By_Size_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Sort_By_Size_Command,
@@ -98,11 +99,11 @@ separate (Files_Suite.Model)
       Assert (not Files.Model.Sort_Menu_Is_Open (Model), "selecting a sort field closes the menu");
       Files_Suite.Support.Assert_Equal (Snapshot_Name (1), "charlie.bin", "size ascending sorts smallest file first");
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Size_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Sort_By_Size_Command, Model, Settings);
       Assert (not Files.Model.Sort_Is_Ascending (Model), "selecting same sort field toggles descending");
       Files_Suite.Support.Assert_Equal (Snapshot_Name (1), "alpha.md", "size descending sorts largest file first");
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Type_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Sort_By_Type_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Field_Of (Model),
          Files.Types.Sort_Type,
@@ -110,7 +111,7 @@ separate (Files_Suite.Model)
       Assert (Files.Model.Sort_Is_Ascending (Model), "different sort field resets to ascending");
       Files_Suite.Support.Assert_Equal (Snapshot_Name (1), "charlie.bin", "type ascending sorts by filetype token");
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Created_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Sort_By_Created_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Field_Of (Model),
          Files.Types.Sort_Created,
@@ -120,7 +121,7 @@ separate (Files_Suite.Model)
          "charlie.bin",
          "created ascending sorts oldest creation time first");
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Sort_By_Changed_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Sort_By_Changed_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Sort_Field_Of (Model),
          Files.Types.Sort_Changed,

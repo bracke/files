@@ -5,9 +5,11 @@ separate (Files_Suite.Commands)
       Model    : Files.Model.Window_Model := Sample_Model;
       Result   : Files.Controller.Controller_Result;
    begin
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "controller opens the settings pane");
-      Result := Files.Controller.Execute_Command (Files.Commands.Close_Command_Palette_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Close_Command_Palette_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status, Files.Controller.Controller_Command_Executed, "the close command runs over the settings pane");
       Files_Suite.Support.Assert_Equal

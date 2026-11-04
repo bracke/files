@@ -28,7 +28,7 @@ separate (Files_Suite.Commands)
          "reveal is enabled for a single selected result");
 
       Result :=
-        Files.Controller.Execute_Command (Files.Commands.Open_Containing_Folder_Command, Model, Settings);
+        Files.Controller.Execute_Non_Settings_Command (Files.Commands.Open_Containing_Folder_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Open_Containing_Folder_Command,

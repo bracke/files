@@ -38,7 +38,7 @@ separate (Files_Suite.Operations)
         (Files.Commands.Status.Is_Enabled (Files.Commands.Compress_Zip_Command, Model),
          "compress-zip command is enabled with a selection");
 
-      Routed := Files.Controller.Execute_Command (Files.Commands.Compress_Zip_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Compress_Zip_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,
@@ -50,7 +50,7 @@ separate (Files_Suite.Operations)
          "zip archive begins with the ZIP local-header signature");
 
       Select_Name (Model, "report.txt");
-      Routed := Files.Controller.Execute_Command (Files.Commands.Compress_7z_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Compress_7z_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,
@@ -61,7 +61,7 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "notes.txt");
       Files.File_Identities.Testing.Set_Unavailable (True);
       begin
-         Routed := Files.Controller.Execute_Command
+         Routed := Files.Controller.Execute_Non_Settings_Command
            (Files.Commands.Compress_Zip_Command, Model, Settings);
          Files.File_Identities.Testing.Set_Unavailable (False);
       exception

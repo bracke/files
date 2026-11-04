@@ -38,8 +38,7 @@ begin
          --  A destination may have appeared since planning. It belongs to
          --  someone else and must never be removed by failure cleanup.
          if Source_Path /= Destination_Path
-           and then (Ada.Directories.Exists (Destination_Path)
-                     or else Hostkit.Fs.Is_Link (Destination_Path))
+           and then Files.Fs_Primitives.Entry_Exists (Destination_Path)
          then
             return (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
          end if;
@@ -107,7 +106,8 @@ begin
          Created_Identities.Append (Published_Identity);
          Created_Tree_Revisions.Append (Published_Tree_Revision);
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System");
             --  A copy raised partway (e.g. out of space); remove the partial
             --  destination before reporting failure. The source is untouched.
             --  Copy_Tree cleans up only destinations it created. A cancelled

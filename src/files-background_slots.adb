@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Strings.Unbounded;
 
 package body Files.Background_Slots is
@@ -157,7 +158,8 @@ package body Files.Background_Slots is
                begin
                   Value := Work (To_String (Path), Arguments);
                exception
-                  when others =>
+                  when Swallowed : others =>
+                     Files.Diagnostics.Note (Swallowed, "Files.Background_Slots");
                      Value := Failed;
                end;
                Slots.Deliver (Owner, Path, Value);

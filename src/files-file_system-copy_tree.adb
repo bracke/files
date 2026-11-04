@@ -10,7 +10,8 @@ begin
      (Source_Path, Destination_Path, Identity, Tree_Revision_Value, Batch => Batch);
    return (Success => True, Error_Key => Null_Unbounded_String);
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       Identity := Null_Unbounded_String;
       Tree_Revision_Value := Null_Unbounded_String;
       return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.copy.failed"));

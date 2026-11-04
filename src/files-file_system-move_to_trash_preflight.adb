@@ -22,14 +22,17 @@ is
       end;
    exception
       when Ada.Directories.Use_Error => return True;
-      when others => return False;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
+         return False;
    end Is_Filesystem_Root;
 
    function Source_Exists return Boolean is
    begin
-      return Path /= "" and then (Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path));
+      return Path /= "" and then Files.Fs_Primitives.Entry_Exists (Path);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return False;
    end Source_Exists;
 
@@ -48,7 +51,8 @@ is
          return Value;
       end if;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return Value;
    end Normalized_Text;
 
@@ -84,7 +88,8 @@ is
       end loop;
       return False;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return False;
    end Inside_Volume_Trash;
 begin

@@ -82,7 +82,8 @@ begin
          begin
             Size := Long_Long_Integer (Ada.Directories.Size (Full));
          exception
-            when others =>
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.File_System");
                Size := 0;
          end;
       end if;
@@ -103,7 +104,8 @@ begin
             Files.Diagnostics.Note (Swallowed, "Files.File_System.Directory");
       end;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          Result.Entry_State_Checksum :=
            (Result.Entry_State_Checksum
             + Entry_Checksum (Name, Ada.Directories.Special_File, 0)) mod 1_000_000_007;

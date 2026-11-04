@@ -36,6 +36,7 @@ separate (Files.File_System.Thumbnails)
       Write_Pixels_As_Ppm (Target_Path, Size, Decoded, Image.Width, Image.Height);
       return True;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
          return False;
    end Try_Write_Gdk_Pixbuf_Thumbnail;

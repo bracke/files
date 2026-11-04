@@ -72,7 +72,8 @@ package body Files.Fonts is
    begin
       return Path /= "" and then Files.Fs_Primitives.File_Exists (Path);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Fonts");
          return False;
    end Is_Ordinary_File;
 
@@ -110,7 +111,8 @@ package body Files.Fonts is
       begin
          return Ada.Directories.Simple_Name (Path);
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Fonts");
             return Path;
       end Simple_Name;
 
@@ -221,7 +223,8 @@ package body Files.Fonts is
 
       Ada.Directories.End_Search (Search);
    exception
-      when others =>
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.Fonts");
          if Started then
             begin
                Ada.Directories.End_Search (Search);
@@ -391,7 +394,8 @@ package body Files.Fonts is
       Textrender.Fonts.Reset (Font);
       return True;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Fonts");
          Textrender.Fonts.Reset (Font);
          return False;
    end Is_Loadable_Font;
@@ -443,7 +447,8 @@ package body Files.Fonts is
       Textrender.Fonts.Reset (Font);
       return Score;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Fonts");
          Textrender.Fonts.Reset (Font);
          return -1;
    end Glyph_Coverage_Score;
@@ -505,7 +510,8 @@ package body Files.Fonts is
       Remember ("");
       return "";
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Fonts");
          return "";
    end Default_Font_Path;
 
@@ -559,7 +565,8 @@ package body Files.Fonts is
          return Files.Environment.Value ("HOME")
            & "/.local/share/fonts/" & Leaf;
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Fonts");
             return "";
       end User_Font;
 
@@ -588,7 +595,8 @@ package body Files.Fonts is
 
       return Result;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Fonts");
          return Files.Types.String_Vectors.Empty_Vector;
    end Fallback_Font_Paths;
 

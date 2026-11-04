@@ -7,23 +7,26 @@ separate (Files.Rendering)
       Width       : Natural;
       Height      : Natural;
       Line_Height : Positive := Files.UI.Base_Line_Height;
-      Hover_X     : Natural := 0;
-      Hover_Y     : Natural := 0;
-      Has_Hover   : Boolean := False;
-      Pressed_X   : Natural := 0;
-      Pressed_Y   : Natural := 0;
-      Has_Press   : Boolean := False;
-      Drag_Item_Index : Natural := 0;
-      Drag_X      : Natural := 0;
-      Drag_Y      : Natural := 0;
-      Has_Drag    : Boolean := False;
-      Marquee_Active : Boolean := False;
-      Marquee_X   : Natural := 0;
-      Marquee_Y   : Natural := 0;
-      Marquee_W   : Natural := 0;
-      Marquee_H   : Natural := 0)
+      Pointer     : Pointer_State := No_Pointer)
       return Frame_Commands
    is
+      --  The pointer's parts by their own names, as the drawing reads them.
+      Hover_X         : Natural renames Pointer.Hover_X;
+      Hover_Y         : Natural renames Pointer.Hover_Y;
+      Has_Hover       : Boolean renames Pointer.Has_Hover;
+      Pressed_X       : Natural renames Pointer.Pressed_X;
+      Pressed_Y       : Natural renames Pointer.Pressed_Y;
+      Has_Press       : Boolean renames Pointer.Has_Press;
+      Drag_Item_Index : Natural renames Pointer.Drag_Item_Index;
+      Drag_X          : Natural renames Pointer.Drag_X;
+      Drag_Y          : Natural renames Pointer.Drag_Y;
+      Has_Drag        : Boolean renames Pointer.Has_Drag;
+      Marquee_Active  : Boolean renames Pointer.Marquee_Active;
+      Marquee_X       : Natural renames Pointer.Marquee_X;
+      Marquee_Y       : Natural renames Pointer.Marquee_Y;
+      Marquee_W       : Natural renames Pointer.Marquee_W;
+      Marquee_H       : Natural renames Pointer.Marquee_H;
+
       Result        : Frame_Commands;
       Layout        : constant Layout_Metrics :=
         Calculate_Layout (Snapshot, Width, Height, Line_Height);
@@ -470,11 +473,7 @@ separate (Files.Rendering)
          Box_H    : Natural;
          Point_X  : Natural;
          Point_Y  : Natural)
-         return Boolean
-      is
-      begin
-         return Contains_Rectangle_Point (X, Y, Box_W, Box_H, Point_X, Point_Y);
-      end Contains_Point;
+         return Boolean renames Contains_Rectangle_Point;
 
       function Tooltip_At
         (Point_X : Natural;
@@ -888,8 +887,11 @@ separate (Files.Rendering)
       Detail_Modified_Label : constant String := Files.Localization.Text ("details.modified");
       Detail_Size_Label     : constant String := Files.Localization.Text ("details.size");
       Detail_Filetype_Label : constant String := Files.Localization.Text ("details.filetype");
-      --  The window background, the toolbar and the bottom bar.
+      --  The window background and the toolbar.
       procedure Draw_Toolbar is separate;
+
+      --  The bottom bar.
+      procedure Draw_Bottom_Bar is separate;
 
       --  The main view: details header, items, marquee, drag, empty state and scrollbar.
       procedure Draw_Main_View is separate;
@@ -901,6 +903,7 @@ separate (Files.Rendering)
       procedure Draw_Popups is separate;
    begin
       Draw_Toolbar;
+      Draw_Bottom_Bar;
       if Layout.Bottom_Bar_Height > 0
         and then Bottom.Sort_Button_X > 0
         and then Bottom.Sort_Button_Width > 0

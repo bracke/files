@@ -59,7 +59,7 @@ separate (Files_Suite.Operations)
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "the trash view lists both trashed entries");
 
       --  Emptying must never crash; the ordinary file is always removed.
-      Result := Files.Controller.Execute_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
       Assert
         (Result.Operation.Status in Files.Operations.Operation_Success | Files.Operations.Operation_Failed,
          "empty trash returns a defined status without crashing");

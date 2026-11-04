@@ -30,7 +30,8 @@ begin
             Error_Key      => To_Unbounded_String ("error.path.inaccessible"));
    end case;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return
         (Status         => Path_Inaccessible,
          Directory_Path => Null_Unbounded_String,

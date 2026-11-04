@@ -59,7 +59,7 @@ separate (Files_Suite.Operations)
             end;
 
             if Kind = Duplicate_Item then
-               Routed := Files.Controller.Execute_Command
+               Routed := Files.Controller.Execute_Non_Settings_Command
                  (Files.Commands.Duplicate_Selected_Command, Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Routed.Status,

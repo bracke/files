@@ -21,7 +21,8 @@ begin
       return "executable.format|unknown";
    end if;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       Close_Read_Descriptor (File);
       return "";
 end Executable_Format_Token;

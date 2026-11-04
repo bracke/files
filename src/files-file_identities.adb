@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Strings.Unbounded;
 with Hostkit.Metadata;
 
@@ -25,7 +26,8 @@ package body Files.File_Identities is
       Ada.Strings.Unbounded.Append (Result, U64'Image (Value.Group_Id));
       return Ada.Strings.Unbounded.To_String (Result);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_Identities");
          return "";
    end Revision;
 
@@ -42,7 +44,8 @@ package body Files.File_Identities is
       return U64'Image (Value.Volume) & U64'Image (Value.File_Number)
         & U64'Image (Value.Generation_High) & U64'Image (Value.Generation_Low);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_Identities");
          return "";
    end Token;
 end Files.File_Identities;

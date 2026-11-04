@@ -151,16 +151,8 @@ package body Files.Rendering is
       Box_H    : Natural;
       Point_X  : Natural;
       Point_Y  : Natural)
-      return Boolean
-   is
-   begin
-      return Box_W > 0
-        and then Box_H > 0
-        and then Point_X >= X
-        and then Point_Y >= Y
-        and then Point_X - X < Box_W
-        and then Point_Y - Y < Box_H;
-   end Contains_Rectangle_Point;
+      return Boolean is
+     (Guikit.Layout.Within_Rect (Point_X, Point_Y, X, Y, Box_W, Box_H));
 
    function Saturating_Add
      (Left  : Natural;
@@ -1461,21 +1453,7 @@ package body Files.Rendering is
       Width       : Natural;
       Height      : Natural;
       Line_Height : Positive := Files.UI.Base_Line_Height;
-      Hover_X     : Natural := 0;
-      Hover_Y     : Natural := 0;
-      Has_Hover   : Boolean := False;
-      Pressed_X   : Natural := 0;
-      Pressed_Y   : Natural := 0;
-      Has_Press   : Boolean := False;
-      Drag_Item_Index : Natural := 0;
-      Drag_X      : Natural := 0;
-      Drag_Y      : Natural := 0;
-      Has_Drag    : Boolean := False;
-      Marquee_Active : Boolean := False;
-      Marquee_X   : Natural := 0;
-      Marquee_Y   : Natural := 0;
-      Marquee_W   : Natural := 0;
-      Marquee_H   : Natural := 0)
+      Pointer     : Pointer_State := No_Pointer)
       return Frame_Commands
    is separate;
 

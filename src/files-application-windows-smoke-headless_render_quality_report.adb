@@ -1,5 +1,6 @@
 with Files.Shared_Bytes;
 
+with Files.Diagnostics;
 separate (Files.Application.Windows.Smoke)
    function Headless_Render_Quality_Report
      (Startup : Startup_Result;
@@ -114,13 +115,15 @@ separate (Files.Application.Windows.Smoke)
                        Width           => Width,
                        Height          => Height,
                        Line_Height     => Files.UI.Base_Line_Height,
-                       Hover_X         => Natural'Min (Width, 96),
-                       Hover_Y         => Natural'Min (Height, 96),
-                       Has_Hover       => Width > 0 and then Height > 0,
-                       Drag_Item_Index => Drag_Snapshot.Items.First_Element.Visible_Index,
-                       Drag_X          => Natural'Min (Width, 96),
-                       Drag_Y          => Natural'Min (Height, 96),
-                       Has_Drag        => Width > 0 and then Height > 0);
+                       Pointer =>
+                         (Hover_X => Natural'Min (Width, 96),
+                          Hover_Y => Natural'Min (Height, 96),
+                          Has_Hover => Width > 0 and then Height > 0,
+                          Drag_Item_Index => Drag_Snapshot.Items.First_Element.Visible_Index,
+                          Drag_X => Natural'Min (Width, 96),
+                          Drag_Y => Natural'Min (Height, 96),
+                          Has_Drag => Width > 0 and then Height > 0,
+                          others => <>));
                begin
                   if Natural (Drag_Frame.Icons.Length) > Natural (Frame.Icons.Length)
                     and then Natural (Drag_Frame.Overlay_Rectangles.Length) >
@@ -143,11 +146,13 @@ separate (Files.Application.Windows.Smoke)
                   Result.Failed_Frames := Result.Failed_Frames + 1;
                end if;
             exception
-               when others =>
+               when Swallowed : others =>
+                  Files.Diagnostics.Note (Swallowed, "Files.Application.Windows.Smoke");
                   Result.Failed_Frames := Result.Failed_Frames + 1;
             end;
          exception
-            when others =>
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Application.Windows.Smoke");
                Result.Failed_Frames := Result.Failed_Frames + 1;
          end;
       end loop;

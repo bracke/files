@@ -40,7 +40,7 @@ separate (Files_Suite.Operations)
         (Files.Commands.Status.Is_Enabled (Files.Commands.Search_Recursive_Command, Model),
          "recursive search command is enabled with filter text");
       Routed :=
-        Files.Controller.Execute_Command (Files.Commands.Search_Recursive_Command, Model, Settings);
+        Files.Controller.Execute_Non_Settings_Command (Files.Commands.Search_Recursive_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Command,
          Files.Commands.Search_Recursive_Command,
@@ -57,7 +57,8 @@ separate (Files_Suite.Operations)
         (To_String (Files.Model.Visible_Item (Model, 2).Name),
          "beta-match.txt",
          "recursive search command exposes nested matches in the model");
-      Routed := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,

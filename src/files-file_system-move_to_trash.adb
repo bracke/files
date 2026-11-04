@@ -52,12 +52,10 @@ is
       Counter   : Positive := 2;
       Candidate : Unbounded_String := To_Unbounded_String (Base);
    begin
-      while Ada.Directories.Exists (Join_Path (Files_Directory, To_String (Candidate)))
-        or else Hostkit.Fs.Is_Link (Join_Path (Files_Directory, To_String (Candidate)))
+      while Files.Fs_Primitives.Entry_Exists (Join_Path (Files_Directory, To_String (Candidate)))
         or else (Info_Directory /= ""
                  and then
-                   (Ada.Directories.Exists (Join_Path (Info_Directory, To_String (Candidate) & ".trashinfo"))
-                    or else Hostkit.Fs.Is_Link (Join_Path (Info_Directory, To_String (Candidate) & ".trashinfo"))))
+                   Files.Fs_Primitives.Entry_Exists (Join_Path (Info_Directory, To_String (Candidate) & ".trashinfo")))
       loop
          declare
             Suffix : constant String := "." & Natural_Text (Counter);
@@ -271,7 +269,8 @@ begin
       begin
          Outcome := Support.Move_No_Replace_Outcome (Path, To_String (Target));
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System");
             Outcome := Hostkit.Fs.Move_Refused;
       end;
       if Outcome /= Hostkit.Fs.Moved and then not Support.Copy_May_Replace_Move (Outcome) then
@@ -310,7 +309,8 @@ begin
    Trashed_Path := Target;
    return (Success => True, Error_Key => Null_Unbounded_String);
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       declare
          Failed : constant Mutation_Result :=
            (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.failed"));

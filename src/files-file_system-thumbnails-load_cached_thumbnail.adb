@@ -254,6 +254,7 @@ begin
       return Result;
    end;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
       return (Loaded => False, Width => 0, Height => 0, Pixels => Files.Types.Byte_Vectors.Empty_Vector);
 end Load_Cached_Thumbnail;

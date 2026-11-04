@@ -30,13 +30,7 @@ begin
          end if;
          if not Mutation.Success then
             Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
-            declare
-               Reload : constant Operation_Result :=
-                 Reload_With_Error (Model, Settings, To_String (Mutation.Error_Key));
-               pragma Unreferenced (Reload);
-            begin
-               null;
-            end;
+            Reload_With_Error (Model, Settings, To_String (Mutation.Error_Key));
             return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
          end if;
       end;

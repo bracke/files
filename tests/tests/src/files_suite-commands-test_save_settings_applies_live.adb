@@ -20,7 +20,8 @@ separate (Files_Suite.Commands)
          "model starts sorted by name");
       Assert (Files.Model.Sort_Is_Ascending (Model), "model starts sorted ascending");
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "the settings pane opens with an editable draft");
 
       --  Edit the draft to a different view, sort field, and direction.

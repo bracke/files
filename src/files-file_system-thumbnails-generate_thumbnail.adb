@@ -44,7 +44,8 @@ is
       Temp_Identity := Null_Unbounded_String;
       return True;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
          return False;
    end Publish_Temp;
 
@@ -70,7 +71,7 @@ begin
          declare
             Candidate : constant String := To_String (Target) & ".tmp"
               & (if Index = 1 then "" else "-" &
-                   Ada.Strings.Fixed.Trim (Positive'Image (Index), Ada.Strings.Both));
+                   Files.Types.Natural_Text (Index));
          begin
             Descriptor := GNAT.OS_Lib.Create_New_File (Candidate, GNAT.OS_Lib.Binary);
             if Descriptor /= GNAT.OS_Lib.Invalid_FD then
@@ -166,7 +167,8 @@ begin
 
    return Generated;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
       if Stream_IO.Is_Open (File) then
          Stream_IO.Close (File);
       end if;

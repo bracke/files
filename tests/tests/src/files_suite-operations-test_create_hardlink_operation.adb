@@ -23,7 +23,7 @@ separate (Files_Suite.Operations)
         (Files.Commands.Status.Is_Enabled (Files.Commands.Create_Hardlink_Command, Model),
          "create-hard-link command is enabled with a selection");
 
-      Routed := Files.Controller.Execute_Command (Files.Commands.Create_Hardlink_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_Hardlink_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,
@@ -37,7 +37,7 @@ separate (Files_Suite.Operations)
          "the hard link shares the original contents");
       Assert (Files.Model.Undo_Available (Model), "undo is available after creating a hard link");
 
-      Routed := Files.Controller.Execute_Command (Files.Commands.Undo_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Undo_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,
@@ -57,7 +57,7 @@ separate (Files_Suite.Operations)
       Files.Operations.Clear_Undo (Model);
       Files.Model.Select_All_Visible (Model);
       Ada.Directories.Delete_File (Join (Dir, "b.txt"));
-      Routed := Files.Controller.Execute_Command
+      Routed := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Create_Hardlink_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
@@ -77,7 +77,7 @@ separate (Files_Suite.Operations)
         (Natural (Files.Model.Undo_From_Paths (Model).Length),
          1,
          "a partial link batch refreshes and retains one undoable committed link: Undo paths");
-      Routed := Files.Controller.Execute_Command
+      Routed := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Undo_Command, Model, Settings);
       Assert
         (Routed.Operation.Status = Files.Operations.Operation_Success

@@ -23,7 +23,8 @@ separate (Files_Suite.Operations)
         (Files.Commands.Status.Is_Enabled (Files.Commands.Duplicate_Selected_Command, Model),
          "duplicate command is enabled with a selection");
 
-      Routed := Files.Controller.Execute_Command (Files.Commands.Duplicate_Selected_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Duplicate_Selected_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,
@@ -44,7 +45,8 @@ separate (Files_Suite.Operations)
          Load := Files.File_System.Load_Directory (Dir, Hidden);
          Files.Model.Initialize (Model, Dir, Load.Items, Root);
          Select_Name (Model, ".bashrc");
-         Routed := Files.Controller.Execute_Command (Files.Commands.Duplicate_Selected_Command, Model, Hidden);
+         Routed := Files.Controller.Execute_Non_Settings_Command
+           (Files.Commands.Duplicate_Selected_Command, Model, Hidden);
          Assert (Ada.Directories.Exists (Join (Dir, ".bashrc (copy)"))
                    and then not Ada.Directories.Exists (Join (Dir, " (copy).bashrc")),
                  "a dotfile duplicate keeps the leading-dot name whole");

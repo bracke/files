@@ -5,6 +5,7 @@ begin
      and then (Is_Trash_Directory (Ada.Directories.Containing_Directory (Path))
                or else Files.File_System.Is_Volume_Trash_Item (Path));
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Operations");
       return False;
 end Is_Trash_Child;

@@ -105,7 +105,7 @@ separate (Files.Settings)
          declare
             Candidate : constant String :=
               Target & ".tmp" & (if Index = 1 then "" else "-" &
-                Ada.Strings.Fixed.Trim (Positive'Image (Index), Ada.Strings.Both));
+                Files.Types.Natural_Text (Index));
          begin
             Descriptor := GNAT.OS_Lib.Create_New_File (Candidate, GNAT.OS_Lib.Binary);
             if Descriptor /= GNAT.OS_Lib.Invalid_FD then
@@ -168,7 +168,8 @@ separate (Files.Settings)
             then Null_Unbounded_String
             else To_Unbounded_String ("warning.settings.not_durable")));
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Settings");
          declare
             --  Why, before the cleanup below can record a cause of its own.
             Key : constant Unbounded_String := Files.Io_Errors.Error_Key ("error.settings.save");

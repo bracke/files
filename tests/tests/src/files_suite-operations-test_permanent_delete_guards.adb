@@ -113,7 +113,7 @@ separate (Files_Suite.Operations)
         (Files.Commands.Status.Is_Enabled (Files.Commands.Delete_Selected_Permanently_Command, Model),
          "permanent delete command is enabled for selected items");
       Routed :=
-        Files.Controller.Execute_Command
+        Files.Controller.Execute_Non_Settings_Command
           (Files.Commands.Delete_Selected_Permanently_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Command,

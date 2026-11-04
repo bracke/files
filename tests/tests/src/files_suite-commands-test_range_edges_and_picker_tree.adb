@@ -48,19 +48,23 @@ separate (Files_Suite.Commands)
       --  Copy To on an already open folder tree leaves it open when the pick
       --  ends; a tree the pick opened closes again.
       Files.Model.Select_Visible (Model, 1);
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
       Assert (Files.Model.Tree_Panel_Is_Open (Model), "the folder tree is open");
-      Result := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Copy_To_Command, Model, Settings);
       Assert (Files.Model.Tree_Pick_Is_Active (Model), "Copy To starts picking a destination");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Tree_Pick_Is_Active (Model) and then Files.Model.Tree_Panel_Is_Open (Model),
               "Escape ends the pick and keeps the tree the user had open");
-      Result := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Copy_To_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
       Assert (not Files.Model.Tree_Pick_Is_Active (Model) and then Files.Model.Tree_Panel_Is_Open (Model),
               "the picker's Cancel keeps it too");
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
-      Result := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Copy_To_Command, Model, Settings);
       Assert (Files.Model.Tree_Panel_Is_Open (Model), "Copy To opens a closed tree to pick in");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Assert (not Files.Model.Tree_Panel_Is_Open (Model), "and closes it again when the pick ends");

@@ -4,6 +4,7 @@ begin
    return Long_Long_Integer (Ada.Directories.Size (Source_Path))
             <= Long_Long_Integer (Max_Fast_Decode_Source_Bytes);
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
       return False;
 end Source_Fits_Fast_Decode;

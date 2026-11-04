@@ -2,13 +2,15 @@ separate (Files_Suite.Startup)
    procedure Test_Desktop_Runtime_Wiring (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
    begin
+      --  The GLFW glue (drop callback, window icon) lives in guikit; files
+      --  owns the wiring and the icon's drawing.
       Assert
-        (Files_Suite.Repository.Source_Contains ("glfwSetDropCallback")
+        (Files_Suite.Repository.Source_Contains ("Glfw.Windows.Drop.Set_Drop_Callback")
          and then Files_Suite.Repository.Source_Contains ("Handle_Drop_Input"),
          "native file-drop callbacks are connected to controller import routing");
       Assert
-        (Files_Suite.Repository.Source_Contains ("glfwSetWindowIcon")
-         and then Files_Suite.Repository.Source_Contains ("Glfw.Windows.Icon.Set_Files_Icon"),
+        (Files_Suite.Repository.Source_Contains ("Glfw.Windows.Icon.Set_Icon")
+         and then Files_Suite.Repository.Source_Contains ("Files.Window_Icon.Set"),
          "native desktop windows receive the packaged application icon");
       Assert
         (Files_Suite.Repository.Source_Contains ("Guikit.Vulkan.Wait_For_Events")

@@ -143,7 +143,8 @@ begin
       end;
    end;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Images");
       Clean;
       return (Available => False, Width => 0, Height => 0,
               Pixels => Files.Types.Byte_Vectors.Empty_Vector);

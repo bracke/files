@@ -80,7 +80,8 @@ begin
    return (Success => True, Path => Normalized, Items => Items, Error_Key => Null_Unbounded_String,
            Signature => <>);
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return (Success => False, Path => To_Unbounded_String (Path), Items => Items,
               Error_Key => To_Unbounded_String ("error.directory.load"), Signature => <>);
 end Load_Subdirectories;

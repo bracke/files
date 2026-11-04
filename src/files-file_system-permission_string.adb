@@ -70,6 +70,7 @@ begin
 
    return Result;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return "";
 end Permission_String;

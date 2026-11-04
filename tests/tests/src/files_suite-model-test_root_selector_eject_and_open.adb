@@ -25,7 +25,8 @@ separate (Files_Suite.Model)
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Eject_Selected_Root_Command, Model),
          "eject command is enabled for removable roots");
-      Result := Files.Controller.Execute_Command (Files.Commands.Eject_Selected_Root_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Eject_Selected_Root_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Eject_Selected_Root_Command,
@@ -55,7 +56,8 @@ separate (Files_Suite.Model)
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Eject_Selected_Root_Command, Model),
          "eject command is disabled for non-removable roots");
-      Result := Files.Controller.Execute_Command (Files.Commands.Open_Selected_Root_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Open_Selected_Root_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Open_Selected_Root_Command,
@@ -73,7 +75,8 @@ separate (Files_Suite.Model)
       Files.Model.Navigate_To (Model, Root, Files.Items.Item_Vectors.Empty_Vector);
       Files.Model.Open_Root_Selector (Model, Entries);
       Files.Model.Open_Command_Palette (Model);
-      Result := Files.Controller.Execute_Command (Files.Commands.Open_Selected_Root_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Open_Selected_Root_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Navigated,

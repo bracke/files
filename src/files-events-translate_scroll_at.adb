@@ -25,12 +25,7 @@ separate (Files.Events)
         (Value  : Natural;
          Start  : Natural;
          Extent : Natural)
-         return Boolean is
-      begin
-         return Extent > 0
-           and then Value >= Start
-           and then Value - Start < Extent;
-      end Within;
+         return Boolean renames Guikit.Layout.Within;
 
       function Maximum_Line_Offset
         (Content_Height  : Natural;

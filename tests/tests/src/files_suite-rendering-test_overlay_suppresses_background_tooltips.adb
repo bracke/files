@@ -29,9 +29,11 @@ separate (Files_Suite.Rendering)
               480,
               360,
               20,
-              Hover_X   => Button_X + Button_W / 2,
-              Hover_Y   => Guikit.Layout.Toolbar_Input_Y (20) + 10,
-              Has_Hover => True);
+              Pointer =>
+                (Hover_X => Button_X + Button_W / 2,
+                 Hover_Y => Guikit.Layout.Toolbar_Input_Y (20) + 10,
+                 Has_Hover => True,
+                 others => <>));
       begin
          for Tip of Frame.Tooltips loop
             Assert

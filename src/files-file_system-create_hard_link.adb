@@ -16,15 +16,19 @@ begin
          Error_Key => To_Unbounded_String ("error.link.failed"));
    elsif not Validation.Success then
       return Validation;
-   elsif Hostkit.Fs.Create_Hard_Link (Source_Path, Link_Path) then
-      return (Success => True, Error_Key => Null_Unbounded_String);
-   else
-      return
-        (Success   => False,
-         Error_Key => To_Unbounded_String ("error.link.failed"));
    end if;
+   --  A full disk, a refused permission or a read-only volume is said as
+   --  such, not as the generic failure.
+   Files.Io_Errors.Reset;
+   Files.Io_Errors.Clear_Os_Error;
+   if Hostkit.Fs.Create_Hard_Link (Source_Path, Link_Path) then
+      return (Success => True, Error_Key => Null_Unbounded_String);
+   end if;
+   Files.Io_Errors.Capture;
+   return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.link.failed"));
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return
         (Success   => False,
          Error_Key => To_Unbounded_String ("error.link.failed"));

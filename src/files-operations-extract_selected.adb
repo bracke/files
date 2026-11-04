@@ -40,28 +40,11 @@ is
       end if;
    end Record_Progress;
 
+   --  An earlier archive in the same batch may already have committed.
+   --  Keep that output visible as well as undoable, while preserving the
+   --  diagnostic which explains why the remaining batch stopped.
    function Failed return Operation_Result is
-   begin
-      --  An earlier archive in the same batch may already have committed.
-      --  Keep that output visible as well as undoable, while preserving the
-      --  diagnostic which explains why the remaining batch stopped.
-      if Created.Is_Empty then
-         Files.Model.Set_Error (Model, "error.extract.failed");
-      else
-         declare
-            Reload : constant Operation_Result :=
-              Reload_With_Error (Model, Settings, "error.extract.failed");
-            pragma Unreferenced (Reload);
-         begin
-            null;
-         end;
-      end if;
-      return Make_Result (Operation_Failed, "error.extract.failed", Directory);
-   exception
-      when others =>
-         Files.Model.Set_Error (Model, "error.extract.failed");
-         return Make_Result (Operation_Failed, "error.extract.failed", Directory);
-   end Failed;
+     (Batch_Failed (Model, Settings, "error.extract.failed", Directory, Wrote_Some => not Created.Is_Empty));
 begin
    if Files.Model.Selection_Includes_Temporary (Model) then
       return Disabled (Model, "error.create.pending");
@@ -93,24 +76,10 @@ begin
 
                --  A directory-unique destination folder name, e.g. "report"
                --  or "report (1)" when the first choice already exists.
-               function Unique_Name return String is
-               begin
-                  if not Exists_Safely (Ada.Directories.Compose (Destination, Base)) then
-                     return Base;
-                  end if;
-
-                  for N in 1 .. Max_Name_Attempts loop
-                     declare
-                        Candidate : constant String := Base & " (" & Files.Types.Natural_Text (N) & ")";
-                     begin
-                        if not Exists_Safely (Ada.Directories.Compose (Destination, Candidate)) then
-                           return Candidate;
-                        end if;
-                     end;
-                  end loop;
-
-                  return Base;
-               end Unique_Name;
+               --  The bare name first, then "name (2)" and so on.
+               function Stem (Attempt : Natural) return String is
+                 (if Attempt = 0 then Base else Base & " (" & Files.Types.Natural_Text (Attempt) & ")");
+               function Unique_Name return String is (First_Free_Name (Destination, "", Stem'Access, First => 0));
 
                Dest_Name : constant String := Unique_Name;
                Dest_Dir  : constant String := Ada.Directories.Compose (Destination, Dest_Name);
@@ -190,6 +159,7 @@ begin
    --  Reload so the new directories appear, and select the first one.
    return Reload_Current_Directory (Model, Settings, To_String (First_Created));
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Operations");
       return Failed;
 end Extract_Selected;

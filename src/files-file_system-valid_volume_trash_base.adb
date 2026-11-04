@@ -46,5 +46,7 @@ begin
       return False;
    end;
 exception
-   when others => return False;
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
+      return False;
 end Valid_Volume_Trash_Base;

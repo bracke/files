@@ -413,8 +413,6 @@ package Files.Rendering is
      (Index : Positive)
       return Files.Types.Color_Label renames Files.Types.Label_For_Swatch;
 
-   subtype Command_Result_Layout is Guikit.Layout.Palette_Result_Row;
-
    type Root_Selector_Layout is record
       X          : Natural := 0;
       Y          : Natural := 0;
@@ -1121,6 +1119,32 @@ package Files.Rendering is
       Line_Height  : Positive := Files.UI.Base_Line_Height)
       return Close_Button_Layout;
 
+   --  Where the pointer is and what it is doing, as a frame draws it: the
+   --  hover highlight and tooltips, the pressed control, a dragged item's
+   --  preview, the marquee rectangle. All in framebuffer pixels; each Has_ or
+   --  Active flag says whether its coordinates mean anything.
+   type Pointer_State is record
+      Hover_X         : Natural := 0;
+      Hover_Y         : Natural := 0;
+      Has_Hover       : Boolean := False;
+      Pressed_X       : Natural := 0;
+      Pressed_Y       : Natural := 0;
+      Has_Press       : Boolean := False;
+      --  The visible index of the item being dragged.
+      Drag_Item_Index : Natural := 0;
+      Drag_X          : Natural := 0;
+      Drag_Y          : Natural := 0;
+      Has_Drag        : Boolean := False;
+      Marquee_Active  : Boolean := False;
+      Marquee_X       : Natural := 0;
+      Marquee_Y       : Natural := 0;
+      Marquee_W       : Natural := 0;
+      Marquee_H       : Natural := 0;
+   end record;
+
+   --  No pointer in the window.
+   No_Pointer : constant Pointer_State := (others => <>);
+
    --  Build a backend-neutral render command list from an immutable snapshot.
    --
    --  The returned commands describe visible filled rectangles and text runs.
@@ -1131,42 +1155,14 @@ package Files.Rendering is
    --  @param Width Window width in pixels.
    --  @param Height Window height in pixels.
    --  @param Line_Height Text line height in pixels.
-   --  @param Hover_X Pointer x coordinate in framebuffer pixels.
-   --  @param Hover_Y Pointer y coordinate in framebuffer pixels.
-   --  @param Has_Hover Whether hover coordinates are currently valid.
-   --  @param Pressed_X Pressed pointer x coordinate in framebuffer pixels.
-   --  @param Pressed_Y Pressed pointer y coordinate in framebuffer pixels.
-   --  @param Has_Press Whether pressed coordinates are currently valid.
-   --  @param Drag_Item_Index Visible item index being dragged.
-   --  @param Drag_X Drag pointer x coordinate in framebuffer pixels.
-   --  @param Drag_Y Drag pointer y coordinate in framebuffer pixels.
-   --  @param Has_Drag Whether drag preview coordinates are currently valid.
-   --  @param Marquee_Active Whether a rubber-band selection rectangle is active.
-   --  @param Marquee_X Marquee left edge in framebuffer pixels.
-   --  @param Marquee_Y Marquee top edge in framebuffer pixels.
-   --  @param Marquee_W Marquee width in framebuffer pixels.
-   --  @param Marquee_H Marquee height in framebuffer pixels.
+   --  @param Pointer Where the pointer is and what it is doing.
    --  @return Frame command list for a renderer backend.
    function Build_Frame_Commands
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
       Line_Height : Positive := Files.UI.Base_Line_Height;
-      Hover_X     : Natural := 0;
-      Hover_Y     : Natural := 0;
-      Has_Hover   : Boolean := False;
-      Pressed_X   : Natural := 0;
-      Pressed_Y   : Natural := 0;
-      Has_Press   : Boolean := False;
-      Drag_Item_Index : Natural := 0;
-      Drag_X      : Natural := 0;
-      Drag_Y      : Natural := 0;
-      Has_Drag    : Boolean := False;
-      Marquee_Active : Boolean := False;
-      Marquee_X   : Natural := 0;
-      Marquee_Y   : Natural := 0;
-      Marquee_W   : Natural := 0;
-      Marquee_H   : Natural := 0)
+      Pointer     : Pointer_State := No_Pointer)
       return Frame_Commands;
 
    --  Return the first known monospace TrueType font available on the system.

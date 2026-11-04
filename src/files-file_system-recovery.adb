@@ -51,9 +51,9 @@ package body Files.File_System.Recovery is
    Owner_Name : constant String := ".files-recovery-owner";
    Owner_Magic : constant String := "files-recovery-v1";
    Registry_Magic : constant String := "files-recovery-registry-v1";
-   Max_Header_Length : constant := 128;
-   Max_Path_Length : constant := 32 * 1024;
-   Max_Identity_Length : constant := 1024;
+   Max_Header_Length : constant := Files.Bounded_Streams.Max_Header_Length;
+   Max_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
+   Max_Identity_Length : constant := Files.Bounded_Streams.Max_Token_Length;
    Max_Record_Bytes : constant :=
      Max_Header_Length + Max_Path_Length + Max_Identity_Length + 3 * 16;
 
@@ -66,7 +66,9 @@ package body Files.File_System.Recovery is
         and then Ada.Directories.Kind (Path) = Ada.Directories.Ordinary_File
         and then Ada.Directories.Size (Path) <= Ada.Directories.File_Size (Maximum);
    exception
-      when others => return False;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+         return False;
    end Record_Is_Regular;
 
    function Valid_Absolute_Path (Path : String) return Boolean is
@@ -75,14 +77,7 @@ package body Files.File_System.Recovery is
    procedure Write_Bounded
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Value : String;
-      Maximum : Natural)
-   is
-   begin
-      if Value'Length > Maximum then
-         raise Ada.Directories.Use_Error;
-      end if;
-      String'Output (Stream, Value);
-   end Write_Bounded;
+      Maximum : Natural) renames Files.Bounded_Streams.Output_String;
 
    function Registry_Data_Directory return String renames Support.Application_Data_Directory;
 
@@ -121,7 +116,9 @@ package body Files.File_System.Recovery is
       end if;
       return Root;
    exception
-      when others => return "";
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+         return "";
    end Registry_Root;
 
    function Read_Owner
@@ -162,7 +159,8 @@ package body Files.File_System.Recovery is
           (Length (Identity) = 0
            or else Files.File_Identities.Token (Stage) = To_String (Identity));
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
          Files.Lease_Streams.Release (Input);
          Original := Null_Unbounded_String;
          Identity := Null_Unbounded_String;
@@ -213,7 +211,8 @@ package body Files.File_System.Recovery is
       Ada.Directories.End_Search (Search);
       return True;
    exception
-      when others =>
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.File_System.Recovery");
          if Open then
             begin
                Ada.Directories.End_Search (Search);
@@ -264,7 +263,8 @@ package body Files.File_System.Recovery is
       return To_String (Magic) = Registry_Magic
         and then Valid_Absolute_Path (To_String (Payload));
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
          Files.Lease_Streams.Release (Input);
          Payload := Null_Unbounded_String;
          Identity := Null_Unbounded_String;
@@ -302,7 +302,8 @@ package body Files.File_System.Recovery is
          Delete_Owned_Tree (Directory);
       end if;
    exception
-      when others =>
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.File_System.Recovery");
          if Open then
             begin
                Ada.Directories.End_Search (Search);
@@ -329,7 +330,9 @@ package body Files.File_System.Recovery is
          return not Ada.Directories.Exists (Stage) and then not Hostkit.Fs.Is_Link (Stage);
       end;
    exception
-      when others => return False;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+         return False;
    end Is_Stale_Record;
 
    function Register (Payload : String) return String is
@@ -428,7 +431,8 @@ package body Files.File_System.Recovery is
       end loop;
       Ada.Directories.End_Search (Search);
    exception
-      when others =>
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.File_System.Recovery");
          if Open then
             begin
                Ada.Directories.End_Search (Search);
@@ -450,8 +454,7 @@ package body Files.File_System.Recovery is
       Held   : UString;
       Count  : Natural := 0;
    begin
-      if Ada.Directories.Exists (Path)
-        or else Hostkit.Fs.Is_Link (Path)
+      if Files.Fs_Primitives.Entry_Exists (Path)
         or else Hostkit.Fs.Is_Link (Holder)
         or else not Ada.Directories.Exists (Holder)
         or else Ada.Directories.Kind (Holder) /= Ada.Directories.Directory
@@ -526,7 +529,8 @@ package body Files.File_System.Recovery is
       Unregister (Path);
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
          return Failed;
    end Release;
 
@@ -568,7 +572,8 @@ package body Files.File_System.Recovery is
             raise Ada.Directories.Use_Error;
          end if;
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
             --  Changed since the copy. Put it back; if that fails too, it is
             --  safe only in its stage, and the copy must not be dropped.
             if Restore (To_String (Backup)).Success then
@@ -593,7 +598,8 @@ package body Files.File_System.Recovery is
       end;
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
          return (Success => Committed,
                  Error_Key => (if Committed then Null_Unbounded_String else To_Unbounded_String (Fallback_Key)));
    end Remove_Move_Source;
@@ -656,7 +662,8 @@ package body Files.File_System.Recovery is
          end;
       end;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
          declare
             --  Why it failed, before discarding the copy can say otherwise.
             Failed : constant Mutation_Result :=
@@ -679,10 +686,12 @@ package body Files.File_System.Recovery is
         and then not Hostkit.Fs.Is_Link (Parent)
         and then Ada.Directories.Exists (Parent)
         and then Ada.Directories.Kind (Parent) = Ada.Directories.Directory
-        and then (Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path))
+        and then Files.Fs_Primitives.Entry_Exists (Path)
         and then Read_Owner (Parent, Original, Identity);
    exception
-      when others => return False;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+         return False;
    end Recognizes;
 
    function Discard (Path : String) return Mutation_Result is
@@ -696,13 +705,14 @@ package body Files.File_System.Recovery is
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
       end if;
       Delete_Owned_Tree (Parent);
-      if Ada.Directories.Exists (Parent) or else Hostkit.Fs.Is_Link (Parent) then
+      if Files.Fs_Primitives.Entry_Exists (Parent) then
          raise Ada.Directories.Use_Error;
       end if;
       Unregister (Path);
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
    end Discard;
 
@@ -725,7 +735,8 @@ package body Files.File_System.Recovery is
          end if;
          return Failed;
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
             return Failed;
       end Put_Back;
    begin
@@ -803,7 +814,8 @@ package body Files.File_System.Recovery is
       end if;
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
-      when others =>
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.File_System.Recovery");
          declare
             --  Why, before the cleanup below can record a cause of its own.
             Failed : constant Mutation_Result :=
@@ -811,8 +823,7 @@ package body Files.File_System.Recovery is
          begin
             Files.Exclusive_Streams.Close_Safely (File);
             if Length (Stage) > 0 and then Length (Backup) = 0 then
-               if Ada.Directories.Exists (Join_Path (To_String (Stage), "payload"))
-                 or else Hostkit.Fs.Is_Link (Join_Path (To_String (Stage), "payload"))
+               if Files.Fs_Primitives.Entry_Exists (Join_Path (To_String (Stage), "payload"))
                then
                   Backup := To_Unbounded_String (Join_Path (To_String (Stage), "payload"));
                   return Put_Back;
@@ -865,7 +876,8 @@ package body Files.File_System.Recovery is
             To_String (Target)
          else "");
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
          Files.Lease_Streams.Release (Input);
          return "";
    end Original_Path;
@@ -916,7 +928,8 @@ package body Files.File_System.Recovery is
       Ada.Directories.End_Search (Search);
       return Result;
    exception
-      when others =>
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.File_System.Recovery");
          if Open then
             begin
                Ada.Directories.End_Search (Search);
@@ -944,7 +957,7 @@ package body Files.File_System.Recovery is
       if not Valid_Absolute_Path (To_String (Target)) then
          raise Ada.Directories.Use_Error;
       end if;
-      if Ada.Directories.Exists (To_String (Target)) or else Hostkit.Fs.Is_Link (To_String (Target)) then
+      if Files.Fs_Primitives.Entry_Exists (To_String (Target)) then
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_exists"));
       end if;
       --  A failed post-rename permission restoration can leave the private
@@ -1005,7 +1018,8 @@ package body Files.File_System.Recovery is
       Unregister (Path);
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
    end Restore;
 end Files.File_System.Recovery;

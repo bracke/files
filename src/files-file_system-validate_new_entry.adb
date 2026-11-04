@@ -12,7 +12,7 @@ begin
       return (Success => False, Error_Key => To_Unbounded_String (Empty_Key));
    elsif not (if Storable then Storable_Leaf_Name_At (Name, Parent) else Valid_Leaf_Name_At (Name, Parent)) then
       return (Success => False, Error_Key => To_Unbounded_String ("error.name.invalid"));
-   elsif Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path) then
+   elsif Files.Fs_Primitives.Entry_Exists (Path) then
       return (Success => False, Error_Key => To_Unbounded_String ("error.file.exists"));
    elsif Parent = ""
      or else not Ada.Directories.Exists (Parent)

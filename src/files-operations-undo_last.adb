@@ -44,7 +44,8 @@ begin
    Returned_Action := True;
    return Finish_Action (Model, Settings, Directory, Succeeded);
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Operations");
       if Found and then not Returned_Action then
          Files.Model.Push_Undo (Model, Action);
          Settle_History (Model);

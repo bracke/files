@@ -24,7 +24,8 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Select_Name (Model, "command-thumbnail.ppm");
       Ada.Environment_Variables.Set ("XDG_CACHE_HOME", Cache_Home);
-      Routed := Files.Controller.Execute_Command (Files.Commands.Generate_Thumbnails_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Generate_Thumbnails_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Command,
          Files.Commands.Generate_Thumbnails_Command,

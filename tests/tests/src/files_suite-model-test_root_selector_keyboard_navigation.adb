@@ -18,7 +18,8 @@ separate (Files_Suite.Model)
         (Files.Model.Root_Selected_Index (Model),
          0,
          "empty root selector has no selected row");
-      Result := Files.Controller.Execute_Command (Files.Commands.Focus_Path_Input_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Focus_Path_Input_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,

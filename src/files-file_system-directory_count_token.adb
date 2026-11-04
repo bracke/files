@@ -32,7 +32,8 @@ begin
    return "directory.count|" & Natural_Text (Count) &
      (if Capped then "+" else "");
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       if GNAT.Directory_Operations.Is_Open (Dir) then
          GNAT.Directory_Operations.Close (Dir);
       end if;

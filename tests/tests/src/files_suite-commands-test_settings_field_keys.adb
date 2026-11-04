@@ -9,9 +9,10 @@ separate (Files_Suite.Commands)
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
       Files.Model.Move_Selection (Model, Guikit.Input.Move_Right);
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Files.Controller.Testing.Replace_Focused_Text (Model, "details");
-      Result := Files.Controller.Execute_Command (Files.Commands.Reset_Settings_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Reset_Settings_Command, Model, Settings);
       --  Opening the pane now focuses the first setting, not the preamble action
       --  buttons. The settings caret is not movable -- it always rests at the end
       --  of the focused value -- so a manually set cursor is superseded by that end
@@ -92,6 +93,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Last_Error_Key (Model),
          "",
          "valid settings draft field validates on Return");
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "controller closes settings pane");
    end Test_Settings_Field_Keys;

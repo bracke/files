@@ -34,7 +34,8 @@ separate (Files_Suite.Commands)
       Files.Model.Open_Command_Palette (Model);
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Rename (Model);
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens from palette state");
       Assert (not Files.Model.Command_Palette_Is_Open (Model), "settings pane opening closes command palette");
       Assert (not Files.Model.Rename_Is_Active (Model), "settings pane opening clears active rename state");
@@ -62,7 +63,8 @@ separate (Files_Suite.Commands)
         (Files.Commands.Status.Is_Enabled (Files.Commands.Open_Command_Palette_Command, Model),
          "settings pane keeps palette command enabled");
       Files.Model.Set_Error (Model, "error.path.missing");
-      Result := Files.Controller.Execute_Command (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -100,7 +102,8 @@ separate (Files_Suite.Commands)
         (Files.Model.Focus (Model),
          Files.Types.Focus_None,
          "settings Escape clears settings focus");
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane reopens after Escape close check");
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Assert (Files.Model.Selected_Item (Model).Name = "Alpha.txt", "settings modal starts with stable selection");
@@ -120,6 +123,7 @@ separate (Files_Suite.Commands)
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_P, Ctrl);
       Assert (Files.Model.Command_Palette_Is_Open (Model), "palette can open over settings pane");
       Files.Model.Close_Command_Palette (Model);
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes before history enablement check");
    end Test_Settings_Pane_Modal_Blocking;

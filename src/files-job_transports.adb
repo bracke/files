@@ -1,3 +1,4 @@
+with Files.Fs_Primitives;
 with Files.Timing;
 with Files.Diagnostics;
 with Ada.Calendar;
@@ -37,9 +38,9 @@ package body Files.Job_Transports is
    Transport_Prefix : constant String := "files-job-";
    Witness_Prefix : constant String := ".files-job-creation-";
    Hex_Digits : constant String := "0123456789abcdef";
-   Max_Marker_Header_Length : constant := 128;
-   Max_Marker_Path_Length : constant := 32 * 1024;
-   Max_Marker_Token_Length : constant := 1024;
+   Max_Marker_Header_Length : constant := Files.Bounded_Streams.Max_Header_Length;
+   Max_Marker_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
+   Max_Marker_Token_Length : constant := Files.Bounded_Streams.Max_Token_Length;
    Max_Marker_Bytes : constant := 64 * 1024;
 
    Preparing_Witness : constant Ada.Streams.Stream_Element_Array :=
@@ -160,7 +161,9 @@ package body Files.Job_Transports is
         and then Ada.Directories.Full_Name (Ada.Directories.Containing_Directory (Directory)) =
           Ada.Directories.Full_Name (Hostkit.Fs.Temp_Directory);
    exception
-      when others => return False;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
+         return False;
    end Is_Transport_Path;
 
    function Witness_Path (Directory : String) return String is
@@ -187,7 +190,9 @@ package body Files.Job_Transports is
          end;
       end if;
    exception
-      when others => Release (Owner);
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
+         Release (Owner);
    end Forget_Witness;
 
    procedure Mark
@@ -242,7 +247,7 @@ package body Files.Job_Transports is
       procedure Remove_Failed_Candidate (Candidate : String) is
          procedure Remove_File (Name : String) is
          begin
-            if Ada.Directories.Exists (Name) or else Hostkit.Fs.Is_Link (Name) then
+            if Files.Fs_Primitives.Entry_Exists (Name) then
                Ada.Directories.Delete_File (Name);
             end if;
          exception
@@ -437,7 +442,8 @@ package body Files.Job_Transports is
          Current := False;
          Retiring := False;
          Valid := False;
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
          Files.Lease_Streams.Release (Input);
          Identity := Null_Unbounded_String;
          Owner_Token := Null_Unbounded_String;
@@ -500,7 +506,9 @@ package body Files.Job_Transports is
         and then Identity = Owner.Identity
         and then To_String (Owner_Token) = Lease_Token (Owner.Handle);
    exception
-      when others => return False;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
+         return False;
    end Holds;
 
    function Retire (Owner : Lease; Directory : String) return Boolean is
@@ -512,7 +520,9 @@ package body Files.Job_Transports is
       Mark (Directory, Lease_Token (Owner.Handle), Identity, Retiring_Header);
       return Identity = Owner.Identity;
    exception
-      when others => return False;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
+         return False;
    end Retire;
 
    function Join_Helper (Directory : String; Owner : in out Lease) return Boolean is
@@ -550,7 +560,8 @@ package body Files.Job_Transports is
       end if;
       return True;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
          Release (Owner);
          return False;
    end Join_Helper;
@@ -615,7 +626,8 @@ package body Files.Job_Transports is
          return Claim_Acquired;
       end;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
          Release (Owner);
          return Claim_Error;
    end Claim_Abandoned;
@@ -655,7 +667,8 @@ package body Files.Job_Transports is
          Search_Open := False;
          return True;
       exception
-         when others =>
+         when Failure : others =>
+            Files.Diagnostics.Note (Failure, "Files.Job_Transports");
             Protocol_Error := True;
             if Search_Open then
                begin
@@ -681,7 +694,7 @@ package body Files.Job_Transports is
       then
          return Claim_Refused;
       end if;
-      if Ada.Directories.Exists (Marker_Path) or else Hostkit.Fs.Is_Link (Marker_Path) then
+      if Files.Fs_Primitives.Entry_Exists (Marker_Path) then
          return Claim_Deferred;
       end if;
 
@@ -700,7 +713,7 @@ package body Files.Job_Transports is
             return Outcome;
          end if;
       end;
-      if Ada.Directories.Exists (Marker_Path) or else Hostkit.Fs.Is_Link (Marker_Path) then
+      if Files.Fs_Primitives.Entry_Exists (Marker_Path) then
          Release (Owner);
          return Claim_Deferred;
       end if;
@@ -740,7 +753,8 @@ package body Files.Job_Transports is
       Owner.Identity := Identity;
       return Claim_Acquired;
    exception
-      when others =>
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.Job_Transports");
          if Search_Open then
             begin
                Ada.Directories.End_Search (Search);
@@ -794,7 +808,8 @@ package body Files.Job_Transports is
       Ada.Directories.End_Search (Search);
       Open := False;
    exception
-      when others =>
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.Job_Transports");
          if Open then
             begin
                Ada.Directories.End_Search (Search);

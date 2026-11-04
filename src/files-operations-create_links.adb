@@ -48,21 +48,7 @@ is
    function Failed (Error_Key : String) return Operation_Result is
    begin
       Record_Created;
-      Files.Model.Set_Error (Model, Error_Key);
-      if not Undo_From.Is_Empty then
-         declare
-            Reload : constant Operation_Result :=
-              Reload_With_Error (Model, Settings, Error_Key);
-            pragma Unreferenced (Reload);
-         begin
-            null;
-         end;
-      end if;
-      return Make_Result (Operation_Failed, Error_Key, Directory);
-   exception
-      when others =>
-         Files.Model.Set_Error (Model, Error_Key);
-         return Make_Result (Operation_Failed, Error_Key, Directory);
+      return Batch_Failed (Model, Settings, Error_Key, Directory, Wrote_Some => not Undo_From.Is_Empty);
    end Failed;
 
    --  Build the " (link)" / " (link N)" marker. The fragments are kept
@@ -102,22 +88,8 @@ begin
 
          --  A directory-unique link stem (without extension), e.g. "report
          --  (link)" or "report (link 2)" when earlier choices already exist.
-         function Unique_Stem return String is
-         begin
-            for N in 1 .. Max_Name_Attempts loop
-               declare
-                  Candidate : constant String := Base & Link_Marker (N);
-               begin
-                  if not Exists_Safely
-                           (Ada.Directories.Compose (Link_Directory, Candidate, Ext))
-                  then
-                     return Candidate;
-                  end if;
-               end;
-            end loop;
-
-            return Base & Link_Marker (1);
-         end Unique_Stem;
+         function Stem (Attempt : Natural) return String is (Base & Link_Marker (Attempt));
+         function Unique_Stem return String is (First_Free_Name (Link_Directory, Ext, Stem'Access));
 
          Dest_Path : constant String :=
            Ada.Directories.Compose (Link_Directory, Unique_Stem, Ext);
@@ -153,6 +125,7 @@ begin
    --  Reload so the new links appear, and select the first one.
    return Reload_Current_Directory (Model, Settings, To_String (First_Created));
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Operations");
       return Failed ("error.link.failed");
 end Create_Links;

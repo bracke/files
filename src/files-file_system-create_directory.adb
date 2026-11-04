@@ -23,7 +23,8 @@ begin
    end;
    return (Success => True, Error_Key => Null_Unbounded_String);
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return
         (Success   => False,
          Error_Key => Files.Io_Errors.Error_Key ("error.file.create"));

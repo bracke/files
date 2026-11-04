@@ -50,7 +50,8 @@ begin
    Close_Read_Descriptor (File);
    return Count;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       Close_Read_Descriptor (File);
       return 0;
 end Count_Text_Lines;

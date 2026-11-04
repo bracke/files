@@ -28,7 +28,8 @@ separate (Files_Suite.Operations)
          end;
 
          Write_File (Join (Root, "doomed.txt"), "again");
-         Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+         Result := Files.Controller.Execute_Non_Settings_Command
+           (Files.Commands.Refresh_Directory_Command, Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
             Files.Operations.Operation_Success,

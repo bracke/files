@@ -13,7 +13,7 @@ separate (Files_Suite.Model)
       --  An empty listing at Root with every overlay closed.
       Files.Model.Navigate_To (Model, Root, Files.Items.Item_Vectors.Empty_Vector);
 
-      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector can reopen after palette Escape");
       Files.Model.Begin_Create_File (Model, "root-pending.txt");
       Files.Model.Open_Root_Selector (Model, Files.File_System.Testing.Available_Roots);

@@ -18,7 +18,8 @@ separate (Files_Suite.Operations)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
 
          Write_File (Join (Root, "doomed2.txt"));
-         Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+         Result := Files.Controller.Execute_Non_Settings_Command
+           (Files.Commands.Refresh_Directory_Command, Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
             Files.Operations.Operation_Success,
@@ -36,7 +37,8 @@ separate (Files_Suite.Operations)
          Assert (Ada.Directories.Exists (Join (Trash_File, "doomed2.txt")), "Backspace moves file to trash");
 
          Write_File (Special_Path);
-         Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+         Result := Files.Controller.Execute_Non_Settings_Command
+           (Files.Commands.Refresh_Directory_Command, Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
             Files.Operations.Operation_Success,

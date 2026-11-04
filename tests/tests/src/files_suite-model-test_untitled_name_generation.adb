@@ -29,7 +29,7 @@ separate (Files_Suite.Model)
          Files_Suite.Support.Link_Not_Made ("Test_Untitled_Name_Generation", Files_Suite.Support.Symbolic_Link);
       end if;
       Files.Model.Initialize (Model, Root, Items, Root);
-      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status, Files.Operations.Operation_Success,
          "untitled name generation creates its first temporary item (status)");
@@ -53,7 +53,7 @@ separate (Files_Suite.Model)
             Write_File (Join (Root, "untitled " & Suffix_Text (Index) & ".txt"));
          end loop;
       end;
-      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status, Files.Operations.Operation_Success,
          "untitled name generation creates its next temporary item (status)");

@@ -6,7 +6,7 @@ function Load_Item
 is
    Empty : Directory_Item;
 begin
-   if Full_Path = "" or else not (Ada.Directories.Exists (Full_Path) or else Hostkit.Fs.Is_Link (Full_Path)) then
+   if Full_Path = "" or else not Files.Fs_Primitives.Entry_Exists (Full_Path) then
       return
         (Success   => False,
          Item      => Empty,
@@ -29,7 +29,8 @@ begin
          Error_Key => Null_Unbounded_String);
    end;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return
         (Success   => False,
          Item      => Empty,

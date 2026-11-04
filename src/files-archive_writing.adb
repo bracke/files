@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.IO_Exceptions;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Directories;
@@ -457,7 +458,8 @@ package body Files.Archive_Writing is
          end;
       end if;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Archive_Writing");
          Close (Source);
          Close (Output);
    end ZIP_Files;

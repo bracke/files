@@ -42,7 +42,8 @@ begin
    Listed := True;
    return Result;
 exception
-   when others =>
+   when Failure : others =>
+      Files.Diagnostics.Note (Failure, "Files.Operations");
       if GNAT.Directory_Operations.Is_Open (Dir) then
          begin
             GNAT.Directory_Operations.Close (Dir);

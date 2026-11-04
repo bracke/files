@@ -23,7 +23,7 @@ separate (Files_Suite.Commands)
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Rename_Selected_Items_Command, Model),
          "rename is disabled in the virtual recent view without a destination directory");
-      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status, Files.Operations.Operation_Disabled,
          "disabled recent-view create reports the recent view without starting an edit (status)");
@@ -33,7 +33,7 @@ separate (Files_Suite.Commands)
       Assert
         (not Files.Model.Temporary_Item_Is_Active (Model),
          "disabled recent-view create reports the recent view without starting an edit (no edit started)");
-      Result := Files.Controller.Execute_Command (Files.Commands.Paste_Items_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       Assert
         (Result.Operation.Status = Files.Operations.Operation_Disabled
          and then Files.Model.Last_Error_Key (Model) = "error.command.recent_view",
@@ -44,7 +44,7 @@ separate (Files_Suite.Commands)
          and then not Files.Commands.Status.Is_Enabled (Files.Commands.Search_Contents_Command, Model),
          "filesystem searches are disabled when the current view has no directory root");
       Result :=
-        Files.Controller.Execute_Command (Files.Commands.Search_Recursive_Command, Model, Settings);
+        Files.Controller.Execute_Non_Settings_Command (Files.Commands.Search_Recursive_Command, Model, Settings);
       Assert
         (Result.Operation.Status = Files.Operations.Operation_Disabled
          and then Files.Model.Last_Error_Key (Model) = "error.command.recent_view",

@@ -45,7 +45,8 @@ begin
 
    return Hostkit.Process.Run (Executable, Arguments, Exit_Status);
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Operations");
       Exit_Status := -1;
       return False;
 end Execute_Open_Action;

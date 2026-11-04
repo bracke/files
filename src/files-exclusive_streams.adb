@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.IO_Exceptions;
 
 with Files.Private_Directories;
@@ -55,7 +56,8 @@ package body Files.Exclusive_Streams is
          Stream.Descriptor := GNAT.OS_Lib.Invalid_FD;
       end if;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Exclusive_Streams");
          Stream.Descriptor := GNAT.OS_Lib.Invalid_FD;
    end Close_Safely;
 

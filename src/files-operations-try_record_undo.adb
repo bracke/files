@@ -41,7 +41,8 @@ function Try_Record_Undo
    exception
       --  A creation may already be published when its snapshot is captured.
       --  Keep the operation successful, but omit unsafe Undo for this entry.
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Operations");
          return "";
    end Tree_Revision_Or_Empty;
 

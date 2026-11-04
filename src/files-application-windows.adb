@@ -12,7 +12,8 @@ with System.Address_To_Access_Conversions;
 
 with Glfw.Input;
 with Glfw.Windows.Drop;
-with Glfw.Windows.Icon;
+with Glfw.Windows.Clipboard;
+with Files.Window_Icon;
 with Glfw.Windows.Native;
 with Glfw.Windows.Vulkan;
 
@@ -128,12 +129,6 @@ package body Files.Application.Windows is
    Left_Press_Debounce : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (40);
    --  Two clicks on the same item at most this far apart activate it.
    Double_Click_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (500);
-   --  Write UTF-8 text to the system text clipboard. The GLFWwindow* argument is
-   --  retained for the historic signature; modern GLFW ignores it.
-   procedure Set_Raw_Clipboard_String
-     (Window : System.Address;
-      Text   : Interfaces.C.Strings.chars_ptr)
-     with Import, Convention => C, External_Name => "glfwSetClipboardString";
 
    procedure Free_Window is new Ada.Unchecked_Deallocation
      (Object => Desktop_Window,
@@ -176,18 +171,8 @@ package body Files.Application.Windows is
          return;
       end if;
 
-      declare
-         Raw    : constant System.Address :=
-           Glfw.Windows.Drop.Raw_Handle (As_Window (Runtime.Handle));
-         C_Text : Interfaces.C.Strings.chars_ptr :=
-           Interfaces.C.Strings.New_String
-             (Files.Model.System_Clipboard_Request_Text (Runtime.Model));
-      begin
-         if Raw /= System.Null_Address then
-            Set_Raw_Clipboard_String (Raw, C_Text);
-         end if;
-         Interfaces.C.Strings.Free (C_Text);
-      end;
+      Glfw.Windows.Clipboard.Set
+        (As_Window (Runtime.Handle), Files.Model.System_Clipboard_Request_Text (Runtime.Model));
 
       Files.Model.Clear_System_Clipboard_Request (Runtime.Model);
    end Flush_System_Clipboard;
@@ -375,7 +360,8 @@ package body Files.Application.Windows is
       end;
       return Key;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Application.Windows");
          return Key;
    end Layout_Key;
 
@@ -1430,7 +1416,7 @@ package body Files.Application.Windows is
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Button);
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Position);
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Scroll);
-      Glfw.Windows.Icon.Set_Files_Icon (As_Window (Handle));
+      Files.Window_Icon.Set (As_Window (Handle));
       Register_Drop_Window (Glfw.Windows.Drop.Raw_Handle (As_Window (Handle)), Handle);
       Glfw.Windows.Drop.Set_Drop_Callback (As_Window (Handle), Raw_Drop_Callback'Access);
       Glfw.Windows.Show (As_Window (Handle));
@@ -1819,7 +1805,8 @@ package body Files.Application.Windows is
          return Supported;
       end;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Application.Windows");
          if Initialized then
             Glfw.Shutdown;
          end if;

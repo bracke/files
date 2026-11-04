@@ -15,7 +15,7 @@ separate (Files_Suite.Commands)
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
          "clear filter is disabled without filter text");
-      Result := Files.Controller.Execute_Command (Files.Commands.Clear_Filter_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Clear_Filter_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -32,7 +32,7 @@ separate (Files_Suite.Commands)
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Clear_Filter_Command, Model),
          "clear filter is enabled with filter text");
-      Result := Files.Controller.Execute_Command (Files.Commands.Clear_Filter_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Clear_Filter_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Clear_Filter_Command,

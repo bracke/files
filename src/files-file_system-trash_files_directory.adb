@@ -16,6 +16,7 @@ begin
          return "";
    end case;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return "";
 end Trash_Files_Directory;

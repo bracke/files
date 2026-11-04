@@ -91,7 +91,8 @@ separate (Files_Suite.Rendering)
                  "a long toolbar tooltip is present in a narrow window");
          declare
             Frame : constant Frame_Commands :=
-              Build_Frame_Commands (Base, 260, 800, 20, Hover_X => HX, Hover_Y => HY, Has_Hover => True);
+              Build_Frame_Commands (Base, 260, 800, 20,
+        Pointer => (Hover_X => HX, Hover_Y => HY, Has_Hover => True, others => <>));
          begin
             Assert (Tooltip_Rows (Frame, To_String (Tip)) >= 2,
                     "a narrow window wraps the tooltip onto multiple rows");
@@ -109,7 +110,8 @@ separate (Files_Suite.Rendering)
          Assert (Found, "a tooltip is present in a wide window");
          declare
             Frame : constant Frame_Commands :=
-              Build_Frame_Commands (Base, 1000, 800, 20, Hover_X => HX, Hover_Y => HY, Has_Hover => True);
+              Build_Frame_Commands (Base, 1000, 800, 20,
+        Pointer => (Hover_X => HX, Hover_Y => HY, Has_Hover => True, others => <>));
          begin
             Files_Suite.Support.Assert_Equal
               (Tooltip_Rows (Frame, To_String (Tip)),

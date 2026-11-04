@@ -33,7 +33,7 @@ separate (Files_Suite.Settings)
          end;
          Files.Model.Toggle_Settings_Pane (Draft_Model);
          Controller_Result :=
-           Files.Controller.Execute_Command
+           Files.Controller.Execute_Non_Settings_Command
              (Files.Commands.Toggle_Settings_Pane_Command, Draft_Model, Draft_Settings);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Focus (Draft_Model),
@@ -168,7 +168,7 @@ separate (Files_Suite.Settings)
                Home_Path         => "/home/test",
                Default_View_Mode => Files.Types.Small_Icons);
             Missing_Result :=
-              Files.Controller.Execute_Command
+              Files.Controller.Execute_Non_Settings_Command
                 (Files.Commands.Toggle_Settings_Pane_Command, Missing_Model, Missing_Settings);
             Files_Suite.Support.Assert_Equal
               (Missing_Result.Status,

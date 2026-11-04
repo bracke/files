@@ -40,6 +40,7 @@ begin
    end loop;
    return Result;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.Operations");
       return Existing;
 end With_Case_Aliases;

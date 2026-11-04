@@ -57,7 +57,7 @@ separate (Files_Suite.Operations)
       Load := Files.File_System.Load_Directory (Dir, Settings);
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Select_Name (Model, "dangling");
-      Routed := Files.Controller.Execute_Command
+      Routed := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Create_Hardlink_Command, Model, Settings);
       Assert (Routed.Operation.Status = Files.Operations.Operation_Success
                 and then Hostkit.Fs.Is_Link (Link_Path),

@@ -18,7 +18,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Src_Dir, Load.Items, Root);
       Select_Name (Model, "a.txt");
 
-      Routed := Files.Controller.Execute_Command (Files.Commands.Copy_To_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Copy_To_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,
@@ -29,7 +29,8 @@ separate (Files_Suite.Operations)
       --  Cancel is routed through the tree-toggle command (also used by the
       --  Cancel button and the panel close box): it closes the tree and clears
       --  the picker without writing anything.
-      Routed := Files.Controller.Execute_Command (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Status,
          Files.Controller.Controller_Command_Executed,

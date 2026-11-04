@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 separate (Files.Settings)
    function Parse
      (Text : String)
@@ -362,7 +363,8 @@ separate (Files.Settings)
          Settings  => Settings,
          Error_Key => Null_Unbounded_String);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Settings");
          return
            (Success   => False,
             Settings  => Settings,

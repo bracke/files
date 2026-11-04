@@ -1,8 +1,5 @@
 with Ada.Directories;
 with Ada.Containers.Indefinite_Ordered_Maps;
-with Ada.Streams.Stream_IO;
-with Ada.Text_IO;
-with Interfaces.C;
 with Hostkit.Fs;
 with Hostkit.Metadata_Copy;
 
@@ -28,18 +25,6 @@ private package Files.File_System.Support is
    procedure Safe_End_Search
      (Search  : in out Ada.Directories.Search_Type;
       Started : in out Boolean);
-
-   --  Close a text file if it is open, ignoring any error from the close.
-   --
-   --  @param File The text file to close.
-   procedure Safe_Close
-     (File : in out Ada.Text_IO.File_Type);
-
-   --  Close a stream file if it is open, ignoring any error from the close.
-   --
-   --  @param File The stream file to close.
-   procedure Safe_Close
-     (File : in out Ada.Streams.Stream_IO.File_Type);
 
    --  Whether environment variable Name equals Expected, compared
    --  case-insensitively.
@@ -276,16 +261,5 @@ private package Files.File_System.Support is
    --  write restrictions preserved from its source. Never follows symlinks.
    --  @param Path Private or identity-verified owned entry to remove.
    procedure Delete_Owned_Tree (Path : String);
-
-   --  Shared Interfaces.C aliases for the native (statvfs / gdk-pixbuf) bindings.
-   subtype C_Int is Interfaces.C.int;
-   subtype C_U32 is Interfaces.C.unsigned;
-   subtype C_U64 is Interfaces.C.unsigned_long;
-   subtype C_S64 is Interfaces.C.long;
-   subtype C_Size is Interfaces.C.size_t;
-   subtype C_ULong is Interfaces.C.unsigned_long;
-   subtype C_Char is Interfaces.C.char;
-   type U64_Array is array (Positive range <>) of C_U64
-     with Convention => C;
 
 end Files.File_System.Support;

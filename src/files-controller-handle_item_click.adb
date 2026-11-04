@@ -60,7 +60,7 @@ separate (Files.Controller)
       end if;
 
       if Activate then
-         return Execute_Command (Files.Commands.Open_Selected_Items_Command, Model, Settings, Modifiers);
+         return Execute_Non_Settings_Command (Files.Commands.Open_Selected_Items_Command, Model, Settings, Modifiers);
       end if;
 
       return Make_Result (Controller_Selection_Moved);

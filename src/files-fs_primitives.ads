@@ -12,6 +12,14 @@ package Files.Fs_Primitives is
    --  @return True when Path exists (file or directory).
    function Exists (Path : String) return Boolean;
 
+   --  Whether there is an entry at Path at all: Exists follows a link, so a
+   --  dangling one looks absent to it, though the name is taken.
+   --
+   --  @param Path Filesystem path to test.
+   --  @return True when Path exists or is a link (dangling or not); False
+   --    for an empty or unreadable path.
+   function Entry_Exists (Path : String) return Boolean;
+
    --  Return the parent directory of Path.
    --
    --  @param Path Path whose parent is requested.

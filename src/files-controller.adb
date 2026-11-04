@@ -1,3 +1,5 @@
+with Files.Fs_Primitives;
+with Files.Diagnostics;
 with Files.Items;
 with Files.Commands.Status;
 with Ada.Directories;
@@ -452,7 +454,7 @@ package body Files.Controller is
       Settings : Files.Settings.Settings_Model)
       return Controller_Result;
 
-   function Execute_Command
+   function Execute_Non_Settings_Command
      (Id        : Files.Commands.Command_Id;
       Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
@@ -581,7 +583,7 @@ package body Files.Controller is
          return Make_Result (Controller_Ignored);
       end if;
 
-      return Execute_Command (Id, Model, Settings, Modifiers);
+      return Execute_Non_Settings_Command (Id, Model, Settings, Modifiers);
    end Handle_Command_Click;
 
    function Apply_Settings_Command
@@ -603,7 +605,7 @@ package body Files.Controller is
       if Files.Commands.Requires_Settings_Path (Id) and then Files.Commands.Status.Is_Enabled (Id, Model) then
          return Apply_Settings_Command (Id, Model, Settings, Settings_Path);
       end if;
-      return Execute_Command (Id, Model, Settings, Modifiers);
+      return Execute_Non_Settings_Command (Id, Model, Settings, Modifiers);
    end Execute_Command;
 
    function Handle_Search_Scope_Toggle
@@ -704,17 +706,16 @@ package body Files.Controller is
    type Favorite_Target is (Favorite_Folder, Favorite_File, Favorite_Stale);
 
    function Classify_Favorite (Path : String) return Favorite_Target is
-      use type Ada.Directories.File_Kind;
    begin
-      if Path = "" or else not Ada.Directories.Exists (Path) then
+      if Path = "" or else not Files.Fs_Primitives.Exists (Path) then
          return Favorite_Stale;
-      elsif Ada.Directories.Kind (Path) = Ada.Directories.Directory then
+      elsif Files.Fs_Primitives.Directory_Exists (Path) then
          return Favorite_Folder;
-      else
-         return Favorite_File;
       end if;
+      return Favorite_File;
    exception
-      when others =>
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.Controller");
          return Favorite_Stale;
    end Classify_Favorite;
 
@@ -1006,7 +1007,7 @@ package body Files.Controller is
          if Command = Files.Commands.No_Command then
             return Make_Result (Controller_Ignored);
          end if;
-         Result := Execute_Command (Command, Model, Settings, Modifiers);
+         Result := Execute_Non_Settings_Command (Command, Model, Settings, Modifiers);
          if Result.Status /= Controller_Ignored
            and then Command /= Files.Commands.Open_With_Command
          then

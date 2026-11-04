@@ -37,7 +37,7 @@ separate (Files_Suite.Model)
             "holding an unmoved main scrollbar does not revise the model");
       end;
       Result :=
-        Files.Controller.Execute_Command
+        Files.Controller.Execute_Non_Settings_Command
           (Files.Commands.Toggle_Settings_Pane_Command,
            Model,
            Settings);
@@ -80,7 +80,7 @@ separate (Files_Suite.Model)
          0,
          "blocked PageDown leaves main view still");
       Result :=
-        Files.Controller.Execute_Command
+        Files.Controller.Execute_Non_Settings_Command
           (Files.Commands.Toggle_Settings_Pane_Command,
            Model,
            Settings);

@@ -3,7 +3,6 @@ with Files.Diagnostics;
 with Ada.Characters.Handling;
 with Ada.Directories;
 with Ada.Streams.Stream_IO;
-with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with System;

@@ -21,7 +21,9 @@ separate (Files.Application.Windows.Smoke)
       begin
          return (if Value = "" then 0 else Natural'Min (Natural'Value (Value), 600));
       exception
-         when others => return 0;
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Application.Windows.Smoke");
+            return 0;
       end Hold_Seconds;
 
       Hold : constant Natural := Hold_Seconds;
@@ -261,7 +263,8 @@ separate (Files.Application.Windows.Smoke)
       return Result;
    exception
       --  Whatever the run reached, as it was; only the close failed.
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Application.Windows.Smoke");
          Release_All (Runtime_Windows);
          if Initialized then
             Glfw.Shutdown;

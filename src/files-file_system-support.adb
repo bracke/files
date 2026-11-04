@@ -1,3 +1,5 @@
+with Interfaces;
+with Ada.Streams.Stream_IO;
 with Files.Environment;
 with Files.Diagnostics;
 with Ada.Exceptions;
@@ -113,19 +115,7 @@ package body Files.File_System.Support is
       end if;
    end Safe_End_Search;
 
-   procedure Safe_Close
-     (File : in out Ada.Text_IO.File_Type) is
-   begin
-      if Ada.Text_IO.Is_Open (File) then
-         begin
-            Ada.Text_IO.Close (File);
-         exception
-            when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
-         end;
-      end if;
-   end Safe_Close;
-
+   --  Close a stream file if it is open, ignoring any error from the close.
    procedure Safe_Close
      (File : in out Ada.Streams.Stream_IO.File_Type) is
    begin
@@ -304,7 +294,9 @@ package body Files.File_System.Support is
          return (if Usable (Root) then Root else "");
       end;
    exception
-      when others => return "";
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
+         return "";
    end Application_Data_Directory;
 
    function With_Root_Content (Snapshot : Source_Snapshot; Digest : String) return Source_Snapshot is

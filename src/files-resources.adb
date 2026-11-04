@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
 
@@ -24,7 +25,8 @@ package body Files.Resources is
          return Ada.Directories.Full_Name
            (Hostkit.Fs.Join (To_String (Base), "share"));
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Resources");
             return "";
       end Share_At;
 
@@ -38,7 +40,8 @@ package body Files.Resources is
            and then Ada.Directories.Exists (Icons)
            and then Ada.Directories.Kind (Icons) = Ada.Directories.Directory;
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Resources");
             return False;
       end Complete;
    begin
@@ -60,7 +63,8 @@ package body Files.Resources is
       --  would let the launch directory provide counterfeit resources.
       return Share_At (1);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Resources");
          return "";
    end Locate_Share_Root;
 

@@ -94,6 +94,7 @@ separate (Files.Controller)
                return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);
             end;
          when others =>
-            return Execute_Command (Files.Commands.Open_Selected_Items_Command, Model, Settings, Modifiers);
+            return Execute_Non_Settings_Command
+              (Files.Commands.Open_Selected_Items_Command, Model, Settings, Modifiers);
       end case;
    end Commit_Focused_Text;

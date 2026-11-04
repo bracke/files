@@ -11,7 +11,6 @@ with Ada.Strings.Unbounded;
 with Files.Job_Context;
 with Files.Job_Records;
 with Files.Lease_Streams;
-with Files.Durable_Writes;
 with Files.History_Journal;
 with Files.Refresh_Jobs;
 with Files.File_System;
@@ -262,7 +261,7 @@ package body Files.Operation_Jobs is
         (Files.Process_Jobs.Path (Job, ""), Files.Model.Undo_History (Model),
          Files.Model.Redo_History (Model), Required => True);
       Files.Exclusive_Streams.Create
-        (File, Files.Process_Jobs.Path (Job, "request"));
+        (File, Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
       Write_Request (File'Access, Work);
       Files.Job_Records.Validate_Size (Files.Exclusive_Streams.Size (File));
       Files.Exclusive_Streams.Close (File);
@@ -288,7 +287,8 @@ package body Files.Operation_Jobs is
              when Redo => "command.edit.redo"));
       return (Status => Files.Operations.Operation_Success, Path => Work.Root, others => <>);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Operation_Jobs");
          Files.Exclusive_Streams.Close_Safely (File);
          Files.Process_Jobs.Reset (Job);
          Files.Model.Set_Error (Model, "error.drop.failed");
@@ -350,7 +350,7 @@ package body Files.Operation_Jobs is
          --  Every path the undo history already records as created.
          Recorded : Files.Settings.Path_Sets.Set;
       begin
-         Work := Read_Request (Files.Process_Jobs.Path (Job, "request"));
+         Work := Read_Request (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
          Files.Job_Context.Read_Created
            (Files.Process_Jobs.Path (Job, ""), Destinations, Sources, Identities, Tree_Revisions);
          if Work.Kind = Redo and then not Redo_Stack.Is_Empty then
@@ -429,8 +429,8 @@ package body Files.Operation_Jobs is
       if not Finished then
          return (Status => Files.Operations.Operation_Success, others => <>);
       end if;
-      Done := Read_Outcome (Files.Process_Jobs.Path (Job, "result"));
-      Work := Read_Request (Files.Process_Jobs.Path (Job, "request"));
+      Done := Read_Outcome (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Result_File));
+      Work := Read_Request (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
       if Done.Kind /= Work.Kind or else Done.Recent /= Work.Recent then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
@@ -530,16 +530,18 @@ package body Files.Operation_Jobs is
       Files.Operations.Ensure_Selected_Item_Extra (Model);
       return Done.Result;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Operation_Jobs");
          --  Outcome decoding can fail before the request was read. Recover its
          --  identity independently so a same-view mutation is still reloaded,
          --  while an old job cannot disturb a newer view.
          begin
-            Work := Read_Request (Files.Process_Jobs.Path (Job, "request"));
+            Work := Read_Request (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
             Known_Kind := True;
             Same_View := Matches_Current_View (Work);
          exception
-            when others =>
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Operation_Jobs");
                Same_View := False;
          end;
          Files.Model.Clear_Paste_Execution (Model);
@@ -566,12 +568,16 @@ package body Files.Operation_Jobs is
    end Advance;
 
    procedure Run_Helper (Directory : String) is
-      File  : aliased Files.Exclusive_Streams.Output_Stream;
       Work  : Request;
       Done  : Outcome;
       Model : Files.Model.Window_Model;
+
+      procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
+      begin
+         Write_Outcome (Stream, Done);
+      end Write;
    begin
-      Work := Read_Request (Hostkit.Fs.Join (Directory, "request"));
+      Work := Read_Request (Hostkit.Fs.Join (Directory, Files.Process_Jobs.Request_File));
       Done.Kind := Work.Kind;
       Files.Model.Initialize (Model, To_String (Work.Root), Work.Selected, Hostkit.Fs.Home_Directory);
       if Work.Recent then
@@ -613,34 +619,6 @@ package body Files.Operation_Jobs is
       end loop;
       Done.Signature := Files.Model.Directory_Signature_Of (Model);
       Files.Model.Take_Path_Moves (Model, Done.Moved_From, Done.Moved_To);
-      Files.Exclusive_Streams.Create
-        (File, Hostkit.Fs.Join (Directory, "result.tmp"));
-      Write_Outcome (File'Access, Done);
-      Files.Job_Records.Validate_Size (Files.Exclusive_Streams.Size (File));
-      Files.Exclusive_Streams.Close (File);
-      declare
-         Step    : Files.Durable_Writes.Publication_Step;
-         Outcome : constant Files.Durable_Writes.Publication_Result :=
-           Files.Durable_Writes.Publish
-             (Hostkit.Fs.Join (Directory, "result.tmp"), Hostkit.Fs.Join (Directory, "result"), Step);
-
-         function State (Path : String) return String is
-           (if Ada.Directories.Exists (Path) then "present" else "gone");
-      begin
-         if not Files.Durable_Writes.Published (Outcome) then
-            --  Say which part failed, as a machine-readable diagnostic: an
-            --  intermittent CI failure here could not be reproduced locally.
-            raise Ada.Directories.Use_Error with
-              "publish=" & Files.Durable_Writes.Publication_Result'Image (Outcome)
-              & ";step=" & Files.Durable_Writes.Publication_Step'Image (Step)
-              & ";dir=" & State (Directory)
-              & ";tmp=" & State (Hostkit.Fs.Join (Directory, "result.tmp"))
-              & ";result=" & State (Hostkit.Fs.Join (Directory, "result"));
-         end if;
-      end;
-   exception
-      when others =>
-         Files.Exclusive_Streams.Close_Safely (File);
-         raise;
+      Files.Job_Records.Publish_Result (Directory, Write'Access);
    end Run_Helper;
 end Files.Operation_Jobs;

@@ -55,7 +55,8 @@ begin
    Success := True;
    return Ada.Strings.Unbounded.To_String (Result);
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       if Descriptor /= GNAT.OS_Lib.Invalid_FD then
          GNAT.OS_Lib.Close (Descriptor);
       end if;

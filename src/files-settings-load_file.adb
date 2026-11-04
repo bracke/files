@@ -1,4 +1,5 @@
 with Files.Capped_Files;
+with Files.Diagnostics;
 separate (Files.Settings)
    function Load_File
      (Path : String)
@@ -44,7 +45,8 @@ separate (Files.Settings)
          return Parse (Text);
       end;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Settings");
          return
            (Success   => False,
             Settings  => Default_Settings,

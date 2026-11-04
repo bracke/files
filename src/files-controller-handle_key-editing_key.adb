@@ -7,7 +7,8 @@ begin
          Result := Commit_Focused_Text (Model, Settings, Modifiers);
          return;
       elsif Files.Model.Focus (Model) = Files.Types.Focus_None then
-         Result := Execute_Command (Files.Commands.Open_Selected_Items_Command, Model, Settings, Modifiers);
+         Result := Execute_Non_Settings_Command
+           (Files.Commands.Open_Selected_Items_Command, Model, Settings, Modifiers);
          return;
       end if;
    elsif Key = Guikit.Input.Key_Backspace

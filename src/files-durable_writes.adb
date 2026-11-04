@@ -58,7 +58,8 @@ package body Files.Durable_Writes is
          Directory_Sync => Hostkit.Durability.Sync_Directory
            (Ada.Directories.Containing_Directory (Target)));
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Durable_Writes");
          return (if Replaced then Published_Not_Durable else Not_Published);
    end Publish;
 

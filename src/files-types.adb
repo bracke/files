@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Characters.Handling;
 with Ada.Strings.Fixed;
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
@@ -24,6 +25,22 @@ package body Files.Types is
             return Filter_Here;
       end case;
    end Next_Scope;
+
+   function Trim_Blanks (Text : String) return String is
+      First : Integer := Text'First;
+      Last  : Integer := Text'Last;
+
+      function Blank (Value : Character) return Boolean is
+        (Value = ' ' or else Value = ASCII.HT or else Value = ASCII.CR);
+   begin
+      while First <= Last and then Blank (Text (First)) loop
+         First := First + 1;
+      end loop;
+      while Last >= First and then Blank (Text (Last)) loop
+         Last := Last - 1;
+      end loop;
+      return Text (First .. Last);
+   end Trim_Blanks;
 
    function Natural_Text (Value : Natural) return String is
       Image : constant String := Natural'Image (Value);
@@ -171,7 +188,8 @@ package body Files.Types is
               (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Decode (Composed)));
       end;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Types");
          return To_Lower (Text);
    end Fold_Case;
 

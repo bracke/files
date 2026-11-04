@@ -59,7 +59,8 @@ begin
    Close_Read_Descriptor (File);
    return Prefix & ".entries|" & Natural_Text (Count);
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       Close_Read_Descriptor (File);
       return Prefix & ".entries|0";
 end Zip_Entry_Count_Token;

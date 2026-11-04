@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 separate (Files.Settings)
    function Ensure_Default_File
      (Path : String)
@@ -28,7 +29,8 @@ separate (Files.Settings)
 
       return Save_Text (Path, Default_Settings_Text);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Settings");
          return
            (Success   => False,
             Durable   => False,

@@ -25,7 +25,8 @@ separate (Files_Suite.Commands)
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Reset_Settings_Command, Model),
          "reset settings is disabled without settings pane");
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "controller opens settings pane with editable draft");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
@@ -35,11 +36,13 @@ separate (Files_Suite.Commands)
         (Files.Model.Focus (Model),
          Files.Types.Focus_Settings_Input,
          "settings pane receives editable settings focus");
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (not Files.Model.Settings_Pane_Is_Open (Model), "the settings toggle closes the open pane");
       Files.Model.Begin_Create_File (Model, "settings-pending.txt");
       Files.Model.Open_Command_Palette (Model);
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert
         (Files.Model.Settings_Pane_Is_Open (Model),
          "controller opens settings pane over pending create");
@@ -53,18 +56,20 @@ separate (Files_Suite.Commands)
         (Files.Model.Focus (Model),
          Files.Types.Focus_Settings_Input,
          "settings pane opening focuses settings after clearing edit state");
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert
         (not Files.Model.Settings_Pane_Is_Open (Model),
          "the settings toggle closes the seeded settings pane");
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "controller reopens settings pane with editable draft");
       Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Save_Settings_Command, Model),
               "save settings is enabled");
       Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Reset_Settings_Command, Model),
               "reset settings is enabled");
       Files.Controller.Testing.Replace_Focused_Text (Model, "details");
-      Result := Files.Controller.Execute_Command (Files.Commands.Reset_Settings_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Reset_Settings_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Reset_Settings_Command,
@@ -73,7 +78,7 @@ separate (Files_Suite.Commands)
         (Result.Operation.Status,
          Files.Operations.Operation_Disabled,
          "reset settings saves, so without the settings path it keeps the path-resolution sentinel");
-      Result := Files.Controller.Execute_Command (Files.Commands.Save_Settings_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Save_Settings_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Save_Settings_Command,

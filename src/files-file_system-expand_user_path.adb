@@ -4,7 +4,8 @@ function Expand_User_Path (Path : String) return String is
    begin
       return Hostkit.Fs.Home_Directory;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return "";
    end Home;
 begin

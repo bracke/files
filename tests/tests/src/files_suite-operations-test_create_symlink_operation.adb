@@ -23,7 +23,7 @@ separate (Files_Suite.Operations)
         (Files.Commands.Status.Is_Enabled (Files.Commands.Create_Symlink_Command, Model),
          "create-symlink command is enabled with a selection");
 
-      Routed := Files.Controller.Execute_Command (Files.Commands.Create_Symlink_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_Symlink_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,
@@ -36,7 +36,7 @@ separate (Files_Suite.Operations)
          "the symbolic link resolves to the original contents");
       Assert (Files.Model.Undo_Available (Model), "undo is available after creating a link");
 
-      Routed := Files.Controller.Execute_Command (Files.Commands.Undo_Command, Model, Settings);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Undo_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,

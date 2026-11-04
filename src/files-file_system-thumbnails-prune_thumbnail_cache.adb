@@ -28,7 +28,8 @@ is
         and then (for all Index in Digest_First .. Digest_First + 63 =>
           Name (Index) in '0' .. '9' | 'a' .. 'f');
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
          return False;
    end Is_Thumbnail_Name;
 
@@ -128,7 +129,8 @@ begin
       end;
    end loop;
 exception
-   when others =>
+   when Failure : others =>
+      Files.Diagnostics.Note (Failure, "Files.File_System.Thumbnails");
       if Started then
          begin
             Ada.Directories.End_Search (Search);

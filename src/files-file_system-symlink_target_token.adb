@@ -12,6 +12,7 @@ begin
 
    return "symlink.target|" & Ada.Strings.Unbounded.To_String (Target);
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return "";
 end Symlink_Target_Token;

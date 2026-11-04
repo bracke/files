@@ -39,5 +39,7 @@ begin
       return Sticky or else not Shared_Writable;
    end if;
 exception
-   when others => return False;
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
+      return False;
 end Safe_Trash_Parent;

@@ -6,7 +6,10 @@ with Ada.Strings.Unbounded;
 
 with Interfaces;
 
-with Files.Bounded_Streams;
+with Files.Durable_Writes;
+with Files.Exclusive_Streams;
+with Files.Process_Jobs;
+with Hostkit.Fs;
 with Files.Shared_Bytes;
 with Files.Types;
 with Files.Path_Checks;
@@ -85,16 +88,49 @@ package body Files.Job_Records is
       end if;
    end Validate_Size;
 
+   procedure Publish_Result
+     (Directory : String;
+      Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class))
+   is
+      Staged : constant String := Hostkit.Fs.Join (Directory, Files.Process_Jobs.Staged_Result_File);
+      Result : constant String := Hostkit.Fs.Join (Directory, Files.Process_Jobs.Result_File);
+      File   : aliased Files.Exclusive_Streams.Output_Stream;
+   begin
+      Files.Exclusive_Streams.Create (File, Staged);
+      Write (File'Access);
+      Validate_Size (Files.Exclusive_Streams.Size (File));
+      Files.Exclusive_Streams.Close (File);
+      declare
+         Step    : Files.Durable_Writes.Publication_Step;
+         Outcome : constant Files.Durable_Writes.Publication_Result :=
+           Files.Durable_Writes.Publish (Staged, Result, Step);
+
+         function State (Path : String) return String is
+           (if Ada.Directories.Exists (Path) then "present" else "gone");
+      begin
+         if not Files.Durable_Writes.Published (Outcome) then
+            --  Say which part failed, as a machine-readable diagnostic: an
+            --  intermittent CI failure here could not be reproduced locally.
+            raise Ada.Directories.Use_Error with
+              "publish=" & Files.Durable_Writes.Publication_Result'Image (Outcome)
+              & ";step=" & Files.Durable_Writes.Publication_Step'Image (Step)
+              & ";dir=" & State (Directory)
+              & ";tmp=" & State (Staged)
+              & ";result=" & State (Result);
+         end if;
+      end;
+   exception
+      when others =>
+         Files.Exclusive_Streams.Close_Safely (File);
+         raise;
+   end Publish_Result;
+
    procedure Write_String
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Value : String;
-      Maximum : Natural)
-   is
+      Maximum : Natural) is
    begin
-      if Value'Length > Maximum then
-         raise Ada.Directories.Use_Error;
-      end if;
-      String'Output (Stream, Value);
+      Files.Bounded_Streams.Output_String (Stream, Value, Maximum);
    end Write_String;
 
    function Read_String

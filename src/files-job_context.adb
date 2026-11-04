@@ -26,9 +26,9 @@ package body Files.Job_Context is
 
    Stage_Record_Header : constant String := "files-stage-3";
    Created_Record_Header : constant String := "files-created-3";
-   Max_Record_Header_Length : constant := 128;
-   Max_Record_Path_Length : constant := 32 * 1024;
-   Max_Record_Token_Length : constant := 2 * 1024;
+   Max_Record_Header_Length : constant := Files.Bounded_Streams.Max_Header_Length;
+   Max_Record_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
+   Max_Record_Token_Length : constant := Files.Bounded_Streams.Max_Token_Length;
    Max_Stage_Metadata_Bytes : constant := 64 * 1024;
    Max_Journal_Bytes : constant := 64 * 1024 * 1024;
    Max_Journal_Records : constant := 100_000;
@@ -123,7 +123,7 @@ package body Files.Job_Context is
    is
       Journal : constant String := Hostkit.Fs.Join (To_String (Current), Name);
       Existing : constant Boolean :=
-        Ada.Directories.Exists (Journal) or else Hostkit.Fs.Is_Link (Journal);
+        Files.Fs_Primitives.Entry_Exists (Journal);
       Handle : Hostkit.Lease_Files.Lease;
       Opened : Hostkit.Lease_Files.Open_Outcome;
       Buffer : aliased Memory_Output_Stream;
@@ -342,7 +342,7 @@ package body Files.Job_Context is
                   begin
                      null;
                   end;
-                  if not (Ada.Directories.Exists (Candidate) or else Hostkit.Fs.Is_Link (Candidate)) then
+                  if not Files.Fs_Primitives.Entry_Exists (Candidate) then
                      Remove_Record (To_String (Record_Directory));
                   end if;
                   raise;
@@ -407,7 +407,8 @@ package body Files.Job_Context is
       end if;
       Append_Journal_Record ("created", Created_Record_Header, Write'Access);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
          --  Publication already succeeded; retain its normal result even if
          --  this crash-recovery journal cannot be extended.
          null;
@@ -439,7 +440,8 @@ package body Files.Job_Context is
       end if;
       Append_Journal_Record (Name, Header, Write'Access);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
          --  Called after publication: a journal failure must not turn a
          --  completed creation or move into a failed filesystem operation.
          null;
@@ -507,7 +509,8 @@ package body Files.Job_Context is
       end loop;
       Files.Lease_Streams.Release (Input);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
          Files.Lease_Streams.Release (Input);
    end Read_Records;
 
@@ -576,7 +579,8 @@ package body Files.Job_Context is
       end loop;
       Files.Lease_Streams.Release (Input);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
          Files.Lease_Streams.Release (Input);
    end Read_Created;
 
@@ -646,7 +650,8 @@ package body Files.Job_Context is
       end if;
       Files.Lease_Streams.Release (Input);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
          Files.Lease_Streams.Release (Input);
          Directory := Null_Unbounded_String;
          Identity := Null_Unbounded_String;
@@ -704,7 +709,7 @@ package body Files.Job_Context is
             return False;
          end if;
       end if;
-      if not (Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path)) then
+      if not Files.Fs_Primitives.Entry_Exists (Path) then
          Removed := True;
          Release_Foreground;
          return True;
@@ -720,7 +725,8 @@ package body Files.Job_Context is
       Release_Foreground;
       return Removed;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
          Release_Foreground;
          return False;
    end Discard_Stage;
@@ -802,7 +808,8 @@ package body Files.Job_Context is
             end if;
             Files.Lease_Streams.Release (Input);
          exception
-            when others =>
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
                Files.Lease_Streams.Release (Input);
                --  Data is published by atomic replacement and is never
                --  subsequently edited.  Once it can be opened, a truncated
@@ -818,8 +825,7 @@ package body Files.Job_Context is
             Remove_Record (Record_Directory);
             return;
          end if;
-         if not (Ada.Directories.Exists (To_String (Path))
-                 or else Hostkit.Fs.Is_Link (To_String (Path)))
+         if not Files.Fs_Primitives.Entry_Exists (To_String (Path))
          then
             Remove_Record (Record_Directory);
             return;
@@ -852,7 +858,8 @@ package body Files.Job_Context is
             Remove_Record (Record_Directory);
          end if;
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
             Files.Lease_Streams.Release (Input);
             --  Keep only this record for retry; damage cannot hide later
             --  independent records as it could in the append-only journal.
@@ -882,7 +889,8 @@ package body Files.Job_Context is
          when Ada.Directories.Use_Error => null;
       end;
    exception
-      when others =>
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.Job_Context");
          begin
             Ada.Directories.End_Search (Search);
          exception

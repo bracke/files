@@ -24,7 +24,8 @@ is
    begin
       return Hostkit.Fs.Is_Link (Candidate);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          --  Link classification is a safety boundary: an unknown entry must
          --  be skipped, never treated as a directory that is safe to enter.
          return True;
@@ -62,7 +63,8 @@ is
               Saturating_Long_Add (Result.Total_Bytes, Long_Long_Integer (Ada.Directories.Size (Full)));
          end if;
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System");
             --  Skip individual entries that cannot be classified or sized
             --  (races, permission denials) without aborting the walk.
             null;
@@ -78,7 +80,8 @@ is
       Support.For_Each_Entry (Directory, Visit'Access);
       return True;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          --  An unreadable subdirectory is skipped rather than failing the
          --  whole measurement.  The caller distinguishes that case from an
          --  unreadable root, whose result must remain unavailable.
@@ -99,6 +102,7 @@ begin
    Result.Available := True;
    return Result;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return Result;
 end Directory_Size;

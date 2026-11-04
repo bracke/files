@@ -1,5 +1,4 @@
 with Ada.Strings;
-with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with Files.Commands;
@@ -21,7 +20,7 @@ package body Files.Settings_Form is
 
    function U (S : String) return Unbounded_String renames To_Unbounded_String;
    function L (Key : String) return Unbounded_String is (U (Files.Localization.Text (Key)));
-   function Img (N : Natural) return String is (Ada.Strings.Fixed.Trim (Natural'Image (N), Ada.Strings.Both));
+   function Img (N : Natural) return String renames Files.Types.Natural_Text;
 
    --  Small option-vector builders (tokens and localized labels).
    function V2 (A, B : String) return SP.UString_Vectors.Vector is

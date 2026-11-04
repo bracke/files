@@ -8,7 +8,7 @@ separate (Files_Suite.Model)
       Snapshot : Files.Rendering.View_Snapshot;
    begin
       Files.Model.Set_Error (Model, "error.path.missing");
-      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Select_Drive_Command,

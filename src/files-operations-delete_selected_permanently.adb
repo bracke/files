@@ -18,13 +18,7 @@ begin
       exit when Files.Job_Context.Cancelled;
       if not Exists_Safely (To_String (Item.Full_Path)) then
          Files.Model.Set_Error (Model, "error.permanent_delete.failed");
-         declare
-            Reload : constant Operation_Result :=
-              Reload_With_Error (Model, Settings, "error.permanent_delete.failed");
-            pragma Unreferenced (Reload);
-         begin
-            null;
-         end;
+         Reload_With_Error (Model, Settings, "error.permanent_delete.failed");
          return Make_Result
            (Operation_Failed, "error.permanent_delete.failed", To_String (Item.Full_Path));
       end if;
@@ -52,13 +46,7 @@ begin
          end if;
          if not Mutation.Success then
             Files.Model.Set_Error (Model, To_String (Mutation.Error_Key));
-            declare
-               Reload : constant Operation_Result :=
-                 Reload_With_Error (Model, Settings, To_String (Mutation.Error_Key));
-               pragma Unreferenced (Reload);
-            begin
-               null;
-            end;
+            Reload_With_Error (Model, Settings, To_String (Mutation.Error_Key));
             return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
          end if;
       end;

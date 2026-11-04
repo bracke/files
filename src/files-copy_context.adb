@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Containers;
 with Ada.Directories;
 with Ada.IO_Exceptions;
@@ -33,7 +34,8 @@ package body Files.Copy_Context is
       end loop;
       return GNAT.OS_Lib.Is_Absolute_Path (Path);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Copy_Context");
          return False;
    end Valid_Batch_Directory;
 

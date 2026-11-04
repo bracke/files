@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
@@ -58,7 +59,8 @@ package body Files.Capped_Files is
       Status := Read_Complete;
       return Ada.Strings.Unbounded.To_String (Content);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Capped_Files");
          Close_File;
          Status := Read_Failed;
          return "";

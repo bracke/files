@@ -16,6 +16,7 @@ begin
    return Length (Actual_Parent) > 0
      and then Actual_Parent = Expected_Parent;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return False;
 end Is_Trash_Payload;

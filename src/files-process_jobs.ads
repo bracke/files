@@ -8,6 +8,12 @@ with Hostkit.Spawn;
 package Files.Process_Jobs is
    type Session is new Ada.Finalization.Controlled with private;
 
+   --  The files of a job's private directory: the window's request, and the
+   --  helper's result, written under the staged name and published whole.
+   Request_File       : constant String := "request";
+   Result_File        : constant String := "result";
+   Staged_Result_File : constant String := "result.tmp";
+
    --  @param Job Session to reserve a private transport directory for.
    procedure Reserve (Job : in out Session);
 

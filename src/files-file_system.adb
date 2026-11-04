@@ -531,7 +531,8 @@ package body Files.File_System is
           (Path = Trash_Dir
            or else Hostkit.Metadata.Same_File (Path, Trash_Dir));
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return False;
    end Is_Trash_Files_Directory;
 
@@ -612,7 +613,8 @@ package body Files.File_System is
       end if;
       return Result;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.trash.failed"));
@@ -834,7 +836,8 @@ package body Files.File_System is
             Generation_Low  => Values (4));
          return True;
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.File_System");
             Item := (others => <>);
             return False;
       end Parse_Identity;
@@ -872,7 +875,9 @@ package body Files.File_System is
          & U64'Image (Updated.Identity.Generation_Low));
       return True;
    exception
-      when others => return False;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
+         return False;
    end Update_Verified_Entry;
 
    function Change_Mode
@@ -899,7 +904,9 @@ package body Files.File_System is
       Previous := Natural (Old_Mode);
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
-      when others => return Failed;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
+         return Failed;
    end Change_Mode;
 
    function Change_Ownership
@@ -928,7 +935,9 @@ package body Files.File_System is
       Previous_Group := Files.Types.Account_Id (Old_Group);
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
-      when others => return Failed;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
+         return Failed;
    end Change_Ownership;
 
    function Copy_Tree
@@ -941,7 +950,8 @@ package body Files.File_System is
       Support.Copy_To_New_Path (Source_Path, Destination_Path, Batch => Batch);
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return
            (Success   => False,
             Error_Key => Files.Io_Errors.Error_Key ("error.copy.failed"));
@@ -1056,7 +1066,9 @@ package body Files.File_System is
          return (Success => True, Error_Key => Null_Unbounded_String);
       end;
    exception
-      when others => return Failed;
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
+         return Failed;
    end Delete_Verified_Entry;
 
    function Delete_Created_Entry
@@ -1077,16 +1089,19 @@ package body Files.File_System is
    begin
       return Support.Tree_Revision (Path);
    exception
-      when others => return "";
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
+         return "";
    end Tree_Revision;
 
    function Entry_Identity_Matches (Path, Expected : String) return Boolean is
    begin
       return Expected /= ""
-        and then (Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path))
+        and then Files.Fs_Primitives.Entry_Exists (Path)
         and then Files.File_Identities.Token (Path) = Expected;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return False;
    end Entry_Identity_Matches;
 
@@ -1101,7 +1116,8 @@ package body Files.File_System is
         (if Hostkit.Fs.Is_Link (Path) then Tree_Revision = ""
          else Tree_Revision /= "" and then Files.File_System.Tree_Revision (Path) = Tree_Revision);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return False;
    end Creation_Matches;
 

@@ -5,14 +5,7 @@ function Rename_Item
    Expected_Identity : String := "")
    return Mutation_Result
 is
-   function Exists_Safely (Path : String) return Boolean is
-   begin
-      return Path /= "" and then
-        (Files.Fs_Primitives.Exists (Path) or else Hostkit.Fs.Is_Link (Path));
-   exception
-      when others =>
-         return False;
-   end Exists_Safely;
+   function Exists_Safely (Path : String) return Boolean renames Files.Fs_Primitives.Entry_Exists;
 
    function Same_Existing_Path return Boolean is
    begin
@@ -31,7 +24,8 @@ is
                  = GNAT.OS_Lib.Normalize_Pathname (To_Path, Resolve_Links => False)
         and then Mutation_Leaf_Name (From_Path) = Mutation_Leaf_Name (To_Path);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return From_Path = To_Path and then Exists_Safely (From_Path);
    end Same_Existing_Path;
 
@@ -56,7 +50,8 @@ is
                  = Files.Types.Fold_Case (Mutation_Leaf_Name (To_Path))
         and then Mutation_Leaf_Name (From_Path) /= Mutation_Leaf_Name (To_Path);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return False;
    end Is_Case_Only_Rename;
 
@@ -68,7 +63,7 @@ is
    function Rename_Case_Only return Mutation_Result is
       function Temp_Candidate (Index : Natural) return String is
         (From_Path & ".files-case-rename-"
-         & Ada.Strings.Fixed.Trim (Natural'Image (Index), Ada.Strings.Both));
+         & Files.Types.Natural_Text (Index));
 
       Temp : Unbounded_String := Null_Unbounded_String;
    begin
@@ -97,7 +92,8 @@ is
          end if;
          return (Success => True, Error_Key => Null_Unbounded_String);
       exception
-         when others =>
+         when Failure : others =>
+            Files.Diagnostics.Note (Failure, "Files.File_System");
             declare
                --  Why the second hop failed, before the restore can say
                --  something else.
@@ -122,7 +118,8 @@ is
             end;
       end;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          --  A failed hop never overwrites a competing entry. The no-replace
          --  helper attempts to restore its source after a post-move error.
          return
@@ -189,7 +186,8 @@ is
       end;
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
          if not Committed and then Length (Backup) > 0 then
             Restore_Source;
          end if;
@@ -259,7 +257,8 @@ begin
       raise Ada.Directories.Use_Error;
    end;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       if not May_Copy then
          return
            (Success   => False,

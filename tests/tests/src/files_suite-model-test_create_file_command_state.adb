@@ -27,7 +27,7 @@ separate (Files_Suite.Model)
       Files.Model.Set_Filter (Model, "does-not-match-untitled");
       Files.Model.Set_Error (Model, "error.path.missing");
       Files.Model.Scroll_Main_View (Model, 4);
-      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Create_File_Command,
@@ -57,7 +57,7 @@ separate (Files_Suite.Model)
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Create_File_Command, Model),
          "create command is disabled while a temporary item exists");
-      Result := Files.Controller.Execute_Command (Files.Commands.Create_File_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,

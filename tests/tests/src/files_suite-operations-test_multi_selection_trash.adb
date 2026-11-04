@@ -18,7 +18,8 @@ separate (Files_Suite.Operations)
 
          Write_File (Join (Root, "multi-a.txt"));
          Write_File (Join (Root, "multi-b.txt"));
-         Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+         Result := Files.Controller.Execute_Non_Settings_Command
+           (Files.Commands.Refresh_Directory_Command, Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
             Files.Operations.Operation_Success,
@@ -38,7 +39,8 @@ separate (Files_Suite.Operations)
 
          Write_File (Join (Root, "partial-a.txt"));
          Write_File (Join (Root, "partial-b.txt"));
-         Result := Files.Controller.Execute_Command (Files.Commands.Refresh_Directory_Command, Model, Settings);
+         Result := Files.Controller.Execute_Non_Settings_Command
+           (Files.Commands.Refresh_Directory_Command, Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
             Files.Operations.Operation_Success,

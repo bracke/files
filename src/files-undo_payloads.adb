@@ -1,3 +1,4 @@
+with Files.Diagnostics;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
@@ -45,7 +46,8 @@ package body Files.Undo_Payloads is
       end if;
       return True;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Undo_Payloads");
          Value := (others => <>);
          return False;
    end Parse_Ownership;
@@ -62,7 +64,8 @@ package body Files.Undo_Payloads is
       Mode := Natural'Value (Clean);
       return True;
    exception
-      when others =>
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Undo_Payloads");
          Mode := 0;
          return False;
    end Parse_Mode;

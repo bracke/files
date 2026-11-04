@@ -1,6 +1,17 @@
 with Ada.IO_Exceptions;
 
 package body Files.Bounded_Streams is
+   procedure Output_String
+     (Stream     : not null access Ada.Streams.Root_Stream_Type'Class;
+      Value      : String;
+      Max_Length : Natural) is
+   begin
+      if Value'Length > Max_Length then
+         raise Ada.IO_Exceptions.Use_Error;
+      end if;
+      String'Output (Stream, Value);
+   end Output_String;
+
    function Input_String
      (Stream     : not null access Ada.Streams.Root_Stream_Type'Class;
       Max_Length : Natural) return String

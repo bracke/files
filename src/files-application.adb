@@ -157,7 +157,8 @@ package body Files.Application is
       begin
          return Path /= "" and then Files.Fs_Primitives.Directory_Exists (Path);
       exception
-         when others =>
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Application");
             return False;
       end Existing_Directory;
    begin
@@ -653,9 +654,7 @@ package body Files.Application is
                  Width       => Width,
                  Height      => Height,
                  Line_Height => Files.UI.Base_Line_Height,
-                 Hover_X     => 5,
-                 Hover_Y     => 5,
-                 Has_Hover   => Width > 0 and then Height > 0);
+                 Pointer => (Hover_X => 5, Hover_Y => 5, Has_Hover => Width > 0 and then Height > 0, others => <>));
             Text_Renderer : Files.Rendering.Text_Renderer;
             Frame_Font_Path : constant String := Files.Rendering.Default_Font_Path;
             Text_Status   : constant Files.Rendering.Text_Render_Status :=

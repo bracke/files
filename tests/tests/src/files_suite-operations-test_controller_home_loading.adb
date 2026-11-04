@@ -15,7 +15,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, First, Load.Items, Missing_Home);
       Files.Model.Begin_Create_File (Model, "failed-home-pending.txt");
       Files.Model.Open_Command_Palette (Model);
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Failed,
@@ -41,7 +41,7 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, First, Load.Items, First);
       Files.Model.Begin_Create_File (Model, "home-pending.txt");
       Files.Model.Open_Command_Palette (Model);
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Navigated,

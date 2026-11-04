@@ -13,7 +13,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Current_Path (Model),
          Root,
          "a disabled back command does not change path");
-      Result := Files.Controller.Execute_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -70,16 +70,19 @@ separate (Files_Suite.Commands)
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Toggle_Info_Pane_Command, Model),
          "info toggle enabled with no selection");
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Command_Executed,
          "info toggle executes with no selection");
       Assert (Files.Model.Info_Pane_Is_Open (Model), "info toggle opens the info pane with no selection");
       --  Restore the closed state so later assertions see no transient panes.
-      Result := Files.Controller.Execute_Command (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
       Assert (not Files.Model.Info_Pane_Is_Open (Model), "a second info toggle closes the pane again");
-      Result := Files.Controller.Execute_Command (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -92,7 +95,8 @@ separate (Files_Suite.Commands)
         (Files.Model.Last_Error_Key (Model),
          "error.selection.empty",
          "disabled delete records error");
-      Result := Files.Controller.Execute_Command (Files.Commands.Rename_Selected_Items_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command
+        (Files.Commands.Rename_Selected_Items_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -113,7 +117,7 @@ separate (Files_Suite.Commands)
         (Files.Commands.Status.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
          "context cancel enabled while path input has focus");
       Files.Model.Cancel_Focus_Or_Edit (Model);
-      Result := Files.Controller.Execute_Command (Files.Commands.Select_Drive_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Select_Drive_Command,

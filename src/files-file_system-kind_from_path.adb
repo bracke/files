@@ -20,6 +20,7 @@ begin
          return Files.Types.Other_Item;
    end case;
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return Files.Types.Unknown_Item;
 end Kind_From_Path;

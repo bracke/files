@@ -108,7 +108,8 @@ begin
 
    return (if Ascii_Only then "ascii" else "utf8");
 exception
-   when others =>
+   when Swallowed : others =>
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       Close_Read_Descriptor (File);
       return "binary";
 end Text_Encoding_Name;

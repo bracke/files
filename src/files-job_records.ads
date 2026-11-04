@@ -1,5 +1,6 @@
 with Files.Items;
 with Ada.Streams;
+with Files.Bounded_Streams;
 
 with Files.File_System;
 with Files.Operations;
@@ -12,9 +13,21 @@ package Files.Job_Records is
    --  The thumbnail pixels one refresh may carry: half the transport, about
    --  16,000 thumbnails, so a folder of more images still fits the rest.
    Max_Thumbnail_Transport_Bytes : constant := Max_Transport_Bytes / 2;
-   Max_Path_Length : constant := 32 * 1024;
+   Max_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
    Max_Text_Length : constant := 64 * 1024;
    Max_Error_Length : constant := 256;
+
+   --  Publish a helper's result in its job directory: Write fills the staged
+   --  file, which is size-checked, closed and published whole and durably
+   --  under the result name, where the window reads it. A failure raises
+   --  Use_Error saying which step failed and what was left on disk.
+   --
+   --  @param Directory The job's private directory.
+   --  @param Write Writes the result's records.
+   --  @param Stream Where Write writes.
+   procedure Publish_Result
+     (Directory : String;
+      Write     : not null access procedure (Stream : not null access Ada.Streams.Root_Stream_Type'Class));
 
    --  Reject an oversized transport before decoding any heap-owning fields.
    --  @param Size Encoded transport size to validate.
