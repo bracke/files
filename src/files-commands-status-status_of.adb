@@ -106,9 +106,15 @@ separate (Files.Commands.Status)
             | Copy_Selected_Items_Command =>
             return Real_Selection;
          when Extract_Archive_Command =>
-            return
-              All_Of
-                (Real_Selection, Not_Trash_View, Require (Selection_Has_Archive (Model), Not_Archive_Reason));
+            --  The selection is scanned for an archive only once the cheap
+            --  checks pass: an actual is evaluated whether or not it is needed.
+            declare
+               Base : constant Command_Status := All_Of (Real_Selection, Not_Trash_View);
+            begin
+               return
+                 (if not Base.Enabled then Base
+                  else Require (Selection_Has_Archive (Model), Not_Archive_Reason));
+            end;
          when Copy_To_Command
             | Move_To_Command
             | Create_Symlink_Command

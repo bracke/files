@@ -1,5 +1,5 @@
 separate (Files.Rendering)
-   function Coalesced_Info_Sections
+   function Build_Coalesced_Info_Sections
      (Snapshot : View_Snapshot)
       return Coalesced_Section_Vectors.Vector
    is
@@ -151,4 +151,4 @@ separate (Files.Rendering)
       end if;
 
       return Sections;
-   end Coalesced_Info_Sections;
+   end Build_Coalesced_Info_Sections;

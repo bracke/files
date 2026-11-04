@@ -5,26 +5,14 @@ separate (Files_Suite.Operations)
    procedure Test_Quick_Look_Decodes_Off_Thread (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Files.Quick_Look.Content_Kind;
-      Jpeg_Hex : constant String :=
-           "FFD8FFE000104A46494600010100000100010000FFDB0043000302020302020303030304030304050805050404050A07" &
-           "0706080C0A0C0C0B0A0B0B0D0E12100D0E110E0B0B1016101113141515150C0F171816141812141514FFDB0043010304" &
-           "0405040509050509140D0B0D141414141414141414141414141414141414141414141414141414141414141414141414" &
-           "1414141414141414141414141414FFC00011080008000803011100021101031101FFC400140001000000000000000000" &
-           "00000000000008FFC40014100100000000000000000000000000000000FFC40015010101000000000000000000000000" &
-           "00000709FFC40014110100000000000000000000000000000000FFDA000C03010002110311003F003A03154DFFD9";
       First  : constant String := Join (Root, "first.jpg");
       Second : constant String := Join (Root, "second.jpg");
-      Bytes  : String (1 .. Jpeg_Hex'Length / 2);
+      Bytes  : constant String := Files_Suite.Support.Red_Jpeg_8x8;
       Image  : Files.Images.Decoded_Image;
       Ready  : Boolean := False;
       Model  : Files.Model.Window_Model;
    begin
       Reset_Root;
-      for Index in Bytes'Range loop
-         Bytes (Index) :=
-           Byte (Natural'Value ("16#" & Jpeg_Hex (Jpeg_Hex'First + 2 * (Index - 1) .. Jpeg_Hex'First + 2 * Index - 1)
-                                & "#"));
-      end loop;
       Write_Binary_File (First, Bytes);
       Write_Binary_File (Second, Bytes);
 

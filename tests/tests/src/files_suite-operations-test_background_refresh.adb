@@ -11,26 +11,14 @@ separate (Files_Suite.Operations)
       Environment : Files_Suite.Support.Environment_Guard;
 
       procedure Await_Refresh (Expected : Boolean) is
-         Applied : Boolean := False;
       begin
-         Await_View (Model, Settings, Applied);
-         Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
-                 "the background read finishes without synchronous enumeration");
-         Files_Suite.Support.Assert_Equal
-           (Applied,
-            Expected,
-            "only a matching changed snapshot replaces the visible listing");
+         Await_Refresh_Applied
+           (Model, Settings, Expected, "only a matching changed snapshot replaces the visible listing");
       end Await_Refresh;
 
       procedure Await_Ready is
-         Job : constant Files.Process_Jobs.Session := Files.Model.Background_Refresh (Model);
-         Finished, Cancelled : Boolean;
       begin
-         for Attempt in Files_Suite.Support.Polling loop
-            Files.Process_Jobs.Poll (Job, Finished, Cancelled);
-            exit when Finished;
-         end loop;
-         Assert (Finished and then not Cancelled, "the stale snapshot is ready before the view changes");
+         Await_Refresh_Ready (Model, "the stale snapshot is ready before the view changes");
       end Await_Ready;
    begin
       Files_Suite.Support.Save (Environment, Fault_Name);

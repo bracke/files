@@ -1,3 +1,4 @@
+with Ada.Real_Time;
 with Hostkit.Watch;
 separate (Files_Suite.Operations)
    --  The watch, end to end through its helper process: once up, the helper
@@ -22,7 +23,7 @@ separate (Files_Suite.Operations)
       end loop;
       Assert (Native, "the helper says it reports changes, on every host");
       --  Give the helper time to have its watch in place before the change.
-      for Attempt in Files_Suite.Support.Polling (Limit => 0.5) loop
+      for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Files_Suite.Support.Scaled (0.5))) loop
          null;
       end loop;
       Write_Binary_File (Join (Folder, "new.txt"), "new");
@@ -34,9 +35,22 @@ separate (Files_Suite.Operations)
 
       --  A download growing: the host's watch hears it where it can
       --  (Hostkit.Watch.Sees_File_Writes), the helper's re-read elsewhere.
-      for Attempt in Files_Suite.Support.Polling (Limit => 0.3) loop
-         Noticed := Files.Refresh_Jobs.Poll_Watch (Watch);
-      end loop;
+      --  Drained until nothing has been heard for a quiet spell: a late or
+      --  batched event from the file's creation (FSEvents, ReadDirectory-
+      --  ChangesW) must not answer for the write below.
+      declare
+         use type Ada.Real_Time.Time_Span;
+         Quiet_Since : Files_Suite.Support.Instant := Files_Suite.Support.Now;
+      begin
+         for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Launch_Limit)) loop
+            if Files.Refresh_Jobs.Poll_Watch (Watch) then
+               Quiet_Since := Files_Suite.Support.Now;
+            end if;
+            exit when Files_Suite.Support.Elapsed (Quiet_Since) >= Files_Suite.Support.Scaled (1.0);
+         end loop;
+         Assert (Files_Suite.Support.Elapsed (Quiet_Since) >= Files_Suite.Support.Scaled (1.0),
+                 "the watch falls quiet after the file is made");
+      end;
       Write_Binary_File (Join (Folder, "new.txt"), "new, and grown");
       Noticed := False;
       for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Launch_Limit)) loop

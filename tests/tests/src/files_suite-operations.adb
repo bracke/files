@@ -15,6 +15,7 @@ with Files.Job_Context;
 with Files.Job_Records;
 with Files.Refresh_Jobs;
 with Files.Refresh_Jobs.Testing;
+with Files.Extra_Info_Reader;
 with Files.Resources;
 with Ada.Calendar;
 with Ada.Calendar.Formatting;
@@ -146,6 +147,17 @@ package body Files_Suite.Operations is
       return Result;
    end Complete_Operation;
 
+   --  Bring the selected item's details in the way a window does, off the
+   --  UI thread: asked of the reader and polled until read.
+   procedure Await_Item_Details (Model : in out Files.Model.Window_Model) is
+   begin
+      for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
+         Files.Operations.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (77));
+         exit when not Files.Model.Selected_Item_Needs_Extra (Model);
+      end loop;
+      Assert (not Files.Model.Selected_Item_Needs_Extra (Model), "the window's poll brings the details in");
+   end Await_Item_Details;
+
    --  Make Directory read-only and say whether that refuses a new entry: as
    --  root, or on a host whose mode bits this suite does not drive, a create
    --  still succeeds and a refused write has nothing to observe.
@@ -204,6 +216,8 @@ package body Files_Suite.Operations is
    procedure Test_Pending_Create_Mutation_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Drops_While_Busy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Item_Details_Off_The_UI_Thread (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Tree_Subdirectories (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Refresh_Applies_With_Refused_Settings (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Empty_Archive_Directories (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Duplicate_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -1089,6 +1103,12 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Refresh'Access, "empty metadata is cached and info panes preserve manual refreshes");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Item_Details_Off_The_UI_Thread'Access,
+         "a window reads the selected item's details off the UI thread");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Tree_Subdirectories'Access,
+         "the folder tree's lean listing names the folders a full listing does");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Refresh_Applies_With_Refused_Settings'Access,
          "a background refresh applies in a session whose settings failed to load");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1479,6 +1499,34 @@ package body Files_Suite.Operations is
       pragma Unreferenced (Applied);
    end Await_View;
 
+   --  Wait for the model's background read to finish its snapshot (not yet
+   --  applied), asserting it was not cancelled.
+   procedure Await_Refresh_Ready (Model : Files.Model.Window_Model; What : String) is
+      Job : constant Files.Process_Jobs.Session := Files.Model.Background_Refresh (Model);
+      Finished, Cancelled : Boolean;
+   begin
+      for Attempt in Polling loop
+         Files.Process_Jobs.Poll (Job, Finished, Cancelled);
+         exit when Finished;
+      end loop;
+      Assert (Finished and then not Cancelled, What);
+   end Await_Refresh_Ready;
+
+   --  Collect the model's background read the way the window does, asserting
+   --  it ended and whether it replaced the listing.
+   procedure Await_Refresh_Applied
+     (Model    : in out Files.Model.Window_Model;
+      Settings : in out Files.Settings.Settings_Model;
+      Expected : Boolean;
+      What     : String)
+   is
+      Applied : Boolean := False;
+   begin
+      Await_View (Model, Settings, Applied);
+      Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)), What & ": the read ends");
+      Files_Suite.Support.Assert_Equal (Applied, Expected, What);
+   end Await_Refresh_Applied;
+
    procedure Test_Navigation_Defers_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Plain_Listing_Makes_No_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -1585,6 +1633,10 @@ package body Files_Suite.Operations is
    procedure Test_Drops_While_Busy (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Info_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Item_Details_Off_The_UI_Thread (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Tree_Subdirectories (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Refresh_Applies_With_Refused_Settings (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

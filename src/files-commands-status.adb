@@ -18,7 +18,9 @@ package body Files.Commands.Status is
       --  large folder for it cost more than the rest of the commands.
       procedure Check (Item : Files.Items.Directory_Item) is
       begin
-         Found := Found or else Files.File_Types.Is_Extractable_Archive (To_String (Item.Name));
+         if not Found then
+            Found := Files.File_Types.Is_Extractable_Archive (To_String (Item.Name));
+         end if;
       end Check;
    begin
       Files.Model.For_Each_Selected_Item (Model, Check'Access);

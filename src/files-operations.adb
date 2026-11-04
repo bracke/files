@@ -523,7 +523,9 @@ package body Files.Operations is
    procedure Ensure_Selected_Item_Extra
      (Model : in out Files.Model.Window_Model) is
    begin
-      if Files.Model.Selected_Item_Needs_Extra (Model) then
+      if not Files.Model.Background_Transfers (Model)
+        and then Files.Model.Selected_Item_Needs_Extra (Model)
+      then
          declare
             Item : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
          begin
@@ -534,6 +536,28 @@ package body Files.Operations is
          end;
       end if;
    end Ensure_Selected_Item_Extra;
+
+   procedure Poll_Selected_Item_Extra
+     (Model : in out Files.Model.Window_Model;
+      Owner : Files.Extra_Info_Reader.Requester) is
+   begin
+      if Files.Model.Selected_Item_Needs_Extra (Model) then
+         declare
+            Item  : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
+            Path  : constant String := To_String (Item.Full_Path);
+            Token : Files.Types.UString;
+            Ready : Boolean;
+            Asked : Boolean;
+         begin
+            Files.Extra_Info_Reader.Take (Owner, Path, Token, Ready, Asked);
+            if not Asked then
+               Files.Extra_Info_Reader.Request (Owner, Path, Item.Kind, To_String (Item.Filetype));
+            elsif Ready then
+               Files.Model.Set_Selected_Item_Extra (Model, To_String (Token));
+            end if;
+         end;
+      end if;
+   end Poll_Selected_Item_Extra;
 
    procedure Focus_Ownership_Input
      (Model         : in out Files.Model.Window_Model;

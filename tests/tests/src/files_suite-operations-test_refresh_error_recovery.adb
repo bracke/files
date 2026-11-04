@@ -10,11 +10,9 @@ separate (Files_Suite.Operations)
       Signature : Files.File_System.Directory_Signature;
 
       procedure Await_Refresh (Expected_Reload : Boolean) is
-         Applied : Boolean := False;
       begin
-         Await_View (Model, Settings, Applied);
-         Assert (not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model))
-                 and then Applied = Expected_Reload, "the matching refresh completes with the expected listing update");
+         Await_Refresh_Applied
+           (Model, Settings, Expected_Reload, "the matching refresh completes with the expected listing update");
       end Await_Refresh;
 
       procedure Start_Refresh (Manual : Boolean) is
@@ -24,14 +22,8 @@ separate (Files_Suite.Operations)
       end Start_Refresh;
 
       procedure Await_Ready is
-         Job : constant Files.Process_Jobs.Session := Files.Model.Background_Refresh (Model);
-         Finished, Cancelled : Boolean;
       begin
-         for Attempt in Files_Suite.Support.Polling loop
-            Files.Process_Jobs.Poll (Job, Finished, Cancelled);
-            exit when Finished;
-         end loop;
-         Assert (Finished and then not Cancelled, "the recovery snapshot is ready before a later error is recorded");
+         Await_Refresh_Ready (Model, "the recovery snapshot is ready before a later error is recorded");
       end Await_Ready;
    begin
       for Background in Boolean loop

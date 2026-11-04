@@ -26,11 +26,11 @@ separate (Files_Suite.Operations)
          Await_View (Model, Settings, Applied);
          Assert (Applied and then Files.Model.Item_Count (Model) = 3,
                  "info metadata cannot invalidate a manual refresh started by the same action");
-         Files.Operations.Ensure_Selected_Item_Extra (Model);
+         Await_Item_Details (Model);
          Assert (Files.Model.Selected_Item (Model).Filetype_Extra_Loaded, "even an empty metadata result is cached");
          Revision := Files.Model.Revision (Model);
          for Attempt in 1 .. 20 loop
-            Files.Operations.Ensure_Selected_Item_Extra (Model);
+            Files.Operations.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (77));
          end loop;
          Files_Suite.Support.Assert_Equal
            (Files.Model.Revision (Model),

@@ -2,10 +2,10 @@ with Files.Images;
 
 --  Quick Look's full-size preview, decoded off the UI thread. A camera
 --  photo took 50 to 300 ms to read and decode, and moving through a folder
---  with Quick Look open paid that on every key. One worker task decodes;
---  each requester (a window) has one slot, so a newer request of its own
---  replaces an older one not yet started, and one window never cancels
---  another's.
+--  with Quick Look open paid that on every key. One worker task decodes
+--  (Files.Background_Slots): each requester (a window) has one slot, so a
+--  newer request of its own replaces an older one not yet started, and one
+--  window never cancels another's.
 package Files.Preview_Decoder is
 
    --  Who asks: one key per window.

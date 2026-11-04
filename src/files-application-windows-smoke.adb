@@ -258,7 +258,7 @@ package body Files.Application.Windows.Smoke is
       Runtime.Text_Ready := False;
       Runtime.Glyph_Text_Valid := False;
       Runtime.Frame_Cache_Valid := False;
-      Runtime.Snapshot_Valid := False;
+      Runtime.View.Snapshot_Valid := False;
       Apply_Scenario (Runtime, Scenario);
    end Prepare_Scenario;
 

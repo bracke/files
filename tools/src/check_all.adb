@@ -2233,8 +2233,9 @@ procedure Check_All is
          Code  : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
          Start : Positive := Code'First;
       begin
-         --  A subprogram's subunit declares only its own locals.
-         if Ada.Strings.Fixed.Index (Code, "separate") = Code'First
+         --  A subprogram's subunit declares only its own locals (its with
+         --  clauses, if any, come before the separate).
+         if Ada.Strings.Fixed.Index (Code, "separate (") > 0
            and then Ada.Strings.Fixed.Index (Code, "package body") = 0
          then
             return;
@@ -2295,6 +2296,13 @@ procedure Check_All is
       Check_All ("files-file_system-thumbnails.ad?");
       Check_All ("files-images*.ad?");
       Check_All ("files-preview_decoder.ad?");
+      --  The worker tasks of Files.Background_Slots, and the readers the
+      --  info pane's worker runs.
+      Check_All ("files-background_slots.ad?");
+      Check_All ("files-extra_info_reader.ad?");
+      Check_All ("files-file_system-*_token.adb");
+      Check_All ("files-file_system-count_text_lines.adb");
+      Check_All ("files-file_system-text_encoding_name.adb");
    end Check_Shared_Package_State;
 
    --  A timer that subtracts from the clock (Clock - Since) overflows when
@@ -2358,6 +2366,21 @@ procedure Check_All is
          then
             Refuse (Path, "subtracting times with the operator named");
          end if;
+         --  A use clause lets a time be declared as plain Time, and a subtype
+         --  gives it another name: either hides it from the name check below.
+         declare
+            Lower : constant String := Ada.Characters.Handling.To_Lower (Code);
+         begin
+            if Ada.Strings.Fixed.Index (Lower, "use ada.real_time;") > 0
+              or else Ada.Strings.Fixed.Index (Lower, "use ada.calendar;") > 0
+            then
+               Refuse (Path, "a use clause for a clock package (use type is fine)");
+            elsif Ada.Strings.Fixed.Index (Lower, " is ada.real_time.time;") > 0
+              or else Ada.Strings.Fixed.Index (Lower, " is ada.calendar.time;") > 0
+            then
+               Refuse (Path, "a renamed time type");
+            end if;
+         end;
          --  Now - Last, where Last is a time some variable or field starts
          --  at: the right operand is a name declared as a time in the file's
          --  unit family (its last component, for a field).
@@ -2539,6 +2562,133 @@ procedure Check_All is
       end loop;
       Ada.Directories.End_Search (Search);
    end Check_Environment_Access;
+
+   --  The model caches its visible rows (Support.Ensure_Visible_Map); a
+   --  subprogram that writes the items, their order, the filter or the
+   --  search flag must drop the cache (Invalidate_Visible) or every lookup
+   --  after it serves the old rows. Checked per top-level subprogram of each
+   --  files-model*.adb (a subunit is one), comments stripped, whitespace run
+   --  together so a call split over lines is still seen.
+   procedure Check_Visible_Cache_Invalidation is
+      Search : Ada.Directories.Search_Type;
+      Item   : Ada.Directories.Directory_Entry_Type;
+
+      Writes : constant array (Positive range <>) of Unbounded_String :=
+        [To_Unbounded_String ("model.items :="),
+         To_Unbounded_String ("model.items.clear"),
+         To_Unbounded_String ("model.items.append"),
+         To_Unbounded_String ("model.items.prepend"),
+         To_Unbounded_String ("model.items.delete"),
+         To_Unbounded_String ("model.items.insert"),
+         To_Unbounded_String ("model.items.move"),
+         To_Unbounded_String ("model.items.swap"),
+         To_Unbounded_String ("model.items.set_length"),
+         To_Unbounded_String ("model.items.reverse_elements"),
+         To_Unbounded_String ("sort_items (model.items"),
+         To_Unbounded_String ("filter_value :="),
+         To_Unbounded_String ("search_results_active :=")];
+
+      --  Text lowered, with every run of blanks and line ends one space.
+      function Collapsed (Text : String) return String is
+         Result : Unbounded_String;
+         Blank  : Boolean := False;
+      begin
+         for C of Ada.Characters.Handling.To_Lower (Text) loop
+            if C in ' ' | ASCII.HT | ASCII.LF | ASCII.CR then
+               Blank := True;
+            else
+               if Blank and then Length (Result) > 0 then
+                  Append (Result, ' ');
+               end if;
+               Blank := False;
+               Append (Result, C);
+            end if;
+         end loop;
+         return To_String (Result);
+      end Collapsed;
+
+      procedure Check_File (Path : String) is
+         Code    : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
+         Indent  : constant Natural := (if Ada.Strings.Fixed.Index (Code, "separate (") > 0 then 0 else 3);
+         Pad     : constant String (1 .. Indent) := [others => ' '];
+         Name    : Unbounded_String;
+         Body_Of : Unbounded_String;
+
+         --  The name a top-level subprogram header at Indent declares, or "".
+         function Header_Name (Line : String) return String is
+         begin
+            for Word in 1 .. 2 loop
+               declare
+                  Lead : constant String := Pad & (if Word = 1 then "procedure " else "function ");
+               begin
+                  if Line'Length > Lead'Length and then Line (Line'First .. Line'First + Lead'Length - 1) = Lead then
+                     declare
+                        Rest : constant String := Line (Line'First + Lead'Length .. Line'Last);
+                        Stop : Natural := Rest'First;
+                     begin
+                        while Stop <= Rest'Last and then Rest (Stop) not in ' ' | '(' | ';' loop
+                           Stop := Stop + 1;
+                        end loop;
+                        return Rest (Rest'First .. Stop - 1);
+                     end;
+                  end if;
+               end;
+            end loop;
+            return "";
+         end Header_Name;
+
+         procedure Visit (Line : String) is
+         begin
+            if Length (Name) = 0 then
+               if Header_Name (Line) /= "" then
+                  Name := To_Unbounded_String (Header_Name (Line));
+                  Body_Of := To_Unbounded_String (Line);
+               end if;
+               return;
+            end if;
+            Append (Body_Of, ASCII.LF & Line);
+            if Line = Pad & "end " & To_String (Name) & ";" then
+               declare
+                  Text : constant String := Collapsed (To_String (Body_Of));
+               begin
+                  if Ada.Strings.Fixed.Index (Text, "invalidate_visible") = 0 then
+                     for Write of Writes loop
+                        if Ada.Strings.Fixed.Index (Text, To_String (Write)) > 0 then
+                           Put_Line
+                             (Standard_Error,
+                              Path & ": " & To_String (Name) & " writes '" & To_String (Write)
+                              & "' without Invalidate_Visible: the visible-row cache would serve old rows");
+                           Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+                           raise Program_Error;
+                        end if;
+                     end loop;
+                  end if;
+               end;
+               Name := Null_Unbounded_String;
+            end if;
+         end Visit;
+
+         First : Positive := Code'First;
+      begin
+         for Index in Code'Range loop
+            if Code (Index) = ASCII.LF then
+               Visit (Code (First .. Index - 1));
+               First := Index + 1;
+            end if;
+         end loop;
+         if First <= Code'Last then
+            Visit (Code (First .. Code'Last));
+         end if;
+      end Check_File;
+   begin
+      Ada.Directories.Start_Search
+        (Search, Root & "/src", "files-model*.adb", [Ada.Directories.Ordinary_File => True, others => False]);
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Item);
+         Check_File (Ada.Directories.Full_Name (Item));
+      end loop;
+      Ada.Directories.End_Search (Search);
+   end Check_Visible_Cache_Invalidation;
 
    procedure Check_Localization_Usage is
       Main_Manifest : constant String := Root & "/alire.toml";
@@ -3633,6 +3783,14 @@ procedure Check_All is
             end loop;
          end loop;
          Ada.Directories.End_Search (Search);
+         --  The parent's own spec and body too: the text checks above match
+         --  one spelling of a with clause, this one parses them.
+         for Suffix in 1 .. 2 loop
+            for Unit of Filesystem_Units loop
+               Require_Only_Allowed_With_Clauses
+                 (Root & "/src/files-rendering.ad" & (if Suffix = 1 then "s" else "b"), To_String (Unit), No_Units);
+            end loop;
+         end loop;
       exception
          when others =>
             if Started then
@@ -4611,9 +4769,9 @@ procedure Check_All is
       Require_Tests ("startup", 29);
       Require_Tests ("commands", 38);
       Require_Tests ("model", 53);
-      Require_Tests ("interaction", 76);
-      Require_Tests ("rendering", 93);
-      Require_Tests ("operations", 273);
+      Require_Tests ("interaction", 77);
+      Require_Tests ("rendering", 94);
+      Require_Tests ("operations", 275);
    end Check_Test_Subsystem_Coverage;
 
 begin
@@ -4639,6 +4797,7 @@ begin
    Check_Localization_Usage;
    Check_Clock_Arithmetic;
    Check_Environment_Access;
+   Check_Visible_Cache_Invalidation;
    Check_Shared_Package_State;
    Check_Host_Questions;
    Check_Filetype_Detection_Order;

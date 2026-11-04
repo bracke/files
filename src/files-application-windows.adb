@@ -1,4 +1,5 @@
 with Files.Preview_Decoder;
+with Files.Extra_Info_Reader;
 with Files.Controller;
 with Files.Items;
 with Files.Environment;
@@ -22,8 +23,6 @@ with Files.Job_Scavenger;
 with Files.Operations;
 with Files.Process_Jobs;
 with Files.Rendering.Hit;
-with Files.Snapshot_Policy;
-with Files.Timing;
 with Guikit.Layout;
 with Guikit.Settings_Panel;
 with Guikit.Utf8;
@@ -528,7 +527,7 @@ package body Files.Application.Windows is
    --    a snapshot or frame built in an earlier minute (relative times) apart.
    function Wall_Clock_Minute return Natural is separate;
 
-   --  Make Runtime.Snapshots (Runtime.Current_Slot) the snapshot of the model
+   --  Make Runtime.View.Snapshots (Runtime.View.Current_Slot) the snapshot of the model
    --  and settings as they are now, rebuilding it only when the model revision,
    --  the snapshot settings or the minute moved since it was built (or a paste
    --  is running, whose progress no revision tracks: then at most ten times a
@@ -540,81 +539,8 @@ package body Files.Application.Windows is
    --
    --  @param Runtime Window whose current snapshot is brought up to date.
    procedure Refresh_Snapshot (Runtime : in out Runtime_Window) is
-      --  Ten progress updates a second: a rebuild is O(items), and on every
-      --  loop pass it held a core for the length of a paste in a large folder.
-      Paste_Progress_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (100);
-      Now    : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
-      Action : constant Files.Snapshot_Policy.Snapshot_Action :=
-        Files.Snapshot_Policy.Action_For
-          (Valid         => Runtime.Snapshot_Valid,
-           Same_Revision => Runtime.Cached_Model_Revision = Files.Model.Revision (Runtime.Model),
-           Same_Settings => Files.Settings.Same_Snapshot_Settings (Runtime.Settings, Runtime.Cached_Settings_Key),
-           Same_Scroll   => Runtime.Cached_Scroll_Revision = Files.Model.Scroll_Revision (Runtime.Model),
-           Same_Rows     => Runtime.Cached_Rows_Revision = Files.Model.Rows_Revision (Runtime.Model),
-           Same_Row_Settings => Files.Settings.Same_Row_Settings (Runtime.Settings, Runtime.Cached_Settings_Key),
-           Pasting       => Files.Model.Paste_Execution_Is_Active (Runtime.Model),
-           Paste_Interval_Elapsed =>
-             Files.Timing.Elapsed (Now, Runtime.Snapshot_Built_At, Paste_Progress_Interval));
-      use type Files.Snapshot_Policy.Snapshot_Action;
    begin
-      if Action in Files.Snapshot_Policy.Reuse | Files.Snapshot_Policy.Patch_Scroll then
-         if Action = Files.Snapshot_Policy.Patch_Scroll then
-            --  Only an offset moved: the items stand. A copy with the new
-            --  offsets (about a millisecond for 20,000 items) instead of a
-            --  rebuild (thirty), into the other slot if this one is on screen.
-            if Runtime.Current_Slot = Runtime.Drawn_Slot then
-               declare
-                  Other : constant Snapshot_Slot := (if Runtime.Drawn_Slot = 1 then 2 else 1);
-               begin
-                  --  A scroll back and forth finds the other slot already
-                  --  holding this build: only its offsets are written below.
-                  if Runtime.Slot_Contents (Other) /= Runtime.Slot_Contents (Runtime.Current_Slot) then
-                     Runtime.Snapshots (Other) := Runtime.Snapshots (Runtime.Current_Slot);
-                     Runtime.Slot_Model_Rows (Other) := Runtime.Slot_Model_Rows (Runtime.Current_Slot);
-                     Runtime.Slot_Contents (Other) := Runtime.Slot_Contents (Runtime.Current_Slot);
-                     Runtime.Slot_Rows (Other) := Runtime.Slot_Rows (Runtime.Current_Slot);
-                  end if;
-                  Runtime.Current_Slot := Other;
-               end;
-            end if;
-            Runtime.Snapshots (Runtime.Current_Slot).Main_View_Scroll_Lines :=
-              Files.Model.Main_View_Scroll_Lines (Runtime.Model);
-            Runtime.Snapshots (Runtime.Current_Slot).Info_Pane_Scroll_Lines :=
-              Files.Model.Info_Pane_Scroll_Lines (Runtime.Model);
-            Runtime.Snapshots (Runtime.Current_Slot).Tree_Panel_Scroll_Rows :=
-              Files.Model.Tree_Panel_Scroll_Rows (Runtime.Model);
-            Runtime.Cached_Scroll_Revision := Files.Model.Scroll_Revision (Runtime.Model);
-         end if;
-         return;
-      end if;
-
-      declare
-         --  A selection change keeps the rows (a few milliseconds instead of
-         --  a whole rebuild in a large folder), taken from the current slot.
-         --  Built in place: a snapshot's copy is milliseconds of its own.
-         From      : constant Snapshot_Slot := Runtime.Current_Slot;
-         Keep_Rows : constant Boolean := Action = Files.Snapshot_Policy.Patch_Rows;
-      begin
-         if Runtime.Current_Slot = Runtime.Drawn_Slot then
-            Runtime.Current_Slot := (if Runtime.Drawn_Slot = 1 then 2 else 1);
-            if Keep_Rows and then Runtime.Slot_Rows (Runtime.Current_Slot) /= Runtime.Slot_Rows (From) then
-               Runtime.Snapshots (Runtime.Current_Slot).Items := Runtime.Snapshots (From).Items;
-            end if;
-         end if;
-         Files.Rendering.Build_Snapshot_Into
-           (Runtime.Snapshots (Runtime.Current_Slot), Runtime.Model, Runtime.Settings, Keep_Rows);
-         Runtime.Last_Generation := Runtime.Last_Generation + 1;
-         Runtime.Slot_Contents (Runtime.Current_Slot) := Runtime.Last_Generation;
-         Runtime.Slot_Rows (Runtime.Current_Slot) :=
-           (if Keep_Rows then Runtime.Slot_Rows (From) else Runtime.Last_Generation);
-      end;
-      Runtime.Cached_Rows_Revision := Files.Model.Rows_Revision (Runtime.Model);
-      Runtime.Cached_Scroll_Revision := Files.Model.Scroll_Revision (Runtime.Model);
-      Runtime.Slot_Model_Rows (Runtime.Current_Slot) := Files.Model.Rows_Revision (Runtime.Model);
-      Runtime.Cached_Model_Revision := Files.Model.Revision (Runtime.Model);
-      Runtime.Cached_Settings_Key := Files.Settings.Snapshot_Settings_Key_Of (Runtime.Settings);
-      Runtime.Snapshot_Built_At := Now;
-      Runtime.Snapshot_Valid := True;
+      Files.Snapshot_Slots.Refresh (Runtime.View, Runtime.Model, Runtime.Settings, Ada.Real_Time.Clock);
    end Refresh_Snapshot;
 
    procedure Refresh_Selection_Grid_Columns
@@ -651,7 +577,7 @@ package body Files.Application.Windows is
          --  Runs before every key fire, auto-repeat included; the current
          --  snapshot is rebuilt only when the model or settings moved.
          Refresh_Snapshot (Runtime);
-         Apply (Runtime.Snapshots (Runtime.Current_Slot));
+         Apply (Runtime.View.Snapshots (Runtime.View.Current_Slot));
       end;
    end Refresh_Selection_Grid_Columns;
 
@@ -701,7 +627,7 @@ package body Files.Application.Windows is
       Refresh_Snapshot (Runtime);
       declare
          Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-         Snapshot    : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Current_Slot);
+         Snapshot    : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Runtime.View.Current_Slot);
          Layout      : constant Files.Rendering.Layout_Metrics :=
            Files.Rendering.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
          Lines       : constant Natural :=
@@ -813,7 +739,7 @@ package body Files.Application.Windows is
             if Runtime.Settings /= Shared then
                Runtime.Settings := Shared;
                Runtime.Frame_Cache_Valid := False;
-               Runtime.Snapshot_Valid := False;
+               Runtime.View.Snapshot_Valid := False;
             end if;
             Runtime.Synced_Settings := Shared;
          end loop;
@@ -847,7 +773,7 @@ package body Files.Application.Windows is
             when Swallowed : others =>
                Files.Diagnostics.Note_Event_Loop (Swallowed);
                Runtime.Frame_Cache_Valid := False;
-               Runtime.Snapshot_Valid := False;
+               Runtime.View.Snapshot_Valid := False;
          end;
          Share_Settings_From (Runtime_Windows, Index);
       end loop;
@@ -953,40 +879,37 @@ package body Files.Application.Windows is
       end if;
       Refreshed := Files.Refresh_Jobs.Advance (Runtime.Model, Runtime.Settings);
       Files.Refresh_Jobs.Resume_Owed (Runtime.Model, Runtime.Settings);
-      --  Also service selections deferred by a cancelled or failed refresh.
-      Files.Operations.Ensure_Selected_Item_Extra (Runtime.Model);
+      --  The selected item's type details, read off the UI thread; this also
+      --  serves selections deferred by a cancelled or failed refresh.
+      Files.Operations.Poll_Selected_Item_Extra (Runtime.Model, Files.Extra_Info_Reader.Requester (Runtime.A11y_Key));
 
       declare
          Changed     : constant Boolean := Drain_Native_Watch (Runtime);
          Load_Failed : constant Boolean :=
            Files.Model.Last_Error_Key (Runtime.Model) = "error.directory.load";
+         Polled      : Boolean;
       begin
          --  A burst of writes is paced to one reload per gap, the last one
          --  owed and paid; a listing that cannot be read is retried slowly.
-         --  While a read runs nothing is started, so nothing is paid: the
-         --  change stays owed until the read is in.
-         if Files.Process_Jobs.Active (Files.Model.Background_Refresh (Runtime.Model)) then
-            Files.Refresh_Jobs.Owe_Watch_Refresh (Runtime.Watch_Pacing, Changed);
-            return;
-         elsif Files.Refresh_Jobs.Watch_Refresh_Due (Runtime.Watch_Pacing, Now, Changed) then
-            if Files.Refresh_Jobs.Retry_Due (Runtime.Watch_Pacing, Now, Load_Failed) then
+         case Files.Refresh_Jobs.Watch_Step
+           (Pacer       => Runtime.Watch_Pacing,
+            Now         => Now,
+            Changed     => Changed,
+            Read_Active => Files.Process_Jobs.Active (Files.Model.Background_Refresh (Runtime.Model)),
+            Load_Failed => Load_Failed,
+            Poll_Due    =>
+              Now >= Runtime.Last_Watch_Poll + File_Watch_Poll_Interval
+              and then (not Files.Refresh_Jobs.Watch_Is_Native (Runtime.Watch)
+                        or else Now >= Runtime.Last_Watch_Poll + Native_Watch_Poll_Interval),
+            Polled      => Polled)
+         is
+            when Files.Refresh_Jobs.Watch_Refresh =>
                Result := Files.Operations.Refresh_If_Changed (Runtime.Model, Runtime.Settings);
-            end if;
-            return;
-         elsif Changed then
-            return;
-         end if;
-
-         if Now < Runtime.Last_Watch_Poll + File_Watch_Poll_Interval
-           or else (Files.Refresh_Jobs.Watch_Is_Native (Runtime.Watch)
-                    and then Now < Runtime.Last_Watch_Poll + Native_Watch_Poll_Interval)
-         then
-            return;
-         end if;
-
-         Runtime.Last_Watch_Poll := Now;
-         if Files.Refresh_Jobs.Retry_Due (Runtime.Watch_Pacing, Now, Load_Failed) then
-            Result := Files.Operations.Refresh_If_Changed (Runtime.Model, Runtime.Settings);
+            when Files.Refresh_Jobs.Watch_Wait =>
+               null;
+         end case;
+         if Polled then
+            Runtime.Last_Watch_Poll := Now;
          end if;
       end;
    end Handle_File_Watch_Poll;
@@ -1198,9 +1121,9 @@ package body Files.Application.Windows is
    begin
       if not Runtime.Frame_Cache_Valid then
          Refresh_Snapshot (Runtime);
-         return Runtime.Current_Slot;
+         return Runtime.View.Current_Slot;
       end if;
-      return Runtime.Drawn_Slot;
+      return Runtime.View.Drawn_Slot;
    end Hit_Slot;
 
    --  The model's visible index of the item drawn at Index in Slot. The
@@ -1214,10 +1137,10 @@ package body Files.Application.Windows is
       Index   : Natural)
       return Natural is
    begin
-      if Index = 0 or else Runtime.Slot_Model_Rows (Slot) = Files.Model.Rows_Revision (Runtime.Model) then
+      if Index = 0 or else Runtime.View.Slot_Model_Rows (Slot) = Files.Model.Rows_Revision (Runtime.Model) then
          return Index;
       end if;
-      return Files.Rendering.Item_Now (Runtime.Snapshots (Slot), Index, Runtime.Model);
+      return Files.Rendering.Item_Now (Runtime.View.Snapshots (Slot), Index, Runtime.Model);
    end Current_Item_Index;
 
    function Current_Click_Action
@@ -1242,7 +1165,7 @@ package body Files.Application.Windows is
          X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
          Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
          Slot     : constant Snapshot_Slot := Hit_Slot (Runtime);
-         Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Slot);
+         Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Slot);
          Action   : Files.Events.Input_Action :=
            Files.Events.Translate_Click
              (Snapshot    => Snapshot,
@@ -1647,7 +1570,7 @@ package body Files.Application.Windows is
          declare
             Y_Frame  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
             Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-            Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Hit_Slot (Runtime));
+            Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Hit_Slot (Runtime));
             Layout   : constant Files.Rendering.Layout_Metrics :=
               Files.Rendering.Calculate_Layout
                 (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
@@ -1671,7 +1594,7 @@ package body Files.Application.Windows is
          declare
             Y_Frame  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
             Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-            Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Hit_Slot (Runtime));
+            Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Hit_Slot (Runtime));
             Layout   : constant Files.Rendering.Layout_Metrics :=
               Files.Rendering.Calculate_Layout
                 (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
@@ -2011,7 +1934,7 @@ package body Files.Application.Windows is
                   Files.Model.Set_Error
                     (Runtime.Model, "error.recovery.unsafe_transport");
                   Runtime.Frame_Cache_Valid := False;
-                  Runtime.Snapshot_Valid := False;
+                  Runtime.View.Snapshot_Valid := False;
                end if;
             end loop;
             State.Recovery_Reported := True;

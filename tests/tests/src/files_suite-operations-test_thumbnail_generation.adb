@@ -106,22 +106,10 @@ separate (Files_Suite.Operations)
       --  native image loader: none of the in-Ada decoders reads JPEG, so red
       --  pixels can only have come from it.
       declare
-         Jpeg_Hex : constant String :=
-           "FFD8FFE000104A46494600010100000100010000FFDB0043000302020302020303030304030304050805050404050A07" &
-           "0706080C0A0C0C0B0A0B0B0D0E12100D0E110E0B0B1016101113141515150C0F171816141812141514FFDB0043010304" &
-           "0405040509050509140D0B0D141414141414141414141414141414141414141414141414141414141414141414141414" &
-           "1414141414141414141414141414FFC00011080008000803011100021101031101FFC400140001000000000000000000" &
-           "00000000000008FFC40014100100000000000000000000000000000000FFC40015010101000000000000000000000000" &
-           "00000709FFC40014110100000000000000000000000000000000FFDA000C03010002110311003F003A03154DFFD9";
          Jpeg_Source : constant String := Join (Root, "red.jpg");
-         Jpeg_Bytes  : String (1 .. Jpeg_Hex'Length / 2);
+         Jpeg_Bytes  : constant String := Files_Suite.Support.Red_Jpeg_8x8;
          Decoded     : Files.Images.Decoded_Image;
       begin
-         for Index in Jpeg_Bytes'Range loop
-            Jpeg_Bytes (Index) :=
-              Byte (Natural'Value ("16#" & Jpeg_Hex (Jpeg_Hex'First + 2 * (Index - 1) .. Jpeg_Hex'First + 2 * Index - 1)
-                                   & "#"));
-         end loop;
          Write_Binary_File (Jpeg_Source, Jpeg_Bytes);
          Decoded := Files.Images.Decode_Image_To_Pixels (Jpeg_Source, 8);
          Assert (Decoded.Available, "a real JPEG decodes through the native image loader");

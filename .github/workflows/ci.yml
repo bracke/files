@@ -522,6 +522,10 @@ jobs:
           # zone too (the local-time test skips where local time is UTC).
           FILES_TEST_EXPECTED_SKIPS: expected-skips-linux.txt
           TZ: America/St_Johns
+          # A full rebuild just ran beside the suite's helpers on a shared
+          # runner, and the instrumented fixture is slower: the same room as
+          # the coverage run (a recovery test missed its bound here once).
+          FILES_TEST_TIME_SCALE: '2'
         run: |
           # -f: changed C flags alone need not recompile or relink, and an
           # uninstrumented binary would pass here without checking anything.

@@ -552,6 +552,23 @@ package body Files.Rendering is
       return Build_Snapshot (Model, Files.Settings.Default_Settings);
    end Build_Snapshot;
 
+   --  Build the ordered coalesced sections for the current multi-item selection.
+   --  Each section carries one value per selected item so the layout and the
+   --  renderer stay in lock-step. Intended for Selected_Info.Length >= 2.
+   --
+   --  @param Snapshot View snapshot holding the selected-item info blocks.
+   --  @return The ordered sections, each with one display value per selected item.
+   function Build_Coalesced_Info_Sections
+     (Snapshot : View_Snapshot)
+      return Coalesced_Section_Vectors.Vector;
+
+   --  The sections Build_Snapshot_Into formatted, or formatted now for a
+   --  snapshot assembled another way.
+   function Coalesced_Info_Sections
+     (Snapshot : View_Snapshot)
+      return Coalesced_Section_Vectors.Vector is
+     (if Snapshot.Info_Sections_Built then Snapshot.Info_Sections else Build_Coalesced_Info_Sections (Snapshot));
+
    procedure Build_Snapshot_Into
      (Snapshot  : in out View_Snapshot;
       Model     : Files.Model.Window_Model;
@@ -623,7 +640,9 @@ package body Files.Rendering is
      (Snapshot      : View_Snapshot;
       Layout        : Layout_Metrics;
       Line_Height   : Positive := Files.UI.Base_Line_Height;
-      Whole_Content : Boolean := False)
+      Whole_Content : Boolean := False;
+      Window_Top    : Natural := 0;
+      Window_Height : Natural := 0)
       return Item_Layout_Vectors.Vector
  is separate;
 
@@ -1372,33 +1391,11 @@ package body Files.Rendering is
       return Natural
  is separate;
 
-   --  One coalesced info-pane section for a multi-item selection: a single field
-   --  label plus the per-item display values (one entry per selected item, in
-   --  order, with placeholders already filled for items the field omits).
-   package Info_Value_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Unbounded_String);
-
-   type Coalesced_Section is record
-      Key    : Unbounded_String;
-      Values : Info_Value_Vectors.Vector;
-   end record;
-
-   package Coalesced_Section_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Coalesced_Section);
-
    --  Placeholder shown for an item a section does not apply to. ASCII so it is
    --  always covered by the glyph atlas (the live-smoke asserts no missing glyphs).
    Coalesced_Placeholder : constant String := "-";
 
-   --  Build the ordered coalesced sections for the current multi-item selection.
-   --  Each section carries one value per selected item so the layout and the
-   --  renderer stay in lock-step. Intended for Selected_Info.Length >= 2.
-   --
-   --  @param Snapshot View snapshot holding the selected-item info blocks.
-   --  @return The ordered sections, each with one display value per selected item.
-   function Coalesced_Info_Sections
+   function Build_Coalesced_Info_Sections
      (Snapshot : View_Snapshot)
       return Coalesced_Section_Vectors.Vector
  is separate;

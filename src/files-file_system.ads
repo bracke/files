@@ -251,6 +251,23 @@ package Files.File_System is
       Settings : Files.Settings.Settings_Model)
       return Directory_Load_Result;
 
+   --  Path's subdirectories, for the folder tree: named, dated and classified
+   --  for the listing's sort, in its order, but without the per-item
+   --  metadata, thumbnails and file kinds a listing builds. Expanding a node
+   --  over a large folder took a full listing's time (200 ms for 22,000
+   --  entries) on the UI thread; this takes one no-follow stat per entry
+   --  where mode bits are native. A link to a folder is not a subdirectory.
+   --
+   --  @param Path Directory whose subdirectories are listed.
+   --  @param Settings Settings used for filetype and icon classification.
+   --  @param Options Hidden-entry and sort policy.
+   --  @return The subdirectories, or a recoverable error result.
+   function Load_Subdirectories
+     (Path     : String;
+      Settings : Files.Settings.Settings_Model;
+      Options  : Files.Types.Listing_Options)
+      return Directory_Load_Result;
+
    --  Whether any image in Items still lacks the thumbnail a listing makes.
    --
    --  @param Items Loaded items.

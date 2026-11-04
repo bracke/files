@@ -112,6 +112,20 @@ package Files.Rendering is
      (Index_Type   => Positive,
       Element_Type => Info_Snapshot);
 
+   --  One coalesced info-pane section for a multi-item selection: a single field
+   --  label plus the per-item display values (one entry per selected item, in
+   --  order, with placeholders already filled for items the field omits).
+   package Info_Value_Vectors renames Files.Types.String_Vectors;
+
+   type Coalesced_Section is record
+      Key    : UString;
+      Values : Info_Value_Vectors.Vector;
+   end record;
+
+   package Coalesced_Section_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Coalesced_Section);
+
    type Command_Enablement_Array is array (Files.Commands.Registered_Command_Id) of Boolean;
 
    type View_Snapshot is record
@@ -199,6 +213,10 @@ package Files.Rendering is
       Command_Enabled                : Command_Enablement_Array := [others => False];
       Items                          : Item_Snapshot_Vectors.Vector;
       Selected_Info                  : Info_Snapshot_Vectors.Vector;
+      --  A multi-item selection's info, field by field, formatted once per
+      --  build rather than twice per frame (Info_Sections_Built: present).
+      Info_Sections                  : Coalesced_Section_Vectors.Vector;
+      Info_Sections_Built            : Boolean := False;
       --  Combined size of the whole selection (selected files plus the recursive
       --  size of selected folders). Selection_Total_Pending is True while any
       --  selected folder is still being measured, so the total is not yet final.
@@ -729,12 +747,19 @@ package Files.Rendering is
    --    scrolled out of view have no area; True for every item at its place
    --    in the unscrolled content (on-screen Y plus the scroll in pixels), as
    --    a marquee that scrolls the view needs.
+   --  @param Window_Top With Whole_Content, where the items needed start, in
+   --    the result's coordinates (the frame's, plus the scroll in pixels).
+   --  @param Window_Height With Whole_Content, how far they reach: only cells
+   --    overlapping that band are placed (the rest have no area), so a marquee
+   --    over a large folder does not lay out every item; 0 places them all.
    --  @return Item layout rectangles in visible-item order.
    function Calculate_Item_Layout
      (Snapshot      : View_Snapshot;
       Layout        : Layout_Metrics;
       Line_Height   : Positive := Files.UI.Base_Line_Height;
-      Whole_Content : Boolean := False)
+      Whole_Content : Boolean := False;
+      Window_Top    : Natural := 0;
+      Window_Height : Natural := 0)
       return Item_Layout_Vectors.Vector;
 
    --  Calculate main-view scroll metrics for the current view snapshot.

@@ -43,7 +43,7 @@ separate (Files.Application.Windows)
             --  rebuilt only when the model or settings moved since, rather
             --  than paying the O(items) rebuild on every keystroke.
             Refresh_Snapshot (Runtime);
-            return Capacity_For (Runtime.Snapshots (Runtime.Current_Slot));
+            return Capacity_For (Runtime.View.Snapshots (Runtime.View.Current_Slot));
          end;
       end Tree_Page_Rows;
    begin

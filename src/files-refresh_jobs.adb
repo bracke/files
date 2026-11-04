@@ -508,6 +508,30 @@ package body Files.Refresh_Jobs is
       return True;
    end Retry_Due;
 
+   function Watch_Step
+     (Pacer       : in out Watch_Pacer;
+      Now         : Ada.Real_Time.Time;
+      Changed     : Boolean;
+      Read_Active : Boolean;
+      Load_Failed : Boolean;
+      Poll_Due    : Boolean;
+      Polled      : out Boolean) return Watch_Step_Action is
+   begin
+      Polled := False;
+      --  While a read runs nothing is started, so nothing is paid: the
+      --  change stays owed until the read is in.
+      if Read_Active then
+         Owe_Watch_Refresh (Pacer, Changed);
+         return Watch_Wait;
+      elsif Watch_Refresh_Due (Pacer, Now, Changed) then
+         return (if Retry_Due (Pacer, Now, Load_Failed) then Watch_Refresh else Watch_Wait);
+      elsif Changed or else not Poll_Due then
+         return Watch_Wait;
+      end if;
+      Polled := True;
+      return (if Retry_Due (Pacer, Now, Load_Failed) then Watch_Refresh else Watch_Wait);
+   end Watch_Step;
+
    procedure Run_Helper (Directory : String) is
       File : aliased Files.Exclusive_Streams.Output_Stream;
       Work : Request;

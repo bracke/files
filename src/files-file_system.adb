@@ -336,6 +336,12 @@ package body Files.File_System is
       Settings : Files.Settings.Settings_Model)
       return Directory_Load_Result is separate;
 
+   function Load_Subdirectories
+     (Path     : String;
+      Settings : Files.Settings.Settings_Model;
+      Options  : Files.Types.Listing_Options)
+      return Directory_Load_Result is separate;
+
    function Thumbnails_Missing (Items : Item_Vectors.Vector) return Boolean is separate;
 
    function Load_Item

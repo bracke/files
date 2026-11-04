@@ -1,3 +1,4 @@
+with Ada.Strings.Maps;
 separate (Files_Suite.Operations)
    --  The watch poll's background read neither restarts a folder measurement
    --  nor, when it finds nothing new, forces a new revision: in a large folder
@@ -9,6 +10,7 @@ separate (Files_Suite.Operations)
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
+      pragma Unreferenced (Step);
       Folder   : constant String := Join (Root, "folder");
       Marker   : constant String := Join (Root, "size-started");
       Revision : Natural;
@@ -36,25 +38,37 @@ separate (Files_Suite.Operations)
          exit when Ada.Directories.Exists (Marker);
       end loop;
       Assert (Ada.Directories.Exists (Marker), "the measurement is under way");
+      --  The helper's job directory: a restart would end this helper and
+      --  remove it. The marker goes, so a new helper's would show.
+      declare
+         --  The hook writes it with Text_IO, which ends the line.
+         Started : constant String :=
+           Ada.Strings.Fixed.Trim
+             (Project_Tools.Files.Read_Raw_File (Marker),
+              Ada.Strings.Maps.Null_Set, Ada.Strings.Maps.To_Set (ASCII.LF & ASCII.CR));
+      begin
+         Ada.Directories.Delete_File (Marker);
 
-      Write_Binary_File (Join (Root, "beta"), "beta");
-      Step := Files.Operations.Refresh_If_Changed (Model, Settings);
-      pragma Unreferenced (Step);
-      Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)), "a background read runs");
-      for Frame in 1 .. 5 loop
+         Write_Binary_File (Join (Root, "beta"), "beta");
+         Step := Files.Operations.Refresh_If_Changed (Model, Settings);
+         Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)), "a background read runs");
+         for Frame in 1 .. 5 loop
+            Files.Operations.Update_Folder_Size (Model, Settings);
+            Files.Operations.Poll_Folder_Sizes (Model);
+         end loop;
+         Assert (Files.Model.Testing.Folder_Scan_Is_Active (Model),
+                 "the background read leaves the measurement running");
+
+         for Attempt in Files_Suite.Support.Polling loop
+            exit when Files.Refresh_Jobs.Advance (Model, Settings)
+              or else not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
+         end loop;
          Files.Operations.Update_Folder_Size (Model, Settings);
-         Files.Operations.Poll_Folder_Sizes (Model);
-      end loop;
-      Assert (Files.Model.Testing.Folder_Scan_Is_Active (Model),
-              "the background read leaves the measurement running");
-
-      for Attempt in Files_Suite.Support.Polling loop
-         exit when Files.Refresh_Jobs.Advance (Model, Settings)
-           or else not Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model));
-      end loop;
-      Files.Operations.Update_Folder_Size (Model, Settings);
-      Assert (Files.Model.Testing.Folder_Scan_Is_Active (Model),
-              "and so does taking the selection up again after it");
+         Assert (Files.Model.Testing.Folder_Scan_Is_Active (Model),
+                 "and so does taking the selection up again after it");
+         Assert (Ada.Directories.Exists (Started) and then not Ada.Directories.Exists (Marker),
+                 "the measurement running is the first one, not a restart: " & Started);
+      end;
       Files.Operations.Cancel_Folder_Scan (Model);
    exception
       when others =>

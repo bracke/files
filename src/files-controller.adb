@@ -888,18 +888,9 @@ package body Files.Controller is
       Node_Index : Positive;
       Node_Path  : String)
    is
-      --  The tree shows folders only: skip files before their metadata is
-      --  built, and never decode thumbnails, since this runs on the UI thread.
-      function Is_Directory (Name : String; Kind : Files.Types.Item_Kind) return Boolean is
-         pragma Unreferenced (Name);
-      begin
-         return Kind = Files.Types.Directory_Item;
-      end Is_Directory;
-
+      --  The tree shows folders only, read lean: this runs on the UI thread.
       Load     : constant Files.File_System.Directory_Load_Result :=
-        Files.File_System.Load_Directory_Filtered
-          (Node_Path, Settings, Files.Settings.Listing_Options_Of (Settings), Is_Directory'Access,
-           Generate_Thumbnails => False);
+        Files.File_System.Load_Subdirectories (Node_Path, Settings, Files.Settings.Listing_Options_Of (Settings));
       Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
    begin
       if Load.Success then

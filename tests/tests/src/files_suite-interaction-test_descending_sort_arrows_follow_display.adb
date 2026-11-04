@@ -12,18 +12,8 @@ separate (Files_Suite.Interaction)
       Model    : Files.Model.Window_Model;
       Result   : Files.Interaction.Interaction_Result;
 
-      --  Position of Name in the DISPLAYED order (1-based), or 0 when absent.
       function Display_Position_Of (Name : String) return Natural is
-         Snapshot : constant Files.Rendering.View_Snapshot :=
-           Files.Rendering.Build_Snapshot (Model, Settings);
-      begin
-         for Index in 1 .. Natural (Snapshot.Items.Length) loop
-            if Ada.Strings.Unbounded.To_String (Snapshot.Items.Element (Index).Name) = Name then
-               return Index;
-            end if;
-         end loop;
-         return 0;
-      end Display_Position_Of;
+        (Files_Suite.Interaction.Display_Position_Of (Model, Settings, Name));
    begin
       Files_Suite.Support.Reset_Root;
       Ada.Directories.Create_Path (Dir);

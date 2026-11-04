@@ -84,6 +84,16 @@ separate (Files_Suite.Operations)
                Assert
                  (Text (Text'First + 1) = (if GNAT.OS_Lib.Is_Owner_Writable_File (Probe) then 'w' else '-'),
                   "the write position matches the host at mode" & Label);
+               --  And, where the mode decides it for its owner, the mode
+               --  itself: the comparison above holds as well for a column
+               --  taken from the same wrong answer.
+               if Hostkit.Metadata.Mode_Bits_Are_Native and then not Hostkit.Host.Is_Elevated then
+                  Files_Suite.Support.Assert_Equal
+                    (Text (Text'First .. Text'First + 1),
+                     (if Mode / 8#100# mod 8 >= 4 then "r" else "-")
+                     & (if Mode / 8#100# mod 4 >= 2 then "w" else "-"),
+                     "the owner's read and write bits show at mode" & Label);
+               end if;
             end;
          end Check_At;
       begin

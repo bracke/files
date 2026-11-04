@@ -58,6 +58,46 @@ separate (Files_Suite.Rendering)
          end;
       end loop;
 
+      --  The header-only changes (Touch_Header): what they change is drawn
+      --  outside the rows, so the rows a patch keeps must be a rebuild's.
+      declare
+         procedure Check_Header (Step : String; Change : not null access procedure) is
+            Before : aliased constant Files.Rendering.View_Snapshot :=
+              Files.Rendering.Build_Snapshot (Model, Settings);
+            Rows   : constant Natural := Files.Model.Rows_Revision (Model);
+         begin
+            Change.all;
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Rows_Revision (Model), Rows, Step & ": the rows revision stays");
+            Assert
+              (Files.Rendering.Build_Snapshot (Model, Settings, Rows_From => Before'Access)
+               = Files.Rendering.Build_Snapshot (Model, Settings),
+               Step & ": the patched snapshot is the rebuilt one");
+         end Check_Header;
+
+         Selected : constant String := To_String (Files.Model.Selected_Item (Model).Full_Path);
+
+         procedure Size is
+         begin
+            Files.Model.Testing.Set_Folder_Size
+              (Model, Selected, (Available => True, Total_Bytes => 4096, File_Count => 2, Item_Count => 3,
+                                 Capped => False));
+         end Size;
+         procedure Unsize is begin Files.Model.Clear_Folder_Size (Model); end Unsize;
+         procedure Space is
+         begin
+            Files.Model.Set_Volume_Space
+              (Model, Files.Model.Current_Path (Model), (Known => True, Free_Bytes => 1_000, Total_Bytes => 5_000),
+               Ada.Calendar.Clock);
+         end Space;
+         procedure Type_Ahead is begin Files.Model.Reset_Type_Ahead (Model); end Type_Ahead;
+      begin
+         Check_Header ("a folder size measured", Size'Access);
+         Check_Header ("folder sizes dropped", Unsize'Access);
+         Check_Header ("the free space sampled", Space'Access);
+         Check_Header ("type-ahead reset", Type_Ahead'Access);
+      end;
+
       --  A column drag: settings the rows do not read.
       declare
          Before : aliased constant Files.Rendering.View_Snapshot :=

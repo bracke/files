@@ -17,6 +17,12 @@ separate (Files_Suite.Rendering)
                Frame : constant Frame_Commands :=
                  Build_Frame_Commands (Snap, Width, Height, 20);
             begin
+               --  Bounds hold of an empty frame as well: the larger compact
+               --  sizes must draw something for them to say anything.
+               if Width >= 280 and then Height >= 72 then
+                  Assert (not Frame.Rectangles.Is_Empty and then not Frame.Text.Is_Empty,
+                          "a compact frame of" & Width'Image & " x" & Height'Image & " draws rectangles and text");
+               end if;
                for Command of Frame.Rectangles loop
                   Files_Suite.Support.Assert_Fits
                     (Command.X, Command.Y, Command.Width, Command.Height, Width, Height,

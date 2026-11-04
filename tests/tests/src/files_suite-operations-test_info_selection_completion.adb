@@ -30,11 +30,12 @@ separate (Files_Suite.Operations)
       Files.Model.Set_Background_Transfers (Model, True);
       Step := Files.Operations.Refresh (Model, Settings);
       Await_View (Model, Settings);
+      Await_Item_Details (Model);
       Assert (Files.Model.Selected_Item (Model).Filetype_Extra_Loaded
               and then Length (Files.Model.Selected_Item (Model).Filetype_Extra) > 0,
               "completed refresh repopulates the selected item's details");
       Revision := Files.Model.Revision (Model);
-      Files.Operations.Ensure_Selected_Item_Extra (Model);
+      Files.Operations.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (77));
       Files_Suite.Support.Assert_Equal (Revision, Files.Model.Revision (Model), "completed details remain cached");
    exception
       when others => Files.Refresh_Jobs.Cancel (Model); raise;

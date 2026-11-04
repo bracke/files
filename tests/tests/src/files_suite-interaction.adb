@@ -112,6 +112,7 @@ package body Files_Suite.Interaction is
    procedure Test_Keyboard_Dispatch_Path (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shortcut_Capture_Routing (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Tab_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Overlay_Clicks_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Grid_Nav_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Zoom (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scroll_Targets_Pane_Under_Cursor (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -222,6 +223,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Settings_Tab_Keys'Access,
          "Ctrl+Tab and Ctrl+Shift+Tab cycle the settings section tabs, wrapping at the ends");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Overlay_Clicks_Dispatch'Access,
+         "a settings-panel click and a palette-row click are dispatched, the palette's settings command saved");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Grid_Nav_Keys'Access,
          "Home/End/PageUp/PageDown page the grid selection through the key seam");
@@ -516,6 +520,8 @@ package body Files_Suite.Interaction is
 
    procedure Test_Settings_Tab_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Overlay_Clicks_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Grid_Nav_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Keyboard_Zoom (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -621,6 +627,24 @@ package body Files_Suite.Interaction is
       Files.Model.Initialize (Model, Directory, Load.Items, Files_Suite.Support.Root);
       return Model;
    end Loaded_Model;
+
+   --  Position of Name in the displayed order (1-based), or 0 when absent:
+   --  Build_Snapshot is the display-order oracle.
+   function Display_Position_Of
+     (Model    : Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Name     : String)
+      return Natural
+   is
+      Snapshot : constant Files.Rendering.View_Snapshot := Files.Rendering.Build_Snapshot (Model, Settings);
+   begin
+      for Index in 1 .. Natural (Snapshot.Items.Length) loop
+         if Ada.Strings.Unbounded.To_String (Snapshot.Items.Element (Index).Name) = Name then
+            return Index;
+         end if;
+      end loop;
+      return 0;
+   end Display_Position_Of;
 
    --  Return the first visible item index currently reported Selected, or zero.
    function First_Selected_Visible (Model : Files.Model.Window_Model) return Natural is

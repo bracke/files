@@ -28,7 +28,7 @@ separate (Files.Application.Windows)
             X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
             Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
             Slot     : constant Snapshot_Slot := Hit_Slot (Runtime);
-            Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Slot);
+            Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Slot);
             Layout   : constant Files.Rendering.Layout_Metrics :=
               Files.Rendering.Calculate_Layout
                 (Snapshot, Natural (Frame_W), Natural (Frame_H),
@@ -79,7 +79,7 @@ separate (Files.Application.Windows)
                Press_Y  : constant Glfw.Input.Mouse.Coordinate := Runtime.Handle.Drag_Start_Y;
                X        : constant Natural := Scale_Coordinate (Press_X, Window_W, Frame_W);
                Y        : constant Natural := Scale_Coordinate (Press_Y, Window_H, Frame_H);
-               Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Hit_Slot (Runtime));
+               Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Hit_Slot (Runtime));
                Menu     : constant Files.Rendering.Context_Menu_Layout :=
                  Files.Rendering.Calculate_Context_Menu_Layout
                    (Snapshot, Natural (Frame_W), Natural (Frame_H),

@@ -505,6 +505,12 @@ package Files_Suite.Support is
    --  @return The encoded JPEG file bytes.
    function Minimal_Jpeg_With_Fill (Width : Natural; Height : Natural) return String;
 
+   --  A real JPEG, 8 x 8, solid red, baseline 4:4:4: none of the in-Ada
+   --  decoders reads JPEG, so its pixels come from the native image loader.
+   --
+   --  @return The file's bytes.
+   function Red_Jpeg_8x8 return String;
+
    --  Join a parent directory and a name into a path.
    --
    --  @param Parent Parent directory path.

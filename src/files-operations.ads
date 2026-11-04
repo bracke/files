@@ -1,4 +1,5 @@
 with Files.Preview_Decoder;
+with Files.Extra_Info_Reader;
 with Files.Items;
 with Files.File_System;
 with Files.Model;
@@ -555,11 +556,23 @@ package Files.Operations is
    --  document counts, symlink target) when the info pane wants it and it has
    --  not been computed yet. Called after input so the info pane can show the
    --  detail without every item paying for it on load. A no-op when the info
-   --  pane is closed, nothing is selected, or the value is already cached.
+   --  pane is closed, nothing is selected, or the value is already cached --
+   --  and in a window (Background_Transfers), whose loop reads it off the UI
+   --  thread through Poll_Selected_Item_Extra instead.
    --
    --  @param Model Window model whose selected item is updated in place.
    procedure Ensure_Selected_Item_Extra
      (Model : in out Files.Model.Window_Model);
+
+   --  Ensure_Selected_Item_Extra for a window: the details are read by
+   --  Files.Extra_Info_Reader's worker, asked for here and taken on a later
+   --  poll once read.
+   --
+   --  @param Model Window model whose selected item is updated in place.
+   --  @param Owner Which window asks (one read in flight per window).
+   procedure Poll_Selected_Item_Extra
+     (Model : in out Files.Model.Window_Model;
+      Owner : Files.Extra_Info_Reader.Requester);
 
    --  Open the info-pane ownership editor for the single selected item,
    --  prefilled with the owner's (or group's) resolved account name. Does

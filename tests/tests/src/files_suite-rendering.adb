@@ -115,6 +115,7 @@ package body Files_Suite.Rendering is
    procedure Test_Detail_Header_Separator_Hit_Test (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detail_Separators_Within_Content (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Whole_Content_Item_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Snapshot_Slots_Track_The_Model (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shared_Text_Renderer_Invalidates_Glyphs (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Bottom_Bar_Text_Baseline (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Sort_Button_Fits_Field (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -323,6 +324,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Whole_Content_Item_Layout'Access,
          "the whole-content item layout places scrolled-off rows where a scrolling marquee finds them");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Snapshot_Slots_Track_The_Model'Access,
+         "the window's current snapshot is a rebuild's after every change, the drawn one left as drawn");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Shared_Text_Renderer_Invalidates_Glyphs'Access,
          "glyphs from a shared text renderer are rebuilt once another window changed its atlas");
@@ -751,6 +755,8 @@ package body Files_Suite.Rendering is
    procedure Test_Detail_Separators_Within_Content (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Whole_Content_Item_Layout (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Snapshot_Slots_Track_The_Model (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Shared_Text_Renderer_Invalidates_Glyphs (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

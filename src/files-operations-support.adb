@@ -68,80 +68,86 @@ package body Files.Operations.Support is
       Preserve_Selection : Boolean := False)
       return Operation_Result
    is
-      Previous_Selection : constant Files.Items.Item_Vectors.Vector :=
-        Files.Model.Selected_Items (Model);
-      Previous_Primary : constant String :=
-        To_String (Files.Model.Selected_Item (Model).Full_Path);
    begin
       if Files.Model.Background_Transfers (Model) then
          return Files.Refresh_Jobs.Start (Model, Settings, Force => True, Select_Name => Select_Name);
       end if;
-      --  The Recent view has no backing directory (Current_Path is empty), so a
-      --  directory load would spuriously fail and a mutation performed from
-      --  Recent would be reported as failed with the view left stale. Rebuild it
-      --  from the recorded recent paths instead, dropping any that no longer
-      --  resolve. Mirrors Navigation.Navigate_Recent, which this lower-level
-      --  shared helper cannot call.
-      if Files.Model.In_Recent_View (Model) then
+      Reload_In_Place :
+      declare
+         --  Only a reload here restores them: the background one above
+         --  restores its own, so a Select All is not copied for nothing.
+         Previous_Selection : constant Files.Items.Item_Vectors.Vector :=
+           Files.Model.Selected_Items (Model);
+         Previous_Primary : constant String :=
+           To_String (Files.Model.Selected_Item (Model).Full_Path);
+      begin
+         --  The Recent view has no backing directory (Current_Path is empty), so a
+         --  directory load would spuriously fail and a mutation performed from
+         --  Recent would be reported as failed with the view left stale. Rebuild it
+         --  from the recorded recent paths instead, dropping any that no longer
+         --  resolve. Mirrors Navigation.Navigate_Recent, which this lower-level
+         --  shared helper cannot call.
+         if Files.Model.In_Recent_View (Model) then
+            declare
+               Recent : constant Files.Types.String_Vectors.Vector :=
+                 Files.Settings.Recent_Paths (Settings);
+               Items  : Files.Items.Item_Vectors.Vector;
+            begin
+               for Path of Recent loop
+                  declare
+                     Loaded : constant Files.File_System.Item_Load_Result :=
+                       Files.File_System.Load_Item (To_String (Path), Settings);
+                  begin
+                     if Loaded.Success then
+                        Items.Append (Loaded.Item);
+                     end if;
+                  end;
+               end loop;
+               Files.Model.Navigate_Recent (Model, Items);
+               if Preserve_Selection and then Select_Name = "" then
+                  Files.Model.Restore_Selection
+                    (Model, Previous_Selection, Previous_Primary);
+               end if;
+               Files.Model.Set_Error (Model, "");
+            end;
+            return Make_Result (Operation_Success);
+         end if;
+
          declare
-            Recent : constant Files.Types.String_Vectors.Vector :=
-              Files.Settings.Recent_Paths (Settings);
-            Items  : Files.Items.Item_Vectors.Vector;
+            Load : constant Files.File_System.Directory_Load_Result :=
+              Files.File_System.Load_Directory_Deferring_Thumbnails (Files.Model.Current_Path (Model), Settings);
          begin
-            for Path of Recent loop
+            if not Load.Success then
+               Files.Model.Set_Error (Model, To_String (Load.Error_Key));
+               return
+                 Make_Result (Operation_Failed, To_String (Load.Error_Key), Files.Model.Current_Path (Model));
+            end if;
+
+            Files.Model.Replace_Items (Model, Load.Items);
+            Files.Model.Set_Directory_Signature (Model, Load.Signature);
+            if Select_Name /= "" then
                declare
-                  Loaded : constant Files.File_System.Item_Load_Result :=
-                    Files.File_System.Load_Item (To_String (Path), Settings);
+                  Selection_Restored : constant Boolean := Files.Model.Select_By_Name (Model, Select_Name);
+                  pragma Unreferenced (Selection_Restored);
                begin
-                  if Loaded.Success then
-                     Items.Append (Loaded.Item);
-                  end if;
+                  null;
                end;
-            end loop;
-            Files.Model.Navigate_Recent (Model, Items);
-            if Preserve_Selection and then Select_Name = "" then
+            elsif Preserve_Selection then
                Files.Model.Restore_Selection
                  (Model, Previous_Selection, Previous_Primary);
             end if;
             Files.Model.Set_Error (Model, "");
+            Files.Operations.Ensure_Selected_Item_Extra (Model);
+            --  A reload runs after every operation, so it must not decode each
+            --  new image in the folder while the UI waits: as on navigation, the
+            --  missing thumbnails are left to a background listing, which the
+            --  window's next poll launches.
+            if Files.File_System.Thumbnails_Missing (Load.Items) then
+               Files.Model.Note_Owed_Refresh (Model, Force => True, Select_Name => "");
+            end if;
+            return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
          end;
-         return Make_Result (Operation_Success);
-      end if;
-
-      declare
-         Load : constant Files.File_System.Directory_Load_Result :=
-           Files.File_System.Load_Directory_Deferring_Thumbnails (Files.Model.Current_Path (Model), Settings);
-      begin
-         if not Load.Success then
-            Files.Model.Set_Error (Model, To_String (Load.Error_Key));
-            return
-              Make_Result (Operation_Failed, To_String (Load.Error_Key), Files.Model.Current_Path (Model));
-         end if;
-
-         Files.Model.Replace_Items (Model, Load.Items);
-         Files.Model.Set_Directory_Signature (Model, Load.Signature);
-         if Select_Name /= "" then
-            declare
-               Selection_Restored : constant Boolean := Files.Model.Select_By_Name (Model, Select_Name);
-               pragma Unreferenced (Selection_Restored);
-            begin
-               null;
-            end;
-         elsif Preserve_Selection then
-            Files.Model.Restore_Selection
-              (Model, Previous_Selection, Previous_Primary);
-         end if;
-         Files.Model.Set_Error (Model, "");
-         Files.Operations.Ensure_Selected_Item_Extra (Model);
-         --  A reload runs after every operation, so it must not decode each
-         --  new image in the folder while the UI waits: as on navigation, the
-         --  missing thumbnails are left to a background listing, which the
-         --  window's next poll launches.
-         if Files.File_System.Thumbnails_Missing (Load.Items) then
-            Files.Model.Note_Owed_Refresh (Model, Force => True, Select_Name => "");
-         end if;
-         return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
-      end;
+      end Reload_In_Place;
    end Reload_Current_Directory;
 
    function Reload_With_Error

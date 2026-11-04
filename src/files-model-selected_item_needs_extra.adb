@@ -13,9 +13,6 @@ begin
    then
       return False;
    end if;
-   declare
-      Item : constant Files.Items.Directory_Item := Model.Items.Element (Idx);
-   begin
-      return not Item.Filetype_Extra_Loaded and then Length (Item.Filetype_Extra) = 0;
-   end;
+   --  Read in place: the window loop asks on every pass.
+   return not Model.Items (Idx).Filetype_Extra_Loaded and then Length (Model.Items (Idx).Filetype_Extra) = 0;
 end Selected_Item_Needs_Extra;

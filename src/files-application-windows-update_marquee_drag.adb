@@ -63,10 +63,10 @@ separate (Files.Application.Windows)
 
          Layout    : Files.Rendering.Layout_Metrics :=
            Files.Rendering.Calculate_Layout
-             (Runtime.Snapshots (Runtime.Current_Slot), Natural (Frame_W), Natural (Frame_H), Line_Height);
+             (Runtime.View.Snapshots (Runtime.View.Current_Slot), Natural (Frame_W), Natural (Frame_H), Line_Height);
          Main_View : Files.Rendering.Main_View_Layout :=
            Files.Rendering.Calculate_Main_View_Layout
-             (Runtime.Snapshots (Runtime.Current_Slot), Layout, Line_Height);
+             (Runtime.View.Snapshots (Runtime.View.Current_Slot), Layout, Line_Height);
       begin
          --  Auto-scroll: while the cursor is dragged to (or past) the top or
          --  bottom of the scrollable rows area, scroll the list so items beyond
@@ -107,11 +107,11 @@ separate (Files.Application.Windows)
                         --  renderer may snap to a row period, so measure it).
                         Refresh_Snapshot (Runtime);
                         Layout := Files.Rendering.Calculate_Layout
-                          (Runtime.Snapshots (Runtime.Current_Slot), Natural (Frame_W), Natural (Frame_H),
+                          (Runtime.View.Snapshots (Runtime.View.Current_Slot), Natural (Frame_W), Natural (Frame_H),
                            Line_Height);
                         Main_View :=
                           Files.Rendering.Calculate_Main_View_Layout
-                            (Runtime.Snapshots (Runtime.Current_Slot), Layout, Line_Height);
+                            (Runtime.View.Snapshots (Runtime.View.Current_Slot), Layout, Line_Height);
                         Runtime.Marquee.Origin_Y :=
                           Runtime.Marquee.Origin_Y
                           - (Integer (Main_View.Scroll_Pixels) - Integer (Old_Px));
@@ -122,12 +122,6 @@ separate (Files.Application.Windows)
          end if;
 
          declare
-            --  Hit-tested in unscrolled content coordinates, against every
-            --  item: a row the auto-scroll moved off screen has no area on
-            --  screen but is still inside the band.
-            Items  : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-              Files.Rendering.Calculate_Item_Layout
-                (Runtime.Snapshots (Runtime.Current_Slot), Layout, Line_Height, Whole_Content => True);
             Scroll : constant Integer := Integer (Main_View.Scroll_Pixels);
             Band_X : Natural;
             Band_Y : Natural;
@@ -156,12 +150,22 @@ separate (Files.Application.Windows)
                Y         => Band_Y,
                Width     => Band_W,
                Height    => Band_H);
-            Files.Interaction.Apply_Marquee_Selection
-              (Model    => Runtime.Model,
-               Hits     =>
-                 Files.Rendering.Hit.Items_In_Rect (Items, Band_X, Band_Y, Band_W, Band_H),
-               Additive => Runtime.Marquee.Additive,
-               Base     => Runtime.Marquee.Base);
+            declare
+               --  Hit-tested in unscrolled content coordinates: a row the
+               --  auto-scroll moved off screen has no area on screen but is
+               --  still inside the band. Only the band's rows are laid out.
+               Items : constant Files.Rendering.Item_Layout_Vectors.Vector :=
+                 Files.Rendering.Calculate_Item_Layout
+                   (Runtime.View.Snapshots (Runtime.View.Current_Slot), Layout, Line_Height,
+                    Whole_Content => True, Window_Top => Band_Y, Window_Height => Natural'Max (Band_H, 1));
+            begin
+               Files.Interaction.Apply_Marquee_Selection
+                 (Model    => Runtime.Model,
+                  Hits     =>
+                    Files.Rendering.Hit.Items_In_Rect (Items, Band_X, Band_Y, Band_W, Band_H),
+                  Additive => Runtime.Marquee.Additive,
+                  Base     => Runtime.Marquee.Base);
+            end;
             Runtime.Marquee.Rect_X := Rect_X;
             Runtime.Marquee.Rect_Y := Rect_Y;
             Runtime.Marquee.Rect_W := Rect_W;

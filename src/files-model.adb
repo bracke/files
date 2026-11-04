@@ -1163,11 +1163,12 @@ package body Files.Model is
       Chosen        : Natural_Vectors.Vector;
       Primary       : Natural := 0;
    begin
-      for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-         if Support.Item_Is_Visible (Model, Model.Items (Index)) then
-            Visible_Count := Visible_Count + 1;
-            Visible_Items.Append (Index);
-         end if;
+      --  From the cached visible-row map: a marquee drag selects on every
+      --  move, and testing each item against the filter again was most of it.
+      Support.Ensure_Visible_Map (Model);
+      for Index of Model.Visible_Items loop
+         Visible_Count := Visible_Count + 1;
+         Visible_Items.Append (Index);
       end loop;
       if Temporary_Is_Visible (Model) then
          Visible_Count := Visible_Count + 1;

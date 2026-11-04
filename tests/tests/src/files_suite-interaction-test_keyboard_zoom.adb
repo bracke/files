@@ -7,12 +7,12 @@ separate (Files_Suite.Interaction)
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
 
-      procedure Zoom (Key : Guikit.Input.Key_Code; Mods : Guikit.Input.Modifier_Set) is
+      procedure Zoom (Key : Guikit.Input.Key_Code; Mods : Guikit.Input.Modifier_Set; Path : String := "") is
       begin
          Files.Interaction.Handle_Key
            (Model             => Model,
             Settings          => Settings,
-            Settings_Path     => "",
+            Settings_Path     => Path,
             Key               => Key,
             Modifiers         => Mods,
             Current_Font_Size => Settings.Font_Pixel_Size,
@@ -84,4 +84,21 @@ separate (Files_Suite.Interaction)
          "a blocked zoom chord still consumes its parallel character event");
       Assert (Files.Model.Sort_Menu_Is_Open (Model), "blocked zoom leaves the owning overlay open");
       Files.Model.Close_Sort_Menu (Model);
+
+      --  A settings file that cannot be written still takes the change: the
+      --  window's font follows it (the failed save is reported, not undone).
+      Files_Suite.Support.Reset_Root;
+      Files_Suite.Support.Write_File (Files_Suite.Support.Join (Files_Suite.Support.Root, "not-a-folder"), "x");
+      declare
+         Before : constant Positive := Settings.Font_Pixel_Size;
+      begin
+         Zoom (Guikit.Input.Key_Equal, Ctrl,
+               Path => Files_Suite.Support.Join
+                 (Files_Suite.Support.Join (Files_Suite.Support.Root, "not-a-folder"), "settings.conf"));
+         Files_Suite.Support.Assert_Equal
+           (Settings.Font_Pixel_Size, Before + 1, "an unsaved zoom still changes the font size");
+         Assert (Result.Font_Size_Changed and then Result.Needs_Glyph_Rebuild,
+                 "an unsaved zoom still rebuilds the glyphs");
+         Assert (Result.Settings_Changed, "and still reports the settings change");
+      end;
    end Test_Keyboard_Zoom;

@@ -14,6 +14,70 @@ separate (Files.Application.Windows)
       --  to re-present, so an idle frame whose commands are unchanged skips the
       --  glyph/vertex/submit/present work entirely.
       Frame_Rebuilt : Boolean := False;
+      --  The overlays this render shows, and whether they differ from the
+      --  ones last presented.
+      Palette         : Overlay_Commands;
+      Settings        : Overlay_Commands;
+      Overlay_Changed : Boolean := False;
+
+      --  Build the command palette's or the settings panel's commands, when
+      --  shown, over the frame drawn now (their state lives in their
+      --  components, not in the cached frame).
+      procedure Build_Overlays is
+         Snapshot    : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Runtime.View.Drawn_Slot);
+         Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
+      begin
+         if Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Command_Palette_Overlay) then
+            declare
+               Layout : constant Files.Rendering.Layout_Metrics :=
+                 Files.Rendering.Calculate_Layout (Snapshot, Natural (Width), Natural (Height), Line_Height);
+            begin
+               Palette.Shown := True;
+               Files.Overlays.Build_Palette_Frame
+                 (Model         => Runtime.Model,
+                  Region_X      => Layout.Command_X,
+                  Region_Y      => Layout.Command_Y,
+                  Region_Width  => Layout.Command_Width,
+                  Region_Height => Layout.Command_Height,
+                  Clip_Width    => Natural (Width),
+                  Clip_Height   => Natural (Height),
+                  Line_Height   => Line_Height,
+                  Focused       => Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Command_Palette,
+                  Rectangles    => Palette.Rectangles,
+                  Text          => Palette.Text,
+                  Icons         => Palette.Icons,
+                  Accessibility => Palette.Accessibility);
+            end;
+         end if;
+         if Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Settings_Pane_Overlay) then
+            declare
+               Layout : constant Files.Rendering.Layout_Metrics :=
+                 Files.Rendering.Calculate_Layout (Snapshot, Natural (Width), Natural (Height), Line_Height);
+               Pane : constant Guikit.Layout.Settings_Pane_Layout :=
+                 Guikit.Layout.Calculate_Settings_Pane_Layout
+                   (Natural (Width), Natural (Height), Layout.Toolbar_Height, Line_Height);
+            begin
+               Settings.Shown := True;
+               Files.Overlays.Build_Settings_Frame
+                 (Model         => Runtime.Model,
+                  Region_X      => Pane.X,
+                  Region_Y      => Pane.Y,
+                  Region_Width  => Pane.Width,
+                  Region_Height => Pane.Height,
+                  Clip_Width    => Natural (Width),
+                  Clip_Height   => Natural (Height),
+                  Line_Height   => Line_Height,
+                  Focused       => Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Settings_Input,
+                  Hover_X       =>
+                    (if Runtime.Cached_Inputs.Has_Hover then Integer (Runtime.Cached_Inputs.Hover_X) else -1),
+                  Hover_Y       =>
+                    (if Runtime.Cached_Inputs.Has_Hover then Integer (Runtime.Cached_Inputs.Hover_Y) else -1),
+                  Rectangles    => Settings.Rectangles,
+                  Text          => Settings.Text,
+                  Accessibility => Settings.Accessibility);
+            end;
+         end if;
+      end Build_Overlays;
       use type Ada.Real_Time.Time_Span;
       use type Guikit.Draw.Text_Command_Vectors.Vector;
    begin
@@ -165,9 +229,9 @@ separate (Files.Application.Windows)
          --  progress, make Refresh_Snapshot rebuild while it runs.
          Refresh_Snapshot (Runtime);
          declare
-            Current : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Current_Slot);
+            Current : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Runtime.View.Current_Slot);
          begin
-            if Runtime.Current_Slot = Runtime.Drawn_Slot then
+            if Runtime.View.Current_Slot = Runtime.View.Drawn_Slot then
                --  The snapshot is the one drawn last: reuse it in place -- no
                --  per-frame deep copy or deep compare (thumbnail pixels and
                --  all). Rebuild the frame only if a non-model input (size,
@@ -177,23 +241,22 @@ separate (Files.Application.Windows)
                end if;
             else
                --  A rebuilt snapshot: draw it unless it equals what is drawn.
-               if not Inputs_Match or else Current /= Runtime.Snapshots (Runtime.Drawn_Slot) then
+               if not Inputs_Match or else Current /= Runtime.View.Snapshots (Runtime.View.Drawn_Slot) then
                   Rebuild_Frame (Current);
                end if;
-               Runtime.Drawn_Slot := Runtime.Current_Slot;
+               Runtime.View.Drawn_Slot := Runtime.View.Current_Slot;
             end if;
          end;
       end;
 
-      --  Anything that changes what is on screen -- a rebuilt frame, an open (or
-      --  just-closed) overlay, or text still settling -- opens the grace window,
+      --  Anything that changes what is on screen -- a rebuilt frame, an overlay
+      --  that opened, closed or changed, or text still settling -- opens the grace window,
       --  so we keep presenting every frame through it and stay on the compositor's
       --  frame clock while the user is interacting.
+      Build_Overlays;
+      Overlay_Changed := Palette /= Runtime.Last_Palette or else Settings /= Runtime.Last_Settings;
       if Frame_Rebuilt
-        or else Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Command_Palette_Overlay)
-        or else Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Settings_Pane_Overlay)
-        or else Runtime.Last_Present_Palette_Open
-        or else Runtime.Last_Present_Settings_Open
+        or else Overlay_Changed
         or else (not Runtime.Text_Ready
                  and then (Runtime.Text_Failed_Size /= Runtime.Font_Pixel_Size
                            or else Ada.Real_Time.Clock >= Runtime.Text_Failed_At + Text_Retry_Interval))
@@ -213,26 +276,19 @@ separate (Files.Application.Windows)
       end if;
 
       declare
-         Snapshot : Files.Rendering.View_Snapshot renames Runtime.Snapshots (Runtime.Drawn_Slot);
+         Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Runtime.View.Drawn_Slot);
          --  Whether an overlay is merged in below, so the frame shown differs
          --  from the cached one.
-         Overlay_Merged : constant Boolean :=
-           Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Command_Palette_Overlay)
-           or else Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Settings_Pane_Overlay);
+         Overlay_Merged : constant Boolean := Palette.Shown or else Settings.Shown;
 
          procedure Present (Frame : Files.Rendering.Frame_Commands) is
          begin
             --  The screen reader gets the frame as shown, overlays included --
             --  the command palette and settings panel are merged in by the
-            --  caller, not into the cached frame -- when it changed, an
-            --  overlay (whose state changes from frame to frame) is up, or one
-            --  just closed. The provider announces only what differs from its
+            --  caller, not into the cached frame -- when it or an overlay
+            --  changed. The provider announces only what differs from its
             --  last tree.
-            if Frame_Rebuilt
-              or else Overlay_Merged
-              or else Runtime.Last_Present_Palette_Open
-              or else Runtime.Last_Present_Settings_Open
-            then
+            if Frame_Rebuilt or else Overlay_Changed then
                Files.Accessibility.Publish (Runtime.A11y_Key, Frame);
                Runtime.Shown_Accessibility := Frame.Accessibility;
             end if;
@@ -346,74 +402,16 @@ separate (Files.Application.Windows)
                --  fresh without polluting the cache.
                Frame : Files.Rendering.Frame_Commands := Runtime.Cached_Frame;
             begin
-               if Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Command_Palette_Overlay) then
-                  declare
-                     Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-                     Layout : constant Files.Rendering.Layout_Metrics :=
-                       Files.Rendering.Calculate_Layout
-                         (Snapshot, Natural (Width), Natural (Height), Line_Height);
-                     P_Rects : Guikit.Draw.Rectangle_Command_Vectors.Vector;
-                     P_Text  : Guikit.Draw.Text_Command_Vectors.Vector;
-                     P_Icons : Guikit.Draw.Icon_Command_Vectors.Vector;
-                     P_Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
-                  begin
-                     Append_Modal_Backdrop (Frame, Natural (Width), Natural (Height));
-                     Files.Overlays.Build_Palette_Frame
-                       (Model         => Runtime.Model,
-                        Region_X      => Layout.Command_X,
-                        Region_Y      => Layout.Command_Y,
-                        Region_Width  => Layout.Command_Width,
-                        Region_Height => Layout.Command_Height,
-                        Clip_Width    => Natural (Width),
-                        Clip_Height   => Natural (Height),
-                        Line_Height   => Line_Height,
-                        Focused       =>
-                          Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Command_Palette,
-                        Rectangles    => P_Rects,
-                        Text          => P_Text,
-                        Icons         => P_Icons,
-                        Accessibility => P_Nodes);
-                     Append_Overlay (Frame, P_Rects, P_Text, P_Nodes, P_Icons);
-                  end;
-               end if;
-
                --  Settings remains logically open when Commands is invoked from it,
                --  but Commands is the active top-level modal and owns the pixels until
-               --  it closes. Rendering both would interleave their batched text layers.
-               if Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Settings_Pane_Overlay) then
-                  declare
-                     Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-                     Layout : constant Files.Rendering.Layout_Metrics :=
-                       Files.Rendering.Calculate_Layout
-                         (Snapshot, Natural (Width), Natural (Height), Line_Height);
-                     Pane : constant Guikit.Layout.Settings_Pane_Layout :=
-                       Guikit.Layout.Calculate_Settings_Pane_Layout
-                         (Natural (Width), Natural (Height), Layout.Toolbar_Height, Line_Height);
-                     S_Rects : Guikit.Draw.Rectangle_Command_Vectors.Vector;
-                     S_Text  : Guikit.Draw.Text_Command_Vectors.Vector;
-                     S_Nodes : Guikit.Draw.Accessibility_Node_Vectors.Vector;
-                  begin
-                     Append_Modal_Backdrop (Frame, Natural (Width), Natural (Height));
-                     Files.Overlays.Build_Settings_Frame
-                       (Model         => Runtime.Model,
-                        Region_X      => Pane.X,
-                        Region_Y      => Pane.Y,
-                        Region_Width  => Pane.Width,
-                        Region_Height => Pane.Height,
-                        Clip_Width    => Natural (Width),
-                        Clip_Height   => Natural (Height),
-                        Line_Height   => Line_Height,
-                        Focused       =>
-                          Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Settings_Input,
-                        Hover_X       =>
-                          (if Runtime.Cached_Inputs.Has_Hover then Integer (Runtime.Cached_Inputs.Hover_X) else -1),
-                        Hover_Y       =>
-                          (if Runtime.Cached_Inputs.Has_Hover then Integer (Runtime.Cached_Inputs.Hover_Y) else -1),
-                        Rectangles    => S_Rects,
-                        Text          => S_Text,
-                        Accessibility => S_Nodes);
-                     Append_Overlay (Frame, S_Rects, S_Text, S_Nodes);
-                  end;
+               --  it closes (Window_Overlay_Shown): only one is ever built.
+               if Palette.Shown then
+                  Append_Modal_Backdrop (Frame, Natural (Width), Natural (Height));
+                  Append_Overlay (Frame, Palette.Rectangles, Palette.Text, Palette.Accessibility, Palette.Icons);
+               end if;
+               if Settings.Shown then
+                  Append_Modal_Backdrop (Frame, Natural (Width), Natural (Height));
+                  Append_Overlay (Frame, Settings.Rectangles, Settings.Text, Settings.Accessibility, Settings.Icons);
                end if;
 
                Present (Frame);
@@ -426,10 +424,8 @@ separate (Files.Application.Windows)
          --  Remember what we just put on screen so the next render's present gate
          --  can tell whether an overlay closed (a change that must be presented).
          Runtime.Presented_Once := True;
-         Runtime.Last_Present_Palette_Open :=
-           Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Command_Palette_Overlay);
-         Runtime.Last_Present_Settings_Open :=
-           Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Settings_Pane_Overlay);
+         Runtime.Last_Palette := Palette;
+         Runtime.Last_Settings := Settings;
 
          --  Burn down one frame of the grace window. It is refilled above on any
          --  visible change, so it only reaches zero after a genuine idle gap.

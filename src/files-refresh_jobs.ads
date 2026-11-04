@@ -107,6 +107,36 @@ package Files.Refresh_Jobs is
       Now         : Ada.Real_Time.Time;
       Load_Failed : Boolean) return Boolean;
 
+   --  What a window's watch poll does this pass.
+   type Watch_Step_Action is
+     (Watch_Wait,
+      --  Re-read the listing now (Refresh_If_Changed).
+      Watch_Refresh);
+
+   --  The window's watch poll decided, so it can be tested: a change heard
+   --  while a read runs is owed, not dropped; a burst is paced to one
+   --  refresh per Watch_Refresh_Gap, the last owed and paid; with no change
+   --  heard, the signature is re-read once Poll_Due; a listing that failed
+   --  to load is re-read once per Load_Retry_Gap at most.
+   --
+   --  @param Pacer This window's pacing.
+   --  @param Now The current time.
+   --  @param Changed The watch heard a change this pass.
+   --  @param Read_Active A background read of the listing is running.
+   --  @param Load_Failed The listing on screen failed to load.
+   --  @param Poll_Due The signature's timed re-read is due.
+   --  @param Polled Set when this pass took the timed re-read's turn (the
+   --    caller restarts its interval).
+   --  @return What to do.
+   function Watch_Step
+     (Pacer       : in out Watch_Pacer;
+      Now         : Ada.Real_Time.Time;
+      Changed     : Boolean;
+      Read_Active : Boolean;
+      Load_Failed : Boolean;
+      Poll_Due    : Boolean;
+      Polled      : out Boolean) return Watch_Step_Action;
+
    --  @param Directory Private refresh request/result directory.
    procedure Run_Helper (Directory : String);
 

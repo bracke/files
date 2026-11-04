@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Leaf_Name_Rules (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -78,5 +79,28 @@ separate (Files_Suite.Operations)
          Assert
            (not Files.File_System.Valid_Leaf_Name_At ("a/b.txt", Root),
             "a path separator is rejected at any destination");
+
+         --  An existing entry's name, copied or moved, need only be one the
+         --  destination can hold: a tab or bytes that are not UTF-8 are
+         --  refused for a name typed, kept for a name that is already there.
+         declare
+            function Storable (Name : String) return Boolean is
+              (Files.File_System.Testing.Storable_Leaf_Name_At (Name, Root));
+            Not_Utf8 : constant String := Character'Val (16#FF#) & "name.txt";
+         begin
+            if Dos_Root then
+               Assert (Storable ("ordinary.txt") and then not Storable ("my:notes.txt"),
+                       "on a DOS-ruled destination the stored name follows its rules");
+            else
+               Assert (not Files.File_System.Valid_Leaf_Name_At (Tab, Root) and then Storable (Tab),
+                       "a tab is refused when typed but kept when moved");
+               Assert (Storable (Not_Utf8), "a name that is not UTF-8 is kept when moved");
+               Assert (Storable ("notes ") and then Storable ("my:notes.txt"), "any byte but / and NUL is kept");
+            end if;
+            Assert
+              (not Storable ("") and then not Storable (".") and then not Storable ("..")
+               and then not Storable ("a/b") and then not Storable ("a" & ASCII.NUL & "b"),
+               "no destination holds an empty name, a dot entry, a separator or a NUL");
+         end;
       end;
    end Test_Leaf_Name_Rules;

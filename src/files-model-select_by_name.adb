@@ -10,8 +10,10 @@ begin
    Reset_Quick_Look (Model);
    if not Model.Items.Is_Empty then
       for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
-         if To_String (Model.Items.Element (Index).Name) = Name
-           and then Item_Is_Visible (Model, Model.Items.Element (Index))
+         --  Read in place: copying every item to compare its name cost more
+         --  than the search after a reload of a large folder.
+         if Model.Items (Index).Name = Name
+           and then Item_Is_Visible (Model, Model.Items (Index))
          then
             Model.Selected_Item_Index := Natural (Index);
             Add_Selected_Index (Model, Model.Selected_Item_Index);

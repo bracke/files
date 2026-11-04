@@ -424,13 +424,23 @@ package body Files.Model.Support is
 
       --  Drop the inline field for any item that is no longer selected. This
       --  keeps a synchronized multi-rename in step with the live selection.
-      for Index in reverse Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
-         if not Selection_Contains (Model, Model.Rename_Fields.Element (Index).Item_Index) then
-            --  A row's rename field goes: the rows change.
-            Touch (Model);
-            Model.Rename_Fields.Delete (Index);
-         end if;
-      end loop;
+      --  The selection as flags, read once: a scan of it per field made a
+      --  click during rename-all of a large folder take most of a second.
+      declare
+         Selected : constant Selection_Flags := Selected_Flags (Model);
+      begin
+         for Index in reverse Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
+            declare
+               Item : constant Natural := Model.Rename_Fields.Element (Index).Item_Index;
+            begin
+               if Item not in Selected'Range or else not Selected (Item) then
+                  --  A row's rename field goes: the rows change.
+                  Touch (Model);
+                  Model.Rename_Fields.Delete (Index);
+               end if;
+            end;
+         end loop;
+      end;
 
       if Model.Rename_Fields.Is_Empty then
          Model.Rename_Active := False;

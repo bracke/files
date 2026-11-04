@@ -232,8 +232,14 @@ separate (Files.Rendering)
       Snapshot.Tree_Panel_Open := Files.Model.Tree_Panel_Is_Open (Model);
       Snapshot.Tree_Panel_Scroll_Rows :=
         Files.Model.Tree_Panel_Scroll_Rows (Model);
-      Snapshot.Tree_Rows := Files.Model.Tree_Visible_Rows (Model);
       Snapshot.Tree_Pick_Active := Files.Model.Tree_Pick_Is_Active (Model);
+      --  Rows only for a tree on screen: a closed one is not walked on every
+      --  keystroke's rebuild.
+      if Snapshot.Tree_Panel_Open or else Snapshot.Tree_Pick_Active then
+         Snapshot.Tree_Rows := Files.Model.Tree_Visible_Rows (Model);
+      else
+         Snapshot.Tree_Rows.Clear;
+      end if;
       Snapshot.Tree_Pick_Moving :=
         Files.Model.Tree_Pick_Mode_Of (Model) = Files.Model.Pick_Move;
       Snapshot.Tree_Pick_Target := To_Unbounded_String (Files.Model.Tree_Pick_Target (Model));
@@ -578,4 +584,11 @@ separate (Files.Rendering)
             end if;
          end;
       end if;
+
+      --  Formatted here, once a build: the frame lays the pane out and draws
+      --  it on every rebuild, hover included.
+      if Natural (Snapshot.Selected_Info.Length) >= 2 then
+         Snapshot.Info_Sections := Build_Coalesced_Info_Sections (Snapshot);
+      end if;
+      Snapshot.Info_Sections_Built := True;
    end Build_Snapshot_Into;

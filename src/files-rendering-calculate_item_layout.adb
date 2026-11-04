@@ -3,7 +3,9 @@ separate (Files.Rendering)
      (Snapshot      : View_Snapshot;
       Layout        : Layout_Metrics;
       Line_Height   : Positive := Files.UI.Base_Line_Height;
-      Whole_Content : Boolean := False)
+      Whole_Content : Boolean := False;
+      Window_Top    : Natural := 0;
+      Window_Height : Natural := 0)
       return Item_Layout_Vectors.Vector
    is
       Content : constant Content_Rectangle := Main_Content_Rect (Layout);
@@ -50,6 +52,38 @@ separate (Files.Rendering)
       for C in Files.Types.Detail_Column loop
          Columns (As_Grid_Column (C)) := (X => Geometry (C).X, Width => Geometry (C).Width);
       end loop;
+
+      if Whole_Content and then Window_Height > 0 then
+         --  Only the band's cells, still at their unscrolled places: the
+         --  grid lays out what is on screen, so it is scrolled to the band
+         --  (less a cell, for one the band's top cuts) while its top moves
+         --  down by as much, which leaves every placed cell where the
+         --  unscrolled content has it. The header row and a cell's worth
+         --  more below keep the band's last row whole.
+         declare
+            Cell   : constant Guikit.Item_Grid.Cell_Metrics :=
+              Guikit.Item_Grid.Cell_Metrics_For (View, Content_W, Line_Height);
+            Margin : constant Natural :=
+              Saturating_Add (Saturating_Add (Cell.Height, Guikit.Item_Grid.Main_Grid_Gap), Line_Height * 2);
+            Top    : constant Natural := (if Window_Top > Content_Y then Window_Top - Content_Y else 0);
+            Shift  : constant Natural := (if Top > Margin then Top - Margin else 0);
+         begin
+            return Guikit.Item_Grid.Calculate_Layout
+              (Count            => Natural (Snapshot.Items.Length),
+               Visible_Index_At => Visible_Index_At'Access,
+               Is_Header_At     => Is_Header_At'Access,
+               Label_At         => Label_At'Access,
+               View             => View,
+               Content_X        => Content_X,
+               Content_Y        => Saturating_Add (Content_Y, Shift),
+               Content_W        => Content_W,
+               Content_H        =>
+                 Saturating_Add (Saturating_Add (Top - Shift, Window_Height), Saturating_Add (Margin, Margin)),
+               Columns          => Columns,
+               Scroll_Pixels    => Shift,
+               Line_Height      => Line_Height);
+         end;
+      end if;
 
       return Guikit.Item_Grid.Calculate_Layout
         (Count            => Natural (Snapshot.Items.Length),
