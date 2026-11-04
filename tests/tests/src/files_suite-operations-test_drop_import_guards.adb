@@ -64,12 +64,11 @@ separate (Files_Suite.Operations)
          Plans :=
            Files.File_System.Plan_Drop_Import (Sources, Join (Root, "alias"), Files.File_System.Drop_Copy);
          Assert (not Plans.Success, "a destination reached through a link is still inside the tree");
-         declare
-            Removed : Boolean;
-         begin
-            GNAT.OS_Lib.Delete_File (Join (Root, "alias"), Removed);
-            Assert (Removed, "the alias link is removed");
-         end;
+         --  The link alone: a link to a folder is a directory entry on
+         --  Windows, which a file delete does not remove.
+         Assert (Hostkit.Fs."=" (Hostkit.Fs.Delete_Tree_No_Follow (Join (Root, "alias")), Hostkit.Fs.Tree_Deleted)
+                 and then Ada.Directories.Exists (Join (Join (Root, "tree"), "sub")),
+                 "the alias link is removed, and only the link");
       end if;
 
       if Hostkit.Host.Current /= Hostkit.Host.Windows then
