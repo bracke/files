@@ -165,6 +165,18 @@ package Files.Application.Windows.Smoke is
       Height : Natural := Files.UI.Default_Window_Height)
       return Live_Smoke_Plan;
 
+   --  Live_Window_Smoke_Plan for a host with Caps, whatever this one has.
+   --
+   --  @param Caps The host's capabilities.
+   --  @param Width Requested window width.
+   --  @param Height Requested window height.
+   --  @return The plan, with the reason it cannot run if it cannot.
+   function Live_Window_Smoke_Plan
+     (Caps   : Desktop_Capabilities;
+      Width  : Natural := Files.UI.Default_Window_Width;
+      Height : Natural := Files.UI.Default_Window_Height)
+      return Live_Smoke_Plan;
+
    --  Evaluate a live-window smoke plan without opening a native window.
    --
    --  This returns the execution contract a live harness must satisfy. It does

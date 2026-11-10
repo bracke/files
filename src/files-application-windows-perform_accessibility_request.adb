@@ -25,22 +25,11 @@ separate (Files.Application.Windows)
               Glfw.Input.Mouse.Coordinate (Centre_X * Float (Window_W) / Float (Frame_W)),
               Glfw.Input.Mouse.Coordinate (Centre_Y * Float (Window_H) / Float (Frame_H)),
               Guikit.Input.No_Modifiers);
+         --  Activate opens an item (a double-click) or sorts by a header;
+         --  Select and Focus are the single click.
+         Activate : constant Boolean := Item.Kind = A11ykit.Provider.Activate_Request;
       begin
-         --  Activate opens an item, as a double-click does; Select and Focus
-         --  are the single click, which selects it and opens nothing.
-         if Item.Kind = A11ykit.Provider.Activate_Request
-           and then Action.Kind = Files.Events.Item_Click_Input_Action
-         then
-            Action.Activate := True;
-         end if;
-         --  A header cell's press only arms a drag that sorts on release
-         --  under the real pointer: activating it sorts by its column.
-         if Action.Kind = Files.Events.Column_Reorder_Begin_Input_Action then
-            Action :=
-              (if Action.Sort_Command /= Files.Commands.No_Command
-               then (Kind => Files.Events.Command_Input_Action, Command => Action.Sort_Command)
-               else (Kind => Files.Events.No_Input_Action));
-         end if;
+         Action := Files.Window_Policy.Accessibility_Action (Action, Activate);
          Files.Diagnostics.Trace
            ("Files.Application.Windows",
             --  A developer trace: field=value pairs, no prose.
@@ -53,18 +42,14 @@ separate (Files.Application.Windows)
            ("Files.Application.Windows",
             "selected=" & Natural'Image (Files.Model.Selected_Count (Runtime.Model)));
 
-         --  A click on a settings row's middle only focuses it; activating a
-         --  toggle or choice should change it, as Space on the focused field
-         --  does (saving included).
-         if Item.Kind = A11ykit.Provider.Activate_Request
-           and then Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Settings_Input
-           and then Files.Model.Settings_Focused_Kind (Runtime.Model) in
-             Guikit.Settings_Panel.Toggle | Guikit.Settings_Panel.Choice
+         --  Space on the focused field changes it, saving included.
+         if Files.Window_Policy.Activation_Presses_Space
+           (Activate, Files.Model.Focus (Runtime.Model), Files.Model.Settings_Focused_Kind (Runtime.Model))
          then
             declare
                Consumed : Boolean;
             begin
-               Fire_Key (Runtime, Tracked_Space, Guikit.Input.No_Modifiers, Consumed);
+               Fire_Key (Runtime, Guikit.Input.Key_Space, Guikit.Input.No_Modifiers, Consumed);
             end;
          end if;
       end;

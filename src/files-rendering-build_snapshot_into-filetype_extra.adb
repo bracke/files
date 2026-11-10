@@ -5,191 +5,60 @@ separate (Files.Rendering.Build_Snapshot_Into)
    is
       Type_Name : constant String := To_String (Item.Filetype);
 
+      --  A token is "kind|value" or "kind|lines|encoding"; the value is the
+      --  last field, so it may hold a '|' itself (a link's target).
       function Token_Detail (Token : String) return UString is
          Separator : constant Natural := Ada.Strings.Fixed.Index (Token, "|");
 
-         function Prefix_Value
-           (Prefix_Key : String;
-            Value      : String;
-            Suffix_Key : String)
-            return String
-         is
-            Prefix : constant String :=
-              Ada.Strings.Fixed.Trim (Files.Localization.Text (Prefix_Key), Ada.Strings.Right);
-            Suffix : constant String :=
-              Ada.Strings.Fixed.Trim (Files.Localization.Text (Suffix_Key), Ada.Strings.Left);
-         begin
-            if Suffix'Length > 0
-              and then Ada.Characters.Handling.Is_Alphanumeric (Suffix (Suffix'First))
-            then
-               return Prefix & " " & Value & " " & Suffix;
-            else
-               return Prefix & " " & Value & Suffix;
-            end if;
-         end Prefix_Value;
+         function Fill (Key, Name, Value : String) return UString is
+           (To_Unbounded_String (Files.Localization.Text ("info.extra." & Key, Name, Value)));
 
-         function Prefix_Localized_Value
-           (Prefix_Key : String;
-            Value_Key  : String;
-            Suffix_Key : String)
-            return String
-         is
-         begin
-            return Prefix_Value (Prefix_Key, Files.Localization.Text (Value_Key), Suffix_Key);
-         end Prefix_Localized_Value;
-
-         function Lines_And_Encoding
-           (Lines_Prefix_Key : String;
-            Lines            : String;
-            Lines_Suffix_Key : String;
-            Encoding         : String)
-            return String
-         is
-         begin
-            return
-              Prefix_Value (Lines_Prefix_Key, Lines, Lines_Suffix_Key)
-              & " "
-              & Prefix_Localized_Value
-                ("info.extra.encoding.prefix",
-                 "info.extra.encoding." & Encoding,
-                 "info.extra.encoding.suffix");
-         end Lines_And_Encoding;
+         --  The lines sentence, then the encoding one.
+         function Lines_And_Encoding (Key, Lines, Encoding : String) return UString is
+           (Fill (Key, "lines", Lines) & " "
+            & Fill ("encoding", "encoding", Files.Localization.Text ("info.extra.encoding." & Encoding)));
       begin
          if Separator <= Token'First or else Separator >= Token'Last then
             return Null_Unbounded_String;
          end if;
 
          declare
-            Key   : constant String := Token (Token'First .. Separator - 1);
-            Value : constant String := Token (Separator + 1 .. Token'Last);
+            Key    : constant String := Token (Token'First .. Separator - 1);
+            Value  : constant String := Token (Separator + 1 .. Token'Last);
             Second : constant Natural := Ada.Strings.Fixed.Index (Value, "|");
+            Lines  : constant String := (if Second > Value'First then Value (Value'First .. Second - 1) else "");
+            Coding : constant String := (if Second > Value'First then Value (Second + 1 .. Value'Last) else "");
          begin
             if Key = "executable.format" then
-               return
-                 To_Unbounded_String
-                   (Prefix_Localized_Value
-                      ("info.extra.executable.format.prefix",
-                       "info.extra.executable.format." & Value,
-                       "info.extra.executable.format.suffix"));
-            elsif Key = "directory.count" then
-               return
-                 To_Unbounded_String
-                   (Prefix_Value
-                      ("info.extra.directory.count.prefix", Value, "info.extra.directory.count.suffix"));
-            elsif Key = "text.lines" then
-               return
-                 To_Unbounded_String
-                   (Prefix_Value ("info.extra.text.lines.prefix", Value, "info.extra.text.lines.suffix"));
-            elsif Key = "text.lines_encoding" and then Second > Value'First then
-               declare
-                  Lines    : constant String := Value (Value'First .. Second - 1);
-                  Encoding : constant String := Value (Second + 1 .. Value'Last);
-               begin
-                  return
-                    To_Unbounded_String
-                      (Lines_And_Encoding
-                         ("info.extra.text.lines.prefix",
-                          Lines,
-                          "info.extra.text.lines.suffix",
-                          Encoding));
-               end;
-            elsif Key = "markdown.lines" then
-               return
-                 To_Unbounded_String
-                   (Prefix_Value
-                      ("info.extra.markdown.lines.prefix", Value, "info.extra.markdown.lines.suffix"));
-            elsif Key = "markdown.lines_encoding" and then Second > Value'First then
-               declare
-                  Lines    : constant String := Value (Value'First .. Second - 1);
-                  Encoding : constant String := Value (Second + 1 .. Value'Last);
-               begin
-                  return
-                    To_Unbounded_String
-                      (Lines_And_Encoding
-                         ("info.extra.markdown.lines.prefix",
-                          Lines,
-                          "info.extra.markdown.lines.suffix",
-                          Encoding));
-               end;
+               return Fill (Key, "format", Files.Localization.Text ("info.extra.executable.format." & Value));
+            elsif Key = "archive.format" then
+               return Fill (Key, "format", Files.Localization.Text ("info.extra.archive.format." & Value));
+            elsif Key in "directory.count" | "archive.zip.entries" | "archive.gzip-tar.entries"
+                       | "office.docx.entries" | "office.xlsx.entries"
+            then
+               return Fill
+                 ((if Key = "directory.count" then Key
+                   elsif Key (Key'First) = 'a' then "archive.entries"
+                   else Key (Key'First .. Key'Last - 8)),
+                  "count", Value);
+            elsif Key in "text.lines" | "markdown.lines" then
+               return Fill (Key, "lines", Value);
             elsif Key = "image.dimensions" then
-               return
-                 To_Unbounded_String
-                   (Prefix_Value
-                      ("info.extra.image.dimensions.prefix", Value, "info.extra.image.dimensions.suffix"));
+               return Fill (Key, "dimensions", Value);
             elsif Key = "symlink.target" then
-               return
-                 To_Unbounded_String
-                   (Prefix_Value ("info.extra.symlink.target.prefix", Value, "info.extra.symlink.target.suffix"));
+               return Fill (Key, "target", Value);
+            elsif Key = "document.pdf.pages" then
+               return Fill (Key, "pages", Value);
             elsif Key = "document.kind" then
                return To_Unbounded_String (Files.Localization.Text ("info.extra.document." & Value));
-            elsif Key = "document.pdf.pages" then
-               return
-                 To_Unbounded_String
-                   (Prefix_Value
-                      ("info.extra.document.pdf.pages.prefix", Value, "info.extra.document.pdf.pages.suffix"));
-            elsif Key = "archive.format" then
-               return
-                 To_Unbounded_String
-                   (Prefix_Localized_Value
-                      ("info.extra.archive.format.prefix",
-                       "info.extra.archive.format." & Value,
-                       "info.extra.archive.format.suffix"));
-            elsif Key = "archive.zip.entries" or else Key = "archive.gzip-tar.entries" then
-               return
-                 To_Unbounded_String
-                   (Prefix_Value
-                      ("info.extra.archive.entries.prefix", Value, "info.extra.archive.entries.suffix"));
-            elsif Key = "office.docx.entries" then
-               return
-                 To_Unbounded_String
-                   (Prefix_Value
-                      ("info.extra.office.docx.prefix", Value, "info.extra.office.entries.suffix"));
-            elsif Key = "office.xlsx.entries" then
-               return
-                 To_Unbounded_String
-                   (Prefix_Value
-                      ("info.extra.office.xlsx.prefix", Value, "info.extra.office.entries.suffix"));
             elsif Key = "media.kind" then
                return To_Unbounded_String (Files.Localization.Text ("info.extra.media." & Value));
-            elsif Key = "source.ada.lines_encoding" and then Second > Value'First then
-               declare
-                  Lines    : constant String := Value (Value'First .. Second - 1);
-                  Encoding : constant String := Value (Second + 1 .. Value'Last);
-               begin
-                  return
-                    To_Unbounded_String
-                      (Lines_And_Encoding
-                         ("info.extra.source.ada.prefix",
-                          Lines,
-                          "info.extra.source.lines.suffix",
-                          Encoding));
-               end;
-            elsif Key = "source.json.lines_encoding" and then Second > Value'First then
-               declare
-                  Lines    : constant String := Value (Value'First .. Second - 1);
-                  Encoding : constant String := Value (Second + 1 .. Value'Last);
-               begin
-                  return
-                    To_Unbounded_String
-                      (Lines_And_Encoding
-                         ("info.extra.source.json.prefix",
-                          Lines,
-                          "info.extra.source.lines.suffix",
-                          Encoding));
-               end;
-            elsif Key = "source.xml.lines_encoding" and then Second > Value'First then
-               declare
-                  Lines    : constant String := Value (Value'First .. Second - 1);
-                  Encoding : constant String := Value (Second + 1 .. Value'Last);
-               begin
-                  return
-                    To_Unbounded_String
-                      (Lines_And_Encoding
-                         ("info.extra.source.xml.prefix",
-                          Lines,
-                          "info.extra.source.lines.suffix",
-                          Encoding));
-               end;
+            elsif Lines /= "" and then Key in "text.lines_encoding" | "markdown.lines_encoding" then
+               return Lines_And_Encoding (Key (Key'First .. Key'Last - 9), Lines, Coding);
+            elsif Lines /= ""
+              and then Key in "source.ada.lines_encoding" | "source.json.lines_encoding" | "source.xml.lines_encoding"
+            then
+               return Lines_And_Encoding (Key (Key'First .. Key'Last - 15), Lines, Coding);
             end if;
          end;
 
@@ -206,10 +75,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
             return Files.Localization.Text ("info.extra.file");
          end if;
 
-         return
-           Files.Localization.Text ("info.extra.extension.prefix")
-           & Extension
-           & Files.Localization.Text ("info.extra.extension.suffix");
+         return Files.Localization.Text ("info.extra.extension", "extension", Extension);
       end Extension_Detail;
    begin
       if Length (Item.Filetype_Extra) > 0 then
@@ -229,25 +95,9 @@ separate (Files.Rendering.Build_Snapshot_Into)
             return To_Unbounded_String (Files.Localization.Text ("info.extra.symlink"));
          when Files.Types.Executable_Item =>
             if Item.Size_Available then
-               declare
-                  Prefix : constant String :=
-                    Ada.Strings.Fixed.Trim
-                      (Files.Localization.Text ("info.extra.executable.size.prefix"), Ada.Strings.Right);
-                  Suffix : constant String :=
-                    Ada.Strings.Fixed.Trim
-                      (Files.Localization.Text ("info.extra.executable.size.suffix"), Ada.Strings.Left);
-                  --  Group the digits with the locale separator, like every
-                  --  other size on screen, instead of a bare Image.
-                  Size_Text : constant String := Grouped_Integer_Text (Item.Size);
-               begin
-                  if Suffix'Length > 0
-                    and then Ada.Characters.Handling.Is_Alphanumeric (Suffix (Suffix'First))
-                  then
-                     return To_Unbounded_String (Prefix & " " & Size_Text & " " & Suffix);
-                  else
-                     return To_Unbounded_String (Prefix & " " & Size_Text & Suffix);
-                  end if;
-               end;
+               --  Grouped with the locale separator, like every other size on screen.
+               return To_Unbounded_String
+                 (Files.Localization.Text ("info.extra.executable.size", "size", Grouped_Integer_Text (Item.Size)));
             else
                return
                  To_Unbounded_String (Files.Localization.Text ("info.extra.executable"));

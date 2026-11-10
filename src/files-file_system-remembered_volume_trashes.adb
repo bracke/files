@@ -27,6 +27,6 @@ exception
       if Ada.Text_IO.Is_Open (File) then
          Ada.Text_IO.Close (File);
       end if;
-      Files.Diagnostics.Note (Swallowed, "Files.File_System.Trash");
+      Files.Diagnostics.Note (Swallowed, "Files.File_System");
       return Result;
 end Remembered_Volume_Trashes;

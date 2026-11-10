@@ -52,10 +52,11 @@ begin
             Item.Size := Long_Long_Integer (Ada.Directories.Size (Full));
             Item.Size_Available := True;
          exception
-            when others =>
+            when Swallowed : others =>
                if Kind in Files.Types.Regular_File_Item | Files.Types.Executable_Item then
                   raise;
                end if;
+               Files.Diagnostics.Note (Swallowed, "Files.File_System");
          end;
          if Thumbnail.Loaded then
             Item.Thumbnail_Available := True;
@@ -71,11 +72,12 @@ begin
          Item.Modified_Time := Ada.Directories.Modification_Time (Full);
          Item.Modified_Available := True;
       exception
-         when others =>
+         when Swallowed : others =>
             --  A dangling link has no target to date; other kinds must.
             if Kind /= Files.Types.Symlink_Item then
                raise;
             end if;
+            Files.Diagnostics.Note (Swallowed, "Files.File_System");
       end;
       --  Mode first: the permission column is built out of what this returns.
       Hostkit.Metadata.File_Mode_And_Ownership

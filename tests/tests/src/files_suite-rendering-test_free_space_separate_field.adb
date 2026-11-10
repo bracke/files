@@ -4,7 +4,8 @@ separate (Files_Suite.Rendering)
    procedure Test_Free_Space_Separate_Field (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Snap     : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
-      Free_Sfx : constant String := Files.Localization.Text ("status.free_space.suffix");
+      Free_Sfx : constant String :=
+        Ada.Strings.Fixed.Trim (Files.Localization.Text ("status.free_space", "size", ""), Ada.Strings.Both);
       Vis_Lbl  : constant String := Files.Localization.Text ("status.visible");
    begin
       Snap.Free_Space_Known := True;

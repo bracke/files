@@ -96,11 +96,14 @@ separate (Files.Application.Windows)
       --  display, a scaled Wayland output), text is drawn that much larger.
       declare
          Ratio : constant Float :=
-           (if Window_W > 0 and then Width > 0
-            then Float'Min (8.0, Float'Max (1.0, Float (Width) / Float (Window_W)))
-            else Runtime.Pixel_Ratio);
+           Files.Window_Policy.Pixel_Ratio (Natural (Width), Natural (Window_W), Runtime.Pixel_Ratio);
       begin
-         if Ratio /= Runtime.Pixel_Ratio then
+         --  The size can move here two ways: this window's scale changed, or
+         --  another window's zoom reached these settings through
+         --  Share_Settings_From, which keeps no glyphs of its own.
+         if Ratio /= Runtime.Pixel_Ratio
+           or else Scaled_Font_Size (Runtime) /= Runtime.Font_Pixel_Size
+         then
             Runtime.Pixel_Ratio := Ratio;
             Runtime.Font_Pixel_Size := Scaled_Font_Size (Runtime);
             Runtime.Text_Ready := False;

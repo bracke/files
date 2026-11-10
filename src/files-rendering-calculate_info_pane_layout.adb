@@ -8,7 +8,7 @@ separate (Files.Rendering)
       function Total_Info_Rows return Natural is
          Rows   : Natural := 0;
          Text_W : constant Natural :=
-           Info_Text_Width (Layout, Scrollbar_W => Natural'Min (Scrollbar_Width, Layout.Info_Pane_Width));
+           Info_Text_Width (Layout, Scrollbar_W => Natural'Min (Scrollbar_Width (Layout), Layout.Info_Pane_Width));
       begin
          --  A multi-item selection is drawn field-major (one label per section,
          --  a value row per item); a single selection keeps the per-item block.
@@ -28,7 +28,7 @@ separate (Files.Rendering)
 
       --  Right of the view, which starts after the folder tree when it is open.
       Pane_X        : constant Natural := Saturating_Add (Layout.Main_X, Layout.Main_Width);
-      Bar_W         : constant Natural := Natural'Min (Scrollbar_Width, Layout.Info_Pane_Width);
+      Bar_W         : constant Natural := Natural'Min (Scrollbar_Width (Layout), Layout.Info_Pane_Width);
       --  The combined selection total is now the last line of the Contents
       --  section (counted by Total_Info_Rows), so no header rows are reserved.
       Content_Rows  : constant Natural := Total_Info_Rows;

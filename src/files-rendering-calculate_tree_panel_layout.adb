@@ -8,7 +8,8 @@ separate (Files.Rendering)
       --  The view starts where the panel ends (Calculate_Layout).
       Panel_Width     : constant Natural := Layout.Main_X;
       Row_Height      : constant Natural :=
-        Saturating_Add (Line_Height, Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2));
+        Saturating_Add
+          (Line_Height, Saturating_Multiply (Guikit.Layout.Scaled (Guikit.Layout.Input_Field_Padding, Line_Height), 2));
    begin
       if not Snapshot.Tree_Panel_Open then
          return (others => <>);
@@ -29,7 +30,7 @@ separate (Files.Rendering)
            (if Count > Capacity then Count - Capacity else 0);
          Scroll   : constant Natural :=
            Natural'Min (Snapshot.Tree_Panel_Scroll_Rows, Maximum);
-         Bar_W    : constant Natural := Natural'Min (Scrollbar_Width, Base.Width);
+         Bar_W    : constant Natural := Natural'Min (Scrollbar_Width (Layout), Base.Width);
          Thumb    : constant Guikit.Layout.Scrollbar_Thumb :=
            Guikit.Layout.Calculate_Scrollbar_Thumb
              (Track_Length    => Track_H,

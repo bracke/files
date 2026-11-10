@@ -293,9 +293,14 @@ package body Files.Application.Windows.Smoke is
    function Live_Window_Smoke_Plan
      (Width  : Natural := Files.UI.Default_Window_Width;
       Height : Natural := Files.UI.Default_Window_Height)
-      return Live_Smoke_Plan
-   is
-      Caps : constant Desktop_Capabilities := Runtime_Capabilities;
+      return Live_Smoke_Plan is
+     (Live_Window_Smoke_Plan (Runtime_Capabilities, Width, Height));
+
+   function Live_Window_Smoke_Plan
+     (Caps   : Desktop_Capabilities;
+      Width  : Natural := Files.UI.Default_Window_Width;
+      Height : Natural := Files.UI.Default_Window_Height)
+      return Live_Smoke_Plan is
    begin
       return
         (Can_Run          => Caps.Live_Window_Smoke_Ready,

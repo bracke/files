@@ -6,7 +6,8 @@ separate (Files.Rendering)
       return Breadcrumb_Segment_Layout_Vectors.Vector
    is
       Result       : Breadcrumb_Segment_Layout_Vectors.Vector;
-      Toolbar      : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Width);
+      Toolbar      : constant Guikit.Layout.Toolbar_Layout :=
+        Guikit.Layout.Calculate_Toolbar_Layout (Width, Line_Height);
       Field_Margin : constant Natural := Toolbar_Field_Margin;
       Path_X       : constant Natural := Saturating_Add (Toolbar.Middle_X, Field_Margin);
       Path_W       : constant Natural :=

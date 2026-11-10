@@ -6,9 +6,9 @@ separate (Files.Rendering)
       return Main_View_Layout
    is
       Padding      : constant Natural :=
-        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
-           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
-         then Main_Content_Padding
+        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding (Layout), 2)
+           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding (Layout), 2)
+         then Main_Content_Padding (Layout)
          else 0);
       Content_W    : constant Natural :=
         (if Layout.Main_Width > Saturating_Multiply (Padding, 2)
@@ -70,7 +70,7 @@ separate (Files.Rendering)
          then (Bounded_Px / Row_Stride) * Row_Stride
          else Bounded_Px);
       Scroll_Lines : constant Natural := Scroll_Px / Line_Height;
-      Bar_W        : constant Natural := Natural'Min (Scrollbar_Width, Layout.Main_Width);
+      Bar_W        : constant Natural := Natural'Min (Scrollbar_Width (Layout), Layout.Main_Width);
       Thumb        : constant Guikit.Layout.Scrollbar_Thumb :=
         Guikit.Layout.Calculate_Scrollbar_Thumb
           (Track_Length    => Viewport_H,

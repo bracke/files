@@ -11,6 +11,8 @@ separate (Files.Application.Windows)
    is
       X_Frame : Integer;
       Y_Frame : Integer;
+      --  In frame pixels, so as far for the hand on a 2x display as on 1x.
+      Threshold : constant Natural := Natural (Float (Marquee_Drag_Threshold) * Runtime.Pixel_Ratio);
    begin
       if not Runtime.Marquee.Active then
          return;
@@ -34,8 +36,8 @@ separate (Files.Application.Windows)
       end if;
 
       if not Runtime.Marquee.Moved then
-         if abs (X_Frame - Runtime.Marquee.Origin_X) > Marquee_Drag_Threshold
-           or else abs (Y_Frame - Runtime.Marquee.Origin_Y) > Marquee_Drag_Threshold
+         if abs (X_Frame - Runtime.Marquee.Origin_X) > Threshold
+           or else abs (Y_Frame - Runtime.Marquee.Origin_Y) > Threshold
          then
             Runtime.Marquee.Moved := True;
          else

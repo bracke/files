@@ -7,7 +7,7 @@ begin
          Interfaces.C.Strings.Free (Pointer);
       exception
          when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
+            Files.Diagnostics.Note (Swallowed, "Files.Images");
       end;
    end if;
 end Safe_Free;

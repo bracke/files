@@ -46,6 +46,20 @@ package Files.Types is
    --  @return The extension's dot, or 0 when the name has none.
    function Extension_Start (Name : String) return Natural;
 
+   --  A leaf name before its extension (Extension_Start): "notes" of
+   --  "notes.txt", all of ".bashrc".
+   --
+   --  @param Name A leaf name.
+   --  @return The stem.
+   function Stem_Of (Name : String) return String;
+
+   --  A leaf name's extension without its dot (Extension_Start): "txt" of
+   --  "notes.txt", "" for ".bashrc" or "draft.".
+   --
+   --  @param Name A leaf name.
+   --  @return The extension, or "".
+   function Extension_Of (Name : String) return String;
+
    --  A count in decimal, without the leading blank Natural'Image gives it.
    --
    --  @param Value Count to print.

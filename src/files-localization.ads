@@ -67,6 +67,32 @@ package Files.Localization is
       Locale    : String := "")
       return String;
 
+   --  "Label: Value" in the locale's punctuation ("Label : Value" in French).
+   --
+   --  @param Label The label, already localized.
+   --  @param Value Its value.
+   --  @param Locale Requested locale identifier, or empty to use System_Locale.
+   --  @return The pair as the locale writes it.
+   function Label_Value
+     (Label  : String;
+      Value  : String;
+      Locale : String := "")
+      return String;
+
+   --  Text (Key, Arguments) for a pattern with one placeholder.
+   --
+   --  @param Key Stable localization key of a message pattern.
+   --  @param Name The placeholder's name: {Name} in the pattern.
+   --  @param Value Its value.
+   --  @param Locale Requested locale identifier, or empty to use System_Locale.
+   --  @return The rendered message, or Key when it cannot be rendered.
+   function Text
+     (Key    : String;
+      Name   : String;
+      Value  : String;
+      Locale : String := "")
+      return String;
+
    --  A humanize context for Locale (the system locale when empty), over the
    --  same message runtime as Text: humanize's catalog is loaded into it, so
    --  sizes, times and counts read in CLDR's wording for every locale.

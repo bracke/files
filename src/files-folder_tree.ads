@@ -97,9 +97,11 @@ package Files.Folder_Tree is
       return Boolean;
 
    --  Attach Children to node Index in place of any it had: a node read
-   --  again shows what its folder holds now. The old children are detached,
-   --  not removed, so every node index stays what it was (a click keyed on
-   --  one cannot land on another node).
+   --  again shows what its folder holds now. A child already attached under
+   --  the same path keeps its node, its loaded subtree and its expanded state,
+   --  so expanding a folder again does not grow the tree. Children that are
+   --  gone are detached, not removed, so every node index stays what it was (a
+   --  click keyed on one cannot land on another node).
    --
    --  @param T Tree to update.
    --  @param Index One-based node index.
@@ -180,6 +182,9 @@ private
       Expanded     : Boolean := False;
       Loaded       : Boolean := False;
       Has_Children : Boolean := True;
+      Rank         : Natural := 0;
+      --  Position among its siblings: a child kept across a re-read keeps its
+      --  node (and subtree) but takes the place the new listing gives it.
    end record;
 
    package Node_Vectors is new Ada.Containers.Vectors

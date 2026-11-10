@@ -154,7 +154,7 @@ is
       end if;
    exception
       when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.File_System.Trash");
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
    end Delete_Info_File_If_Present;
 begin
    Files.Io_Errors.Reset;

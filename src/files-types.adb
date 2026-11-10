@@ -52,6 +52,18 @@ package body Files.Types is
       return 0;
    end Extension_Start;
 
+   function Stem_Of (Name : String) return String is
+      Dot : constant Natural := Extension_Start (Name);
+   begin
+      return (if Dot = 0 then Name else Name (Name'First .. Dot - 1));
+   end Stem_Of;
+
+   function Extension_Of (Name : String) return String is
+      Dot : constant Natural := Extension_Start (Name);
+   begin
+      return (if Dot = 0 then "" else Name (Dot + 1 .. Name'Last));
+   end Extension_Of;
+
    function Natural_Text (Value : Natural) return String is
       Image : constant String := Natural'Image (Value);
    begin

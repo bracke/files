@@ -1,4 +1,4 @@
-with Files.Types;
+with Ada.Containers;
 
 package body Files.Images.Netpbm is
 
@@ -61,5 +61,73 @@ package body Files.Images.Netpbm is
       end loop;
       return Bytes;
    end P6_Header;
+
+   function Decode_P3
+     (Text       : String;
+      Max_Side   : Positive;
+      Max_Pixels : Positive;
+      Width      : out Natural;
+      Height     : out Natural;
+      Rgba       : out Files.Types.Byte_Vectors.Vector)
+      return Boolean
+   is
+      At_Byte   : Positive := Text'First;
+      Max_Value : Natural := 0;
+
+      function Next return String is
+         First : Positive;
+         Last  : Natural;
+      begin
+         Next_Field (Text, At_Byte, First, Last);
+         return Text (First .. Last);
+      end Next;
+
+      function Next_Natural (Value : out Natural) return Boolean is (Natural_Of (Next, Value));
+
+      function Failed return Boolean is
+      begin
+         Width := 0;
+         Height := 0;
+         Rgba.Clear;
+         return False;
+      end Failed;
+   begin
+      Rgba.Clear;
+      Width := 0;
+      Height := 0;
+      if Next /= "P3"
+        or else not Next_Natural (Width)
+        or else not Next_Natural (Height)
+        or else not Next_Natural (Max_Value)
+        or else Width = 0
+        or else Height = 0
+        or else Max_Value not in 1 .. 65_535
+        or else Width > Max_Side
+        or else Height > Max_Side
+        or else Long_Long_Integer (Width) * Long_Long_Integer (Height) > Long_Long_Integer (Max_Pixels)
+      then
+         return Failed;
+      end if;
+
+      Rgba.Reserve_Capacity (Ada.Containers.Count_Type (Width * Height * 4));
+      for Pixel in 1 .. Width * Height loop
+         declare
+            R, G, B : Natural;
+         begin
+            if not Next_Natural (R) or else not Next_Natural (G) or else not Next_Natural (B)
+              or else R > Max_Value or else G > Max_Value or else B > Max_Value
+            then
+               return Failed;
+            end if;
+            Rgba.Append (Channel (R, Max_Value));
+            Rgba.Append (Channel (G, Max_Value));
+            Rgba.Append (Channel (B, Max_Value));
+            Rgba.Append (255);
+         end;
+      end loop;
+
+      --  Exactly the samples the header promised: nothing after them.
+      return Next = "" or else Failed;
+   end Decode_P3;
 
 end Files.Images.Netpbm;

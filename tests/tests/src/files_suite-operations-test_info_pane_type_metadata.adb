@@ -35,63 +35,39 @@ separate (Files_Suite.Operations)
             if To_String (Item.Name) = "zutf8.txt" then
                Found_Utf8_Metadata :=
                  To_String (Item.Filetype_Extra) =
-                   Detail_Lines_Encoding
-                     ("info.extra.text.lines.prefix",
-                      "1",
-                      "info.extra.text.lines.suffix",
-                      "info.extra.encoding.utf8");
+                   Detail_Lines_Encoding ("info.extra.text.lines", "1", "info.extra.encoding.utf8");
             elsif To_String (Item.Name) = "zbinary.txt" then
                Found_Binary_Metadata :=
                  To_String (Item.Filetype_Extra) =
-                   Detail_Lines_Encoding
-                     ("info.extra.text.lines.prefix",
-                      "1",
-                      "info.extra.text.lines.suffix",
-                      "info.extra.encoding.binary");
+                   Detail_Lines_Encoding ("info.extra.text.lines", "1", "info.extra.encoding.binary");
             elsif To_String (Item.Name) = "zmarkdown.md" then
                Found_Markdown_Metadata :=
                  To_String (Item.Filetype_Extra) =
-                   Detail_Lines_Encoding
-                     ("info.extra.markdown.lines.prefix",
-                      "2",
-                      "info.extra.markdown.lines.suffix",
-                      "info.extra.encoding.ascii");
+                   Detail_Lines_Encoding ("info.extra.markdown.lines", "2", "info.extra.encoding.ascii");
             elsif To_String (Item.Name) = "zsheet.xlsx" then
                Found_Xlsx_Metadata :=
                  To_String (Item.Filetype_Detail) =
                    Files.Localization.Text ("info.kind.document.spreadsheet")
                  and then To_String (Item.Filetype_Extra) =
-                   Detail_Value ("info.extra.office.xlsx.prefix", "1", "info.extra.office.entries.suffix");
+                   Detail_Value ("info.extra.office.xlsx", "count", "1");
             elsif To_String (Item.Name) = "zunit.adb" then
                Found_Ada_Metadata :=
                  To_String (Item.Filetype_Detail) =
                    Files.Localization.Text ("info.kind.source.ada")
                  and then To_String (Item.Filetype_Extra) =
-                   Detail_Lines_Encoding
-                     ("info.extra.source.ada.prefix",
-                      "4",
-                      "info.extra.source.lines.suffix",
-                      "info.extra.encoding.ascii");
+                   Detail_Lines_Encoding ("info.extra.source.ada", "4", "info.extra.encoding.ascii");
             elsif To_String (Item.Name) = "zdata.json" then
                Found_Json_Metadata :=
                  To_String (Item.Filetype_Detail) =
                    Files.Localization.Text ("info.kind.source.json")
                  and then To_String (Item.Filetype_Extra) =
-                   Detail_Lines_Encoding
-                     ("info.extra.source.json.prefix",
-                      "1",
-                      "info.extra.source.lines.suffix",
-                      "info.extra.encoding.ascii");
+                   Detail_Lines_Encoding ("info.extra.source.json", "1", "info.extra.encoding.ascii");
             elsif To_String (Item.Name) = "zdoc.xml" then
                Found_Xml_Metadata :=
                  To_String (Item.Filetype_Detail) =
                    Files.Localization.Text ("info.kind.source.xml")
                  and then To_String (Item.Filetype_Extra) =
-                   Detail_Lines_Encoding
-                     ("info.extra.source.xml.prefix",
-                      "1",
-                      "info.extra.source.lines.suffix",
-                      "info.extra.encoding.ascii");
+                   Detail_Lines_Encoding ("info.extra.source.xml", "1", "info.extra.encoding.ascii");
             end if;
          end loop;
 

@@ -183,14 +183,14 @@ jobs:
             git -C "$name" fetch --depth 1 origin "$revision"
             git -C "$name" checkout --detach FETCH_HEAD
           }
-          clone_at project_tools 963f8c922115d2174a05bf0d190ef9fbe5ead62b
+          clone_at project_tools 5ed5f4dcfa10301345933d45e5f78ac0573d8cff
           clone_at i18n 33d2dc7775f97adf4c227643b7d2b81850cc76da
           clone_at messages a6fb47b2a1d520d2e202dd9d7ac318375116615a
           clone_at humanize 60c99ebd3d4080e92b8455fba47adc9c50f19fc3
           clone_at textrender 0a6721cb4239e581518c0d312bb7085e5b1ff402
           clone_at zlib 56d3b4fab7bb749f04952c5ec118aab0ef0787b8
-          clone_at guikit 835eb100f2d77c13dab8cc5a6e29d5f035c5c619
-          clone_at hostkit eb6a726c79f39f2a7a3a3b278e2168361aab61a3
+          clone_at guikit a9048d714c4759867d537452661d8375fc7049f2
+          clone_at hostkit 6360baf0ea3dde41c278fe07d86883f12552afa8
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.

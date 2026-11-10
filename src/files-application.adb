@@ -553,14 +553,17 @@ package body Files.Application is
    begin
       for Window of Result.Windows loop
          Append_Line
-           (Files.Localization.Text ("startup.window.ready", Locale) & ": " & To_String (Window.Title));
+           (Files.Localization.Label_Value
+              (Files.Localization.Text ("startup.window.ready", Locale), To_String (Window.Title), Locale));
       end loop;
 
       for Error of Result.Errors loop
          Append_Line
-           (Files.Localization.Text ("startup.error", Locale) & ": "
-            & To_String (Error.Input_Path) & ": "
-            & Files.Localization.Text (To_String (Error.Error_Key), Locale));
+           (Files.Localization.Label_Value
+              (Files.Localization.Text ("startup.error", Locale),
+               Files.Localization.Label_Value
+                 (To_String (Error.Input_Path), Files.Localization.Text (To_String (Error.Error_Key), Locale), Locale),
+               Locale));
       end loop;
 
       return To_String (Report);

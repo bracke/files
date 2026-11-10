@@ -37,7 +37,7 @@ separate (Files_Suite.Operations)
         (Name     => "folder",
          Filetype => "inode/directory",
          Token    => "directory.count|7",
-         Expected => Detail_Value ("info.extra.directory.count.prefix", "7", "info.extra.directory.count.suffix"),
+         Expected => Detail_Value ("info.extra.directory.count", "count", "7"),
          Message  => "item snapshot localizes directory count metadata",
          Kind     => Files.Types.Directory_Item);
       Assert_Localized_Extra
@@ -45,10 +45,7 @@ separate (Files_Suite.Operations)
          Filetype => "application/x-executable",
          Token    => "executable.format|elf",
          Expected =>
-           Detail_Localized_Value
-             ("info.extra.executable.format.prefix",
-              "info.extra.executable.format.elf",
-              "info.extra.executable.format.suffix"),
+           Detail_Localized_Value ("info.extra.executable.format", "format", "info.extra.executable.format.elf"),
          Message  => "item snapshot localizes executable format metadata",
          Kind     => Files.Types.Executable_Item);
       Assert_Localized_Extra
@@ -56,14 +53,14 @@ separate (Files_Suite.Operations)
          Filetype => "image/png",
          Token    => "image.dimensions|32x16",
          Expected =>
-           Detail_Value ("info.extra.image.dimensions.prefix", "32x16", "info.extra.image.dimensions.suffix"),
+           Detail_Value ("info.extra.image.dimensions", "dimensions", "32x16"),
          Message  => "item snapshot localizes image dimension metadata");
       Assert_Localized_Extra
         (Name     => "link",
          Filetype => "inode/symlink",
          Token    => "symlink.target|target.txt",
          Expected =>
-           Detail_Value ("info.extra.symlink.target.prefix", "target.txt", "info.extra.symlink.target.suffix"),
+           Detail_Value ("info.extra.symlink.target", "target", "target.txt"),
          Message  => "item snapshot localizes symlink target metadata",
          Kind     => Files.Types.Symlink_Item);
       Assert_Localized_Extra
@@ -71,29 +68,26 @@ separate (Files_Suite.Operations)
          Filetype => "application/pdf",
          Token    => "document.pdf.pages|3",
          Expected =>
-           Detail_Value ("info.extra.document.pdf.pages.prefix", "3", "info.extra.document.pdf.pages.suffix"),
+           Detail_Value ("info.extra.document.pdf.pages", "pages", "3"),
          Message  => "item snapshot localizes PDF page metadata");
       Assert_Localized_Extra
         (Name     => "archive.tar",
          Filetype => "application/x-tar",
          Token    => "archive.format|tar",
          Expected =>
-           Detail_Localized_Value
-             ("info.extra.archive.format.prefix",
-              "info.extra.archive.format.tar",
-              "info.extra.archive.format.suffix"),
+           Detail_Localized_Value ("info.extra.archive.format", "format", "info.extra.archive.format.tar"),
          Message  => "item snapshot localizes archive format metadata");
       Assert_Localized_Extra
         (Name     => "bundle.zip",
          Filetype => "application/zip",
          Token    => "archive.zip.entries|5",
-         Expected => Detail_Value ("info.extra.archive.entries.prefix", "5", "info.extra.archive.entries.suffix"),
+         Expected => Detail_Value ("info.extra.archive.entries", "count", "5"),
          Message  => "item snapshot localizes archive entry metadata");
       Assert_Localized_Extra
         (Name     => "report.docx",
          Filetype => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
          Token    => "office.docx.entries|9",
-         Expected => Detail_Value ("info.extra.office.docx.prefix", "9", "info.extra.office.entries.suffix"),
+         Expected => Detail_Value ("info.extra.office.docx", "count", "9"),
          Message  => "item snapshot localizes document package metadata");
       Assert_Localized_Extra
         (Name     => "track.mp3",

@@ -6,7 +6,8 @@ separate (Files_Suite.Rendering)
       pragma Unreferenced (T);
       Snap     : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
       Vis_Lbl  : constant String := Files.Localization.Text ("status.visible");
-      Free_Sfx : constant String := Files.Localization.Text ("status.free_space.suffix");
+      Free_Sfx : constant String :=
+        Ada.Strings.Fixed.Trim (Files.Localization.Text ("status.free_space", "size", ""), Ada.Strings.Both);
    begin
       Snap.Free_Space_Known := True;
       Snap.Free_Space_Bytes := 12_000_000_000;

@@ -111,9 +111,9 @@ package body Files.Paste is
       Taken : not null access function (Leaf : String) return Boolean)
       return String
    is
-      Dot       : constant Natural := Extension_Start (Name);
-      Stem      : constant String := (if Dot = 0 then Name else Name (Name'First .. Dot - 1));
-      Extension : constant String := (if Dot = 0 then "" else Name (Dot .. Name'Last));
+      Stem      : constant String := Files.Types.Stem_Of (Name);
+      Extension : constant String :=
+        (if Files.Types.Extension_Of (Name) = "" then "" else "." & Files.Types.Extension_Of (Name));
    begin
       if not Taken (Name) then
          return Name;

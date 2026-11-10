@@ -6,6 +6,14 @@ separate (Files_Suite.Model)
       Entries  : Files.File_System.Root_Entry_Vectors.Vector;
       Result   : Files.Controller.Controller_Result;
       Snapshot : Files.Rendering.View_Snapshot;
+
+      function Mount_With_Detail (Name : String) return String is
+        (Files.Localization.Text
+           ("root.detail",
+            Files.Localization.Argument_List'
+              [(To_Unbounded_String ("label"),
+                To_Unbounded_String (Files.Localization.Text ("root.mount", "name", Name))),
+               (To_Unbounded_String ("detail"), To_Unbounded_String ("ext4"))]));
    begin
       Files.Model.Set_Error (Model, "error.path.missing");
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
@@ -46,7 +54,9 @@ separate (Files_Suite.Model)
       Entries.Append
         (Files.File_System.Root_Entry'
            (Path  => To_Unbounded_String ("/tmp/example-mount"),
-            Label => To_Unbounded_String ("root.mount|example-mount"),
+            Label => To_Unbounded_String ("root.mount"),
+            Name  => To_Unbounded_String ("example-mount"),
+            Detail => Null_Unbounded_String,
             Kind  => Files.File_System.Root_Mount,
             Volume_Name => To_Unbounded_String ("example-mount"),
             Ready => Files.File_System.Root_Ready,
@@ -55,14 +65,15 @@ separate (Files_Suite.Model)
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Assert
         (To_String (Snapshot.Root_Labels.Element (1)) =
-         Files.Localization.Text ("root.mount.prefix") & "example-mount" &
-         Files.Localization.Text ("root.mount.suffix"),
-         "root selector renders localized root kind prefix");
+         Files.Localization.Text ("root.mount", "name", "example-mount"),
+         "root selector renders the root kind's localized pattern");
       Entries.Clear;
       Entries.Append
         (Files.File_System.Root_Entry'
            (Path  => To_Unbounded_String ("/tmp/example-mount"),
-            Label => To_Unbounded_String ("root.mount|example-mount|ext4"),
+            Label => To_Unbounded_String ("root.mount"),
+            Name  => To_Unbounded_String ("example-mount"),
+            Detail => To_Unbounded_String ("ext4"),
             Kind  => Files.File_System.Root_Mount,
             Volume_Name => To_Unbounded_String ("example-mount"),
             Ready => Files.File_System.Root_Ready,
@@ -70,10 +81,25 @@ separate (Files_Suite.Model)
       Files.Model.Open_Root_Selector (Model, Entries);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Assert
-        (To_String (Snapshot.Root_Labels.Element (1)) =
-         Files.Localization.Text ("root.mount.prefix") & "example-mount" &
-         Files.Localization.Text ("root.detail.prefix") & "ext4" &
-         Files.Localization.Text ("root.detail.suffix") &
-         Files.Localization.Text ("root.mount.suffix"),
+        (To_String (Snapshot.Root_Labels.Element (1)) = Mount_With_Detail ("example-mount"),
          "root selector renders localized platform detail suffix");
+
+      --  A name may hold any character a file name can, '|' too: it was a
+      --  token separator, and "a|b" with a detail showed as "a" with "b|ext4".
+      Entries.Clear;
+      Entries.Append
+        (Files.File_System.Root_Entry'
+           (Path  => To_Unbounded_String ("/tmp/a|b"),
+            Label => To_Unbounded_String ("root.mount"),
+            Name  => To_Unbounded_String ("a|b"),
+            Detail => To_Unbounded_String ("ext4"),
+            Kind  => Files.File_System.Root_Mount,
+            Volume_Name => To_Unbounded_String ("a|b"),
+            Ready => Files.File_System.Root_Ready,
+            Removable => True));
+      Files.Model.Open_Root_Selector (Model, Entries);
+      Snapshot := Files.Rendering.Build_Snapshot (Model);
+      Files_Suite.Support.Assert_Equal
+        (To_String (Snapshot.Root_Labels.Element (1)), Mount_With_Detail ("a|b"),
+         "a mount whose name holds '|' keeps its whole name and its detail");
    end Test_Root_Selector_Open_And_Snapshot;

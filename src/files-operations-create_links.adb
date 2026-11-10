@@ -81,8 +81,8 @@ begin
       declare
          Source : constant String := To_String (Item.Full_Path);
          Name   : constant String := To_String (Item.Name);
-         Ext    : constant String := Leaf_Extension (Name);
-         Base   : constant String := Leaf_Base (Name);
+         Ext    : constant String := Files.Types.Extension_Of (Name);
+         Base   : constant String := Files.Types.Stem_Of (Name);
          --  A link belongs beside its source, wherever the listing came from.
          Link_Directory : constant String := Ada.Directories.Containing_Directory (Source);
 

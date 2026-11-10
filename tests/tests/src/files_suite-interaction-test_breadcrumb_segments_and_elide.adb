@@ -60,11 +60,14 @@ separate (Files_Suite.Interaction)
                  "C:\Users\Alice",
                "Windows drive breadcrumbs retain native separators");
             Files_Suite.Support.Assert_Equal
-              (Natural (UNC_Path.Length), 3,
-               "UNC breadcrumb click targets retain their two-separator root (segment count)");
+              (Natural (UNC_Path.Length), 2,
+               "a UNC path's share is its root crumb, as a drive is (segment count)");
             Files_Suite.Support.Assert_Equal
-              (To_String (UNC_Path.First_Element.Ancestor_Path), "\\server",
-               "UNC breadcrumb click targets retain their two-separator root (first target)");
+              (To_String (UNC_Path.First_Element.Label), "\\server\share",
+               "a UNC path's share is its root crumb, as a drive is (label)");
+            Files_Suite.Support.Assert_Equal
+              (To_String (UNC_Path.First_Element.Ancestor_Path), "\\server\share\",
+               "a UNC path's share is its root crumb, as a drive is (first target)");
             Files_Suite.Support.Assert_Equal
               (To_String (UNC_Path.Last_Element.Ancestor_Path), "\\server\share\folder",
                "UNC breadcrumb click targets retain their two-separator root (last target)");

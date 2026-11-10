@@ -214,12 +214,6 @@ package body Files.Operations is
 
    function Is_Trash_Child (Path : String) return Boolean is separate;
 
-   function Leaf_Extension_Start (Name : String) return Natural is separate;
-
-   function Leaf_Extension (Name : String) return String is separate;
-
-   function Leaf_Base (Name : String) return String is separate;
-
    function Compress_Selected
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;

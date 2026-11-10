@@ -35,5 +35,5 @@ begin
 exception
    --  Never let an Ada exception cross the C callback boundary.
    when Swallowed : others =>
-      Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
+      Files.Diagnostics.Note (Swallowed, "Files.Images");
 end Loader_Size_Prepared;

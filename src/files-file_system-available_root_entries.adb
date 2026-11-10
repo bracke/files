@@ -86,6 +86,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
       Full : Unbounded_String;
       Name : Unbounded_String;
       Label : Unbounded_String;
+      Detail : Unbounded_String;
       Effective_Kind : Root_Kind := Kind;
    begin
       if Natural (Roots.Length) >= Max_Discovered_Roots then
@@ -109,9 +110,8 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
                end if;
 
                Label := To_Unbounded_String (Root_Label (To_String (Full), Effective_Kind));
-               if Filesystem_Type /= "" and then Ada.Strings.Fixed.Index (To_String (Label), "|") > 0 then
-                  Append (Label, "|");
-                  Append (Label, Filesystem_Type);
+               if Effective_Kind /= Root_Filesystem then
+                  Detail := To_Unbounded_String (Filesystem_Type);
                end if;
             end;
          else
@@ -122,6 +122,8 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
               (Root_Entry'
                  (Path  => Full,
                   Label => Label,
+                  Name  => To_Unbounded_String (Root_Name (To_String (Full), Effective_Kind)),
+                  Detail => Detail,
                   Kind  => Effective_Kind,
                   Volume_Name => Name,
                   Ready => Root_Ready,
@@ -130,7 +132,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
       end if;
    exception
       when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.File_System.Roots");
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
    end Append_If_Directory;
 
    procedure Append_Children
@@ -247,7 +249,9 @@ begin
             when Hostkit.Fs.Network_Place =>
                Append_If_Directory (Path, Root_Network_Mount);
             when Hostkit.Fs.Removable_Media_Parent =>
-               Append_Children (Path, Root_User_Mount);
+               --  /run/media/<user>: listed above, as Volume_Places' per-user
+               --  volumes folder; walking it again cost the scan budget twice.
+               null;
             when Hostkit.Fs.Desktop_Mounts_Parent =>
                Append_Children (Path, Root_Network_Mount);
          end case;
@@ -262,6 +266,8 @@ begin
            (Root_Entry'
               (Path  => To_Unbounded_String (Full),
                Label => To_Unbounded_String (Root_Label (Full, Root_Current)),
+               Name  => Null_Unbounded_String,
+               Detail => Null_Unbounded_String,
                Kind  => Root_Current,
                Volume_Name => To_Unbounded_String (Ada.Directories.Simple_Name (Full)),
                Ready => Root_Ready,

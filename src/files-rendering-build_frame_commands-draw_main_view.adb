@@ -461,7 +461,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                        Saturating_Add
                          (Panel_Y,
                           Saturating_Add
-                            (Pad, (if Inner_H > Icon_Size then (Inner_H - Icon_Size) / 2 else 0)));
+                            (Pad, Centered (Inner_H, Icon_Size)));
                      Text_X    : constant Natural :=
                        Saturating_Add (Icon_X, Saturating_Add (Icon_Size, Gap));
                      Text_W    : constant Natural :=
@@ -472,7 +472,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                      Text_Y    : constant Natural :=
                        Saturating_Add
                          (Panel_Y, Saturating_Add
-                            (Pad, (if Inner_H > Text_H then (Inner_H - Text_H) / 2 else 0)));
+                            (Pad, Centered (Inner_H, Text_H)));
                   begin
                      Add_Overlay_Rect (Panel_X, Panel_Y, Panel_W, Panel_H, Hover_Color);
                      Add_Overlay_Border (Panel_X, Panel_Y, Panel_W, Panel_H, Selection_Color);
@@ -495,14 +495,14 @@ separate (Files.Rendering.Build_Frame_Commands)
             Panel_X : constant Natural :=
               Saturating_Add
                 (Layout.Main_X,
-                 (if Layout.Main_Width > Panel_W then (Layout.Main_Width - Panel_W) / 2 else 0));
+                 Centered (Layout.Main_Width, Panel_W));
             Panel_Y : constant Natural :=
               Saturating_Add
                 (Layout.Main_Y,
-                 (if Layout.Main_Height > Panel_H then (Layout.Main_Height - Panel_H) / 2 else 0));
+                 Centered (Layout.Main_Height, Panel_H));
             Text_H : constant Natural := Natural'Min (Line_Height, Panel_H);
             Text_Y : constant Natural :=
-              Saturating_Add (Panel_Y, (if Panel_H > Text_H then (Panel_H - Text_H) / 2 else 0));
+              Saturating_Add (Panel_Y, Centered (Panel_H, Text_H));
             Side_Pad : constant Natural := Natural'Min (8, Panel_W / 4);
             Inner_X  : constant Natural := Saturating_Add (Panel_X, Side_Pad);
             Inner_W  : constant Natural :=

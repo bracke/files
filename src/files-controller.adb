@@ -12,6 +12,7 @@ with Files.Desktop_Applications;
 with Files.Breadcrumbs;
 with Files.Command_Palette;
 with Files.Folder_Tree;
+with Files.Root_Labels;
 with Files.Settings_Form;
 with Files.UTF8;
 
@@ -65,9 +66,8 @@ package body Files.Controller is
    end Empty_Operation;
 
    --  The filesystem roots followed by the user's favorites: what the root
-   --  selector lists and the folder tree is seeded with. A favorite's label is
-   --  the "root.favorite|<name>" token, which the selector renders as the star
-   --  prefix and base name rather than the full path.
+   --  selector lists and the folder tree is seeded with. A favorite is
+   --  labelled by its base name after the star, not by its full path.
    function Root_Entries_With_Favorites
      (Settings : Files.Settings.Settings_Model)
       return Files.File_System.Root_Entry_Vectors.Vector
@@ -81,6 +81,10 @@ package body Files.Controller is
                Label       =>
                  To_Unbounded_String
                    (Files.File_System.Root_Label (To_String (Path), Files.File_System.Root_Favorite)),
+               Name        =>
+                 To_Unbounded_String
+                   (Files.File_System.Root_Name (To_String (Path), Files.File_System.Root_Favorite)),
+               Detail      => Null_Unbounded_String,
                Kind        => Files.File_System.Root_Favorite,
                Volume_Name => Null_Unbounded_String,
                Ready       => Files.File_System.Root_Ready,
@@ -93,8 +97,8 @@ package body Files.Controller is
    --  again whenever they changed (a favorite added, a volume mounted) since
    --  the tree was seeded. Used by the tree toggle command
    --  and the Copy to.../Move to... destination picker so both open onto the
-   --  same populated tree. The tree draws a node's name verbatim, so a favorite
-   --  is named by its path rather than by the selector's label token.
+   --  same populated tree. A root is named as the selector names it; a
+   --  favorite by its path, which the tree has room for.
    procedure Seed_Tree_If_Needed
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model) is
@@ -105,8 +109,8 @@ package body Files.Controller is
            (Files.Folder_Tree.Entry_Seed'
               (Path => Root.Path,
                Name =>
-                 (if Root.Kind /= Files.File_System.Root_Favorite and then Length (Root.Label) > 0
-                  then Root.Label
+                 (if Root.Kind /= Files.File_System.Root_Favorite
+                  then To_Unbounded_String (Files.Root_Labels.Display_Label (Root))
                   else Root.Path)));
       end loop;
       if not Files.Model.Tree_Is_Seeded (Model) or else not Files.Model.Tree_Roots_Match (Model, Seeds) then

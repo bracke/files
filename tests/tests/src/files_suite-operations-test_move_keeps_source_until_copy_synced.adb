@@ -36,7 +36,9 @@ separate (Files_Suite.Operations)
            (To_Unbounded_String (Source), To_Unbounded_String (Join (Remote.Path, "durable-destination")),
             Files.File_System.Drop_Move, True, Null_Unbounded_String));
          Ada.Environment_Variables.Set
-           ("FILES_TEST_SYNC_FAULT_SUFFIX", (if Folder then "/durable-child" else "/durable-destination"));
+           --  A file is flushed as it is written, while still staged under
+           --  the name "payload"; a folder's file keeps its own name there.
+           ("FILES_TEST_SYNC_FAULT_SUFFIX", (if Folder then "/durable-child" else "/payload"));
          Mutation := Files.File_System.Execute_Drop_Import (Paths);
          Ada.Environment_Variables.Clear ("FILES_TEST_SYNC_FAULT_SUFFIX");
          Assert (not Mutation.Success, "a copy that cannot be synced fails the move, folder " & Folder'Image);

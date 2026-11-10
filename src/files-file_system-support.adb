@@ -4,11 +4,9 @@ with Ada.Streams;
 with Files.Environment;
 with Files.Diagnostics;
 with Ada.Exceptions;
-with Ada.Unchecked_Deallocation;
 with Ada.Strings.Unbounded;
 
 with GNAT.OS_Lib;
-with GNAT.Directory_Operations;
 with Files.Job_Context;
 with Hostkit.Directory_Write_Access;
 with Files.File_Identities;
@@ -50,7 +48,7 @@ package body Files.File_System.Support is
 
    procedure On_Large_Stack (Work : not null access procedure);
 
-   function Sync_Copy (Source, Destination : String) return Boolean is
+   function Sync_Copy (Source, Destination : String; Files_Too : Boolean := True) return Boolean is
       use type Hostkit.Durability.Outcome;
       Synced : Boolean := True;
 
@@ -72,7 +70,7 @@ package body Files.File_System.Support is
             end if;
             Synced := Synced
               and then Hostkit.Durability.Sync_Directory (To) /= Hostkit.Durability.Failed;
-         elsif Ada.Directories.Kind (To) = Ada.Directories.Ordinary_File then
+         elsif Files_Too and then Ada.Directories.Kind (To) = Ada.Directories.Ordinary_File then
             Synced := Hostkit.Durability.Sync_File (To) /= Hostkit.Durability.Failed;
          end if;
       end Sync;
@@ -100,49 +98,24 @@ package body Files.File_System.Support is
       --  maildir, a cache, a dataset) could not be opened, copied or deleted.
       Max_Entries : constant Natural := Max_Directory_Entries;
       Max_Name_Bytes : constant Natural := 64 * 1024 * 1024;
-      Dir : GNAT.Directory_Operations.Dir_Type;
-      type Name_Buffer is access String;
-      procedure Free is new Ada.Unchecked_Deallocation (String, Name_Buffer);
-      Buffer : Name_Buffer := new String (1 .. 65_536);
-      Last : Natural;
       Names : Files.Types.String_Vectors.Vector;
       Name_Bytes : Natural := 0;
-   begin
-      GNAT.Directory_Operations.Open (Dir, Path);
-      loop
-         GNAT.Directory_Operations.Read (Dir, Buffer.all, Last);
-         exit when Last = 0;
-         if Last = Buffer'Last then
+
+      procedure Collect (Name : String; Stop : in out Boolean) is
+         pragma Unreferenced (Stop);
+      begin
+         if Natural (Names.Length) >= Max_Entries or else Name'Length > Max_Name_Bytes - Name_Bytes then
             raise Ada.Directories.Use_Error;
          end if;
-         if Buffer (1 .. Last) /= "." and then Buffer (1 .. Last) /= ".." then
-            if Natural (Names.Length) >= Max_Entries
-              or else Last > Max_Name_Bytes - Name_Bytes
-            then
-               raise Ada.Directories.Use_Error;
-            end if;
-            Names.Append (To_Unbounded_String (Buffer (1 .. Last)));
-            Name_Bytes := Name_Bytes + Last;
-         end if;
-      end loop;
-      GNAT.Directory_Operations.Close (Dir);
-      Free (Buffer);
-      --  Recursion retains neither a large stack buffer nor an open directory.
+         Names.Append (To_Unbounded_String (Name));
+         Name_Bytes := Name_Bytes + Name'Length;
+      end Collect;
+   begin
+      Files.Fs_Primitives.For_Each_Name (Path, Collect'Access);
+      --  Recursion retains neither a large buffer nor an open directory.
       for Name of Names loop
          Visit (To_String (Name));
       end loop;
-   exception
-      when others =>
-         Free (Buffer);
-         if GNAT.Directory_Operations.Is_Open (Dir) then
-            begin
-               GNAT.Directory_Operations.Close (Dir);
-            exception
-               when Swallowed : others =>
-                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
-            end;
-         end if;
-         raise;
    end For_Each_Entry;
 
    procedure Safe_End_Search
@@ -651,17 +624,30 @@ package body Files.File_System.Support is
       Files.Copy_Context.Save (Batch, Items);
    end Save_Links;
 
+   --  What one copy walk carries through every level of the tree: how it
+   --  is stopped, what it keeps, what it shares, and what it reports.
+   type Copy_Walk is limited record
+      Cancel                 : Cancellation_Check := null;
+      Check_Job_Cancellation : Boolean := True;
+      Times                  : Source_Time_Maps.Map;
+      Preserve_Ownership     : Boolean := False;
+      --  Files already copied, by source identity: hard links stay links.
+      Copied_Files           : Copied_File_Maps.Map;
+      Shared_Batch           : Boolean := False;
+      --  Each regular file is flushed to the device through the descriptor
+      --  that wrote it, before its metadata is set (a move removes its
+      --  source after the walk; Windows may then make the file read-only).
+      Durable                : Boolean := False;
+      --  Whether to digest the root file's bytes, and the digest.
+      Want_Root_Digest       : Boolean := False;
+      Root_Digest            : Files.Types.UString;
+   end record;
+
    procedure Copy_Node
      (Source_Path      : String;
       Destination_Path : String;
-      Depth            : Natural := 0;
-      Cancel           : Cancellation_Check := null;
-      Check_Job_Cancellation : Boolean := True;
-      Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
-      Preserve_Ownership : Boolean;
-      Copied_Files : in out Copied_File_Maps.Map;
-      Shared_Batch : Boolean := False;
-      Root_File_Digest : access Files.Types.UString := null);
+      Depth            : Natural;
+      Walk             : in out Copy_Walk);
 
    --  Copy_Node on a large stack (On_Large_Stack): its 1024 levels take about
    --  2 KB each.
@@ -669,18 +655,11 @@ package body Files.File_System.Support is
      (Source_Path      : String;
       Destination_Path : String;
       Depth            : Natural;
-      Cancel           : Cancellation_Check;
-      Check_Job_Cancellation : Boolean;
-      Times : Source_Time_Maps.Map;
-      Preserve_Ownership : Boolean;
-      Copied_Files : in out Copied_File_Maps.Map;
-      Shared_Batch : Boolean;
-      Root_File_Digest : access Files.Types.UString := null)
+      Walk             : in out Copy_Walk)
    is
       procedure Copy is
       begin
-         Copy_Node (Source_Path, Destination_Path, Depth, Cancel, Check_Job_Cancellation, Times,
-                    Preserve_Ownership, Copied_Files, Shared_Batch, Root_File_Digest);
+         Copy_Node (Source_Path, Destination_Path, Depth, Walk);
       end Copy;
    begin
       On_Large_Stack (Copy'Access);
@@ -719,11 +698,21 @@ package body Files.File_System.Support is
       Preserve_Ownership : Boolean := False;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
       Root_Digest : access Files.Types.UString := null;
-      Check_Job_Cancellation : Boolean := True)
+      Check_Job_Cancellation : Boolean := True;
+      Durable : Boolean := False)
    is
       Stage : UString;
-      Links : Copied_File_Maps.Map := Load_Links (Batch);
-      Copied_Digest : aliased Files.Types.UString;
+      Walk  : Copy_Walk :=
+        (Cancel                 => Cancel,
+         Check_Job_Cancellation => Check_Job_Cancellation,
+         Times                  => Times,
+         Preserve_Ownership     => Preserve_Ownership,
+         Copied_Files           => Load_Links (Batch),
+         Shared_Batch           => Files.Copy_Context.Directory (Batch) /= "",
+         Durable                => Durable,
+         Want_Root_Digest       => True,
+         Root_Digest            => Null_Unbounded_String);
+      Copied_Digest : Files.Types.UString renames Walk.Root_Digest;
    begin
       if Root_Digest /= null then
          Root_Digest.all := Null_Unbounded_String;
@@ -732,9 +721,7 @@ package body Files.File_System.Support is
       Tree_Revision_Value := Null_Unbounded_String;
       Check_Copy_Destination (Source_Path, Destination_Path);
       Stage := To_Unbounded_String (Create_Stage (Ada.Directories.Containing_Directory (Destination_Path)));
-      Copy_Node_Deep (Source_Path, Join_Path (To_String (Stage), "payload"), 0, Cancel, Check_Job_Cancellation, Times,
-                      Preserve_Ownership, Links, Files.Copy_Context.Directory (Batch) /= "",
-                      Copied_Digest'Access);
+      Copy_Node_Deep (Source_Path, Join_Path (To_String (Stage), "payload"), 0, Walk);
       Identity := To_Unbounded_String (Files.File_Identities.Token (Join_Path (To_String (Stage), "payload")));
       if Root_Digest /= null then
          Root_Digest.all := Copied_Digest;
@@ -765,7 +752,7 @@ package body Files.File_System.Support is
       then
          raise Ada.Directories.Use_Error;
       end if;
-      Save_Links (Batch, Links, Join_Path (To_String (Stage), "payload"), Destination_Path);
+      Save_Links (Batch, Walk.Copied_Files, Join_Path (To_String (Stage), "payload"), Destination_Path);
       if not Move_No_Replace (Join_Path (To_String (Stage), "payload"), Destination_Path) then
          raise Ada.Directories.Use_Error;
       end if;
@@ -805,15 +792,17 @@ package body Files.File_System.Support is
    procedure Copy_Node
      (Source_Path      : String;
       Destination_Path : String;
-      Depth            : Natural := 0;
-      Cancel           : Cancellation_Check := null;
-      Check_Job_Cancellation : Boolean := True;
-      Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
-      Preserve_Ownership : Boolean;
-      Copied_Files : in out Copied_File_Maps.Map;
-      Shared_Batch : Boolean := False;
-      Root_File_Digest : access Files.Types.UString := null)
+      Depth            : Natural;
+      Walk             : in out Copy_Walk)
    is
+      Cancel                 : Cancellation_Check renames Walk.Cancel;
+      Check_Job_Cancellation : Boolean renames Walk.Check_Job_Cancellation;
+      Times                  : Source_Time_Maps.Map renames Walk.Times;
+      Preserve_Ownership     : Boolean renames Walk.Preserve_Ownership;
+      Copied_Files           : Copied_File_Maps.Map renames Walk.Copied_Files;
+      Shared_Batch           : Boolean renames Walk.Shared_Batch;
+      --  Only the root's own bytes are digested.
+      Wants_Digest           : constant Boolean := Walk.Want_Root_Digest and then Depth = 0;
       --  A copy of a folder that (directly or transitively) contains a symlink to
       --  an ancestor would, without this cap, recurse until the path exceeds
       --  PATH_MAX. The symlink guard below removes that cause; this is a defensive
@@ -935,8 +924,7 @@ package body Files.File_System.Support is
 
       procedure Copy_Entry (Name : String) is
       begin
-         Copy_Node (Join_Path (Source_Path, Name), Join_Path (Destination_Path, Name),
-                    Depth + 1, Cancel, Check_Job_Cancellation, Times, Preserve_Ownership, Copied_Files, Shared_Batch);
+         Copy_Node (Join_Path (Source_Path, Name), Join_Path (Destination_Path, Name), Depth + 1, Walk);
       end Copy_Entry;
 
       procedure Check_Cancelled is
@@ -995,8 +983,8 @@ package body Files.File_System.Support is
                end if;
                Check_Cancelled;
                Metadata := Hostkit.Metadata_Copy.No_Snapshot;
-               if Root_File_Digest /= null and then not Hostkit.Fs.Is_Link (Source_Path) then
-                  Root_File_Digest.all := First.Content_Digest;
+               if Wants_Digest and then not Hostkit.Fs.Is_Link (Source_Path) then
+                  Walk.Root_Digest := First.Content_Digest;
                end if;
                return True;
             end;
@@ -1023,7 +1011,7 @@ package body Files.File_System.Support is
          Digest_Text : String (1 .. 64);
          procedure Copy_Buffer (Buffer_Last : Stream_Element_Offset) is
          begin
-            if (Root_File_Digest /= null or else Track_Hard_Link)
+            if (Wants_Digest or else Track_Hard_Link)
               and then Buffer_Last >= Buffer'First
             then
                CryptoLib.Hashes.Update
@@ -1053,7 +1041,7 @@ package body Files.File_System.Support is
          end Copy_Buffer;
       begin
          Copied_Bytes_Digest := Null_Unbounded_String;
-         if Root_File_Digest /= null or else Track_Hard_Link then
+         if Wants_Digest or else Track_Hard_Link then
             CryptoLib.Hashes.Initialize_SHA256 (Digest_Context);
          end if;
          declare
@@ -1093,6 +1081,15 @@ package body Files.File_System.Support is
             Files.Io_Errors.Capture;
             raise Ada.Directories.Use_Error;
          end if;
+         --  Through the descriptor that wrote it, before its metadata is set:
+         --  no reopening, which a read-only copy would refuse on Windows.
+         if Walk.Durable
+           and then Hostkit.Durability."=" (Hostkit.Durability.Sync_Descriptor (Integer (Output)),
+                                             Hostkit.Durability.Failed)
+         then
+            Files.Io_Errors.Capture;
+            raise Ada.Directories.Use_Error;
+         end if;
          GNAT.OS_Lib.Close (Output, Closed);
          Output := GNAT.OS_Lib.Invalid_FD;
          if not Closed then
@@ -1101,7 +1098,7 @@ package body Files.File_System.Support is
             Files.Io_Errors.Capture;
             raise Ada.Directories.Use_Error;
          end if;
-         if Root_File_Digest /= null or else Track_Hard_Link then
+         if Wants_Digest or else Track_Hard_Link then
             Digest := CryptoLib.Hashes.Finalize (Digest_Context);
             for Index in Digest'Range loop
                Digest_Text ((Index - Digest'First) * 2 + 1) :=
@@ -1110,8 +1107,8 @@ package body Files.File_System.Support is
                  Hex (Natural (Digest (Index)) mod 16 + 1);
             end loop;
             Copied_Bytes_Digest := To_Unbounded_String (Digest_Text);
-            if Root_File_Digest /= null then
-               Root_File_Digest.all := Copied_Bytes_Digest;
+            if Wants_Digest then
+               Walk.Root_Digest := Copied_Bytes_Digest;
             end if;
          end if;
          Check_Cancelled;
@@ -1127,8 +1124,8 @@ package body Files.File_System.Support is
       end Copy_Bytes;
    begin
       Check_Cancelled;
-      if Root_File_Digest /= null then
-         Root_File_Digest.all := Null_Unbounded_String;
+      if Wants_Digest then
+         Walk.Root_Digest := Null_Unbounded_String;
       end if;
       --  Capture before reading bytes or enumerating children changes atime.
       declare
@@ -1240,12 +1237,18 @@ package body Files.File_System.Support is
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
       Preserve_Ownership : Boolean := False;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session) is
-      Copied_Files : Copied_File_Maps.Map := Load_Links (Batch);
+      Walk : Copy_Walk :=
+        (Cancel                 => Cancel,
+         Check_Job_Cancellation => Check_Job_Cancellation,
+         Times                  => Times,
+         Preserve_Ownership     => Preserve_Ownership,
+         Copied_Files           => Load_Links (Batch),
+         Shared_Batch           => Files.Copy_Context.Directory (Batch) /= "",
+         others                 => <>);
    begin
       Check_Copy_Destination (Source_Path, Destination_Path);
-      Copy_Node_Deep (Source_Path, Destination_Path, Depth, Cancel, Check_Job_Cancellation, Times,
-                      Preserve_Ownership, Copied_Files, Files.Copy_Context.Directory (Batch) /= "");
-      Save_Links (Batch, Copied_Files, Destination_Path, Destination_Path);
+      Copy_Node_Deep (Source_Path, Destination_Path, Depth, Walk);
+      Save_Links (Batch, Walk.Copied_Files, Destination_Path, Destination_Path);
    end Copy_Tree;
 
    procedure Delete_Tree (Path : String) is
@@ -1305,7 +1308,11 @@ package body Files.File_System.Support is
          if Lease_Present then
             Delete_Owned_Level (Join_Path (Path, Files.Protocol_Names.Transport_Lease));
          end if;
-         Ada.Directories.Delete_Directory (Path);
+         --  Only ever the emptied directory: a Windows read-only folder (kept
+         --  from its source by the copy) is cleared first, not refused.
+         if not Hostkit.Fs.Delete_Empty_Directory (Path) then
+            raise Ada.Directories.Use_Error;
+         end if;
       end Delete_Owned_Level;
    begin
       --  A stage can be as deep as a copy (1024 levels): on a stack that

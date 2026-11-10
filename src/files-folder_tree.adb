@@ -1,3 +1,6 @@
+with Ada.Containers.Generic_Array_Sort;
+with Ada.Containers.Indefinite_Hashed_Maps;
+with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 with Ada.Unchecked_Deallocation;
 
@@ -18,7 +21,8 @@ package body Files.Folder_Tree is
                Parent       => 0,
                Expanded     => False,
                Loaded       => False,
-               Has_Children => True));
+               Has_Children => True,
+               Rank         => 0));
       end loop;
       T.Seeded := True;
    end Seed;
@@ -83,8 +87,10 @@ package body Files.Folder_Tree is
 
       declare
          Parent_Depth : constant Natural := T.Nodes.Element (Index).Depth;
+         Rank         : Natural := 0;
       begin
          for Child of Children loop
+            Rank := Rank + 1;
             T.Nodes.Append
               (Node'
                  (Path         => Child.Path,
@@ -93,7 +99,8 @@ package body Files.Folder_Tree is
                   Parent       => Index,
                   Expanded     => False,
                   Loaded       => False,
-                  Has_Children => True));
+                  Has_Children => True,
+                  Rank         => Rank));
          end loop;
       end;
 
@@ -117,13 +124,62 @@ package body Files.Folder_Tree is
       if not In_Range (T, Index) then
          return;
       end if;
-      for Child of T.Nodes loop
-         if Child.Parent = Index then
-            Child.Parent := Detached;
-         end if;
-      end loop;
-      T.Nodes (Index).Loaded := False;
-      Set_Children (T, Index, Children);
+      declare
+         package Index_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+           (Key_Type        => String,
+            Element_Type    => Positive,
+            Hash            => Ada.Strings.Hash,
+            Equivalent_Keys => "=");
+         Attached     : Index_Maps.Map;
+         Kept         : Index_Maps.Map;
+         Parent_Depth : constant Natural := T.Nodes (Index).Depth;
+         Rank         : Natural := 0;
+      begin
+         for Child_Index in T.Nodes.First_Index .. T.Nodes.Last_Index loop
+            if T.Nodes (Child_Index).Parent = Index then
+               Attached.Include (To_String (T.Nodes (Child_Index).Path), Child_Index);
+            end if;
+         end loop;
+         for Child of Children loop
+            Rank := Rank + 1;
+            declare
+               Path  : constant String := To_String (Child.Path);
+               Found : constant Index_Maps.Cursor := Attached.Find (Path);
+            begin
+               if Index_Maps.Has_Element (Found) and then not Kept.Contains (Path) then
+                  T.Nodes (Index_Maps.Element (Found)).Name := Child.Name;
+                  T.Nodes (Index_Maps.Element (Found)).Rank := Rank;
+                  --  A folder that was empty when read may not be now: like a
+                  --  child never read, it offers its expander again.
+                  if T.Nodes (Index_Maps.Element (Found)).Loaded
+                    and then not T.Nodes (Index_Maps.Element (Found)).Has_Children
+                  then
+                     T.Nodes (Index_Maps.Element (Found)).Loaded := False;
+                     T.Nodes (Index_Maps.Element (Found)).Has_Children := True;
+                  end if;
+                  Kept.Insert (Path, Index_Maps.Element (Found));
+               else
+                  T.Nodes.Append
+                    (Node'
+                       (Path         => Child.Path,
+                        Name         => Child.Name,
+                        Depth        => Parent_Depth + 1,
+                        Parent       => Index,
+                        Expanded     => False,
+                        Loaded       => False,
+                        Has_Children => True,
+                        Rank         => Rank));
+               end if;
+            end;
+         end loop;
+         for Position in Attached.Iterate loop
+            if not Kept.Contains (Index_Maps.Key (Position)) then
+               T.Nodes (Index_Maps.Element (Position)).Parent := Detached;
+            end if;
+         end loop;
+         T.Nodes (Index).Loaded := True;
+         T.Nodes (Index).Has_Children := not Children.Is_Empty;
+      end;
    end Replace_Children;
 
    function Same_Roots
@@ -211,11 +267,46 @@ package body Files.Folder_Tree is
                   Loaded       => N.Loaded,
                   Has_Children => N.Has_Children));
             if N.Expanded then
-               Child := First_Child (Index);
-               while Child /= 0 loop
-                  Visit (Child);
-                  Child := Next_Child (Child);
-               end loop;
+               declare
+                  Count : Natural := 0;
+               begin
+                  Child := First_Child (Index);
+                  while Child /= 0 loop
+                     Count := Count + 1;
+                     Child := Next_Child (Child);
+                  end loop;
+                  declare
+                     type Child_Array is array (Positive range <>) of Positive;
+                     function Before (Left, Right : Positive) return Boolean is
+                       (T.Nodes (Left).Rank < T.Nodes (Right).Rank);
+                     procedure Sort is new Ada.Containers.Generic_Array_Sort
+                       (Index_Type   => Positive,
+                        Element_Type => Positive,
+                        Array_Type   => Child_Array,
+                        "<"          => Before);
+                     --  On the heap: a folder can hold more subfolders than
+                     --  a small stack has room for.
+                     type Child_Array_Access is access Child_Array;
+                     procedure Free is new Ada.Unchecked_Deallocation (Child_Array, Child_Array_Access);
+                     Ordered : Child_Array_Access := new Child_Array (1 .. Count);
+                  begin
+                     Child := First_Child (Index);
+                     for Slot of Ordered.all loop
+                        Slot := Child;
+                        Child := Next_Child (Child);
+                     end loop;
+                     --  In listing order, which a re-read can change for kept children.
+                     Sort (Ordered.all);
+                     for Item of Ordered.all loop
+                        Visit (Item);
+                     end loop;
+                     Free (Ordered);
+                  exception
+                     when others =>
+                        Free (Ordered);
+                        raise;
+                  end;
+               end;
             end if;
          end Visit;
       begin

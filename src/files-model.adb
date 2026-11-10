@@ -1408,6 +1408,11 @@ package body Files.Model is
       Index : Positive)
       return String is separate;
 
+   function Root_Entry_At
+     (Model : Window_Model;
+      Index : Positive)
+      return Files.File_System.Root_Entry is separate;
+
    function Root_Kind
      (Model : Window_Model;
       Index : Positive)

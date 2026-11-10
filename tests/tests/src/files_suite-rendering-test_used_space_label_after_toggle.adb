@@ -4,8 +4,10 @@ separate (Files_Suite.Rendering)
    procedure Test_Used_Space_Label_After_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Snap     : View_Snapshot := Sample_Snapshot (5, Files.Types.Details);
-      Used_Sfx : constant String := Files.Localization.Text ("status.used_space.suffix");
-      Free_Sfx : constant String := Files.Localization.Text ("status.free_space.suffix");
+      Used_Sfx : constant String :=
+        Ada.Strings.Fixed.Trim (Files.Localization.Text ("status.used_space", "size", ""), Ada.Strings.Both);
+      Free_Sfx : constant String :=
+        Ada.Strings.Fixed.Trim (Files.Localization.Text ("status.free_space", "size", ""), Ada.Strings.Both);
    begin
       Snap.Free_Space_Known := True;
       Snap.Free_Space_Bytes := 12_000_000_000;

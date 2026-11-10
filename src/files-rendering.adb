@@ -124,7 +124,8 @@ package body Files.Rendering is
    --  and one spacing row. Both the row-count math and the renderer use it so
    --  layout and scroll agree.
    Permission_Grid_Rows : constant Natural := 6;
-   Main_Content_Padding : constant Natural := 8;
+   --  8 px at Guikit.Layout.Reference_Line_Height, scaled with the layout's line height.
+   function Main_Content_Padding (L : Layout_Metrics) return Natural is (Guikit.Layout.Scaled (8, L.Line_Height));
    --  The grid's own spacing (Guikit.Item_Grid draws the grid).
    Main_Grid_Gap : constant Natural := Guikit.Item_Grid.Main_Grid_Gap;
    Details_Column_Padding : constant Natural := Guikit.Item_Grid.Details_Column_Padding;
@@ -133,7 +134,7 @@ package body Files.Rendering is
    --  margin (Main_Content_Padding), not a reserved gutter, so it must be no
    --  wider than that margin or it paints over -- and steals clicks from -- the
    --  rightmost column of items. Keep it equal to the margin.
-   Scrollbar_Width : constant Natural := Main_Content_Padding;
+   function Scrollbar_Width (L : Layout_Metrics) return Natural renames Main_Content_Padding;
    Root_Selector_Padding : constant Natural := 8;
 
    function Clock_Time_Text (Value : Ada.Calendar.Time) return String renames Files.Display_Text.Clock_Time_Text;
@@ -334,16 +335,11 @@ package body Files.Rendering is
         and then Snapshot.Total_Space_Bytes > 0
         and then Snapshot.Total_Space_Bytes >= Snapshot.Free_Space_Bytes
       then
-         return
-           Size_Text (Snapshot.Total_Space_Bytes - Snapshot.Free_Space_Bytes)
-           & " "
-           & Files.Localization.Text ("status.used_space.suffix");
+         return Files.Localization.Text
+           ("status.used_space", "size", Size_Text (Snapshot.Total_Space_Bytes - Snapshot.Free_Space_Bytes));
       end if;
 
-      return
-        Size_Text (Snapshot.Free_Space_Bytes)
-        & " "
-        & Files.Localization.Text ("status.free_space.suffix");
+      return Files.Localization.Text ("status.free_space", "size", Size_Text (Snapshot.Free_Space_Bytes));
    end Free_Space_Label;
 
    function Free_Space_Label_Width
@@ -475,9 +471,9 @@ package body Files.Rendering is
 
    function Main_Content_Rect (Layout : Layout_Metrics) return Content_Rectangle is
       Padding : constant Natural :=
-        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding, 2)
-           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding, 2)
-         then Main_Content_Padding
+        (if Layout.Main_Width > Saturating_Multiply (Main_Content_Padding (Layout), 2)
+           and then Layout.Main_Height > Saturating_Multiply (Main_Content_Padding (Layout), 2)
+         then Main_Content_Padding (Layout)
          else 0);
    begin
       return
@@ -761,9 +757,9 @@ package body Files.Rendering is
         Natural'Min (Layout.Height, Natural'Max (Saturating_Multiply (Line_Height, 12),
                                                  Bounded_Product_Divide (Layout.Height, 3, 4)));
       Panel_X   : constant Natural :=
-        (if Layout.Width > Panel_W then (Layout.Width - Panel_W) / 2 else 0);
+        Centered (Layout.Width, Panel_W);
       Panel_Y   : constant Natural :=
-        (if Layout.Height > Panel_H then (Layout.Height - Panel_H) / 2 else 0);
+        Centered (Layout.Height, Panel_H);
       --  The title band reserves one line height plus padding at the top.
       Desired_Title_H : constant Natural := Saturating_Add (Line_Height, Padding);
       Title_H   : constant Natural := Natural'Min (Desired_Title_H, Panel_H);
@@ -813,9 +809,9 @@ package body Files.Rendering is
              (Desired_Title_H,
               Saturating_Add (Desired_Swatch, Saturating_Multiply (Padding, 2))));
       Panel_X  : constant Natural :=
-        (if Layout.Width > Panel_W then (Layout.Width - Panel_W) / 2 else 0);
+        Centered (Layout.Width, Panel_W);
       Panel_Y  : constant Natural :=
-        (if Layout.Height > Panel_H then (Layout.Height - Panel_H) / 2 else 0);
+        Centered (Layout.Height, Panel_H);
       Horizontal_Padding : constant Natural := Natural'Min (Padding, Panel_W / 2);
       Inner_W            : constant Natural :=
         Panel_W - Saturating_Multiply (Horizontal_Padding, 2);
@@ -900,7 +896,8 @@ package body Files.Rendering is
       Line_Height : Positive := Files.UI.Base_Line_Height)
       return Path_Favorite_Star_Bounds
    is
-      Toolbar      : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Width);
+      Toolbar      : constant Guikit.Layout.Toolbar_Layout :=
+        Guikit.Layout.Calculate_Toolbar_Layout (Width, Line_Height);
       Field_Margin : constant Natural := Toolbar_Field_Margin;
       Path_X       : constant Natural := Saturating_Add (Toolbar.Middle_X, Field_Margin);
       Pad          : constant Natural := Guikit.Layout.Input_Field_Padding;

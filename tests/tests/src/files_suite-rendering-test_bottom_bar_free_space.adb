@@ -14,7 +14,8 @@ separate (Files_Suite.Rendering)
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
 
-      Free_Word : constant String := Files.Localization.Text ("status.free_space.suffix");
+      Free_Word : constant String :=
+        Ada.Strings.Fixed.Trim (Files.Localization.Text ("status.free_space", "size", ""), Ada.Strings.Both);
       Gib_Unit  : constant String := Files.Localization.Text ("details.size.unit.gib");
       Known     : View_Snapshot := Sample_Snapshot (4, Files.Types.Small_Icons);
       Unknown   : View_Snapshot := Sample_Snapshot (4, Files.Types.Small_Icons);

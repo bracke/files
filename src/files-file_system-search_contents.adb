@@ -62,11 +62,14 @@ is
                begin
                   if not Read_Ok then
                      Result.Error_Key := To_Unbounded_String ("error.search.failed");
-                  elsif Bytes'Length > Max_Bytes and then not Files.Quick_Look.Looks_Binary (Bytes) then
-                     --  A text file longer than is read: its match could lie past it.
-                     Result.Error_Key := To_Unbounded_String ("error.search.failed");
-                  elsif Content_Matches (Bytes, Query) then
+                  elsif Content_Matches
+                    (Bytes (Bytes'First .. Bytes'First - 1 + Natural'Min (Bytes'Length, Max_Bytes)), Query)
+                  then
                      Result.Items.Append (Item);
+                  elsif Bytes'Length > Max_Bytes and then not Files.Quick_Look.Looks_Binary (Bytes) then
+                     --  A text file longer than is read and no match in what
+                     --  was: its match could lie past it.
+                     Result.Error_Key := To_Unbounded_String ("error.search.failed");
                   end if;
                end;
             end if;

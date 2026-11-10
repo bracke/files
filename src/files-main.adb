@@ -4,6 +4,8 @@ with Files.Job_Context;
 with Files.Job_Scavenger;
 with Files.Process_Jobs;
 with Files.Recovery_CLI;
+with Files.Diagnostics;
+with Guikit.Errors;
 with Hostkit.Process;
 with Ada.Command_Line;
 
@@ -21,6 +23,8 @@ procedure Files.Main is
       Files.Process_Jobs.Shutdown (Stopped);
    end Shut_Down_Workers;
 begin
+   --  What guikit catches and carries on past is recorded with ours.
+   Guikit.Errors.Set_Reporter (Files.Diagnostics.Note'Access);
    if Files.Recovery_CLI.Run_If_Requested then
       Shut_Down_Workers;
       if not Reaped or else not Stopped then

@@ -138,6 +138,8 @@ package Files.Interaction is
    --  @param X Window-space X coordinate of the click.
    --  @param Y Window-space Y coordinate of the click.
    --  @param In_Details_Header True when the click landed on the details header.
+   --  @param On_Context_Menu True when the click landed on the open context
+   --  menu: it is ignored, so the item drawn beneath cannot take the selection.
    --  @param Result Follow-up flags describing the context-menu change.
    procedure Apply_Right_Click
      (Model             : in out Files.Model.Window_Model;
@@ -147,7 +149,8 @@ package Files.Interaction is
       X                 : Natural;
       Y                 : Natural;
       Result            : out Interaction_Result;
-      In_Details_Header : Boolean := False);
+      In_Details_Header : Boolean := False;
+      On_Context_Menu   : Boolean := False);
 
    --  Apply one step of a details-header column-resize drag. Sets Column's
    --  width to its width at drag start adjusted by how far the pointer has moved

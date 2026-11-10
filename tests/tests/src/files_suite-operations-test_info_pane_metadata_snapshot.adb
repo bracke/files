@@ -49,11 +49,7 @@ separate (Files_Suite.Operations)
          "item snapshot captures modified time value");
       Assert
         (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra) =
-         Detail_Lines_Encoding
-           ("info.extra.text.lines.prefix",
-            "1",
-            "info.extra.text.lines.suffix",
-            "info.extra.encoding.ascii"),
+         Detail_Lines_Encoding ("info.extra.text.lines", "1", "info.extra.encoding.ascii"),
          "item snapshot captures filesystem-backed filetype extra metadata");
       Assert (not Snapshot.Items.Element (1).Metadata_Error, "item snapshot captures metadata error state");
       Assert (Snapshot.Selected_Info.Element (1).Size_Available, "info size availability is captured");
@@ -75,10 +71,6 @@ separate (Files_Suite.Operations)
          "info pane captures filetype-specific detail");
       Assert
         (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra) =
-         Detail_Lines_Encoding
-           ("info.extra.text.lines.prefix",
-            "1",
-            "info.extra.text.lines.suffix",
-            "info.extra.encoding.ascii"),
+         Detail_Lines_Encoding ("info.extra.text.lines", "1", "info.extra.encoding.ascii"),
          "info pane captures loaded text line metadata");
    end Test_Info_Pane_Metadata_Snapshot;

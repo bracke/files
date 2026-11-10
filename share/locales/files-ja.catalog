@@ -58,3 +58,7 @@ ja.details.size.unit.mib = MB
 ja.details.size.unit.gib = GB
 ja.details.size.unit.tib = TB
 ja.accessibility.item.details = {modified_label}：{modified}、{size_label}：{size}、{type_label}：{type}
+ja.format.label_value = {label}：{value}
+ja.accessibility.info.summary = {type_label}：{type}、{size_label}：{size}
+ja.accessibility.info.summary_modified = {summary}、{modified}
+ja.accessibility.info.metadata_error = {summary}、{error_label}：{error}

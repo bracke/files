@@ -563,9 +563,9 @@ package body Files.File_System is
          Ignored   : Files.Types.UString;
          Directory : constant String := Ada.Directories.Containing_Directory (Original);
          Leaf      : constant String := Ada.Directories.Simple_Name (Original);
-         Dot       : constant Natural := Ada.Strings.Fixed.Index (Leaf, ".", Ada.Strings.Backward);
-         Stem      : constant String := (if Dot > Leaf'First then Leaf (Leaf'First .. Dot - 1) else Leaf);
-         Extension : constant String := (if Dot > Leaf'First then Leaf (Dot .. Leaf'Last) else "");
+         Stem      : constant String := Files.Types.Stem_Of (Leaf);
+         Extension : constant String :=
+           (if Files.Types.Extension_Of (Leaf) = "" then "" else "." & Files.Types.Extension_Of (Leaf));
       begin
          for Attempt in 1 .. 99 loop
             declare
@@ -746,6 +746,8 @@ package body Files.File_System is
    is separate;
 
    function Root_Label (Path : String; Kind : Root_Kind) return String is separate;
+
+   function Root_Name (Path : String; Kind : Root_Kind) return String is separate;
 
    function Available_Root_Entries return Root_Entry_Vectors.Vector is separate;
 

@@ -38,11 +38,18 @@ separate (Files.Application.Windows)
             Item_Layout : constant Files.Rendering.Item_Layout_Vectors.Vector :=
               Files.Rendering.Calculate_Item_Layout
                 (Snapshot, Layout, Cell_Height_For (Runtime.Font_Pixel_Size));
-            --  Not where the folder-tree panel covers the view: a click on
-            --  it must not reach the item or column header hidden beneath.
+            Menu : constant Files.Rendering.Context_Menu_Layout :=
+              Files.Rendering.Calculate_Context_Menu_Layout
+                (Snapshot, Natural (Frame_W), Natural (Frame_H), Cell_Height_For (Runtime.Font_Pixel_Size));
+            --  The menu is drawn over the view: the item beneath it is not
+            --  what a right-click on it meant.
+            On_Menu : constant Boolean :=
+              Menu.Visible
+              and then X >= Menu.X and then X - Menu.X < Menu.Width
+              and then Y >= Menu.Y and then Y - Menu.Y < Menu.Height;
             In_Main : constant Boolean :=
-              Files.Rendering.Hit.On_Main_View
-                (Snapshot, Layout, X, Y, Cell_Height_For (Runtime.Font_Pixel_Size));
+              not On_Menu
+              and then Files.Rendering.Hit.On_Main_View (Layout, X, Y);
             Item_Index : constant Natural :=
               (if In_Main
                then Current_Item_Index (Runtime, Slot, Files.Rendering.Hit.Item_At (Item_Layout, X, Y))
@@ -68,7 +75,8 @@ separate (Files.Application.Windows)
                   X                 => X,
                   Y                 => Y,
                   Result            => Result,
-                  In_Details_Header => In_Details_Header);
+                  In_Details_Header => In_Details_Header,
+                  On_Context_Menu   => On_Menu);
                Apply_Interaction_Result (Runtime, Result);
             end if;
          end;

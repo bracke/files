@@ -14,7 +14,8 @@ separate (Files.Events)
    is
       Layout         : constant Files.Rendering.Layout_Metrics :=
         Files.Rendering.Calculate_Layout (Snapshot, Width, Height, Line_Height);
-      Toolbar        : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Width);
+      Toolbar        : constant Guikit.Layout.Toolbar_Layout :=
+        Guikit.Layout.Calculate_Toolbar_Layout (Width, Line_Height);
       Toolbar_Input_Y : constant Natural := Guikit.Layout.Toolbar_Input_Y (Line_Height);
       Toolbar_Input_H : constant Natural := Guikit.Layout.Toolbar_Input_Height (Line_Height);
       Scope_Chip     : constant Guikit.Layout.Scope_Chip_Region :=

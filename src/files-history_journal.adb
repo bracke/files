@@ -282,11 +282,12 @@ package body Files.History_Journal is
          end if;
       end if;
    exception
-      when others =>
+      when Failure : others =>
          Files.Durable_Writes.Remove_Owned (Temporary, To_String (Temporary_Identity));
          if Required then
             raise;
          end if;
+         Files.Diagnostics.Note (Failure, "Files.History_Journal");
    end Save_Stacks;
 
    procedure Save (Model : Files.Model.Window_Model; Required : Boolean := False) is

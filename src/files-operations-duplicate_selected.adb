@@ -87,8 +87,8 @@ begin
             --  folders; each duplicate belongs beside its source.
             Destination_Directory : constant String := Ada.Directories.Containing_Directory (Source);
             Name   : constant String := To_String (Item.Name);
-            Ext    : constant String := Leaf_Extension (Name);
-            Base   : constant String := Leaf_Base (Name);
+            Ext    : constant String := Files.Types.Extension_Of (Name);
+            Base   : constant String := Files.Types.Stem_Of (Name);
 
             --  A directory-unique copy stem (without extension), e.g. "report
             --  (copy)" or "report (copy 2)" when earlier choices already exist.

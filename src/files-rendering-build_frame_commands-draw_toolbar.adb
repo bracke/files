@@ -89,8 +89,8 @@ separate (Files.Rendering.Build_Frame_Commands)
                then Button_H - Saturating_Multiply (Pad_V, 2)
                else 0);
             Icon_Size : constant Natural :=
-              (if Visible_W >= Guikit.Layout.Toolbar_Button_Width - 4
-               then Natural'Min (Visible_H, Guikit.Layout.Toolbar_Button_Width - 8)
+              (if Visible_W >= Toolbar.Button_Width - 4
+               then Natural'Min (Visible_H, Toolbar.Button_Width - 8)
                else Natural'Min (Visible_W, Visible_H));
             Icon_X   : constant Natural :=
               (if Visible_W > Icon_Size then Visible_X + (Visible_W - Icon_Size) / 2 else Visible_X);

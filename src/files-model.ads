@@ -1128,6 +1128,16 @@ package Files.Model is
       Index : Positive)
       return String;
 
+   --  Return a root entry from the selector, as Files.Root_Labels shows it.
+   --
+   --  @param Model Model to inspect.
+   --  @param Index One-based root index.
+   --  @return The entry, or an empty one when Index is invalid.
+   function Root_Entry_At
+     (Model : Window_Model;
+      Index : Positive)
+      return Files.File_System.Root_Entry;
+
    --  Return a root kind from the selector.
    --
    --  @param Model Model to inspect.

@@ -1,4 +1,5 @@
 with Files.Items;
+with Files.Root_Labels;
 with Ada.Containers.Hashed_Maps;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
@@ -63,10 +64,6 @@ separate (Files.Rendering)
          return UString
  is separate;
 
-      function Root_Display_Label
-        (Path  : String;
-         Label : String)
-         return String is separate;
       --  The selection, copied once for the selection total and the info pane.
       Selected : Files.Items.Item_Vectors.Vector;
    begin
@@ -222,10 +219,10 @@ separate (Files.Rendering)
       for Index in 1 .. Files.Model.Root_Count (Model) loop
          declare
             Root_Path  : constant String := Files.Model.Root_Path (Model, Index);
-            Root_Label : constant String := Files.Model.Root_Label (Model, Index);
          begin
             Snapshot.Root_Paths.Append (To_Unbounded_String (Root_Path));
-            Snapshot.Root_Labels.Append (To_Unbounded_String (Root_Display_Label (Root_Path, Root_Label)));
+            Snapshot.Root_Labels.Append
+              (To_Unbounded_String (Files.Root_Labels.Display_Label (Files.Model.Root_Entry_At (Model, Index))));
          end;
       end loop;
 

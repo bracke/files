@@ -71,7 +71,7 @@ begin
          end if;
          if Files.File_Types.Is_Extractable_Archive (Item_Name) then
             declare
-               Raw_Base : constant String := Leaf_Base (Item_Name);
+               Raw_Base : constant String := Files.Types.Stem_Of (Item_Name);
                Base     : constant String := (if Raw_Base = "" then "archive" else Raw_Base);
 
                --  A directory-unique destination folder name, e.g. "report"

@@ -46,9 +46,9 @@ separate (Files.Rendering.Build_Frame_Commands)
                         Draw_H : constant Natural :=
                           (if Height_Bound then CH else Saturating_Multiply (IH, CW) / IW);
                         Img_X  : constant Natural :=
-                          Saturating_Add (QL.Content_X, (if CW > Draw_W then (CW - Draw_W) / 2 else 0));
+                          Saturating_Add (QL.Content_X, Centered (CW, Draw_W));
                         Img_Y  : constant Natural :=
-                          Saturating_Add (QL.Content_Y, (if CH > Draw_H then (CH - Draw_H) / 2 else 0));
+                          Saturating_Add (QL.Content_Y, Centered (CH, Draw_H));
                      begin
                         if Draw_W > 0 and then Draw_H > 0 then
                            --  One icon command carrying the decoded pixels; the

@@ -6,10 +6,16 @@ separate (Files_Suite.Startup)
       Caps : constant Files.Application.Windows.Desktop_Capabilities :=
         Files.Application.Windows.Runtime_Capabilities;
    begin
-      Files_Suite.Support.Assert_Equal
-        (Caps.Live_Window_Smoke_Ready,
-         (Caps.Display_Available and then Caps.Vulkan_Available),
-         "runtime capabilities gate live window smoke on display and Vulkan");
+      --  What this host has is the host's business; the rule is tested on
+      --  every combination.
+      Assert (Files.Application.Windows.Capabilities_Of (True, True).Live_Window_Smoke_Ready,
+              "a display and Vulkan make a live window smoke ready");
+      Assert (not Files.Application.Windows.Capabilities_Of (False, True).Live_Window_Smoke_Ready
+              and then not Files.Application.Windows.Capabilities_Of (True, False).Live_Window_Smoke_Ready,
+              "either one missing does not");
+      Assert (Files.Application.Windows."="
+                (Caps, Files.Application.Windows.Capabilities_Of (Caps.Display_Available, Caps.Vulkan_Available)),
+              "this host's capabilities follow the same rule");
       declare
          Source        : Files.Drop_Events.Drop_Event_Source;
          Paths         : Files.Types.String_Vectors.Vector;

@@ -233,7 +233,7 @@ separate (Files.Application.Windows.Smoke)
             Window.Handle.Pending_Input.Append
               (Input_Event'
                  (Kind      => Key_Press_Event,
-                  Key       => Tracked_Equal,
+                  Key       => Guikit.Input.Key_Equal,
                   Modifiers => [Guikit.Input.Control_Key => True, others => False],
                   Text      => Null_Unbounded_String,
                   Parallel  => False));

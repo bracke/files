@@ -803,7 +803,8 @@ package body Files.Interaction is
       X                 : Natural;
       Y                 : Natural;
       Result            : out Interaction_Result;
-      In_Details_Header : Boolean := False)
+      In_Details_Header : Boolean := False;
+      On_Context_Menu   : Boolean := False)
    is
       --  Any input-owning overlay must swallow the click exactly as left-clicks
       --  are suppressed behind these overlays. Otherwise a right-click in the
@@ -815,7 +816,9 @@ package body Files.Interaction is
         Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Model.Context_Menu_Overlay);
    begin
       Result := (others => <>);
-      if In_Details_Header and then not Overlay_Open then
+      if On_Context_Menu and then Files.Model.Context_Menu_Is_Open (Model) then
+         return;
+      elsif In_Details_Header and then not Overlay_Open then
          --  A right-click on the details-view column header opens the column
          --  configuration menu regardless of any item under the header band.
          Files.Model.Open_Context_Menu (Model, X, Y, Files.Types.Context_Menu_Header);

@@ -27,7 +27,9 @@ private package Files.File_System.Support is
    --  @param Destination Its published copy.
    --  @return False when any sync failed; a host that cannot sync
    --    directories (Not_Supported) does not count as a failure.
-   function Sync_Copy (Source, Destination : String) return Boolean;
+   --  @param Files_Too False when the walk already flushed every file
+   --    (Copy_To_New_Path's Durable): then only the folders are synced.
+   function Sync_Copy (Source, Destination : String; Files_Too : Boolean := True) return Boolean;
 
    --  End a directory search, swallowing any exception and doing nothing when
    --  it was never started; Started is reset to False.
@@ -154,6 +156,9 @@ private package Files.File_System.Support is
    --  @param Root_Digest When given, set to the SHA-256 of the bytes copied
    --    for a regular-file root, as read during the copy; empty otherwise.
    --  @param Check_Job_Cancellation False for recovery that must finish after cancellation.
+   --  @param Durable Flush each copied file to the device as it is written
+   --    (a move, which removes its source afterwards); Sync_Copy then needs
+   --    only the folders.
    procedure Copy_To_New_Path
      (Source_Path, Destination_Path : String;
       Identity, Tree_Revision_Value : out Files.Types.UString;
@@ -162,7 +167,8 @@ private package Files.File_System.Support is
       Preserve_Ownership : Boolean := False;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
       Root_Digest : access Files.Types.UString := null;
-      Check_Job_Cancellation : Boolean := True);
+      Check_Job_Cancellation : Boolean := True;
+      Durable : Boolean := False);
 
    --  Whether the change times of the filesystem holding Path cannot pin an
    --  edit: a DOS-family one (FAT, exFAT), where setting the modification

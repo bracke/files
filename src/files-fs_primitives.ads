@@ -27,6 +27,37 @@ package Files.Fs_Primitives is
    --    filesystem root (or otherwise has no parent).
    function Parent_Directory (Path : String) return String;
 
+   --  The names in a directory, read straight from it: no stat per entry
+   --  (Ada.Directories' search makes one), links not followed, a dangling
+   --  link included, "." and ".." left out. The directory is closed however
+   --  this ends.
+   --
+   --  @param Path Directory to read.
+   --  @param Visit Called per name; setting Stop ends the read there.
+   --  @param Name (of Visit) One entry's name.
+   --  @param Stop (of Visit) Set to end the read after this name.
+   --  @raise Ada.Directories.Use_Error when Path cannot be read, or holds a
+   --    name longer than any filesystem stores (64 KiB).
+   procedure For_Each_Name
+     (Path  : String;
+      Visit : not null access procedure (Name : String; Stop : in out Boolean));
+
+   --  Path's last component read from its text alone, for a name
+   --  Ada.Directories refuses: GNAT's Windows runtime rejects a component
+   --  longer than 256 characters, which the filesystem then refuses with a
+   --  cause of its own ("too long"), not as an invalid name.
+   --
+   --  @param Path A path.
+   --  @return Its last component without trailing separators, or "" for a
+   --    root or an empty path.
+   function Leaf_Text (Path : String) return String;
+
+   --  Path less its last component, read from its text alone (Leaf_Text).
+   --
+   --  @param Path A path.
+   --  @return The parent, keeping a root's separator, or "" when there is none.
+   function Parent_Text (Path : String) return String;
+
    --  @param Path Filesystem path to test.
    --  @return True when Path names an ordinary file.
    function File_Exists (Path : String) return Boolean;

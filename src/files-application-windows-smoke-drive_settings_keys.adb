@@ -22,7 +22,7 @@ separate (Files.Application.Windows.Smoke)
       --  Queue one press (and, like the platform, its own character when it
       --  types one), run the window's keyboard step, then render.
       procedure Press
-        (Key       : Tracked_Key;
+        (Key       : Guikit.Input.Key_Code;
          Modifiers : Guikit.Input.Modifier_Set := None;
          Typed     : String := "") is
       begin
@@ -87,19 +87,19 @@ separate (Files.Application.Windows.Smoke)
          return;
       end if;
 
-      Press (Tracked_Comma, Ctrl);
+      Press (Guikit.Input.Key_Comma, Ctrl);
       Expect (Open);
 
       declare
          First : constant String := Key_Now;
       begin
-         Press (Tracked_Down);
+         Press (Guikit.Input.Key_Down);
          Expect (Key_Now /= First);
-         Press (Tracked_Up);
+         Press (Guikit.Input.Key_Up);
          Expect (Key_Now = First);
-         Press (Tracked_Tab);
+         Press (Guikit.Input.Key_Tab);
          Expect (Key_Now /= First);
-         Press (Tracked_Tab, Shift);
+         Press (Guikit.Input.Key_Tab, Shift);
          Expect (Key_Now = First);
       end;
 
@@ -107,18 +107,18 @@ separate (Files.Application.Windows.Smoke)
       --  be typed), then flip it back with Right.
       for Attempt in 1 .. 50 loop
          exit when Files.Model.Settings_Focused_Kind (Runtime.Model) = Guikit.Settings_Panel.Toggle;
-         Press (Tracked_Tab);
+         Press (Guikit.Input.Key_Tab);
       end loop;
       Expect (Files.Model.Settings_Focused_Kind (Runtime.Model) = Guikit.Settings_Panel.Toggle);
       declare
          Before : constant String := Files.Model.Settings_Focused_Value (Runtime.Model);
       begin
-         Press (Tracked_Space, Typed => " ");
+         Press (Guikit.Input.Key_Space, Typed => " ");
          Expect (Files.Model.Settings_Focused_Value (Runtime.Model) /= Before);
          --  The change applies without a save error: the smoke has no
          --  settings file, which turns persistence off rather than failing.
          Expect (Files.Model.Last_Error_Key (Runtime.Model) = "");
-         Press (Tracked_Right);
+         Press (Guikit.Input.Key_Right);
          Expect (Files.Model.Settings_Focused_Value (Runtime.Model) = Before);
 
          --  The mouse: a click on the toggle's switch flips it, through the
@@ -171,12 +171,12 @@ separate (Files.Application.Windows.Smoke)
          end;
       end;
 
-      Press (Tracked_Tab, Ctrl);
+      Press (Guikit.Input.Key_Tab, Ctrl);
       Expect (Files.Model.Settings_Active_Section (Runtime.Model) = 2);
-      Press (Tracked_Tab, Ctrl_Shift);
+      Press (Guikit.Input.Key_Tab, Ctrl_Shift);
       Expect (Files.Model.Settings_Active_Section (Runtime.Model) = 1);
 
-      Press (Tracked_Escape);
+      Press (Guikit.Input.Key_Escape);
       Expect (not Files.Model.Settings_Pane_Is_Open (Runtime.Model)
               and then Files.Model.Focus (Runtime.Model) = Files.Types.Focus_None);
 
@@ -238,14 +238,14 @@ separate (Files.Application.Windows.Smoke)
          Files.Model.Set_View_Mode (Runtime.Model, Files.Types.Details);
          Files.Model.Select_Visible (Runtime.Model, 1);
          Render_Window (Runtime);
-         Press (Tracked_End);
+         Press (Guikit.Input.Key_End);
          Expect (Files.Model.Main_View_Scroll_Lines (Runtime.Model) > 0 and then Selected_Shown);
-         Press (Tracked_Home);
+         Press (Guikit.Input.Key_Home);
          Expect (Files.Model.Main_View_Scroll_Lines (Runtime.Model) = 0 and then Selected_Shown);
-         Press (Tracked_Page_Down);
+         Press (Guikit.Input.Key_Page_Down);
          Expect (Files.Model.Selected_Index (Runtime.Model) > 2 and then Selected_Shown);
 
-         Press (Tracked_Home);
+         Press (Guikit.Input.Key_Home);
          Files.Model.Select_All_Visible (Runtime.Model);
          Press_Item (2);
          Expect (Files.Model.Selected_Count (Runtime.Model) = Files.Model.Visible_Count (Runtime.Model));
@@ -302,8 +302,8 @@ separate (Files.Application.Windows.Smoke)
 
       --  Reopen and leave it on the second tab, so the final frame shows the
       --  panel the keys drove rather than the startup view.
-      Press (Tracked_Comma, Ctrl);
+      Press (Guikit.Input.Key_Comma, Ctrl);
       Expect (Open);
-      Press (Tracked_Tab, Ctrl);
+      Press (Guikit.Input.Key_Tab, Ctrl);
       Expect (Files.Model.Settings_Active_Section (Runtime.Model) = 2);
    end Drive_Settings_Keys;

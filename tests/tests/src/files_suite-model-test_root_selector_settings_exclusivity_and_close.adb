@@ -19,7 +19,9 @@ separate (Files_Suite.Model)
       Entries.Append
         (Files.File_System.Root_Entry'
            (Path  => To_Unbounded_String (Target),
-            Label => To_Unbounded_String ("root.mount|selected-root"),
+            Label => To_Unbounded_String ("root.mount"),
+            Name  => To_Unbounded_String ("selected-root"),
+            Detail => Null_Unbounded_String,
             Kind  => Files.File_System.Root_Mount,
             Volume_Name => To_Unbounded_String ("selected-root"),
             Ready => Files.File_System.Root_Ready,

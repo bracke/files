@@ -1,6 +1,8 @@
 with Ada.Streams;
 with Interfaces;
 
+with Files.Types;
+
 --  Reading (and writing the header of) the text parts of a Netpbm image -- the P3 and P6 headers, and
 --  P3's samples: fields separated by blanks, with # comments to the end of
 --  a line. The thumbnail cache writes P6 and still reads the P3 it wrote
@@ -42,5 +44,26 @@ package Files.Images.Netpbm is
    --  @param Height Image height in pixels.
    --  @return The header's bytes.
    function P6_Header (Width : Positive; Height : Positive) return Ada.Streams.Stream_Element_Array;
+
+   --  Decode an ASCII P3 image whole: the magic, a width, height and largest
+   --  sample (1 .. 65535) within the caps, exactly Width * Height R G B
+   --  triples each at most that sample, and nothing after them.
+   --
+   --  @param Text The file's text.
+   --  @param Max_Side The widest and tallest an image may be.
+   --  @param Max_Pixels The most pixels it may have.
+   --  @param Width Its width, on success.
+   --  @param Height Its height, on success.
+   --  @param Rgba Its pixels as R G B A bytes (A = 255), row by row; empty
+   --    on failure.
+   --  @return Whether Text is such an image.
+   function Decode_P3
+     (Text       : String;
+      Max_Side   : Positive;
+      Max_Pixels : Positive;
+      Width      : out Natural;
+      Height     : out Natural;
+      Rgba       : out Files.Types.Byte_Vectors.Vector)
+      return Boolean;
 
 end Files.Images.Netpbm;

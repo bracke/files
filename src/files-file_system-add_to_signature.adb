@@ -75,7 +75,7 @@ begin
          Kind := Ada.Directories.Kind (Full);
       exception
          when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.File_System.Directory");
+            Files.Diagnostics.Note (Swallowed, "Files.File_System");
       end;
 
       if Kind = Ada.Directories.Ordinary_File then
@@ -101,7 +101,7 @@ begin
          end if;
       exception
          when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.File_System.Directory");
+            Files.Diagnostics.Note (Swallowed, "Files.File_System");
       end;
    exception
       when Swallowed : others =>

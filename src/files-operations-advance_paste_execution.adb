@@ -32,7 +32,7 @@ is
                --  paste ends here with the error, its finished part kept for
                --  undo. Raising instead left it armed, and every loop pass
                --  raised again before the window could repaint.
-               Files.Diagnostics.Note (Failure, "Files.Operations.Transfer");
+               Files.Diagnostics.Note (Failure, "Files.Operations");
                Finished := True;
                Result :=
                  (Mutation => (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed")),

@@ -6,7 +6,6 @@ separate (Files_Suite.Interaction)
       Result     : Files.Interaction.Interaction_Result;
       Fav_Folder : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "fav-folder");
       Fav_File   : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "fav-file.txt");
-      Prefix     : constant String := Files.Localization.Text ("root.favorite.prefix");
       Found      : Boolean;
    begin
       Files_Suite.Support.Reset_Root;
@@ -23,13 +22,14 @@ separate (Files_Suite.Interaction)
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
+         function Star (Name : String) return String is (Files.Localization.Text ("root.favorite", "name", Name));
          Saw_Folder : Boolean := False;
          Saw_File   : Boolean := False;
       begin
          for Label of Snapshot.Root_Labels loop
-            if Ada.Strings.Unbounded.To_String (Label) = Prefix & "fav-folder" then
+            if Ada.Strings.Unbounded.To_String (Label) = Star ("fav-folder") then
                Saw_Folder := True;
-            elsif Ada.Strings.Unbounded.To_String (Label) = Prefix & "fav-file.txt" then
+            elsif Ada.Strings.Unbounded.To_String (Label) = Star ("fav-file.txt") then
                Saw_File := True;
             end if;
          end loop;

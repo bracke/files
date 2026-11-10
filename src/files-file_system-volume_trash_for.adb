@@ -117,7 +117,7 @@ function Volume_Trash_For (Path : String) return String is
       end loop;
    exception
       when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.File_System.Trash");
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
    end Remember;
 
    Item_Device, Home_Device : Long_Long_Integer;

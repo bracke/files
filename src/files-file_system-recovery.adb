@@ -669,10 +669,11 @@ package body Files.File_System.Recovery is
       begin
          Support.Copy_To_New_Path
            (Source, Destination, Identity, Revision, Cancel, Shape.Times,
-            Preserve_Ownership => True, Batch => Batch, Root_Digest => Digest'Access);
+            Preserve_Ownership => True, Batch => Batch, Root_Digest => Digest'Access, Durable => True);
          Copied := True;
-         --  The source goes next; the copy must be on the device first.
-         if not Support.Sync_Copy (Source, Destination) then
+         --  The source goes next; the copy must be on the device first. Its
+         --  files were flushed as they were written; its folders are now.
+         if not Support.Sync_Copy (Source, Destination, Files_Too => False) then
             raise Ada.Directories.Use_Error;
          end if;
          declare

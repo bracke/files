@@ -28,12 +28,12 @@ separate (Files.Rendering)
       Marquee_H       : Natural renames Pointer.Marquee_H;
 
       Result        : Frame_Commands;
-      Layout        : constant Layout_Metrics :=
-        Calculate_Layout (Snapshot, Width, Height, Line_Height);
+      Layout        : constant Layout_Metrics := Calculate_Layout (Snapshot, Width, Height, Line_Height);
       Items         : constant Item_Layout_Vectors.Vector :=
         Calculate_Item_Layout (Snapshot, Layout, Line_Height);
       Main_View     : constant Main_View_Layout := Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
-      Toolbar       : constant Guikit.Layout.Toolbar_Layout := Guikit.Layout.Calculate_Toolbar_Layout (Width);
+      Toolbar       : constant Guikit.Layout.Toolbar_Layout :=
+        Guikit.Layout.Calculate_Toolbar_Layout (Width, Line_Height);
       Bottom        : constant Guikit.Layout.Bottom_Bar_Layout :=
         Files.UI.Calculate_Bottom_Bar_Layout (Width, Snapshot.Sort_Field, Line_Height);
       Palette       : constant Command_Palette_Layout := Calculate_Command_Palette_Layout (Layout, Line_Height);
@@ -471,30 +471,15 @@ separate (Files.Rendering)
          Point_Y  : Natural)
          return Boolean renames Contains_Rectangle_Point;
 
-      --  How many tooltips were registered before the folder-tree panel was
-      --  drawn over the main view: those do not answer where it covers them.
-      Under_Tree_Panel : Natural := 0;
-
       function Tooltip_At
         (Point_X : Natural;
          Point_Y : Natural)
-         return UString
-      is
-         On_Tree_Panel : constant Boolean :=
-           Under_Tree_Panel > 0
-           and then Contains_Point
-             (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Height, Point_X, Point_Y);
+         return UString is
       begin
-         for Index in Result.Tooltips.First_Index .. Result.Tooltips.Last_Index loop
-            declare
-               Command : Tooltip_Command renames Result.Tooltips (Index);
-            begin
-               if not (On_Tree_Panel and then Index <= Under_Tree_Panel)
-                 and then Contains_Point (Command.X, Command.Y, Command.Width, Command.Height, Point_X, Point_Y)
-               then
-                  return Command.Text;
-               end if;
-            end;
+         for Command of Result.Tooltips loop
+            if Contains_Point (Command.X, Command.Y, Command.Width, Command.Height, Point_X, Point_Y) then
+               return Command.Text;
+            end if;
          end loop;
 
          return Null_Unbounded_String;
@@ -934,7 +919,6 @@ separate (Files.Rendering)
       --  The ordinary folder tree is persistent rather than modal. Draw it
       --  before transient overlays so Quick Look, label/root/sort menus, and
       --  dialogs cover it in the same order in which they own input.
-      Under_Tree_Panel := (if Snapshot.Tree_Panel_Open then Natural (Result.Tooltips.Length) else 0);
       Draw_Overlay_Commands (Persistent_Overlay_Phase);
 
       --  Popups and modal panels own the pointer while they are open.  Drop
@@ -945,8 +929,6 @@ separate (Files.Rendering)
       --  Draw_Overlay_Commands and remain available.
       if Any_Overlay_Open (Snapshot) then
          Result.Tooltips.Clear;
-         --  None of those left: the overlay's own, added next, all count.
-         Under_Tree_Panel := 0;
       end if;
 
       Draw_Popups;

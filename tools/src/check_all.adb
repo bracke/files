@@ -1789,7 +1789,7 @@ procedure Check_All is
          "localization catalog must include root-selector labels");
       Project_Tools.Files.Require_Contains
         (Catalog,
-         "en.root.detail.prefix = ",
+         "en.root.detail = ",
          "localization catalog must include root-selector detail formatting");
       Project_Tools.Files.Require_Contains
         (Catalog,
@@ -1821,7 +1821,7 @@ procedure Check_All is
          "localization catalog must include info-pane labels");
       Project_Tools.Files.Require_Contains
         (Catalog,
-         "en.info.extra.directory.count.prefix = ",
+         "en.info.extra.directory.count = ",
          "localization catalog must include filetype-specific metadata labels");
       Project_Tools.Files.Require_Contains
         (Catalog,
@@ -2785,7 +2785,7 @@ procedure Check_All is
             declare
                Line   : constant String := Lines (Number);
                Text   : constant String := Trimmed (Line);
-               Arrow  : constant Natural := Ada.Strings.Fixed.Index (Text, "others =>");
+               Arrow  : constant Natural := Ada.Strings.Fixed.Index (Text, "=>");
                Margin : constant Natural := Indent (Line);
             begin
                if Text'Length > 5 and then Text (Text'First .. Text'First + 4) = "when " and then Arrow > 0 then
@@ -2795,8 +2795,15 @@ procedure Check_All is
                      Name    : constant String :=
                        (if Colon = 0 then "" else Trimmed (Text (Text'First + 5 .. Colon - 1)));
                      Handler : Boolean := False;
+                     --  "when others" carries anything on; a named choice
+                     --  ("when E : Name_Error") only what it names.
+                     Others_Of : constant Boolean :=
+                       Ada.Strings.Fixed.Index
+                         (Ada.Characters.Handling.To_Lower (Text (Text'First .. Arrow)), "others") > 0;
                      Body_Of : Unbounded_String :=
-                       To_Unbounded_String (Text (Arrow + 9 .. Text'Last));
+                       To_Unbounded_String (Text (Arrow + 2 .. Text'Last));
+                     Last_Statement : Unbounded_String :=
+                       To_Unbounded_String (Trimmed (Text (Arrow + 2 .. Text'Last)));
                   begin
                      --  An exception handler: the nearest line above at a
                      --  smaller indent is "exception" (other choices between).
@@ -2810,6 +2817,9 @@ procedure Check_All is
                         for Below in Number + 1 .. Lines.Last_Index loop
                            exit when not Blank (Lines (Below)) and then Indent (Lines (Below)) <= Margin;
                            Append (Body_Of, ASCII.LF & Lines (Below));
+                           if not Blank (Lines (Below)) then
+                              Last_Statement := To_Unbounded_String (Trimmed (Lines (Below)));
+                           end if;
                         end loop;
                         declare
                            --  Code only, lower case, and without pragma
@@ -2833,27 +2843,6 @@ procedure Check_All is
                              Without_Unreferenced
                                (Ada.Characters.Handling.To_Lower (Code_Of (To_String (Body_Of))));
 
-                           --  Word as a whole identifier: "raise" is not in
-                           --  "raised", nor an occurrence E in "false".
-                           function Has_Word (Word : String) return Boolean is
-                              function Part_Of_Name (C : Character) return Boolean is
-                                (Ada.Characters.Handling.Is_Alphanumeric (C) or else C = '_');
-                              From : Positive := Statements'First;
-                              At_Word : Natural;
-                           begin
-                              loop
-                                 At_Word := Ada.Strings.Fixed.Index (Statements (From .. Statements'Last), Word);
-                                 exit when At_Word = 0;
-                                 if (At_Word = Statements'First or else not Part_Of_Name (Statements (At_Word - 1)))
-                                   and then (At_Word + Word'Length > Statements'Last
-                                             or else not Part_Of_Name (Statements (At_Word + Word'Length)))
-                                 then
-                                    return True;
-                                 end if;
-                                 From := At_Word + 1;
-                              end loop;
-                              return False;
-                           end Has_Word;
                            --  What a handler that carries on does with what it
                            --  caught: notes it (Files.Diagnostics), or keeps it
                            --  for a caller (Save_Occurrence). Naming it in some
@@ -2875,17 +2864,37 @@ procedure Check_All is
                               end loop;
                               return Has ("note(" & Occurrence & ",")
                                 or else Has ("note_event_loop(" & Occurrence & ")")
+                                --  Reported to the user, as a startup error is.
+                                or else Has ("exception_message(" & Occurrence & ")")
+                                or else Has ("exception_information(" & Occurrence & ")")
                                 or else (Has ("save_occurrence(") and then Has ("," & Occurrence & ")"));
                            end Hands_On;
+                           --  Re-raising counts only as what the handler ends
+                           --  with: a raise inside an if leaves the other path
+                           --  carrying on, silently.
+                           Final_Line : constant String :=
+                             Ada.Characters.Handling.To_Lower (To_String (Last_Statement));
+                           --  The last statement of that line: "Close (F); raise;".
+                           Before_Final : constant Natural :=
+                             (if Final_Line'Length > 1
+                              then Ada.Strings.Fixed.Index
+                                (Final_Line (Final_Line'First .. Final_Line'Last - 1), ";", Ada.Strings.Backward)
+                              else 0);
+                           Ends : constant String :=
+                             Trimmed (Final_Line ((if Before_Final = 0 then Final_Line'First else Before_Final + 1)
+                                                  .. Final_Line'Last));
+                           Re_Raised : constant Boolean :=
+                             (Ends'Length >= 5 and then Ends (Ends'First .. Ends'First + 4) = "raise")
+                             or else Ada.Strings.Fixed.Index (Ends, "reraise_occurrence") > 0;
                         begin
-                           if not Has_Word ("raise")
-                             and then not Has_Word ("reraise_occurrence")
-                           then
-                              if Name = "" then
+                           if Re_Raised then
+                              null;
+                           elsif Name = "" then
+                              if Others_Of then
                                  Refuse (Number, "a 'when others' handler carries on without noting what it caught");
-                              elsif not Hands_On (Ada.Characters.Handling.To_Lower (Name)) then
-                                 Refuse (Number, "a handler names " & Name & " and carries on without using it");
                               end if;
+                           elsif not Hands_On (Ada.Characters.Handling.To_Lower (Name)) then
+                              Refuse (Number, "a handler names " & Name & " and carries on without using it");
                            end if;
                         end;
                      end if;
@@ -4038,6 +4047,7 @@ procedure Check_All is
             To_Unbounded_String ("Files.Localization"),
             To_Unbounded_String ("Files.Model"),
             To_Unbounded_String ("Files.Quick_Look"),
+            To_Unbounded_String ("Files.Root_Labels"),
             To_Unbounded_String ("Files.Settings"),
             To_Unbounded_String ("Files.Shared_Bytes"),
             To_Unbounded_String ("Files.Types"),
@@ -4152,9 +4162,9 @@ procedure Check_All is
             end if;
          end Require_At_Most;
       begin
-         Require_At_Most ("files-rendering.adb", 1_557);
-         Require_At_Most ("files-rendering-build_frame_commands.adb", 959);
-         Require_At_Most ("files-application-windows.adb", 1_768);
+         Require_At_Most ("files-rendering.adb", 1_552);
+         Require_At_Most ("files-rendering-build_frame_commands.adb", 941);
+         Require_At_Most ("files-application-windows.adb", 1_765);
       end;
    end Check_Rendering_Architecture;
 
@@ -5044,15 +5054,51 @@ procedure Check_All is
              (To_String (Project_Tools.Text.Read_Text_File (Root & "/tests/tests/src/files_suite-" & Suite & ".adb")));
          Count : Natural := 0;
          From  : Natural := Text'First;
+
+         --  A registered test must check something: a body with no Assert
+         --  (or Skip, or a helper named for its Expect/Require) passes always.
+         procedure Require_Checks (Routine : String) is
+            Unit : constant String :=
+              Root & "/tests/tests/src/files_suite-" & Suite & "-"
+              & Ada.Characters.Handling.To_Lower (Routine) & ".adb";
+            Body_Text : constant String :=
+              (if Ada.Directories.Exists (Unit)
+               then Code_Of (To_String (Project_Tools.Text.Read_Text_File (Unit)))
+               else Text);
+            Start : constant Natural :=
+              (if Ada.Directories.Exists (Unit) then Body_Text'First
+               else Ada.Strings.Fixed.Index (Body_Text, "procedure " & Routine & " (T"));
+            Stop  : constant Natural :=
+              (if Start = 0 then 0
+               else Ada.Strings.Fixed.Index (Body_Text (Start .. Body_Text'Last), "end " & Routine & ";"));
+         begin
+            if Start = 0 or else Stop = 0
+              or else (Ada.Strings.Fixed.Index (Body_Text (Start .. Stop), "Assert") = 0
+                       and then Ada.Strings.Fixed.Index (Body_Text (Start .. Stop), "Skip") = 0
+                       and then Ada.Strings.Fixed.Index (Body_Text (Start .. Stop), "Expect") = 0
+                       and then Ada.Strings.Fixed.Index (Body_Text (Start .. Stop), "Require") = 0)
+            then
+               Put_Line (Standard_Error, "the " & Suite & " test " & Routine & " registers but checks nothing");
+               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+               raise Program_Error;
+            end if;
+         end Require_Checks;
       begin
          loop
             declare
                At_Name : constant Natural :=
                  Ada.Strings.Fixed.Index (Text (From .. Text'Last), "Register_Routine");
+               At_T    : Natural;
+               At_Tick : Natural;
             begin
                exit when At_Name = 0;
                Count := Count + 1;
                From := At_Name + 1;
+               At_T := Ada.Strings.Fixed.Index (Text (At_Name .. Text'Last), "(T, ");
+               At_Tick := (if At_T = 0 then 0 else Ada.Strings.Fixed.Index (Text (At_T .. Text'Last), "'Access"));
+               if At_Tick > At_T + 4 then
+                  Require_Checks (Text (At_T + 4 .. At_Tick - 1));
+               end if;
             end;
          end loop;
          --  Exact, not a floor: a test added without the number moving here
@@ -5073,9 +5119,9 @@ procedure Check_All is
       Require_Tests ("startup", 30);
       Require_Tests ("commands", 38);
       Require_Tests ("model", 54);
-      Require_Tests ("interaction", 78);
-      Require_Tests ("rendering", 97);
-      Require_Tests ("operations", 281);
+      Require_Tests ("interaction", 82);
+      Require_Tests ("rendering", 98);
+      Require_Tests ("operations", 285);
    end Check_Test_Subsystem_Coverage;
 
 begin

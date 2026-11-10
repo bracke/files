@@ -111,75 +111,16 @@ begin
    end if;
 
    declare
-      Raw       : constant String := To_String (Content);
-      At_Byte   : Positive := Raw'First;
-      Width     : Natural;
-      Height    : Natural;
-      Max_Value : Natural;
-
-      --  The next field as a number; False at the end or for anything else.
-      function Next_Natural (Value : out Natural) return Boolean is
-         First : Positive;
-         Last  : Natural;
-      begin
-         Files.Images.Netpbm.Next_Field (Raw, At_Byte, First, Last);
-         Value := 0;
-         return Last >= First and then Natural_Value (Raw (First .. Last), Value);
-      end Next_Natural;
-
-      function Next_Is (Expected : String) return Boolean is
-         First : Positive;
-         Last  : Natural;
-      begin
-         Files.Images.Netpbm.Next_Field (Raw, At_Byte, First, Last);
-         return Raw (First .. Last) = Expected;
-      end Next_Is;
+      Width  : Natural;
+      Height : Natural;
    begin
-      if not Next_Is ("P3")
-        or else not Next_Natural (Width)
-        or else not Next_Natural (Height)
-        or else not Next_Natural (Max_Value)
-        or else Width = 0
-        or else Height = 0
-        or else Max_Value = 0
-        or else Max_Value > 65_535
-        or else Long_Long_Integer (Width) * Long_Long_Integer (Height)
-                  > Long_Long_Integer (Max_Cached_Thumbnail_Pixels)
+      if Files.Images.Netpbm.Decode_P3
+        (To_String (Content), Natural'Last, Max_Cached_Thumbnail_Pixels, Width, Height, Result.Pixels)
       then
-         return Result;
+         Result.Loaded := True;
+         Result.Width := Width;
+         Result.Height := Height;
       end if;
-
-      for Pixel in 1 .. Width * Height loop
-         declare
-            R : Natural;
-            G : Natural;
-            B : Natural;
-         begin
-            if not Next_Natural (R)
-              or else not Next_Natural (G)
-              or else not Next_Natural (B)
-              or else R > Max_Value
-              or else G > Max_Value
-              or else B > Max_Value
-            then
-               return (Loaded => False, Width => 0, Height => 0, Pixels => Files.Types.Byte_Vectors.Empty_Vector);
-            end if;
-
-            Result.Pixels.Append (Channel (R, Max_Value));
-            Result.Pixels.Append (Channel (G, Max_Value));
-            Result.Pixels.Append (Channel (B, Max_Value));
-            Result.Pixels.Append (255);
-         end;
-      end loop;
-
-      --  Exactly the samples the header promised: nothing after them.
-      if not Next_Is ("") then
-         return (Loaded => False, Width => 0, Height => 0, Pixels => Files.Types.Byte_Vectors.Empty_Vector);
-      end if;
-
-      Result.Loaded := True;
-      Result.Width := Width;
-      Result.Height := Height;
       return Result;
    end;
 exception

@@ -4,21 +4,45 @@ package body Files.Grouping is
    use type Files.Types.Item_Kind;
    use type Files.Types.Color_Label;
 
+   --  Each mode's bands in display order; a band number is 'Pos + 1.
+   type Type_Band is (Folders, Images, Audio, Video, Documents, Archives, Other);
+   type Modified_Band is (Today_Band, This_Week, Earlier, Unknown_Date);
+   type Size_Band is (Empty, Small, Medium, Large, Unknown_Size);
+   --  Red .. Gray (Real_Color_Label order), then unlabeled.
+   Label_Band_Count : constant Positive := Files.Types.Color_Label'Pos (Files.Types.Color_Label'Last) + 1;
+
+   Type_Keys : constant array (Type_Band) of access constant String :=
+     [Folders   => new String'("details.group.folders"),
+      Images    => new String'("details.group.images"),
+      Audio     => new String'("details.group.audio"),
+      Video     => new String'("details.group.video"),
+      Documents => new String'("details.group.documents"),
+      Archives  => new String'("details.group.archives"),
+      Other     => new String'("details.group.other")];
+   Modified_Keys : constant array (Modified_Band) of access constant String :=
+     [Today_Band   => new String'("details.group.today"),
+      This_Week    => new String'("details.group.this_week"),
+      Earlier      => new String'("details.group.earlier"),
+      Unknown_Date => new String'("details.group.unknown_date")];
+   Size_Keys : constant array (Size_Band) of access constant String :=
+     [Empty        => new String'("details.group.size_empty"),
+      Small        => new String'("details.group.size_small"),
+      Medium       => new String'("details.group.size_medium"),
+      Large        => new String'("details.group.size_large"),
+      Unknown_Size => new String'("details.group.size_unknown")];
+
+   --  "This week": the six days before today.
+   This_Week_Span : constant Duration := 6.0 * 86_400.0;
+   Small_Size_Limit  : constant Long_Long_Integer := 1024 * 1024;
+   Medium_Size_Limit : constant Long_Long_Integer := 1024 * 1024 * 1024;
+
    function Band_Count (Mode : Files.Types.Group_Mode) return Positive is
-   begin
-      case Mode is
-         when Files.Types.Group_By_Type =>
-            return 7;
-         when Files.Types.Group_By_Modified =>
-            return 4;
-         when Files.Types.Group_By_Size =>
-            return 5;
-         when Files.Types.Group_By_Label =>
-            return 8;
-         when Files.Types.No_Grouping =>
-            return 1;
-      end case;
-   end Band_Count;
+     (case Mode is
+         when Files.Types.Group_By_Type     => Type_Band'Pos (Type_Band'Last) + 1,
+         when Files.Types.Group_By_Modified => Modified_Band'Pos (Modified_Band'Last) + 1,
+         when Files.Types.Group_By_Size     => Size_Band'Pos (Size_Band'Last) + 1,
+         when Files.Types.Group_By_Label    => Label_Band_Count,
+         when Files.Types.No_Grouping       => 1);
 
    function Day_Start (Value : Ada.Calendar.Time) return Ada.Calendar.Time is
       Year    : Ada.Calendar.Year_Number;
@@ -44,77 +68,75 @@ package body Files.Grouping is
    is
       function Starts_With (Text : String; Prefix : String) return Boolean renames Files.Types.Starts_With;
 
-      function Type_Band return Positive is
+      function Type_Of return Type_Band is
          Mime : constant String := Files.Types.To_Lower (Filetype);
       begin
          if Kind = Files.Types.Directory_Item then
-            return 1;
+            return Folders;
          elsif Starts_With (Mime, "image/") then
-            return 2;
+            return Images;
          elsif Starts_With (Mime, "audio/") then
-            return 3;
+            return Audio;
          elsif Starts_With (Mime, "video/") then
-            return 4;
+            return Video;
          elsif Starts_With (Mime, "text/")
            or else Mime = "application/pdf"
            or else Starts_With (Mime, "application/json")
            or else Starts_With (Mime, "application/xml")
            or else Starts_With (Mime, "application/vnd.")
          then
-            return 5;
+            return Documents;
          elsif Mime = "application/zip"
            or else Starts_With (Mime, "application/x-tar")
            or else Starts_With (Mime, "application/gzip")
            or else Starts_With (Mime, "application/x-7z")
            or else Starts_With (Mime, "application/x-rar")
          then
-            return 6;
+            return Archives;
          else
-            return 7;
+            return Other;
          end if;
-      end Type_Band;
+      end Type_Of;
 
-      function Modified_Band return Positive is
+      function Modified_Of return Modified_Band is
       begin
          if not Modified_Available then
-            return 4;
+            return Unknown_Date;
          elsif Modified_Time >= Today then
             --  Today -- and a time past it (a skewed clock, a camera's), which
             --  is no older than now.
-            return 1;
-         elsif Modified_Time > Today - 6.0 * 86_400.0 then
-            return 2;
+            return Today_Band;
+         elsif Modified_Time > Today - This_Week_Span then
+            return This_Week;
          else
-            return 3;
+            return Earlier;
          end if;
-      end Modified_Band;
+      end Modified_Of;
 
-      function Size_Band return Positive is
+      function Size_Of return Size_Band is
       begin
          if not Size_Available then
-            return 5;
+            return Unknown_Size;
          elsif Size <= 0 then
-            return 1;
-         elsif Size < 1024 * 1024 then
-            return 2;
-         elsif Size < 1024 * 1024 * 1024 then
-            return 3;
+            return Empty;
+         elsif Size < Small_Size_Limit then
+            return Small;
+         elsif Size < Medium_Size_Limit then
+            return Medium;
          else
-            return 4;
+            return Large;
          end if;
-      end Size_Band;
+      end Size_Of;
    begin
       case Mode is
          when Files.Types.Group_By_Type =>
-            return Type_Band;
+            return Type_Band'Pos (Type_Of) + 1;
          when Files.Types.Group_By_Modified =>
-            return Modified_Band;
+            return Modified_Band'Pos (Modified_Of) + 1;
          when Files.Types.Group_By_Size =>
-            return Size_Band;
+            return Size_Band'Pos (Size_Of) + 1;
          when Files.Types.Group_By_Label =>
-            --  Red .. Gray are bands 1 .. 7 (Real_Color_Label order), then
-            --  unlabeled.
-            return (if Label = Files.Types.No_Label then 8 else Files.Types.Color_Label'Pos (Label));
+            return (if Label = Files.Types.No_Label then Label_Band_Count else Files.Types.Color_Label'Pos (Label));
          when Files.Types.No_Grouping =>
             return 1;
       end case;
@@ -123,69 +145,22 @@ package body Files.Grouping is
    function Band_Label_Key
      (Mode : Files.Types.Group_Mode;
       Band : Positive)
-      return String is
+      return String
+   is
+      --  A band past the mode's last is its last (a stale number).
+      function Clamped (Last : Natural) return Natural is (Natural'Min (Band - 1, Last));
    begin
       case Mode is
          when Files.Types.Group_By_Type =>
-            case Band is
-               when 1 =>
-                  return "details.group.folders";
-               when 2 =>
-                  return "details.group.images";
-               when 3 =>
-                  return "details.group.audio";
-               when 4 =>
-                  return "details.group.video";
-               when 5 =>
-                  return "details.group.documents";
-               when 6 =>
-                  return "details.group.archives";
-               when others =>
-                  return "details.group.other";
-            end case;
+            return Type_Keys (Type_Band'Val (Clamped (Type_Band'Pos (Type_Band'Last)))).all;
          when Files.Types.Group_By_Modified =>
-            case Band is
-               when 1 =>
-                  return "details.group.today";
-               when 2 =>
-                  return "details.group.this_week";
-               when 3 =>
-                  return "details.group.earlier";
-               when others =>
-                  return "details.group.unknown_date";
-            end case;
+            return Modified_Keys (Modified_Band'Val (Clamped (Modified_Band'Pos (Modified_Band'Last)))).all;
          when Files.Types.Group_By_Size =>
-            case Band is
-               when 1 =>
-                  return "details.group.size_empty";
-               when 2 =>
-                  return "details.group.size_small";
-               when 3 =>
-                  return "details.group.size_medium";
-               when 4 =>
-                  return "details.group.size_large";
-               when others =>
-                  return "details.group.size_unknown";
-            end case;
+            return Size_Keys (Size_Band'Val (Clamped (Size_Band'Pos (Size_Band'Last)))).all;
          when Files.Types.Group_By_Label =>
-            case Band is
-               when 1 =>
-                  return "label.color.red";
-               when 2 =>
-                  return "label.color.orange";
-               when 3 =>
-                  return "label.color.yellow";
-               when 4 =>
-                  return "label.color.green";
-               when 5 =>
-                  return "label.color.blue";
-               when 6 =>
-                  return "label.color.purple";
-               when 7 =>
-                  return "label.color.gray";
-               when others =>
-                  return "details.group.unlabeled";
-            end case;
+            return
+              (if Band >= Label_Band_Count then "details.group.unlabeled"
+               else "label.color." & Files.Types.To_Lower (Files.Types.Color_Label'Val (Band)'Image));
          when Files.Types.No_Grouping =>
             return "";
       end case;

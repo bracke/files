@@ -32,7 +32,7 @@ separate (Files.Rendering.Build_Frame_Commands)
           (Saturating_Add
              (Y,
               Saturating_Add
-                ((if Field_H > Caret_H then (Field_H - Caret_H) / 2 else 0),
+                (Centered (Field_H, Caret_H),
                  Descent_Bias)),
            (if Field_H > Caret_H then Saturating_Add (Y, Field_H - Caret_H) else Y));
       Caret_W : constant Natural := Natural'Min (2, Field_W);

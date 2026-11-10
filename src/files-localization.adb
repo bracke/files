@@ -810,4 +810,24 @@ package body Files.Localization is
          then Messages.Result.Output_Text (Result.Text) else Key);
    end Text;
 
+   function Label_Value
+     (Label  : String;
+      Value  : String;
+      Locale : String := "")
+      return String is
+     (Text
+        ("format.label_value",
+         Argument_List'
+           [(To_Unbounded_String ("label"), To_Unbounded_String (Label)),
+            (To_Unbounded_String ("value"), To_Unbounded_String (Value))],
+         Locale));
+
+   function Text
+     (Key    : String;
+      Name   : String;
+      Value  : String;
+      Locale : String := "")
+      return String is
+     (Text (Key, Argument_List'[1 => (To_Unbounded_String (Name), To_Unbounded_String (Value))], Locale));
+
 end Files.Localization;

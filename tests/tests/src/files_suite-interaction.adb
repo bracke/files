@@ -106,6 +106,7 @@ package body Files_Suite.Interaction is
    procedure Test_Metadata_Clicks_Contained_By_Overlays
      (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Right_Click_Opens_Menu (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Right_Click_On_Menu_Is_Ignored (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Menu_Row_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Keyboard_Shortcut_Command (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Alt_Up_Navigates_Parent (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -122,6 +123,8 @@ package body Files_Suite.Interaction is
    procedure Test_Bottom_Bar_Sort_Persists (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Toggle_On_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Favorite_Toggle_Reseeds_Tree (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Window_Policy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Favorite_Group_Toggle_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Color_Label_Picker_Applies_To_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Labels_Follow_Moves_And_Stay_Loadable (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -169,6 +172,7 @@ package body Files_Suite.Interaction is
    procedure Test_Breadcrumb_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Expand_Collapse_And_Hidden (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Reexpand_Rereads (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Tree_Reread_Keeps_Children (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Toggle_Command_And_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Pick_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Panel_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -208,6 +212,9 @@ package body Files_Suite.Interaction is
          "input-owning overlays contain stale metadata clicks");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Right_Click_Opens_Menu'Access, "right-click selects and opens the context menu");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Right_Click_On_Menu_Is_Ignored'Access,
+         "a right-click on the open context menu is ignored, not passed to the item beneath");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Menu_Row_Dispatch'Access, "context-menu row dispatches its command and closes");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -252,6 +259,12 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Favorite_Toggle_On_Selection'Access,
          "favorite toggle adds/removes the selected item's path and falls back to the current folder");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Favorite_Toggle_Reseeds_Tree'Access,
+         "starring or unstarring a favorite with the tree shown reseeds its roots");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Window_Policy'Access,
+         "window policy: key repeat, pixel ratio, text size, accessibility requests and zoom saving");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Favorite_Group_Toggle_Multi_Selection'Access,
          "favorite group-toggles a multi-selection: stars a mixed selection then un-stars it as a whole");
@@ -378,6 +391,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Tree_Reexpand_Rereads'Access,
          "a folder expanded again shows what it holds now");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Tree_Reread_Keeps_Children'Access,
+         "a re-read folder keeps its children's nodes, subtrees and expanded state");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Tree_Toggle_Command_And_Click'Access,
          "the tree toggle command flips the panel and a label click navigates through the reducer");
@@ -511,6 +527,8 @@ package body Files_Suite.Interaction is
    is separate;
 
    procedure Test_Right_Click_Opens_Menu (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Right_Click_On_Menu_Is_Ignored (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Menu_Row_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -896,6 +914,8 @@ package body Files_Suite.Interaction is
 
    procedure Test_Tree_Reexpand_Rereads (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Tree_Reread_Keeps_Children (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Tree_Pick_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Tree_Panel_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -997,6 +1017,10 @@ package body Files_Suite.Interaction is
    end Click_Root_Row;
 
    procedure Test_Favorite_Toggle_On_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Favorite_Toggle_Reseeds_Tree (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Window_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Favorite_Group_Toggle_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

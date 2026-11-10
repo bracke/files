@@ -17,3 +17,4 @@ Test_Staging_Default_ACL: the default-ACL fixture is a Linux POSIX ACL
 Test_Trash_Source_Verification: the trash fault hooks utimensat in Linux-only C
 Test_Move_Keeps_Source_Until_Copy_Synced: the sync fault hooks fsync in Linux-only C
 Test_Restore_Keeps_Trash_Until_Synced: the sync fault hooks fsync in Linux-only C
+Test_Copy_Without_Xattr_Support: the xattr fault hooks lsetxattr in Linux-only C

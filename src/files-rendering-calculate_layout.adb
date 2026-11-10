@@ -34,7 +34,7 @@ separate (Files.Rendering)
       Main_W     : constant Natural := Beside_W - Tree_W;
       Command_W  : constant Natural := Scaled_Down (Width, 8, 10);
       Command_H  : constant Natural := Scaled_Down (Height, 8, 10);
-      Command_X  : constant Natural := (if Width > Command_W then (Width - Command_W) / 2 else 0);
+      Command_X  : constant Natural := Centered (Width, Command_W);
       Command_Y  : constant Natural :=
         (if Height > Command_H then Natural'Min (Line_Height, Height - Command_H) else 0);
    begin
@@ -51,5 +51,6 @@ separate (Files.Rendering)
          Command_X         => Command_X,
          Command_Y         => Command_Y,
          Command_Width     => Command_W,
-         Command_Height    => Command_H);
+         Command_Height    => Command_H,
+         Line_Height       => Line_Height);
    end Calculate_Layout;

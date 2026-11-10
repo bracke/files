@@ -1,8 +1,8 @@
 with Files_Suite.Volumes;
 separate (Files_Suite.Operations)
    --  A restore from a trash on another device copies the item back. When
-   --  that copy cannot be synced, the trash keeps its copy and its info
-   --  file, so the item is still listed there rather than gone from both.
+   --  that copy cannot be put on the device, the restore does not happen:
+   --  the trash keeps its copy and its info file, and still lists it.
    procedure Test_Restore_Keeps_Trash_Until_Synced (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Remote      : Files_Suite.Volumes.Remote_Directory;
@@ -36,11 +36,15 @@ separate (Files_Suite.Operations)
            Join (Join (Join (Join (Remote.Path, "data"), "Trash"), "info"),
                  Ada.Directories.Simple_Name (To_String (Trashed)) & ".trashinfo");
       begin
-         Ada.Environment_Variables.Set ("FILES_TEST_SYNC_FAULT_SUFFIX", "/restore-synced.txt");
+         --  The restored file is flushed as it is written, staged as "payload".
+         Ada.Environment_Variables.Set ("FILES_TEST_SYNC_FAULT_SUFFIX", "/payload");
          Result := Files.File_System.Restore_From_Trash (To_String (Trashed));
          Ada.Environment_Variables.Clear ("FILES_TEST_SYNC_FAULT_SUFFIX");
-         Assert (Result.Success and then File_Has_Bytes (Original, "kept"), "the item is restored");
-         Assert (File_Has_Bytes (To_String (Trashed), "kept"), "an unsynced restore keeps the trash's copy");
+         --  The copy is flushed as it is written, so a flush that fails
+         --  fails the restore before anything is published.
+         Assert (not Result.Success and then not Ada.Directories.Exists (Original),
+                 "a restore whose copy cannot be put on the device does not happen");
+         Assert (File_Has_Bytes (To_String (Trashed), "kept"), "the trash keeps its copy");
          Assert (Ada.Directories.Exists (Info), "and its info file, so the trash still lists it");
       end;
    end Test_Restore_Keeps_Trash_Until_Synced;

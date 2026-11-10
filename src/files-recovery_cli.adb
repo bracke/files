@@ -60,7 +60,7 @@ package body Files.Recovery_CLI is
                Ada.Directories.End_Search (Search);
             exception
                when Swallowed : others =>
-                  Files.Diagnostics.Note (Swallowed, "Files.Recovery_Cli");
+                  Files.Diagnostics.Note (Swallowed, "Files.Recovery_CLI");
             end;
          end if;
          Fail (Files.Localization.Text ("cli.recovery.error.list") & ':' & ' ' & Directory);

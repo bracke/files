@@ -1,3 +1,4 @@
+with Hostkit.Fs;
 with Hostkit.Path_Text;
 with Files.File_Types;
 
@@ -26,7 +27,7 @@ separate (Files.Settings)
          while Last > Value'First
            and then Is_Path_Separator (Value (Last))
          loop
-            if Last = Value'First + 2 and then Value (Value'First + 1) = ':' then
+            if Last - Value'First + 1 = Hostkit.Fs.Drive_Root_Length (Value) then
                exit;
             elsif UNC_Root_Last > 0 and then Last <= UNC_Root_Last then
                exit;
@@ -83,9 +84,7 @@ separate (Files.Settings)
             end if;
          end loop;
 
-         if Separator = Value'First + 2
-           and then Value (Value'First + 1) = ':'
-         then
+         if Separator > 0 and then Separator - Value'First + 1 = Hostkit.Fs.Drive_Root_Length (Value) then
             return Value (Value'First .. Separator);
          elsif Separator > Value'First then
             return Value (Value'First .. Separator - 1);

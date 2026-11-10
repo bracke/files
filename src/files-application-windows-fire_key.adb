@@ -1,7 +1,7 @@
 separate (Files.Application.Windows)
    procedure Fire_Key
      (Runtime   : in out Runtime_Window;
-      Key       : Tracked_Key;
+      Key       : Guikit.Input.Key_Code;
       Modifiers : Guikit.Input.Modifier_Set;
       Consumed  : out Boolean)
    is
@@ -72,7 +72,7 @@ separate (Files.Application.Windows)
            (Model             => Runtime.Model,
             Settings          => Runtime.Settings,
             Settings_Path     => To_String (Runtime.Settings_Path),
-            Key               => To_Key_Code (Key),
+            Key               => Key,
             Modifiers         => Modifiers,
             Current_Font_Size => Runtime.Settings.Font_Pixel_Size,
             Result            => Result,

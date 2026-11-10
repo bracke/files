@@ -35,7 +35,7 @@ begin
          end if;
       exception
          when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.File_System.Trash");
+            Files.Diagnostics.Note (Swallowed, "Files.File_System");
       end;
    end if;
 

@@ -101,6 +101,16 @@ separate (Files_Suite.Operations)
               and then Files.Model.Last_Error_Key (Model) = "error.search.failed",
               "content search reports an incomplete oversized file instead of silently skipping it");
 
+      --  But a match within what is read counts, however long the file is.
+      Write_File (Join (Search_Root, "oversize.txt"), "needle" & Big);
+      Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Search_Contents_Command, Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Routed.Operation.Status,
+         Files.Operations.Operation_Success,
+         "an oversized file that matches within what is read does not fail the search");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Item_Count (Model), 3, "and it is listed with the other two matches");
+
       --  An empty query performs no search.
       Files.Model.Set_Filter (Model, "");
       Routed :=

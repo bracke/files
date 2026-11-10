@@ -60,9 +60,7 @@ separate (Files_Suite.Operations)
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Assert
         (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra) =
-         Files.Localization.Text ("info.extra.extension.prefix") &
-         "bin" &
-         Files.Localization.Text ("info.extra.extension.suffix"),
+         Files.Localization.Text ("info.extra.extension", "extension", "bin"),
          "info pane captures extension metadata fallback");
       Files.Model.Toggle_Info_Pane (Model);
 
@@ -83,10 +81,10 @@ separate (Files_Suite.Operations)
          Files.Model.Select_Visible (Model, 1);
          Files.Model.Toggle_Info_Pane (Model);
          Snapshot := Files.Rendering.Build_Snapshot (Model);
-         Assert
-           (Ada.Strings.Fixed.Index
-              (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra),
-               Files.Localization.Text ("info.extra.executable.size.prefix")) = 1,
+         Files_Suite.Support.Assert_Equal
+           (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra),
+            Files.Localization.Text
+              ("info.extra.executable.size", "size", Ada.Strings.Fixed.Trim (Exec_Item.Size'Image, Ada.Strings.Both)),
             "info pane captures executable snapshot metadata without reading file contents");
       end;
 
@@ -105,9 +103,7 @@ separate (Files_Suite.Operations)
          Snapshot := Files.Rendering.Build_Snapshot (Model);
          Assert
            (To_String (Snapshot.Selected_Info.Element (1).Filetype_Extra) =
-            Files.Localization.Text ("info.extra.extension.prefix") &
-            "bin" &
-            Files.Localization.Text ("info.extra.extension.suffix"),
+            Files.Localization.Text ("info.extra.extension", "extension", "bin"),
             "info pane snapshot uses item fields without reading a backing file");
       end;
    end Test_Info_Pane_Item_Field_Fallbacks;

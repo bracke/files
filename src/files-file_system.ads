@@ -145,7 +145,12 @@ package Files.File_System is
 
    type Root_Entry is record
       Path  : UString;
+      --  A localization key ("root.home", "root.mount") or literal text.
       Label : UString;
+      --  The {name} a key's pattern takes (a mount's leaf name), or empty.
+      Name  : UString;
+      --  A detail shown after the label (a mount's filesystem type), or empty.
+      Detail : UString;
       Kind  : Root_Kind := Root_Filesystem;
       Volume_Name : UString;
       Ready       : Root_Readiness := Root_Ready;
@@ -391,14 +396,22 @@ package Files.File_System is
    --  @return Root entries available on the host platform.
    function Available_Root_Entries return Root_Entry_Vectors.Vector;
 
-   --  Return the display-label token for a root location. The token is either a
-   --  localization key (e.g. "root.home") or a "key|value" pair the renderer
-   --  expands with a localized prefix and suffix (e.g. "root.favorite|<name>").
+   --  Return the label of a root location: a localization key (e.g.
+   --  "root.home", or "root.mount", whose pattern takes Root_Name as {name}),
+   --  or, for a plain filesystem root, its path.
    --
    --  @param Path Root path.
    --  @param Kind Root classification.
-   --  @return Label token for the renderer.
+   --  @return Label key or literal text.
    function Root_Label (Path : String; Kind : Root_Kind) return String;
+
+   --  Return the {name} a root's label pattern takes: a mount's or a
+   --  favorite's leaf name, a drive's path; empty for kinds with no name.
+   --
+   --  @param Path Root path.
+   --  @param Kind Root classification.
+   --  @return The name, which may hold any character a file name can.
+   function Root_Name (Path : String; Kind : Root_Kind) return String;
 
    --  Build an item value for tests and pure model setup.
    --

@@ -11,6 +11,7 @@ begin
         (Files.File_System.Root_Entry'
            (Path  => Root,
             Label => Root,
+            Name | Detail => <>,
             Kind  => Files.File_System.Root_Filesystem,
             Volume_Name => Root,
             Ready => Files.File_System.Root_Ready,

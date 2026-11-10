@@ -30,7 +30,42 @@ separate (Files.Rendering.Build_Frame_Commands)
             --  scrollbar's column: wrapping wider when it is hidden drew fewer
             --  rows than the pane was sized for.
             Text_W : constant Natural :=
-              Info_Text_Width (Layout, Scrollbar_W => Natural'Min (Scrollbar_Width, Layout.Info_Pane_Width));
+              Info_Text_Width (Layout, Scrollbar_W => Natural'Min (Scrollbar_Width (Layout), Layout.Info_Pane_Width));
+
+            --  What a screen reader hears for an item, in the locale's words
+            --  and punctuation: its type and size, then (in the single-item
+            --  layout) when it was modified and any metadata error.
+            function Info_Description (Info : Info_Snapshot; Full : Boolean) return String is
+               function Arg (Name, Value : String) return Files.Localization.Argument is
+                 ((To_Unbounded_String (Name), To_Unbounded_String (Value)));
+               Summary : constant String :=
+                 Files.Localization.Text
+                   ("accessibility.info.summary",
+                    Files.Localization.Argument_List'
+                    [Arg ("type_label", Files.Localization.Text ("info.filetype")),
+                     Arg ("type", To_String (Info_Field_Value (Info, Info_Filetype))),
+                     Arg ("size_label", Files.Localization.Text ("info.size")),
+                     Arg ("size", To_String (Info_Field_Value (Info, Info_Size)))]);
+               Modified : constant String :=
+                 (if Full
+                  then Files.Localization.Text
+                    ("accessibility.info.summary_modified",
+                     Files.Localization.Argument_List'
+                     [Arg ("summary", Summary),
+                      Arg ("modified",
+                           To_String (Time_Text (Info.Modified_Available, Info.Modified_Time, "info.modified")))])
+                  else Summary);
+            begin
+               if not Full or else not Info.Metadata_Error then
+                  return Modified;
+               end if;
+               return Files.Localization.Text
+                 ("accessibility.info.metadata_error",
+                  Files.Localization.Argument_List'
+                  [Arg ("summary", Modified),
+                   Arg ("error_label", Files.Localization.Text ("info.metadata_error")),
+                   Arg ("error", Files.Localization.Text (To_String (Info.Error_Key)))]);
+            end Info_Description;
 
             --  Text helpers shared by the multi-item and the single-item layout.
             procedure Add_Info_Text
@@ -177,11 +212,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                                 Saturating_Integer_Add (Row_Y, Saturating_Multiply (Item_Row, Line_Height));
                               Visible_Y : constant Integer := Integer'Max (Y, Integer (Info_Pane.Y));
                               Description : constant Unbounded_String :=
-                                To_Unbounded_String
-                                  (Files.Localization.Text ("info.filetype") & ": " &
-                                   To_String (Info_Field_Value (Info, Info_Filetype)) & ", " &
-                                   Files.Localization.Text ("info.size") & ": " &
-                                   To_String (Info_Field_Value (Info, Info_Size)));
+                                To_Unbounded_String (Info_Description (Info, Full => False));
                            begin
                               if Y >= Integer (Info_Pane.Y)
                                 and then Y < Integer (Info_Bottom)
@@ -268,7 +299,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                         Cell_Top : constant Natural :=
                           (if 2 * Line_Height > Font_H + Cell then Line_Height - (Font_H + Cell) / 2 + 1 else 0);
                         --  Horizontal inset that centres a header letter over a cell.
-                        Header_Pad : constant Natural := (if Cell > Char_W then (Cell - Char_W) / 2 else 0);
+                        Header_Pad : constant Natural := Centered (Cell, Char_W);
                         --  The row labels sit just past the three columns.
                         Labels_X : constant Natural :=
                           Saturating_Add
@@ -458,25 +489,9 @@ separate (Files.Rendering.Build_Frame_Commands)
                              Integer (Info_Bottom));
                         Visible_H : constant Natural :=
                           (if Raw_Bottom > Visible_Y then Natural (Raw_Bottom - Visible_Y) else 0);
-                        Size_Text : constant String := To_String (Info_Field_Value (Info, Info_Size));
-                        Modified_Text : constant String :=
-                          To_String (Time_Text (Info.Modified_Available, Info.Modified_Time, "info.modified"));
-                        Description : Unbounded_String :=
-                          To_Unbounded_String
-                            (Files.Localization.Text ("info.filetype") & ": " &
-                             To_String (Info_Field_Value (Info, Info_Filetype)) & ", " &
-                             Files.Localization.Text ("info.size") & ": " &
-                             Size_Text & ", " &
-                             Modified_Text);
+                        Description : constant Unbounded_String :=
+                          To_Unbounded_String (Info_Description (Info, Full => True));
                      begin
-                        if Info.Metadata_Error then
-                           Append
-                             (Description,
-                              ", " &
-                              Files.Localization.Text ("info.metadata_error") & ": " &
-                              Files.Localization.Text (To_String (Info.Error_Key)));
-                        end if;
-
                         if Visible_H > 0 and then Text_W > 0 then
                            Add_Accessibility_Node
                              (Role_List_Item,

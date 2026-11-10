@@ -1,5 +1,7 @@
 with Ada.Streams;
 with Files.Images.Netpbm;
+with Files.Types;
+with Interfaces;
 separate (Files_Suite.Operations)
    --  The one Netpbm reader: fields split on blanks and on # comments ended
    --  by either line break, numbers that refuse anything but digits and an
@@ -57,5 +59,33 @@ separate (Files_Suite.Operations)
             Wanted (Ada.Streams.Stream_Element_Offset (Index)) := Character'Pos (Expected (Index));
          end loop;
          Assert (Header = Wanted, "the P6 header names the size and an 8-bit maximum");
+      end;
+
+      --  The one P3 decoder both the thumbnail writer and the cache reader use.
+      declare
+         W, H : Natural;
+         Rgba : Files.Types.Byte_Vectors.Vector;
+      begin
+         Assert
+           (Files.Images.Netpbm.Decode_P3 ("P3 2 1 255  255 0 0  0 0 255", 8, 8, W, H, Rgba)
+              and then W = 2 and then H = 1 and then Natural (Rgba.Length) = 8,
+            "a P3 image decodes to RGBA bytes");
+         Assert
+           (Rgba.Element (Rgba.First_Index) = 255 and then Rgba.Element (Rgba.First_Index + 3) = 255
+              and then Rgba.Element (Rgba.First_Index + 6) = 255,
+            "red, its alpha, and the second pixel's blue");
+         Assert
+           (not Files.Images.Netpbm.Decode_P3 ("P3 2 1 255  255 0 0  0 0 255 7", 8, 8, W, H, Rgba)
+              and then Rgba.Is_Empty and then W = 0,
+            "a sample past the promised ones fails the image and leaves nothing");
+         Assert
+           (not Files.Images.Netpbm.Decode_P3 ("P3 9 1 255" & [1 .. 9 => ' ', 10 .. 36 => '0'], 8, 64, W, H, Rgba),
+            "a side over the cap is refused");
+         Assert
+           (not Files.Images.Netpbm.Decode_P3 ("P3 3 3 255", 8, 8, W, H, Rgba),
+            "so are more pixels than the cap");
+         Assert
+           (not Files.Images.Netpbm.Decode_P3 ("P3 1 1 3  4 0 0", 8, 8, W, H, Rgba),
+            "and a sample above the image's own maximum");
       end;
    end Test_Netpbm_Fields;

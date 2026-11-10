@@ -1,15 +1,7 @@
 separate (Files_Suite.Operations)
-   function Detail_Lines_Encoding
-     (Lines_Prefix_Key : String;
-      Lines            : String;
-      Lines_Suffix_Key : String;
-      Encoding_Key     : String)
-      return String
-   is
+   function Detail_Lines_Encoding (Key : String; Lines : String; Encoding_Key : String) return String is
    begin
       return
-        Detail_Value (Lines_Prefix_Key, Lines, Lines_Suffix_Key)
-        & " "
-        & Detail_Localized_Value
-          ("info.extra.encoding.prefix", Encoding_Key, "info.extra.encoding.suffix");
+        Detail_Value (Key, "lines", Lines) & " "
+        & Detail_Localized_Value ("info.extra.encoding", "encoding", Encoding_Key);
    end Detail_Lines_Encoding;

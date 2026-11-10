@@ -7,7 +7,7 @@ separate (Files_Suite.Startup)
       --  a name found anywhere in src passed even when the hookup was gone.
       Assert
         (Files_Suite.Repository.Source_Contains ("Root_Network_Mount")
-         and then Files_Suite.Repository.File_Contains ("share/files.catalog", "en.root.network_mount.prefix = "),
+         and then Files_Suite.Repository.File_Contains ("share/files.catalog", "en.root.network_mount = "),
          "root discovery includes network-specific root handling");
       declare
          Display_Available : constant Boolean := Files.Application.Windows.Live_Display_Available;

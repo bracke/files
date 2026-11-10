@@ -131,27 +131,11 @@ package body Files.Rendering.Hit is
       else Files.Commands.No_Command);
 
    function On_Main_View
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
-      X           : Natural;
-      Y           : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
-      return Boolean
-   is
-   begin
-      if not Contains_Rectangle_Point
-        (Layout.Main_X, Layout.Main_Y, Layout.Main_Width, Layout.Main_Height, X, Y)
-      then
-         return False;
-      elsif not Snapshot.Tree_Panel_Open then
-         return True;
-      end if;
-      declare
-         Tree : constant Tree_Panel_Layout := Calculate_Tree_Panel_Layout (Snapshot, Layout, Line_Height);
-      begin
-         return not Contains_Rectangle_Point (Tree.X, Tree.Y, Tree.Width, Tree.Height, X, Y);
-      end;
-   end On_Main_View;
+     (Layout : Layout_Metrics;
+      X      : Natural;
+      Y      : Natural)
+      return Boolean is
+     (Contains_Rectangle_Point (Layout.Main_X, Layout.Main_Y, Layout.Main_Width, Layout.Main_Height, X, Y));
 
    function Details_Header_Cell_At
      (Snapshot    : View_Snapshot;
@@ -262,9 +246,9 @@ package body Files.Rendering.Hit is
       Content_Y : constant Natural := Header.Content.Y;
       Header_H  : constant Natural := Header.Height;
       Columns   : Detail_Column_Geometry_Array renames Header.Columns;
-      Low       : constant Natural :=
-        (if X > Detail_Separator_Hot_Zone then X - Detail_Separator_Hot_Zone else 0);
-      High      : constant Natural := Saturating_Add (X, Detail_Separator_Hot_Zone);
+      Zone      : constant Natural := Guikit.Layout.Scaled (Detail_Separator_Hot_Zone, Line_Height);
+      Low       : constant Natural := (if X > Zone then X - Zone else 0);
+      High      : constant Natural := Saturating_Add (X, Zone);
    begin
       if Snapshot.View_Mode /= Files.Types.Details
         or else Header_H = 0
@@ -363,7 +347,7 @@ package body Files.Rendering.Hit is
       Line_Height : Positive := Files.UI.Base_Line_Height)
       return Files.Commands.Command_Id
    is
-      Toolbar  : constant Toolbar_Layout := Calculate_Toolbar_Layout (Width);
+      Toolbar  : constant Toolbar_Layout := Calculate_Toolbar_Layout (Width, Line_Height);
       Input_Y  : constant Natural := Toolbar_Input_Y (Line_Height);
       Input_H  : constant Natural := Toolbar_Input_Height (Line_Height);
       Toolbar_H : constant Natural := Files.UI.Toolbar_Height (Line_Height);

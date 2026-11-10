@@ -7,6 +7,7 @@ with Glfw;
 with Glfw.Input.Mouse;
 
 private with Ada.Containers.Vectors;
+private with Ada.Exceptions;
 private with Ada.Real_Time;
 private with Ada.Strings.Unbounded;
 private with A11ykit.Provider;
@@ -18,6 +19,7 @@ private with Files.Rendering;
 private with Files.Snapshot_Slots;
 private with Files.Settings;
 private with Files.Types;
+private with Files.Window_Policy;
 private with Glfw.Input.Keys;
 private with Glfw.Windows;
 private with Guikit.Draw;
@@ -64,6 +66,15 @@ package Files.Application.Windows is
    --
    --  @return Display, Vulkan, and smoke-test readiness flags.
    function Runtime_Capabilities return Desktop_Capabilities;
+
+   --  The capabilities a host with this display and this Vulkan has: a live
+   --  window smoke needs both.
+   --
+   --  @param Display Whether a window can be shown.
+   --  @param Vulkan Whether Vulkan is usable.
+   --  @return The capability flags.
+   function Capabilities_Of (Display, Vulkan : Boolean) return Desktop_Capabilities is
+     (Display_Available => Display, Vulkan_Available => Vulkan, Live_Window_Smoke_Ready => Display and then Vulkan);
 
    --  Accumulate a fractional scroll offset into whole scroll lines.
    --
@@ -148,57 +159,6 @@ private
    --  (Files.Application.Windows.Smoke), which drives real windows through
    --  the same input and render steps the event loop takes.
 
-   --  The keys the window tracks for presses, auto-repeat and shortcuts.
-   type Tracked_Key is
-     (Tracked_Key_1,
-      Tracked_Key_2,
-      Tracked_Key_3,
-      Tracked_Key_4,
-      Tracked_A,
-      Tracked_B,
-      Tracked_C,
-      Tracked_D,
-      Tracked_F,
-      Tracked_I,
-      Tracked_L,
-      Tracked_N,
-      Tracked_P,
-      Tracked_R,
-      Tracked_S,
-      Tracked_V,
-      Tracked_X,
-      Tracked_Z,
-      Tracked_Comma,
-      Tracked_Backspace,
-      Tracked_Delete,
-      Tracked_F2,
-      Tracked_F5,
-      Tracked_Escape,
-      Tracked_Enter,
-      Tracked_Numpad_Enter,
-      Tracked_Left,
-      Tracked_Right,
-      Tracked_Up,
-      Tracked_Down,
-      Tracked_Home,
-      Tracked_End,
-      Tracked_Page_Up,
-      Tracked_Page_Down,
-      Tracked_Equal,
-      Tracked_Minus,
-      Tracked_Right_Bracket,
-      Tracked_Slash,
-      Tracked_Numpad_Add,
-      Tracked_Numpad_Subtract,
-      Tracked_Zero,
-      Tracked_Space,
-      Tracked_Key_5, Tracked_Key_6, Tracked_Key_7, Tracked_Key_8, Tracked_Key_9,
-      Tracked_E, Tracked_G, Tracked_H, Tracked_J, Tracked_K, Tracked_M, Tracked_O,
-      Tracked_Q, Tracked_T, Tracked_U, Tracked_W, Tracked_Y,
-      Tracked_F1, Tracked_F3, Tracked_F4, Tracked_F6, Tracked_F7, Tracked_F8, Tracked_F9,
-      Tracked_F10, Tracked_F11, Tracked_F12,
-      Tracked_Tab, Tracked_Insert, Tracked_Menu);
-
    --  Keyboard input in arrival order. Draining key presses and typed text as
    --  separate batches ran them out of order: text typed before Enter in a
    --  fast burst reached the field after Enter had committed it, and a
@@ -207,7 +167,7 @@ private
 
    type Input_Event is record
       Kind      : Input_Event_Kind := Text_Event;
-      Key       : Tracked_Key := Tracked_Escape;
+      Key       : Guikit.Input.Key_Code := Guikit.Input.Key_Escape;
       --  Modifiers held when the key went down, not when the queue drains.
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Text      : Ada.Strings.Unbounded.Unbounded_String;
@@ -227,6 +187,9 @@ private
       --  True between a tracked key press and the next callback, so that
       --  callback's character is known to be the press's own.
       Last_Was_Tracked_Press : Boolean := False;
+      --  True between a suppressed repeat and the next callback: the repeat's
+      --  character (a held Space's spaces) is not typing either.
+      Drop_Next_Character : Boolean := False;
       Pending_Scroll : Integer := 0;
       Pending_Scroll_Remainder : Long_Float := 0.0;
       Pending_Left_Clicks : Natural := 0;
@@ -255,6 +218,10 @@ private
    overriding procedure Receive
      (Into    : in out Desktop_Window;
       Dropped : Glfw.Windows.Drop.Paths.Path_Vectors.Vector);
+
+   overriding procedure Failed
+     (Into       : in out Desktop_Window;
+      Occurrence : Ada.Exceptions.Exception_Occurrence);
 
    overriding procedure Character_Entered
      (Object : not null access Desktop_Window;
@@ -494,7 +461,7 @@ private
 
    --  The setting's text size in this window's framebuffer pixels.
    function Scaled_Font_Size (Runtime : Runtime_Window) return Positive is
-     (Positive'Max (1, Natural (Float (Runtime.Settings.Font_Pixel_Size) * Runtime.Pixel_Ratio)));
+     (Files.Window_Policy.Scaled_Font_Size (Runtime.Settings.Font_Pixel_Size, Runtime.Pixel_Ratio));
 
    package Runtime_Window_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,
@@ -504,11 +471,6 @@ private
    function As_Window
      (Handle : Window_Access)
       return Glfw.Windows.Window_Reference;
-
-   --  The GLFW key of a tracked key.
-   function To_Glfw_Key
-     (Key : Tracked_Key)
-      return Glfw.Input.Keys.Key;
 
    --  Drain one window's queued key presses and typed text.
    procedure Handle_Keyboard

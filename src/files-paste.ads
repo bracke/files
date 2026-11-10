@@ -118,13 +118,6 @@ package Files.Paste is
       Fold_Names : Boolean := False)
       return Resolved_Action_Vectors.Vector;
 
-   --  Where a numbered copy's " 2" goes, for a paste and a drop alike:
-   --  Files.Types.Extension_Start.
-   --
-   --  @param Name A leaf name.
-   --  @return The extension's dot, or 0 when the name has none.
-   function Extension_Start (Name : String) return Natural renames Files.Types.Extension_Start;
-
    --  Name, or the first of "stem 2.ext", "stem 3.ext" ... that Taken says
    --  is free: the one numbering a paste and a drop give a name in use.
    --

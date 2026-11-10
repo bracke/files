@@ -30,7 +30,7 @@ is
          exception
             when Swallowed : others =>
                --  As Directory_State: a partial signature is no signature.
-               Files.Diagnostics.Note (Swallowed, "Files.File_System.Directory");
+               Files.Diagnostics.Note (Swallowed, "Files.File_System");
                Signed := False;
          end;
       end if;
@@ -63,7 +63,7 @@ is
          --  error Item_For_Path records, so the user still sees it is there.
          --  One that failed before the filters ran is listed only by a plain
          --  listing, and only if its name does not mark it hidden.
-         Files.Diagnostics.Note (Failure, "Files.File_System.Directory");
+         Files.Diagnostics.Note (Failure, "Files.File_System");
          begin
             if not Admitted then
                Admitted := Include = null
@@ -84,7 +84,7 @@ is
          exception
             when Fallback_Failure : others =>
                --  Out of memory or the like: the entry is lost, the folder is not.
-               Files.Diagnostics.Note (Fallback_Failure, "Files.File_System.Directory");
+               Files.Diagnostics.Note (Fallback_Failure, "Files.File_System");
          end;
    end Add_Entry;
 begin
@@ -110,7 +110,7 @@ begin
          exception
             when Swallowed : others =>
                --  An unreadable volume trash hides its items, not the trash.
-               Files.Diagnostics.Note (Swallowed, "Files.File_System.Trash");
+               Files.Diagnostics.Note (Swallowed, "Files.File_System");
          end;
       end loop;
       Normalized_Path := To_Unbounded_String (Ada.Directories.Full_Name (Path));

@@ -88,9 +88,10 @@ separate (Files.Rendering)
             --  to any one item, so it carries no name postfix).
             Rows.Append
               (To_Unbounded_String
-                 (Files.Localization.Text ("info.contents.total") & ": "
-                  & Size_Text (Snapshot.Selection_Total_Bytes)
-                  & (if Snapshot.Selection_Total_Pending then " ..." else "")));
+                 (Files.Localization.Label_Value
+                    (Files.Localization.Text ("info.contents.total"),
+                     Size_Text (Snapshot.Selection_Total_Bytes)
+                     & (if Snapshot.Selection_Total_Pending then " ..." else ""))));
             Sections.Append (Section (Info_Folder_Size, Rows));
          end;
       end if;

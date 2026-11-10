@@ -84,7 +84,7 @@ begin
             begin
                Support.Copy_To_New_Path
                  (Trashed_Path, To_String (Original), Identity, Revision,
-                  Preserve_Ownership => True, Check_Job_Cancellation => False);
+                  Preserve_Ownership => True, Check_Job_Cancellation => False, Durable => True);
             exception
                when Swallowed : others =>
                   Files.Diagnostics.Note (Swallowed, "Files.File_System");
@@ -96,7 +96,7 @@ begin
             --  restored copy is on the device. If it cannot be synced or
             --  removed, its info file stays with it, so it is still listed in
             --  the trash rather than hidden there for good.
-            if not Support.Sync_Copy (Trashed_Path, To_String (Original))
+            if not Support.Sync_Copy (Trashed_Path, To_String (Original), Files_Too => False)
               or else not Delete_Permanently (Trashed_Path).Success
             then
                return (Success => True, Error_Key => Null_Unbounded_String);
@@ -110,7 +110,7 @@ begin
          end if;
       exception
          when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.File_System.Trash");
+            Files.Diagnostics.Note (Swallowed, "Files.File_System");
       end;
 
       return (Success => True, Error_Key => Null_Unbounded_String);

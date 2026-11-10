@@ -115,7 +115,7 @@ is
                   end;
                exception
                   when Swallowed : others =>
-                     Files.Diagnostics.Note (Swallowed, "Files.File_System.Create");
+                     Files.Diagnostics.Note (Swallowed, "Files.File_System");
                end;
                return Failed;
             end;

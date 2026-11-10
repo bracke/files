@@ -1,6 +1,7 @@
 with Ada.Strings.Unbounded;
 with Hostkit.Fs;
 with Hostkit.Host;
+with Hostkit.Path_Text;
 
 package body Files.Breadcrumbs is
    use Ada.Strings.Unbounded;
@@ -29,6 +30,9 @@ package body Files.Breadcrumbs is
       Result   : Segment_Vectors.Vector;
       Ancestor : Unbounded_String := Null_Unbounded_String;
       Drive    : constant Natural := Drive_Prefix;
+      --  "\\server\share" is a share's root, as "C:" is a drive's: "\\server"
+      --  alone names no folder to go to.
+      Share_Last : constant Natural := (if Windows then Hostkit.Path_Text.Share_Root_Last (Path) else 0);
       Root_Length : constant Natural :=
         (if Drive > 0 then 0
          elsif Path'Length >= 2
@@ -79,6 +83,17 @@ package body Files.Breadcrumbs is
                   Ancestor_Path => Ancestor));
          end;
          Index := Path'First + Drive;
+
+      elsif Share_Last > 0 then
+         declare
+            --  Without the separator that may close it.
+            Share : constant String :=
+              Path (Path'First .. (if Is_Separator (Path (Share_Last)) then Share_Last - 1 else Share_Last));
+         begin
+            Ancestor := To_Unbounded_String (Share & Separator);
+            Result.Append (Segment'(Label => To_Unbounded_String (Share), Ancestor_Path => Ancestor));
+         end;
+         Index := Share_Last + 1;
 
       elsif Root_Length > 0 then
          --  The filesystem root is not shown as its own breadcrumb (a bare '/'

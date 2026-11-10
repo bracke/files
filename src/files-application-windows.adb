@@ -7,6 +7,7 @@ with Ada.Unchecked_Deallocation;
 with System;
 
 with Glfw.Input;
+with Glfw.Input.Keys.Codes;
 with Glfw.Input.Keys.Layout;
 with Glfw.Windows.Modifiers;
 with Glfw.Windows.Clipboard;
@@ -22,7 +23,6 @@ with Files.Operations;
 with Files.Process_Jobs;
 with Files.Rendering.Hit;
 with Guikit.Layout;
-with Guikit.Settings_Panel;
 with Guikit.Utf8;
 
 package body Files.Application.Windows is
@@ -42,13 +42,7 @@ package body Files.Application.Windows is
    use type Files.Rendering.View_Snapshot;
    use type System.Address;
 
-   function Key_Repeats (Key : Tracked_Key) return Boolean is
-     (Key in Tracked_Left | Tracked_Right | Tracked_Up | Tracked_Down
-           | Tracked_Page_Up | Tracked_Page_Down
-           | Tracked_Backspace | Tracked_Delete
-           | Tracked_Equal | Tracked_Minus
-           | Tracked_Right_Bracket | Tracked_Slash
-           | Tracked_Numpad_Add | Tracked_Numpad_Subtract);
+   function Key_Repeats (Key : Guikit.Input.Key_Code) return Boolean renames Files.Window_Policy.Key_Repeats;
 
    --  The text cell width is the advance every layout measures labels with,
    --  taken from the same line height. Derived separately (Size * 3 / 4) it
@@ -160,6 +154,16 @@ package body Files.Application.Windows is
          Files.Diagnostics.Note_Event_Loop (Swallowed);
    end Receive;
 
+   --  A drop guikit could not hand over (FILES_DIAGNOSTICS); it is lost.
+   overriding procedure Failed
+     (Into       : in out Desktop_Window;
+      Occurrence : Ada.Exceptions.Exception_Occurrence)
+   is
+      pragma Unreferenced (Into);
+   begin
+      Files.Diagnostics.Note_Event_Loop (Occurrence);
+   end Failed;
+
    function Text_Input_Bytes
      (Char : Wide_Wide_Character)
       return String
@@ -180,9 +184,11 @@ package body Files.Application.Windows is
    is
       Bytes    : constant String := Text_Input_Bytes (Char);
       Parallel : constant Boolean := Object.Last_Was_Tracked_Press;
+      Dropped  : constant Boolean := Object.Drop_Next_Character;
    begin
       Object.Last_Was_Tracked_Press := False;
-      if Bytes = "" then
+      Object.Drop_Next_Character := False;
+      if Bytes = "" or else Dropped then
          return;
       end if;
       --  Plain typing coalesces into one event; a key's own character stays
@@ -217,37 +223,31 @@ package body Files.Application.Windows is
       Mods     : Glfw.Input.Keys.Modifiers)
    is
       use type Glfw.Input.Keys.Action;
-      use type Glfw.Input.Keys.Key;
+      use type Guikit.Input.Key_Code;
    begin
       Object.Last_Was_Tracked_Press := False;
+      Object.Drop_Next_Character := False;
       if Action = Glfw.Input.Keys.Release then
          return;
       end if;
       declare
-         Meant : constant Glfw.Input.Keys.Key := Layout_Key (Key, Scancode);
-         Held  : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
+         Code : constant Guikit.Input.Key_Code := Glfw.Input.Keys.Codes.To_Key_Code (Layout_Key (Key, Scancode));
       begin
-         Held (Guikit.Input.Shift_Key) := Mods.Shift;
-         Held (Guikit.Input.Control_Key) := Mods.Control;
-         Held (Guikit.Input.Alt_Key) := Mods.Alt;
-         Held (Guikit.Input.Meta_Key) := Mods.Super;
-         for T in Tracked_Key loop
-            if To_Glfw_Key (T) = Meant then
-               --  A held key repeats as the system's own repeat settings say:
-               --  the window system sends Repeat for it. Only keys that move
-               --  or delete something repeat; a held Enter opens once.
-               if Action = Glfw.Input.Keys.Repeat and then not Key_Repeats (T) then
-                  exit;
-               end if;
-               if Natural (Object.Pending_Input.Length) < Max_Pending_Input_Events then
-                  Object.Pending_Input.Append
-                    (Input_Event'
-                       (Kind => Key_Press_Event, Key => T, Modifiers => Held, others => <>));
-                  Object.Last_Was_Tracked_Press := True;
-               end if;
-               exit;
-            end if;
-         end loop;
+         if Code = Guikit.Input.Key_Unknown then
+            return;
+         --  A held key repeats as the system's own repeat settings say: the
+         --  window system sends Repeat for it.
+         elsif Action = Glfw.Input.Keys.Repeat and then not Key_Repeats (Code) then
+            Object.Drop_Next_Character := True;
+         elsif Natural (Object.Pending_Input.Length) < Max_Pending_Input_Events then
+            Object.Pending_Input.Append
+              (Input_Event'
+                 (Kind      => Key_Press_Event,
+                  Key       => Code,
+                  Modifiers => Glfw.Input.Keys.Codes.To_Modifiers (Mods),
+                  others    => <>));
+            Object.Last_Was_Tracked_Press := True;
+         end if;
       end;
    end Key_Changed;
 
@@ -336,14 +336,6 @@ package body Files.Application.Windows is
      (Window : not null access Glfw.Windows.Window)
       return Guikit.Input.Modifier_Set renames Glfw.Windows.Modifiers.Held;
 
-   function To_Glfw_Key
-     (Key : Tracked_Key)
-      return Glfw.Input.Keys.Key is separate;
-
-   function To_Key_Code
-     (Key : Tracked_Key)
-      return Guikit.Input.Key_Code is separate;
-
    --  @return Minutes since 2000-01-01 by the wall clock: the key that tells
    --    a snapshot or frame built in an earlier minute (relative times) apart.
    function Wall_Clock_Minute return Natural is separate;
@@ -405,12 +397,12 @@ package body Files.Application.Windows is
    --  Dispatch one tracked key press.
    --
    --  @param Runtime Window receiving the key.
-   --  @param Key Tracked key, already resolved through the keyboard layout.
+   --  @param Key The key, already resolved through the keyboard layout.
    --  @param Modifiers Modifiers held with the key.
    --  @param Consumed True when the key's own character must be dropped.
    procedure Fire_Key
      (Runtime   : in out Runtime_Window;
-      Key       : Tracked_Key;
+      Key       : Guikit.Input.Key_Code;
       Modifiers : Guikit.Input.Modifier_Set;
       Consumed  : out Boolean)
  is separate;
@@ -432,8 +424,6 @@ package body Files.Application.Windows is
       pragma Unreferenced (Result);
    end Dispatch_Text;
 
-   --  Run the window's key presses and typed text in the order they arrived,
-   --  then auto-repeat the repeating keys still held.
    --  Scroll the main view just far enough that the selected item is whole
    --  in view, after a key or type-ahead moved the selection.
    procedure Reveal_Selection (Runtime : in out Runtime_Window) is
@@ -460,6 +450,7 @@ package body Files.Application.Windows is
       end;
    end Reveal_Selection;
 
+   --  Run the window's key presses and typed text in the order they arrived.
    procedure Handle_Keyboard
      (Runtime : in out Runtime_Window)
    is
@@ -481,13 +472,14 @@ package body Files.Application.Windows is
       Events := Runtime.Handle.Pending_Input;
       Runtime.Handle.Pending_Input.Clear;
       Runtime.Handle.Last_Was_Tracked_Press := False;
+      Runtime.Handle.Drop_Next_Character := False;
 
       for Event of Events loop
          case Event.Kind is
             when Key_Press_Event =>
                --  With the trace below a presented frame, CI follows a key
                --  it sends through the loop onto the screen.
-               Files.Diagnostics.Trace ("Files.Application.Windows", "key=" & Tracked_Key'Image (Event.Key));
+               Files.Diagnostics.Trace ("Files.Application.Windows", "key=" & Guikit.Input.Key_Code'Image (Event.Key));
                Fire_Key (Runtime, Event.Key, Event.Modifiers, Consumed);
             when Text_Event =>
                if not (Event.Parallel and then Consumed) then
@@ -581,9 +573,8 @@ package body Files.Application.Windows is
       For_Each_Window (Runtime_Windows, Handle_Keyboard'Access);
    end Handle_All_Keyboard;
 
-   --  Clear a stale grid type-ahead prefix once the user has paused. Driven from
-   --  the event loop using the same monotonic clock as the key-repeat and
-   --  file-watch timers, so a keystroke after the pause begins a fresh prefix.
+   --  Clear a stale grid type-ahead prefix once the user has paused, on the
+   --  event loop's monotonic clock, so a keystroke after it starts afresh.
    procedure Handle_Type_Ahead_Timeout
      (Runtime : in out Runtime_Window) is
    begin
@@ -1559,14 +1550,7 @@ package body Files.Application.Windows is
    end Vulkan_Runtime_Available;
 
    function Runtime_Capabilities return Desktop_Capabilities is
-      Display : constant Boolean := Live_Display_Available;
-      Vulkan  : constant Boolean := Vulkan_Runtime_Available;
-   begin
-      return
-        (Display_Available       => Display,
-         Vulkan_Available        => Vulkan,
-         Live_Window_Smoke_Ready => Display and then Vulkan);
-   end Runtime_Capabilities;
+     (Capabilities_Of (Live_Display_Available, Vulkan_Runtime_Available));
 
    function Accumulate_Scroll_Offset
      (Remainder : in out Long_Float;

@@ -19,7 +19,6 @@ with Files.Extra_Info_Reader;
 with Files.Resources;
 with Ada.Calendar;
 with Ada.Calendar.Formatting;
-with Ada.Characters.Handling;
 with Ada.Characters.Latin_1;
 with Ada.Directories;
 with Ada.Environment_Variables;
@@ -238,7 +237,10 @@ package body Files_Suite.Operations is
    procedure Test_Read_Only_Survives_Copy_And_Move (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_Keeps_Trash_Until_Synced (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Name_Too_Long_Is_Reported (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Path_Text_Leaf_And_Parent (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Stem_And_Extension (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Netpbm_Fields (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Copy_Without_Xattr_Support (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Metadata_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Live_Metadata_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transfer_Result_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -351,17 +353,12 @@ package body Files_Suite.Operations is
    procedure Test_Info_Pane_Word_Wrap (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Item_Field_Fallbacks (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Multi_Selection_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
-   --  Info-pane detail text as the renderer composes it: localized prefix, value, localized suffix.
-   function Detail_Value (Prefix_Key : String; Value : String; Suffix_Key : String) return String;
+   --  Info-pane detail text as the renderer composes it: Key's pattern with {Name} filled in.
+   function Detail_Value (Key : String; Name : String; Value : String) return String;
    --  Detail_Value with the value itself looked up in the localization catalog.
-   function Detail_Localized_Value (Prefix_Key : String; Value_Key : String; Suffix_Key : String) return String;
+   function Detail_Localized_Value (Key : String; Name : String; Value_Key : String) return String;
    --  A line-count detail followed by the localized encoding detail.
-   function Detail_Lines_Encoding
-     (Lines_Prefix_Key : String;
-      Lines            : String;
-      Lines_Suffix_Key : String;
-      Encoding_Key     : String)
-      return String;
+   function Detail_Lines_Encoding (Key : String; Lines : String; Encoding_Key : String) return String;
    --  Write the info-pane metadata fixtures (text, source, office, PDF, PNG, JPEG) into Root.
    procedure Write_Info_Metadata_Fixtures;
    procedure Test_Info_Pane_Section_Tooltips (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -454,6 +451,7 @@ package body Files_Suite.Operations is
    procedure Test_Symlink_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Native_Replace_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Released_Recovery_Goes_To_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Interrupted_Release_Resumes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Command_Line (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Preserve_Puts_Original_Back (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Background_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -565,6 +563,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Released_Recovery_Goes_To_Trash'Access,
          "a replaced original kept for Undo goes to the trash under its own name when history ends");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Interrupted_Release_Resumes'Access,
+         "an interrupted release is put back or finished, on every host");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Recovery_Command_Line'Access,
          "--recover restores a payload, and --discard-recovery deletes only a recovery payload");
@@ -1176,8 +1177,17 @@ package body Files_Suite.Operations is
         (T, Test_Name_Too_Long_Is_Reported'Access,
          "a name too long for any filesystem is reported as such");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Path_Text_Leaf_And_Parent'Access,
+         "a path's leaf and parent read from its text, for names the runtime will not parse");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Stem_And_Extension'Access,
+         "a leaf name splits into stem and extension one way everywhere");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Netpbm_Fields'Access,
          "the Netpbm reader splits fields, refuses bad numbers and scales samples");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Copy_Without_Xattr_Support'Access,
+         "a copy onto a volume without extended attributes succeeds without them");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Metadata_History_Identity'Access, "metadata Undo and Redo refuse unrelated replacements");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1440,17 +1450,9 @@ package body Files_Suite.Operations is
 
    procedure Test_Commit_Multi_Rename (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-   function Detail_Value (Prefix_Key : String; Value : String; Suffix_Key : String) return String is separate;
-
-   function Detail_Localized_Value (Prefix_Key : String; Value_Key : String; Suffix_Key : String) return String
-     is separate;
-
-   function Detail_Lines_Encoding
-     (Lines_Prefix_Key : String;
-      Lines            : String;
-      Lines_Suffix_Key : String;
-      Encoding_Key     : String)
-      return String is separate;
+   function Detail_Value (Key : String; Name : String; Value : String) return String is separate;
+   function Detail_Localized_Value (Key : String; Name : String; Value_Key : String) return String is separate;
+   function Detail_Lines_Encoding (Key : String; Lines : String; Encoding_Key : String) return String is separate;
 
    procedure Write_Info_Metadata_Fixtures is separate;
 
@@ -1604,7 +1606,13 @@ package body Files_Suite.Operations is
 
    procedure Test_Name_Too_Long_Is_Reported (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Path_Text_Leaf_And_Parent (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Stem_And_Extension (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Netpbm_Fields (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Copy_Without_Xattr_Support (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Metadata_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -1930,6 +1938,8 @@ package body Files_Suite.Operations is
    procedure Test_Recovery_Command_Line (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Released_Recovery_Goes_To_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Interrupted_Release_Resumes (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Native_Replace_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

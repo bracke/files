@@ -9,18 +9,14 @@ begin
       when Root_Current =>
          return "root.current";
       when Root_Mount =>
-         return "root.mount|" & Ada.Directories.Simple_Name (Path);
+         return "root.mount";
       when Root_User_Mount =>
-         return "root.user_mount|" & Ada.Directories.Simple_Name (Path);
+         return "root.user_mount";
       when Root_Network_Mount =>
-         return "root.network_mount|" & Ada.Directories.Simple_Name (Path);
+         return "root.network_mount";
       when Root_Windows_Drive =>
-         return "root.drive|" & Path;
+         return "root.drive";
       when Root_Favorite =>
-         return "root.favorite|" & Ada.Directories.Simple_Name (Path);
+         return "root.favorite";
    end case;
-exception
-   when Swallowed : others =>
-      Files.Diagnostics.Note (Swallowed, "Files.File_System");
-      return Path;
 end Root_Label;

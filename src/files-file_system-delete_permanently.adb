@@ -9,9 +9,7 @@ is
       First : Positive := Path'First;
    begin
       for Index in Path'Range loop
-         if Path (Index) = '/'
-           or else (Windows and then Path (Index) = '\')
-         then
+         if Hostkit.Fs.Is_Separator (Path (Index)) then
             if Index > First
               and then Path (First .. Index - 1) in "." | ".."
             then

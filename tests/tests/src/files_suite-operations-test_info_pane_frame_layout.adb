@@ -131,15 +131,12 @@ separate (Files_Suite.Operations)
                elsif Value = Files.Localization.Text ("info.extra") then
                   Found_Extra := True;
                elsif Value =
-                 Detail_Value ("info.extra.text.lines.prefix", "1", "info.extra.text.lines.suffix")
+                 Detail_Value ("info.extra.text.lines", "lines", "1")
                then
                   Found_Extra_First := True;
                   Extra_First_Y := Text.Y;
                elsif Value =
-                 Detail_Localized_Value
-                   ("info.extra.encoding.prefix",
-                    "info.extra.encoding.ascii",
-                    "info.extra.encoding.suffix")
+                 Detail_Localized_Value ("info.extra.encoding", "encoding", "info.extra.encoding.ascii")
                then
                   Found_Extra_Second := Extra_First_Y > 0 and then Text.Y = Extra_First_Y + 20;
                elsif Value = Files.Localization.Text ("time.relative.now")

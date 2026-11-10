@@ -51,6 +51,17 @@ int fsync(int fd) {
     return (int)syscall(SYS_fsync, fd);
 }
 
+/* With FILES_TEST_XATTR_UNSUPPORTED set, setting any extended attribute
+   fails as on a volume that holds none (vfat, exFAT): a copy must still
+   succeed, without them. */
+int lsetxattr(const char *path, const char *name, const void *value, size_t size, int flags) {
+    if (getenv("FILES_TEST_XATTR_UNSUPPORTED")) {
+        errno = EOPNOTSUPP;
+        return -1;
+    }
+    return (int)syscall(SYS_lsetxattr, path, name, value, size, flags);
+}
+
 int chmod(const char *path, mode_t mode) {
     const char *trigger = getenv("FILES_TEST_DIRECTORY_RESTORE_FAULT");
     if (trigger && mode == 0555 && !strncmp(path, "/proc/self/fd/", 14)) {

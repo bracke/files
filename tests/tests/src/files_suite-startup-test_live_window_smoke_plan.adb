@@ -30,11 +30,22 @@ separate (Files_Suite.Startup)
         (Plan.Input_Poll_Count,
          1,
          "live smoke plan records deterministic input poll count");
+      --  The reason a plan gives, for every host it could meet.
+      declare
+         use Files.Application.Windows;
+         function Reason (Display, Vulkan : Boolean) return String is
+           (To_String (Smoke.Live_Window_Smoke_Plan (Capabilities_Of (Display, Vulkan)).Reason_Key));
+      begin
+         Assert (Smoke.Live_Window_Smoke_Plan (Capabilities_Of (True, True)).Can_Run, "a full host can run it");
+         Assert (not Smoke.Live_Window_Smoke_Plan (Capabilities_Of (True, False)).Can_Run,
+                 "a host without Vulkan cannot");
+         Files_Suite.Support.Assert_Equal (Reason (True, True), "runtime.smoke.ready", "ready");
+         Files_Suite.Support.Assert_Equal (Reason (False, True), "runtime.smoke.no_display", "no display");
+         Files_Suite.Support.Assert_Equal (Reason (True, False), "runtime.smoke.no_vulkan", "no Vulkan");
+         Files_Suite.Support.Assert_Equal (Reason (False, False), "runtime.smoke.no_display", "the display first");
+      end;
       Files_Suite.Support.Assert_Equal
-        (Plan.Can_Run,
-         Caps.Live_Window_Smoke_Ready,
-         "live smoke plan readiness matches runtime capabilities");
-      Assert (To_String (Plan.Reason_Key) /= "", "live smoke plan exposes localized reason key");
+        (Plan.Can_Run, Caps.Live_Window_Smoke_Ready, "and this host's plan follows its capabilities");
       Live_Result := Files.Application.Windows.Smoke.Evaluate_Live_Window_Smoke (Plan);
       Assert
         (Live_Result.Skipped_By_Plan = not Plan.Can_Run,

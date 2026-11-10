@@ -87,8 +87,8 @@ separate (Files.Application.Windows.Smoke)
               (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
 
          when Scenario_Settings_Large_Font =>
-            Runtime.Font_Pixel_Size := Large_Font;
             Runtime.Settings.Font_Pixel_Size := Large_Font;
+            Runtime.Font_Pixel_Size := Scaled_Font_Size (Runtime);
             Files.Model.Begin_Settings_Edit
               (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
 
@@ -101,12 +101,13 @@ separate (Files.Application.Windows.Smoke)
             --  path is exercised and the frame provably differs from default.
             declare
                Target : constant Positive :=
-                 (if Runtime.Font_Pixel_Size >= Large_Font
+                 (if Runtime.Settings.Font_Pixel_Size >= Large_Font
                   then Files.Settings.Min_Font_Pixel_Size
                   else Large_Font);
             begin
-               Runtime.Font_Pixel_Size := Target;
+               --  In framebuffer pixels, as everywhere: a 2x runner draws it twice as big.
                Runtime.Settings.Font_Pixel_Size := Target;
+               Runtime.Font_Pixel_Size := Scaled_Font_Size (Runtime);
             end;
 
          when Scenario_Light_Theme =>

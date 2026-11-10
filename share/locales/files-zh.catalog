@@ -58,3 +58,7 @@ zh.details.size.unit.mib = 兆字节
 zh.details.size.unit.gib = 吉字节
 zh.details.size.unit.tib = 太字节
 zh.accessibility.item.details = {modified_label}：{modified}，{size_label}：{size}，{type_label}：{type}
+zh.format.label_value = {label}：{value}
+zh.accessibility.info.summary = {type_label}：{type}，{size_label}：{size}
+zh.accessibility.info.summary_modified = {summary}，{modified}
+zh.accessibility.info.metadata_error = {summary}，{error_label}：{error}

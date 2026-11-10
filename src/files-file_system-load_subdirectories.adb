@@ -57,7 +57,7 @@ is
                exception
                   when Swallowed : others =>
                      --  Undated, it still sorts and opens.
-                     Files.Diagnostics.Note (Swallowed, "Files.File_System.Directory");
+                     Files.Diagnostics.Note (Swallowed, "Files.File_System");
                end;
                Item.Creation_Time := Hostkit.Metadata.File_Creation_Time (Full, Item.Creation_Available);
                Items.Append (Item);
@@ -67,7 +67,7 @@ is
    exception
       when Failure : others =>
          --  One unreadable entry is left out of the tree, not the folder.
-         Files.Diagnostics.Note (Failure, "Files.File_System.Directory");
+         Files.Diagnostics.Note (Failure, "Files.File_System");
    end Add_Entry;
 begin
    if not Files.Fs_Primitives.Directory_Exists (Path) then

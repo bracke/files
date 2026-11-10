@@ -145,8 +145,8 @@ begin
       Top_Names : Archive_Name_Sets.Set;
 
       function Entry_For (Name : String) return String is
-         Base : constant String := Leaf_Base (Name);
-         Ext  : constant String := Leaf_Extension (Name);
+         Base : constant String := Files.Types.Stem_Of (Name);
+         Ext  : constant String := Files.Types.Extension_Of (Name);
       begin
          if not Top_Names.Contains (Files.Types.Fold_Case (Name)) then
             return Name;
@@ -192,7 +192,7 @@ begin
             when Zip_Archive       => "zip",
             when Seven_Zip_Archive => "7z");
       --  ".bashrc" is all name: ".bashrc.zip", not ".zip".
-      Raw_Base : constant String := Leaf_Base (To_String (Items.First_Element.Name));
+      Raw_Base : constant String := Files.Types.Stem_Of (To_String (Items.First_Element.Name));
       Base     : constant String := (if Raw_Base = "" then "archive" else Raw_Base);
 
       --  A directory-unique simple archive name, e.g. "report.zip" or
