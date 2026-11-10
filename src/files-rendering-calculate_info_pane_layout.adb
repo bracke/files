@@ -26,7 +26,8 @@ separate (Files.Rendering)
          return Rows;
       end Total_Info_Rows;
 
-      Pane_X        : constant Natural := Layout.Main_Width;
+      --  Right of the view, which starts after the folder tree when it is open.
+      Pane_X        : constant Natural := Saturating_Add (Layout.Main_X, Layout.Main_Width);
       Bar_W         : constant Natural := Natural'Min (Scrollbar_Width, Layout.Info_Pane_Width);
       --  The combined selection total is now the last line of the Contents
       --  section (counted by Total_Info_Rows), so no header rows are reserved.

@@ -24,7 +24,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             --  are reserved above the list: sections start at the top of the pane.
             Row_Y  : constant Integer :=
               Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding)) - Integer (Info_Pane.Scroll_Pixels);
-            Text_X : constant Natural := Saturating_Add (Layout.Main_Width, Info_Pane_Padding);
+            Text_X : constant Natural := Saturating_Add (Info_Pane.X, Info_Pane_Padding);
             Info_Bottom : constant Natural := Saturating_Add (Info_Pane.Y, Info_Pane.Height);
             --  The width the layout counted rows at, which always leaves the
             --  scrollbar's column: wrapping wider when it is hidden drew fewer

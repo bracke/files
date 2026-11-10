@@ -41,13 +41,13 @@ separate (Files.Rendering.Build_Frame_Commands)
 
       if Layout.Info_Pane_Width > 0 then
          Add_Rect
-           (Layout.Main_Width,
+           (Saturating_Add (Layout.Main_X, Layout.Main_Width),
             Layout.Main_Y,
             Layout.Info_Pane_Width,
             Layout.Main_Height,
             Pane_Color);
          Add_Rect
-           (Layout.Main_Width,
+           (Saturating_Add (Layout.Main_X, Layout.Main_Width),
             Layout.Main_Y,
             1,
             Layout.Main_Height,

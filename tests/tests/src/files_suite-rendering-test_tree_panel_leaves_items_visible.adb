@@ -26,6 +26,18 @@ separate (Files_Suite.Rendering)
                           Mode'Image & ": no item lies under the panel");
                end loop;
             end;
+            --  With the info pane open as well: tree, view, pane, side by side
+            --  and filling the window, none over another.
+            Snap.Info_Pane_Open := True;
+            declare
+               Layout : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 900, 600, 20);
+               Pane   : constant Info_Pane_Layout := Calculate_Info_Pane_Layout (Snap, Layout, 20);
+            begin
+               Files_Suite.Support.Assert_Equal
+                 (Pane.X, Layout.Main_X + Layout.Main_Width, Mode'Image & ": the info pane starts where the view ends");
+               Files_Suite.Support.Assert_Equal
+                 (Pane.X + Pane.Width, 900, Mode'Image & ": and ends at the window's edge");
+            end;
          end;
       end loop;
    end Test_Tree_Panel_Leaves_Items_Visible;
