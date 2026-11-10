@@ -2306,7 +2306,9 @@ procedure Check_All is
       --  info pane's worker runs.
       Check_All ("files-background_slots.ad?");
       Check_All ("files-extra_info_reader.ad?");
-      Check_All ("files-file_system-*_token.adb");
+      Check_All ("files-file_system-*_info.adb");
+      Check_All ("files-file_system-extra_info_of.adb");
+      Check_All ("files-extra_info.ads");
       Check_All ("files-file_system-count_text_lines.adb");
       Check_All ("files-file_system-text_encoding_name.adb");
       --  Its worker runs a tree walk on a large stack while the caller waits.
@@ -3362,6 +3364,8 @@ procedure Check_All is
             To_Unbounded_String ("Files.Desktop_Applications"),
             --  A handler's trace of what it carried on past, not model I/O.
             To_Unbounded_String ("Files.Diagnostics"),
+            --  The info pane's extra line as data: the model only keeps it.
+            To_Unbounded_String ("Files.Extra_Info"),
             To_Unbounded_String ("Files.File_System"),
             To_Unbounded_String ("Files.Folder_Size"),
             To_Unbounded_String ("Files.Folder_Tree"),
@@ -4038,6 +4042,7 @@ procedure Check_All is
             To_Unbounded_String ("Files.Commands"),
             To_Unbounded_String ("Files.Commands.Status"),
             To_Unbounded_String ("Files.Extension_Labels"),
+            To_Unbounded_String ("Files.Extra_Info"),
             To_Unbounded_String ("Files.File_System"),
             To_Unbounded_String ("Files.File_Types"),
             To_Unbounded_String ("Files.Folder_Tree"),
@@ -4162,9 +4167,9 @@ procedure Check_All is
             end if;
          end Require_At_Most;
       begin
-         Require_At_Most ("files-rendering.adb", 1_552);
+         Require_At_Most ("files-rendering.adb", 1_555);
          Require_At_Most ("files-rendering-build_frame_commands.adb", 941);
-         Require_At_Most ("files-application-windows.adb", 1_765);
+         Require_At_Most ("files-application-windows.adb", 1_752);
       end;
    end Check_Rendering_Architecture;
 
@@ -5120,7 +5125,7 @@ procedure Check_All is
       Require_Tests ("commands", 38);
       Require_Tests ("model", 54);
       Require_Tests ("interaction", 82);
-      Require_Tests ("rendering", 98);
+      Require_Tests ("rendering", 99);
       Require_Tests ("operations", 285);
    end Check_Test_Subsystem_Coverage;
 

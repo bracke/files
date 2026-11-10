@@ -1,3 +1,4 @@
+with Files.Extra_Info;
 with Files.Types;
 
 --  The info pane's type details (a text file's lines, a PDF's pages, an
@@ -25,14 +26,14 @@ package Files.Extra_Info_Reader is
    --
    --  @param Owner The window asking.
    --  @param Path The item it asked about.
-   --  @param Token The details (Files.File_System.Extra_Info_Token) when Ready.
+   --  @param Extra The details (Files.File_System.Extra_Info_Of) when Ready.
    --  @param Ready True when they were waiting.
    --  @param Asked True when Path is asked for, being read or ready; False
    --    when the caller must Request it.
    procedure Take
      (Owner : Requester;
       Path  : String;
-      Token : out Files.Types.UString;
+      Extra : out Files.Extra_Info.Info;
       Ready : out Boolean;
       Asked : out Boolean);
 

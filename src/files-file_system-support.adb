@@ -789,18 +789,299 @@ package body Files.File_System.Support is
    --  Recursively copy a file/directory tree. Used as the cross-device
    --  fallback when Ada.Directories.Rename fails with EXDEV (it cannot move
    --  across filesystems), by both trashing and drag-and-drop moves.
+   --  Stop a copy the user or the job cancelled.
+   procedure Check_Cancelled (Walk : Copy_Walk) is
+   begin
+      if (Walk.Cancel /= null and then Walk.Cancel.all)
+        or else (Walk.Check_Job_Cancellation and then Files.Job_Context.Cancelled)
+      then
+         raise Program_Error;
+      end if;
+   end Check_Cancelled;
+
+   --  What one Copy_Node step learns as it goes. Limited, so passed by
+   --  reference: Owned is still right in the walk's handler after a raise.
+   type Node_State is limited record
+      --  Whether the destination is this step's to remove on failure.
+      Owned           : Boolean := False;
+      Source_Identity : Files.Types.UString;
+      Source_Revision : Files.Types.UString;
+      --  Whether the source is (or may be) one inode of several to keep as links.
+      Track_Hard_Link : Boolean := False;
+      --  The digest of the bytes Copy_File_Bytes read and wrote, when asked.
+      Copied_Digest   : Files.Types.UString;
+   end record;
+
+   --  The SHA-256 of an entry's content: a regular file's bytes, a link's target.
+   function Content_Digest (Path : String; Walk : Copy_Walk) return String is
+      use Ada.Streams;
+      Context : CryptoLib.Hashes.SHA256_Context;
+      Digest : CryptoLib.Hashes.SHA256_Digest;
+      Hex : constant String := "0123456789abcdef";
+      Result : String (1 .. 64);
+
+      procedure Add (Data : Stream_Element_Array) is
+      begin
+         if Data'Length > 0 then
+            CryptoLib.Hashes.Update (Context, Data);
+         end if;
+      end Add;
+   begin
+      CryptoLib.Hashes.Initialize_SHA256 (Context);
+      if Hostkit.Fs.Is_Link (Path) then
+         declare
+            Target : UString;
+         begin
+            if not Hostkit.Fs.Read_Link_Target (Path, Target) then
+               raise Ada.Directories.Use_Error;
+            end if;
+            declare
+               Text : constant String := To_String (Target);
+               Data : Stream_Element_Array (1 .. Stream_Element_Offset (Text'Length));
+            begin
+               for Index in Text'Range loop
+                  Data (Stream_Element_Offset (Index - Text'First + 1)) := Character'Pos (Text (Index));
+               end loop;
+               Add (Data);
+            end;
+         end;
+      else
+         --  Use the descriptor-pinned, no-follow regular-file reader.  A
+         --  pathname open after the classification above could otherwise
+         --  follow a replacement symlink or block on a replacement FIFO.
+         return Regular_File_Digest
+           (Path, Walk.Cancel, Walk.Check_Job_Cancellation);
+      end if;
+      Digest := CryptoLib.Hashes.Finalize (Context);
+      for Index in Digest'Range loop
+         Result ((Index - Digest'First) * 2 + 1) := Hex (Natural (Digest (Index)) / 16 + 1);
+         Result ((Index - Digest'First) * 2 + 2) := Hex (Natural (Digest (Index)) mod 16 + 1);
+      end loop;
+      return Result;
+   end Content_Digest;
+
+   --  Make Destination a hard link to the copy of Source's inode already made
+   --  in this walk, after checking neither changed since.
+   --
+   --  @return False when Source is not an inode the walk copied before.
+   function Copy_Hard_Link
+     (Source_Path      : String;
+      Destination_Path : String;
+      Walk             : in out Copy_Walk;
+      Metadata         : in out Hostkit.Metadata_Copy.Snapshot;
+      Wants_Digest     : Boolean;
+      State            : in out Node_State)
+      return Boolean
+   is
+      Copied_Files    : Copied_File_Maps.Map renames Walk.Copied_Files;
+      Source_Identity : Files.Types.UString renames State.Source_Identity;
+      Source_Revision : Files.Types.UString renames State.Source_Revision;
+      Links : Interfaces.Unsigned_64;
+   begin
+      Links := Hostkit.Metadata_Copy.Link_Count (Metadata);
+      if Walk.Shared_Batch or else Links > 1 then
+         Source_Identity := To_Unbounded_String (Files.File_Identities.Token (Source_Path));
+         Source_Revision := To_Unbounded_String (Files.File_Identities.Revision (Source_Path, False));
+         if Length (Source_Identity) = 0 then
+            raise Ada.Directories.Use_Error;
+         end if;
+         State.Track_Hard_Link := Links > 1 or else Copied_Files.Contains (To_String (Source_Identity));
+      end if;
+      if Length (Source_Identity) > 0 and then Copied_Files.Contains (To_String (Source_Identity)) then
+         declare
+            First : constant Copied_File := Copied_Files.Element (To_String (Source_Identity));
+         begin
+            --  The source is the inode already copied, unchanged since, and
+            --  the first copy still holds what was written: in a retried
+            --  batch it is a published file that may have been edited (a
+            --  same-size edit with its time put back shows only in content).
+            if Files.File_Identities.Revision (Source_Path, False) /= To_String (First.Source_Revision)
+              or else Content_Digest (Source_Path, Walk) /= To_String (First.Content_Digest)
+              or else Files.File_Identities.Token (To_String (First.Path)) /= To_String (First.Identity)
+              or else Files.File_Identities.Revision (To_String (First.Path), False)
+                /= To_String (First.Destination_Revision)
+              or else Content_Digest (To_String (First.Path), Walk) /= To_String (First.Content_Digest)
+            then
+               raise Ada.Directories.Use_Error;
+            end if;
+            if not Hostkit.Fs.Create_Hard_Link (To_String (First.Path), Destination_Path) then
+               raise Ada.Directories.Use_Error;
+            end if;
+            State.Owned := True;
+            --  The new link is the first copy's inode (same identity), so
+            --  its content is that copy's; only metadata can have moved.
+            if Files.File_Identities.Revision (Source_Path, False) /= To_String (First.Source_Revision)
+              or else Files.File_Identities.Token (To_String (First.Path)) /= To_String (First.Identity)
+              or else Files.File_Identities.Token (Destination_Path) /= To_String (First.Identity)
+              or else Files.File_Identities.Revision (To_String (First.Path), False)
+                /= To_String (First.Destination_Revision)
+              or else Files.File_Identities.Revision (Destination_Path, False)
+                /= To_String (First.Destination_Revision)
+            then
+               raise Ada.Directories.Use_Error;
+            end if;
+            Check_Cancelled (Walk);
+            Metadata := Hostkit.Metadata_Copy.No_Snapshot;
+            if Wants_Digest and then not Hostkit.Fs.Is_Link (Source_Path) then
+               Walk.Root_Digest := First.Content_Digest;
+            end if;
+            return True;
+         end;
+      end if;
+      return False;
+   end Copy_Hard_Link;
+
+   --  Copy a regular file's bytes into a new file, sparse where the source
+   --  reads as zeros, flushed when the walk is durable; digested when asked
+   --  (into State.Copied_Digest, and the walk's root digest for the root).
+   procedure Copy_File_Bytes
+     (Source_Path      : String;
+      Destination_Path : String;
+      Walk             : in out Copy_Walk;
+      Wants_Digest     : Boolean;
+      State            : in out Node_State)
+   is
+      Track_Hard_Link     : Boolean renames State.Track_Hard_Link;
+      Copied_Bytes_Digest : Files.Types.UString renames State.Copied_Digest;
+      use Ada.Streams;
+      use type GNAT.OS_Lib.File_Descriptor;
+      Input_Descriptor : GNAT.OS_Lib.File_Descriptor :=
+        GNAT.OS_Lib.Invalid_FD;
+      Output : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
+      Buffer : Stream_Element_Array (1 .. 65_536);
+      Last   : Stream_Element_Offset;
+      Next   : Stream_Element_Offset;
+      Bytes_Read : Integer;
+      Wrote  : Integer;
+      Closed : Boolean;
+      Sparse : Boolean := False;
+      Digest_Context : CryptoLib.Hashes.SHA256_Context;
+      Digest : CryptoLib.Hashes.SHA256_Digest;
+      Hex : constant String := "0123456789abcdef";
+      Digest_Text : String (1 .. 64);
+      procedure Copy_Buffer (Buffer_Last : Stream_Element_Offset) is
+      begin
+         if (Wants_Digest or else Track_Hard_Link)
+           and then Buffer_Last >= Buffer'First
+         then
+            CryptoLib.Hashes.Update
+              (Digest_Context, Buffer (Buffer'First .. Buffer_Last));
+         end if;
+         Next := Buffer'First;
+         if Buffer_Last >= Buffer'First
+           and then
+             (for all Index in Buffer'First .. Buffer_Last =>
+                Buffer (Index) = 0)
+           and then Hostkit.Regular_Files.Skip_Zeros
+             (Output, Integer (Buffer_Last - Buffer'First + 1))
+         then
+            Sparse := True;
+            Next := Buffer_Last + 1;
+         end if;
+         while Next <= Buffer_Last loop
+            Wrote := GNAT.OS_Lib.Write
+              (Output, Buffer (Next)'Address,
+               Integer (Buffer_Last - Next + 1));
+            if Wrote <= 0 then
+               Files.Io_Errors.Capture;
+               raise Ada.Directories.Use_Error;
+            end if;
+            Next := Next + Stream_Element_Offset (Wrote);
+         end loop;
+      end Copy_Buffer;
+   begin
+      Copied_Bytes_Digest := Null_Unbounded_String;
+      if Wants_Digest or else Track_Hard_Link then
+         CryptoLib.Hashes.Initialize_SHA256 (Digest_Context);
+      end if;
+      declare
+         Supported : Boolean;
+      begin
+         Input_Descriptor := Hostkit.Regular_Files.Open_Read
+           (Source_Path, False, Supported);
+         pragma Unreferenced (Supported);
+         --  Refused a link or a non-regular entry, or failed to open: no
+         --  pathname open instead, which would reopen the race it guards.
+         if Input_Descriptor = GNAT.OS_Lib.Invalid_FD then
+            Files.Io_Errors.Capture;
+            raise Ada.Directories.Use_Error;
+         end if;
+      end;
+      Output := GNAT.OS_Lib.Create_New_File (Destination_Path, GNAT.OS_Lib.Binary);
+      if Output = GNAT.OS_Lib.Invalid_FD then
+         Files.Io_Errors.Capture;
+         raise Ada.Directories.Use_Error;
+      end if;
+      State.Owned := True;
+      loop
+         Check_Cancelled (Walk);
+         Bytes_Read := GNAT.OS_Lib.Read
+           (Input_Descriptor, Buffer'Address, Integer (Buffer'Length));
+         if Bytes_Read < 0 then
+            Files.Io_Errors.Capture;
+            raise Ada.Directories.Use_Error;
+         end if;
+         exit when Bytes_Read = 0;
+         Last := Buffer'First + Stream_Element_Offset (Bytes_Read) - 1;
+         Copy_Buffer (Last);
+      end loop;
+      GNAT.OS_Lib.Close (Input_Descriptor);
+      Input_Descriptor := GNAT.OS_Lib.Invalid_FD;
+      if Sparse and then not Hostkit.Regular_Files.Finish_Sparse (Output) then
+         Files.Io_Errors.Capture;
+         raise Ada.Directories.Use_Error;
+      end if;
+      --  Through the descriptor that wrote it, before its metadata is set:
+      --  no reopening, which a read-only copy would refuse on Windows.
+      if Walk.Durable
+        and then Hostkit.Durability."=" (Hostkit.Durability.Sync_Descriptor (Integer (Output)),
+                                          Hostkit.Durability.Failed)
+      then
+         Files.Io_Errors.Capture;
+         raise Ada.Directories.Use_Error;
+      end if;
+      GNAT.OS_Lib.Close (Output, Closed);
+      Output := GNAT.OS_Lib.Invalid_FD;
+      if not Closed then
+         --  A network or quota-limited filesystem may report a full disk
+         --  only here.
+         Files.Io_Errors.Capture;
+         raise Ada.Directories.Use_Error;
+      end if;
+      if Wants_Digest or else Track_Hard_Link then
+         Digest := CryptoLib.Hashes.Finalize (Digest_Context);
+         for Index in Digest'Range loop
+            Digest_Text ((Index - Digest'First) * 2 + 1) :=
+              Hex (Natural (Digest (Index)) / 16 + 1);
+            Digest_Text ((Index - Digest'First) * 2 + 2) :=
+              Hex (Natural (Digest (Index)) mod 16 + 1);
+         end loop;
+         Copied_Bytes_Digest := To_Unbounded_String (Digest_Text);
+         if Wants_Digest then
+            Walk.Root_Digest := Copied_Bytes_Digest;
+         end if;
+      end if;
+      Check_Cancelled (Walk);
+   exception
+      when others =>
+         if Input_Descriptor /= GNAT.OS_Lib.Invalid_FD then
+            GNAT.OS_Lib.Close (Input_Descriptor);
+         end if;
+         if Output /= GNAT.OS_Lib.Invalid_FD then
+            GNAT.OS_Lib.Close (Output);
+         end if;
+         raise;
+   end Copy_File_Bytes;
+
    procedure Copy_Node
      (Source_Path      : String;
       Destination_Path : String;
       Depth            : Natural;
       Walk             : in out Copy_Walk)
    is
-      Cancel                 : Cancellation_Check renames Walk.Cancel;
-      Check_Job_Cancellation : Boolean renames Walk.Check_Job_Cancellation;
       Times                  : Source_Time_Maps.Map renames Walk.Times;
       Preserve_Ownership     : Boolean renames Walk.Preserve_Ownership;
       Copied_Files           : Copied_File_Maps.Map renames Walk.Copied_Files;
-      Shared_Batch           : Boolean renames Walk.Shared_Batch;
       --  Only the root's own bytes are digested.
       Wants_Digest           : constant Boolean := Walk.Want_Root_Digest and then Depth = 0;
       --  A copy of a folder that (directly or transitively) contains a symlink to
@@ -812,65 +1093,15 @@ package body Files.File_System.Support is
       --  only after a successful copy.
       Max_Copy_Depth : constant := 1024;
 
-      Owned     : Boolean := False;
+      State     : Node_State;
+      Owned     : Boolean renames State.Owned;
 
       Metadata : Hostkit.Metadata_Copy.Snapshot := Hostkit.Metadata_Copy.No_Snapshot;
-      Source_Identity : Files.Types.UString;
-      Source_Revision : Files.Types.UString;
+      Source_Identity : Files.Types.UString renames State.Source_Identity;
+      Source_Revision : Files.Types.UString renames State.Source_Revision;
       Source_Content_Digest : Files.Types.UString;
-      Track_Hard_Link : Boolean := False;
-      --  The digest of the bytes Copy_Bytes read and wrote, when it was asked
-      --  for one (a root file, or a hard link to be recorded).
-      Copied_Bytes_Digest : Files.Types.UString;
-
-      procedure Check_Cancelled;
-
-      function Content_Digest (Path : String) return String is
-         use Ada.Streams;
-         Context : CryptoLib.Hashes.SHA256_Context;
-         Digest : CryptoLib.Hashes.SHA256_Digest;
-         Hex : constant String := "0123456789abcdef";
-         Result : String (1 .. 64);
-
-         procedure Add (Data : Stream_Element_Array) is
-         begin
-            if Data'Length > 0 then
-               CryptoLib.Hashes.Update (Context, Data);
-            end if;
-         end Add;
-      begin
-         CryptoLib.Hashes.Initialize_SHA256 (Context);
-         if Hostkit.Fs.Is_Link (Path) then
-            declare
-               Target : UString;
-            begin
-               if not Hostkit.Fs.Read_Link_Target (Path, Target) then
-                  raise Ada.Directories.Use_Error;
-               end if;
-               declare
-                  Text : constant String := To_String (Target);
-                  Data : Stream_Element_Array (1 .. Stream_Element_Offset (Text'Length));
-               begin
-                  for Index in Text'Range loop
-                     Data (Stream_Element_Offset (Index - Text'First + 1)) := Character'Pos (Text (Index));
-                  end loop;
-                  Add (Data);
-               end;
-            end;
-         else
-            --  Use the descriptor-pinned, no-follow regular-file reader.  A
-            --  pathname open after the classification above could otherwise
-            --  follow a replacement symlink or block on a replacement FIFO.
-            return Regular_File_Digest
-              (Path, Cancel, Check_Job_Cancellation);
-         end if;
-         Digest := CryptoLib.Hashes.Finalize (Context);
-         for Index in Digest'Range loop
-            Result ((Index - Digest'First) * 2 + 1) := Hex (Natural (Digest (Index)) / 16 + 1);
-            Result ((Index - Digest'First) * 2 + 2) := Hex (Natural (Digest (Index)) mod 16 + 1);
-         end loop;
-         return Result;
-      end Content_Digest;
+      Track_Hard_Link : Boolean renames State.Track_Hard_Link;
+      Copied_Bytes_Digest : Files.Types.UString renames State.Copied_Digest;
 
       procedure Copy_Metadata is
       begin
@@ -894,11 +1125,11 @@ package body Files.File_System.Support is
                From_Copy : constant Boolean := Length (Copied_Bytes_Digest) > 0;
             begin
                Source_Content_Digest :=
-                 (if From_Copy then Copied_Bytes_Digest else To_Unbounded_String (Content_Digest (Source_Path)));
+                 (if From_Copy then Copied_Bytes_Digest else To_Unbounded_String (Content_Digest (Source_Path, Walk)));
                if Files.File_Identities.Revision (Source_Path, False) /= To_String (Source_Revision)
-                 or else (From_Copy and then Content_Digest (Source_Path) /= To_String (Source_Content_Digest))
+                 or else (From_Copy and then Content_Digest (Source_Path, Walk) /= To_String (Source_Content_Digest))
                  or else (not From_Copy
-                          and then Content_Digest (Destination_Path) /= To_String (Source_Content_Digest))
+                          and then Content_Digest (Destination_Path, Walk) /= To_String (Source_Content_Digest))
                then
                   raise Ada.Directories.Use_Error;
                end if;
@@ -927,203 +1158,8 @@ package body Files.File_System.Support is
          Copy_Node (Join_Path (Source_Path, Name), Join_Path (Destination_Path, Name), Depth + 1, Walk);
       end Copy_Entry;
 
-      procedure Check_Cancelled is
-      begin
-         if (Cancel /= null and then Cancel.all)
-           or else (Check_Job_Cancellation and then Files.Job_Context.Cancelled)
-         then
-            raise Program_Error;
-         end if;
-      end Check_Cancelled;
-
-      function Copy_Hard_Link return Boolean is
-         Links : Interfaces.Unsigned_64;
-      begin
-         Links := Hostkit.Metadata_Copy.Link_Count (Metadata);
-         if Shared_Batch or else Links > 1 then
-            Source_Identity := To_Unbounded_String (Files.File_Identities.Token (Source_Path));
-            Source_Revision := To_Unbounded_String (Files.File_Identities.Revision (Source_Path, False));
-            if Length (Source_Identity) = 0 then
-               raise Ada.Directories.Use_Error;
-            end if;
-            Track_Hard_Link := Links > 1 or else Copied_Files.Contains (To_String (Source_Identity));
-         end if;
-         if Length (Source_Identity) > 0 and then Copied_Files.Contains (To_String (Source_Identity)) then
-            declare
-               First : constant Copied_File := Copied_Files.Element (To_String (Source_Identity));
-            begin
-               --  The source is the inode already copied, unchanged since, and
-               --  the first copy still holds what was written: in a retried
-               --  batch it is a published file that may have been edited (a
-               --  same-size edit with its time put back shows only in content).
-               if Files.File_Identities.Revision (Source_Path, False) /= To_String (First.Source_Revision)
-                 or else Content_Digest (Source_Path) /= To_String (First.Content_Digest)
-                 or else Files.File_Identities.Token (To_String (First.Path)) /= To_String (First.Identity)
-                 or else Files.File_Identities.Revision (To_String (First.Path), False)
-                   /= To_String (First.Destination_Revision)
-                 or else Content_Digest (To_String (First.Path)) /= To_String (First.Content_Digest)
-               then
-                  raise Ada.Directories.Use_Error;
-               end if;
-               if not Hostkit.Fs.Create_Hard_Link (To_String (First.Path), Destination_Path) then
-                  raise Ada.Directories.Use_Error;
-               end if;
-               Owned := True;
-               --  The new link is the first copy's inode (same identity), so
-               --  its content is that copy's; only metadata can have moved.
-               if Files.File_Identities.Revision (Source_Path, False) /= To_String (First.Source_Revision)
-                 or else Files.File_Identities.Token (To_String (First.Path)) /= To_String (First.Identity)
-                 or else Files.File_Identities.Token (Destination_Path) /= To_String (First.Identity)
-                 or else Files.File_Identities.Revision (To_String (First.Path), False)
-                   /= To_String (First.Destination_Revision)
-                 or else Files.File_Identities.Revision (Destination_Path, False)
-                   /= To_String (First.Destination_Revision)
-               then
-                  raise Ada.Directories.Use_Error;
-               end if;
-               Check_Cancelled;
-               Metadata := Hostkit.Metadata_Copy.No_Snapshot;
-               if Wants_Digest and then not Hostkit.Fs.Is_Link (Source_Path) then
-                  Walk.Root_Digest := First.Content_Digest;
-               end if;
-               return True;
-            end;
-         end if;
-         return False;
-      end Copy_Hard_Link;
-
-      procedure Copy_Bytes is
-         use Ada.Streams;
-         use type GNAT.OS_Lib.File_Descriptor;
-         Input_Descriptor : GNAT.OS_Lib.File_Descriptor :=
-           GNAT.OS_Lib.Invalid_FD;
-         Output : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
-         Buffer : Stream_Element_Array (1 .. 65_536);
-         Last   : Stream_Element_Offset;
-         Next   : Stream_Element_Offset;
-         Bytes_Read : Integer;
-         Wrote  : Integer;
-         Closed : Boolean;
-         Sparse : Boolean := False;
-         Digest_Context : CryptoLib.Hashes.SHA256_Context;
-         Digest : CryptoLib.Hashes.SHA256_Digest;
-         Hex : constant String := "0123456789abcdef";
-         Digest_Text : String (1 .. 64);
-         procedure Copy_Buffer (Buffer_Last : Stream_Element_Offset) is
-         begin
-            if (Wants_Digest or else Track_Hard_Link)
-              and then Buffer_Last >= Buffer'First
-            then
-               CryptoLib.Hashes.Update
-                 (Digest_Context, Buffer (Buffer'First .. Buffer_Last));
-            end if;
-            Next := Buffer'First;
-            if Buffer_Last >= Buffer'First
-              and then
-                (for all Index in Buffer'First .. Buffer_Last =>
-                   Buffer (Index) = 0)
-              and then Hostkit.Regular_Files.Skip_Zeros
-                (Output, Integer (Buffer_Last - Buffer'First + 1))
-            then
-               Sparse := True;
-               Next := Buffer_Last + 1;
-            end if;
-            while Next <= Buffer_Last loop
-               Wrote := GNAT.OS_Lib.Write
-                 (Output, Buffer (Next)'Address,
-                  Integer (Buffer_Last - Next + 1));
-               if Wrote <= 0 then
-                  Files.Io_Errors.Capture;
-                  raise Ada.Directories.Use_Error;
-               end if;
-               Next := Next + Stream_Element_Offset (Wrote);
-            end loop;
-         end Copy_Buffer;
-      begin
-         Copied_Bytes_Digest := Null_Unbounded_String;
-         if Wants_Digest or else Track_Hard_Link then
-            CryptoLib.Hashes.Initialize_SHA256 (Digest_Context);
-         end if;
-         declare
-            Supported : Boolean;
-         begin
-            Input_Descriptor := Hostkit.Regular_Files.Open_Read
-              (Source_Path, False, Supported);
-            pragma Unreferenced (Supported);
-            --  Refused a link or a non-regular entry, or failed to open: no
-            --  pathname open instead, which would reopen the race it guards.
-            if Input_Descriptor = GNAT.OS_Lib.Invalid_FD then
-               Files.Io_Errors.Capture;
-               raise Ada.Directories.Use_Error;
-            end if;
-         end;
-         Output := GNAT.OS_Lib.Create_New_File (Destination_Path, GNAT.OS_Lib.Binary);
-         if Output = GNAT.OS_Lib.Invalid_FD then
-            Files.Io_Errors.Capture;
-            raise Ada.Directories.Use_Error;
-         end if;
-         Owned := True;
-         loop
-            Check_Cancelled;
-            Bytes_Read := GNAT.OS_Lib.Read
-              (Input_Descriptor, Buffer'Address, Integer (Buffer'Length));
-            if Bytes_Read < 0 then
-               Files.Io_Errors.Capture;
-               raise Ada.Directories.Use_Error;
-            end if;
-            exit when Bytes_Read = 0;
-            Last := Buffer'First + Stream_Element_Offset (Bytes_Read) - 1;
-            Copy_Buffer (Last);
-         end loop;
-         GNAT.OS_Lib.Close (Input_Descriptor);
-         Input_Descriptor := GNAT.OS_Lib.Invalid_FD;
-         if Sparse and then not Hostkit.Regular_Files.Finish_Sparse (Output) then
-            Files.Io_Errors.Capture;
-            raise Ada.Directories.Use_Error;
-         end if;
-         --  Through the descriptor that wrote it, before its metadata is set:
-         --  no reopening, which a read-only copy would refuse on Windows.
-         if Walk.Durable
-           and then Hostkit.Durability."=" (Hostkit.Durability.Sync_Descriptor (Integer (Output)),
-                                             Hostkit.Durability.Failed)
-         then
-            Files.Io_Errors.Capture;
-            raise Ada.Directories.Use_Error;
-         end if;
-         GNAT.OS_Lib.Close (Output, Closed);
-         Output := GNAT.OS_Lib.Invalid_FD;
-         if not Closed then
-            --  A network or quota-limited filesystem may report a full disk
-            --  only here.
-            Files.Io_Errors.Capture;
-            raise Ada.Directories.Use_Error;
-         end if;
-         if Wants_Digest or else Track_Hard_Link then
-            Digest := CryptoLib.Hashes.Finalize (Digest_Context);
-            for Index in Digest'Range loop
-               Digest_Text ((Index - Digest'First) * 2 + 1) :=
-                 Hex (Natural (Digest (Index)) / 16 + 1);
-               Digest_Text ((Index - Digest'First) * 2 + 2) :=
-                 Hex (Natural (Digest (Index)) mod 16 + 1);
-            end loop;
-            Copied_Bytes_Digest := To_Unbounded_String (Digest_Text);
-            if Wants_Digest then
-               Walk.Root_Digest := Copied_Bytes_Digest;
-            end if;
-         end if;
-         Check_Cancelled;
-      exception
-         when others =>
-            if Input_Descriptor /= GNAT.OS_Lib.Invalid_FD then
-               GNAT.OS_Lib.Close (Input_Descriptor);
-            end if;
-            if Output /= GNAT.OS_Lib.Invalid_FD then
-               GNAT.OS_Lib.Close (Output);
-            end if;
-            raise;
-      end Copy_Bytes;
    begin
-      Check_Cancelled;
+      Check_Cancelled (Walk);
       if Wants_Digest then
          Walk.Root_Digest := Null_Unbounded_String;
       end if;
@@ -1150,7 +1186,7 @@ package body Files.File_System.Support is
       if Hostkit.Fs.Is_Link (Source_Path)
         or else Ada.Directories.Kind (Source_Path) = Ada.Directories.Ordinary_File
       then
-         if Copy_Hard_Link then
+         if Copy_Hard_Link (Source_Path, Destination_Path, Walk, Metadata, Wants_Digest, State) then
             return;
          end if;
       end if;
@@ -1204,12 +1240,12 @@ package body Files.File_System.Support is
             Owned := True;
             For_Each_Entry (Source_Path, Copy_Entry'Access);
          when Ada.Directories.Ordinary_File =>
-            Copy_Bytes;
+            Copy_File_Bytes (Source_Path, Destination_Path, Walk, Wants_Digest, State);
          when Ada.Directories.Special_File =>
             --  Opening a FIFO or device can block without a cancellation point.
             raise Ada.Directories.Use_Error;
       end case;
-      Check_Cancelled;
+      Check_Cancelled (Walk);
       --  Apply attributes and times after children have been copied.
       --  Metadata failure aborts staging, so a move never discards its source.
       Copy_Metadata;

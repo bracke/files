@@ -6,7 +6,7 @@ separate (Files.Rendering)
       return Tree_Row_Layout_Vectors.Vector
    is
       Result      : Tree_Row_Layout_Vectors.Vector;
-      Padding     : constant Natural := Root_Selector_Padding;
+      Padding     : constant Natural := Root_Selector_Padding (Line_Height);
       Indent_W    : constant Natural := Line_Height;
       Header_H    : constant Natural := Layout.Row_Height;
       Footer_H    : constant Natural := Tree_Footer_Height (Snapshot, Layout);

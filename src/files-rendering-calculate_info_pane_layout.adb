@@ -35,7 +35,7 @@ separate (Files.Rendering)
       Raw_Content_H : constant Natural := Saturating_Multiply (Content_Rows, Line_Height);
       Content_H     : constant Natural :=
         (if Raw_Content_H > 0
-         then Saturating_Add (Raw_Content_H, Saturating_Multiply (Info_Pane_Padding, 2))
+         then Saturating_Add (Raw_Content_H, Saturating_Multiply (Info_Pane_Padding (Line_Height), 2))
          else 0);
       Max_Scroll_Px : constant Natural :=
         (if Content_H > Layout.Main_Height then Content_H - Layout.Main_Height else 0);

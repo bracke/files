@@ -1,3 +1,4 @@
+with Files.Extra_Info;
 with Files.File_System.Thumbnails;
 with Files.Images;
 with Ada.Directories;
@@ -547,7 +548,7 @@ package body Files.Operations is
          begin
             Files.Model.Set_Selected_Item_Extra
               (Model,
-               Files.File_System.Extra_Info_Token
+               Files.File_System.Extra_Info_Of
                  (To_String (Item.Full_Path), Item.Kind, To_String (Item.Filetype)));
          end;
       end if;
@@ -561,15 +562,15 @@ package body Files.Operations is
          declare
             Item  : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
             Path  : constant String := To_String (Item.Full_Path);
-            Token : Files.Types.UString;
+            Extra : Files.Extra_Info.Info;
             Ready : Boolean;
             Asked : Boolean;
          begin
-            Files.Extra_Info_Reader.Take (Owner, Path, Token, Ready, Asked);
+            Files.Extra_Info_Reader.Take (Owner, Path, Extra, Ready, Asked);
             if not Asked then
                Files.Extra_Info_Reader.Request (Owner, Path, Item.Kind, To_String (Item.Filetype));
             elsif Ready then
-               Files.Model.Set_Selected_Item_Extra (Model, To_String (Token));
+               Files.Model.Set_Selected_Item_Extra (Model, Extra);
             end if;
          end;
       end if;

@@ -759,4 +759,26 @@ package body Files_Suite.Support is
    function Has_Skipped (Skip : String) return Boolean is (Skipped_Names.Contains (To_Unbounded_String (Skip)));
 
    function Skips return Files.Types.String_Vectors.Vector is (Skipped_Names);
+   function Describe (Extra : Files.Extra_Info.Info) return String is
+      use Files.Extra_Info;
+      V : constant String := Ada.Strings.Unbounded.To_String (Extra.Value);
+      S : constant String := Ada.Strings.Unbounded.To_String (Extra.Subject);
+      N : constant String := Files.Types.Natural_Text (Extra.Count) & (if Extra.Capped then "+" else "");
+   begin
+      case Extra.Of_Kind is
+         when None              => return "";
+         when Directory_Count   => return "directory.count|" & N;
+         when Executable_Format => return "executable.format|" & V;
+         when Symlink_Target    => return "symlink.target|" & V;
+         when Text_Lines        => return S & ".lines_encoding|" & N & "|" & V;
+         when Image_Dimensions  => return "image.dimensions|" & V;
+         when Document_Kind     => return "document.kind|" & V;
+         when Pdf_Pages         => return "document.pdf.pages|" & N;
+         when Archive_Format    => return "archive.format|" & V;
+         when Archive_Entries   => return "archive." & S & ".entries|" & N;
+         when Office_Entries    => return "office." & S & ".entries|" & N;
+         when Media_Kind        => return "media.kind|" & V;
+      end case;
+   end Describe;
+
 end Files_Suite.Support;

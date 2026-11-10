@@ -6,7 +6,6 @@ with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Characters.Handling;
 with Ada.Strings;
 with Ada.Numerics.Elementary_Functions;
-with Ada.Strings.Fixed;
 with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
@@ -118,7 +117,7 @@ package body Files.Rendering is
    --  Folder-tree expander glyphs: a plus/minus affordance, not translatable text.
    Tree_Expander_Collapsed_Text : constant String := "+";
    Tree_Expander_Expanded_Text  : constant String := "-";
-   Info_Pane_Padding : constant Natural := 10;
+   function Info_Pane_Padding (LH : Positive) return Natural is (Guikit.Layout.Scaled (10, LH));
    --  Vertical rows the permission matrix reserves in the single-item info pane:
    --  a "Permissions" label, an R/W/E header, three cell rows (user/group/other)
    --  and one spacing row. Both the row-count math and the renderer use it so
@@ -127,15 +126,16 @@ package body Files.Rendering is
    --  8 px at Guikit.Layout.Reference_Line_Height, scaled with the layout's line height.
    function Main_Content_Padding (L : Layout_Metrics) return Natural is (Guikit.Layout.Scaled (8, L.Line_Height));
    --  The grid's own spacing (Guikit.Item_Grid draws the grid).
-   Main_Grid_Gap : constant Natural := Guikit.Item_Grid.Main_Grid_Gap;
-   Details_Column_Padding : constant Natural := Guikit.Item_Grid.Details_Column_Padding;
-   Command_Palette_Padding : constant Natural := Guikit.Layout.Palette_Padding;
+   function Main_Grid_Gap (LH : Positive) return Natural renames Guikit.Item_Grid.Grid_Gap;
+   function Details_Column_Padding (LH : Positive) return Natural renames Guikit.Item_Grid.Column_Padding;
+   function Command_Palette_Padding (LH : Positive) return Natural is
+     (Guikit.Layout.Scaled (Guikit.Layout.Palette_Padding, LH));
    --  The main-view scrollbar is an overlay drawn over the content's right
    --  margin (Main_Content_Padding), not a reserved gutter, so it must be no
    --  wider than that margin or it paints over -- and steals clicks from -- the
    --  rightmost column of items. Keep it equal to the margin.
    function Scrollbar_Width (L : Layout_Metrics) return Natural renames Main_Content_Padding;
-   Root_Selector_Padding : constant Natural := 8;
+   function Root_Selector_Padding (LH : Positive) return Natural is (Guikit.Layout.Scaled (8, LH));
 
    function Clock_Time_Text (Value : Ada.Calendar.Time) return String renames Files.Display_Text.Clock_Time_Text;
    function Full_Time_Text (Value : Ada.Calendar.Time) return String renames Files.Display_Text.Full_Time_Text;
@@ -225,7 +225,7 @@ package body Files.Rendering is
             end loop;
             --  Padding before the text and a gap of the same again either side of
             --  the column divider.
-            Cached_Time_Width := Saturating_Add (Widest, 3 * Details_Column_Padding);
+            Cached_Time_Width := Saturating_Add (Widest, 3 * Details_Column_Padding (Line_Height));
          end;
          Cached_Time_Width_Height := Line_Height;
          Cached_Time_Width_Locale := Ada.Strings.Unbounded.To_Unbounded_String (Locale);
@@ -716,13 +716,14 @@ package body Files.Rendering is
    end Marquee_Auto_Scroll_Step;
 
    procedure Rename_Field_Extent
-     (Item      : Item_Layout;
-      View_Mode : Files.Types.View_Mode;
-      Renaming  : Boolean;
-      Field_X   : out Natural;
-      Field_W   : out Natural) is
+     (Item        : Item_Layout;
+      View_Mode   : Files.Types.View_Mode;
+      Renaming    : Boolean;
+      Field_X     : out Natural;
+      Field_W     : out Natural;
+      Line_Height : Positive := Files.UI.Base_Line_Height) is
    begin
-      Guikit.Item_Grid.Rename_Field_Extent (Item, Grid_View (View_Mode), Renaming, Field_X, Field_W);
+      Guikit.Item_Grid.Rename_Field_Extent (Item, Grid_View (View_Mode), Renaming, Field_X, Field_W, Line_Height);
    end Rename_Field_Extent;
 
    function Calculate_Command_Palette_Layout
@@ -739,7 +740,7 @@ package body Files.Rendering is
          Command_Width  => Layout.Command_Width,
          Command_Height => Layout.Command_Height,
          Line_Height    => Line_Height,
-         Title_Height   => Saturating_Add (Line_Height, Guikit.Layout.Palette_Padding));
+         Title_Height   => Saturating_Add (Line_Height, Command_Palette_Padding (Line_Height)));
    end Calculate_Command_Palette_Layout;
 
    function Calculate_Quick_Look_Layout
@@ -747,7 +748,7 @@ package body Files.Rendering is
       Line_Height : Positive := Files.UI.Base_Line_Height)
       return Quick_Look_Layout
    is
-      Padding   : constant Natural := Natural'Max (Command_Palette_Padding, Line_Height / 2);
+      Padding   : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
       --  A large centered panel: roughly three quarters of the window, with a
       --  sensible floor so it stays usable in tiny windows.
       Panel_W   : constant Natural :=
@@ -787,7 +788,7 @@ package body Files.Rendering is
       return Label_Picker_Layout
    is
       Count           : constant Positive := Label_Picker_Swatch_Count;
-      Padding         : constant Natural := Natural'Max (Command_Palette_Padding, Line_Height / 2);
+      Padding         : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
       Desired_Gap     : constant Natural := Natural'Max (4, Line_Height / 4);
       --  A compact centered panel: a single row of square swatches under a
       --  one-line title band. The preferred swatch edge tracks the line height;
@@ -865,12 +866,12 @@ package body Files.Rendering is
       Dropdown_Width  : constant Natural := Natural'Min (Layout.Width, Preferred_Width);
       Row_Height      : constant Natural :=
         Saturating_Add
-          (Saturating_Add (Line_Height, Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)),
-           Saturating_Multiply (Root_Selector_Padding, 2));
+          (Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2)),
+           Saturating_Multiply (Root_Selector_Padding (Line_Height), 2));
       Wanted_Height   : constant Natural :=
         Saturating_Add
           (Saturating_Multiply (Natural (Snapshot.Root_Paths.Length), Row_Height),
-           Saturating_Multiply (Root_Selector_Padding, 2));
+           Saturating_Multiply (Root_Selector_Padding (Line_Height), 2));
       Dropdown_Height : constant Natural := Natural'Min (Layout.Main_Height, Wanted_Height);
    begin
       if not Snapshot.Root_Selector_Open then
@@ -882,7 +883,8 @@ package body Files.Rendering is
          Y          => Layout.Toolbar_Height,
          Width      => Dropdown_Width,
          Height     => Dropdown_Height,
-         Row_Height => Row_Height);
+         Row_Height => Row_Height,
+         Padding    => Root_Selector_Padding (Line_Height));
    end Calculate_Root_Selector_Layout;
 
    function Calculate_Root_Path_Layout
@@ -900,7 +902,7 @@ package body Files.Rendering is
         Guikit.Layout.Calculate_Toolbar_Layout (Width, Line_Height);
       Field_Margin : constant Natural := Toolbar_Field_Margin;
       Path_X       : constant Natural := Saturating_Add (Toolbar.Middle_X, Field_Margin);
-      Pad          : constant Natural := Guikit.Layout.Input_Field_Padding;
+      Pad          : constant Natural := Files.UI.Field_Padding (Line_Height);
       --  Box for the drawn favourite star (a filled/outline vector shape); a
       --  near-line-height square so the star reads clearly at the input height.
       Star_W       : constant Positive := Line_Height;
@@ -1315,7 +1317,7 @@ package body Files.Rendering is
       return Natural
    is
       Reserved_W : constant Natural :=
-        Saturating_Add (Scrollbar_W, Saturating_Multiply (Info_Pane_Padding, 2));
+        Saturating_Add (Scrollbar_W, Saturating_Multiply (Info_Pane_Padding (Layout.Line_Height), 2));
    begin
       return
         (if Layout.Info_Pane_Width > Reserved_W

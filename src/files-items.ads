@@ -1,6 +1,7 @@
 with Ada.Calendar;
 with Ada.Containers.Vectors;
 
+with Files.Extra_Info;
 with Files.Shared_Bytes;
 with Files.Types;
 
@@ -32,7 +33,7 @@ package Files.Items is
       Ownership_Available : Boolean := False;
       Owner_Id           : Files.Types.Account_Id := 0;
       Group_Id           : Files.Types.Account_Id := 0;
-      Filetype_Extra     : UString;
+      Filetype_Extra     : Files.Extra_Info.Info;
       Filetype_Extra_Loaded : Boolean := False;
       Thumbnail_Available : Boolean := False;
       Thumbnail_Path      : UString;

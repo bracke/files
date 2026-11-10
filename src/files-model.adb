@@ -1702,7 +1702,7 @@ package body Files.Model is
 
    procedure Set_Selected_Item_Extra
      (Model : in out Window_Model;
-      Token : String) is separate;
+      Extra : Files.Extra_Info.Info) is separate;
 
    function Info_Pane_Is_Open
      (Model : Window_Model)

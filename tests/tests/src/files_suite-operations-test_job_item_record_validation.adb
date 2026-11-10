@@ -1,3 +1,4 @@
+with Files.Extra_Info;
 separate (Files_Suite.Operations)
    procedure Test_Job_Item_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -43,8 +44,14 @@ separate (Files_Suite.Operations)
          --  Written as before ids were Account_Id: four bytes either way.
          Natural'Output (Stream, Natural (Value.Owner_Id));
          Natural'Output (Stream, Natural (Value.Group_Id));
+         --  The extra info field by field: kind, count, capped, subject, value.
+         Natural'Output (Stream, Files.Extra_Info.Kind'Pos (Value.Filetype_Extra.Of_Kind));
+         Natural'Output (Stream, Value.Filetype_Extra.Count);
+         Boolean'Output (Stream, Value.Filetype_Extra.Capped);
          Files.Job_Records.Write_String
-           (Stream, To_String (Value.Filetype_Extra), Files.Job_Records.Max_Text_Length);
+           (Stream, To_String (Value.Filetype_Extra.Subject), Files.Job_Records.Max_Text_Length);
+         Files.Job_Records.Write_String
+           (Stream, To_String (Value.Filetype_Extra.Value), Files.Job_Records.Max_Text_Length);
          Boolean'Output (Stream, Value.Filetype_Extra_Loaded);
          Boolean'Output (Stream, Value.Thumbnail_Available);
          Files.Job_Records.Write_String

@@ -26,8 +26,9 @@ separate (Files_Suite.Operations)
       end loop;
       Assert (not Files.Model.Selected_Item_Needs_Extra (Model), "the window's poll brings the details in");
       Files_Suite.Support.Assert_Equal
-        (To_String (Files.Model.Selected_Item (Model).Filetype_Extra),
-         Files.File_System.Extra_Info_Token (Text, Files.Types.Regular_File_Item, "text/plain"),
+        (Files_Suite.Support.Describe (Files.Model.Selected_Item (Model).Filetype_Extra),
+         Files_Suite.Support.Describe
+           (Files.File_System.Extra_Info_Of (Text, Files.Types.Regular_File_Item, "text/plain")),
          "the details are those read on the spot");
 
       --  Without a window (a helper, a test) they are read at once.

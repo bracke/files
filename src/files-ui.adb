@@ -64,7 +64,7 @@ package body Files.UI is
       return
         Natural'Max
           (Saturating_Multiply (Line_Height, 2),
-           Saturating_Add (Widest, Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)));
+           Saturating_Add (Widest, Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2)));
    end Sort_Menu_Width;
 
    function Toolbar_Height (Line_Height : Positive) return Natural is
@@ -143,7 +143,7 @@ package body Files.UI is
              (Label_W ("search.scope.names"),
               Label_W ("search.scope.contents")));
    begin
-      return Widest + 2 * Input_Field_Padding;
+      return Saturating_Add (Widest, Saturating_Multiply (Field_Padding (Line_Height), 2));
    end Filter_Scope_Chip_Width;
 
    procedure Split_Status_Region

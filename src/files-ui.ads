@@ -16,6 +16,14 @@ package Files.UI is
    --  size scales it, and the one a caller that names none gets.
    Base_Line_Height : constant := 20;
 
+   --  An input field's inner padding at a line height: Guikit's, scaled with
+   --  the text past Guikit.Layout.Reference_Line_Height.
+   --
+   --  @param Line_Height The line height in use.
+   --  @return The padding in pixels.
+   function Field_Padding (Line_Height : Positive) return Natural is
+     (Guikit.Layout.Scaled (Guikit.Layout.Input_Field_Padding, Line_Height));
+
    --  The inset of the bottom bar's status fields (the counts and the free
    --  space) from their edges, which the splitter and the renderer share.
    Status_Field_Padding : constant := 4;

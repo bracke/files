@@ -92,14 +92,14 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                              Is_Pressed
                                (Row_X, Row_Y, Row_W, Menu.Row_Height);
                            Text_X  : constant Natural :=
-                             Row_X + Guikit.Layout.Input_Field_Padding;
+                             Row_X + Files.UI.Field_Padding (Line_Height);
                            Text_Y_Off : constant Natural :=
                              (if Menu.Row_Height > Line_Height
                               then (Menu.Row_Height - Line_Height) / 2
                               else 0);
                            Label_W : constant Natural :=
-                             (if Row_W > 2 * Guikit.Layout.Input_Field_Padding
-                              then Row_W - 2 * Guikit.Layout.Input_Field_Padding
+                             (if Row_W > 2 * Files.UI.Field_Padding (Line_Height)
+                              then Row_W - 2 * Files.UI.Field_Padding (Line_Height)
                               else 0);
                            Draw_W  : constant Natural :=
                              Clipped_Size (Text_X, Label_W, Layout.Width);

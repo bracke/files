@@ -1,5 +1,5 @@
 separate (Files.File_System)
-function Pdf_Page_Count_Token (Path : String) return String is
+function Pdf_Page_Count_Info (Path : String) return Files.Extra_Info.Info is
    Marker  : constant String := "/Type /Page";
    File    : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
    Buffer  : Ada.Streams.Stream_Element_Array (1 .. 4096);
@@ -25,7 +25,7 @@ function Pdf_Page_Count_Token (Path : String) return String is
 begin
    File := Files.Fs_Primitives.Open_Regular_Read (Path);
    if File = GNAT.OS_Lib.Invalid_FD then
-      return "document.kind|pdf";
+      return Files.Extra_Info.Make (Files.Extra_Info.Document_Kind, Value => "pdf");
    end if;
    --  Stop once enough bytes have been scanned: a huge (or huge-and-crafted)
    --  .pdf must not read to the end on the UI thread. The page count is then
@@ -70,10 +70,10 @@ begin
       Count := Count + 1;
    end if;
    Close_Read_Descriptor (File);
-   return "document.pdf.pages|" & Natural_Text (Count);
+   return Files.Extra_Info.Make (Files.Extra_Info.Pdf_Pages, Count => Count);
 exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.File_System");
       Close_Read_Descriptor (File);
-      return "document.kind|pdf";
-end Pdf_Page_Count_Token;
+      return Files.Extra_Info.Make (Files.Extra_Info.Document_Kind, Value => "pdf");
+end Pdf_Page_Count_Info;

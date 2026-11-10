@@ -1,3 +1,5 @@
+with Files.Extra_Info;
+
 separate (Files.Rendering.Build_Snapshot_Into)
    function Filetype_Extra
      (Item : Files.Items.Directory_Item)
@@ -5,65 +7,52 @@ separate (Files.Rendering.Build_Snapshot_Into)
    is
       Type_Name : constant String := To_String (Item.Filetype);
 
-      --  A token is "kind|value" or "kind|lines|encoding"; the value is the
-      --  last field, so it may hold a '|' itself (a link's target).
-      function Token_Detail (Token : String) return UString is
-         Separator : constant Natural := Ada.Strings.Fixed.Index (Token, "|");
+      --  The extra info in words: each kind its own pattern.
+      function Detail (Extra : Files.Extra_Info.Info) return UString is
+         Subject : constant String := To_String (Extra.Subject);
+         Value   : constant String := To_String (Extra.Value);
+         Count   : constant String := Files.Types.Natural_Text (Extra.Count) & (if Extra.Capped then "+" else "");
 
-         function Fill (Key, Name, Value : String) return UString is
-           (To_Unbounded_String (Files.Localization.Text ("info.extra." & Key, Name, Value)));
+         function Fill (Key, Name, Text : String) return UString is
+           (To_Unbounded_String (Files.Localization.Text ("info.extra." & Key, Name, Text)));
 
-         --  The lines sentence, then the encoding one.
-         function Lines_And_Encoding (Key, Lines, Encoding : String) return UString is
-           (Fill (Key, "lines", Lines) & " "
-            & Fill ("encoding", "encoding", Files.Localization.Text ("info.extra.encoding." & Encoding)));
+         function Word (Key : String) return String is (Files.Localization.Text ("info.extra." & Key));
       begin
-         if Separator <= Token'First or else Separator >= Token'Last then
-            return Null_Unbounded_String;
-         end if;
-
-         declare
-            Key    : constant String := Token (Token'First .. Separator - 1);
-            Value  : constant String := Token (Separator + 1 .. Token'Last);
-            Second : constant Natural := Ada.Strings.Fixed.Index (Value, "|");
-            Lines  : constant String := (if Second > Value'First then Value (Value'First .. Second - 1) else "");
-            Coding : constant String := (if Second > Value'First then Value (Second + 1 .. Value'Last) else "");
-         begin
-            if Key = "executable.format" then
-               return Fill (Key, "format", Files.Localization.Text ("info.extra.executable.format." & Value));
-            elsif Key = "archive.format" then
-               return Fill (Key, "format", Files.Localization.Text ("info.extra.archive.format." & Value));
-            elsif Key in "directory.count" | "archive.zip.entries" | "archive.gzip-tar.entries"
-                       | "office.docx.entries" | "office.xlsx.entries"
-            then
-               return Fill
-                 ((if Key = "directory.count" then Key
-                   elsif Key (Key'First) = 'a' then "archive.entries"
-                   else Key (Key'First .. Key'Last - 8)),
-                  "count", Value);
-            elsif Key in "text.lines" | "markdown.lines" then
-               return Fill (Key, "lines", Value);
-            elsif Key = "image.dimensions" then
-               return Fill (Key, "dimensions", Value);
-            elsif Key = "symlink.target" then
-               return Fill (Key, "target", Value);
-            elsif Key = "document.pdf.pages" then
-               return Fill (Key, "pages", Value);
-            elsif Key = "document.kind" then
-               return To_Unbounded_String (Files.Localization.Text ("info.extra.document." & Value));
-            elsif Key = "media.kind" then
-               return To_Unbounded_String (Files.Localization.Text ("info.extra.media." & Value));
-            elsif Lines /= "" and then Key in "text.lines_encoding" | "markdown.lines_encoding" then
-               return Lines_And_Encoding (Key (Key'First .. Key'Last - 9), Lines, Coding);
-            elsif Lines /= ""
-              and then Key in "source.ada.lines_encoding" | "source.json.lines_encoding" | "source.xml.lines_encoding"
-            then
-               return Lines_And_Encoding (Key (Key'First .. Key'Last - 15), Lines, Coding);
-            end if;
-         end;
-
-         return Null_Unbounded_String;
-      end Token_Detail;
+         case Extra.Of_Kind is
+            when Files.Extra_Info.None =>
+               return Null_Unbounded_String;
+            when Files.Extra_Info.Directory_Count =>
+               return Fill ("directory.count", "count", Count);
+            when Files.Extra_Info.Executable_Format =>
+               return Fill ("executable.format", "format", Word ("executable.format." & Value));
+            when Files.Extra_Info.Symlink_Target =>
+               return Fill ("symlink.target", "target", Value);
+            when Files.Extra_Info.Text_Lines =>
+               declare
+                  --  text and markdown say "lines"; a source names its language.
+                  Key : constant String :=
+                    (if Subject in "text" | "markdown" then Subject & ".lines" else Subject);
+               begin
+                  return Fill (Key, "lines", Count)
+                    & (if Value = "" then Null_Unbounded_String
+                       else " " & Fill ("encoding", "encoding", Word ("encoding." & Value)));
+               end;
+            when Files.Extra_Info.Image_Dimensions =>
+               return Fill ("image.dimensions", "dimensions", Value);
+            when Files.Extra_Info.Document_Kind =>
+               return To_Unbounded_String (Word ("document." & Value));
+            when Files.Extra_Info.Pdf_Pages =>
+               return Fill ("document.pdf.pages", "pages", Count);
+            when Files.Extra_Info.Archive_Format =>
+               return Fill ("archive.format", "format", Word ("archive.format." & Value));
+            when Files.Extra_Info.Archive_Entries =>
+               return Fill ("archive.entries", "count", Count);
+            when Files.Extra_Info.Office_Entries =>
+               return Fill ("office." & Subject, "count", Count);
+            when Files.Extra_Info.Media_Kind =>
+               return To_Unbounded_String (Word ("media." & Value));
+         end case;
+      end Detail;
 
       function Extension_Detail
         (Name : String)
@@ -78,15 +67,13 @@ separate (Files.Rendering.Build_Snapshot_Into)
          return Files.Localization.Text ("info.extra.extension", "extension", Extension);
       end Extension_Detail;
    begin
-      if Length (Item.Filetype_Extra) > 0 then
-         declare
-            Detail : constant UString := Token_Detail (To_String (Item.Filetype_Extra));
-         begin
-            if Length (Detail) > 0 then
-               return Detail;
-            end if;
-         end;
-      end if;
+      declare
+         Extra_Text : constant UString := Detail (Item.Filetype_Extra);
+      begin
+         if Length (Extra_Text) > 0 then
+            return Extra_Text;
+         end if;
+      end;
 
       case Item.Kind is
          when Files.Types.Directory_Item =>

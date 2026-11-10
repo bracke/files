@@ -1,3 +1,4 @@
+with Files.Extra_Info;
 with Files.Items;
 with Ada.Calendar;
 with Files.Copy_Context;
@@ -1527,10 +1528,10 @@ package Files.Model is
    --  Selected_Item_Needs_Extra holds.
    --
    --  @param Model Model whose selected item is updated in place.
-   --  @param Token The extra-info token (empty when there is nothing to show).
+   --  @param Extra The extra info (No_Info when there is nothing to show).
    procedure Set_Selected_Item_Extra
      (Model : in out Window_Model;
-      Token : String);
+      Extra : Files.Extra_Info.Info);
 
    --  Toggle settings pane visibility.
    --

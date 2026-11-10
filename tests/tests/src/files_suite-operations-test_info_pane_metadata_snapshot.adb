@@ -5,25 +5,28 @@ separate (Files_Suite.Operations)
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
       Snapshot : Files.Rendering.View_Snapshot;
+
+      --  A fixture's extra info, described compactly.
+      function Extra_Of (Name, Filetype : String) return String is
+        (Files_Suite.Support.Describe
+           (Files.File_System.Extra_Info_Of (Join (Root, Name), Files.Types.Regular_File_Item, Filetype)));
    begin
       Reset_Root;
       Write_Info_Metadata_Fixtures;
       Files_Suite.Support.Assert_Equal
-        (Files.File_System.Extra_Info_Token (Join (Root, "zheader.png"), Files.Types.Regular_File_Item, "image/png"),
+        (Extra_Of ("zheader.png", "image/png"),
          "image.dimensions|32x16",
          "PNG metadata reads dimensions only from a valid leading IHDR");
       Files_Suite.Support.Assert_Equal
-        (Files.File_System.Extra_Info_Token (Join (Root, "zbad.png"), Files.Types.Regular_File_Item, "image/png"),
+        (Extra_Of ("zbad.png", "image/png"),
          "",
          "PNG metadata rejects dimensions outside a leading IHDR");
       Files_Suite.Support.Assert_Equal
-        (Files.File_System.Extra_Info_Token (Join (Root, "zlate.jpg"), Files.Types.Regular_File_Item, "image/jpeg"),
+        (Extra_Of ("zlate.jpg", "image/jpeg"),
          "",
          "JPEG metadata stops before a dimensions marker beyond the scan budget");
       Assert
-        (Files.File_System.Extra_Info_Token
-           (Join (Root, "zbinary.pdf"), Files.Types.Regular_File_Item,
-            "application/pdf") = "document.pdf.pages|1",
+        (Extra_Of ("zbinary.pdf", "application/pdf") = "document.pdf.pages|1",
          "PDF metadata scans binary bytes and does not count the Pages tree");
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);

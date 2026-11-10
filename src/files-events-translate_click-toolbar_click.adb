@@ -27,7 +27,7 @@ begin
                  Saturating_Add
                    (Saturating_Add
                       (Saturating_Add (Toolbar.Middle_X, Files.Rendering.Toolbar_Field_Margin),
-                       Guikit.Layout.Input_Field_Padding),
+                       Files.UI.Field_Padding (Line_Height)),
                     Files.Rendering.Path_Bar_Content_Offset (Width, Line_Height)),
               Click_X     => X,
               Text_Width  =>
@@ -36,7 +36,7 @@ begin
                      (if Toolbar.Middle_Width > 2 * Files.Rendering.Toolbar_Field_Margin
                       then Toolbar.Middle_Width - 2 * Files.Rendering.Toolbar_Field_Margin else 0);
                    Used   : constant Natural :=
-                     2 * Guikit.Layout.Input_Field_Padding
+                     2 * Files.UI.Field_Padding (Line_Height)
                      + Files.Rendering.Path_Bar_Content_Offset (Width, Line_Height);
                  begin (if Path_W > Used then Path_W - Used else 0)),
               Focused     => Snapshot.Focus = Files.Types.Focus_Path_Input));
@@ -61,7 +61,7 @@ begin
                Text_X      =>
                  Saturating_Add
                    (Saturating_Add (Toolbar.Right_X, Files.Rendering.Toolbar_Field_Margin),
-                    Guikit.Layout.Input_Field_Padding),
+                    Files.UI.Field_Padding (Line_Height)),
                Click_X     => X,
                Text_Width  =>
                  (declare
@@ -69,8 +69,8 @@ begin
                       Guikit.Layout.Filter_Input_Field_Width
                         (Toolbar, Files.UI.Filter_Scope_Chip_Width (Line_Height), Line_Height);
                   begin
-                    (if Filter_W > 2 * Guikit.Layout.Input_Field_Padding
-                     then Filter_W - 2 * Guikit.Layout.Input_Field_Padding else 0)),
+                    (if Filter_W > 2 * Files.UI.Field_Padding (Line_Height)
+                     then Filter_W - 2 * Files.UI.Field_Padding (Line_Height) else 0)),
                Focused     => Snapshot.Focus = Files.Types.Focus_Filter_Input));
       return;
    end if;

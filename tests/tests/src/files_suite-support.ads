@@ -1,3 +1,4 @@
+with Files.Extra_Info;
 with Files.Items;
 with Ada.Finalization;
 with Ada.Iterator_Interfaces;
@@ -533,6 +534,13 @@ package Files_Suite.Support is
    --  @param Model Model whose selection is updated.
    --  @param Name Name of the item to select.
    procedure Select_Name (Model : in out Files.Model.Window_Model; Name : String);
+
+   --  An extra info written compactly for an expectation ("text.lines_encoding|1|ascii"):
+   --  the kind, then its fields. Only ever written, never read back.
+   --
+   --  @param Extra The extra info.
+   --  @return Its description, "" for none.
+   function Describe (Extra : Files.Extra_Info.Info) return String;
 
 private
 

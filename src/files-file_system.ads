@@ -1,4 +1,5 @@
 with Files.Copy_Context;
+with Files.Extra_Info;
 with Ada.Calendar;
 with Ada.Containers.Vectors;
 
@@ -299,7 +300,7 @@ package Files.File_System is
       Settings  : Files.Settings.Settings_Model)
       return Item_Load_Result;
 
-   --  Compute the "extra info" token for an item: a folder's child count, a
+   --  Compute the extra info for an item: a folder's child count, a
    --  document's page/entry/line count, or a symlink's target. This opens the
    --  folder or reads the file, so it is computed lazily for the selected item
    --  (via the window model) rather than for every item on load.
@@ -307,13 +308,12 @@ package Files.File_System is
    --  @param Path Full path of the item.
    --  @param Kind Item kind.
    --  @param Filetype Detected filetype (MIME-style) of the item.
-   --  @return An opaque token consumed by the renderer, or "" when there is no
-   --    extra info for the item.
-   function Extra_Info_Token
+   --  @return The extra info, or No_Info when there is none for the item.
+   function Extra_Info_Of
      (Path     : String;
       Kind     : Files.Types.Item_Kind;
       Filetype : String)
-      return String;
+      return Files.Extra_Info.Info;
 
    --  Sort Items in place into the display order for the given sort field and
    --  direction. Shared by directory loading and by the window model so that

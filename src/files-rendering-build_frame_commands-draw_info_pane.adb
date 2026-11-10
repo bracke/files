@@ -23,8 +23,9 @@ separate (Files.Rendering.Build_Frame_Commands)
             --  Contents section (see Coalesced_Info_Sections), so no header rows
             --  are reserved above the list: sections start at the top of the pane.
             Row_Y  : constant Integer :=
-              Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding)) - Integer (Info_Pane.Scroll_Pixels);
-            Text_X : constant Natural := Saturating_Add (Info_Pane.X, Info_Pane_Padding);
+              Integer (Saturating_Add (Info_Pane.Y, Info_Pane_Padding (Line_Height)))
+              - Integer (Info_Pane.Scroll_Pixels);
+            Text_X : constant Natural := Saturating_Add (Info_Pane.X, Info_Pane_Padding (Line_Height));
             Info_Bottom : constant Natural := Saturating_Add (Info_Pane.Y, Info_Pane.Height);
             --  The width the layout counted rows at, which always leaves the
             --  scrollbar's column: wrapping wider when it is hidden drew fewer
@@ -162,11 +163,11 @@ separate (Files.Rendering.Build_Frame_Commands)
             if Snapshot.Selected_Info.Is_Empty then
                declare
                   Text_Y : constant Natural :=
-                    Saturating_Add (Info_Pane.Y, Info_Pane_Padding);
+                    Saturating_Add (Info_Pane.Y, Info_Pane_Padding (Line_Height));
                begin
                   if Text_Y < Info_Bottom then
                      Add_Text
-                       (Saturating_Add (Info_Pane.X, Info_Pane_Padding),
+                       (Saturating_Add (Info_Pane.X, Info_Pane_Padding (Line_Height)),
                         Text_Y,
                         Info_Text_Width (Layout, Scrollbar_W => 0),
                         Natural'Min (Line_Height, Info_Bottom - Text_Y),

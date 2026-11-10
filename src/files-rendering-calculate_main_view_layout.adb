@@ -30,7 +30,8 @@ separate (Files.Rendering)
          then 1
          else Natural'Max
            (1,
-            Saturating_Add (Content_W, Main_Grid_Gap) / Saturating_Add (Cell_W, Main_Grid_Gap)));
+            Saturating_Add (Content_W, Main_Grid_Gap (Line_Height))
+              / Saturating_Add (Cell_W, Main_Grid_Gap (Line_Height))));
       Rows         : constant Natural := (if Count = 0 then 0 else 1 + (Count - 1) / Columns);
       Row_Content_H : constant Natural :=
         (if Rows = 0 then 0
@@ -38,7 +39,7 @@ separate (Files.Rendering)
          then Saturating_Multiply (Rows, Cell_H)
          else Saturating_Add
            (Saturating_Multiply (Rows, Cell_H),
-            Saturating_Multiply (Rows - 1, Main_Grid_Gap)));
+            Saturating_Multiply (Rows - 1, Main_Grid_Gap (Line_Height))));
       --  Details shows a sticky column header; its rows scroll in the area
       --  BELOW it. The scrollbar's viewport and track are therefore the rows
       --  area (View_H minus the header), starting below the header -- otherwise
@@ -55,12 +56,12 @@ separate (Files.Rendering)
       Bounded_Px   : constant Natural := Natural'Min (Requested_Px, Max_Scroll);
       --  Snap the scroll offset to whole row periods so partially-scrolled
       --  rows at the top don't leave a visible empty band. Icons modes lay
-      --  out rows on Cell_H + Main_Grid_Gap centers; Details has no row gap
+      --  out rows on Cell_H + Main_Grid_Gap (Line_Height) centers; Details has no row gap
       --  so the period is just Cell_H.
       Row_Stride   : constant Natural :=
         (if Snapshot.View_Mode = Files.Types.Details
          then Cell_H
-         else Saturating_Add (Cell_H, Main_Grid_Gap));
+         else Saturating_Add (Cell_H, Main_Grid_Gap (Line_Height)));
       --  At the very end of the list use the exact Max_Scroll instead of the
       --  floored multiple: Max_Scroll is rarely a whole row period, and the
       --  per-item visibility test drops a row that doesn't fully fit, so

@@ -1,8 +1,8 @@
 separate (Files.File_System)
-function Image_Dimensions_Token
+function Image_Dimensions_Info
   (Path     : String;
    Filetype : String)
-   return String
+   return Files.Extra_Info.Info
 is
    use type GNAT.OS_Lib.Large_File_Size;
    File   : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
@@ -11,7 +11,7 @@ is
    Width  : Natural;
    Height : Natural;
 
-   function JPEG_Token return String is
+   function JPEG_Info return Files.Extra_Info.Info is
       Segment_Buffer : Ada.Streams.Stream_Element_Array (1 .. 9);
       Segment_Last   : Ada.Streams.Stream_Element_Offset;
       Marker         : Ada.Streams.Stream_Element;
@@ -50,7 +50,7 @@ is
 
          loop
             if not Can_Read (1) then
-               return "";
+               return Files.Extra_Info.No_Info;
             end if;
             Read_Segment (Segment_Buffer (1 .. 1), Segment_Last);
             exit when Segment_Last < 1 or else Segment_Buffer (1) /= 16#FF#;
@@ -66,7 +66,7 @@ is
          else
             exit when Marker = 16#D9# or else Marker = 16#DA#;
             if not Can_Read (2) then
-               return "";
+               return Files.Extra_Info.No_Info;
             end if;
             Read_Segment (Segment_Buffer (1 .. 2), Segment_Last);
             exit when Segment_Last < 2;
@@ -77,20 +77,21 @@ is
               or else Marker in 16#C9# .. 16#CB# or else Marker in 16#CD# .. 16#CF#
             then
                if not Can_Read (5) then
-                  return "";
+                  return Files.Extra_Info.No_Info;
                end if;
                Read_Segment (Segment_Buffer (1 .. 5), Segment_Last);
                if Segment_Last >= 5 then
-                  return "image.dimensions|" &
-                    Dimensions_Text (U16_BE (Segment_Buffer, 4), U16_BE (Segment_Buffer, 2));
+                  return Files.Extra_Info.Make
+                    (Files.Extra_Info.Image_Dimensions,
+                     Value => Dimensions_Text (U16_BE (Segment_Buffer, 4), U16_BE (Segment_Buffer, 2)));
                end if;
-               return "";
+               return Files.Extra_Info.No_Info;
             end if;
 
             Remaining := Length_Value - 2;
             if Remaining > 0 then
                if not Can_Read (Remaining) then
-                  return "";
+                  return Files.Extra_Info.No_Info;
                end if;
                GNAT.OS_Lib.Lseek
                  (File, Long_Integer (Remaining), GNAT.OS_Lib.Seek_Cur);
@@ -100,16 +101,16 @@ is
          end if;
       end loop;
 
-      return "";
-   end JPEG_Token;
+      return Files.Extra_Info.No_Info;
+   end JPEG_Info;
 begin
    if Filetype /= "image/png" and then Filetype /= "image/jpeg" then
-      return "";
+      return Files.Extra_Info.No_Info;
    end if;
 
    File := Files.Fs_Primitives.Open_Regular_Read (Path);
    if File = GNAT.OS_Lib.Invalid_FD then
-      return "";
+      return Files.Extra_Info.No_Info;
    end if;
    Read_Descriptor (File, Buffer, Last);
 
@@ -117,25 +118,25 @@ begin
    --  chunk; a signature alone is not enough.
    if Filetype = "image/png" and then Files.Images.PNG_Header (Buffer (1 .. Last), Width, Height) then
       Close_Read_Descriptor (File);
-      return "image.dimensions|" & Dimensions_Text (Width, Height);
+      return Files.Extra_Info.Make (Files.Extra_Info.Image_Dimensions, Value => Dimensions_Text (Width, Height));
    elsif Filetype = "image/jpeg"
      and then Last >= 2
      and then Buffer (1) = 16#FF#
      and then Buffer (2) = 16#D8#
    then
       declare
-         Token : constant String := JPEG_Token;
+         Found : constant Files.Extra_Info.Info := JPEG_Info;
       begin
          Close_Read_Descriptor (File);
-         return Token;
+         return Found;
       end;
    end if;
 
    Close_Read_Descriptor (File);
-   return "";
+   return Files.Extra_Info.No_Info;
 exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.File_System");
       Close_Read_Descriptor (File);
-      return "";
-end Image_Dimensions_Token;
+      return Files.Extra_Info.No_Info;
+end Image_Dimensions_Info;

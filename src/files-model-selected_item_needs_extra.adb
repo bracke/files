@@ -14,5 +14,6 @@ begin
       return False;
    end if;
    --  Read in place: the window loop asks on every pass.
-   return not Model.Items (Idx).Filetype_Extra_Loaded and then Length (Model.Items (Idx).Filetype_Extra) = 0;
+   return not Model.Items (Idx).Filetype_Extra_Loaded and then Files.Extra_Info."="
+       (Model.Items (Idx).Filetype_Extra.Of_Kind, Files.Extra_Info.None);
 end Selected_Item_Needs_Extra;

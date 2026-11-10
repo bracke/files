@@ -14,8 +14,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
          Scope_Chip : constant Guikit.Layout.Scope_Chip_Region :=
            Guikit.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Scope_Chip_W, Line_Height);
          Filter_Text_W : constant Natural :=
-           (if Filter_W > 2 * Guikit.Layout.Input_Field_Padding
-            then Filter_W - 2 * Guikit.Layout.Input_Field_Padding
+           (if Filter_W > 2 * Files.UI.Field_Padding (Line_Height)
+            then Filter_W - 2 * Files.UI.Field_Padding (Line_Height)
             else 0);
          Filter_Raw    : constant String := To_String (Snapshot.Filter_Text);
          Filter_Skip   : constant Natural :=
@@ -42,7 +42,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
             Input_Color,
             Border_Color);
          Add_Text
-           (Saturating_Add (Filter_X, Guikit.Layout.Input_Field_Padding),
+           (Saturating_Add (Filter_X, Files.UI.Field_Padding (Line_Height)),
             Toolbar_Input_Text_Y,
             Filter_Text_W,
             Toolbar_Input_Text_H,
@@ -97,10 +97,10 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
                Add_Border
                  (Scope_Chip.X, Scope_Chip.Y, Scope_Chip.Width, Scope_Chip.Height, Border_Color);
                Add_Text
-                 (Saturating_Add (Scope_Chip.X, Guikit.Layout.Input_Field_Padding),
+                 (Saturating_Add (Scope_Chip.X, Files.UI.Field_Padding (Line_Height)),
                   Toolbar_Input_Text_Y,
-                  (if Scope_Chip.Width > 2 * Guikit.Layout.Input_Field_Padding
-                   then Scope_Chip.Width - 2 * Guikit.Layout.Input_Field_Padding
+                  (if Scope_Chip.Width > 2 * Files.UI.Field_Padding (Line_Height)
+                   then Scope_Chip.Width - 2 * Files.UI.Field_Padding (Line_Height)
                    else 0),
                   Toolbar_Input_Text_H,
                   Localized (Scope_Key),

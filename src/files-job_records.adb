@@ -2,6 +2,7 @@ with Ada.Calendar;
 with Ada.Containers;
 with Ada.Directories;
 with Ada.IO_Exceptions;
+with Files.Extra_Info;
 with Ada.Strings.Unbounded;
 
 with Interfaces;
@@ -291,7 +292,12 @@ package body Files.Job_Records is
       Boolean'Output (Stream, Value.Ownership_Available);
       Files.Types.Account_Id'Output (Stream, Value.Owner_Id);
       Files.Types.Account_Id'Output (Stream, Value.Group_Id);
-      Write_String (Stream, To_String (Value.Filetype_Extra), Max_Text_Length);
+      --  The extra info field by field: a target may hold any character.
+      Natural'Output (Stream, Files.Extra_Info.Kind'Pos (Value.Filetype_Extra.Of_Kind));
+      Natural'Output (Stream, Value.Filetype_Extra.Count);
+      Boolean'Output (Stream, Value.Filetype_Extra.Capped);
+      Write_String (Stream, To_String (Value.Filetype_Extra.Subject), Max_Text_Length);
+      Write_String (Stream, To_String (Value.Filetype_Extra.Value), Max_Text_Length);
       Boolean'Output (Stream, Value.Filetype_Extra_Loaded);
       Boolean'Output (Stream, Value.Thumbnail_Available);
       Write_String (Stream, To_String (Value.Thumbnail_Path), Max_Path_Length);
@@ -327,7 +333,18 @@ package body Files.Job_Records is
       Result.Ownership_Available := Boolean'Input (Stream);
       Result.Owner_Id := Files.Types.Account_Id'Input (Stream);
       Result.Group_Id := Files.Types.Account_Id'Input (Stream);
-      Result.Filetype_Extra := To_Unbounded_String (Read_String (Stream, Max_Text_Length));
+      declare
+         Kind_Pos : constant Natural := Natural'Input (Stream);
+      begin
+         if Kind_Pos > Files.Extra_Info.Kind'Pos (Files.Extra_Info.Kind'Last) then
+            raise Ada.IO_Exceptions.Data_Error;
+         end if;
+         Result.Filetype_Extra.Of_Kind := Files.Extra_Info.Kind'Val (Kind_Pos);
+         Result.Filetype_Extra.Count := Natural'Input (Stream);
+         Result.Filetype_Extra.Capped := Boolean'Input (Stream);
+         Result.Filetype_Extra.Subject := To_Unbounded_String (Read_String (Stream, Max_Text_Length));
+         Result.Filetype_Extra.Value := To_Unbounded_String (Read_String (Stream, Max_Text_Length));
+      end;
       Result.Filetype_Extra_Loaded := Boolean'Input (Stream);
       Result.Thumbnail_Available := Boolean'Input (Stream);
       Result.Thumbnail_Path := To_Unbounded_String (Read_String (Stream, Max_Path_Length));

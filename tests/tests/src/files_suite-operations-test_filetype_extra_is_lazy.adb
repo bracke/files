@@ -27,8 +27,8 @@ separate (Files_Suite.Operations)
       --  Info pane closed: the child count is not computed (no subfolder opened).
       Files.Operations.Ensure_Selected_Item_Extra (Model);
       Files_Suite.Support.Assert_Equal
-        (Length (Files.Model.Selected_Item (Model).Filetype_Extra),
-         0,
+        (Files_Suite.Support.Describe (Files.Model.Selected_Item (Model).Filetype_Extra),
+         "",
          "the folder's child count is not computed while the info pane is closed");
 
       --  Info pane open: the selected folder's child count is computed lazily,

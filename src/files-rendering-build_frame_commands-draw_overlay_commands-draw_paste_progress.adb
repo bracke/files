@@ -80,7 +80,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
               (if Cancel_Pressed then Pressed_Color
                elsif Cancel_Hovered then Hover_Color else Overlay_Color),
             Border_Color    => Border_Color,
-            Padding         => Guikit.Layout.Input_Field_Padding,
+            Padding         => Files.UI.Field_Padding (Line_Height),
             Label_Text      => Localized ("dialog.paste_progress.button.cancel"),
             Label_Truncated => False,
             Label_Height    => Line_Height,

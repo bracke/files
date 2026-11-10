@@ -14,10 +14,10 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
            Path_Favorite_Star_Region (Width, Line_Height);
          Star_Reserve : constant Natural := Path_Bar_Content_Offset (Width, Line_Height);
          Text_Start   : constant Natural :=
-           Saturating_Add (Saturating_Add (Path_X, Guikit.Layout.Input_Field_Padding), Star_Reserve);
+           Saturating_Add (Saturating_Add (Path_X, Files.UI.Field_Padding (Line_Height)), Star_Reserve);
          Path_Text_W  : constant Natural :=
-           (if Path_W > 2 * Guikit.Layout.Input_Field_Padding + Star_Reserve
-            then Path_W - 2 * Guikit.Layout.Input_Field_Padding - Star_Reserve
+           (if Path_W > 2 * Files.UI.Field_Padding (Line_Height) + Star_Reserve
+            then Path_W - 2 * Files.UI.Field_Padding (Line_Height) - Star_Reserve
             else 0);
          Path_Raw     : constant String := To_String (Snapshot.Path_Input_Text);
          --  While focused, start the text far enough in that the caret shows.

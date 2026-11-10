@@ -17,12 +17,14 @@ separate (Files.Rendering.Build_Frame_Commands)
 
             function Cell_X (Column_X : Natural) return Natural is
             begin
-               return Saturating_Add (Column_X, Details_Column_Padding);
+               return Saturating_Add (Column_X, Details_Column_Padding (Line_Height));
             end Cell_X;
 
             function Cell_W (Column_W : Natural) return Natural is
             begin
-               return (if Column_W > Details_Column_Padding then Column_W - Details_Column_Padding else 0);
+               return
+                 (if Column_W > Details_Column_Padding (Line_Height)
+                  then Column_W - Details_Column_Padding (Line_Height) else 0);
             end Cell_W;
 
             function Header_Label (Column : Files.Types.Detail_Column) return String is

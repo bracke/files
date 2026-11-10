@@ -64,7 +64,7 @@ separate (Files.Rendering)
             Cell   : constant Guikit.Item_Grid.Cell_Metrics :=
               Guikit.Item_Grid.Cell_Metrics_For (View, Content_W, Line_Height);
             Margin : constant Natural :=
-              Saturating_Add (Saturating_Add (Cell.Height, Guikit.Item_Grid.Main_Grid_Gap), Line_Height * 2);
+              Saturating_Add (Saturating_Add (Cell.Height, Guikit.Item_Grid.Grid_Gap (Line_Height)), Line_Height * 2);
             Top    : constant Natural := (if Window_Top > Content_Y then Window_Top - Content_Y else 0);
             Shift  : constant Natural := (if Top > Margin then Top - Margin else 0);
          begin

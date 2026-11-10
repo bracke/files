@@ -4,7 +4,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       if Snapshot.Quick_Look_Open then
          declare
             QL      : constant Quick_Look_Layout := Calculate_Quick_Look_Layout (Layout, Line_Height);
-            Margin  : constant Natural := Natural'Max (Command_Palette_Padding, Line_Height / 2);
+            Margin  : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
             Title_X : constant Natural := Saturating_Add (QL.X, Margin);
             Title_Y : constant Natural := Saturating_Add (QL.Y, Natural'Max (4, Line_Height / 4));
             Title_W : constant Natural :=
@@ -172,7 +172,7 @@ separate (Files.Rendering.Build_Frame_Commands)
          declare
             Picker  : constant Label_Picker_Layout :=
               Calculate_Label_Picker_Layout (Layout, Line_Height);
-            Margin  : constant Natural := Natural'Max (Command_Palette_Padding, Line_Height / 2);
+            Margin  : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
             Title_X : constant Natural := Saturating_Add (Picker.X, Margin);
             Title_Y : constant Natural := Saturating_Add (Picker.Y, Natural'Max (4, Line_Height / 4));
             Title_W : constant Natural :=
@@ -283,7 +283,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                Discard_A11y : Guikit.Draw.Accessibility_Node_Vectors.Vector;
                Config : constant Guikit.List_Panel.List_Panel_Configuration :=
                  (Line_Height         => Line_Height,
-                  Text_Padding        => Guikit.Layout.Input_Field_Padding,
+                  Text_Padding        => Files.UI.Field_Padding (Line_Height),
                   Show_Alternate_Rows => False,
                   others              => <>);
             begin

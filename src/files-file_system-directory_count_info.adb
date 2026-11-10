@@ -2,7 +2,7 @@ separate (Files.File_System)
 --  Names read straight from the directory: no stat per entry (Ada.Directories'
 --  search makes one, on the UI thread whenever the info pane shows a folder),
 --  and a dangling link counted, as the listing shows it.
-function Directory_Count_Token (Path : String) return String is
+function Directory_Count_Info (Path : String) return Files.Extra_Info.Info is
    Count  : Natural := 0;
    Capped : Boolean := False;
 
@@ -18,12 +18,12 @@ function Directory_Count_Token (Path : String) return String is
    end Count_One;
 begin
    if not Files.Fs_Primitives.Directory_Exists (Path) then
-      return "";
+      return Files.Extra_Info.No_Info;
    end if;
    Files.Fs_Primitives.For_Each_Name (Path, Count_One'Access);
-   return "directory.count|" & Natural_Text (Count) & (if Capped then "+" else "");
+   return Files.Extra_Info.Make (Files.Extra_Info.Directory_Count, Count => Count, Capped => Capped);
 exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.File_System");
-      return "";
-end Directory_Count_Token;
+      return Files.Extra_Info.No_Info;
+end Directory_Count_Info;

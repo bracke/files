@@ -52,7 +52,7 @@ separate (Files.Rendering)
          Cell_W    : constant Positive :=
            Guikit.Layout.Caret_Advance_Width (Line_Height);
          Edge_Pad  : constant Natural :=
-           Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2);
+           Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2);
          Max_Label : Natural := 0;
       begin
          for Row in 1 .. Result.Row_Count loop

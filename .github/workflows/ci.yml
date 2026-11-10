@@ -189,8 +189,8 @@ jobs:
           clone_at humanize 60c99ebd3d4080e92b8455fba47adc9c50f19fc3
           clone_at textrender 0a6721cb4239e581518c0d312bb7085e5b1ff402
           clone_at zlib 56d3b4fab7bb749f04952c5ec118aab0ef0787b8
-          clone_at guikit a9048d714c4759867d537452661d8375fc7049f2
-          clone_at hostkit 6360baf0ea3dde41c278fe07d86883f12552afa8
+          clone_at guikit 53fe360ce02431d2a5bb16acc5b9987984d5f2d4
+          clone_at hostkit 1aadb8dd355686e757387a21444fd22364632ed8
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
@@ -666,7 +666,7 @@ jobs:
             grep -m 5 -A 4 "files-diagnostics: Files.Application.Windows" "$RUNNER_TEMP/loop.txt"
             exit 1
           fi
-          if ! awk '/files-trace: Files.Application.Windows: key=TRACKED_DOWN/ { key = 1 }
+          if ! awk '/files-trace: Files.Application.Windows: key=KEY_DOWN/ { key = 1 }
                     key && /files-trace: Files.Application.Windows: presented=/ { drawn = 1 }
                     END { exit !drawn }' "$RUNNER_TEMP/loop.txt"; then
             echo "::error::a key sent to files was not drawn by its event loop"

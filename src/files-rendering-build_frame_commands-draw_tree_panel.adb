@@ -1,6 +1,11 @@
-separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
+with Guikit.Menu_Tree;
+
+separate (Files.Rendering.Build_Frame_Commands)
    --  The folder tree panel, and its pick bar when choosing a destination.
-   procedure Draw_Tree_Panel is
+   procedure Draw_Tree_Panel (As_Overlay : Boolean) is
+      --  Drawn here, then added to the layer the panel is on.
+      Rectangles : Rectangle_Command_Vectors.Vector;
+      Texts      : Text_Command_Vectors.Vector;
    begin
       declare
          Title : constant UString :=
@@ -11,7 +16,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
             else Localized ("tree.panel.title"));
          Config : constant Guikit.Menu_Tree.Menu_Tree_Configuration :=
            (Line_Height     => Line_Height,
-            Text_Padding    => Root_Selector_Padding,
+            Text_Padding    => Root_Selector_Padding (Line_Height),
             Title_Height    => Tree_Panel.Row_Height,
             Expanded_Glyph  => To_Unbounded_String (Tree_Expander_Expanded_Text),
             Collapsed_Glyph => To_Unbounded_String (Tree_Expander_Collapsed_Text));
@@ -83,8 +88,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
          end if;
 
          Guikit.Menu_Tree.Draw_Frame
-           (Rectangles    => Result.Overlay_Rectangles,
-            Text          => Result.Overlay_Text,
+           (Rectangles    => Rectangles,
+            Text          => Texts,
             Clip_Width    => Layout.Width,
             Clip_Height   => Layout.Height,
             Region_X      => Tree_Panel.X,
@@ -98,7 +103,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
 
          if Tree_Panel.Scrollbar_Visible then
             Guikit.Widgets.Draw_Scrollbar
-              (Rectangles   => Result.Overlay_Rectangles,
+              (Rectangles   => Rectangles,
                Clip_Width   => Layout.Width,
                Clip_Height  => Layout.Height,
                Track_X      => Tree_Panel.Scrollbar_X,
@@ -153,6 +158,13 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
          end if;
       end;
 
+      if As_Overlay then
+         Result.Overlay_Rectangles.Append (Rectangles);
+         Result.Overlay_Text.Append (Texts);
+      else
+         Result.Rectangles.Append (Rectangles);
+         Result.Text.Append (Texts);
+      end if;
       Draw_Close_Button
-        (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Height, Overlay => True);
+        (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Height, Overlay => As_Overlay);
    end Draw_Tree_Panel;

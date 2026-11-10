@@ -10,22 +10,22 @@ package body Files.Extra_Info_Reader is
       Filetype : Unbounded_String;
    end record;
 
-   function Read (Path : String; Facts : Item_Facts) return Unbounded_String is
-     (To_Unbounded_String (Files.File_System.Extra_Info_Token (Path, Facts.Kind, To_String (Facts.Filetype))));
+   function Read (Path : String; Facts : Item_Facts) return Files.Extra_Info.Info is
+     (Files.File_System.Extra_Info_Of (Path, Facts.Kind, To_String (Facts.Filetype)));
 
    --  Every answer, an empty one included, is handed out once: the model
    --  records it as loaded and does not ask again.
-   function Always (Token : Unbounded_String) return Boolean is
-      pragma Unreferenced (Token);
+   function Always (Extra : Files.Extra_Info.Info) return Boolean is
+      pragma Unreferenced (Extra);
    begin
       return True;
    end Always;
 
-   function No_Details return Unbounded_String is (Null_Unbounded_String);
+   function No_Details return Files.Extra_Info.Info is (Files.Extra_Info.No_Info);
 
    package Reader is new Files.Background_Slots
      (Parameters  => Item_Facts,
-      Result      => Unbounded_String,
+      Result      => Files.Extra_Info.Info,
       Work        => Read,
       Failed      => No_Details,
       Handed_Once => Always);
@@ -42,11 +42,11 @@ package body Files.Extra_Info_Reader is
    procedure Take
      (Owner : Requester;
       Path  : String;
-      Token : out Files.Types.UString;
+      Extra : out Files.Extra_Info.Info;
       Ready : out Boolean;
       Asked : out Boolean) is
    begin
-      Reader.Take (Reader.Requester (Owner), Path, Token, Ready, Asked);
+      Reader.Take (Reader.Requester (Owner), Path, Extra, Ready, Asked);
    end Take;
 
 end Files.Extra_Info_Reader;

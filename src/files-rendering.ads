@@ -419,6 +419,8 @@ package Files.Rendering is
       Width      : Natural := 0;
       Height     : Natural := 0;
       Row_Height : Natural := 0;
+      --  The selector's inner padding at the line height it was laid out for.
+      Padding    : Natural := 8;
    end record;
 
    --  Geometry of the centered paste-conflict dialog: the outer panel, its four
@@ -862,12 +864,14 @@ package Files.Rendering is
    --  @param Renaming Whether the item is currently being renamed.
    --  @param Field_X Left edge of the rename field.
    --  @param Field_W Width of the rename field.
+   --  @param Line_Height Current line height.
    procedure Rename_Field_Extent
-     (Item      : Item_Layout;
-      View_Mode : Files.Types.View_Mode;
-      Renaming  : Boolean;
-      Field_X   : out Natural;
-      Field_W   : out Natural);
+     (Item        : Item_Layout;
+      View_Mode   : Files.Types.View_Mode;
+      Renaming    : Boolean;
+      Field_X     : out Natural;
+      Field_W     : out Natural;
+      Line_Height : Positive := Files.UI.Base_Line_Height);
 
    --  A details-header cell under a coordinate. Present is False when the
    --  coordinate misses the header band. Column is the column whose cell body

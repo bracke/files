@@ -7,11 +7,11 @@ separate (Files.Rendering)
       Result       : Root_Path_Layout_Vectors.Vector;
       Root_Count   : constant Natural := Natural (Snapshot.Root_Paths.Length);
       Content_H    : constant Natural :=
-        (if Layout.Height > Saturating_Multiply (Root_Selector_Padding, 2)
-         then Layout.Height - Saturating_Multiply (Root_Selector_Padding, 2)
+        (if Layout.Height > Saturating_Multiply (Layout.Padding, 2)
+         then Layout.Height - Saturating_Multiply (Layout.Padding, 2)
          else 0);
       Horizontal_Padding : constant Natural :=
-        Natural'Min (Root_Selector_Padding, Layout.Width / 2);
+        Natural'Min (Layout.Padding, Layout.Width / 2);
       Content_W    : constant Natural :=
         Layout.Width - Saturating_Multiply (Horizontal_Padding, 2);
       --  Fully visible rows only: the keyboard selection must never land on
@@ -45,12 +45,12 @@ separate (Files.Rendering)
          declare
             Row_Y : constant Natural :=
               Saturating_Add
-                (Saturating_Add (Layout.Y, Root_Selector_Padding),
+                (Saturating_Add (Layout.Y, Layout.Padding),
                  Saturating_Multiply (Natural (Index - Start_Index), Layout.Row_Height));
             Layout_End_Y : constant Natural :=
               Saturating_Add
                 (Layout.Y,
-                 (if Layout.Height > Root_Selector_Padding then Layout.Height - Root_Selector_Padding else 0));
+                 (if Layout.Height > Layout.Padding then Layout.Height - Layout.Padding else 0));
          begin
             exit when Row_Y >= Layout_End_Y;
             declare

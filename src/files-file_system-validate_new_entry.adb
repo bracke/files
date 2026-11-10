@@ -10,6 +10,8 @@ is
 begin
    if Path = "" then
       return (Success => False, Error_Key => To_Unbounded_String (Empty_Key));
+   elsif Leaf_Too_Long (Name, Parent) then
+      return (Success => False, Error_Key => To_Unbounded_String (Files.Io_Errors.Name_Too_Long_Key));
    elsif not (if Storable then Storable_Leaf_Name_At (Name, Parent) else Valid_Leaf_Name_At (Name, Parent)) then
       return (Success => False, Error_Key => To_Unbounded_String ("error.name.invalid"));
    elsif Files.Fs_Primitives.Entry_Exists (Path) then

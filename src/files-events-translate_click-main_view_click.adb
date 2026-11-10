@@ -56,7 +56,8 @@ begin
                View_Mode => Snapshot.View_Mode,
                Renaming  => True,
                Field_X   => Field_X,
-               Field_W   => Field_W);
+               Field_W   => Field_W,
+               Line_Height => Line_Height);
             if Within (X, Field_X, Field_W) then
                Result :=
                  Text_Click

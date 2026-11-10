@@ -269,10 +269,10 @@ package body Files_Suite.Model is
    procedure Test_Directory_Projection_Settings (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    --  The "extra info" is now computed lazily (not stored on load), so tests
-   --  compute it on demand via the shared token function.
+   --  compute it on demand, described compactly.
    function Item_Extra (I : Files.Items.Directory_Item) return String is
-     (Files.File_System.Extra_Info_Token
-        (To_String (I.Full_Path), I.Kind, To_String (I.Filetype)));
+     (Files_Suite.Support.Describe
+        (Files.File_System.Extra_Info_Of (To_String (I.Full_Path), I.Kind, To_String (I.Filetype))));
 
    procedure Test_Executable_And_Symlink_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

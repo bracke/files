@@ -870,12 +870,12 @@ separate (Files.Rendering)
            To_Unbounded_String (Humanized_Time_Text (Item.Creation_Time));
       end Detail_Created_Text;
 
-      type Overlay_Draw_Phase is
-        (Persistent_Overlay_Phase, Modal_Overlay_Phase);
+      --  The root selector, context menu and paste dialogs.
+      procedure Draw_Overlay_Commands is separate;
 
-      procedure Draw_Overlay_Commands
-        (Phase : Overlay_Draw_Phase)
-      is separate;
+      --  The folder tree beside the view; over everything while it picks a
+      --  destination, which blocks the rest of the window.
+      procedure Draw_Tree_Panel (As_Overlay : Boolean) is separate;
 
       --  Details-view accessibility row labels are identical for every row;
       --  look them up once here rather than three times per visible row.
@@ -916,10 +916,10 @@ separate (Files.Rendering)
 
       Draw_Info_Pane;
 
-      --  The ordinary folder tree is persistent rather than modal. Draw it
-      --  before transient overlays so Quick Look, label/root/sort menus, and
-      --  dialogs cover it in the same order in which they own input.
-      Draw_Overlay_Commands (Persistent_Overlay_Phase);
+      --  Before the transient overlays, which cover it as they own input.
+      if Snapshot.Tree_Panel_Open then
+         Draw_Tree_Panel (As_Overlay => Snapshot.Tree_Pick_Active);
+      end if;
 
       --  Popups and modal panels own the pointer while they are open.  Drop
       --  tooltip regions registered by the inactive toolbar, grid, and status
@@ -933,7 +933,7 @@ separate (Files.Rendering)
 
       Draw_Popups;
 
-      Draw_Overlay_Commands (Modal_Overlay_Phase);
+      Draw_Overlay_Commands;
 
       Add_Hover_Tooltip;
 

@@ -27,7 +27,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                Fill_Color      =>
                  (if Pressed then Pressed_Color elsif Hovered then Hover_Color else Overlay_Color),
                Border_Color    => Border_Color,
-               Padding         => Guikit.Layout.Input_Field_Padding,
+               Padding         => Files.UI.Field_Padding (Line_Height),
                Label_Text      => Localized (Label_Key),
                Label_Truncated => False,
                Label_Height    => Line_Height,
@@ -74,7 +74,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
          declare
             Box_Size : constant Natural := Natural'Min (Line_Height, Dialog.Apply_Height);
             Text_Offset : constant Natural :=
-              Saturating_Add (Box_Size, Guikit.Layout.Input_Field_Padding);
+              Saturating_Add (Box_Size, Files.UI.Field_Padding (Line_Height));
             Hovered  : constant Boolean :=
               Has_Hover
               and then Contains_Point

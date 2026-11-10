@@ -19,6 +19,7 @@ with Hostkit.Metadata;
 with Hostkit.Fs;
 with Hostkit.Host;
 with Files.UTF8;
+with Ada.Strings.UTF_Encoding.Conversions;
 with Files.File_System.Support;
 with Files.File_System.Thumbnails;
 with Files.Images;
@@ -104,17 +105,18 @@ package body Files.File_System is
 
    function Text_Encoding_Name (Path : String) return String;
 
-   function Text_Metadata_Token
+   function Text_Metadata_Info
      (Prefix : String;
       Path   : String)
-      return String;
+      return Files.Extra_Info.Info;
 
-   function Pdf_Page_Count_Token (Path : String) return String;
+   function Pdf_Page_Count_Info (Path : String) return Files.Extra_Info.Info;
 
-   function Zip_Entry_Count_Token
-     (Path   : String;
-      Prefix : String)
-      return String;
+   function Zip_Entry_Count_Info
+     (Path    : String;
+      Of_Kind : Files.Extra_Info.Kind;
+      Subject : String)
+      return Files.Extra_Info.Info;
 
    function Matches_Signature
      (Buffer  : Ada.Streams.Stream_Element_Array;
@@ -122,14 +124,12 @@ package body Files.File_System is
       Pattern : Ada.Streams.Stream_Element_Array)
       return Boolean;
 
-   function Executable_Format_Token (Path : String) return String;
+   function Executable_Format_Info (Path : String) return Files.Extra_Info.Info;
 
-   function Directory_Count_Token (Path : String) return String;
+   function Directory_Count_Info (Path : String) return Files.Extra_Info.Info;
 
-   --  The detail line's symlink entry. The "symlink.target|" prefix is this
-   --  application's own token format, not a host fact, so it is written here
-   --  over Hostkit's reader rather than asked of the host.
-   function Symlink_Target_Token (Path : String) return String;
+   --  The detail line's symlink entry: the target as stored, read no-follow.
+   function Symlink_Target_Info (Path : String) return Files.Extra_Info.Info;
 
    function U16_BE
      (Buffer : Ada.Streams.Stream_Element_Array;
@@ -141,10 +141,10 @@ package body Files.File_System is
       Height : Natural)
       return String;
 
-   function Image_Dimensions_Token
+   function Image_Dimensions_Info
      (Path     : String;
       Filetype : String)
-      return String;
+      return Files.Extra_Info.Info;
 
    function Kind_From_Path
      (Full : String)
@@ -187,17 +187,18 @@ package body Files.File_System is
 
    function Text_Encoding_Name (Path : String) return String is separate;
 
-   function Text_Metadata_Token
+   function Text_Metadata_Info
      (Prefix : String;
       Path   : String)
-      return String is separate;
+      return Files.Extra_Info.Info is separate;
 
-   function Pdf_Page_Count_Token (Path : String) return String is separate;
+   function Pdf_Page_Count_Info (Path : String) return Files.Extra_Info.Info is separate;
 
-   function Zip_Entry_Count_Token
-     (Path   : String;
-      Prefix : String)
-      return String
+   function Zip_Entry_Count_Info
+     (Path    : String;
+      Of_Kind : Files.Extra_Info.Kind;
+      Subject : String)
+      return Files.Extra_Info.Info
    is separate;
 
    function Matches_Signature
@@ -207,11 +208,11 @@ package body Files.File_System is
       return Boolean
    is separate;
 
-   function Executable_Format_Token (Path : String) return String is separate;
+   function Executable_Format_Info (Path : String) return Files.Extra_Info.Info is separate;
 
-   function Symlink_Target_Token (Path : String) return String is separate;
+   function Symlink_Target_Info (Path : String) return Files.Extra_Info.Info is separate;
 
-   function Directory_Count_Token (Path : String) return String is separate;
+   function Directory_Count_Info (Path : String) return Files.Extra_Info.Info is separate;
 
    function U16_BE
      (Buffer : Ada.Streams.Stream_Element_Array;
@@ -223,17 +224,17 @@ package body Files.File_System is
       Height : Natural)
       return String is separate;
 
-   function Image_Dimensions_Token
+   function Image_Dimensions_Info
      (Path     : String;
       Filetype : String)
-      return String
+      return Files.Extra_Info.Info
    is separate;
 
-   function Extra_Info_Token
+   function Extra_Info_Of
      (Path     : String;
       Kind     : Files.Types.Item_Kind;
       Filetype : String)
-      return String is separate;
+      return Files.Extra_Info.Info is separate;
 
    function Kind_From_Path
      (Full : String)
@@ -714,6 +715,15 @@ package body Files.File_System is
          (if Hostkit.Fs.Uses_Dos_Filename_Rules (Directory)
           then Windows_Rules
           else Posix_Rules)));
+
+   --  Whether Name is longer than a filesystem under Directory stores: 255
+   --  UTF-16 units where DOS rules apply (NTFS, FAT, exFAT), 255 bytes
+   --  elsewhere. Checked before the disk is touched, so every host reports it
+   --  alike (a Windows runner was seen creating a 300-character name).
+   function Leaf_Too_Long (Name : String; Directory : String) return Boolean is
+     (if Hostkit.Fs.Uses_Dos_Filename_Rules (Directory)
+      then Files.UTF8.Is_Valid (Name) and then Ada.Strings.UTF_Encoding.Conversions.Convert (Name)'Length > 255
+      else Name'Length > 255);
 
    function Storable_Leaf_Name_At
      (Name      : String;

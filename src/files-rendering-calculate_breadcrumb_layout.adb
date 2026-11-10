@@ -16,7 +16,7 @@ separate (Files.Rendering)
          else 0);
       Input_Y      : constant Natural := Guikit.Layout.Toolbar_Input_Y (Line_Height);
       Input_H      : constant Natural := Guikit.Layout.Toolbar_Input_Height (Line_Height);
-      Pad          : constant Natural := Guikit.Layout.Input_Field_Padding;
+      Pad          : constant Natural := Files.UI.Field_Padding (Line_Height);
       Star_Reserve : constant Natural := Path_Bar_Content_Offset (Width, Line_Height);
       Advance      : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
       Inner_X      : constant Natural := Saturating_Add (Saturating_Add (Path_X, Pad), Star_Reserve);

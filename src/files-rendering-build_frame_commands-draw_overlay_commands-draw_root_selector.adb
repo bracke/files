@@ -34,11 +34,11 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
             First_Row  : constant Root_Path_Layout := Root_Rows.First_Element;
             Row_H      : constant Natural := Root_Selector.Row_Height;
             Inner_H    : constant Natural :=
-              (if Row_H > Saturating_Multiply (Root_Selector_Padding, 2)
-               then Row_H - Saturating_Multiply (Root_Selector_Padding, 2)
+              (if Row_H > Saturating_Multiply (Root_Selector_Padding (Line_Height), 2)
+               then Row_H - Saturating_Multiply (Root_Selector_Padding (Line_Height), 2)
                else Row_H);
             Toolbar_Icon_Size : constant Natural :=
-              Saturating_Add (Line_Height, Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2));
+              Saturating_Add (Line_Height, Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2));
             --  Uniform across rows (they share Row_Height), so compute once.
             Glyph_Size : constant Natural := Natural'Min (Toolbar_Icon_Size, Inner_H);
             List_Rows  : Guikit.List_Panel.List_Panel_Row_Vectors.Vector;
@@ -48,7 +48,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
             Discard_A11y : Guikit.Draw.Accessibility_Node_Vectors.Vector;
             Config : constant Guikit.List_Panel.List_Panel_Configuration :=
               (Line_Height         => Line_Height,
-               Text_Padding        => Root_Selector_Padding,
+               Text_Padding        => Root_Selector_Padding (Line_Height),
                Show_Alternate_Rows => False,
                others              => <>);
          begin
@@ -96,12 +96,12 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                Rows          => List_Rows,
                Draw_Chrome   => False,
                Row_Height    => Row_H,
-               Leading_Icon_Width => Saturating_Add (Glyph_Size, Root_Selector_Padding));
+               Leading_Icon_Width => Saturating_Add (Glyph_Size, Root_Selector_Padding (Line_Height)));
 
             for Index in 1 .. Natural (Root_Rows.Length) loop
                declare
                   Row     : constant Root_Path_Layout := Root_Rows.Element (Positive (Index));
-                  Row_Pad : constant Natural := Natural'Min (Root_Selector_Padding, Row.Height);
+                  Row_Pad : constant Natural := Natural'Min (Root_Selector_Padding (Line_Height), Row.Height);
                   Glyph_X : constant Natural := Saturating_Add (Row.X, Row_Pad);
                   Glyph_Y : constant Natural :=
                     (if Row.Height > Glyph_Size

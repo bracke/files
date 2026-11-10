@@ -248,10 +248,6 @@ begin
                Append_If_Directory (Path, Root_User_Mount);
             when Hostkit.Fs.Network_Place =>
                Append_If_Directory (Path, Root_Network_Mount);
-            when Hostkit.Fs.Removable_Media_Parent =>
-               --  /run/media/<user>: listed above, as Volume_Places' per-user
-               --  volumes folder; walking it again cost the scan budget twice.
-               null;
             when Hostkit.Fs.Desktop_Mounts_Parent =>
                Append_Children (Path, Root_Network_Mount);
          end case;

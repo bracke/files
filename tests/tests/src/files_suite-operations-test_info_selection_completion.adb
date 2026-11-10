@@ -25,14 +25,14 @@ separate (Files_Suite.Operations)
          "keyboard selection populates details for the new selection: selection moved");
       Assert (Files.Model.Selected_Item (Model).Filetype_Extra_Loaded,
               "keyboard selection populates details for the new selection: details loaded");
-      Assert (Length (Files.Model.Selected_Item (Model).Filetype_Extra) > 0,
+      Assert (Files_Suite.Support.Describe (Files.Model.Selected_Item (Model).Filetype_Extra) /= "",
               "keyboard selection populates details for the new selection: details present");
       Files.Model.Set_Background_Transfers (Model, True);
       Step := Files.Operations.Refresh (Model, Settings);
       Await_View (Model, Settings);
       Await_Item_Details (Model);
       Assert (Files.Model.Selected_Item (Model).Filetype_Extra_Loaded
-              and then Length (Files.Model.Selected_Item (Model).Filetype_Extra) > 0,
+              and then Files_Suite.Support.Describe (Files.Model.Selected_Item (Model).Filetype_Extra) /= "",
               "completed refresh repopulates the selected item's details");
       Revision := Files.Model.Revision (Model);
       Files.Operations.Poll_Selected_Item_Extra (Model, Files.Extra_Info_Reader.Requester (77));

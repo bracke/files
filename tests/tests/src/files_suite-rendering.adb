@@ -70,6 +70,7 @@ package body Files_Suite.Rendering is
    procedure Test_Main_View_Scroll_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Command_Palette_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Chrome_Scales_With_Line_Height (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Tree_Panel_Draw_Layer (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Frame_Rendering_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Compact_Frame_Commands_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Compact_Overlay_Commands_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -186,6 +187,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Chrome_Scales_With_Line_Height'Access,
          "chrome sizes scale with the line height and stay put at the reference one");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Tree_Panel_Draw_Layer'Access,
+         "the folder tree is drawn beside the view, and above everything only while picking");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Frame_Rendering_Invariants'Access, "frame rendering invariants");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -555,6 +559,8 @@ package body Files_Suite.Rendering is
    procedure Test_Command_Palette_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Chrome_Scales_With_Line_Height (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Tree_Panel_Draw_Layer (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Frame_Rendering_Invariants (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

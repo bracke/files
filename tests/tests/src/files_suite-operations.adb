@@ -856,7 +856,7 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Type_Metadata'Access, "item snapshots localize per-filetype metadata");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Info_Pane_Localized_Extras'Access, "info pane localizes every extra-info token kind");
+        (T, Test_Info_Pane_Localized_Extras'Access, "info pane localizes every kind of extra info");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Frame_Layout'Access, "info pane frame lays out heading, rows and permission matrix");
       AUnit.Test_Cases.Registration.Register_Routine

@@ -38,10 +38,10 @@ separate (Files.Rendering.Build_Frame_Commands)
                 (Bottom.Sort_Button_X,
                  (if Bottom.Sort_Button_Width > Rendered_W
                   then (Bottom.Sort_Button_Width - Rendered_W) / 2
-                  else Guikit.Layout.Input_Field_Padding));
+                  else Files.UI.Field_Padding (Line_Height)));
             Content_W   : constant Natural :=
-              (if Bottom.Sort_Button_Width > Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)
-               then Bottom.Sort_Button_Width - Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2)
+              (if Bottom.Sort_Button_Width > Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2)
+               then Bottom.Sort_Button_Width - Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2)
                else 0);
             Arrow_X     : constant Natural :=
               Saturating_Add (Text_X0, Saturating_Add (Label_W, Arrow_Gap));

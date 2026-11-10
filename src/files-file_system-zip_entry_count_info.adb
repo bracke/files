@@ -1,9 +1,12 @@
 separate (Files.File_System)
-function Zip_Entry_Count_Token
-  (Path   : String;
-   Prefix : String)
-   return String
+function Zip_Entry_Count_Info
+  (Path    : String;
+   Of_Kind : Files.Extra_Info.Kind;
+   Subject : String)
+   return Files.Extra_Info.Info
 is
+   function Entries (Count : Natural) return Files.Extra_Info.Info is
+     (Files.Extra_Info.Make (Of_Kind, Subject => Subject, Count => Count));
    use type GNAT.OS_Lib.Large_File_Size;
    File   : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
    Buffer : Ada.Streams.Stream_Element_Array (1 .. 4096);
@@ -18,7 +21,7 @@ is
 begin
    File := Files.Fs_Primitives.Open_Regular_Read (Path);
    if File = GNAT.OS_Lib.Invalid_FD then
-      return Prefix & ".entries|0";
+      return Entries (0);
    end if;
    --  The central-directory records this counts sit at the end of the
    --  archive, so on a large file scan only its tail rather than reading
@@ -57,10 +60,10 @@ begin
       end if;
    end loop;
    Close_Read_Descriptor (File);
-   return Prefix & ".entries|" & Natural_Text (Count);
+   return Entries (Count);
 exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.File_System");
       Close_Read_Descriptor (File);
-      return Prefix & ".entries|0";
-end Zip_Entry_Count_Token;
+      return Entries (0);
+end Zip_Entry_Count_Info;
