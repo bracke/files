@@ -366,7 +366,12 @@ package body Files.Application is
    is
       Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
    begin
-      if not Files.Model.Volume_Space_Is_Current (Model, Now) then
+      if Files.Model.Current_Path (Model) = "" then
+         --  A view with no folder of its own (Recent) is on no volume: a
+         --  capacity query for "" fails here and on Windows may answer for
+         --  the working directory's drive. An unchanged unknown touches nothing.
+         Files.Model.Set_Volume_Space (Model, "", (others => <>), Now);
+      elsif not Files.Model.Volume_Space_Is_Current (Model, Now) then
          declare
             Path     : constant String := Files.Model.Current_Path (Model);
             Capacity : constant Hostkit.Metadata.Volume_Capacity := Hostkit.Metadata.Volume_Capacity_Of (Path);

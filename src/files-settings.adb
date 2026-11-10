@@ -89,7 +89,14 @@ package body Files.Settings is
       Key      : Snapshot_Settings_Key)
       return Boolean is
    begin
-      return Snapshot_Settings_Key_Of (Settings) = Key;
+      --  Field by field in place: building a key copies the favorites and
+      --  labels, and this is asked on every frame.
+      return Same_Row_Settings (Settings, Key)
+        and then Settings.Show_Used_Space = Key.Show_Used_Space
+        and then Settings.Show_Space_Bar = Key.Show_Space_Bar
+        and then Files.Types."=" (Settings.Column_Visible, Key.Column_Visible)
+        and then Files.Types."=" (Settings.Column_Widths, Key.Column_Widths)
+        and then Files.Types."=" (Settings.Column_Order, Key.Column_Order);
    end Same_Snapshot_Settings;
 
    function Same_Row_Settings
@@ -586,6 +593,12 @@ package body Files.Settings is
    procedure Set_Label
      (Settings : in out Settings_Model;
       Path     : String;
+      Label    : Files.Types.Color_Label)
+ is separate;
+
+   procedure Set_Labels
+     (Settings : in out Settings_Model;
+      Paths    : String_Vectors.Vector;
       Label    : Files.Types.Color_Label)
  is separate;
 

@@ -17,7 +17,23 @@ void files_test_fault_reset(void) { trash_fault_applied = 0; }
 /* Faults are linked only into the test executable, never the application. */
 /* With FILES_TEST_STAGE_SYNC_FAULT set, syncing a recovery stage that already
    holds its payload fails: the original has moved and Preserve must put it back. */
+/* With FILES_TEST_SYNC_FAULT_SUFFIX set, syncing any file whose path ends
+   with it fails: a move must not remove its source after that. */
 int fsync(int fd) {
+    const char *suffix = getenv("FILES_TEST_SYNC_FAULT_SUFFIX");
+    if (suffix) {
+        char link[64], actual[4096];
+        snprintf(link, sizeof(link), "/proc/self/fd/%d", fd);
+        ssize_t count = readlink(link, actual, sizeof(actual)-1);
+        size_t length = strlen(suffix);
+        if (count >= 0 && (size_t)count >= length) {
+            actual[count] = 0;
+            if (!strcmp(actual + count - length, suffix)) {
+                errno = EIO;
+                return -1;
+            }
+        }
+    }
     if (getenv("FILES_TEST_STAGE_SYNC_FAULT")) {
         char link[64], actual[4096], payload[4200];
         snprintf(link, sizeof(link), "/proc/self/fd/%d", fd);

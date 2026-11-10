@@ -86,6 +86,19 @@ separate (Files_Suite.Operations)
          Actions := Files.Paste.Resolve
            (Cased, Files.Paste.Policy_Replace_All, None, Folded_Existing, Fold_Names => True);
          Assert (Actions.Element (1).Replaced, "the first case-twin replaces the existing entry");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Actions.Element (1).Dest_Path), Dest ("Readme.md"),
+            "a replace keeps the existing entry's spelling");
+         declare
+            Lower : Files.Types.String_Vectors.Vector;
+         begin
+            Lower.Append (To_Unbounded_String (Dest ("readme.md")));
+            Actions := Files.Paste.Resolve
+              (Cased, Files.Paste.Policy_Replace_All, None, Lower, Fold_Names => True);
+            Files_Suite.Support.Assert_Equal
+              (To_String (Actions.Element (1).Dest_Path), Dest ("readme.md"),
+               "Readme.md replacing readme.md writes over readme.md under its own name");
+         end;
          Assert (not Actions.Element (2).Replaced and then not Actions.Element (2).Skip
                  and then Files.Types.Fold_Case (To_String (Actions.Element (2).Dest_Path))
                           /= Files.Types.Fold_Case (Dest ("readme.md")),

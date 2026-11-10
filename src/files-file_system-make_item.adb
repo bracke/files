@@ -6,7 +6,7 @@ function Make_Item
    Filetype    : String := "")
    return Directory_Item
 is
-   Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+   Settings  : Files.Settings.Settings_Model renames Default_Item_Settings;
    Type_Name : constant String :=
      (if Filetype /= "" then Filetype else Files.File_Types.Detect_Filetype (Settings, Kind, Name));
 begin

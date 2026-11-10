@@ -11,7 +11,11 @@ separate (Files.Application.Windows)
          Frame_W : Glfw.Size := 0;
          Frame_H : Glfw.Size := 0;
       begin
-         if not Files.Model.Tree_Pick_Is_Active (Runtime.Model) then
+         --  The tree scrolls its highlight into view whenever it has the
+         --  keyboard, in the side panel as in the destination picker.
+         if not Files.Model.Tree_Pick_Is_Active (Runtime.Model)
+           and then not Files.Model.Tree_Has_Keyboard (Runtime.Model)
+         then
             return 0;
          end if;
 

@@ -361,6 +361,11 @@ package body Files.File_System is
       return Directory_Change_Result
    is separate;
 
+   --  The built-in type and icon tables Make_Item reads, built once when the
+   --  program starts and only read after: building them per item cost a
+   --  hundred map inserts for each row a snapshot rebuild asked about.
+   Default_Item_Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+
    function Make_Item
      (Parent_Path : String;
       Name        : String;
@@ -548,9 +553,51 @@ package body Files.File_System is
      renames Recovery.Recognizes;
 
    function Release_Recovery_Payload (Path : String) return Mutation_Result is
+      --  The Recycle Bin and the macOS Trash record where an item was when
+      --  it was trashed, and put it back there: from the hidden stage that
+      --  would be a hidden folder. So it goes back beside its original
+      --  first, under that name or a free "name N" one, and is trashed from
+      --  there. If the trash then refuses it and it cannot go back to the
+      --  stage, it stays there -- in its own folder, not lost.
+      function Natively (Entry_Path, Original : String) return Mutation_Result is
+         Ignored   : Files.Types.UString;
+         Directory : constant String := Ada.Directories.Containing_Directory (Original);
+         Leaf      : constant String := Ada.Directories.Simple_Name (Original);
+         Dot       : constant Natural := Ada.Strings.Fixed.Index (Leaf, ".", Ada.Strings.Backward);
+         Stem      : constant String := (if Dot > Leaf'First then Leaf (Leaf'First .. Dot - 1) else Leaf);
+         Extension : constant String := (if Dot > Leaf'First then Leaf (Dot .. Leaf'Last) else "");
+      begin
+         for Attempt in 1 .. 99 loop
+            declare
+               Beside : constant String :=
+                 Join_Path
+                   (Directory,
+                    (if Attempt = 1 then Leaf
+                     else Stem & " " & Files.Types.Natural_Text (Attempt) & Extension));
+            begin
+               if Support.Move_No_Replace (Entry_Path, Beside) then
+                  declare
+                     Trashed : constant Mutation_Result := Move_To_Trash (Beside, Ignored);
+                  begin
+                     if Trashed.Success or else not Support.Move_No_Replace (Beside, Entry_Path) then
+                        return (Success => True, Error_Key => Null_Unbounded_String);
+                     end if;
+                     return Trashed;
+                  end;
+               end if;
+            end;
+         end loop;
+         return Move_To_Trash (Entry_Path, Ignored);
+      end Natively;
+
       function To_Trash (Entry_Path, Original : String) return Mutation_Result is
          Ignored : Files.Types.UString;
       begin
+         if Original /= ""
+           and then Trash_Backend_Of_Current_Environment in Trash_Windows_Recycle_Bin | Trash_Macos_Native
+         then
+            return Natively (Entry_Path, Original);
+         end if;
          return Move_To_Trash (Entry_Path, Ignored, Recorded_Path => Original);
       end To_Trash;
    begin

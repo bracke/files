@@ -61,9 +61,12 @@ is
    --  occupied target; a failed second hop restores the original name when
    --  it remains free, otherwise it retains the owned entry at the scratch name.
    function Rename_Case_Only return Mutation_Result is
+      --  Short and beside the original: a suffix on its own name would
+      --  pass the name length limit for a long name and refuse the hop.
       function Temp_Candidate (Index : Natural) return String is
-        (From_Path & ".files-case-rename-"
-         & Files.Types.Natural_Text (Index));
+        (Join_Path
+           (Ada.Directories.Containing_Directory (From_Path),
+            ".files-case-rename-" & Files.Types.Natural_Text (Index)));
 
       Temp : Unbounded_String := Null_Unbounded_String;
    begin

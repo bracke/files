@@ -1,3 +1,4 @@
+with Ada.Unchecked_Deallocation;
 with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Extract_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -89,6 +90,68 @@ separate (Files_Suite.Operations)
         (Files.Archive_Writing.Extraction_Is_Within_Limits
            (Catalogue, 1_000, True, 100, True),
          "expansion-limit arithmetic saturates instead of overflowing");
+
+      --  Each resource cap refuses an archive just past it and accepts one
+      --  at it, so it is the cap that decides and not some other check.
+      declare
+         use type Interfaces.Unsigned_64;
+         type Catalogue_Access is access Zlib.Archive_Entry_Array;
+         GiB    : constant Interfaces.Unsigned_64 := 1024 * 1024 * 1024;
+         Plenty : constant Long_Long_Integer := Long_Long_Integer'Last / 2;
+         One    : Zlib.Archive_Entry_Array (1 .. 1);
+
+         function Fits (Entries : Zlib.Archive_Entry_Array; Space_Known : Boolean := True) return Boolean is
+           (Files.Archive_Writing.Extraction_Is_Within_Limits
+              (Entries, (if Space_Known then Plenty else 0), Space_Known, Plenty, True));
+
+         procedure Free is new Ada.Unchecked_Deallocation (Zlib.Archive_Entry_Array, Catalogue_Access);
+
+         --  Count small entries, each named in Name_Bytes bytes.
+         procedure Expect (Count : Positive; Name_Bytes : Positive; Accepted : Boolean; What : String) is
+            Entries : Catalogue_Access := new Zlib.Archive_Entry_Array (1 .. Count);
+         begin
+            for Index in Entries'Range loop
+               declare
+                  Number : constant String := Ada.Strings.Fixed.Trim (Index'Image, Ada.Strings.Left);
+               begin
+                  Entries (Index).Name :=
+                    To_Unbounded_String
+                      (Number & "-" & (1 .. Integer'Max (1, Name_Bytes - Number'Length - 1) => 'a'));
+                  Entries (Index).Uncompressed_Size := 1;
+                  Entries (Index).Compressed_Size := 1;
+               end;
+            end loop;
+            Assert (Fits (Entries.all) = Accepted, What);
+            Free (Entries);
+         exception
+            when others =>
+               Free (Entries);
+               raise;
+         end Expect;
+      begin
+         --  Expansion: 4 GiB plus 10,000 times what is compressed.
+         One (1).Name := To_Unbounded_String ("bomb.bin");
+         One (1).Compressed_Size := 1;
+         One (1).Uncompressed_Size := 4 * GiB + 10_000;
+         Assert (Fits (One), "a member expanding to exactly the expansion limit is accepted");
+         One (1).Uncompressed_Size := 4 * GiB + 10_001;
+         Assert (not Fits (One), "a member expanding one byte past the expansion limit is refused");
+
+         --  Unknown free space: at most 256 GiB, however well it compresses.
+         One (1).Compressed_Size := 1024 * GiB;
+         One (1).Uncompressed_Size := 256 * GiB;
+         Assert (Fits (One, Space_Known => False), "256 GiB is accepted where free space is unknown");
+         One (1).Uncompressed_Size := 256 * GiB + 1;
+         Assert (not Fits (One, Space_Known => False), "more than 256 GiB is refused where free space is unknown");
+
+         --  At most 100,000 entries.
+         Expect (100_000, 1, True, "100,000 entries are accepted");
+         Expect (100_001, 1, False, "100,001 entries are refused");
+
+         --  At most 64 MiB of entry names in all.
+         Expect (1_000, 64 * 1024, True, "62.5 MiB of names are accepted");
+         Expect (1_100, 64 * 1024, False, "more than 64 MiB of names are refused");
+      end;
 
       --  Name checks, per destination: every unsafe shape is refused, a
       --  DOS-rules volume refuses names Windows cannot store, and on a

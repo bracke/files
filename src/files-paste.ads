@@ -106,7 +106,9 @@ package Files.Paste is
    --  @param Existing Full destination paths known to exist.
    --  @param Fold_Names Whether the destination folds case
    --    (Hostkit.Fs.Folds_Name_Case): two items whose names differ only in
-   --    case then claim one destination, and the second is renamed.
+   --    case then claim one destination, and the second is renamed; a
+   --    replace keeps the existing entry's spelling (the first Existing
+   --    path that folds equal), so its original comes back under it.
    --  @return One resolved action per work item, in order.
    function Resolve
      (Items     : Work_Item_Vectors.Vector;

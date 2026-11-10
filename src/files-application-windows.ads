@@ -233,6 +233,10 @@ private
       Pending_Left_Clicks : Natural := 0;
       Pending_Left_Releases : Natural := 0;
       Pending_Right_Clicks : Natural := 0;
+      --  Where the right button last went down: a right-click is hit-tested
+      --  there, not wherever the cursor is when the window gets to it.
+      Right_Press_X : Glfw.Input.Mouse.Coordinate := 0.0;
+      Right_Press_Y : Glfw.Input.Mouse.Coordinate := 0.0;
       Last_Mouse_X : Glfw.Input.Mouse.Coordinate := 0.0;
       Last_Mouse_Y : Glfw.Input.Mouse.Coordinate := 0.0;
       Drag_Start_X : Glfw.Input.Mouse.Coordinate := 0.0;
@@ -414,6 +418,9 @@ private
       --  whether it began a drag of the whole selection.
       Deferred_Click_Pending : Boolean := False;
       Deferred_Click         : Files.Events.Input_Action;
+      --  The deferred click's item, found again by path at release: a
+      --  refresh in between can move it to another row or remove it.
+      Deferred_Click_Path    : Ada.Strings.Unbounded.Unbounded_String;
       Deferred_Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       --  Monotonic time of the last grid type-ahead keystroke; the event loop clears
       --  the pending prefix once this is older than Type_Ahead_Timeout so a fresh

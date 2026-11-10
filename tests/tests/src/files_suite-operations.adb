@@ -234,6 +234,7 @@ package body Files_Suite.Operations is
    procedure Test_Copy_Timestamps (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_Source_Changes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_Source_Changes_Off_Volume (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Move_Keeps_Source_Until_Copy_Synced (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Metadata_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Live_Metadata_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transfer_Result_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -372,6 +373,7 @@ package body Files_Suite.Operations is
    procedure Test_Background_Folder_Size_Matches_Reference
      (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Folder_Size_Batches_And_Hand_Over (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Folder_Size_Survives_Faults (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Folder_Size_Multi_Selection
      (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Selection_Total_Counts_Folders
@@ -885,6 +887,9 @@ package body Files_Suite.Operations is
         (T, Test_Folder_Size_Batches_And_Hand_Over'Access,
          "folder sizes for more than one helper's worth: each once, a kept helper, a paced hand-over");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Folder_Size_Survives_Faults'Access,
+         "folder sizes are answered through refused launches and late results");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Folder_Size_Multi_Selection'Access,
          "a multi-item selection caches each selected folder's recursive size");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1154,6 +1159,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Move_Source_Changes_Off_Volume'Access,
          "a folder moved off another volume keeps its source when a child changes during the copy, on FAT too");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Move_Keeps_Source_Until_Copy_Synced'Access,
+         "cross-device moves remove the source only after the copy is synced");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Metadata_History_Identity'Access, "metadata Undo and Redo refuse unrelated replacements");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1572,6 +1580,8 @@ package body Files_Suite.Operations is
 
    procedure Test_Move_Source_Changes_Off_Volume (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Move_Keeps_Source_Until_Copy_Synced (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Metadata_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Live_Metadata_History (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -1659,6 +1669,8 @@ package body Files_Suite.Operations is
    --  synchronous Directory_Size for a subtree within the entry/depth guards.
    procedure Test_Background_Folder_Size_Matches_Reference (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Folder_Size_Batches_And_Hand_Over (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Folder_Size_Survives_Faults (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    --  A multi-item selection measures every selected directory: each folder's
    --  recursive size is cached under its own path so the info pane can show a

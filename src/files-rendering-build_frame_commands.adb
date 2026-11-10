@@ -475,16 +475,30 @@ separate (Files.Rendering)
          Point_Y  : Natural)
          return Boolean renames Contains_Rectangle_Point;
 
+      --  How many tooltips were registered before the folder-tree panel was
+      --  drawn over the main view: those do not answer where it covers them.
+      Under_Tree_Panel : Natural := 0;
+
       function Tooltip_At
         (Point_X : Natural;
          Point_Y : Natural)
          return UString
       is
+         On_Tree_Panel : constant Boolean :=
+           Under_Tree_Panel > 0
+           and then Contains_Point
+             (Tree_Panel.X, Tree_Panel.Y, Tree_Panel.Width, Tree_Panel.Height, Point_X, Point_Y);
       begin
-         for Command of Result.Tooltips loop
-            if Contains_Point (Command.X, Command.Y, Command.Width, Command.Height, Point_X, Point_Y) then
-               return Command.Text;
-            end if;
+         for Index in Result.Tooltips.First_Index .. Result.Tooltips.Last_Index loop
+            declare
+               Command : Tooltip_Command renames Result.Tooltips (Index);
+            begin
+               if not (On_Tree_Panel and then Index <= Under_Tree_Panel)
+                 and then Contains_Point (Command.X, Command.Y, Command.Width, Command.Height, Point_X, Point_Y)
+               then
+                  return Command.Text;
+               end if;
+            end;
          end loop;
 
          return Null_Unbounded_String;
@@ -924,6 +938,9 @@ separate (Files.Rendering)
       --  The ordinary folder tree is persistent rather than modal. Draw it
       --  before transient overlays so Quick Look, label/root/sort menus, and
       --  dialogs cover it in the same order in which they own input.
+      if Snapshot.Tree_Panel_Open then
+         Under_Tree_Panel := Natural (Result.Tooltips.Length);
+      end if;
       Draw_Overlay_Commands (Persistent_Overlay_Phase);
 
       --  Popups and modal panels own the pointer while they are open.  Drop

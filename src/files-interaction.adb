@@ -122,11 +122,14 @@ package body Files.Interaction is
    is
       Selected : constant Files.Items.Item_Vectors.Vector :=
         Files.Model.Selected_Items (Model);
+      Paths    : Files.Settings.String_Vectors.Vector;
       Updated  : Files.Settings.Settings_Model := Settings;
    begin
+      Paths.Reserve_Capacity (Selected.Length);
       for Item of Selected loop
-         Files.Settings.Set_Label (Updated, To_String (Item.Full_Path), Label);
+         Paths.Append (Item.Full_Path);
       end loop;
+      Files.Settings.Set_Labels (Updated, Paths, Label);
       Files.Model.Close_Label_Picker (Model);
       Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted => Result.Settings_Changed);
    end Apply_Label;

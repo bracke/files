@@ -432,6 +432,18 @@ package Files.Settings is
       Path     : String;
       Label    : Files.Types.Color_Label);
 
+   --  Set_Label for each of Paths, in one pass over the stored labels: the
+   --  same result as calling it per path, without a search of every label
+   --  per path (labelling a large selection was quadratic).
+   --
+   --  @param Settings Settings model updated in place.
+   --  @param Paths Full item or folder paths to label.
+   --  @param Label Color label to assign, or No_Label to clear.
+   procedure Set_Labels
+     (Settings : in out Settings_Model;
+      Paths    : String_Vectors.Vector;
+      Label    : Files.Types.Color_Label);
+
    --  Path-keyed color labels, as indexed by Index_Paths.
    package Path_Label_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,

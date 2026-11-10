@@ -425,6 +425,8 @@ package body Files.Application.Windows is
          if State = Glfw.Input.Pressed then
             Object.Pending_Right_Clicks :=
               Natural'Min (Object.Pending_Right_Clicks + 1, 8);
+            Object.Right_Press_X := Object.Last_Mouse_X;
+            Object.Right_Press_Y := Object.Last_Mouse_Y;
          end if;
          return;
       elsif Button /= Glfw.Input.Mouse.Left_Button then

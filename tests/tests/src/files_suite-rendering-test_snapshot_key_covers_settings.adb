@@ -108,6 +108,10 @@ separate (Files_Suite.Rendering)
             Snapshot_Moved : constant Boolean := Build_Snapshot (Model, Settings) /= Base_View;
             Key_Moved      : constant Boolean := not Files.Settings.Same_Snapshot_Settings (Settings, Base_Key);
          begin
+            --  The comparison is done in place; it must agree with the key.
+            Assert
+              (Key_Moved = Files.Settings."/=" (Files.Settings.Snapshot_Settings_Key_Of (Settings), Base_Key),
+               "comparing in place agrees with comparing keys for " & Field'Image);
             Assert
               (Key_Moved or else not Snapshot_Moved,
                "changing " & Field'Image & " changes the view snapshot but not its settings key,"

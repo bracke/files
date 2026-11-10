@@ -8,6 +8,24 @@
 --  layer call these; the renderer itself never needs them.
 package Files.Rendering.Hit is
 
+   --  Whether a window coordinate is on the main view where it shows: the
+   --  folder-tree panel is drawn over the view's left part, and a point on
+   --  it belongs to the panel, not to the item or column header beneath.
+   --
+   --  @param Snapshot Snapshot the layout was calculated from.
+   --  @param Layout Layout returned by Calculate_Layout.
+   --  @param X Window X coordinate.
+   --  @param Y Window Y coordinate.
+   --  @param Line_Height Current line height.
+   --  @return True inside the main view and outside an open tree panel.
+   function On_Main_View
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      X           : Natural;
+      Y           : Natural;
+      Line_Height : Positive := Files.UI.Base_Line_Height)
+      return Boolean;
+
    --  Return the row index at a window coordinate, or zero when outside.
    --
    --  @param Menu Layout returned by Calculate_Context_Menu_Layout.

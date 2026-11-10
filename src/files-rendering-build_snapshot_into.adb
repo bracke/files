@@ -272,7 +272,9 @@ separate (Files.Rendering)
             return Result;
          end Build_Cut_Set;
 
-         Cut_Paths : constant Cut_Path_Sets.Set := Build_Cut_Set;
+         --  Built only when rows are built: a selection-only patch reuses
+         --  the rows and needs neither this nor Paths below.
+         Cut_Paths : Cut_Path_Sets.Set;
 
          function Is_Cut_Pending (Full_Path : Ada.Strings.Unbounded.Unbounded_String)
            return Boolean is
@@ -281,7 +283,7 @@ separate (Files.Rendering)
          end Is_Cut_Pending;
          --  Favorites and labels hashed by path once: each item asks both, and
          --  a scan of the two lists per item made a rebuild O(items x labels).
-         Paths : constant Files.Settings.Path_Index := Files.Settings.Index_Paths (Settings);
+         Paths : Files.Settings.Path_Index;
 
          --  Rename fields by item index, read once: searching the fields per
          --  row made renaming a whole large folder quadratic.
@@ -374,6 +376,8 @@ separate (Files.Rendering)
          if Keep_Rows then
             Reuse_Rows;
          else
+            Cut_Paths := Build_Cut_Set;
+            Paths := Files.Settings.Index_Paths (Settings);
             Files.Model.For_Each_Rename_Field (Model, Note_Rename'Access);
             Snapshot.Items.Reserve_Capacity (Ada.Containers.Count_Type (Snapshot.Visible_Count) + 1);
             Files.Model.For_Each_Visible_Row (Model, Add_Row'Access);

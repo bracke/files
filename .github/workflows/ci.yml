@@ -190,7 +190,7 @@ jobs:
           clone_at textrender 0a6721cb4239e581518c0d312bb7085e5b1ff402
           clone_at zlib 56d3b4fab7bb749f04952c5ec118aab0ef0787b8
           clone_at guikit fa391c33fb33a8e1e2b473fb77eea513d56bacd5
-          clone_at hostkit 53c182520a0fb87e8c16442c93e779fd1cb04842
+          clone_at hostkit c6349303015a86948165e8a2431a2c9917745386
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
@@ -294,6 +294,8 @@ jobs:
         run: alr --non-interactive build
 
       - name: Headless render smoke (all platforms)
+        # A hang fails this step with its name, not the whole job at 75 minutes.
+        timeout-minutes: 10
         # Runs the SHIPPED app binary's headless render path on every OS:
         # snapshot -> frame commands -> text/glyph batching, with no window or
         # GPU. This validates the cross-platform render pipeline end-to-end on
@@ -336,6 +338,7 @@ jobs:
           fi
 
       - name: Install and smoke-test packaged artifacts
+        timeout-minutes: 15
         shell: bash
         working-directory: files
         env:
@@ -596,6 +599,7 @@ jobs:
           fi
 
       - name: Live GPU smoke (Linux, software Vulkan)
+        timeout-minutes: 15
         # Exercises the full GLFW + Vulkan render path headlessly under Xvfb with
         # the Mesa lavapipe software ICD, then structurally analyses the read-back
         # framebuffer. The job provisions both a display and software Vulkan,
@@ -801,6 +805,7 @@ jobs:
           echo "files carried out and announced a screen reader's selection"
 
       - name: Live GPU smoke (Windows and macOS, software Vulkan)
+        timeout-minutes: 30
         # The live smoke on the other hosts, with Mesa's lavapipe software
         # Vulkan driver: from MSYS2 on Windows, from Homebrew on macOS. The
         # Intel macOS runner has no Metal device, and MoltenVK aborts without

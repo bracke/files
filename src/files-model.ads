@@ -2460,8 +2460,10 @@ package Files.Model is
    --  already verified against the filesystem: the redo stack is retired (a
    --  new operation invalidates any pending redo) and, when Action keeps any
    --  From path, Action is pushed and the oldest entries past the depth cap
-   --  are retired. Retired recovery payloads and the journal save are queued
-   --  for Take_Retired_History; nothing touches the filesystem here.
+   --  are retired. Redo payloads are queued for deletion; payloads of entries
+   --  past the cap, and of an Action that records nothing, are queued for
+   --  release to the system trash. Both, and the journal save, wait for
+   --  Take_Retired_History; nothing touches the filesystem here.
    --
    --  @param Model  Model whose history is updated.
    --  @param Action Verified entry; an empty From records nothing.
@@ -3222,6 +3224,8 @@ private
       Visible_Cache_Valid : Boolean := False;
       Visible_Items       : Natural_Vectors.Vector;
       Item_Visible_Rows   : Natural_Vectors.Vector;
+      --  Hidden items among all loaded ones, counted with the map.
+      Hidden_Items        : Natural := 0;
       --  Moved by scrolling alone (Scroll_Revision), apart from Revision:
       --  a scroll changes three numbers of the snapshot, not its items.
       Scroll_Revision_Value : Natural := 0;

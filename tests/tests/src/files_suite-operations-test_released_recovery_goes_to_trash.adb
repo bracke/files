@@ -31,6 +31,10 @@ separate (Files_Suite.Operations)
       Result := Files.File_System.Release_Recovery_Payload (To_String (Backup));
       Assert (not Result.Success and then Files.File_System.Is_Recovery_Payload (To_String (Backup)),
               "a release the trash refuses leaves the payload recoverable");
+      --  A native trash records where an item was trashed from, so the
+      --  release trashes it from beside its original; refused, it goes back.
+      Assert (not Ada.Directories.Exists (Dest),
+              "a refused native release takes the original back from beside its old place");
 
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);

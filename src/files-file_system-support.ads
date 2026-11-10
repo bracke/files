@@ -17,6 +17,18 @@ private package Files.File_System.Support is
    procedure For_Each_Entry
      (Path : String; Visit : not null access procedure (Name : String));
 
+   --  Put a just-published copy on the storage device: every regular file
+   --  and directory in it (links are not followed), then the folder that
+   --  holds it. A move removes its source only after this, so a crash of the
+   --  machine cannot leave neither the source nor a whole copy. The source,
+   --  not the copy, is listed to find the entries: listing a folder sets its
+   --  access time, and the copy's are the source's, kept.
+   --  @param Source What was copied, still in place.
+   --  @param Destination Its published copy.
+   --  @return False when any sync failed; a host that cannot sync
+   --    directories (Not_Supported) does not count as a failure.
+   function Sync_Copy (Source, Destination : String) return Boolean;
+
    --  End a directory search, swallowing any exception and doing nothing when
    --  it was never started; Started is reset to False.
    --

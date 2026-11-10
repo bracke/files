@@ -61,6 +61,7 @@ package body Files_Suite.Model is
    procedure Test_Accent_Folding_Sort (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_History_Bounds (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_History_Retire_Drain (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Recent_View_Has_No_Volume (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_History_Restore_Admission (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Directory_Projection_Settings (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Executable_And_Symlink_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -127,6 +128,9 @@ package body Files_Suite.Model is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_History_Retire_Drain'Access,
          "a model history mutation leaves retired payloads on disk until the operations layer settles it");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Recent_View_Has_No_Volume'Access,
+         "the recent view has no volume space");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_History_Restore_Admission'Access,
          "restored history filters malformed actions while retaining retryable snapshots");
@@ -255,6 +259,8 @@ package body Files_Suite.Model is
    procedure Test_History_Bounds (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_History_Retire_Drain (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Recent_View_Has_No_Volume (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_History_Restore_Admission
      (T : in out AUnit.Test_Cases.Test_Case'Class)

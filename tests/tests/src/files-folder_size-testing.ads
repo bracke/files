@@ -9,4 +9,9 @@ package Files.Folder_Size.Testing is
    --  @return How many folders its running helper was given.
    function Batch_Length (Scan : Session) return Natural;
 
+   --  Make the next Count result reads fail as a result that will not open
+   --  yet does (on Windows, a just-published file can refuse its lease).
+   --  @param Count How many reads fail; 0 ends the fault.
+   procedure Fail_Result_Reads (Count : Natural);
+
 end Files.Folder_Size.Testing;

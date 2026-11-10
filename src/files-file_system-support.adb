@@ -15,6 +15,7 @@ with Files.File_Identities;
 with Files.Io_Errors;
 with CryptoLib.Hashes;
 
+with Hostkit.Durability;
 with Hostkit.Metadata;
 with Hostkit.Regular_Files;
 with Files.Path_Checks;
@@ -46,6 +47,43 @@ package body Files.File_System.Support is
    use type Ada.Directories.File_Kind;
    use type Hostkit.Fs.Move_Outcome;
    use type Interfaces.Unsigned_64;
+
+   function Sync_Copy (Source, Destination : String) return Boolean is
+      use type Hostkit.Durability.Outcome;
+      Synced : Boolean := True;
+
+      procedure Sync (From, To : String) is
+         procedure Visit (Name : String) is
+         begin
+            if Synced then
+               Sync (Join_Path (From, Name), Join_Path (To, Name));
+            end if;
+         end Visit;
+      begin
+         --  Something the source gained after it was copied is not in the
+         --  copy: the move's own check of the source refuses it next.
+         if Hostkit.Fs.Is_Link (To) or else not Files.Fs_Primitives.Entry_Exists (To) then
+            return;
+         elsif Ada.Directories.Kind (To) = Ada.Directories.Directory then
+            if not Hostkit.Fs.Is_Link (From) then
+               For_Each_Entry (From, Visit'Access);
+            end if;
+            Synced := Synced
+              and then Hostkit.Durability.Sync_Directory (To) /= Hostkit.Durability.Failed;
+         elsif Ada.Directories.Kind (To) = Ada.Directories.Ordinary_File then
+            Synced := Hostkit.Durability.Sync_File (To) /= Hostkit.Durability.Failed;
+         end if;
+      end Sync;
+   begin
+      Sync (Source, Destination);
+      return Synced
+        and then Hostkit.Durability.Sync_Directory (Ada.Directories.Containing_Directory (Destination)) /=
+          Hostkit.Durability.Failed;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
+         return False;
+   end Sync_Copy;
 
    procedure For_Each_Entry
      (Path : String; Visit : not null access procedure (Name : String))

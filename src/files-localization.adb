@@ -244,77 +244,88 @@ package body Files.Localization is
       return "en";
    end Resolve_System_Locale;
 
-   function System_Time_Locale return String is
-      LC_All  : constant String := Environment_Locale ("LC_ALL");
-      LC_Time : constant String := Environment_Locale ("LC_TIME");
-      Lang    : constant String := Environment_Locale ("LANG");
-   begin
-      if LC_All /= "" then
-         return LC_All;
-      elsif LC_Time /= "" then
-         return LC_Time;
-      elsif Lang /= "" and then not Environment_Portable_Locale ("LANG") then
-         return Lang;
-      end if;
+   --  The date or the number category's locale, worked out once for the
+   --  environment it was worked out from: it is asked per formatted date or
+   --  size, and where the variables do not decide it the desktop's
+   --  configuration files are read.
+   type Locale_Category is (Time_Category, Number_Category);
 
-      --  Only now read the desktop's configuration files: the variables above
-      --  usually decide, and this is asked per formatted date or size.
-      declare
-         Config : constant String := Configured_Category_Locale ("LC_TIME");
+   type Category_Memo is record
+      Valid    : Boolean := False;
+      LC_All   : Unbounded_String;
+      Category : Unbounded_String;
+      Lang     : Unbounded_String;
+      Home     : Unbounded_String;
+      Value    : Unbounded_String;
+   end record;
+
+   Category_Memos : array (Locale_Category) of Category_Memo;
+
+   function System_Category_Locale (Category : Locale_Category) return String is
+      Category_Key : constant String :=
+        (case Category is
+            when Time_Category   => "LC_TIME",
+            when Number_Category => "LC_NUMERIC");
+      Raw_LC_All   : constant String := Files.Environment.Value ("LC_ALL");
+      Raw_Category : constant String := Files.Environment.Value (Category_Key);
+      Raw_Lang     : constant String := Files.Environment.Value ("LANG");
+      Raw_Home     : constant String := Files.Environment.Value ("HOME");
+      Memo         : Category_Memo renames Category_Memos (Category);
+
+      function Resolve return String is
+         LC_All  : constant String := Environment_Locale ("LC_ALL");
+         Of_Kind : constant String := Environment_Locale (Category_Key);
+         Lang    : constant String := Environment_Locale ("LANG");
       begin
-         if Config /= "" then
-            return Config;
-         elsif Lang /= "" then
+         if LC_All /= "" then
+            return LC_All;
+         elsif Of_Kind /= "" then
+            return Of_Kind;
+         elsif Lang /= "" and then not Environment_Portable_Locale ("LANG") then
             return Lang;
          end if;
-      end;
 
-      declare
-         Native : constant String := Native_System_Locale;
-      begin
-         if Native /= "" then
-            return Native;
-         end if;
-      end;
+         declare
+            Config : constant String := Configured_Category_Locale (Category_Key);
+         begin
+            if Config /= "" then
+               return Config;
+            elsif Lang /= "" then
+               return Lang;
+            end if;
+         end;
 
-      return "en";
-   end System_Time_Locale;
+         declare
+            Native : constant String := Native_System_Locale;
+         begin
+            if Native /= "" then
+               return Native;
+            end if;
+         end;
 
-   function System_Number_Locale return String is
-      LC_All     : constant String := Environment_Locale ("LC_ALL");
-      LC_Numeric : constant String := Environment_Locale ("LC_NUMERIC");
-      Lang       : constant String := Environment_Locale ("LANG");
+         return "en";
+      end Resolve;
    begin
-      if LC_All /= "" then
-         return LC_All;
-      elsif LC_Numeric /= "" then
-         return LC_Numeric;
-      elsif Lang /= "" and then not Environment_Portable_Locale ("LANG") then
-         return Lang;
+      if not Memo.Valid
+        or else Memo.LC_All /= Raw_LC_All
+        or else Memo.Category /= Raw_Category
+        or else Memo.Lang /= Raw_Lang
+        or else Memo.Home /= Raw_Home
+      then
+         Memo :=
+           (Valid    => True,
+            LC_All   => To_Unbounded_String (Raw_LC_All),
+            Category => To_Unbounded_String (Raw_Category),
+            Lang     => To_Unbounded_String (Raw_Lang),
+            Home     => To_Unbounded_String (Raw_Home),
+            Value    => To_Unbounded_String (Resolve));
       end if;
+      return To_String (Memo.Value);
+   end System_Category_Locale;
 
-      --  Only now read the desktop's configuration files: the variables above
-      --  usually decide, and this is asked per formatted date or size.
-      declare
-         Config : constant String := Configured_Category_Locale ("LC_NUMERIC");
-      begin
-         if Config /= "" then
-            return Config;
-         elsif Lang /= "" then
-            return Lang;
-         end if;
-      end;
+   function System_Time_Locale return String is (System_Category_Locale (Time_Category));
 
-      declare
-         Native : constant String := Native_System_Locale;
-      begin
-         if Native /= "" then
-            return Native;
-         end if;
-      end;
-
-      return "en";
-   end System_Number_Locale;
+   function System_Number_Locale return String is (System_Category_Locale (Number_Category));
 
    function Environment_Locale (Name : String) return String is
    begin

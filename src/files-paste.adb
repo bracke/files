@@ -1,3 +1,4 @@
+with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
@@ -23,6 +24,12 @@ package body Files.Paste is
      (Element_Type        => String,
       Hash                => Ada.Strings.Hash,
       Equivalent_Elements => "=");
+
+   package Spelling_Maps is new Ada.Containers.Indefinite_Hashed_Maps
+     (Key_Type        => String,
+      Element_Type    => String,
+      Hash            => Ada.Strings.Hash,
+      Equivalent_Keys => "=");
 
    function To_Set
      (Paths : Files.Types.String_Vectors.Vector)
@@ -166,8 +173,31 @@ package body Files.Paste is
          return Result;
       end Key_Set;
 
+      --  Where names fold, the existing entry's own spelling for each key:
+      --  the first listed, as later Existing paths may be incoming aliases.
+      function Spellings return Spelling_Maps.Map is
+         Result : Spelling_Maps.Map;
+      begin
+         if Fold_Names then
+            for Path of Existing loop
+               if not Result.Contains (Key (To_String (Path))) then
+                  Result.Insert (Key (To_String (Path)), To_String (Path));
+               end if;
+            end loop;
+         end if;
+         return Result;
+      end Spellings;
+
       Actions : Resolved_Action_Vectors.Vector;
       Existing_Set : constant Path_Sets.Set := Key_Set;
+      Existing_Spelling : constant Spelling_Maps.Map := Spellings;
+
+      --  A replace writes over the existing entry under its own name, as a
+      --  folding filesystem keeps it: Report.txt over report.txt stays
+      --  report.txt, and Undo puts the original back under that name.
+      function Replace_Target (Desired : String) return String is
+        (if Existing_Spelling.Contains (Key (Desired))
+         then Existing_Spelling.Element (Key (Desired)) else Desired);
       --  Destinations already assigned earlier in this batch; a second item that
       --  would resolve to the same path is uniquified so it cannot clobber the
       --  first even before either is written to disk.
@@ -214,7 +244,7 @@ package body Files.Paste is
                           (Item.Source_Path,
                            Unique_Path (Dir, Name, Existing_Set, Claimed, Fold_Names), False);
                      else
-                        Emit_Write (Item.Source_Path, Desired, True);
+                        Emit_Write (Item.Source_Path, Replace_Target (Desired), True);
                      end if;
                   when Decision_Rename =>
                      Emit_Write

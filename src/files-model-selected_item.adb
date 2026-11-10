@@ -8,18 +8,7 @@ begin
    if Selected_Count (Model) = 0 then
       return Files.File_System.Make_Item ("", "", Files.Types.Unknown_Item);
    elsif Item_Index = Temporary_Item_Index then
-      if Model.Temporary_Is_Directory then
-         return Files.File_System.Make_Item
-           (Parent_Path => Current_Path (Model),
-            Name        => To_String (Model.Temporary_Name_Value),
-            Kind        => Files.Types.Directory_Item);
-      else
-         return Files.File_System.Make_Item
-           (Parent_Path => Current_Path (Model),
-            Name        => To_String (Model.Temporary_Name_Value),
-            Kind        => Files.Types.Regular_File_Item,
-            Filetype    => "text/plain");
-      end if;
+      return Support.Temporary_Item (Model);
    end if;
 
    return Model.Items.Element (Positive (Item_Index));

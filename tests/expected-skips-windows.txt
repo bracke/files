@@ -39,3 +39,4 @@ Test_Trash_Refuses_Volume_Trash: Windows has no freedesktop volume trash
 Test_Trash_Source_Verification: the trash fault hooks utimensat in Linux-only C
 Test_Unreadable_Hardlink_History: needs native POSIX mode bits
 Test_Volume_Trash: Windows has no freedesktop volume trash
+Test_Move_Keeps_Source_Until_Copy_Synced: the sync fault hooks fsync in Linux-only C

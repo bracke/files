@@ -16,17 +16,7 @@ begin
 
    if Temporary_Is_Visible (Model) then
       Visit
-        ((if Model.Temporary_Is_Directory then
-             Files.File_System.Make_Item
-               (Parent_Path => Current_Path (Model),
-                Name        => To_String (Model.Temporary_Name_Value),
-                Kind        => Files.Types.Directory_Item)
-          else
-             Files.File_System.Make_Item
-               (Parent_Path => Current_Path (Model),
-                Name        => To_String (Model.Temporary_Name_Value),
-                Kind        => Files.Types.Regular_File_Item,
-                Filetype    => "text/plain")),
+        (Support.Temporary_Item (Model),
          0,
          Selection_Contains (Model, Temporary_Item_Index));
    end if;

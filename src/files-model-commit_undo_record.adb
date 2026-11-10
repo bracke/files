@@ -18,13 +18,20 @@ begin
    Touch (Model);
    Model.History_Journal_Dirty := True;
    if Action.From.Is_Empty then
+      --  Nothing to record, but originals a replace preserved must not stay
+      --  in hidden stages with no way back: they go to the system trash.
+      for Payload of Action.Restore_Trash loop
+         Model.Retired_Releases.Append (Payload);
+      end loop;
       return False;
    end if;
 
    Model.Undo_Stack.Append (Action);
    while Natural (Model.Undo_Stack.Length) > Max_Undo_Depth loop
+      --  The dropped entry could still have been undone, so the originals it
+      --  holds go to the system trash, as on window close, not to deletion.
       for Payload of Model.Undo_Stack.First_Element.Restore_Trash loop
-         Model.Retired_Discards.Append (Payload);
+         Model.Retired_Releases.Append (Payload);
       end loop;
       Model.Undo_Stack.Delete_First;
    end loop;

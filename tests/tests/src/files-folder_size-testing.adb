@@ -9,4 +9,9 @@ package body Files.Folder_Size.Testing is
 
    function Batch_Length (Scan : Session) return Natural is (Natural (Scan.Batch.Length));
 
+   procedure Fail_Result_Reads (Count : Natural) is
+   begin
+      Test_Unreadable_Results := Count;
+   end Fail_Result_Reads;
+
 end Files.Folder_Size.Testing;

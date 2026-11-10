@@ -2230,6 +2230,10 @@ procedure Check_All is
    --  the path being written and was overwritten mid-write. State belongs in
    --  the subprogram, or in a protected object.
    procedure Check_Shared_Package_State is
+      package Name_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+        (Element_Type => String, Hash => Ada.Strings.Hash, Equivalent_Elements => "=");
+      Checked : Name_Sets.Set;
+
       procedure Check (Path : String) is
          Code  : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
          Start : Positive := Code'First;
@@ -2285,6 +2289,7 @@ procedure Check_All is
             Ada.Directories.Get_Next_Entry (Search, Item);
             Found := True;
             Check (Ada.Directories.Full_Name (Item));
+            Checked.Include (Ada.Directories.Simple_Name (Item));
          end loop;
          Ada.Directories.End_Search (Search);
          if not Found then
@@ -2304,6 +2309,44 @@ procedure Check_All is
       Check_All ("files-file_system-*_token.adb");
       Check_All ("files-file_system-count_text_lines.adb");
       Check_All ("files-file_system-text_encoding_name.adb");
+      --  Its worker runs a tree walk on a large stack while the caller waits.
+      Check_All ("files-file_system-support.adb");
+
+      --  Every unit that runs a task of its own is checked above, or says
+      --  here why its package-level variables are not shared with the task.
+      declare
+         Search : Ada.Directories.Search_Type;
+         Item   : Ada.Directories.Directory_Entry_Type;
+         Main_Thread_State : constant Name_Sets.Set :=
+           Name_Sets.Union
+             --  Reaper is set and read by Ensure_Reaper and Shutdown only, on
+             --  the thread that starts jobs; the reaper task touches neither.
+             (Name_Sets.To_Set ("files-process_jobs.adb"),
+              --  The monitor task reads the report label from a protected
+              --  object and the report folder from the environment; the
+              --  package's report variables are Scavenge's and Clean_Report's.
+              Name_Sets.To_Set ("files-job_scavenger.adb"));
+      begin
+         Ada.Directories.Start_Search
+           (Search, Root & "/src", "*.adb", [Ada.Directories.Ordinary_File => True, others => False]);
+         while Ada.Directories.More_Entries (Search) loop
+            Ada.Directories.Get_Next_Entry (Search, Item);
+            if Ada.Strings.Fixed.Index
+                 (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Ada.Directories.Full_Name (Item)))),
+                  "task body") > 0
+              and then not Checked.Contains (Ada.Directories.Simple_Name (Item))
+              and then not Main_Thread_State.Contains (Ada.Directories.Simple_Name (Item))
+            then
+               Put_Line
+                 (Standard_Error,
+                  "src/" & Ada.Directories.Simple_Name (Item) & " runs a task: add it to Check_Shared_Package_State,"
+                  & " or say there why its package state is not shared");
+               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+               raise Program_Error;
+            end if;
+         end loop;
+         Ada.Directories.End_Search (Search);
+      end;
    end Check_Shared_Package_State;
 
    --  A timer that subtracts from the clock (Clock - Since) overflows when
@@ -2769,16 +2812,55 @@ procedure Check_All is
                            Append (Body_Of, ASCII.LF & Lines (Below));
                         end loop;
                         declare
-                           Statements : constant String := Ada.Characters.Handling.To_Lower (To_String (Body_Of));
+                           --  Code only, lower case, and without pragma
+                           --  Unreferenced, which names an occurrence to say
+                           --  it is not used.
+                           function Without_Unreferenced (Text : String) return String is
+                              At_Pragma : constant Natural := Ada.Strings.Fixed.Index (Text, "pragma unreferenced");
+                              Stop      : Natural;
+                           begin
+                              if At_Pragma = 0 then
+                                 return Text;
+                              end if;
+                              Stop := Ada.Strings.Fixed.Index (Text (At_Pragma .. Text'Last), ";");
+                              if Stop = 0 then
+                                 Stop := Text'Last;
+                              end if;
+                              return Text (Text'First .. At_Pragma - 1)
+                                & Without_Unreferenced (Text (Stop + 1 .. Text'Last));
+                           end Without_Unreferenced;
+                           Statements : constant String :=
+                             Without_Unreferenced
+                               (Ada.Characters.Handling.To_Lower (Code_Of (To_String (Body_Of))));
+
+                           --  Word as a whole identifier: "raise" is not in
+                           --  "raised", nor an occurrence E in "false".
+                           function Has_Word (Word : String) return Boolean is
+                              function Part_Of_Name (C : Character) return Boolean is
+                                (Ada.Characters.Handling.Is_Alphanumeric (C) or else C = '_');
+                              From : Positive := Statements'First;
+                              At_Word : Natural;
+                           begin
+                              loop
+                                 At_Word := Ada.Strings.Fixed.Index (Statements (From .. Statements'Last), Word);
+                                 exit when At_Word = 0;
+                                 if (At_Word = Statements'First or else not Part_Of_Name (Statements (At_Word - 1)))
+                                   and then (At_Word + Word'Length > Statements'Last
+                                             or else not Part_Of_Name (Statements (At_Word + Word'Length)))
+                                 then
+                                    return True;
+                                 end if;
+                                 From := At_Word + 1;
+                              end loop;
+                              return False;
+                           end Has_Word;
                         begin
-                           if Ada.Strings.Fixed.Index (Statements, "raise") = 0
-                             and then Ada.Strings.Fixed.Index (Statements, "reraise_occurrence") = 0
+                           if not Has_Word ("raise")
+                             and then not Has_Word ("reraise_occurrence")
                            then
                               if Name = "" then
                                  Refuse (Number, "a 'when others' handler carries on without noting what it caught");
-                              elsif Ada.Strings.Fixed.Index
-                                      (Statements, Ada.Characters.Handling.To_Lower (Name)) = 0
-                              then
+                              elsif not Has_Word (Ada.Characters.Handling.To_Lower (Name)) then
                                  Refuse (Number, "a handler names " & Name & " and carries on without using it");
                               end if;
                            end if;
@@ -3311,6 +3393,18 @@ procedure Check_All is
          Require_Not_Contains_In_Unit
            (Root & "/src/files-model.adb", To_String (Pattern),
             "the model holds overlay state; Files.Overlays draws and localizes it (" & To_String (Pattern) & ")");
+         --  The specs too: a with clause there reaches every model body,
+         --  which could then use the unit by a name this check never sees.
+         Ada.Directories.Start_Search
+           (Search, Root & "/src", "files-model*.ads", [Ada.Directories.Ordinary_File => True, others => False]);
+         while Ada.Directories.More_Entries (Search) loop
+            Ada.Directories.Get_Next_Entry (Search, Item);
+            Require_Not_Contains
+              (Ada.Directories.Full_Name (Item), To_String (Pattern),
+               "the model holds overlay state; Files.Overlays draws and localizes it (" & To_String (Pattern)
+               & ", " & Ada.Directories.Simple_Name (Item) & ")");
+         end loop;
+         Ada.Directories.End_Search (Search);
       end loop;
    end Check_Command_And_Overlay_Layers;
 
@@ -3865,6 +3959,9 @@ procedure Check_All is
          Search  : Ada.Directories.Search_Type;
          Item    : Ada.Directories.Directory_Entry_Type;
          Started : Boolean := False;
+         Stateful_Overlay_Units : constant Project_Tools.Ada_Source.String_List :=
+           [To_Unbounded_String ("Guikit.Command_Palette"),
+            To_Unbounded_String ("Guikit.Settings_Panel")];
          Family_Allowed : constant Project_Tools.Ada_Source.String_List :=
            [To_Unbounded_String ("Files.Accessibility"),
             To_Unbounded_String ("Files.Breadcrumbs"),
@@ -3893,6 +3990,11 @@ procedure Check_All is
          while Ada.Directories.More_Entries (Search) loop
             Ada.Directories.Get_Next_Entry (Search, Item);
             Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), "Files.", Family_Allowed);
+            --  The stateful overlays render at the window layer (CLAUDE.md):
+            --  their state cannot pass through the immutable snapshot.
+            for Unit of Stateful_Overlay_Units loop
+               Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), To_String (Unit), No_Units);
+            end loop;
             for Unit of Filesystem_Units loop
                Require_Only_Allowed_With_Clauses (Ada.Directories.Full_Name (Item), To_String (Unit), No_Units);
             end loop;
@@ -3902,6 +4004,10 @@ procedure Check_All is
          --  one spelling of a with clause, this one parses them.
          for Suffix in 1 .. 2 loop
             for Unit of Filesystem_Units loop
+               Require_Only_Allowed_With_Clauses
+                 (Root & "/src/files-rendering.ad" & (if Suffix = 1 then "s" else "b"), To_String (Unit), No_Units);
+            end loop;
+            for Unit of Stateful_Overlay_Units loop
                Require_Only_Allowed_With_Clauses
                  (Root & "/src/files-rendering.ad" & (if Suffix = 1 then "s" else "b"), To_String (Unit), No_Units);
             end loop;
@@ -3967,6 +4073,29 @@ procedure Check_All is
          "procedure Decode_Next_Codepoint" & ASCII.LF
          & "           (Content   : String;",
          "text glyph rendering must not keep a local UTF-8 decoder");
+
+      --  The biggest bodies may shrink but not grow (CLAUDE.md: keep
+      --  files-rendering.adb from regrowing): a new large subprogram goes
+      --  into a subunit of its own. Lower a ceiling when a file shrinks.
+      declare
+         procedure Require_At_Most (Name : String; Lines : Positive) is
+            Text  : constant String := To_String (Project_Tools.Text.Read_Text_File (Root & "/src/" & Name));
+            Count : constant Natural := Ada.Strings.Fixed.Count (Text, [1 => ASCII.LF]);
+         begin
+            if Count > Lines then
+               Put_Line
+                 (Standard_Error,
+                  Name & " has" & Count'Image & " lines, over its ceiling of" & Lines'Image
+                  & ": move the new code into a subunit");
+               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+               raise Program_Error;
+            end if;
+         end Require_At_Most;
+      begin
+         Require_At_Most ("files-rendering.adb", 1_594);
+         Require_At_Most ("files-rendering-build_frame_commands.adb", 963);
+         Require_At_Most ("files-application-windows.adb", 2_025);
+      end;
    end Check_Rendering_Architecture;
 
    procedure Check_Icon_Assets is
@@ -4880,13 +5009,13 @@ procedure Check_All is
    begin
       --  The floors are the counts as of the last change to a suite, so a
       --  lost test fails here; raise a floor when a suite grows.
-      Require_Tests ("settings", 34);
+      Require_Tests ("settings", 35);
       Require_Tests ("startup", 29);
       Require_Tests ("commands", 38);
-      Require_Tests ("model", 53);
+      Require_Tests ("model", 54);
       Require_Tests ("interaction", 77);
       Require_Tests ("rendering", 94);
-      Require_Tests ("operations", 275);
+      Require_Tests ("operations", 277);
    end Check_Test_Subsystem_Coverage;
 
 begin

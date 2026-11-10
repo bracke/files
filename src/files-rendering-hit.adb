@@ -152,6 +152,29 @@ package body Files.Rendering.Hit is
       then Files.Commands.Sort_Command (Detail_Column_Sorts (Column).Field)
       else Files.Commands.No_Command);
 
+   function On_Main_View
+     (Snapshot    : View_Snapshot;
+      Layout      : Layout_Metrics;
+      X           : Natural;
+      Y           : Natural;
+      Line_Height : Positive := Files.UI.Base_Line_Height)
+      return Boolean
+   is
+   begin
+      if not Contains_Rectangle_Point
+        (Layout.Main_X, Layout.Main_Y, Layout.Main_Width, Layout.Main_Height, X, Y)
+      then
+         return False;
+      elsif not Snapshot.Tree_Panel_Open then
+         return True;
+      end if;
+      declare
+         Tree : constant Tree_Panel_Layout := Calculate_Tree_Panel_Layout (Snapshot, Layout, Line_Height);
+      begin
+         return not Contains_Rectangle_Point (Tree.X, Tree.Y, Tree.Width, Tree.Height, X, Y);
+      end;
+   end On_Main_View;
+
    function Details_Header_Cell_At
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;

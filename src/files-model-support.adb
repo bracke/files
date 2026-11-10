@@ -53,7 +53,15 @@ package body Files.Model.Support is
       Cache.Visible_Items.Clear;
       Cache.Item_Visible_Rows.Clear;
       Cache.Item_Visible_Rows.Reserve_Capacity (Model.Items.Length);
+      Cache.Hidden_Items := 0;
       for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
+         declare
+            Item : Files.Items.Directory_Item renames Model.Items (Index);
+         begin
+            if Item.Hidden or else (Length (Item.Name) > 0 and then Element (Item.Name, 1) = '.') then
+               Cache.Hidden_Items := Cache.Hidden_Items + 1;
+            end if;
+         end;
          if Item_Is_Visible (Model, Model.Items (Index)) then
             Seen := Seen + 1;
             Cache.Visible_Items.Append (Index);
@@ -315,6 +323,18 @@ package body Files.Model.Support is
    begin
       return Model.Temporary_Active;
    end Temporary_Is_Visible;
+
+   function Temporary_Item (Model : Window_Model) return Files.Items.Directory_Item is
+     (if Model.Temporary_Is_Directory
+      then Files.File_System.Make_Item
+        (Parent_Path => Current_Path (Model),
+         Name        => To_String (Model.Temporary_Name_Value),
+         Kind        => Files.Types.Directory_Item)
+      else Files.File_System.Make_Item
+        (Parent_Path => Current_Path (Model),
+         Name        => To_String (Model.Temporary_Name_Value),
+         Kind        => Files.Types.Regular_File_Item,
+         Filetype    => "text/plain"));
 
    function Visible_To_Item_Index
      (Model         : Window_Model;

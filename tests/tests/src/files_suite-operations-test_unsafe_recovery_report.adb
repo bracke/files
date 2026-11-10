@@ -54,6 +54,17 @@ separate (Files_Suite.Operations)
          Result : Hostkit.Process.Process_Outcome;
       begin
          Arguments.Append (To_Unbounded_String (Files.Helper_Modes.Flag (Files.Helper_Modes.Scavenge)));
+         --  The in-process run above already reported; start the child from
+         --  no report, so what is found after it is the child's.
+         declare
+            Signal : constant String :=
+              Join (Ada.Environment_Variables.Value ("FILES_RECOVERY_REPORT_DIR", ""), "unsafe");
+         begin
+            if Ada.Directories.Exists (Signal) then
+               Ada.Directories.Delete_File (Signal);
+            end if;
+         end;
+         Assert (not Files.Job_Scavenger.Has_Unrecoverable, "no report is left before the child runs");
          Result := Hostkit.Process.Run_Captured
            (Hostkit.Fs.Own_Executable, Arguments,
             Stderr_Path => Errors, Timeout_Ms => 10_000);

@@ -7,7 +7,7 @@ separate (Files_Suite.Rendering)
    procedure Test_Snapshot_Slots_Track_The_Model (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Files.Snapshot_Slots.Snapshot_Slot;
-      Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
+      Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
       Items    : Files.Items.Item_Vectors.Vector;
       View     : Files.Snapshot_Slots.View_Slots;
@@ -39,6 +39,22 @@ separate (Files_Suite.Rendering)
       procedure Filter is begin Files.Model.Set_Filter (Model, "1"); end Filter;
       procedure Unfilter is begin Files.Model.Clear_Filter (Model); end Unfilter;
       procedure Resort is begin Files.Model.Select_Sort_Field (Model, Files.Types.Sort_Size); end Resort;
+      --  Settings the rows do not show (the space bar, a column's width),
+      --  and ones they do (extensions, a label): the slots must follow both.
+      procedure Space_Bar is begin Settings.Show_Space_Bar := not Settings.Show_Space_Bar; end Space_Bar;
+      procedure Widen is
+      begin
+         Settings.Column_Widths (Files.Types.Size_Column) := Settings.Column_Widths (Files.Types.Size_Column) + 7;
+      end Widen;
+      procedure Extensions is
+      begin
+         Settings.Show_File_Extensions := not Settings.Show_File_Extensions;
+      end Extensions;
+      procedure Label is
+      begin
+         Files.Settings.Set_Label
+           (Settings, To_String (Files.Model.Visible_Item (Model, 2).Full_Path), Files.Types.Green);
+      end Label;
    begin
       for I in 1 .. 60 loop
          Items.Append
@@ -64,6 +80,14 @@ separate (Files_Suite.Rendering)
             Step (Mode & "filter cleared", Unfilter'Access, Draw);
             Step (Mode & "sorted", Resort'Access, Draw);
             Step (Mode & "selected after the sort", Pick'Access, Draw);
+            Step (Mode & "space bar toggled", Space_Bar'Access, Draw);
+            Step (Mode & "selected after it", Pick_Other'Access, Draw);
+            Step (Mode & "a column widened", Widen'Access, Draw);
+            Step (Mode & "extensions toggled", Extensions'Access, Draw);
+            Step (Mode & "selected after that", Pick'Access, Draw);
+            Step (Mode & "an item labelled", Label'Access, Draw);
+            Step (Mode & "scrolled after the label", Scroll_Down'Access, Draw);
+            Step (Mode & "selected after the label", Pick_Other'Access, Draw);
          end;
       end loop;
    end Test_Snapshot_Slots_Track_The_Model;

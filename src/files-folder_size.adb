@@ -255,6 +255,10 @@ package body Files.Folder_Size is
             exit when not Ada.Directories.Exists (Name);
             for Attempt in 1 .. (if Finished then 5 else 1) loop
                begin
+                  if Test_Unreadable_Results > 0 then
+                     Test_Unreadable_Results := Test_Unreadable_Results - 1;
+                     raise Ada.Directories.Use_Error;
+                  end if;
                   Result := Read_Result (Name);
                   Read := True;
                   exit;
@@ -284,6 +288,12 @@ package body Files.Folder_Size is
       Finished, Cancelled : Boolean;
    begin
       if not Files.Process_Jobs.Active (Scan.Job) then
+         --  A batch whose helper could not start was answered unmeasured;
+         --  the directories after it still wait for one. A launch that keeps
+         --  failing answers a batch per step, so they all get an answer.
+         if not Scan.Targets.Is_Empty then
+            Start_Next (Scan);
+         end if;
          return;
       end if;
       Files.Process_Jobs.Poll (Scan.Job, Finished, Cancelled);

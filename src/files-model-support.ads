@@ -151,6 +151,13 @@ private package Files.Model.Support is
    --  @return True when the temporary row passes the filter.
    function Temporary_Is_Visible (Model : Window_Model) return Boolean;
 
+   --  The temporary create-item row's item: a folder, or a plain-text file,
+   --  named as typed so far, in the current folder.
+   --
+   --  @param Model Model whose pending create to describe.
+   --  @return The item the row shows.
+   function Temporary_Item (Model : Window_Model) return Files.Items.Directory_Item;
+
    --  Map a 1-based visible-row index to its item-list index (accounting for
    --  the filter and the temporary row); zero when the row has no backing item.
    --

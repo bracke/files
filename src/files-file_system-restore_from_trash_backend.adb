@@ -92,10 +92,13 @@ begin
                     (Success   => False,
                      Error_Key => Files.Io_Errors.Error_Key ("error.trash.restore_failed"));
             end;
-            --  The restore is done; the trash copy is now redundant. If it
-            --  cannot be removed, its info file stays with it, so it is
-            --  still listed in the trash rather than hidden there for good.
-            if not Delete_Permanently (Trashed_Path).Success then
+            --  The restore is done; the trash copy is now redundant once the
+            --  restored copy is on the device. If it cannot be synced or
+            --  removed, its info file stays with it, so it is still listed in
+            --  the trash rather than hidden there for good.
+            if not Support.Sync_Copy (Trashed_Path, To_String (Original))
+              or else not Delete_Permanently (Trashed_Path).Success
+            then
                return (Success => True, Error_Key => Null_Unbounded_String);
             end if;
          end if;

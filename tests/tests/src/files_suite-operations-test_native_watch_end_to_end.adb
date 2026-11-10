@@ -27,7 +27,9 @@ separate (Files_Suite.Operations)
          null;
       end loop;
       Write_Binary_File (Join (Folder, "new.txt"), "new");
-      for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Launch_Limit)) loop
+      --  Waits for an event take the ordinary limit, not the launch one: a
+      --  host whose helper re-reads the folder hears it a second or more late.
+      for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Files_Suite.Support.Scaled (Poll_Limit))) loop
          Noticed := Files.Refresh_Jobs.Poll_Watch (Watch);
          exit when Noticed;
       end loop;
@@ -42,7 +44,7 @@ separate (Files_Suite.Operations)
          use type Ada.Real_Time.Time_Span;
          Quiet_Since : Files_Suite.Support.Instant := Files_Suite.Support.Now;
       begin
-         for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Launch_Limit)) loop
+         for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Files_Suite.Support.Scaled (Poll_Limit))) loop
             if Files.Refresh_Jobs.Poll_Watch (Watch) then
                Quiet_Since := Files_Suite.Support.Now;
             end if;
@@ -53,7 +55,7 @@ separate (Files_Suite.Operations)
       end;
       Write_Binary_File (Join (Folder, "new.txt"), "new, and grown");
       Noticed := False;
-      for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Launch_Limit)) loop
+      for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Files_Suite.Support.Scaled (Poll_Limit))) loop
          Noticed := Files.Refresh_Jobs.Poll_Watch (Watch);
          exit when Noticed;
       end loop;

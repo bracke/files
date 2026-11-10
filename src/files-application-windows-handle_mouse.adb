@@ -25,8 +25,10 @@ separate (Files.Application.Windows)
       while Runtime.Handle.Pending_Right_Clicks > 0 loop
          Runtime.Handle.Pending_Right_Clicks := Runtime.Handle.Pending_Right_Clicks - 1;
          declare
-            X        : constant Natural := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
-            Y        : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
+            Press_X  : constant Glfw.Input.Mouse.Coordinate := Runtime.Handle.Right_Press_X;
+            Press_Y  : constant Glfw.Input.Mouse.Coordinate := Runtime.Handle.Right_Press_Y;
+            X        : constant Natural := Scale_Coordinate (Press_X, Window_W, Frame_W);
+            Y        : constant Natural := Scale_Coordinate (Press_Y, Window_H, Frame_H);
             Slot     : constant Snapshot_Slot := Hit_Slot (Runtime);
             Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Slot);
             Layout   : constant Files.Rendering.Layout_Metrics :=
@@ -36,22 +38,25 @@ separate (Files.Application.Windows)
             Item_Layout : constant Files.Rendering.Item_Layout_Vectors.Vector :=
               Files.Rendering.Calculate_Item_Layout
                 (Snapshot, Layout, Cell_Height_For (Runtime.Font_Pixel_Size));
+            --  Not where the folder-tree panel covers the view: a click on
+            --  it must not reach the item or column header hidden beneath.
             In_Main : constant Boolean :=
-              X >= Layout.Main_X and then X < Layout.Main_X + Layout.Main_Width
-              and then Y >= Layout.Main_Y and then Y < Layout.Main_Y + Layout.Main_Height;
+              Files.Rendering.Hit.On_Main_View
+                (Snapshot, Layout, X, Y, Cell_Height_For (Runtime.Font_Pixel_Size));
             Item_Index : constant Natural :=
               (if In_Main
                then Current_Item_Index (Runtime, Slot, Files.Rendering.Hit.Item_At (Item_Layout, X, Y))
                else 0);
             In_Details_Header : constant Boolean :=
-              Files.Rendering.Hit.Details_Header_Cell_At
+              In_Main
+              and then Files.Rendering.Hit.Details_Header_Cell_At
                 (Snapshot, Layout, X, Y, Cell_Height_For (Runtime.Font_Pixel_Size)).Present;
             Result : Files.Interaction.Interaction_Result;
          begin
             --  Scale_Coordinate deliberately returns the framebuffer extent for
             --  a cursor on/beyond the bottom or right edge. Such a coordinate
             --  names no pixel and must not close or replace a context menu.
-            if Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H)
+            if Cursor_Is_Inside_Window (Press_X, Press_Y, Window_W, Window_H)
               and then Frame_W > 0 and then Frame_H > 0
               and then X < Natural (Frame_W) and then Y < Natural (Frame_H)
             then
@@ -165,6 +170,7 @@ separate (Files.Application.Windows)
                --  (or, with Ctrl, toggles it).
                Runtime.Deferred_Click_Pending := True;
                Runtime.Deferred_Click := Action;
+               Runtime.Deferred_Click_Path := To_Unbounded_String (Path);
                Runtime.Deferred_Modifiers := Modifiers;
             else
                Dispatch_Click_Action (Runtime, Action, Modifiers);
@@ -194,7 +200,17 @@ separate (Files.Application.Windows)
          end if;
 
          if Runtime.Deferred_Click_Pending and then not Runtime.Handle.Drag_Moved then
-            Dispatch_Click_Action (Runtime, Runtime.Deferred_Click, Runtime.Deferred_Modifiers);
+            declare
+               Index : constant Natural :=
+                 Files.Model.Visible_Index_Of (Runtime.Model, To_String (Runtime.Deferred_Click_Path));
+               Click : Files.Events.Input_Action := Runtime.Deferred_Click;
+            begin
+               --  Gone since the press: the click has nothing left to act on.
+               if Index > 0 then
+                  Click.Item_Index := Index;
+                  Dispatch_Click_Action (Runtime, Click, Runtime.Deferred_Modifiers);
+               end if;
+            end;
          end if;
          Runtime.Deferred_Click_Pending := False;
          Runtime.Drag_Source_Index := 0;

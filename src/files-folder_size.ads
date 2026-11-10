@@ -99,6 +99,10 @@ private
    --  The most directories one helper measures.
    Max_Batch : constant := 256;
 
+   --  Test seam: this many result reads fail as a result that will not open
+   --  yet does. Read and written only by the thread that steps sessions.
+   Test_Unreadable_Results : Natural := 0;
+
    type Session is record
       Job : Files.Process_Jobs.Session;
       --  The running helper's directories, in its order, and the index of

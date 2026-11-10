@@ -562,6 +562,13 @@ package body Files.File_System.Recovery is
          Saved : constant Mutation_Result := Preserve (Path, Backup);
       begin
          if not Saved.Success then
+            --  A Preserve that could not put the source back leaves Backup
+            --  naming the stage that now holds it: the copy must stay.
+            Set_Aside := Length (Backup) > 0;
+            if Set_Aside then
+               return
+                 (Success => False, Error_Key => To_Unbounded_String ("error.move.source_set_aside"));
+            end if;
             return Saved;
          end if;
       end;
@@ -645,6 +652,10 @@ package body Files.File_System.Recovery is
            (Source, Destination, Identity, Revision, Cancel, Shape.Times,
             Preserve_Ownership => True, Batch => Batch, Root_Digest => Digest'Access);
          Copied := True;
+         --  The source goes next; the copy must be on the device first.
+         if not Support.Sync_Copy (Source, Destination) then
+            raise Ada.Directories.Use_Error;
+         end if;
          declare
             Expected : constant Support.Source_Snapshot :=
               (if Weak_Change_Time then Shape else Support.With_Root_Content (Shape, To_String (Digest)));
