@@ -149,8 +149,11 @@ separate (Files.Rendering)
               Palette.Height);
       end Hidden_By_Command_Palette;
 
-      procedure Add_Rect
-        (X      : Natural;
+      --  One rectangle into Target, clipped to the window; nothing when
+      --  none of it is inside.
+      procedure Append_Rect
+        (Target : in out Rectangle_Command_Vectors.Vector;
+         X      : Natural;
          Y      : Natural;
          Rect_W : Natural;
          Rect_H : Natural;
@@ -160,14 +163,14 @@ separate (Files.Rendering)
          Draw_H : constant Natural := Clipped_Size (Y, Rect_H, Layout.Height);
       begin
          if Draw_W > 0 and then Draw_H > 0 then
-            Result.Rectangles.Append
-              (Rectangle_Command'
-                 (X      => X,
-                  Y      => Y,
-                  Width  => Draw_W,
-                  Height => Draw_H,
-                  Color  => Color));
+            Target.Append
+              (Rectangle_Command'(X => X, Y => Y, Width => Draw_W, Height => Draw_H, Color => Color));
          end if;
+      end Append_Rect;
+
+      procedure Add_Rect (X, Y, Rect_W, Rect_H : Natural; Color : Render_Color) is
+      begin
+         Append_Rect (Result.Rectangles, X, Y, Rect_W, Rect_H, Color);
       end Add_Rect;
 
       procedure Add_Triangle
@@ -293,25 +296,9 @@ separate (Files.Rendering)
          end loop;
       end Add_Star_Outline;
 
-      procedure Add_Overlay_Rect
-        (X      : Natural;
-         Y      : Natural;
-         Rect_W : Natural;
-         Rect_H : Natural;
-         Color  : Render_Color)
-      is
-         Draw_W : constant Natural := Clipped_Size (X, Rect_W, Layout.Width);
-         Draw_H : constant Natural := Clipped_Size (Y, Rect_H, Layout.Height);
+      procedure Add_Overlay_Rect (X, Y, Rect_W, Rect_H : Natural; Color : Render_Color) is
       begin
-         if Draw_W > 0 and then Draw_H > 0 then
-            Result.Overlay_Rectangles.Append
-              (Rectangle_Command'
-                 (X      => X,
-                  Y      => Y,
-                  Width  => Draw_W,
-                  Height => Draw_H,
-                  Color  => Color));
-         end if;
+         Append_Rect (Result.Overlay_Rectangles, X, Y, Rect_W, Rect_H, Color);
       end Add_Overlay_Rect;
 
       --  The item name as displayed in the grid. With Show_Extensions off, a
@@ -327,6 +314,22 @@ separate (Files.Rendering)
          return UString
  is separate;
 
+      --  One text command into Target, its box clipped to the window and
+      --  its text fitted to the box when Fit says so.
+      procedure Append_Text
+        (Target : in out Text_Command_Vectors.Vector;
+         X      : Natural;
+         Y      : Natural;
+         Text_W : Natural;
+         Text_H : Natural;
+         Text   : UString;
+         Color  : Render_Color;
+         Fit    : Boolean;
+         Scale_To_Box : Boolean;
+         Italic : Boolean)
+ is separate;
+
+      --  Main-layer text, unless the settings pane or the palette covers it.
       procedure Add_Text
         (X      : Natural;
          Y      : Natural;
@@ -336,8 +339,16 @@ separate (Files.Rendering)
          Color  : Render_Color := Text_Color;
          Fit    : Boolean := False;
          Scale_To_Box : Boolean := False;
-         Italic : Boolean := False)
- is separate;
+         Italic : Boolean := False) is
+      begin
+         if not Hidden_By_Settings_Pane (X, Y, Clipped_Size (X, Text_W, Layout.Width),
+                                         Clipped_Size (Y, Text_H, Layout.Height))
+           and then not Hidden_By_Command_Palette (X, Y, Clipped_Size (X, Text_W, Layout.Width),
+                                                   Clipped_Size (Y, Text_H, Layout.Height))
+         then
+            Append_Text (Result.Text, X, Y, Text_W, Text_H, Text, Color, Fit, Scale_To_Box, Italic);
+         end if;
+      end Add_Text;
 
       procedure Add_Overlay_Text
         (X      : Natural;
@@ -347,30 +358,10 @@ separate (Files.Rendering)
          Text   : UString;
          Color  : Render_Color := Text_Color;
          Fit    : Boolean := False;
-         Italic : Boolean := False)
- is separate;
-
-      procedure Add_Tooltip
-        (X        : Natural;
-         Y        : Natural;
-         Tip_W    : Natural;
-         Tip_H    : Natural;
-         Text_Key : String)
-      is
-         Text : constant String := Files.Localization.Text (Text_Key);
-         Draw_W : constant Natural := Clipped_Size (X, Tip_W, Layout.Width);
-         Draw_H : constant Natural := Clipped_Size (Y, Tip_H, Layout.Height);
+         Italic : Boolean := False) is
       begin
-         if Draw_W > 0 and then Draw_H > 0 and then Text'Length > 0 then
-            Result.Tooltips.Append
-              (Tooltip_Command'
-                 (X      => X,
-                  Y      => Y,
-                  Width  => Draw_W,
-                  Height => Draw_H,
-                  Text   => To_Unbounded_String (Text)));
-         end if;
-      end Add_Tooltip;
+         Append_Text (Result.Overlay_Text, X, Y, Text_W, Text_H, Text, Color, Fit, False, Italic);
+      end Add_Overlay_Text;
 
       procedure Add_Tooltip_Text
         (X        : Natural;
@@ -414,6 +405,11 @@ separate (Files.Rendering)
                   Text   => Text));
          end if;
       end Add_Tooltip_Text;
+
+      procedure Add_Tooltip (X, Y, Tip_W, Tip_H : Natural; Text_Key : String) is
+      begin
+         Add_Tooltip_Text (X, Y, Tip_W, Tip_H, To_Unbounded_String (Files.Localization.Text (Text_Key)));
+      end Add_Tooltip;
 
       procedure Add_Accessibility_Node
         (Role        : Accessibility_Role;

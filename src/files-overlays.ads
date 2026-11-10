@@ -8,16 +8,22 @@ with Files.Model;
 --  model itself draws nothing and localizes nothing for them.
 package Files.Overlays is
 
+   --  Where an overlay is drawn: its region, the window it is clipped to,
+   --  and the row height.
+   type Overlay_Region is record
+      X           : Natural := 0;
+      Y           : Natural := 0;
+      Width       : Natural := 0;
+      Height      : Natural := 0;
+      Clip_Width  : Natural := 0;
+      Clip_Height : Natural := 0;
+      Line_Height : Positive := 1;
+   end record;
+
    --  Draw the command palette within a region.
    --
    --  @param Model Model whose palette to draw (its layout cache updates).
-   --  @param Region_X Left edge of the palette region in pixels.
-   --  @param Region_Y Top edge of the palette region in pixels.
-   --  @param Region_Width Palette region width in pixels.
-   --  @param Region_Height Palette region height in pixels.
-   --  @param Clip_Width Drawable window width in pixels.
-   --  @param Clip_Height Drawable window height in pixels.
-   --  @param Line_Height Row height in pixels.
+   --  @param Region Where the overlay is drawn, and the window it is clipped to.
    --  @param Focused Whether the search box has keyboard focus.
    --  @param Rectangles Out: rectangle commands.
    --  @param Text Out: text commands.
@@ -25,13 +31,7 @@ package Files.Overlays is
    --  @param Accessibility Out: accessibility nodes.
    procedure Build_Palette_Frame
      (Model         : in out Files.Model.Window_Model;
-      Region_X      : Natural;
-      Region_Y      : Natural;
-      Region_Width  : Natural;
-      Region_Height : Natural;
-      Clip_Width    : Natural;
-      Clip_Height   : Natural;
-      Line_Height   : Positive;
+      Region        : Overlay_Region;
       Focused       : Boolean;
       Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
       Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
@@ -42,13 +42,7 @@ package Files.Overlays is
    --  model's draft and its texts in the current language.
    --
    --  @param Model Model whose panel to draw (its layout cache updates).
-   --  @param Region_X Left edge of the panel region in pixels.
-   --  @param Region_Y Top edge of the panel region in pixels.
-   --  @param Region_Width Panel region width in pixels.
-   --  @param Region_Height Panel region height in pixels.
-   --  @param Clip_Width Drawable window width in pixels.
-   --  @param Clip_Height Drawable window height in pixels.
-   --  @param Line_Height Row height in pixels.
+   --  @param Region Where the overlay is drawn, and the window it is clipped to.
    --  @param Focused Whether the panel has keyboard focus.
    --  @param Hover_X Cursor X in pixels, or negative when off-window (drives the
    --    tab-switcher hover tooltip).
@@ -58,13 +52,7 @@ package Files.Overlays is
    --  @param Accessibility Out: accessibility nodes.
    procedure Build_Settings_Frame
      (Model         : in out Files.Model.Window_Model;
-      Region_X      : Natural;
-      Region_Y      : Natural;
-      Region_Width  : Natural;
-      Region_Height : Natural;
-      Clip_Width    : Natural;
-      Clip_Height   : Natural;
-      Line_Height   : Positive;
+      Region        : Overlay_Region;
       Focused       : Boolean;
       Hover_X       : Integer := -1;
       Hover_Y       : Integer := -1;

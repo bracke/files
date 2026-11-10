@@ -151,8 +151,10 @@ package Files.Model is
       return Boolean;
 
    --  The transient surfaces that own window input while open. A new overlay
-   --  is added here and to Overlay_Is_Open; every "is an overlay open" query
-   --  reads this list.
+   --  is added here and to Overlay_Is_Open; every model query reads this
+   --  list. The snapshot carries one flag per overlay, so the renderer's
+   --  Files.Rendering.Any_Overlay_Open lists them again: its test walks this
+   --  type and fails until a new overlay is listed there too.
    type Input_Overlay is
      (Settings_Pane_Overlay,
       Command_Palette_Overlay,

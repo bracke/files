@@ -1882,19 +1882,9 @@ package body Files.Model is
    procedure Clear_Edit_State
      (Model : in out Window_Model) is
    begin
-      Support.Touch (Model);
-      Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
-      Reset_Rename_State (Model);
-      Model.Temporary_Active := False;
-      Model.Temporary_Is_Directory := False;
-      Model.Temporary_Name_Value := Null_Unbounded_String;
-      if Model.Selected_Item_Index = Temporary_Item_Index then
-         Model.Selected_Item_Index := 0;
-      end if;
-      Remove_Selected_Index (Model, Temporary_Item_Index);
-      if Model.Focus_Value = Files.Types.Focus_Rename_Input then
-         Model.Focus_Value := Files.Types.Focus_None;
-      end if;
+      --  Ends both: the pending create and any rename (and with it the
+      --  listing revision moves, so a click keyed on it is not stale).
+      Cancel_Create_File (Model);
    end Clear_Edit_State;
 
    procedure Replace_Items

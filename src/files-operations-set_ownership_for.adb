@@ -31,42 +31,12 @@ begin
          return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), Path);
       end if;
 
-      declare
-         Undo_From    : Files.Types.String_Vectors.Vector;
-         Undo_To      : Files.Types.String_Vectors.Vector;
-         Undo_Forward : Files.Types.String_Vectors.Vector;
-         Identities   : Files.Types.String_Vectors.Vector;
-         Old_User_Name : constant String :=
-           Files.File_System.User_Name_For_Id (Old_Uid);
-         Old_Group_Name : constant String :=
-           Files.File_System.Group_Name_For_Id (Old_Gid);
-      begin
-         Identities.Append (Identity);
-         Undo_From.Append (To_Unbounded_String (Path));
-         Undo_To.Append
-           (To_Unbounded_String
-              (Ownership_Text
-                 (Old_Uid, Old_Gid, Old_User_Name, Old_Group_Name)));
-         Undo_Forward.Append
-           (To_Unbounded_String
-              (Ownership_Text
-                 (User_Id, Group_Id, New_User_Name, New_Group_Name)));
-         Record_Undo
-           (Model, Files.Model.Undo_Set_Ownership, Undo_From, Undo_To,
-            Forward => Undo_Forward,
-            Provenance => (Identities => Identities, others => <>));
-      end;
-
-      declare
-         Reload : constant Operation_Result :=
-           Reload_Current_Directory (Model, Settings, Files.Model.Selected_Name (Model));
-      begin
-         if Reload.Status /= Operation_Success then
-            return Reload;
-         end if;
-      end;
-
-      Files.Model.Set_Error (Model, "");
-      return Make_Result (Operation_Success, Path => Path);
+      return Finish_Attribute_Change
+        (Model, Settings, Files.Model.Undo_Set_Ownership, Path, Identity,
+         Old_Text =>
+           Ownership_Text
+             (Old_Uid, Old_Gid,
+              Files.File_System.User_Name_For_Id (Old_Uid), Files.File_System.Group_Name_For_Id (Old_Gid)),
+         New_Text => Ownership_Text (User_Id, Group_Id, New_User_Name, New_Group_Name));
    end;
 end Set_Ownership_For;

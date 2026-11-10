@@ -32,4 +32,11 @@ package Files.Timing is
       Interval : Duration)
       return Boolean;
 
+   --  How long the program waits, at exit, for a worker task to take a stop
+   --  request, and then for it to finish: a stuck task cannot hold the exit
+   --  for longer than about two seconds in all.
+   Stop_Request_Wait  : constant Duration := 0.2;
+   Stop_Poll_Interval : constant Duration := 0.01;
+   Stop_Polls         : constant := 180;
+
 end Files.Timing;

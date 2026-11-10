@@ -1,7 +1,9 @@
+with Hostkit.Errors;
 separate (Files_Suite.Operations)
    procedure Test_Io_Error_Classifier (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use Files.Io_Errors;
+      use all type Hostkit.Errors.Cause;
       Fallback : constant String := "error.copy.failed";
 
       procedure Expect (Code : Integer; Key : String; Name : String) is

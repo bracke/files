@@ -37,8 +37,8 @@ separate (Files_Suite.Interaction)
          Current_Font_Size => Base_Font, Result => Result);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "Ctrl+, opens the settings panel");
       Files.Overlays.Build_Settings_Frame
-        (Model => Model, Region_X => 0, Region_Y => 0, Region_Width => 600, Region_Height => 500,
-         Clip_Width => 600, Clip_Height => 500, Line_Height => 20, Focused => True,
+        (Model => Model, Region => (X => 0, Y => 0, Width => 600, Height => 500,
+                     Clip_Width => 600, Clip_Height => 500, Line_Height => 20), Focused => True,
          Rectangles => Rects, Text => Text, Accessibility => Nodes);
       for Node of Nodes loop
          if Node.Role = Guikit.Draw.Role_Button and then Node.Enabled and then Node.Width > 0 then
@@ -64,8 +64,8 @@ separate (Files_Suite.Interaction)
          Text.Clear;
          Nodes.Clear;
          Files.Overlays.Build_Palette_Frame
-           (Model => Model, Region_X => 0, Region_Y => 0, Region_Width => 600, Region_Height => 500,
-            Clip_Width => 600, Clip_Height => 500, Line_Height => 20, Focused => True,
+           (Model => Model, Region => (X => 0, Y => 0, Width => 600, Height => 500,
+                     Clip_Width => 600, Clip_Height => 500, Line_Height => 20), Focused => True,
             Rectangles => Rects, Text => Text, Icons => Icons, Accessibility => Nodes);
          Found := False;
          for Node of Nodes loop

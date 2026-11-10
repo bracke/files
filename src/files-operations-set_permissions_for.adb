@@ -24,32 +24,9 @@ begin
          return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), Path);
       end if;
 
-      declare
-         Undo_From    : Files.Types.String_Vectors.Vector;
-         Undo_To      : Files.Types.String_Vectors.Vector;
-         Undo_Forward : Files.Types.String_Vectors.Vector;
-         Identities   : Files.Types.String_Vectors.Vector;
-      begin
-         Identities.Append (Identity);
-         Undo_From.Append (To_Unbounded_String (Path));
-         Undo_To.Append (To_Unbounded_String (Files.Undo_Payloads.Mode_Text (Old_Mode)));
-         Undo_Forward.Append (To_Unbounded_String (Files.Undo_Payloads.Mode_Text (New_Mode)));
-         Record_Undo
-           (Model, Files.Model.Undo_Set_Permissions, Undo_From, Undo_To,
-            Forward => Undo_Forward,
-            Provenance => (Identities => Identities, others => <>));
-      end;
-
-      declare
-         Reload : constant Operation_Result :=
-           Reload_Current_Directory (Model, Settings, Files.Model.Selected_Name (Model));
-      begin
-         if Reload.Status /= Operation_Success then
-            return Reload;
-         end if;
-      end;
-
-      Files.Model.Set_Error (Model, "");
-      return Make_Result (Operation_Success, Path => Path);
+      return Finish_Attribute_Change
+        (Model, Settings, Files.Model.Undo_Set_Permissions, Path, Identity,
+         Old_Text => Files.Undo_Payloads.Mode_Text (Old_Mode),
+         New_Text => Files.Undo_Payloads.Mode_Text (New_Mode));
    end;
 end Set_Permissions_For;

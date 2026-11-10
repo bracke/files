@@ -780,17 +780,22 @@ package body Files.File_System is
       return Mutation_Result
    is separate;
 
+   function Create_Link_Of_Kind
+     (Source_Path : String;
+      Link_Path   : String;
+      Hard        : Boolean)
+      return Mutation_Result
+   is separate;
+
    function Create_Symbolic_Link
      (Source_Path : String;
       Link_Path   : String)
-      return Mutation_Result
-   is separate;
+      return Mutation_Result is (Create_Link_Of_Kind (Source_Path, Link_Path, Hard => False));
 
    function Create_Hard_Link
      (Source_Path : String;
       Link_Path   : String)
-      return Mutation_Result
-   is separate;
+      return Mutation_Result is (Create_Link_Of_Kind (Source_Path, Link_Path, Hard => True));
 
    package Id_Name_Maps is new Ada.Containers.Ordered_Maps
      (Key_Type     => Files.Types.Account_Id,

@@ -26,7 +26,6 @@ with Zlib;
 
 with Files.Operations.Support;
 with Ada.Containers;
-with Hostkit.Host;
 with Files.Refresh_Jobs;
 with Files.Diagnostics;
 with Files.Copy_Context;
@@ -482,6 +481,41 @@ package body Files.Operations is
      (Model : Files.Model.Window_Model)
       return Boolean
    is separate;
+
+   --  What a permission or ownership change on Path does once it is made:
+   --  record its undo (Old_Text back, New_Text forward, the file's identity
+   --  as provenance), reload the folder and clear the error.
+   function Finish_Attribute_Change
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Kind     : Files.Model.Undo_Action_Kind;
+      Path     : String;
+      Identity : Files.Types.UString;
+      Old_Text : String;
+      New_Text : String)
+      return Operation_Result
+   is
+      Undo_From, Undo_To, Undo_Forward, Identities : Files.Types.String_Vectors.Vector;
+   begin
+      Identities.Append (Identity);
+      Undo_From.Append (To_Unbounded_String (Path));
+      Undo_To.Append (To_Unbounded_String (Old_Text));
+      Undo_Forward.Append (To_Unbounded_String (New_Text));
+      Record_Undo
+        (Model, Kind, Undo_From, Undo_To,
+         Forward => Undo_Forward,
+         Provenance => (Identities => Identities, others => <>));
+      declare
+         Reload : constant Operation_Result :=
+           Reload_Current_Directory (Model, Settings, Files.Model.Selected_Name (Model));
+      begin
+         if Reload.Status /= Operation_Success then
+            return Reload;
+         end if;
+      end;
+      Files.Model.Set_Error (Model, "");
+      return Make_Result (Operation_Success, Path => Path);
+   end Finish_Attribute_Change;
 
    function Set_Permissions_For
      (Model    : in out Files.Model.Window_Model;

@@ -31,8 +31,8 @@ separate (Files_Suite.Interaction)
             Key => Guikit.Input.Key_Comma, Modifiers => Ctrl,
             Current_Font_Size => Base_Font, Result => Result);
          Files.Overlays.Build_Settings_Frame
-           (Model => Model, Region_X => 0, Region_Y => 0, Region_Width => 600, Region_Height => 500,
-            Clip_Width => 600, Clip_Height => 500, Line_Height => 20, Focused => True,
+           (Model => Model, Region => (X => 0, Y => 0, Width => 600, Height => 500,
+                     Clip_Width => 600, Clip_Height => 500, Line_Height => 20), Focused => True,
             Rectangles => Rects, Text => Text, Accessibility => Nodes);
          Files.Model.Settings_Set_Active_Section (Model, Natural'Last);
          Files.Model.Settings_Begin_Capture (Model);

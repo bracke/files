@@ -1,4 +1,5 @@
 with Files.Types;
+with Hostkit.Errors;
 
 --  Why an operating-system call failed, told as a catalog key.
 --
@@ -21,27 +22,17 @@ package Files.Io_Errors is
    Busy_Key          : constant String := "error.io.busy";
    Name_Too_Long_Key : constant String := "error.io.name_too_long";
 
-   --  The causes told apart. Several share one key: a full disk and a full
-   --  quota both mean there is no room, a refusal and a missing privilege both
-   --  mean the user may not.
-   type Cause is
-     (No_Space,
-      Quota_Exceeded,
-      Permission_Denied,
-      Not_Permitted,
-      Read_Only_Filesystem,
-      Busy,
-      Text_Busy,
-      Name_Too_Long);
+   --  The causes told apart, as Hostkit.Errors names them (its literals are
+   --  the names to use: No_Space, Name_Too_Long ...). Several share
+   --  one key: a full disk and a full quota both mean there is no room, a
+   --  refusal and a missing privilege both mean the user may not.
+   subtype Cause is Hostkit.Errors.Cause;
 
-   --  The errno value this host uses for a cause. They differ between hosts
-   --  (ENAMETOOLONG is 36 on Linux, 63 on macOS, 38 on Windows), and GNAT's
-   --  System.OS_Constants lacks most of them, so the values come from each
-   --  host's errno.h.
+   --  The errno value this host uses for a cause: Hostkit.Errors' table.
    --  @param Item Cause to look up.
    --  @return The host's errno for Item, or zero when the host has none
-   --    (EDQUOT on Windows) or Hostkit has no body for this host.
-   function Host_Code (Item : Cause) return Integer;
+   --    (EDQUOT on Windows) or Hostkit has no table for this host.
+   function Host_Code (Item : Cause) return Integer renames Hostkit.Errors.Code_Of;
 
    --  @param Item Cause to name.
    --  @return The catalog key a user is shown for Item.

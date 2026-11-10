@@ -1,69 +1,17 @@
 with Files.Capped_Files;
+with Files.Images.Netpbm;
 separate (Files.File_System.Thumbnails)
 function Load_Cached_Thumbnail
   (Path : String)
    return Cached_Thumbnail
 is
    Content : Unbounded_String;
-   Token   : Unbounded_String;
-   Cursor  : Positive := 1;
    Result  : Cached_Thumbnail;
 
-   procedure Flush_Token
-     (Tokens : in out Files.Types.String_Vectors.Vector)
-   is
-   begin
-      if Length (Token) > 0 then
-         Tokens.Append (Token);
-         Token := Null_Unbounded_String;
-      end if;
-   end Flush_Token;
-
-   function Tokens return Files.Types.String_Vectors.Vector is
-      Values     : Files.Types.String_Vectors.Vector;
-      In_Comment : Boolean := False;
-   begin
-      for Value of To_String (Content) loop
-         if In_Comment then
-            if Value = ASCII.LF or else Value = ASCII.CR then
-               In_Comment := False;
-            end if;
-         elsif Value = '#' then
-            Flush_Token (Values);
-            In_Comment := True;
-         elsif Value = ' ' or else Value = ASCII.HT or else Value = ASCII.LF or else Value = ASCII.CR then
-            Flush_Token (Values);
-         else
-            Append (Token, Value);
-         end if;
-      end loop;
-
-      Flush_Token (Values);
-      return Values;
-   end Tokens;
-
-   function Natural_Value
-     (Text : String;
-      Value : out Natural)
-      return Boolean
-   is
-   begin
-      Value := 0;
-      if Text = "" then
-         return False;
-      end if;
-
-      for Character_Value of Text loop
-         if Character_Value not in '0' .. '9'
-           or else Value > (Natural'Last - Character'Pos (Character_Value) + Character'Pos ('0')) / 10
-         then
-            return False;
-         end if;
-         Value := Value * 10 + Character'Pos (Character_Value) - Character'Pos ('0');
-      end loop;
-
-      return True;
-   end Natural_Value;
+   function Natural_Value (Text : String; Value : out Natural) return Boolean
+     renames Files.Images.Netpbm.Natural_Of;
+   function Channel (Value : Natural; Max_Value : Natural) return Interfaces.Unsigned_8
+     renames Files.Images.Netpbm.Channel;
 
    --  Keep thumbnail payloads byte-exact; text-oriented readers normalize
    --  line terminators and may decode input, corrupting encoded pixel bytes.
@@ -85,19 +33,6 @@ is
       return To_Unbounded_String (Bytes);
    end Read_Bytes;
 
-   function Channel
-     (Value     : Natural;
-      Max_Value : Natural)
-      return Interfaces.Unsigned_8 is
-   begin
-      if Max_Value = 0 then
-         return 0;
-      elsif Max_Value = 255 then
-         return Interfaces.Unsigned_8 (Natural'Min (Value, 255));
-      else
-         return Interfaces.Unsigned_8 (Natural'Min ((Value * 255) / Max_Value, 255));
-      end if;
-   end Channel;
 begin
    if Path = ""
      or else not Files.Fs_Primitives.File_Exists (Path)
@@ -121,33 +56,13 @@ begin
       Height    : Natural := 0;
       Max_Value : Natural := 0;
 
-      --  One header field: skip blanks and # comments, then take the run of
-      --  non-blank bytes. Leaves At_Byte on the delimiter that ended it.
+      --  One header field; leaves At_Byte on the delimiter that ended it.
       function Header_Field return String is
-         First : Natural;
+         First : Positive;
+         Last  : Natural;
       begin
-         loop
-            while At_Byte <= Raw'Last
-              and then Raw (At_Byte) in ' ' | ASCII.HT | ASCII.LF | ASCII.CR
-            loop
-               At_Byte := At_Byte + 1;
-            end loop;
-            exit when At_Byte > Raw'Last or else Raw (At_Byte) /= '#';
-            if Raw (At_Byte) = '#' then
-               while At_Byte <= Raw'Last and then Raw (At_Byte) /= ASCII.LF loop
-                  At_Byte := At_Byte + 1;
-               end loop;
-            end if;
-         end loop;
-
-         First := At_Byte;
-         while At_Byte <= Raw'Last
-           and then Raw (At_Byte) not in ' ' | ASCII.HT | ASCII.LF | ASCII.CR | '#'
-         loop
-            At_Byte := At_Byte + 1;
-         end loop;
-
-         return Raw (First .. Natural'Min (At_Byte, Raw'Last + 1) - 1);
+         Files.Images.Netpbm.Next_Field (Raw, At_Byte, First, Last);
+         return Raw (First .. Last);
       end Header_Field;
    begin
       if Header_Field = "P6"
@@ -196,57 +111,71 @@ begin
    end if;
 
    declare
-      Values    : constant Files.Types.String_Vectors.Vector := Tokens;
+      Raw       : constant String := To_String (Content);
+      At_Byte   : Positive := Raw'First;
       Width     : Natural;
       Height    : Natural;
       Max_Value : Natural;
+
+      --  The next field as a number; False at the end or for anything else.
+      function Next_Natural (Value : out Natural) return Boolean is
+         First : Positive;
+         Last  : Natural;
+      begin
+         Files.Images.Netpbm.Next_Field (Raw, At_Byte, First, Last);
+         Value := 0;
+         return Last >= First and then Natural_Value (Raw (First .. Last), Value);
+      end Next_Natural;
+
+      function Next_Is (Expected : String) return Boolean is
+         First : Positive;
+         Last  : Natural;
+      begin
+         Files.Images.Netpbm.Next_Field (Raw, At_Byte, First, Last);
+         return Raw (First .. Last) = Expected;
+      end Next_Is;
    begin
-      if Natural (Values.Length) < 4
-        or else To_String (Values.Element (1)) /= "P3"
-        or else not Natural_Value (To_String (Values.Element (2)), Width)
-        or else not Natural_Value (To_String (Values.Element (3)), Height)
-        or else not Natural_Value (To_String (Values.Element (4)), Max_Value)
+      if not Next_Is ("P3")
+        or else not Next_Natural (Width)
+        or else not Next_Natural (Height)
+        or else not Next_Natural (Max_Value)
         or else Width = 0
         or else Height = 0
         or else Max_Value = 0
         or else Max_Value > 65_535
         or else Long_Long_Integer (Width) * Long_Long_Integer (Height)
                   > Long_Long_Integer (Max_Cached_Thumbnail_Pixels)
-        --  Reject headers whose declared pixel count needs more bytes than
-        --  are present, computed without overflowing Integer for adversarial
-        --  dimensions: Width * Height * 3 can exceed Integer'Last, so compare
-        --  in Long_Long_Integer via the division form (equivalent to
-        --  Length < 4 + Width * Height * 3 for the reject decision).
-        or else Long_Long_Integer (Values.Length) - 4
-                  /= Long_Long_Integer (Width) * Long_Long_Integer (Height) * 3
       then
          return Result;
       end if;
 
-      Cursor := 5;
       for Pixel in 1 .. Width * Height loop
          declare
             R : Natural;
             G : Natural;
             B : Natural;
          begin
-            if not Natural_Value (To_String (Values.Element (Cursor)), R)
-              or else not Natural_Value (To_String (Values.Element (Cursor + 1)), G)
-              or else not Natural_Value (To_String (Values.Element (Cursor + 2)), B)
+            if not Next_Natural (R)
+              or else not Next_Natural (G)
+              or else not Next_Natural (B)
               or else R > Max_Value
               or else G > Max_Value
               or else B > Max_Value
             then
-               return Result;
+               return (Loaded => False, Width => 0, Height => 0, Pixels => Files.Types.Byte_Vectors.Empty_Vector);
             end if;
 
             Result.Pixels.Append (Channel (R, Max_Value));
             Result.Pixels.Append (Channel (G, Max_Value));
             Result.Pixels.Append (Channel (B, Max_Value));
             Result.Pixels.Append (255);
-            Cursor := Cursor + 3;
          end;
       end loop;
+
+      --  Exactly the samples the header promised: nothing after them.
+      if not Next_Is ("") then
+         return (Loaded => False, Width => 0, Height => 0, Pixels => Files.Types.Byte_Vectors.Empty_Vector);
+      end if;
 
       Result.Loaded := True;
       Result.Width := Width;

@@ -14,13 +14,7 @@ package body Files.Overlays is
 
    procedure Build_Palette_Frame
      (Model         : in out Files.Model.Window_Model;
-      Region_X      : Natural;
-      Region_Y      : Natural;
-      Region_Width  : Natural;
-      Region_Height : Natural;
-      Clip_Width    : Natural;
-      Clip_Height   : Natural;
-      Line_Height   : Positive;
+      Region        : Overlay_Region;
       Focused       : Boolean;
       Rectangles    : out Guikit.Draw.Rectangle_Command_Vectors.Vector;
       Text          : out Guikit.Draw.Text_Command_Vectors.Vector;
@@ -31,12 +25,12 @@ package body Files.Overlays is
       begin
          Guikit.Command_Palette.Build_Frame
            (P             => Palette,
-            Region_X      => Region_X,
-            Region_Y      => Region_Y,
-            Region_Width  => Region_Width,
-            Region_Height => Region_Height,
-            Clip_Width    => Clip_Width,
-            Clip_Height   => Clip_Height,
+            Region_X      => Region.X,
+            Region_Y      => Region.Y,
+            Region_Width  => Region.Width,
+            Region_Height => Region.Height,
+            Clip_Width    => Region.Clip_Width,
+            Clip_Height   => Region.Clip_Height,
             Focused       => Focused,
             Hover_X       => -1,
             Hover_Y       => -1,
@@ -48,7 +42,7 @@ package body Files.Overlays is
    begin
       Files.Model.Visit_Command_Palette
         (Model,
-         Line_Height,
+         Region.Line_Height,
          Title       =>
            Files.Localization.Text
              (if Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Open_With
@@ -60,13 +54,7 @@ package body Files.Overlays is
 
    procedure Build_Settings_Frame
      (Model         : in out Files.Model.Window_Model;
-      Region_X      : Natural;
-      Region_Y      : Natural;
-      Region_Width  : Natural;
-      Region_Height : Natural;
-      Clip_Width    : Natural;
-      Clip_Height   : Natural;
-      Line_Height   : Positive;
+      Region        : Overlay_Region;
       Focused       : Boolean;
       Hover_X       : Integer := -1;
       Hover_Y       : Integer := -1;
@@ -81,12 +69,12 @@ package body Files.Overlays is
       begin
          Guikit.Settings_Panel.Build_Frame
            (P             => Panel,
-            Region_X      => Region_X,
-            Region_Y      => Region_Y,
-            Region_Width  => Region_Width,
-            Region_Height => Region_Height,
-            Clip_Width    => Clip_Width,
-            Clip_Height   => Clip_Height,
+            Region_X      => Region.X,
+            Region_Y      => Region.Y,
+            Region_Width  => Region.Width,
+            Region_Height => Region.Height,
+            Clip_Width    => Region.Clip_Width,
+            Clip_Height   => Region.Clip_Height,
             Focused       => Focused,
             Hover_X       => Hover_X,
             Hover_Y       => Hover_Y,
@@ -95,7 +83,7 @@ package body Files.Overlays is
             Accessibility => Accessibility);
       end Draw;
    begin
-      Config.Line_Height := Line_Height;
+      Config.Line_Height := Region.Line_Height;
       Config.Title := To_Unbounded_String (Files.Localization.Text ("settings.title"));
       Config.Switch_Tooltip := To_Unbounded_String (Files.Localization.Text ("settings.tabs.hint"));
       if Files.Model.Settings_Panel_Capturing (Model) then

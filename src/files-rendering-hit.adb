@@ -1,3 +1,4 @@
+with Ada.Containers.Vectors;
 with Files.UI;
 with Guikit.Segmented;
 
@@ -6,71 +7,48 @@ package body Files.Rendering.Hit is
    use Guikit.Layout;
    use type Files.Types.View_Mode;
 
-   function Conflict_Hit_At
-     (Frame : Frame_Commands;
-      X     : Natural;
-      Y     : Natural)
-      return Conflict_Hit_Region is
+   --  The region a point is in. A frame records regions in drawing order,
+   --  so the last one recorded there is the one drawn on top: the search runs
+   --  from the end. A region with Present False when none holds the point.
+   generic
+      type Region is private;
+      with package Region_Vectors is new Ada.Containers.Vectors (Positive, Region, <>);
+      with function Contains (Item : Region; X, Y : Natural) return Boolean;
+      None : Region;
+   function Topmost_Hit_At (Regions : Region_Vectors.Vector; X, Y : Natural) return Region;
+
+   function Topmost_Hit_At (Regions : Region_Vectors.Vector; X, Y : Natural) return Region is
    begin
-      for Index in reverse 1 .. Natural (Frame.Conflict_Hits.Length) loop
-         declare
-            Region : constant Conflict_Hit_Region :=
-              Frame.Conflict_Hits.Element (Positive (Index));
-         begin
-            if Contains_Rectangle_Point
-              (Region.X, Region.Y, Region.Width, Region.Height, X, Y)
-            then
-               return Region;
-            end if;
-         end;
+      for Item of reverse Regions loop
+         if Contains (Item, X, Y) then
+            return Item;
+         end if;
       end loop;
+      return None;
+   end Topmost_Hit_At;
 
-      return (others => <>);
-   end Conflict_Hit_At;
+   function Contains (Item : Conflict_Hit_Region; X, Y : Natural) return Boolean is
+     (Contains_Rectangle_Point (Item.X, Item.Y, Item.Width, Item.Height, X, Y));
+   function Contains (Item : Permission_Hit_Region; X, Y : Natural) return Boolean is
+     (Contains_Rectangle_Point (Item.X, Item.Y, Item.Width, Item.Height, X, Y));
+   function Contains (Item : Ownership_Hit_Region; X, Y : Natural) return Boolean is
+     (Contains_Rectangle_Point (Item.X, Item.Y, Item.Width, Item.Height, X, Y));
 
-   function Permission_Hit_At
-     (Frame : Frame_Commands;
-      X     : Natural;
-      Y     : Natural)
-      return Permission_Hit_Region is
-   begin
-      for Index in 1 .. Natural (Frame.Permission_Hits.Length) loop
-         declare
-            Region : constant Permission_Hit_Region :=
-              Frame.Permission_Hits.Element (Positive (Index));
-         begin
-            if Contains_Rectangle_Point
-              (Region.X, Region.Y, Region.Width, Region.Height, X, Y)
-            then
-               return Region;
-            end if;
-         end;
-      end loop;
+   function Conflict_At is new Topmost_Hit_At
+     (Conflict_Hit_Region, Conflict_Hit_Region_Vectors, Contains, (others => <>));
+   function Permission_At is new Topmost_Hit_At
+     (Permission_Hit_Region, Permission_Hit_Region_Vectors, Contains, (others => <>));
+   function Ownership_At is new Topmost_Hit_At
+     (Ownership_Hit_Region, Ownership_Hit_Region_Vectors, Contains, (others => <>));
 
-      return (others => <>);
-   end Permission_Hit_At;
+   function Conflict_Hit_At (Frame : Frame_Commands; X, Y : Natural) return Conflict_Hit_Region is
+     (Conflict_At (Frame.Conflict_Hits, X, Y));
 
-   function Ownership_Hit_At
-     (Frame : Frame_Commands;
-      X     : Natural;
-      Y     : Natural)
-      return Ownership_Hit_Region is
-   begin
-      for Index in 1 .. Natural (Frame.Ownership_Hits.Length) loop
-         declare
-            Region : constant Ownership_Hit_Region :=
-              Frame.Ownership_Hits.Element (Positive (Index));
-         begin
-            if Contains_Rectangle_Point
-              (Region.X, Region.Y, Region.Width, Region.Height, X, Y)
-            then
-               return Region;
-            end if;
-         end;
-      end loop;
+   function Permission_Hit_At (Frame : Frame_Commands; X, Y : Natural) return Permission_Hit_Region is
+     (Permission_At (Frame.Permission_Hits, X, Y));
 
-      return (others => <>);
-   end Ownership_Hit_At;
+   function Ownership_Hit_At (Frame : Frame_Commands; X, Y : Natural) return Ownership_Hit_Region is
+     (Ownership_At (Frame.Ownership_Hits, X, Y));
 
    function Context_Menu_Row_At
      (Menu : Context_Menu_Layout;

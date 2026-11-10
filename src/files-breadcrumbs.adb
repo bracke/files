@@ -23,15 +23,7 @@ package body Files.Breadcrumbs is
       begin
          --  "C:\" or "C:/": the root is the drive, and it keeps its name --
          --  unlike a POSIX root, which is a bare separator with nothing to show.
-         if Windows
-           and then Path'Length >= 3
-           and then Path (Path'First + 1) = ':'
-           and then Is_Separator (Path (Path'First + 2))
-         then
-            return 3;
-         end if;
-
-         return 0;
+         return (if Windows then Hostkit.Fs.Drive_Root_Length (Path) else 0);
       end Drive_Prefix;
 
       Result   : Segment_Vectors.Vector;

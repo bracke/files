@@ -1,3 +1,4 @@
+with Hostkit.Fs;
 with Files.UTF8;
 with Hostkit.Host;
 
@@ -60,15 +61,7 @@ package body Files.File_Types is
       use type Hostkit.Host.Kind;
 
       Windows_Syntax : constant Boolean :=
-        Hostkit.Host.Current = Hostkit.Host.Windows
-        or else
-          ((Clean'Length >= 3
-            and then Clean (Clean'First + 1) = ':'
-            and then Clean (Clean'First + 2) in '/' | '\')
-           or else
-             (Clean'Length >= 2
-              and then Clean (Clean'First) = '\'
-              and then Clean (Clean'First + 1) = '\'));
+        Hostkit.Host.Current = Hostkit.Host.Windows or else Hostkit.Fs.Has_Windows_Root (Clean);
    begin
       for Index in reverse Clean'Range loop
          if Clean (Index) = '/'

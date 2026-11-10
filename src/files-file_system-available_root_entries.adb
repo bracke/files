@@ -25,51 +25,9 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
 
    function Starts_With (Text : String; Prefix : String) return Boolean renames Files.Types.Starts_With;
 
-   function Is_Pseudo_Mount_Type (Filesystem_Type : String) return Boolean is
-      Normalized : constant String := Files.Types.To_Lower (Filesystem_Type);
-   begin
-      return Normalized = ""
-        or else Normalized = "autofs"
-        or else Normalized = "binfmt_misc"
-        or else Normalized = "bpf"
-        or else Normalized = "cgroup"
-        or else Normalized = "cgroup2"
-        or else Normalized = "configfs"
-        or else Normalized = "debugfs"
-        or else Normalized = "devpts"
-        or else Normalized = "devtmpfs"
-        or else Normalized = "efivarfs"
-        or else Normalized = "fusectl"
-        or else Normalized = "hugetlbfs"
-        or else Normalized = "mqueue"
-        or else Normalized = "nsfs"
-        or else Normalized = "overlay"
-        or else Normalized = "proc"
-        or else Normalized = "pstore"
-        or else Normalized = "ramfs"
-        or else Normalized = "rpc_pipefs"
-        or else Normalized = "securityfs"
-        or else Normalized = "squashfs"
-        or else Normalized = "sysfs"
-        or else Normalized = "tmpfs"
-        or else Normalized = "tracefs";
-   end Is_Pseudo_Mount_Type;
+   function Is_Pseudo_Mount_Type (Filesystem_Type : String) return Boolean renames Hostkit.Mounts.Is_Pseudo;
 
-   function Is_Network_Filesystem_Type (Filesystem_Type : String) return Boolean is
-      Normalized : constant String := Files.Types.To_Lower (Filesystem_Type);
-   begin
-      return Normalized = "9p"
-        or else Normalized = "afpfs"
-        or else Normalized = "cifs"
-        or else Normalized = "davfs"
-        or else Normalized = "fuse.gvfsd-fuse"
-        or else Normalized = "fuse.sshfs"
-        or else Normalized = "ncpfs"
-        or else Normalized = "nfs"
-        or else Normalized = "nfs4"
-        or else Normalized = "smb3"
-        or else Normalized = "sshfs";
-   end Is_Network_Filesystem_Type;
+   function Is_Network_Filesystem_Type (Filesystem_Type : String) return Boolean renames Hostkit.Mounts.Is_Network;
 
    function Root_Kind_For_Mount
      (Mount_Point     : String;
@@ -262,14 +220,17 @@ begin
       end if;
    end loop;
    Append_If_Directory (Ada.Directories.Current_Directory, Root_Current);
-   Append_Children ("/mnt", Root_Mount);
-   Append_Children ("/media", Root_Mount);
-   Append_Children ("/run/media", Root_User_Mount);
-   Append_Children ("/Volumes", Root_Mount);
-   Append_Children ("/System/Volumes", Root_Mount);
-
-   for Drive in Character range 'A' .. 'Z' loop
-      Append_If_Directory (String'(1 => Drive) & ":\", Root_Windows_Drive);
+   --  Where this host mounts volumes, its own folders only: Linux no
+   --  longer looks for /Volumes, nor tries 26 drive letters.
+   for Place of Hostkit.Mounts.Volume_Places loop
+      case Place.Kind is
+         when Hostkit.Mounts.Drive_Root =>
+            Append_If_Directory (To_String (Place.Path), Root_Windows_Drive);
+         when Hostkit.Mounts.Volumes_Folder =>
+            Append_Children (To_String (Place.Path), Root_Mount);
+         when Hostkit.Mounts.User_Volumes_Folder =>
+            Append_Children (To_String (Place.Path), Root_User_Mount);
+      end case;
    end loop;
    for Place of Places loop
       declare

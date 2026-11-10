@@ -21,59 +21,19 @@ package body Files.UTF8 is
       return Code in 16#80# .. 16#BF#;
    end Is_Continuation;
 
-   function Byte_At
-     (Content : String;
-      Index   : Integer)
-      return Natural is
-   begin
-      return Character'Pos (Content (Index));
-   end Byte_At;
-
+   --  How far Guikit.Utf8's decoder steps: a whole well-formed sequence,
+   --  else one byte, by the same rules.
    function Unit_Length
      (Content : String;
       Index   : Integer)
       return Positive
    is
-      B1 : constant Natural := Byte_At (Content, Index);
-      B2 : Natural := 0;
+      Next      : Integer := Index;
+      Codepoint : Natural;
    begin
-      if B1 <= 16#7F# then
-         return 1;
-      elsif B1 in 16#C2# .. 16#DF#
-        and then Index <= Content'Last - 1
-        and then Is_Continuation (Content (Index + 1))
-      then
-         return 2;
-      elsif B1 in 16#E0# .. 16#EF#
-        and then Index <= Content'Last - 2
-        and then Is_Continuation (Content (Index + 1))
-        and then Is_Continuation (Content (Index + 2))
-      then
-         B2 := Byte_At (Content, Index + 1);
-         if (B1 = 16#E0# and then B2 < 16#A0#)
-           or else (B1 = 16#ED# and then B2 > 16#9F#)
-         then
-            return 1;
-         end if;
-
-         return 3;
-      elsif B1 in 16#F0# .. 16#F4#
-        and then Index <= Content'Last - 3
-        and then Is_Continuation (Content (Index + 1))
-        and then Is_Continuation (Content (Index + 2))
-        and then Is_Continuation (Content (Index + 3))
-      then
-         B2 := Byte_At (Content, Index + 1);
-         if (B1 = 16#F0# and then B2 < 16#90#)
-           or else (B1 = 16#F4# and then B2 > 16#8F#)
-         then
-            return 1;
-         end if;
-
-         return 4;
-      end if;
-
-      return 1;
+      Guikit.Utf8.Decode_Next_Codepoint (Content, Next, Codepoint);
+      pragma Unreferenced (Codepoint);
+      return Next - Index;
    end Unit_Length;
 
    function Is_Required_Zero_Width_Codepoint

@@ -675,12 +675,12 @@ package body Files.Process_Jobs is
             Reaper.Stop;
             Reaper_Stopped := True;
          or
-            delay 0.2;
+            delay Files.Timing.Stop_Request_Wait;
          end select;
       end if;
-      for Poll in 1 .. 180 loop
+      for Poll in 1 .. Files.Timing.Stop_Polls loop
          exit when Reaper.all'Terminated;
-         delay 0.01;
+         delay Files.Timing.Stop_Poll_Interval;
       end loop;
       Stopped := Reaper.all'Terminated and then Reaper_Result.Complete;
    exception

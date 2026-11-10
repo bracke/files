@@ -11,6 +11,7 @@ with System;
 with System.Address_To_Access_Conversions;
 
 with Glfw.Input;
+with Glfw.Input.Keys.Layout;
 with Glfw.Windows.Drop;
 with Glfw.Windows.Clipboard;
 with Files.Window_Icon;
@@ -323,47 +324,12 @@ package body Files.Application.Windows is
       end if;
    end Character_Entered;
 
-   --  The key a press means under the active keyboard layout. GLFW names keys
-   --  by their US-layout position, so on QWERTZ the key labelled Z arrives as
-   --  Y and Ctrl+Z ran Redo. A printable key whose layout character is a
-   --  letter is taken as that letter; every other key keeps its position
-   --  (digits and punctuation already have position-based bindings, such as
-   --  the zoom keys).
+   --  The key a press means under the active keyboard layout: on QWERTZ
+   --  the key labelled Z arrives as Y, and Ctrl+Z ran Redo.
    function Layout_Key
      (Key      : Glfw.Input.Keys.Key;
       Scancode : Glfw.Input.Keys.Scancode)
-      return Glfw.Input.Keys.Key
-   is
-      function Get_Key_Name
-        (Key_Value : Interfaces.C.int; Scancode_Value : Interfaces.C.int)
-         return Interfaces.C.Strings.chars_ptr
-        with Import, Convention => C, External_Name => "glfwGetKeyName";
-      use type Glfw.Input.Keys.Key;
-      Name : Interfaces.C.Strings.chars_ptr;
-   begin
-      if Key = Glfw.Input.Keys.Unknown then
-         return Key;
-      end if;
-      Name := Get_Key_Name
-        (Interfaces.C.int (Glfw.Input.Keys.Key'Enum_Rep (Key)), Interfaces.C.int (Scancode));
-      if Name = Interfaces.C.Strings.Null_Ptr then
-         return Key;
-      end if;
-      declare
-         Text : constant String := Interfaces.C.Strings.Value (Name);
-      begin
-         if Text'Length = 1 and then Text (Text'First) in 'a' .. 'z' | 'A' .. 'Z' then
-            return Glfw.Input.Keys.Key'Val
-              (Glfw.Input.Keys.Key'Pos (Glfw.Input.Keys.A)
-               + Character'Pos (Files.Types.To_Lower (Text) (1)) - Character'Pos ('a'));
-         end if;
-      end;
-      return Key;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Application.Windows");
-         return Key;
-   end Layout_Key;
+      return Glfw.Input.Keys.Key renames Glfw.Input.Keys.Layout.Layout_Key;
 
    overriding procedure Key_Changed
      (Object   : not null access Desktop_Window;
@@ -922,8 +888,9 @@ package body Files.Application.Windows is
       return False;
    end Any_Background_Paste;
 
-   --  Each window polls and publishes only its own folder measurements.
-   procedure Poll_All_Folder_Sizes (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
+   --  Each window polls its own background work -- folder measurements and
+   --  the Quick Look decode -- and publishes only its own results.
+   procedure Poll_Window_Workers (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
       procedure Poll (Runtime : in out Runtime_Window) is
       begin
          if Runtime.Handle /= null then
@@ -951,7 +918,7 @@ package body Files.Application.Windows is
       end Poll;
    begin
       For_Each_Window (Runtime_Windows, Poll'Access);
-   end Poll_All_Folder_Sizes;
+   end Poll_Window_Workers;
 
    procedure Handle_Scroll_Input
      (Runtime : in out Runtime_Window)
@@ -1931,7 +1898,7 @@ package body Files.Application.Windows is
       end if;
       Render_All (Runtime_Windows);
       Handle_All_File_Watch_Poll (Runtime_Windows);
-      Poll_All_Folder_Sizes (Runtime_Windows);
+      Poll_Window_Workers (Runtime_Windows);
    exception
       --  Resilience: a stray error while handling one frame's input or
       --  rendering should not tear down every window. Skip the frame and

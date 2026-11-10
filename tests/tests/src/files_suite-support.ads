@@ -285,7 +285,7 @@ package Files_Suite.Support is
    function Saved_Directory (Guard : Directory_Guard) return String;
 
    --  Drive every queued background folder-size walk of Model to completion,
-   --  publishing each result as the frame loop's Poll_All_Folder_Sizes would,
+   --  publishing each result as the frame loop's Poll_Window_Workers would,
    --  and assert they finished within the (scaled) poll limit.
    --
    --  @param Model Window model whose folder scans to drain.

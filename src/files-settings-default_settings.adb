@@ -1,3 +1,4 @@
+with Hostkit.Process;
 separate (Files.Settings)
    function Default_Settings return Settings_Model is
       Settings : Settings_Model;
@@ -57,26 +58,18 @@ separate (Files.Settings)
       --  file would not open at all. Worse, Ensure_Default_File writes these
       --  defaults out, so the dead entry was persisted into the user's
       --  settings file for them to find and delete by hand.
-      case Hostkit.Host.Current is
-         when Hostkit.Host.Windows =>
-            --  cmd's `start`, whose empty first argument is the window title it
-            --  otherwise takes the quoted path for. Named rather than taken from
-            --  COMSPEC because this is written to a settings file that should not
-            --  carry one machine's absolute paths.
-            Args.Append (To_Unbounded_String ("/c"));
-            Args.Append (To_Unbounded_String ("start"));
-            Args.Append (To_Unbounded_String (""));
-            Args.Append (To_Unbounded_String ("{path}"));
-            Add_Open_Action (Settings, "text/plain", Make_Action ("cmd", Args));
-
-         when Hostkit.Host.MacOS =>
-            Args.Append (To_Unbounded_String ("{path}"));
-            Add_Open_Action (Settings, "text/plain", Make_Action ("open", Args));
-
-         when Hostkit.Host.Linux | Hostkit.Host.Unsupported =>
-            Args.Append (To_Unbounded_String ("{path}"));
-            Add_Open_Action (Settings, "text/plain", Make_Action ("xdg-open", Args));
-      end case;
+      --  The host's opener as a settings file keeps it: named, not located,
+      --  so the file carries no one machine's absolute paths.
+      declare
+         Program : Unbounded_String;
+         Given   : Hostkit.String_Vectors.Vector;
+      begin
+         Hostkit.Process.Portable_Default_Opener ("{path}", Program, Given);
+         for Argument of Given loop
+            Args.Append (Argument);
+         end loop;
+         Add_Open_Action (Settings, "text/plain", Make_Action (To_String (Program), Args));
+      end;
 
       return Settings;
    end Default_Settings;

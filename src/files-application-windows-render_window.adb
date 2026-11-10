@@ -35,13 +35,14 @@ separate (Files.Application.Windows)
                Palette.Shown := True;
                Files.Overlays.Build_Palette_Frame
                  (Model         => Runtime.Model,
-                  Region_X      => Layout.Command_X,
-                  Region_Y      => Layout.Command_Y,
-                  Region_Width  => Layout.Command_Width,
-                  Region_Height => Layout.Command_Height,
-                  Clip_Width    => Natural (Width),
-                  Clip_Height   => Natural (Height),
-                  Line_Height   => Line_Height,
+                  Region        =>
+                    (X           => Layout.Command_X,
+                     Y           => Layout.Command_Y,
+                     Width       => Layout.Command_Width,
+                     Height      => Layout.Command_Height,
+                     Clip_Width  => Natural (Width),
+                     Clip_Height => Natural (Height),
+                     Line_Height => Line_Height),
                   Focused       => Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Command_Palette,
                   Rectangles    => Palette.Rectangles,
                   Text          => Palette.Text,
@@ -60,13 +61,14 @@ separate (Files.Application.Windows)
                Settings.Shown := True;
                Files.Overlays.Build_Settings_Frame
                  (Model         => Runtime.Model,
-                  Region_X      => Pane.X,
-                  Region_Y      => Pane.Y,
-                  Region_Width  => Pane.Width,
-                  Region_Height => Pane.Height,
-                  Clip_Width    => Natural (Width),
-                  Clip_Height   => Natural (Height),
-                  Line_Height   => Line_Height,
+                  Region        =>
+                    (X           => Pane.X,
+                     Y           => Pane.Y,
+                     Width       => Pane.Width,
+                     Height      => Pane.Height,
+                     Clip_Width  => Natural (Width),
+                     Clip_Height => Natural (Height),
+                     Line_Height => Line_Height),
                   Focused       => Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Settings_Input,
                   Hover_X       =>
                     (if Runtime.Cached_Inputs.Has_Hover then Integer (Runtime.Cached_Inputs.Hover_X) else -1),

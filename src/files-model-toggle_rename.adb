@@ -6,10 +6,8 @@ begin
    Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
    if Model.Rename_Active then
       if Is_Temporary_Rename (Model) then
+         --  Which also takes the focus from the rename field.
          Cancel_Create_File (Model);
-         if Model.Focus_Value = Files.Types.Focus_Rename_Input then
-            Model.Focus_Value := Files.Types.Focus_None;
-         end if;
          return;
       end if;
 

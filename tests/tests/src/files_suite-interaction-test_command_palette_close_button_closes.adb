@@ -37,13 +37,8 @@ separate (Files_Suite.Interaction)
       begin
          Files.Overlays.Build_Palette_Frame
            (Model         => Model,
-            Region_X      => Palette.X,
-            Region_Y      => Palette.Y,
-            Region_Width  => Palette.Width,
-            Region_Height => Palette.Height,
-            Clip_Width    => Window_W,
-            Clip_Height   => Window_H,
-            Line_Height   => Line,
+            Region => (X => Palette.X, Y => Palette.Y, Width => Palette.Width, Height => Palette.Height,
+                     Clip_Width => Window_W, Clip_Height => Window_H, Line_Height => Line),
             Focused       => True,
             Rectangles    => P_Rects,
             Text          => P_Text,

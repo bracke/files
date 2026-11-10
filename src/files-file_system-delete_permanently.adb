@@ -29,10 +29,7 @@ is
       if Path = ""
         or else Path = "/"
         or else
-          (Windows
-           and then Path'Length = 3
-           and then Path (Path'First + 1) = ':'
-           and then Path (Path'First + 2) in '/' | '\')
+          (Windows and then Path'Length = 3 and then Hostkit.Fs.Drive_Root_Length (Path) = 3)
         or else Has_Navigation_Component
       then
          return True;

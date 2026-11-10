@@ -1,3 +1,4 @@
+with Files.Images.Netpbm;
 separate (Files.File_System.Thumbnails)
    function Try_Write_Decoded_P3_Thumbnail
      (Source_Path : String;
@@ -5,83 +6,37 @@ separate (Files.File_System.Thumbnails)
       Target_Path : String)
       return Boolean
    is
-      Token   : Unbounded_String;
-      Content : Unbounded_String;
-      Scan_Index : Positive := 1;
       Pixels : Pixel_Vectors.Vector;
       Source_Width  : Natural := 0;
       Source_Height : Natural := 0;
       Max_Value     : Natural := 0;
       Read_Succeeded : Boolean := False;
       Read_Complete  : Boolean := False;
+      Text : constant String :=
+        Read_Bounded_Regular_File (Source_Path, Max_Fast_Decode_Source_Bytes, Read_Succeeded, Read_Complete);
+      Scan_Index : Positive := Text'First;
 
-      function Next_Token return Boolean is
-         Value : Character;
+      --  The next field of the source; "" at its end.
+      function Next_Field return String is
+         First : Positive;
+         Last  : Natural;
       begin
-         Token := Null_Unbounded_String;
-         while Scan_Index <= Length (Content) loop
-            Value := Element (Content, Scan_Index);
-            Scan_Index := Scan_Index + 1;
-            if Value = ' ' or else Value = ASCII.HT or else Value = ASCII.LF or else Value = ASCII.CR then
-               if Length (Token) > 0 then
-                  return True;
-               end if;
-            elsif Value = '#' then
-               while Scan_Index <= Length (Content)
-                 and then Element (Content, Scan_Index) /= ASCII.LF
-                 and then Element (Content, Scan_Index) /= ASCII.CR
-               loop
-                  Scan_Index := Scan_Index + 1;
-               end loop;
-               if Length (Token) > 0 then
-                  return True;
-               end if;
-            else
-               Append (Token, Value);
-            end if;
-         end loop;
-
-         return Length (Token) > 0;
-      end Next_Token;
+         Files.Images.Netpbm.Next_Field (Text, Scan_Index, First, Last);
+         return Text (First .. Last);
+      end Next_Field;
 
       function Next_Natural
         (Value : out Natural)
-         return Boolean is
-      begin
-         if not Next_Token then
-            return False;
-         end if;
+         return Boolean is (Files.Images.Netpbm.Natural_Of (Next_Field, Value));
 
-         Value := Natural'Value (To_String (Token));
-         return True;
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
-            return False;
-      end Next_Natural;
-
-      function Scaled_Channel
-        (Value : Natural)
-         return Natural is
-      begin
-         if Max_Value = 0 then
-            return 0;
-         elsif Max_Value = 255 then
-            return Natural'Min (Value, 255);
-         end if;
-
-         return Natural'Min ((Value * 255) / Max_Value, 255);
-      end Scaled_Channel;
+      function Scaled_Channel (Value : Natural) return Natural is
+        (Natural (Files.Images.Netpbm.Channel (Value, Max_Value)));
    begin
-      Content := To_Unbounded_String
-        (Read_Bounded_Regular_File
-           (Source_Path, Max_Fast_Decode_Source_Bytes,
-            Read_Succeeded, Read_Complete));
       if not Read_Succeeded or else not Read_Complete then
          return False;
       end if;
 
-      if not Next_Token or else To_String (Token) /= "P3" then
+      if Next_Field /= "P3" then
          return False;
       end if;
 
@@ -125,7 +80,7 @@ separate (Files.File_System.Thumbnails)
          end;
       end loop;
 
-      if Next_Token then
+      if Next_Field /= "" then
          return False;
       end if;
 

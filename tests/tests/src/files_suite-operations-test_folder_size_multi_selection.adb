@@ -25,7 +25,7 @@ separate (Files_Suite.Operations)
       Files.Operations.Update_Folder_Size (Model, Settings);
 
       --  Drive both queued walks to completion, publishing each result as the
-      --  frame loop's Poll_All_Folder_Sizes would.
+      --  frame loop's Poll_Window_Workers would.
       Drain_Folder_Sizes (Model);
 
       Assert (Files.Model.Folder_Size_Cached_For (Model, Dir_A)

@@ -447,11 +447,14 @@ package body Files.Job_Context is
          null;
    end Append_Record;
 
-   procedure Read_Records
+   --  One journal: Name in Directory, under Header, of records holding a
+   --  destination, a source and an identity, and with Revisions a tree
+   --  revision too. A source may be empty only where With_Revisions says
+   --  (a creation has none). Any record out of shape drops the whole read.
+   procedure Read_Journal
      (Directory, Name, Header : String;
-      Destinations : out Files.Types.String_Vectors.Vector;
-      Sources : out Files.Types.String_Vectors.Vector;
-      Identities : out Files.Types.String_Vectors.Vector)
+      With_Revisions          : Boolean;
+      Destinations, Sources, Identities, Revisions : out Files.Types.String_Vectors.Vector)
    is
       Count : Natural := 0;
       Path : constant String := Hostkit.Fs.Join (Directory, Name);
@@ -461,6 +464,7 @@ package body Files.Job_Context is
       Destinations.Clear;
       Sources.Clear;
       Identities.Clear;
+      Revisions.Clear;
       if not Valid_Absolute_Path (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
         or else not Ada.Directories.Exists (Directory)
@@ -493,77 +497,13 @@ package body Files.Job_Context is
               (Input'Access, Max_Record_Path_Length);
             Identity    : constant String := Files.Bounded_Streams.Input_String
               (Input'Access, Max_Record_Token_Length);
+            Revision    : constant String :=
+              (if With_Revisions
+               then Files.Bounded_Streams.Input_String (Input'Access, Max_Record_Token_Length)
+               else "");
          begin
             if not Valid_Absolute_Path (Destination)
-              or else not Valid_Absolute_Path (Source)
-              or else Identity = ""
-              or else not Nul_Free (Identity)
-            then
-               raise Ada.IO_Exceptions.Data_Error;
-            end if;
-            Destinations.Append (To_Unbounded_String (Destination));
-            Sources.Append (To_Unbounded_String (Source));
-            Identities.Append (To_Unbounded_String (Identity));
-            Count := Count + 1;
-         end;
-      end loop;
-      Files.Lease_Streams.Release (Input);
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
-         Files.Lease_Streams.Release (Input);
-   end Read_Records;
-
-   procedure Read_Created
-     (Directory : String;
-      Destinations, Sources, Identities, Tree_Revisions : out Files.Types.String_Vectors.Vector)
-   is
-      Count : Natural := 0;
-      Path : constant String := Hostkit.Fs.Join (Directory, "created");
-      Input : aliased Files.Lease_Streams.Input_Stream;
-      Size : Long_Long_Integer;
-   begin
-      Destinations.Clear;
-      Sources.Clear;
-      Identities.Clear;
-      Tree_Revisions.Clear;
-      if not Valid_Absolute_Path (Directory)
-        or else Hostkit.Fs.Is_Link (Directory)
-        or else not Ada.Directories.Exists (Directory)
-        or else Ada.Directories.Kind (Directory) /= Ada.Directories.Directory
-        or else Files.Lease_Streams.Open (Path, Input) /=
-          Hostkit.Lease_Files.Opened
-      then
-         return;
-      end if;
-      Size := Files.Lease_Streams.Size (Input);
-      if Size < 0 or else Size > Long_Long_Integer (Max_Journal_Bytes)
-      then
-         Files.Lease_Streams.Release (Input);
-         return;
-      end if;
-      if Files.Bounded_Streams.Input_String
-        (Input'Access, Max_Record_Header_Length) /= Created_Record_Header
-      then
-         Files.Lease_Streams.Release (Input);
-         return;
-      end if;
-      while not Files.Lease_Streams.End_Of_Stream (Input) loop
-         if Count = Max_Journal_Records then
-            raise Ada.IO_Exceptions.Data_Error;
-         end if;
-         declare
-            Destination : constant String := Files.Bounded_Streams.Input_String
-              (Input'Access, Max_Record_Path_Length);
-            Source      : constant String := Files.Bounded_Streams.Input_String
-              (Input'Access, Max_Record_Path_Length);
-            Identity    : constant String := Files.Bounded_Streams.Input_String
-              (Input'Access, Max_Record_Token_Length);
-            Revision    : constant String := Files.Bounded_Streams.Input_String
-              (Input'Access, Max_Record_Token_Length);
-         begin
-            if not Valid_Absolute_Path (Destination)
-              or else (Source /= "" and then not Valid_Absolute_Path (Source))
+              or else (not (With_Revisions and then Source = "") and then not Valid_Absolute_Path (Source))
               or else Identity = ""
               or else not Nul_Free (Identity)
               or else not Nul_Free (Revision)
@@ -573,7 +513,9 @@ package body Files.Job_Context is
             Destinations.Append (To_Unbounded_String (Destination));
             Sources.Append (To_Unbounded_String (Source));
             Identities.Append (To_Unbounded_String (Identity));
-            Tree_Revisions.Append (To_Unbounded_String (Revision));
+            if With_Revisions then
+               Revisions.Append (To_Unbounded_String (Revision));
+            end if;
             Count := Count + 1;
          end;
       end loop;
@@ -582,13 +524,23 @@ package body Files.Job_Context is
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
          Files.Lease_Streams.Release (Input);
+   end Read_Journal;
+
+   procedure Read_Created
+     (Directory : String;
+      Destinations, Sources, Identities, Tree_Revisions : out Files.Types.String_Vectors.Vector) is
+   begin
+      Read_Journal
+        (Directory, "created", Created_Record_Header, True, Destinations, Sources, Identities, Tree_Revisions);
    end Read_Created;
 
    procedure Read_Moved
      (Directory : String;
-      Destinations, Sources, Identities : out Files.Types.String_Vectors.Vector) is
+      Destinations, Sources, Identities : out Files.Types.String_Vectors.Vector)
+   is
+      Revisions : Files.Types.String_Vectors.Vector;
    begin
-      Read_Records (Directory, "moved", "files-moved-1", Destinations, Sources, Identities);
+      Read_Journal (Directory, "moved", "files-moved-1", False, Destinations, Sources, Identities, Revisions);
    end Read_Moved;
 
    procedure Register_Stage_Internal

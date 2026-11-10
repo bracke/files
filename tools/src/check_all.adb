@@ -4093,8 +4093,8 @@ procedure Check_All is
          end Require_At_Most;
       begin
          Require_At_Most ("files-rendering.adb", 1_594);
-         Require_At_Most ("files-rendering-build_frame_commands.adb", 963);
-         Require_At_Most ("files-application-windows.adb", 2_025);
+         Require_At_Most ("files-rendering-build_frame_commands.adb", 959);
+         Require_At_Most ("files-application-windows.adb", 1_992);
       end;
    end Check_Rendering_Architecture;
 

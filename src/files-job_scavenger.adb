@@ -1,3 +1,4 @@
+with Files.Timing;
 with Files.Fs_Primitives;
 with Files.Helper_Modes;
 with Files.Diagnostics;
@@ -473,11 +474,11 @@ package body Files.Job_Scavenger is
       select
          Coordinator_Monitor.Stop;
       or
-         delay 0.2;
+         delay Files.Timing.Stop_Request_Wait;
       end select;
-      for Poll in 1 .. 180 loop
+      for Poll in 1 .. Files.Timing.Stop_Polls loop
          exit when Monitor_Result.Complete or else Coordinator_Monitor'Terminated;
-         delay 0.01;
+         delay Files.Timing.Stop_Poll_Interval;
       end loop;
       Reaped := Monitor_Result.Complete;
       if Reaped then
