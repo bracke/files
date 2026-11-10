@@ -48,6 +48,8 @@ package body Files.File_System.Support is
    use type Hostkit.Fs.Move_Outcome;
    use type Interfaces.Unsigned_64;
 
+   procedure On_Large_Stack (Work : not null access procedure);
+
    function Sync_Copy (Source, Destination : String) return Boolean is
       use type Hostkit.Durability.Outcome;
       Synced : Boolean := True;
@@ -74,8 +76,13 @@ package body Files.File_System.Support is
             Synced := Hostkit.Durability.Sync_File (To) /= Hostkit.Durability.Failed;
          end if;
       end Sync;
+      procedure Sync_Root is
+      begin
+         Sync (Source, Destination);
+      end Sync_Root;
    begin
-      Sync (Source, Destination);
+      --  As deep as the copy went (1024 levels): on a stack that holds it.
+      On_Large_Stack (Sync_Root'Access);
       return Synced
         and then Hostkit.Durability.Sync_Directory (Ada.Directories.Containing_Directory (Destination)) /=
           Hostkit.Durability.Failed;
@@ -1332,45 +1339,58 @@ package body Files.File_System.Support is
    end Delete_Tree;
 
    procedure Delete_Owned_Tree (Path : String) is
-      Available : Boolean;
-      Mode : Natural;
-      Lease_Present  : Boolean := False;
-      Marker_Present : Boolean := False;
-      procedure Delete_Entry (Name : String) is
+      procedure Delete_Owned_Level (Path : String);
+
+      procedure Delete_Root is
       begin
-         if Name = ".files-job-owner" then
-            Lease_Present := True;
-         elsif Name = ".files-job-transport" then
-            Marker_Present := True;
-         else
-            Delete_Owned_Tree (Join_Path (Path, Name));
+         Delete_Owned_Level (Path);
+      end Delete_Root;
+
+      procedure Delete_Owned_Level (Path : String) is
+         Available : Boolean;
+         Mode : Natural;
+         Lease_Present  : Boolean := False;
+         Marker_Present : Boolean := False;
+         procedure Delete_Entry (Name : String) is
+         begin
+            if Name = ".files-job-owner" then
+               Lease_Present := True;
+            elsif Name = ".files-job-transport" then
+               Marker_Present := True;
+            else
+               Delete_Owned_Level (Join_Path (Path, Name));
+            end if;
+         end Delete_Entry;
+      begin
+         if Hostkit.Fs.Is_Link (Path) or else Ada.Directories.Kind (Path) /= Ada.Directories.Directory then
+            Delete_Tree (Path);
+            return;
          end if;
-      end Delete_Entry;
+         if Hostkit.Metadata.Mode_Bits_Are_Native then
+            Mode := Hostkit.Metadata.File_Permission_Bits (Path, Available);
+            if not Available or else not Hostkit.Metadata.Set_Permissions
+              (Path, (Mode mod 8#100#) + 8#700#)
+            then
+               raise Ada.Directories.Use_Error;
+            end if;
+         end if;
+         For_Each_Entry (Path, Delete_Entry'Access);
+         --  Keep the lease and the transport marker until every other child is
+         --  gone. If one cannot be removed (a Windows sharing violation, EACCES),
+         --  the restored directory still carries its marker and stays
+         --  reclaimable; without it, cleanup and the scavenger refuse it forever.
+         if Marker_Present then
+            Delete_Owned_Level (Join_Path (Path, ".files-job-transport"));
+         end if;
+         if Lease_Present then
+            Delete_Owned_Level (Join_Path (Path, ".files-job-owner"));
+         end if;
+         Ada.Directories.Delete_Directory (Path);
+      end Delete_Owned_Level;
    begin
-      if Hostkit.Fs.Is_Link (Path) or else Ada.Directories.Kind (Path) /= Ada.Directories.Directory then
-         Delete_Tree (Path);
-         return;
-      end if;
-      if Hostkit.Metadata.Mode_Bits_Are_Native then
-         Mode := Hostkit.Metadata.File_Permission_Bits (Path, Available);
-         if not Available or else not Hostkit.Metadata.Set_Permissions
-           (Path, (Mode mod 8#100#) + 8#700#)
-         then
-            raise Ada.Directories.Use_Error;
-         end if;
-      end if;
-      For_Each_Entry (Path, Delete_Entry'Access);
-      --  Keep the lease and the transport marker until every other child is
-      --  gone. If one cannot be removed (a Windows sharing violation, EACCES),
-      --  the restored directory still carries its marker and stays
-      --  reclaimable; without it, cleanup and the scavenger refuse it forever.
-      if Marker_Present then
-         Delete_Owned_Tree (Join_Path (Path, ".files-job-transport"));
-      end if;
-      if Lease_Present then
-         Delete_Owned_Tree (Join_Path (Path, ".files-job-owner"));
-      end if;
-      Ada.Directories.Delete_Directory (Path);
+      --  A stage can be as deep as a copy (1024 levels): on a stack that
+      --  holds it, not the caller's (1 MiB on Windows' main thread).
+      On_Large_Stack (Delete_Root'Access);
    end Delete_Owned_Tree;
 
 end Files.File_System.Support;
