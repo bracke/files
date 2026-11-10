@@ -37,7 +37,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
       if Is_Network_Filesystem_Type (Filesystem_Type)
         or else Starts_With (Mount_Point, "//")
         or else Starts_With (Mount_Point, "\\")
-        or else Starts_With (Mount_Point, "/run/user/")
+        or else (Desktop_Mounts /= "" and then Starts_With (Mount_Point, Desktop_Mounts & "/"))
       then
          return Root_Network_Mount;
       end if;
@@ -134,8 +134,9 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
    end Append_If_Directory;
 
    procedure Append_Children
-     (Parent : String;
-      Kind   : Root_Kind)
+     (Parent   : String;
+      Kind     : Root_Kind;
+      Per_User : Boolean := False)
    is
       Search : Ada.Directories.Search_Type;
       Child  : Ada.Directories.Directory_Entry_Type;
@@ -170,12 +171,12 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
             Full : constant String := Ada.Directories.Full_Name (Child);
          begin
             if Name /= "." and then Name /= ".." then
-               if User_Name /= ""
-                 and then (Parent = "/media" or else Parent = "/run/media")
-                 and then Name = User_Name
-               then
+               --  A volumes folder may hold one folder of mounts per user
+               --  (/media/<user>, /run/media/<user>): this user's is opened;
+               --  in a folder of nothing else, another user's is passed by.
+               if User_Name /= "" and then Name = User_Name then
                   Append_Children (Full, Kind);
-               else
+               elsif not Per_User then
                   Append_If_Directory (Full, Kind);
                end if;
             end if;
@@ -229,7 +230,7 @@ begin
          when Hostkit.Mounts.Volumes_Folder =>
             Append_Children (To_String (Place.Path), Root_Mount);
          when Hostkit.Mounts.User_Volumes_Folder =>
-            Append_Children (To_String (Place.Path), Root_User_Mount);
+            Append_Children (To_String (Place.Path), Root_User_Mount, Per_User => True);
       end case;
    end loop;
    for Place of Places loop

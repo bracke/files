@@ -103,18 +103,10 @@ package body Files.Operations is
       return Operation_Result
    is separate;
 
-   Content_Search_Max_Bytes   : constant := 64 * 1024;
-
-   Content_Search_Max_Matches : constant := 1_000;
-
-   Content_Search_Max_Files   : constant := 20_000;
-
-   Content_Search_Max_Depth   : constant := 64;
-
    function Content_Matches
      (Bytes : String;
       Query : String)
-      return Boolean is separate;
+      return Boolean renames Files.File_System.Content_Matches;
 
    function Run_Content_Search
      (Model    : in out Files.Model.Window_Model;

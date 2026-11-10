@@ -66,6 +66,7 @@ en.details.header = Details columns
 en.details.name = Name
 en.details.modified = Modified
 en.details.size = Size
+en.accessibility.item.details = {modified_label}: {modified}, {size_label}: {size}, {type_label}: {type}
 en.number.decimal = .
 en.number.group = ,
 en.details.size.unit.bytes = B

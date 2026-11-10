@@ -57,3 +57,4 @@ ja.details.size.unit.kib = KB
 ja.details.size.unit.mib = MB
 ja.details.size.unit.gib = GB
 ja.details.size.unit.tib = TB
+ja.accessibility.item.details = {modified_label}：{modified}、{size_label}：{size}、{type_label}：{type}

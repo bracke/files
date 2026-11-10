@@ -90,6 +90,19 @@ separate (Files.Rendering.Build_Frame_Commands)
                Header_H,
                To_Unbounded_String (Files.Localization.Text ("details.header")),
                Header_Description);
+            --  Each sortable cell on its own, so a screen reader can reach a
+            --  column and activate it to sort, as a click on it does.
+            for Column in Files.Types.Detail_Column loop
+               if Columns (Column).Visible and then Detail_Column_Sorts (Column).Sortable then
+                  Add_Accessibility_Node
+                    (Role_Button,
+                     Columns (Column).X,
+                     Header_Y,
+                     Columns (Column).Width,
+                     Header_H,
+                     Header_Text (Column));
+               end if;
+            end loop;
 
             if Header_H > 0 then
                for Column in Files.Types.Optional_Detail_Column loop
@@ -274,12 +287,15 @@ separate (Files.Rendering.Build_Frame_Commands)
                Row_Description : constant UString :=
                  (if Snapshot.View_Mode = Files.Types.Details
                   then To_Unbounded_String
-                    (Detail_Modified_Label & ": " &
-                     To_String (Detail_Modified) & ", " &
-                     Detail_Size_Label & ": " &
-                     To_String (Detail_Size) & ", " &
-                     Detail_Filetype_Label & ": " &
-                     To_String (Item.Filetype_Detail))
+                    (Files.Localization.Text
+                       ("accessibility.item.details",
+                        Files.Localization.Argument_List'
+                          [(To_Unbounded_String ("modified_label"), To_Unbounded_String (Detail_Modified_Label)),
+                           (To_Unbounded_String ("modified"), Detail_Modified),
+                           (To_Unbounded_String ("size_label"), To_Unbounded_String (Detail_Size_Label)),
+                           (To_Unbounded_String ("size"), Detail_Size),
+                           (To_Unbounded_String ("type_label"), To_Unbounded_String (Detail_Filetype_Label)),
+                           (To_Unbounded_String ("type"), Item.Filetype_Detail)]))
                   else Item.Filetype_Detail);
             begin
                Add_Accessibility_Node

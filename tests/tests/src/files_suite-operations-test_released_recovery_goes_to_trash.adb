@@ -35,6 +35,16 @@ separate (Files_Suite.Operations)
       --  release trashes it from beside its original; refused, it goes back.
       Assert (not Ada.Directories.Exists (Dest),
               "a refused native release takes the original back from beside its old place");
+      --  As after a real Replace: the replacement holds the name, so the
+      --  original would go beside it as "replaced 2.txt" -- and come back.
+      Write_Binary_File (Dest, "replacement");
+      Result := Files.File_System.Release_Recovery_Payload (To_String (Backup));
+      Assert (not Result.Success and then Files.File_System.Is_Recovery_Payload (To_String (Backup)),
+              "a refused release beside a replacement keeps the payload recoverable");
+      Assert (File_Has_Bytes (Dest, "replacement"), "the replacement is left as it was");
+      Assert (not Ada.Directories.Exists (Join (Root, "replaced 2.txt")),
+              "no numbered copy of the original is left beside it");
+      Ada.Directories.Delete_File (Dest);
 
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
@@ -75,5 +85,21 @@ separate (Files_Suite.Operations)
       end;
       Result := Files.File_System.Release_Recovery_Payload (To_String (Backup));
       Assert (Result.Success, "the resumed payload can be released");
+
+      --  A release stopped after the payload left its stage (to the trash, or
+      --  beside the original) but before the stage went: the next release
+      --  finishes by removing the stage and forgetting the payload.
+      Write_Binary_File (Dest, "third");
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
+      Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
+      Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
+      Assert (Result.Success, "a third original is kept for recovery");
+      Ada.Directories.Rename (To_String (Backup), Join (Root, "released-by-hand"));
+      Result := Files.File_System.Release_Recovery_Payload (To_String (Backup));
+      Assert (Result.Success, "an interrupted release whose payload already left is finished");
+      Assert (not Ada.Directories.Exists (Ada.Directories.Containing_Directory (To_String (Backup))),
+              "its stage is removed");
+      Assert (not Files.File_System.Registered_Recovery_Payloads.Contains (Backup),
+              "and the payload is no longer registered");
       Project_Tools.Files.Delete_Tree (Trash_Home);
    end Test_Released_Recovery_Goes_To_Trash;

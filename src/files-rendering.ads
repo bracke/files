@@ -639,13 +639,11 @@ package Files.Rendering is
 
    --  Compute the centered paste-conflict dialog geometry for a window.
    --
-   --  @param Snapshot View snapshot (used only for consistent sizing).
    --  @param Layout Overall layout metrics for the window.
    --  @param Line_Height Text line height in pixels.
    --  @return Panel, button, and toggle rectangles for the dialog.
    function Calculate_Conflict_Dialog_Layout
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
+     (Layout      : Layout_Metrics;
       Line_Height : Positive := Files.UI.Base_Line_Height)
       return Conflict_Dialog_Layout;
 
@@ -1222,6 +1220,22 @@ package Files.Rendering is
 
 private
 
+   --  How wide a centred dialog (paste conflict, paste progress) is: 22
+   --  rows' worth, or less in a window that leaves it two rows each side.
+   Dialog_Width_Rows  : constant := 22;
+   Dialog_Margin_Rows : constant := 2;
+
+   function Dialog_Box_Width (Layout : Layout_Metrics; Line_Height : Positive) return Natural is
+     (Natural'Min
+        (Guikit.Layout.Saturating_Multiply (Line_Height, Dialog_Width_Rows),
+         (if Layout.Width > Guikit.Layout.Saturating_Multiply (Line_Height, 2 * Dialog_Margin_Rows)
+          then Layout.Width - Guikit.Layout.Saturating_Multiply (Line_Height, 2 * Dialog_Margin_Rows)
+          else Layout.Width)));
+
+   --  Where a box of Inner pixels starts, centred in Outer.
+   function Centered (Outer : Natural; Inner : Natural) return Natural is
+     (if Outer > Inner then (Outer - Inner) / 2 else 0);
+
    --  Return the palette color role that renders a color label's swatch/dot.
    --  No_Label resolves to Muted_Text_Color; it is never drawn, so the value
    --  only keeps the mapping total.
@@ -1286,13 +1300,11 @@ private
 
    --  Compute the centered paste-progress overlay geometry for a window.
    --
-   --  @param Snapshot View snapshot (used only for consistent sizing).
    --  @param Layout Overall layout metrics for the window.
    --  @param Line_Height Text line height in pixels.
    --  @return Panel, progress-bar, and Cancel-button rectangles for the overlay.
    function Calculate_Paste_Progress_Layout
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
+     (Layout      : Layout_Metrics;
       Line_Height : Positive := Files.UI.Base_Line_Height)
       return Paste_Progress_Layout;
 

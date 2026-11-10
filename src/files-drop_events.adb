@@ -35,13 +35,6 @@ package body Files.Drop_Events is
       return not Source.Pending_Paths.Is_Empty;
    end Has_Pending;
 
-   function Pending_Count
-     (Source : Drop_Event_Source)
-      return Natural is
-   begin
-      return Natural (Source.Pending_Paths.Length);
-   end Pending_Count;
-
    function Take_Overflow
      (Source : in out Drop_Event_Source)
       return Boolean

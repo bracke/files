@@ -1,3 +1,4 @@
+with Files.Protocol_Names;
 with Files.Diagnostics;
 with Ada.Command_Line;
 with Ada.Directories;
@@ -35,7 +36,8 @@ package body Files.Recovery_CLI is
          return;
       end if;
       Ada.Directories.Start_Search
-        (Search, Directory, ".files-recovery-*", [Ada.Directories.Directory => True, others => False]);
+        (Search, Directory, Files.Protocol_Names.Recovery_Stage_Prefix & "*",
+         [Ada.Directories.Directory => True, others => False]);
       Open := True;
       while Ada.Directories.More_Entries (Search) loop
          Ada.Directories.Get_Next_Entry (Search, Item);

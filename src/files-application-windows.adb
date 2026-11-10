@@ -2,17 +2,13 @@ with Files.Preview_Decoder;
 with Files.Extra_Info_Reader;
 with Files.Controller;
 with Files.Items;
-with Files.Environment;
 with Files.Diagnostics;
 with Ada.Unchecked_Deallocation;
-with Interfaces.C;
-with Interfaces.C.Strings;
 with System;
-with System.Address_To_Access_Conversions;
 
 with Glfw.Input;
 with Glfw.Input.Keys.Layout;
-with Glfw.Windows.Drop;
+with Glfw.Windows.Modifiers;
 with Glfw.Windows.Clipboard;
 with Files.Window_Icon;
 with Glfw.Windows.Native;
@@ -44,36 +40,7 @@ package body Files.Application.Windows is
    use type Files.Rendering.Text_Render_Status;
    use type Guikit.Vulkan.Vulkan_Status;
    use type Files.Rendering.View_Snapshot;
-   use type Interfaces.C.Strings.chars_ptr;
    use type System.Address;
-
-   Max_Drop_Paths : constant Positive := 256;
-
-   type C_Path_Array is array (Positive range 1 .. Max_Drop_Paths) of Interfaces.C.Strings.chars_ptr;
-   pragma Convention (C, C_Path_Array);
-
-   package C_Path_Array_Pointers is new System.Address_To_Access_Conversions (C_Path_Array);
-   use type C_Path_Array_Pointers.Object_Pointer;
-
-   type Drop_Window_Registration is record
-      Raw_Window : System.Address := System.Null_Address;
-      Target     : Window_Access := null;
-   end record;
-
-   package Drop_Window_Registration_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Drop_Window_Registration);
-
-   Registered_Drop_Windows : Drop_Window_Registration_Vectors.Vector;
-
-   procedure Raw_Drop_Callback
-     (Window : System.Address;
-      Count  : Interfaces.C.int;
-      Paths  : System.Address)
-   with Convention => C;
-
-   Key_Repeat_Initial_Delay : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (400);
-   Key_Repeat_Interval      : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (40);
 
    function Key_Repeats (Key : Tracked_Key) return Boolean is
      (Key in Tracked_Left | Tracked_Right | Tracked_Up | Tracked_Down
@@ -148,7 +115,7 @@ package body Files.Application.Windows is
       Result  : Files.Interaction.Interaction_Result) is
    begin
       if Result.Font_Size_Changed then
-         Runtime.Font_Pixel_Size := Runtime.Settings.Font_Pixel_Size;
+         Runtime.Font_Pixel_Size := Scaled_Font_Size (Runtime);
       end if;
       if Result.Needs_Glyph_Rebuild then
          Runtime.Text_Ready := False;
@@ -178,108 +145,20 @@ package body Files.Application.Windows is
       Files.Model.Clear_System_Clipboard_Request (Runtime.Model);
    end Flush_System_Clipboard;
 
-   procedure Register_Drop_Window
-     (Raw_Window : System.Address;
-      Target     : Window_Access) is
-   begin
-      if Raw_Window = System.Null_Address or else Target = null then
-         return;
-      end if;
-
-      for Index in Registered_Drop_Windows.First_Index .. Registered_Drop_Windows.Last_Index loop
-         if Registered_Drop_Windows.Element (Index).Raw_Window = Raw_Window then
-            Registered_Drop_Windows.Replace_Element
-              (Index,
-               Drop_Window_Registration'
-                 (Raw_Window => Raw_Window,
-                  Target     => Target));
-            return;
-         end if;
-      end loop;
-
-      Registered_Drop_Windows.Append
-        (Drop_Window_Registration'
-           (Raw_Window => Raw_Window,
-            Target     => Target));
-   end Register_Drop_Window;
-
-   procedure Unregister_Drop_Window
-     (Raw_Window : System.Address) is
-   begin
-      if Raw_Window = System.Null_Address then
-         return;
-      end if;
-
-      if Registered_Drop_Windows.Is_Empty then
-         return;
-      end if;
-
-      for Index in reverse Registered_Drop_Windows.First_Index .. Registered_Drop_Windows.Last_Index loop
-         if Registered_Drop_Windows.Element (Index).Raw_Window = Raw_Window then
-            Registered_Drop_Windows.Delete (Index);
-            return;
-         end if;
-      end loop;
-   end Unregister_Drop_Window;
-
-   function Registered_Drop_Target
-     (Raw_Window : System.Address)
-      return Window_Access is
-   begin
-      if Raw_Window = System.Null_Address then
-         return null;
-      end if;
-
-      for Registration of Registered_Drop_Windows loop
-         if Registration.Raw_Window = Raw_Window then
-            return Registration.Target;
-         end if;
-      end loop;
-
-      return null;
-   end Registered_Drop_Target;
-
-   procedure Raw_Drop_Callback
-     (Window : System.Address;
-      Count  : Interfaces.C.int;
-      Paths  : System.Address)
+   overriding procedure Receive
+     (Into    : in out Desktop_Window;
+      Dropped : Glfw.Windows.Drop.Paths.Path_Vectors.Vector)
    is
-      Target : constant Window_Access := Registered_Drop_Target (Window);
+      Drops : Files.Types.String_Vectors.Vector;
    begin
-      if Target = null or else Paths = System.Null_Address or else Count <= 0 then
-         return;
-      end if;
-
-      declare
-         Raw_Paths : constant C_Path_Array_Pointers.Object_Pointer :=
-           C_Path_Array_Pointers.To_Pointer (Paths);
-         Last      : constant Natural :=
-           --  One past the limit, so Queue can tell an oversized drop apart.
-           Natural'Min (Natural (Count), Files.Drop_Events.Max_Paths + 1);
-         Drops     : Files.Types.String_Vectors.Vector;
-      begin
-         if Raw_Paths = null then
-            return;
-         end if;
-
-         for Index in 1 .. Last loop
-            if Raw_Paths.all (Index) /= Interfaces.C.Strings.Null_Ptr then
-               declare
-                  Path : constant String := Interfaces.C.Strings.Value (Raw_Paths.all (Index));
-               begin
-                  Drops.Append (To_Unbounded_String (Path));
-               end;
-            end if;
-         end loop;
-
-         Files.Drop_Events.Queue (Target.Drop_Source, Drops);
-      end;
+      for Path of Dropped loop
+         Drops.Append (To_Unbounded_String (Path));
+      end loop;
+      Files.Drop_Events.Queue (Into.Drop_Source, Drops);
    exception
-      --  This is a Convention => C callback invoked from GLFW's C stack; an
-      --  exception must never unwind through C frames. Swallow anything.
       when Swallowed : others =>
          Files.Diagnostics.Note_Event_Loop (Swallowed);
-   end Raw_Drop_Callback;
+   end Receive;
 
    function Text_Input_Bytes
      (Char : Wide_Wide_Character)
@@ -324,8 +203,7 @@ package body Files.Application.Windows is
       end if;
    end Character_Entered;
 
-   --  The key a press means under the active keyboard layout: on QWERTZ
-   --  the key labelled Z arrives as Y, and Ctrl+Z ran Redo.
+   --  The key a press means under the keyboard layout (QWERTZ: Ctrl+Z).
    function Layout_Key
      (Key      : Glfw.Input.Keys.Key;
       Scancode : Glfw.Input.Keys.Scancode)
@@ -342,7 +220,7 @@ package body Files.Application.Windows is
       use type Glfw.Input.Keys.Key;
    begin
       Object.Last_Was_Tracked_Press := False;
-      if Action /= Glfw.Input.Keys.Press then
+      if Action = Glfw.Input.Keys.Release then
          return;
       end if;
       declare
@@ -355,10 +233,16 @@ package body Files.Application.Windows is
          Held (Guikit.Input.Meta_Key) := Mods.Super;
          for T in Tracked_Key loop
             if To_Glfw_Key (T) = Meant then
+               --  A held key repeats as the system's own repeat settings say:
+               --  the window system sends Repeat for it. Only keys that move
+               --  or delete something repeat; a held Enter opens once.
+               if Action = Glfw.Input.Keys.Repeat and then not Key_Repeats (T) then
+                  exit;
+               end if;
                if Natural (Object.Pending_Input.Length) < Max_Pending_Input_Events then
                   Object.Pending_Input.Append
                     (Input_Event'
-                       (Kind => Key_Press_Event, Key => T, Physical => Key, Modifiers => Held, others => <>));
+                       (Kind => Key_Press_Event, Key => T, Modifiers => Held, others => <>));
                   Object.Last_Was_Tracked_Press := True;
                end if;
                exit;
@@ -450,24 +334,7 @@ package body Files.Application.Windows is
 
    function To_Modifiers
      (Window : not null access Glfw.Windows.Window)
-      return Guikit.Input.Modifier_Set
-   is
-      Result : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-   begin
-      Result (Guikit.Input.Shift_Key) :=
-        Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Left_Shift) = Glfw.Input.Pressed
-        or else Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Right_Shift) = Glfw.Input.Pressed;
-      Result (Guikit.Input.Control_Key) :=
-        Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Left_Control) = Glfw.Input.Pressed
-        or else Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Right_Control) = Glfw.Input.Pressed;
-      Result (Guikit.Input.Alt_Key) :=
-        Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Left_Alt) = Glfw.Input.Pressed
-        or else Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Right_Alt) = Glfw.Input.Pressed;
-      Result (Guikit.Input.Meta_Key) :=
-        Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Left_Super) = Glfw.Input.Pressed
-        or else Glfw.Windows.Key_State (Window, Glfw.Input.Keys.Right_Super) = Glfw.Input.Pressed;
-      return Result;
-   end To_Modifiers;
+      return Guikit.Input.Modifier_Set renames Glfw.Windows.Modifiers.Held;
 
    function To_Glfw_Key
      (Key : Tracked_Key)
@@ -597,20 +464,16 @@ package body Files.Application.Windows is
      (Runtime : in out Runtime_Window)
    is
       Events   : Input_Event_Vectors.Vector;
-      Fired    : Pressed_Key_Map := [others => False];
       Consumed : Boolean := False;
-      Now      : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
       Selected_Before : Natural := 0;
       Path_Before     : Ada.Strings.Unbounded.Unbounded_String;
    begin
       if Runtime.Handle = null then
          return;
       end if;
-      --  This runs on every pass of the loop; with no key event and no key
-      --  held nothing below can happen, and Selected_Index walks the items.
-      if Runtime.Handle.Pending_Input.Is_Empty
-        and then (for all Key in Tracked_Key => not Runtime.Pressed_Keys (Key))
-      then
+      --  This runs on every pass of the loop; with no key event nothing
+      --  below can happen, and Selected_Index walks the items.
+      if Runtime.Handle.Pending_Input.Is_Empty then
          return;
       end if;
       Selected_Before := Files.Model.Selected_Index (Runtime.Model);
@@ -622,11 +485,6 @@ package body Files.Application.Windows is
       for Event of Events loop
          case Event.Kind is
             when Key_Press_Event =>
-               Runtime.Pressed_Keys (Event.Key) := True;
-               Runtime.Key_Pressed_At (Event.Key) := Now;
-               Runtime.Key_Last_Fired (Event.Key) := Now;
-               Runtime.Held_Physical (Event.Key) := Event.Physical;
-               Fired (Event.Key) := True;
                --  With the trace below a presented frame, CI follows a key
                --  it sends through the loop onto the screen.
                Files.Diagnostics.Trace ("Files.Application.Windows", "key=" & Tracked_Key'Image (Event.Key));
@@ -637,22 +495,6 @@ package body Files.Application.Windows is
                end if;
                Consumed := False;
          end case;
-      end loop;
-
-      for Key in Tracked_Key loop
-         if Runtime.Pressed_Keys (Key) then
-            if Glfw.Windows.Key_State (As_Window (Runtime.Handle), Runtime.Held_Physical (Key)) /= Glfw.Input.Pressed
-            then
-               Runtime.Pressed_Keys (Key) := False;
-            elsif not Fired (Key)
-              and then Key_Repeats (Key)
-              and then Now >= Runtime.Key_Pressed_At (Key) + Key_Repeat_Initial_Delay
-              and then Now >= Runtime.Key_Last_Fired (Key) + Key_Repeat_Interval
-            then
-               Runtime.Key_Last_Fired (Key) := Now;
-               Fire_Key (Runtime, Key, To_Modifiers (As_Window (Runtime.Handle)), Consumed);
-            end if;
-         end if;
       end loop;
 
       --  The selection follows the keyboard into view.
@@ -920,6 +762,7 @@ package body Files.Application.Windows is
       For_Each_Window (Runtime_Windows, Poll'Access);
    end Poll_Window_Workers;
 
+   procedure Save_Pending_Zoom (Runtime : in out Runtime_Window; Force : Boolean) is separate;
    procedure Handle_Scroll_Input
      (Runtime : in out Runtime_Window)
  is separate;
@@ -1062,7 +905,7 @@ package body Files.Application.Windows is
          Settings          => Runtime.Settings,
          Settings_Path     => To_String (Runtime.Settings_Path),
          Action            => Action,
-         Current_Font_Size => Runtime.Font_Pixel_Size,
+         Current_Font_Size => Runtime.Settings.Font_Pixel_Size,
          Modifiers         => Modifiers,
          Result            => Result);
       Apply_Interaction_Result (Runtime, Result);
@@ -1148,65 +991,7 @@ package body Files.Application.Windows is
    procedure Perform_Accessibility_Request
      (Runtime : in out Runtime_Window;
       Item    : A11ykit.Provider.Request)
-   is
-      use type A11ykit.Provider.Request_Kind;
-      Window_W, Window_H, Frame_W, Frame_H : Glfw.Size := 0;
-   begin
-      if Runtime.Handle = null then
-         return;
-      end if;
-      Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
-      Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
-      if Frame_W = 0 or else Frame_H = 0 then
-         return;
-      end if;
-      declare
-         --  Node rectangles are framebuffer pixels; the click path takes
-         --  window coordinates.
-         Centre_X : constant Float := Float (Item.Bounds.X) + Float (Item.Bounds.Width) / 2.0;
-         Centre_Y : constant Float := Float (Item.Bounds.Y) + Float (Item.Bounds.Height) / 2.0;
-         Action   : Files.Events.Input_Action :=
-           Current_Click_Action
-             (Runtime, Window_W, Window_H, Frame_W, Frame_H,
-              Glfw.Input.Mouse.Coordinate (Centre_X * Float (Window_W) / Float (Frame_W)),
-              Glfw.Input.Mouse.Coordinate (Centre_Y * Float (Window_H) / Float (Frame_H)),
-              Guikit.Input.No_Modifiers);
-      begin
-         --  Activate opens an item, as a double-click does; Select and Focus
-         --  are the single click, which selects it and opens nothing.
-         if Item.Kind = A11ykit.Provider.Activate_Request
-           and then Action.Kind = Files.Events.Item_Click_Input_Action
-         then
-            Action.Activate := True;
-         end if;
-         Files.Diagnostics.Trace
-           ("Files.Application.Windows",
-            --  A developer trace: field=value pairs, no prose.
-            "x=" & Natural'Image (Item.Bounds.X) & ',' & "y=" & Natural'Image (Item.Bounds.Y)
-            & ',' & "action=" & Files.Events.Input_Action_Kind'Image (Action.Kind)
-            & ',' & "item="
-            & (if Action.Kind = Files.Events.Item_Click_Input_Action then Action.Item_Index'Image else " 0"));
-         Dispatch_Click_Action (Runtime, Action, Guikit.Input.No_Modifiers);
-         Files.Diagnostics.Trace
-           ("Files.Application.Windows",
-            "selected=" & Natural'Image (Files.Model.Selected_Count (Runtime.Model)));
-
-         --  A click on a settings row's middle only focuses it; activating a
-         --  toggle or choice should change it, as Space on the focused field
-         --  does (saving included).
-         if Item.Kind = A11ykit.Provider.Activate_Request
-           and then Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Settings_Input
-           and then Files.Model.Settings_Focused_Kind (Runtime.Model) in
-             Guikit.Settings_Panel.Toggle | Guikit.Settings_Panel.Choice
-         then
-            declare
-               Consumed : Boolean;
-            begin
-               Fire_Key (Runtime, Tracked_Space, Guikit.Input.No_Modifiers, Consumed);
-            end;
-         end if;
-      end;
-   end Perform_Accessibility_Request;
+   is separate;
 
    function Selected_File_Paths
      (Model : Files.Model.Window_Model)
@@ -1281,9 +1066,9 @@ package body Files.Application.Windows is
       if Runtime.Handle = null then
          return;
       end if;
-      --  The window's undo history ends here; originals it kept for Undo go
-      --  to the system trash rather than staying hidden in their folders.
+      --  History ends: originals kept for Undo go to the system trash.
       Files.Operations.Release_History (Runtime.Model);
+      Save_Pending_Zoom (Runtime, Force => True);
       if Glfw.Windows.Initialized (As_Window (Runtime.Handle)) then
          declare
             Window_W : Glfw.Size := 0;
@@ -1304,7 +1089,7 @@ package body Files.Application.Windows is
       end if;
       Guikit.Vulkan.Shutdown (Runtime.Vulkan);
       if Glfw.Windows.Initialized (As_Window (Runtime.Handle)) then
-         Unregister_Drop_Window (Glfw.Windows.Drop.Raw_Handle (As_Window (Runtime.Handle)));
+         Glfw.Windows.Drop.Paths.Forget (As_Window (Runtime.Handle));
          Glfw.Windows.Destroy (As_Window (Runtime.Handle));
       end if;
       Free_Window (Runtime.Handle);
@@ -1386,8 +1171,8 @@ package body Files.Application.Windows is
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Position);
       Glfw.Windows.Enable_Callback (As_Window (Handle), Glfw.Windows.Callbacks.Mouse_Scroll);
       Files.Window_Icon.Set (As_Window (Handle));
-      Register_Drop_Window (Glfw.Windows.Drop.Raw_Handle (As_Window (Handle)), Handle);
-      Glfw.Windows.Drop.Set_Drop_Callback (As_Window (Handle), Raw_Drop_Callback'Access);
+      --  One more than a drop may hold, so an oversized one can be refused.
+      Glfw.Windows.Drop.Paths.Watch (As_Window (Handle), Handle, Limit => Files.Drop_Events.Max_Paths + 1);
       Glfw.Windows.Show (As_Window (Handle));
       Runtime_Windows.Append
         (Runtime_Window'
@@ -1410,7 +1195,7 @@ package body Files.Application.Windows is
       when others =>
          if Handle /= null then
             if Glfw.Windows.Initialized (As_Window (Handle)) then
-               Unregister_Drop_Window (Glfw.Windows.Drop.Raw_Handle (As_Window (Handle)));
+               Glfw.Windows.Drop.Paths.Forget (As_Window (Handle));
                Glfw.Windows.Destroy (As_Window (Handle));
             end if;
 
@@ -1751,16 +1536,7 @@ package body Files.Application.Windows is
       end loop;
    end Show_Unshown_Runtime_Windows;
 
-   function Live_Display_Available return Boolean is
-      use type Hostkit.Host.Kind;
-      Display         : constant String := Files.Environment.Value ("DISPLAY");
-      Wayland_Display : constant String := Files.Environment.Value ("WAYLAND_DISPLAY");
-      Comspec         : constant String := Files.Environment.Value ("COMSPEC");
-   begin
-      --  A macOS session always has its window server; it sets none of these.
-      return Display /= "" or else Wayland_Display /= "" or else Comspec /= ""
-        or else Hostkit.Host.Current = Hostkit.Host.MacOS;
-   end Live_Display_Available;
+   function Live_Display_Available return Boolean renames Hostkit.Host.Has_Window_Server;
 
    function Vulkan_Runtime_Available return Boolean is
       Initialized : Boolean := False;

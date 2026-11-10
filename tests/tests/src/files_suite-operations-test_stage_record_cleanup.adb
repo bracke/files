@@ -1,3 +1,4 @@
+with Files.Job_Helpers.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Stage_Record_Cleanup (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -144,7 +145,7 @@ separate (Files_Suite.Operations)
       Assert (not Ada.Directories.Exists (Join (Join (Transport, "stages"), "stage-absent")),
               "a write-ahead reservation with no created pathname is discarded safely");
       Assert
-        (not Files.Job_Helpers.Run_Cleanup
+        (not Files.Job_Helpers.Testing.Run_Cleanup
            (Transport, To_String (Transport_Identity), Attempt_Limit => 1,
             Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0)
          and then Ada.Directories.Exists (Join (Transport, "stages")),
@@ -178,7 +179,7 @@ separate (Files_Suite.Operations)
       end if;
       Before := Now;
       declare
-         Cleaned : constant Boolean := Files.Job_Helpers.Run_Cleanup
+         Cleaned : constant Boolean := Files.Job_Helpers.Testing.Run_Cleanup
            (Transport, To_String (Transport_Identity), Attempt_Limit => 2,
             Initial_Retry_Delay => 0.001, Maximum_Retry_Delay => 0.001);
       begin

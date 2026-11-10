@@ -1,3 +1,4 @@
+with Files.Protocol_Names;
 with Files.Timing;
 with Files.Fs_Primitives;
 with Files.Helper_Modes;
@@ -563,9 +564,9 @@ package body Files.Job_Scavenger is
                   end;
                elsif Is_Current_Name (Directory) then
                   if Ada.Directories.Exists
-                    (Hostkit.Fs.Join (Directory, ".files-job-transport"))
+                    (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Transport_Marker))
                     or else Hostkit.Fs.Is_Link
-                      (Hostkit.Fs.Join (Directory, ".files-job-transport"))
+                      (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Transport_Marker))
                   then
                      --  The marker may have been published after the first
                      --  inspection. Re-read before classifying it as invalid.

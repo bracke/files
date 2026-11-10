@@ -835,6 +835,9 @@ package body Files.Interaction is
                declare
                   Click_Result : Files.Controller.Controller_Result;
                begin
+                  --  A menu still open for another item would make the
+                  --  click below ignored, leaving nothing selected.
+                  Files.Model.Close_Context_Menu (Model);
                   Files.Model.Clear_Selection (Model);
                   Click_Result :=
                     Files.Controller.Handle_Item_Click

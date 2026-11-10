@@ -85,6 +85,7 @@ package body Files_Suite.Startup is
    procedure Test_Timing_At_Clock_Ends (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Live_Smoke_Scenarios_Verdict (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Environment_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Message_Patterns_Fill_Arguments (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Startup_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -161,6 +162,9 @@ package body Files_Suite.Startup is
         (T, Test_Live_Smoke_Scenarios_Verdict'Access, "live smoke multi-scenario verdict aggregation");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Environment_Round_Trip'Access, "a non-ASCII environment value set by files reads back unchanged");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Message_Patterns_Fill_Arguments'Access,
+         "message patterns fill named arguments with the locale's punctuation");
    end Register_Tests;
 
    procedure Test_Startup_Path_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -223,6 +227,8 @@ package body Files_Suite.Startup is
 
    procedure Test_Live_Smoke_Scenarios_Verdict (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Environment_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Message_Patterns_Fill_Arguments (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

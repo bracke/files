@@ -191,8 +191,8 @@ begin
         (case Format is
             when Zip_Archive       => "zip",
             when Seven_Zip_Archive => "7z");
-      Raw_Base : constant String :=
-        Ada.Directories.Base_Name (To_String (Items.First_Element.Name));
+      --  ".bashrc" is all name: ".bashrc.zip", not ".zip".
+      Raw_Base : constant String := Leaf_Base (To_String (Items.First_Element.Name));
       Base     : constant String := (if Raw_Base = "" then "archive" else Raw_Base);
 
       --  A directory-unique simple archive name, e.g. "report.zip" or

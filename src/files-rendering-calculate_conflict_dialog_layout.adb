@@ -1,19 +1,11 @@
 separate (Files.Rendering)
    function Calculate_Conflict_Dialog_Layout
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
+     (Layout      : Layout_Metrics;
       Line_Height : Positive := Files.UI.Base_Line_Height)
       return Conflict_Dialog_Layout
    is
-      pragma Unreferenced (Snapshot);
       Pad        : constant Natural := Files.UI.Dialog_Padding;
-      Max_Width  : constant Natural := Saturating_Multiply (Line_Height, 22);
-      Margin     : constant Natural := Saturating_Multiply (Line_Height, 2);
-      Inner_W    : constant Natural :=
-        (if Layout.Width > Saturating_Multiply (Margin, 2)
-         then Layout.Width - Saturating_Multiply (Margin, 2)
-         else Layout.Width);
-      Width      : constant Natural := Natural'Min (Max_Width, Inner_W);
+      Width      : constant Natural := Dialog_Box_Width (Layout, Line_Height);
       Desired_Message_H : constant Natural := Saturating_Multiply (Line_Height, 2);
       Desired_Apply_H   : constant Natural := Line_Height;
       Desired_Button_H  : constant Natural := Saturating_Add (Line_Height, Pad);
@@ -24,8 +16,8 @@ separate (Files.Rendering)
              (Desired_Message_H,
               Saturating_Add (Desired_Apply_H, Desired_Button_H)));
       Height     : constant Natural := Natural'Min (Layout.Height, Desired_Height);
-      X          : constant Natural := (if Layout.Width > Width then (Layout.Width - Width) / 2 else 0);
-      Y          : constant Natural := (if Layout.Height > Height then (Layout.Height - Height) / 2 else 0);
+      X          : constant Natural := Centered (Layout.Width, Width);
+      Y          : constant Natural := Centered (Layout.Height, Height);
       Base_Content_H : constant Natural :=
         Saturating_Add
           (Desired_Message_H,

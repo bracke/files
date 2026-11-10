@@ -235,6 +235,10 @@ package body Files_Suite.Operations is
    procedure Test_Move_Source_Changes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_Source_Changes_Off_Volume (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_Keeps_Source_Until_Copy_Synced (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Read_Only_Survives_Copy_And_Move (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Restore_Keeps_Trash_Until_Synced (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Name_Too_Long_Is_Reported (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Netpbm_Fields (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Metadata_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Live_Metadata_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transfer_Result_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -1163,6 +1167,18 @@ package body Files_Suite.Operations is
         (T, Test_Move_Keeps_Source_Until_Copy_Synced'Access,
          "cross-device moves remove the source only after the copy is synced");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Read_Only_Survives_Copy_And_Move'Access,
+         "read-only files stay read-only when copied and moved across devices");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Restore_Keeps_Trash_Until_Synced'Access,
+         "a restore across devices keeps the trash's copy until the restored one is synced");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Name_Too_Long_Is_Reported'Access,
+         "a name too long for any filesystem is reported as such");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Netpbm_Fields'Access,
+         "the Netpbm reader splits fields, refuses bad numbers and scales samples");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Metadata_History_Identity'Access, "metadata Undo and Redo refuse unrelated replacements");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Live_Metadata_History'Access, "metadata history records live modes and ownership");
@@ -1581,6 +1597,14 @@ package body Files_Suite.Operations is
    procedure Test_Move_Source_Changes_Off_Volume (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Move_Keeps_Source_Until_Copy_Synced (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Read_Only_Survives_Copy_And_Move (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Restore_Keeps_Trash_Until_Synced (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Name_Too_Long_Is_Reported (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Netpbm_Fields (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Metadata_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -50,6 +50,33 @@ separate (Files_Suite.Operations)
            (Files.Model.Paste_Conflict_Name (Model),
             Incoming,
             "the dialog names the incoming " & Script & " item");
+
+         --  Replace writes over the existing entry under its own name, and
+         --  Undo brings the original back under that name too.
+         declare
+            Step : Files.Operations.Operation_Result :=
+              Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
+            pragma Unreferenced (Step);
+
+            --  The folder's one entry, by name and content.
+            procedure Expect (Content : String; What : String) is
+               Listed : constant Files.File_System.Directory_Load_Result :=
+                 Files.File_System.Load_Directory (Dest_Dir, Settings);
+            begin
+               Files_Suite.Support.Assert_Equal (Natural (Listed.Items.Length), 1, What & ": one entry");
+               Files_Suite.Support.Assert_Equal
+                 (To_String (Listed.Items.First_Element.Name), Present, What & ": named as before");
+               Assert (File_Has_Bytes (Join (Dest_Dir, Present), Content), What & ": holding " & Content);
+            end Expect;
+         begin
+            for Attempt in 1 .. 100 loop
+               exit when not Files.Model.Paste_Execution_Is_Active (Model);
+               Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 8);
+            end loop;
+            Expect ("SRC", Script & " replace");
+            Step := Files.Operations.Undo_Last (Model, Settings);
+            Expect ("DEST", Script & " undo");
+         end;
       end Check;
    begin
       Reset_Root;

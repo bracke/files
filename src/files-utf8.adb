@@ -36,11 +36,6 @@ package body Files.UTF8 is
       return Next - Index;
    end Unit_Length;
 
-   function Is_Required_Zero_Width_Codepoint
-     (Codepoint : Natural)
-      return Boolean is
-     (Guikit.Utf8.Is_Required_Zero_Width_Codepoint (Codepoint));
-
    --  The width tables are guikit's, which lays out and draws the text.
    function Is_Combining_Codepoint (Codepoint : Natural) return Boolean
      renames Guikit.Utf8.Is_Combining_Codepoint;

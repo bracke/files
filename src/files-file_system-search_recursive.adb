@@ -18,10 +18,9 @@ is
    --  Bound the walk independently of how many entries match. The only stop
    --  condition used to be Max_Items, which advances solely on a match, so a
    --  query that matched little or nothing walked the entire subtree on the UI
-   --  thread (a freeze). Mirror the content search's depth + total-scanned caps
-   --  (files-operations.adb). The name match is far cheaper per entry than a
-   --  content read, so the scanned cap is correspondingly larger.
-   Max_Search_Depth    : constant := 64;
+   --  thread (a freeze). The depth cap is Search_Contents' too; the name
+   --  match is far cheaper per entry than a content read, so the scanned cap
+   --  is larger than its 20,000 files.
    Max_Entries_Scanned : constant := 100_000;
    Scanned             : Natural := 0;
 

@@ -1,14 +1,7 @@
 separate (Files.Operations)
---  Split a leaf name for "(copy)" / "(link)" naming. GNAT treats a leading
---  dot as the extension separator (".bashrc" has base "" and extension
---  "bashrc"), which produced " (copy).bashrc"; a leading-dot name has no
---  extension here, matching Files.Paste.
+--  Split a leaf name for "(copy)" / "(link)" naming: Files.Types' one rule
+--  (".bashrc" is all name, unlike GNAT's Base_Name).
 function Leaf_Extension_Start (Name : String) return Natural is
 begin
-   for Index in reverse Name'Range loop
-      if Name (Index) = '.' then
-         return (if Index > Name'First and then Index < Name'Last then Index else 0);
-      end if;
-   end loop;
-   return 0;
+   return Files.Types.Extension_Start (Name);
 end Leaf_Extension_Start;

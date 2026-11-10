@@ -1,3 +1,4 @@
+with Files.Job_Helpers.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Transport_Cleanup_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -12,7 +13,7 @@ separate (Files_Suite.Operations)
          Ada.Directories.Create_Directory (Victim);
          Write_Binary_File (Join (Victim, "keep"), "unrelated");
          Assert
-           (not Files.Job_Helpers.Run_Cleanup
+           (not Files.Job_Helpers.Testing.Run_Cleanup
               (Victim, Files.File_Identities.Token (Victim), Attempt_Limit => 1,
                Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0),
             "cleanup refuses an arbitrary unmarked directory: refused");
@@ -59,7 +60,7 @@ separate (Files_Suite.Operations)
               (Hostkit.Fs.Is_Link (Link_Path),
                "cleanup never reports a dangling symlink as a removed transport: link present");
             Assert
-              (not Files.Job_Helpers.Run_Cleanup
+              (not Files.Job_Helpers.Testing.Run_Cleanup
                  (Link_Path, "untrusted", Attempt_Limit => 1, Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0),
                "cleanup never reports a dangling symlink as a removed transport: not reported removed");
             Assert
@@ -87,14 +88,14 @@ separate (Files_Suite.Operations)
          Link_Path := To_Unbounded_String (Join (To_String (Owned), "injected-link"));
          Linked := Hostkit.Fs.Create_Link (Target, To_String (Link_Path));
          Assert
-           (not Files.Job_Helpers.Run_Cleanup
+           (not Files.Job_Helpers.Testing.Run_Cleanup
               (To_String (Owned), Files.File_Identities.Token (To_String (Owned)),
                Attempt_Limit => 1, Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0)
             and then Ada.Directories.Exists (To_String (Owned)),
             "cleanup refuses a marked transport while its owner holds the lease");
          Files.Process_Jobs.Testing.Release_Owner (Job);
          Assert
-           (Files.Job_Helpers.Run_Cleanup
+           (Files.Job_Helpers.Testing.Run_Cleanup
               (To_String (Owned), Files.File_Identities.Token (To_String (Owned)),
                Attempt_Limit => 1, Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0)
             and then not Ada.Directories.Exists (To_String (Owned)),
@@ -138,7 +139,7 @@ separate (Files_Suite.Operations)
             Project_Tools.Files.Read_Raw_File (Join (To_String (Saved), Marker)));
          Write_Binary_File (Join (To_String (Original), "keep"), "replacement");
          Assert
-           (not Files.Job_Helpers.Run_Cleanup
+           (not Files.Job_Helpers.Testing.Run_Cleanup
               (To_String (Original), To_String (Expected), Attempt_Limit => 1,
                Initial_Retry_Delay => 0.0, Maximum_Retry_Delay => 0.0),
             "cleanup refuses a replacement carrying the original transport marker: refused");

@@ -106,6 +106,47 @@ package body Files.Folder_Tree is
       end;
    end Set_Children;
 
+   --  A detached node's parent: no node, and not a root (0).
+   Detached : constant Natural := Natural'Last;
+
+   procedure Replace_Children
+     (T        : in out Tree;
+      Index    : Positive;
+      Children : Entry_Seed_Vectors.Vector) is
+   begin
+      if not In_Range (T, Index) then
+         return;
+      end if;
+      for Child of T.Nodes loop
+         if Child.Parent = Index then
+            Child.Parent := Detached;
+         end if;
+      end loop;
+      T.Nodes (Index).Loaded := False;
+      Set_Children (T, Index, Children);
+   end Replace_Children;
+
+   function Same_Roots
+     (T     : Tree;
+      Roots : Entry_Seed_Vectors.Vector)
+      return Boolean
+   is
+      Next : Natural := Roots.First_Index;
+   begin
+      for N of T.Nodes loop
+         if N.Parent = 0 then
+            if Next > Roots.Last_Index
+              or else N.Path /= Roots (Next).Path
+              or else N.Name /= Roots (Next).Name
+            then
+               return False;
+            end if;
+            Next := Next + 1;
+         end if;
+      end loop;
+      return Next > Roots.Last_Index;
+   end Same_Roots;
+
    procedure Set_Expanded
      (T        : in out Tree;
       Index    : Positive;

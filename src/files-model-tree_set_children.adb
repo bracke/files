@@ -5,7 +5,7 @@ procedure Tree_Set_Children
    Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector) is
 begin
    Touch (Model);
-   Files.Folder_Tree.Set_Children (Model.Folder_Tree_Value, Index, Children);
+   Files.Folder_Tree.Replace_Children (Model.Folder_Tree_Value, Index, Children);
    Clamp_Tree_Panel_Scroll (Model);
    Reconcile_Tree_Pick_Target (Model, Index);
 end Tree_Set_Children;

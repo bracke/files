@@ -1213,6 +1213,16 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
+   --  Whether the folder tree's roots are Roots, in order.
+   --
+   --  @param Model Model to inspect.
+   --  @param Roots Root locations to compare with.
+   --  @return True when the tree was seeded with exactly these.
+   function Tree_Roots_Match
+     (Model : Window_Model;
+      Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector)
+      return Boolean;
+
    --  Seed the folder tree with root nodes.
    --
    --  @param Model Model to update.

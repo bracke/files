@@ -4,7 +4,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
    begin
       declare
          Panel  : constant Paste_Progress_Layout :=
-           Calculate_Paste_Progress_Layout (Snapshot, Layout, Line_Height);
+           Calculate_Paste_Progress_Layout (Layout, Line_Height);
          Verb_Key : constant String :=
            (if Length (Snapshot.Paste_Progress_Operation_Label) > 0
             then To_String (Snapshot.Paste_Progress_Operation_Label)

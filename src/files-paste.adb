@@ -106,15 +106,29 @@ package body Files.Paste is
       return 0;
    end Next_Unresolved_Conflict;
 
-   function Extension_Start (Name : String) return Natural is
+   function First_Free_Name
+     (Name  : String;
+      Taken : not null access function (Leaf : String) return Boolean)
+      return String
+   is
+      Dot       : constant Natural := Extension_Start (Name);
+      Stem      : constant String := (if Dot = 0 then Name else Name (Name'First .. Dot - 1));
+      Extension : constant String := (if Dot = 0 then "" else Name (Dot .. Name'Last));
    begin
-      for Index in reverse Name'Range loop
-         if Name (Index) = '.' and then Index > Name'First then
-            return Index;
-         end if;
+      if not Taken (Name) then
+         return Name;
+      end if;
+      for Counter in 2 .. Positive'Last loop
+         declare
+            Candidate : constant String := Stem & " " & Files.Types.Natural_Text (Counter) & Extension;
+         begin
+            if not Taken (Candidate) then
+               return Candidate;
+            end if;
+         end;
       end loop;
-      return 0;
-   end Extension_Start;
+      return Name;
+   end First_Free_Name;
 
    --  A destination path derived from Desired that collides with neither
    --  Existing nor Claimed, formed by inserting " N" before the extension. This
@@ -131,24 +145,11 @@ package body Files.Paste is
       function Key (Path : String) return String is
         (if Fold then Files.Types.Fold_Case (Path) else Path);
 
-      Dot       : constant Natural := Extension_Start (Name);
-      Stem      : constant String :=
-        (if Dot = 0 then Name else Name (Name'First .. Dot - 1));
-      Extension : constant String :=
-        (if Dot = 0 then "" else Name (Dot .. Name'Last));
-      Counter   : Positive := 2;
-      Candidate : Unbounded_String := To_Unbounded_String (Desired_Path (Dir, Name));
+      function Taken (Leaf : String) return Boolean is
+        (Existing.Contains (Key (Desired_Path (Dir, Leaf)))
+         or else Claimed.Contains (Key (Desired_Path (Dir, Leaf))));
    begin
-      while Existing.Contains (Key (To_String (Candidate)))
-        or else Claimed.Contains (Key (To_String (Candidate)))
-      loop
-         Candidate :=
-           To_Unbounded_String
-             (Desired_Path (Dir, Stem & " " & Files.Types.Natural_Text (Counter) & Extension));
-         exit when Counter = Positive'Last;
-         Counter := Counter + 1;
-      end loop;
-      return To_String (Candidate);
+      return Desired_Path (Dir, First_Free_Name (Name, Taken'Access));
    end Unique_Path;
 
    function Resolve

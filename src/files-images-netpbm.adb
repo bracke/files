@@ -1,3 +1,5 @@
+with Files.Types;
+
 package body Files.Images.Netpbm is
 
    function Is_Blank (C : Character) return Boolean is (C in ' ' | ASCII.HT | ASCII.LF | ASCII.CR);
@@ -45,5 +47,19 @@ package body Files.Images.Netpbm is
      (if Max_Value = 0 then 0
       elsif Max_Value = 255 then Interfaces.Unsigned_8 (Natural'Min (Value, 255))
       else Interfaces.Unsigned_8 (Natural'Min ((Value * 255) / Max_Value, 255)));
+
+   function P6_Header (Width : Positive; Height : Positive) return Ada.Streams.Stream_Element_Array is
+      Text : constant String :=
+        "P6" & ASCII.LF
+        & Files.Types.Natural_Text (Width) & " " & Files.Types.Natural_Text (Height) & ASCII.LF
+        & "255" & ASCII.LF;
+      Bytes : Ada.Streams.Stream_Element_Array (1 .. Text'Length);
+   begin
+      for Index in Text'Range loop
+         Bytes (Ada.Streams.Stream_Element_Offset (Index - Text'First + 1)) :=
+           Ada.Streams.Stream_Element (Character'Pos (Text (Index)));
+      end loop;
+      return Bytes;
+   end P6_Header;
 
 end Files.Images.Netpbm;

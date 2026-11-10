@@ -1,3 +1,4 @@
+with Glfw.Windows.Drop.Paths;
 with Files.Model;
 with Files.Refresh_Jobs;
 with Files.UI;
@@ -207,8 +208,6 @@ private
    type Input_Event is record
       Kind      : Input_Event_Kind := Text_Event;
       Key       : Tracked_Key := Tracked_Escape;
-      --  The physical key, polled for auto-repeat while it is held.
-      Physical  : Glfw.Input.Keys.Key := Glfw.Input.Keys.Unknown;
       --  Modifiers held when the key went down, not when the queue drains.
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Text      : Ada.Strings.Unbounded.Unbounded_String;
@@ -223,7 +222,7 @@ private
 
    Max_Pending_Input_Events : constant := 256;
 
-   type Desktop_Window is new Glfw.Windows.Window with record
+   type Desktop_Window is new Glfw.Windows.Window and Glfw.Windows.Drop.Paths.Receiver with record
       Pending_Input : Input_Event_Vectors.Vector;
       --  True between a tracked key press and the next callback, so that
       --  callback's character is known to be the press's own.
@@ -251,6 +250,11 @@ private
       Last_Left_Press_Time : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
       Drop_Source : Files.Drop_Events.Drop_Event_Source;
    end record;
+
+   --  Paths dropped on the window, queued for the loop to import.
+   overriding procedure Receive
+     (Into    : in out Desktop_Window;
+      Dropped : Glfw.Windows.Drop.Paths.Path_Vectors.Vector);
 
    overriding procedure Character_Entered
      (Object : not null access Desktop_Window;
@@ -280,10 +284,6 @@ private
       Y      : Glfw.Input.Mouse.Coordinate);
 
    type Window_Access is access all Desktop_Window;
-
-   type Pressed_Key_Map is array (Tracked_Key) of Boolean;
-   type Key_Time_Map    is array (Tracked_Key) of Ada.Real_Time.Time;
-   type Physical_Key_Map is array (Tracked_Key) of Glfw.Input.Keys.Key;
 
    --  Input timers run on the monotonic clock: the wall clock can step back
    --  (NTP, VM resume), which would make every press look like a bounce or a
@@ -397,18 +397,17 @@ private
       --  window changed them since (see Sync_Settings_Across_Windows).
       Synced_Settings : Files.Settings.Settings_Model;
       Settings_Path   : Ada.Strings.Unbounded.Unbounded_String;
-      Pressed_Keys    : Pressed_Key_Map := [others => False];
-      Key_Pressed_At  : Key_Time_Map := [others => Never];
-      Key_Last_Fired  : Key_Time_Map := [others => Never];
-      --  The physical key held for each tracked key, which differs from the
-      --  tracked key's own position when the layout moved its letter.
-      Held_Physical   : Physical_Key_Map := [others => Glfw.Input.Keys.Unknown];
       Left_Mouse_Down : Boolean := False;
       Drag_Source_Index : Natural := 0;
       Scrollbar_Drag_Target : Files.Events.Scroll_Target := Files.Events.Scroll_Auto;
       Scrollbar_Drag_Anchor : Integer := 0;
       --  The three drags the shell owns besides the scrollbar's.
       Column_Resize   : Column_Resize_Drag;
+      --  A wheel zoom is applied at once and saved once the wheel has been
+      --  still for Zoom_Save_Delay (or the window closes): one durable write
+      --  per gesture, not one per wheel step.
+      Zoom_Unsaved    : Boolean := False;
+      Zoom_At         : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
       Column_Reorder  : Column_Reorder_Drag;
       Marquee         : Marquee_Drag_State;
       Last_Click_Item : Natural := 0;
@@ -428,7 +427,11 @@ private
       Type_Ahead_Input_At : Ada.Real_Time.Time := Never;
       Text            : Files.Rendering.Text_Renderer;
       Text_Ready      : Boolean := False;
+      --  The size text is drawn at, in framebuffer pixels: the setting's
+      --  size times Pixel_Ratio, the framebuffer's pixels per window pixel
+      --  (2.0 on a Retina display), so text keeps its size on screen.
       Font_Pixel_Size : Positive := 16;
+      Pixel_Ratio     : Float := 1.0;
       --  The window title last set.
       Shown_Title : Ada.Strings.Unbounded.Unbounded_String;
       --  The font pixel size text initialization last failed at, or 0. It is
@@ -488,6 +491,10 @@ private
       --  How often the watch and the timed re-read may reload the folder.
       Watch_Pacing : Files.Refresh_Jobs.Watch_Pacer;
    end record;
+
+   --  The setting's text size in this window's framebuffer pixels.
+   function Scaled_Font_Size (Runtime : Runtime_Window) return Positive is
+     (Positive'Max (1, Natural (Float (Runtime.Settings.Font_Pixel_Size) * Runtime.Pixel_Ratio)));
 
    package Runtime_Window_Vectors is new Ada.Containers.Vectors
      (Index_Type   => Positive,

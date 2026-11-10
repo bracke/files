@@ -1,9 +1,9 @@
+with Files.Protocol_Names;
 with Interfaces;
-with Ada.Streams.Stream_IO;
+with Ada.Streams;
 with Files.Environment;
 with Files.Diagnostics;
 with Ada.Exceptions;
-with Ada.Streams;
 with Ada.Unchecked_Deallocation;
 with Ada.Strings.Unbounded;
 
@@ -159,20 +159,6 @@ package body Files.File_System.Support is
          Started := False;
       end if;
    end Safe_End_Search;
-
-   --  Close a stream file if it is open, ignoring any error from the close.
-   procedure Safe_Close
-     (File : in out Ada.Streams.Stream_IO.File_Type) is
-   begin
-      if Ada.Streams.Stream_IO.Is_Open (File) then
-         begin
-            Ada.Streams.Stream_IO.Close (File);
-         exception
-            when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
-         end;
-      end if;
-   end Safe_Close;
 
    function Environment_Equals
      (Name     : String;
@@ -371,11 +357,9 @@ package body Files.File_System.Support is
    is
       use Ada.Streams;
       use type GNAT.OS_Lib.File_Descriptor;
-      Input : Ada.Streams.Stream_IO.File_Type;
       Descriptor : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
       Supported : Boolean;
       Buffer : Stream_Element_Array (1 .. 65_536);
-      Last : Stream_Element_Offset;
       Bytes_Read : Integer;
       Context : CryptoLib.Hashes.SHA256_Context;
       Digest : CryptoLib.Hashes.SHA256_Digest;
@@ -384,13 +368,14 @@ package body Files.File_System.Support is
    begin
       CryptoLib.Hashes.Initialize_SHA256 (Context);
       Descriptor := Hostkit.Regular_Files.Open_Read (Path, False, Supported);
-      if Supported and then Descriptor = GNAT.OS_Lib.Invalid_FD then
-         --  The native implementation is available but refused a link,
-         --  non-regular entry, or failed open.  Falling back to a pathname
-         --  open here would reintroduce the race that it just detected.
+      pragma Unreferenced (Supported);
+      if Descriptor = GNAT.OS_Lib.Invalid_FD then
+         --  Refused a link, a non-regular entry, or failed to open; or a host
+         --  without the native open (none that is built for). A pathname
+         --  open instead would reintroduce the race it guards against.
          raise Ada.Directories.Use_Error;
       end if;
-      if Descriptor /= GNAT.OS_Lib.Invalid_FD then
+      begin
          loop
             if (Cancel /= null and then Cancel.all)
               or else
@@ -408,22 +393,7 @@ package body Files.File_System.Support is
          end loop;
          GNAT.OS_Lib.Close (Descriptor);
          Descriptor := GNAT.OS_Lib.Invalid_FD;
-      else
-         Ada.Streams.Stream_IO.Open (Input, Ada.Streams.Stream_IO.In_File, Path, Form => "shared=no");
-         while not Ada.Streams.Stream_IO.End_Of_File (Input) loop
-            if (Cancel /= null and then Cancel.all)
-              or else
-                (Check_Job_Cancellation and then Files.Job_Context.Cancelled)
-            then
-               raise Ada.Directories.Use_Error;
-            end if;
-            Ada.Streams.Stream_IO.Read (Input, Buffer, Last);
-            if Last >= Buffer'First then
-               CryptoLib.Hashes.Update (Context, Buffer (Buffer'First .. Last));
-            end if;
-         end loop;
-         Ada.Streams.Stream_IO.Close (Input);
-      end if;
+      end;
       Digest := CryptoLib.Hashes.Finalize (Context);
       for Index in Digest'Range loop
          Result ((Index - Digest'First) * 2 + 1) := Hex (Natural (Digest (Index)) / 16 + 1);
@@ -432,7 +402,6 @@ package body Files.File_System.Support is
       return Result;
    exception
       when others =>
-         Safe_Close (Input);
          if Descriptor /= GNAT.OS_Lib.Invalid_FD then
             GNAT.OS_Lib.Close (Descriptor);
          end if;
@@ -1038,7 +1007,6 @@ package body Files.File_System.Support is
       procedure Copy_Bytes is
          use Ada.Streams;
          use type GNAT.OS_Lib.File_Descriptor;
-         Input  : Ada.Streams.Stream_IO.File_Type;
          Input_Descriptor : GNAT.OS_Lib.File_Descriptor :=
            GNAT.OS_Lib.Invalid_FD;
          Output : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
@@ -1093,51 +1061,34 @@ package body Files.File_System.Support is
          begin
             Input_Descriptor := Hostkit.Regular_Files.Open_Read
               (Source_Path, False, Supported);
-            if Supported and then Input_Descriptor = GNAT.OS_Lib.Invalid_FD then
+            pragma Unreferenced (Supported);
+            --  Refused a link or a non-regular entry, or failed to open: no
+            --  pathname open instead, which would reopen the race it guards.
+            if Input_Descriptor = GNAT.OS_Lib.Invalid_FD then
                Files.Io_Errors.Capture;
                raise Ada.Directories.Use_Error;
             end if;
          end;
-         if Input_Descriptor = GNAT.OS_Lib.Invalid_FD then
-            begin
-               Files.Io_Errors.Clear_Os_Error;
-               Ada.Streams.Stream_IO.Open
-                 (Input, Ada.Streams.Stream_IO.In_File, Source_Path, Form => "shared=no");
-            exception
-               when others =>
-                  Files.Io_Errors.Capture;
-                  raise;
-            end;
-         end if;
          Output := GNAT.OS_Lib.Create_New_File (Destination_Path, GNAT.OS_Lib.Binary);
          if Output = GNAT.OS_Lib.Invalid_FD then
             Files.Io_Errors.Capture;
             raise Ada.Directories.Use_Error;
          end if;
          Owned := True;
-         if Input_Descriptor /= GNAT.OS_Lib.Invalid_FD then
-            loop
-               Check_Cancelled;
-               Bytes_Read := GNAT.OS_Lib.Read
-                 (Input_Descriptor, Buffer'Address, Integer (Buffer'Length));
-               if Bytes_Read < 0 then
-                  Files.Io_Errors.Capture;
-                  raise Ada.Directories.Use_Error;
-               end if;
-               exit when Bytes_Read = 0;
-               Last := Buffer'First + Stream_Element_Offset (Bytes_Read) - 1;
-               Copy_Buffer (Last);
-            end loop;
-            GNAT.OS_Lib.Close (Input_Descriptor);
-            Input_Descriptor := GNAT.OS_Lib.Invalid_FD;
-         else
-            while not Ada.Streams.Stream_IO.End_Of_File (Input) loop
-               Check_Cancelled;
-               Ada.Streams.Stream_IO.Read (Input, Buffer, Last);
-               Copy_Buffer (Last);
-            end loop;
-            Ada.Streams.Stream_IO.Close (Input);
-         end if;
+         loop
+            Check_Cancelled;
+            Bytes_Read := GNAT.OS_Lib.Read
+              (Input_Descriptor, Buffer'Address, Integer (Buffer'Length));
+            if Bytes_Read < 0 then
+               Files.Io_Errors.Capture;
+               raise Ada.Directories.Use_Error;
+            end if;
+            exit when Bytes_Read = 0;
+            Last := Buffer'First + Stream_Element_Offset (Bytes_Read) - 1;
+            Copy_Buffer (Last);
+         end loop;
+         GNAT.OS_Lib.Close (Input_Descriptor);
+         Input_Descriptor := GNAT.OS_Lib.Invalid_FD;
          if Sparse and then not Hostkit.Regular_Files.Finish_Sparse (Output) then
             Files.Io_Errors.Capture;
             raise Ada.Directories.Use_Error;
@@ -1166,7 +1117,6 @@ package body Files.File_System.Support is
          Check_Cancelled;
       exception
          when others =>
-            Safe_Close (Input);
             if Input_Descriptor /= GNAT.OS_Lib.Invalid_FD then
                GNAT.OS_Lib.Close (Input_Descriptor);
             end if;
@@ -1299,43 +1249,13 @@ package body Files.File_System.Support is
    end Copy_Tree;
 
    procedure Delete_Tree (Path : String) is
-      Native_Result : constant Hostkit.Fs.Delete_Tree_Outcome :=
-        Hostkit.Fs.Delete_Tree_No_Follow (Path);
-
-      procedure Delete_Entry (Name : String) is
-      begin
-         Delete_Tree (Join_Path (Path, Name));
-      end Delete_Entry;
    begin
-      case Native_Result is
-         when Hostkit.Fs.Tree_Deleted =>
-            return;
-         when Hostkit.Fs.Tree_Delete_Failed =>
-            raise Ada.Directories.Use_Error;
-         when Hostkit.Fs.Tree_Delete_Unsupported =>
-            null;
-      end case;
-
-      --  Hosts without descriptor-relative traversal use the conservative
-      --  pathname fallback below.
-      --  Unlink a symlink as a link, never following it: Ada.Directories.Kind
-      --  and Delete_Tree dereference links, so classifying by Kind would let a
-      --  recursive delete walk into and wipe the link target's real contents
-      --  (e.g. Shift-Delete of a symlink to ~/Pictures). Mirrors Copy_Tree.
-      if Hostkit.Fs.Is_Link (Path) then
-         if not Hostkit.Fs.Delete_Link (Path) then
-            raise Program_Error;
-         end if;
-         return;
+      --  Descriptor-relative and never following a link, on every host built
+      --  for. A host without it (Tree_Delete_Unsupported) refuses rather than
+      --  fall back to a pathname walk that a swapped-in link could redirect.
+      if Hostkit.Fs."/=" (Hostkit.Fs.Delete_Tree_No_Follow (Path), Hostkit.Fs.Tree_Deleted) then
+         raise Ada.Directories.Use_Error;
       end if;
-
-      case Ada.Directories.Kind (Path) is
-         when Ada.Directories.Directory =>
-            For_Each_Entry (Path, Delete_Entry'Access);
-            Ada.Directories.Delete_Directory (Path);
-         when Ada.Directories.Ordinary_File | Ada.Directories.Special_File =>
-            Ada.Directories.Delete_File (Path);
-      end case;
    end Delete_Tree;
 
    procedure Delete_Owned_Tree (Path : String) is
@@ -1353,9 +1273,9 @@ package body Files.File_System.Support is
          Marker_Present : Boolean := False;
          procedure Delete_Entry (Name : String) is
          begin
-            if Name = ".files-job-owner" then
+            if Name = Files.Protocol_Names.Transport_Lease then
                Lease_Present := True;
-            elsif Name = ".files-job-transport" then
+            elsif Name = Files.Protocol_Names.Transport_Marker then
                Marker_Present := True;
             else
                Delete_Owned_Level (Join_Path (Path, Name));
@@ -1380,10 +1300,10 @@ package body Files.File_System.Support is
          --  the restored directory still carries its marker and stays
          --  reclaimable; without it, cleanup and the scavenger refuse it forever.
          if Marker_Present then
-            Delete_Owned_Level (Join_Path (Path, ".files-job-transport"));
+            Delete_Owned_Level (Join_Path (Path, Files.Protocol_Names.Transport_Marker));
          end if;
          if Lease_Present then
-            Delete_Owned_Level (Join_Path (Path, ".files-job-owner"));
+            Delete_Owned_Level (Join_Path (Path, Files.Protocol_Names.Transport_Lease));
          end if;
          Ada.Directories.Delete_Directory (Path);
       end Delete_Owned_Level;

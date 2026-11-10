@@ -337,6 +337,37 @@ package Files.File_System is
       Max_Items : Natural := 1_000)
       return Recursive_Search_Result;
 
+   --  How deep either search walks below its root; a folder past it fails
+   --  the search (error.search.failed) rather than silently go unsearched.
+   Max_Search_Depth : constant := 64;
+
+   --  Whether Bytes, text and not binary, contain Query, ignoring case.
+   --
+   --  @param Bytes A file's first bytes.
+   --  @param Query Text to look for; "" matches nothing.
+   --  @return True for a text match.
+   function Content_Matches
+     (Bytes : String;
+      Query : String)
+      return Boolean;
+
+   --  Search a directory tree for text files whose first 64 KiB contain
+   --  Query, ignoring case, with Search_Recursive's walk: real folders only
+   --  (a linked folder is an item, so cycles are impossible), Max_Search_Depth
+   --  deep, cancellable, and failing rather than returning a partial answer
+   --  past its limits (1,000 matches, 20,000 files read, a text file larger
+   --  than it reads).
+   --
+   --  @param Root_Path Directory where the search starts.
+   --  @param Query Text to look for.
+   --  @param Settings Settings used for filetype, icon, and hidden-file policy.
+   --  @return The matching files, or why the search failed.
+   function Search_Contents
+     (Root_Path : String;
+      Query     : String;
+      Settings  : Files.Settings.Settings_Model)
+      return Recursive_Search_Result;
+
    --  Compute a shallow signature for polling-based directory change detection.
    --
    --  @param Path Directory to inspect.

@@ -589,44 +589,7 @@ package body Files.Rendering is
       Height      : Natural;
       Line_Height : Positive := Files.UI.Base_Line_Height)
       return Layout_Metrics
-   is
-      Toolbar    : constant Natural := Files.UI.Toolbar_Height (Line_Height);
-      Bottom     : constant Natural :=
-        Files.UI.Bottom_Bar_Height (Line_Height);
-      Used_Y     : constant Natural := Saturating_Add (Toolbar, Bottom);
-      Main_H     : constant Natural := (if Height > Used_Y then Height - Used_Y else 0);
-      --  A quarter-width pane is too narrow for ordinary metadata at the
-      --  default window size (dates and short prose wrap after only a handful
-      --  of words). Prefer sixteen text rows' worth of width while retaining
-      --  at least half of the window for the file view on compact windows.
-      Pane_W     : constant Natural :=
-        (if not Snapshot.Info_Pane_Open
-         then 0
-         else Natural'Min
-           (Width / 2,
-            Natural'Max (Width / 4, Saturating_Multiply (Line_Height, 16))));
-      Main_W     : constant Natural := (if Width > Pane_W then Width - Pane_W else 0);
-      Command_W  : constant Natural := Scaled_Down (Width, 8, 10);
-      Command_H  : constant Natural := Scaled_Down (Height, 8, 10);
-      Command_X  : constant Natural := (if Width > Command_W then (Width - Command_W) / 2 else 0);
-      Command_Y  : constant Natural :=
-        (if Height > Command_H then Natural'Min (Line_Height, Height - Command_H) else 0);
-   begin
-      return
-        (Width             => Width,
-         Height            => Height,
-         Toolbar_Height    => Toolbar,
-         Bottom_Bar_Height => Bottom,
-         Main_X            => 0,
-         Main_Y            => Toolbar,
-         Main_Width        => Main_W,
-         Main_Height       => Main_H,
-         Info_Pane_Width   => Pane_W,
-         Command_X         => Command_X,
-         Command_Y         => Command_Y,
-         Command_Width     => Command_W,
-         Command_Height    => Command_H);
-   end Calculate_Layout;
+ is separate;
 
    function Calculate_Item_Layout
      (Snapshot      : View_Snapshot;
@@ -661,15 +624,13 @@ package body Files.Rendering is
  is separate;
 
    function Calculate_Conflict_Dialog_Layout
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
+     (Layout      : Layout_Metrics;
       Line_Height : Positive := Files.UI.Base_Line_Height)
       return Conflict_Dialog_Layout
  is separate;
 
    function Calculate_Paste_Progress_Layout
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
+     (Layout      : Layout_Metrics;
       Line_Height : Positive := Files.UI.Base_Line_Height)
       return Paste_Progress_Layout
  is separate;

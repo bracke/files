@@ -89,30 +89,28 @@ package body Files.Controller is
       return Roots;
    end Root_Entries_With_Favorites;
 
-   --  Seed the folder tree's root nodes from Root_Entries_With_Favorites, but
-   --  only when it has not already been seeded. Used by the tree toggle command
+   --  Seed the folder tree's root nodes from Root_Entries_With_Favorites,
+   --  again whenever they changed (a favorite added, a volume mounted) since
+   --  the tree was seeded. Used by the tree toggle command
    --  and the Copy to.../Move to... destination picker so both open onto the
    --  same populated tree. The tree draws a node's name verbatim, so a favorite
    --  is named by its path rather than by the selector's label token.
    procedure Seed_Tree_If_Needed
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model) is
+      Seeds : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
    begin
-      if not Files.Model.Tree_Is_Seeded (Model) then
-         declare
-            Seeds : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
-         begin
-            for Root of Root_Entries_With_Favorites (Settings) loop
-               Seeds.Append
-                 (Files.Folder_Tree.Entry_Seed'
-                    (Path => Root.Path,
-                     Name =>
-                       (if Root.Kind /= Files.File_System.Root_Favorite and then Length (Root.Label) > 0
-                        then Root.Label
-                        else Root.Path)));
-            end loop;
-            Files.Model.Seed_Tree (Model, Seeds);
-         end;
+      for Root of Root_Entries_With_Favorites (Settings) loop
+         Seeds.Append
+           (Files.Folder_Tree.Entry_Seed'
+              (Path => Root.Path,
+               Name =>
+                 (if Root.Kind /= Files.File_System.Root_Favorite and then Length (Root.Label) > 0
+                  then Root.Label
+                  else Root.Path)));
+      end loop;
+      if not Files.Model.Tree_Is_Seeded (Model) or else not Files.Model.Tree_Roots_Match (Model, Seeds) then
+         Files.Model.Seed_Tree (Model, Seeds);
       end if;
    end Seed_Tree_If_Needed;
 
@@ -880,9 +878,10 @@ package body Files.Controller is
       end;
    end Handle_Breadcrumb_Click;
 
-   --  Load a tree node's direct subdirectories and attach them, honouring the
-   --  hidden-files setting through Load_Directory. Failures and empty
-   --  directories still mark the node loaded so it is not probed again.
+   --  Load a tree node's direct subdirectories and attach them in place of
+   --  any it had, honouring the hidden-files setting. Run on every expand, so
+   --  a folder made, renamed or removed since shows as it is now. Failures
+   --  and empty directories mark the node loaded, with no children.
    procedure Load_Tree_Children
      (Model      : in out Files.Model.Window_Model;
       Settings   : Files.Settings.Settings_Model;

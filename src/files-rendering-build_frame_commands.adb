@@ -934,9 +934,7 @@ separate (Files.Rendering)
       --  The ordinary folder tree is persistent rather than modal. Draw it
       --  before transient overlays so Quick Look, label/root/sort menus, and
       --  dialogs cover it in the same order in which they own input.
-      if Snapshot.Tree_Panel_Open then
-         Under_Tree_Panel := Natural (Result.Tooltips.Length);
-      end if;
+      Under_Tree_Panel := (if Snapshot.Tree_Panel_Open then Natural (Result.Tooltips.Length) else 0);
       Draw_Overlay_Commands (Persistent_Overlay_Phase);
 
       --  Popups and modal panels own the pointer while they are open.  Drop
@@ -947,6 +945,8 @@ separate (Files.Rendering)
       --  Draw_Overlay_Commands and remain available.
       if Any_Overlay_Open (Snapshot) then
          Result.Tooltips.Clear;
+         --  None of those left: the overlay's own, added next, all count.
+         Under_Tree_Panel := 0;
       end if;
 
       Draw_Popups;

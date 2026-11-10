@@ -56,7 +56,7 @@ separate (Files_Suite.Rendering)
          Snap.Paste_Conflict_Open := True;
          Snap.Paste_Conflict_Name := To_Unbounded_String ("report.txt");
          Layout := Calculate_Layout (Snap, Width, Height, LH);
-         Dialog := Calculate_Conflict_Dialog_Layout (Snap, Layout, LH);
+         Dialog := Calculate_Conflict_Dialog_Layout (Layout, LH);
          Close  := Panel_Close_Button (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height, LH);
          Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
          Assert (Close.Visible, "the paste-conflict dialog hosts a close button");

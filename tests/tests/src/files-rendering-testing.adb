@@ -27,8 +27,7 @@ package body Files.Rendering.Testing is
      renames Files.Rendering.Context_Menu_Row_Width;
 
    function Calculate_Paste_Progress_Layout
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
+     (Layout      : Layout_Metrics;
       Line_Height : Positive := Files.UI.Base_Line_Height)
       return Paste_Progress_Layout
      renames Files.Rendering.Calculate_Paste_Progress_Layout;

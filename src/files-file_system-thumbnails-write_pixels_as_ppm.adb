@@ -1,3 +1,4 @@
+with Files.Images.Netpbm;
 separate (Files.File_System.Thumbnails)
 --  Binary P6, not the ASCII P3 this used to write.
 --
@@ -32,27 +33,13 @@ is
    Output : Stream_IO.File_Type;
    Row_Bytes : Stream_Element_Array (1 .. Stream_Element_Offset (Out_W) * 3);
 
-   procedure Put_Header (Text : String) is
-      Buffer : Stream_Element_Array (1 .. Text'Length);
-   begin
-      for Index in Text'Range loop
-         Buffer (Stream_Element_Offset (Index - Text'First + 1)) :=
-           Stream_Element (Character'Pos (Text (Index)));
-      end loop;
-
-      Stream_IO.Write (Output, Buffer);
-   end Put_Header;
-
    function Against_White
      (Channel, Alpha : Natural) return Stream_Element is
      (Stream_Element
         ((Channel * Alpha + 255 * (255 - Alpha) + 127) / 255));
 begin
    Stream_IO.Create (Output, Stream_IO.Out_File, Target_Path, Form => "shared=no");
-   Put_Header
-     ("P6" & ASCII.LF
-      & Natural_Text (Out_W) & " " & Natural_Text (Out_H) & ASCII.LF
-      & "255" & ASCII.LF);
+   Stream_IO.Write (Output, Files.Images.Netpbm.P6_Header (Out_W, Out_H));
 
    for Row in 0 .. Out_H - 1 loop
       for Column in 0 .. Out_W - 1 loop

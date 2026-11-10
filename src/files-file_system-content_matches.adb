@@ -1,4 +1,5 @@
-separate (Files.Operations)
+with Files.Quick_Look;
+separate (Files.File_System)
 function Content_Matches
   (Bytes : String;
    Query : String)

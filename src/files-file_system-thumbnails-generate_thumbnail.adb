@@ -1,3 +1,4 @@
+with Files.Images.Netpbm;
 with Files.Durable_Writes;
 
 separate (Files.File_System.Thumbnails)
@@ -122,22 +123,9 @@ begin
 
       Row_Bytes : Stream_Element_Array (1 .. Stream_Element_Offset (Size) * 3);
 
-      procedure Put_Header (Text : String) is
-         Buffer : Stream_Element_Array (1 .. Text'Length);
-      begin
-         for Index in Text'Range loop
-            Buffer (Stream_Element_Offset (Index - Text'First + 1)) :=
-              Stream_Element (Character'Pos (Text (Index)));
-         end loop;
-
-         Stream_IO.Write (File, Buffer);
-      end Put_Header;
    begin
       Stream_IO.Create (File, Stream_IO.Out_File, To_String (Temp), Form => "shared=no");
-      Put_Header
-        ("P6" & ASCII.LF
-         & Natural_Text (Size) & " " & Natural_Text (Size) & ASCII.LF
-         & "255" & ASCII.LF);
+      Stream_IO.Write (File, Files.Images.Netpbm.P6_Header (Size, Size));
 
       for Row in 0 .. Size - 1 loop
          for Column in 0 .. Size - 1 loop

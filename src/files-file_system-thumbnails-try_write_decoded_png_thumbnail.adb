@@ -1,3 +1,4 @@
+with Files.Capped_Files;
 separate (Files.File_System.Thumbnails)
    function Try_Write_Decoded_Png_Thumbnail
      (Source_Path : String;
@@ -5,10 +6,6 @@ separate (Files.File_System.Thumbnails)
       Target_Path : String)
       return Boolean
    is
-      use type GNAT.OS_Lib.File_Descriptor;
-      File       : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
-      Buffer     : Ada.Streams.Stream_Element_Array (1 .. 4096);
-      Bytes_Read : Integer;
       Bytes      : Thumbnail_Byte_Vectors.Vector;
       Idat       : Thumbnail_Byte_Vectors.Vector;
       Width  : Natural := 0;
@@ -112,33 +109,21 @@ separate (Files.File_System.Thumbnails)
          end if;
       end Paeth;
    begin
-      File := Files.Fs_Primitives.Open_Regular_Read (Source_Path);
-      if File = GNAT.OS_Lib.Invalid_FD then
-         return False;
-      end if;
-      loop
-         Bytes_Read := GNAT.OS_Lib.Read
-           (File, Buffer'Address, Integer (Buffer'Length));
-         if Bytes_Read < 0 then
-            raise Ada.Directories.Use_Error;
-         end if;
-         exit when Bytes_Read = 0;
-         if Long_Long_Integer (Natural (Bytes.Length))
-             + Long_Long_Integer (Bytes_Read) >
-               Long_Long_Integer (Max_Fast_Decode_Source_Bytes)
-         then
-            GNAT.OS_Lib.Close (File);
-            File := GNAT.OS_Lib.Invalid_FD;
+      declare
+         use type Files.Capped_Files.Read_Status;
+         Status : Files.Capped_Files.Read_Status;
+         Raw    : constant String :=
+           Files.Capped_Files.Read_Capped
+             (Source_Path, Max_Fast_Decode_Source_Bytes, Files.Capped_Files.Refuse_Links, Status);
+      begin
+         if Status /= Files.Capped_Files.Read_Complete then
             return False;
          end if;
-         for Index in Buffer'First
-           .. Buffer'First + Ada.Streams.Stream_Element_Offset (Bytes_Read) - 1
-         loop
-            Bytes.Append (Buffer (Index));
+         Bytes.Reserve_Capacity (Raw'Length);
+         for C of Raw loop
+            Bytes.Append (Ada.Streams.Stream_Element (Character'Pos (C)));
          end loop;
-      end loop;
-      GNAT.OS_Lib.Close (File);
-      File := GNAT.OS_Lib.Invalid_FD;
+      end;
 
       if not Is_Png_Signature then
          return False;
@@ -473,8 +458,5 @@ separate (Files.File_System.Thumbnails)
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
-         if File /= GNAT.OS_Lib.Invalid_FD then
-            GNAT.OS_Lib.Close (File);
-         end if;
          return False;
    end Try_Write_Decoded_Png_Thumbnail;

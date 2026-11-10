@@ -4,7 +4,6 @@ with Ada.Strings.Unbounded;
 with GNAT.OS_Lib;
 
 with Hostkit.Fs;
-with Hostkit.Host;
 
 with Files.File_Identities;
 with Files.Fs_Primitives;

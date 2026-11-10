@@ -234,7 +234,6 @@ separate (Files.Application.Windows.Smoke)
               (Input_Event'
                  (Kind      => Key_Press_Event,
                   Key       => Tracked_Equal,
-                  Physical  => To_Glfw_Key (Tracked_Equal),
                   Modifiers => [Guikit.Input.Control_Key => True, others => False],
                   Text      => Null_Unbounded_String,
                   Parallel  => False));

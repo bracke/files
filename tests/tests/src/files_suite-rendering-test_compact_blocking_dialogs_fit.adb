@@ -16,7 +16,7 @@ separate (Files_Suite.Rendering)
       Layout := Calculate_Layout (Snap, Compact_W, Compact_H, LH);
       declare
          Dialog : constant Conflict_Dialog_Layout :=
-           Calculate_Conflict_Dialog_Layout (Snap, Layout, LH);
+           Calculate_Conflict_Dialog_Layout (Layout, LH);
          Frame : constant Frame_Commands :=
            Build_Frame_Commands (Snap, Compact_W, Compact_H, LH);
       begin
@@ -42,7 +42,7 @@ separate (Files_Suite.Rendering)
       Layout := Calculate_Layout (Snap, Compact_W, Compact_H, LH);
       declare
          Panel : constant Paste_Progress_Layout :=
-           Files.Rendering.Testing.Calculate_Paste_Progress_Layout (Snap, Layout, LH);
+           Files.Rendering.Testing.Calculate_Paste_Progress_Layout (Layout, LH);
          Frame : constant Frame_Commands :=
            Build_Frame_Commands (Snap, Compact_W, Compact_H, LH);
       begin

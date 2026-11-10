@@ -12,6 +12,7 @@ separate (Files.Application.Windows)
       Cursor_X : Glfw.Input.Mouse.Coordinate := 0.0;
       Cursor_Y : Glfw.Input.Mouse.Coordinate := 0.0;
    begin
+      Save_Pending_Zoom (Runtime, Force => False);
       if Runtime.Handle = null or else Runtime.Handle.Pending_Scroll = 0 then
          return;
       end if;
@@ -32,11 +33,17 @@ separate (Files.Application.Windows)
                declare
                   Zoomed : Files.Interaction.Interaction_Result;
                begin
+                  --  In memory now (no settings path), saved when the wheel
+                  --  rests: see Save_Pending_Zoom.
                   Files.Interaction.Apply_Zoom
-                    (Runtime.Model, Runtime.Settings, To_String (Runtime.Settings_Path),
+                    (Runtime.Model, Runtime.Settings, "",
                      Files.Settings.Clamp_Font_Pixel_Size
-                       (Add_Pending_Scroll (Integer (Runtime.Font_Pixel_Size), Offset)),
+                       (Add_Pending_Scroll (Integer (Runtime.Settings.Font_Pixel_Size), Offset)),
                      Zoomed);
+                  if Zoomed.Settings_Changed then
+                     Runtime.Zoom_Unsaved := True;
+                     Runtime.Zoom_At := Ada.Real_Time.Clock;
+                  end if;
                   Apply_Interaction_Result (Runtime, Zoomed);
                end;
             end if;
@@ -82,7 +89,7 @@ separate (Files.Application.Windows)
             Settings          => Runtime.Settings,
             Settings_Path     => To_String (Runtime.Settings_Path),
             Action            => Action,
-            Current_Font_Size => Runtime.Font_Pixel_Size,
+            Current_Font_Size => Runtime.Settings.Font_Pixel_Size,
             Modifiers         => To_Modifiers (As_Window (Runtime.Handle)),
             Result            => Result);
          Apply_Interaction_Result (Runtime, Result);

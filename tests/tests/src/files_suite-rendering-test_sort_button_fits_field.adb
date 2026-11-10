@@ -52,8 +52,7 @@ separate (Files_Suite.Rendering)
               Files.UI.Calculate_Bottom_Bar_Layout
                 (Compact_W, Files.Types.Sort_Name, 20);
             Visible_W : constant Natural :=
-              Files.UI.Sort_Menu_Visible_Width
-                (Compact_W, Files.Types.Sort_Name, 20);
+              Files.UI.Calculate_Sort_Menu_Layout (Compact_W, 0, Files.Types.Sort_Name, 20).Width;
          begin
             Files_Suite.Support.Assert_Equal
               (Bar.Sort_Button_X + Visible_W,

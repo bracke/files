@@ -4,7 +4,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
    begin
       declare
          Dialog : constant Conflict_Dialog_Layout :=
-           Calculate_Conflict_Dialog_Layout (Snapshot, Layout, Line_Height);
+           Calculate_Conflict_Dialog_Layout (Layout, Line_Height);
 
          procedure Draw_Button (Kind : Conflict_Hit_Kind; Button_X : Natural; Label_Key : String) is
             Hovered : constant Boolean :=

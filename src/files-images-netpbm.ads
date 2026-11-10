@@ -1,6 +1,7 @@
+with Ada.Streams;
 with Interfaces;
 
---  Reading the text parts of a Netpbm image -- the P3 and P6 headers, and
+--  Reading (and writing the header of) the text parts of a Netpbm image -- the P3 and P6 headers, and
 --  P3's samples: fields separated by blanks, with # comments to the end of
 --  a line. The thumbnail cache writes P6 and still reads the P3 it wrote
 --  before, and a P3 file is decoded to make a thumbnail: one reader for all.
@@ -33,5 +34,13 @@ package Files.Images.Netpbm is
    --  @param Max_Value The image's largest sample value; 0 gives 0.
    --  @return The sample as 0 .. 255.
    function Channel (Value : Natural; Max_Value : Natural) return Interfaces.Unsigned_8;
+
+   --  The header of a binary P6 image of 8-bit samples, ready to write
+   --  before its rows: "P6", the size, "255", each on a line.
+   --
+   --  @param Width Image width in pixels.
+   --  @param Height Image height in pixels.
+   --  @return The header's bytes.
+   function P6_Header (Width : Positive; Height : Positive) return Ada.Streams.Stream_Element_Array;
 
 end Files.Images.Netpbm;

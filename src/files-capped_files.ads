@@ -21,12 +21,16 @@ package Files.Capped_Files is
    --    exactly Max_Bytes bytes is accepted.
    --  @param Links Whether a symbolic link to a regular file is followed.
    --  @param Status Read_Complete when the whole file was read.
-   --  @return The file content when Status is Read_Complete, else "".
+   --  @param Keep_Prefix With Read_Too_Large, return the first Max_Bytes
+   --    rather than nothing (a preview shows the start of a large file).
+   --  @return The file content when Status is Read_Complete, its first
+   --    Max_Bytes for Read_Too_Large with Keep_Prefix, else "".
    function Read_Capped
-     (Path      : String;
-      Max_Bytes : Natural;
-      Links     : Link_Policy;
-      Status    : out Read_Status)
+     (Path        : String;
+      Max_Bytes   : Natural;
+      Links       : Link_Policy;
+      Status      : out Read_Status;
+      Keep_Prefix : Boolean := False)
       return String;
 
 end Files.Capped_Files;

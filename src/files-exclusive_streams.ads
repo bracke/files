@@ -1,10 +1,12 @@
 with Ada.Streams;
-with GNAT.OS_Lib;
+with Files.Descriptor_Streams;
 
 --  Sequential output streams that create a new regular pathname exclusively.
 --  Existing files and links are refused instead of followed or truncated.
 package Files.Exclusive_Streams is
-   type Output_Stream is new Ada.Streams.Root_Stream_Type with private;
+   --  A Descriptor_Streams output on a file this stream made (and only it):
+   --  it counts what is written, and refuses to write once closed.
+   type Output_Stream is new Files.Descriptor_Streams.Output_Stream with private;
 
    --  Create Path as a new owner-only binary file.
    --  @param Stream Closed stream that will own the new descriptor.
@@ -28,24 +30,15 @@ package Files.Exclusive_Streams is
    --  @return Number of bytes written so far, buffered ones included.
    function Size (Stream : Output_Stream) return Long_Long_Integer;
 
-   overriding procedure Read
-     (Stream : in out Output_Stream;
-      Item   : out Ada.Streams.Stream_Element_Array;
-      Last   : out Ada.Streams.Stream_Element_Offset);
-
    overriding procedure Write
      (Stream : in out Output_Stream;
       Item   : Ada.Streams.Stream_Element_Array);
 
 private
-   --  Writes are gathered into blocks: records are encoded a field at a
-   --  time, and a write per field was a syscall per field.
-   Block_Size : constant := 16 * 1024;
-
-   type Output_Stream is new Ada.Streams.Root_Stream_Type with record
-      Descriptor : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
-      Length     : Long_Long_Integer := 0;
-      Block      : Ada.Streams.Stream_Element_Array (1 .. Block_Size);
-      Pending    : Ada.Streams.Stream_Element_Offset := 0;
+   --  Writes are gathered into blocks by the parent (Descriptor_Streams):
+   --  records are encoded a field at a time, and a write per field was a
+   --  syscall per field.
+   type Output_Stream is new Files.Descriptor_Streams.Output_Stream with record
+      Length : Long_Long_Integer := 0;
    end record;
 end Files.Exclusive_Streams;

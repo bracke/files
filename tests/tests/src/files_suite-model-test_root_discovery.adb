@@ -1,3 +1,4 @@
+with Hostkit.Mounts;
 with Files.File_System.Testing;
 separate (Files_Suite.Model)
    procedure Test_Root_Discovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -17,19 +18,18 @@ separate (Files_Suite.Model)
            and then Text (Text'First .. Text'First + Prefix'Length - 1) = Prefix;
       end Starts_With;
 
+      --  "/", a host volume folder, or inside one.
       function Is_User_Visible_Mount_Point (Path : String) return Boolean is
       begin
-         return Path = "/"
-           or else Path = "/mnt"
-           or else Starts_With (Path, "/mnt/")
-           or else Path = "/media"
-           or else Starts_With (Path, "/media/")
-           or else Path = "/run/media"
-           or else Starts_With (Path, "/run/media/")
-           or else Path = "/Volumes"
-           or else Starts_With (Path, "/Volumes/")
-           or else Path = "/System/Volumes"
-           or else Starts_With (Path, "/System/Volumes/");
+         if Path = "/" then
+            return True;
+         end if;
+         for Place of Hostkit.Mounts.Volume_Places loop
+            if Path = To_String (Place.Path) or else Starts_With (Path, To_String (Place.Path) & "/") then
+               return True;
+            end if;
+         end loop;
+         return False;
       end Is_User_Visible_Mount_Point;
 
    begin

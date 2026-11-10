@@ -65,20 +65,6 @@ package Files.UI is
    --  @return Bottom bar height in pixels.
    function Bottom_Bar_Height (Line_Height : Positive) return Natural;
 
-   --  Width of the visible sort dropdown at a particular window width. This
-   --  clamps the preferred width at the right framebuffer edge and is shared by
-   --  rendering and hit-testing.
-   --
-   --  @param Width Available framebuffer width in pixels.
-   --  @param Sort_Field Currently selected sort field.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Visible dropdown width in pixels.
-   function Sort_Menu_Visible_Width
-     (Width       : Natural;
-      Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := Base_Line_Height)
-      return Natural;
-
    --  Geometry of the open sort dropdown: the menu rectangle (it opens upward
    --  from the bottom bar, left-aligned with the sort button), the top of its
    --  first row, the row height, and the row count (one row per sort field).

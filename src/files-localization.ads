@@ -1,3 +1,4 @@
+with Ada.Strings.Unbounded;
 with Humanize.Contexts;
 
 --  Default localization facade for files.
@@ -42,6 +43,28 @@ package Files.Localization is
    function Text
      (Key    : String;
       Locale : String := "")
+      return String;
+
+   --  A named value a message pattern fills in: {Name} in the pattern.
+   type Argument is record
+      Name  : Ada.Strings.Unbounded.Unbounded_String;
+      Value : Ada.Strings.Unbounded.Unbounded_String;
+   end record;
+
+   type Argument_List is array (Positive range <>) of Argument;
+
+   --  Key's message pattern with Arguments filled in, in Locale's wording and
+   --  punctuation ("{label}: {value}" in English, "{label} : {value}" in
+   --  French). A locale without the message takes the default locale's.
+   --
+   --  @param Key Stable localization key of a message pattern.
+   --  @param Arguments The values its placeholders name.
+   --  @param Locale Requested locale identifier, or empty to use System_Locale.
+   --  @return The rendered message, or Key when it cannot be rendered.
+   function Text
+     (Key       : String;
+      Arguments : Argument_List;
+      Locale    : String := "")
       return String;
 
    --  A humanize context for Locale (the system locale when empty), over the

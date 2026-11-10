@@ -64,6 +64,14 @@ separate (Files_Suite.Interaction)
         (not Result.Clear_Pending_Text,
          "right-click clears follow-up flags left by an earlier interaction (clear pending text)");
 
+      --  With that menu still open, a right-click on another, unselected
+      --  item moves the menu there and selects that item alone.
+      Right_Click (3);
+      Assert (Files.Model.Context_Menu_Is_Open (Model), "a second right-click opens the menu again");
+      Assert (Files.Model.Is_Selected (Model, 3), "it selects the newly right-clicked item");
+      Assert (not Files.Model.Is_Selected (Model, 2), "and only that item");
+      Right_Click (2);
+
       --  A queued click can carry an index from an older layout. It must not
       --  open an item menu whose commands would act on the current selection.
       Files.Interaction.Apply_Right_Click

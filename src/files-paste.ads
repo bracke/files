@@ -118,12 +118,22 @@ package Files.Paste is
       Fold_Names : Boolean := False)
       return Resolved_Action_Vectors.Vector;
 
-   --  One-based position of the last '.' that starts an extension (not a
-   --  leading dot), or 0 when the name has none: where a numbered copy's
-   --  " 2" goes, for a paste and a drop alike.
+   --  Where a numbered copy's " 2" goes, for a paste and a drop alike:
+   --  Files.Types.Extension_Start.
    --
    --  @param Name A leaf name.
-   --  @return The extension's dot, or 0.
-   function Extension_Start (Name : String) return Natural;
+   --  @return The extension's dot, or 0 when the name has none.
+   function Extension_Start (Name : String) return Natural renames Files.Types.Extension_Start;
+
+   --  Name, or the first of "stem 2.ext", "stem 3.ext" ... that Taken says
+   --  is free: the one numbering a paste and a drop give a name in use.
+   --
+   --  @param Name The leaf name wanted.
+   --  @param Taken Whether a leaf name is in use.
+   --  @return A leaf name Taken says is free.
+   function First_Free_Name
+     (Name  : String;
+      Taken : not null access function (Leaf : String) return Boolean)
+      return String;
 
 end Files.Paste;

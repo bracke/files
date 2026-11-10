@@ -94,7 +94,7 @@ package body Files.UI is
         (X          => Bottom.Sort_Button_X,
          Y          => Menu_Y,
          --  The dropdown is as wide as the widest field, not the (snug) sort
-         --  button (Sort_Menu_Visible_Width, from the layout already made).
+         --  button, clipped at the window's right edge.
          Width      =>
            (if Bottom.Sort_Button_Width = 0 or else Bottom.Sort_Button_X >= Width then 0
             else Natural'Min (Sort_Menu_Width (Line_Height), Width - Bottom.Sort_Button_X)),
@@ -103,13 +103,6 @@ package body Files.UI is
          Row_Height => Row_H,
          Row_Count  => Row_Count);
    end Calculate_Sort_Menu_Layout;
-
-   function Sort_Menu_Visible_Width
-     (Width       : Natural;
-      Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := Base_Line_Height)
-      return Natural is
-     (Calculate_Sort_Menu_Layout (Width, 0, Sort_Field, Line_Height).Width);
 
    function Sort_Menu_Row_Field
      (Row : Positive)

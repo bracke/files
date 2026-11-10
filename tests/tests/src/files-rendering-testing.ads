@@ -58,8 +58,7 @@ package Files.Rendering.Testing is
    --  @param Line_Height Text line height in pixels.
    --  @return Panel, progress-bar, and Cancel-button rectangles for the overlay.
    function Calculate_Paste_Progress_Layout
-     (Snapshot    : View_Snapshot;
-      Layout      : Layout_Metrics;
+     (Layout      : Layout_Metrics;
       Line_Height : Positive := Files.UI.Base_Line_Height)
       return Paste_Progress_Layout;
 

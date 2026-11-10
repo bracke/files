@@ -10,10 +10,11 @@ package body Files.Capped_Files is
    use type GNAT.OS_Lib.File_Descriptor;
 
    function Read_Capped
-     (Path      : String;
-      Max_Bytes : Natural;
-      Links     : Link_Policy;
-      Status    : out Read_Status)
+     (Path        : String;
+      Max_Bytes   : Natural;
+      Links       : Link_Policy;
+      Status      : out Read_Status;
+      Keep_Prefix : Boolean := False)
       return String
    is
       File       : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
@@ -49,6 +50,10 @@ package body Files.Capped_Files is
          if Bytes_Read > Max_Bytes - Total then
             Close_File;
             Status := Read_Too_Large;
+            if Keep_Prefix then
+               Ada.Strings.Unbounded.Append (Content, Buffer (1 .. Max_Bytes - Total));
+               return Ada.Strings.Unbounded.To_String (Content);
+            end if;
             return "";
          end if;
          Ada.Strings.Unbounded.Append (Content, Buffer (1 .. Bytes_Read));

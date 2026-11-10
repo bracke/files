@@ -1,3 +1,4 @@
+with Hostkit.Path_Text;
 with Files.File_Types;
 
 with Files.Diagnostics;
@@ -7,53 +8,12 @@ separate (Files.Settings)
       Path   : String)
       return Open_Action
    is
-      use type Hostkit.Host.Kind;
-
-      Backslash_Is_Separator : constant Boolean :=
-        Hostkit.Host.Current = Hostkit.Host.Windows
-        or else Hostkit.Fs.Has_Windows_Root (Path);
-
+      --  Read as the whole path is: its separators and share root are
+      --  Hostkit.Path_Text's, so a Windows path reads the same on any host.
       function Is_Path_Separator (Value : Character) return Boolean is
-      begin
-         return Value = '/'
-           or else (Backslash_Is_Separator and then Value = '\');
-      end Is_Path_Separator;
+        (Hostkit.Path_Text.Is_Separator_In (Path, Value));
 
-      function UNC_Share_Root_Last (Value : String) return Natural is
-         Server_Start : Natural;
-         Share_Start  : Natural;
-      begin
-         if Value'Length < 5
-           or else not Is_Path_Separator (Value (Value'First))
-           or else not Is_Path_Separator (Value (Value'First + 1))
-         then
-            return 0;
-         end if;
-
-         Server_Start := Value'First + 2;
-         while Server_Start <= Value'Last and then Is_Path_Separator (Value (Server_Start)) loop
-            Server_Start := Server_Start + 1;
-         end loop;
-
-         for Index in Server_Start .. Value'Last loop
-            if Is_Path_Separator (Value (Index)) then
-               Share_Start := Index + 1;
-               while Share_Start <= Value'Last and then Is_Path_Separator (Value (Share_Start)) loop
-                  Share_Start := Share_Start + 1;
-               end loop;
-
-               for Share_End in Share_Start .. Value'Last loop
-                  if Is_Path_Separator (Value (Share_End)) then
-                     return Share_End;
-                  end if;
-               end loop;
-
-               return Value'Last;
-            end if;
-         end loop;
-
-         return 0;
-      end UNC_Share_Root_Last;
+      function UNC_Share_Root_Last (Value : String) return Natural renames Hostkit.Path_Text.Share_Root_Last;
 
       function Trim_Trailing_Path_Separators (Value : String) return String is
          Last : Natural := Value'Last;

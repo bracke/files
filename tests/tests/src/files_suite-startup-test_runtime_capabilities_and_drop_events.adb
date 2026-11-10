@@ -1,3 +1,4 @@
+with Files.Drop_Events.Testing;
 separate (Files_Suite.Startup)
    procedure Test_Runtime_Capabilities_And_Drop_Events (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -20,7 +21,7 @@ separate (Files_Suite.Startup)
          Files.Drop_Events.Queue (Source, Paths, Files.File_System.Drop_Move);
          Assert (Files.Drop_Events.Has_Pending (Source), "drop event source queues non-empty paths");
          Files_Suite.Support.Assert_Equal
-           (Files.Drop_Events.Pending_Count (Source),
+           (Files.Drop_Events.Testing.Pending_Count (Source),
             1,
             "drop event source filters empty paths");
          Files.Drop_Events.Take (Source, Drained, Mode);

@@ -38,6 +38,14 @@ package Files.Types is
    function Account_Image (Id : Account_Id) return String
      renames Hostkit.Metadata.Account_Image;
 
+   --  Where a leaf name's extension starts: its last '.', unless that is the
+   --  first character (".bashrc" is all name) or the last ("draft." has no
+   --  extension). The one rule for splitting a name into stem and extension.
+   --
+   --  @param Name A leaf name.
+   --  @return The extension's dot, or 0 when the name has none.
+   function Extension_Start (Name : String) return Natural;
+
    --  A count in decimal, without the leading blank Natural'Image gives it.
    --
    --  @param Value Count to print.

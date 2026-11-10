@@ -161,14 +161,9 @@ package body Files.Model.Support is
      (Name : String)
       return Natural
    is
-      Dot : Natural := 0;
+      Start : constant Natural := Files.Types.Extension_Start (Name);
+      Dot   : constant Natural := (if Start = 0 then 0 else Start - Name'First);
    begin
-      for Index in Name'Range loop
-         if Name (Index) = '.' and then Index > Name'First then
-            Dot := Index - Name'First;
-         end if;
-      end loop;
-
       if Dot = 0 then
          return Name'Length;
       else

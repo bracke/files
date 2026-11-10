@@ -57,3 +57,4 @@ zh.details.size.unit.kib = 千字节
 zh.details.size.unit.mib = 兆字节
 zh.details.size.unit.gib = 吉字节
 zh.details.size.unit.tib = 太字节
+zh.accessibility.item.details = {modified_label}：{modified}，{size_label}：{size}，{type_label}：{type}

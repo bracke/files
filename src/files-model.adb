@@ -1632,6 +1632,11 @@ package body Files.Model is
      (Model : Window_Model)
       return Boolean is separate;
 
+   function Tree_Roots_Match
+     (Model : Window_Model;
+      Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector)
+      return Boolean is (Files.Folder_Tree.Same_Roots (Model.Folder_Tree_Value, Roots));
+
    procedure Seed_Tree
      (Model : in out Window_Model;
       Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector) is separate;

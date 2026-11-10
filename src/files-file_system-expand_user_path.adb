@@ -14,10 +14,7 @@ begin
    elsif Path'Length >= 2
      and then Path (Path'First) = '~'
      and then
-       (Path (Path'First + 1) = '/'
-        or else
-          (Hostkit.Host.Current = Hostkit.Host.Windows
-           and then Path (Path'First + 1) = '\'))
+       Hostkit.Fs.Is_Separator (Path (Path'First + 1))
    then
       return
         (if Home = "" then Path

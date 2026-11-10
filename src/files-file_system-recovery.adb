@@ -1,3 +1,4 @@
+with Files.Protocol_Names;
 with Files.File_System.Support;
 with Files.Diagnostics;
 with Files.File_Identities;
@@ -48,7 +49,7 @@ package body Files.File_System.Recovery is
       Hash                => Ada.Strings.Hash,
       Equivalent_Elements => "=");
 
-   Owner_Name : constant String := ".files-recovery-owner";
+   Owner_Name : constant String := Files.Protocol_Names.Recovery_Owner;
    Owner_Magic : constant String := "files-recovery-v1";
    Registry_Magic : constant String := "files-recovery-registry-v1";
    Max_Header_Length : constant := Files.Bounded_Streams.Max_Header_Length;
@@ -280,7 +281,7 @@ package body Files.File_System.Recovery is
    begin
       if Root = ""
         or else Ada.Directories.Containing_Directory (Directory) /= Root
-        or else not Starts_With (Ada.Directories.Simple_Name (Directory), ".files-recovery-")
+        or else not Starts_With (Ada.Directories.Simple_Name (Directory), Files.Protocol_Names.Recovery_Stage_Prefix)
         or else Hostkit.Fs.Is_Link (Directory)
       then
          return;
@@ -350,7 +351,7 @@ package body Files.File_System.Recovery is
       for N in 1 .. 9_999 loop
          declare
             Candidate : constant String :=
-              Join_Path (Root, ".files-recovery-" & Natural_Text (N));
+              Join_Path (Root, Files.Protocol_Names.Recovery_Stage_Prefix & Natural_Text (N));
          begin
             if Files.Private_Directories.Try_Create (Candidate) =
               Files.Private_Directories.Collision
@@ -413,7 +414,7 @@ package body Files.File_System.Recovery is
       if Root = "" then
          return;
       end if;
-      Ada.Directories.Start_Search (Search, Root, ".files-recovery-*",
+      Ada.Directories.Start_Search (Search, Root, Files.Protocol_Names.Recovery_Stage_Prefix & "*",
         [Ada.Directories.Directory => True, others => False]);
       Open := True;
       while Ada.Directories.More_Entries (Search) loop
@@ -502,6 +503,24 @@ package body Files.File_System.Recovery is
         (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
    begin
       Resume_Interrupted_Release (Path);
+      --  A release that moved the payload out (to the trash, or beside its
+      --  original) and stopped before it removed the stage: only the stage
+      --  is left, and finishing means removing it. Retrying on the missing
+      --  payload would fail for good and keep the stage forever.
+      declare
+         Original, Identity : UString;
+      begin
+         if not Files.Fs_Primitives.Entry_Exists (Path)
+           and then not Files.Fs_Primitives.Entry_Exists (Holder)
+           and then Ada.Directories.Simple_Name (Path) = "payload"
+           and then Read_Owner (Stage, Original, Identity)
+           and then Contains_Only_Owned_Entries (Stage)
+         then
+            Delete_Owned_Tree (Stage);
+            Unregister (Path);
+            return (Success => True, Error_Key => Null_Unbounded_String);
+         end if;
+      end;
       if not Recognizes (Path) or else not Contains_Only_Owned_Entries (Stage) then
          return Failed;
       end if;
@@ -693,7 +712,7 @@ package body Files.File_System.Recovery is
       Original, Identity : UString;
    begin
       return Ada.Directories.Simple_Name (Path) = "payload"
-        and then Starts_With (Ada.Directories.Simple_Name (Parent), ".files-recovery-")
+        and then Starts_With (Ada.Directories.Simple_Name (Parent), Files.Protocol_Names.Recovery_Stage_Prefix)
         and then not Hostkit.Fs.Is_Link (Parent)
         and then Ada.Directories.Exists (Parent)
         and then Ada.Directories.Kind (Parent) = Ada.Directories.Directory
@@ -758,7 +777,8 @@ package body Files.File_System.Recovery is
       end if;
       for N in 1 .. 9_999 loop
          declare
-            Candidate : constant String := Join_Path (Parent, ".files-recovery-" & Natural_Text (N));
+            Candidate : constant String :=
+              Join_Path (Parent, Files.Protocol_Names.Recovery_Stage_Prefix & Natural_Text (N));
          begin
             if Files.Private_Directories.Try_Create (Candidate) =
               Files.Private_Directories.Collision
@@ -904,7 +924,7 @@ package body Files.File_System.Recovery is
       if Root = "" then
          return Result;
       end if;
-      Ada.Directories.Start_Search (Search, Root, ".files-recovery-*",
+      Ada.Directories.Start_Search (Search, Root, Files.Protocol_Names.Recovery_Stage_Prefix & "*",
         [Ada.Directories.Directory => True, others => False]);
       Open := True;
       while Ada.Directories.More_Entries (Search) loop

@@ -30,14 +30,6 @@ package Files.Drop_Events is
      (Source : Drop_Event_Source)
       return Boolean;
 
-   --  Return the queued path count.
-   --
-   --  @param Source Drop event source to inspect.
-   --  @return Number of queued source paths.
-   function Pending_Count
-     (Source : Drop_Event_Source)
-      return Natural;
-
    --  Report, once, that a drop was refused for exceeding the path limit.
    --
    --  @param Source Drop event source to drain.

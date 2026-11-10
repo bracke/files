@@ -16,96 +16,18 @@ begin
    end if;
 
    declare
-      Matches      : Files.Items.Item_Vectors.Vector;
-      Files_Scanned : Natural := 0;
-      Read_Error : Unbounded_String;
-
-      procedure Visit (Directory_Path : String; Depth : Natural) is
-      begin
-         --  Checked before the folder is listed: once a limit is hit or a read
-         --  failed, the search has failed, and listing every remaining
-         --  sibling in full only to return was most of its cost.
-         if Files.Job_Context.Cancelled or else Length (Read_Error) > 0 then
-            return;
-         end if;
-         if Depth > Content_Search_Max_Depth or else Files_Scanned >= Content_Search_Max_Files
-           or else Natural (Matches.Length) >= Content_Search_Max_Matches
-         then
-            Read_Error := To_Unbounded_String ("error.search.failed");
-            return;
-         end if;
-         declare
-            Load : constant Files.File_System.Directory_Load_Result :=
-              Files.File_System.Load_Directory (Directory_Path, Settings);
-         begin
-            if not Load.Success then
-               Read_Error := To_Unbounded_String
-                 (if Depth = 0 then "error.directory.load" else "error.search.failed");
-               return;
-            end if;
-
-            for Item of Load.Items loop
-               exit when Files.Job_Context.Cancelled;
-               if Item.Kind = Files.Types.Regular_File_Item
-                 or else Item.Kind = Files.Types.Executable_Item
-               then
-                  if Natural (Matches.Length) >= Content_Search_Max_Matches
-                    or else Files_Scanned >= Content_Search_Max_Files
-                  then
-                     Read_Error := To_Unbounded_String ("error.search.failed");
-                     return;
-                  end if;
-                  Files_Scanned := Files_Scanned + 1;
-                  declare
-                     Read_Ok : Boolean;
-                     Bytes : constant String :=
-                       Files.File_System.Read_Preview_Text
-                         (To_String (Item.Full_Path), Content_Search_Max_Bytes + 1, Read_Ok);
-                  begin
-                     if not Read_Ok then
-                        Read_Error := To_Unbounded_String ("error.search.failed");
-                     elsif Bytes'Length > Content_Search_Max_Bytes
-                       and then not Files.Quick_Look.Looks_Binary (Bytes)
-                     then
-                        Read_Error := To_Unbounded_String ("error.search.failed");
-                     elsif Content_Matches (Bytes, Query) then
-                        Matches.Append (Item);
-                     end if;
-                  end;
-               end if;
-            end loop;
-
-            --  Descend only into real directories. Symlinked directories arrive
-            --  as Symlink_Item, so this walk is inherently cycle-safe.
-            for Item of Load.Items loop
-               exit when Files.Job_Context.Cancelled or else Length (Read_Error) > 0;
-               if Item.Kind = Files.Types.Directory_Item then
-                  Visit (To_String (Item.Full_Path), Depth + 1);
-               end if;
-            end loop;
-         end;
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Operations");
-            Read_Error := To_Unbounded_String
-              (if Depth = 0 then "error.directory.load" else "error.search.failed");
-      end Visit;
+      Found : constant Files.File_System.Recursive_Search_Result :=
+        Files.File_System.Search_Contents (Root, Query, Settings);
    begin
-      if not Exists_Safely (Root) then
-         Files.Model.Set_Error (Model, "error.directory.load");
-         return Make_Result (Operation_Failed, "error.directory.load", Root);
+      if not Found.Success then
+         Files.Model.Set_Error (Model, To_String (Found.Error_Key));
+         return Make_Result (Operation_Failed, To_String (Found.Error_Key), Root);
       end if;
-
-      Visit (Root, 0);
-      if Length (Read_Error) > 0 then
-         Files.Model.Set_Error (Model, To_String (Read_Error));
-         return Make_Result (Operation_Failed, To_String (Read_Error), Root);
-      end if;
-      Files.Model.Replace_Items (Model, Matches);
+      Files.Model.Replace_Items (Model, Found.Items);
       Files.Model.Note_Search_Results (Model, Files.Types.Search_Contents);
       Files.Model.Set_Directory_Signature
         (Model, Files.File_System.Directory_State (Root));
-      if Matches.Is_Empty then
+      if Found.Items.Is_Empty then
          Files.Model.Set_Error (Model, "search.no_matches");
       else
          Files.Model.Set_Error (Model, "");

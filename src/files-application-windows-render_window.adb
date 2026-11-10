@@ -92,6 +92,23 @@ separate (Files.Application.Windows)
 
       Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Width, Height);
       Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
+      --  Where the framebuffer has more pixels than the window (a Retina
+      --  display, a scaled Wayland output), text is drawn that much larger.
+      declare
+         Ratio : constant Float :=
+           (if Window_W > 0 and then Width > 0
+            then Float'Min (8.0, Float'Max (1.0, Float (Width) / Float (Window_W)))
+            else Runtime.Pixel_Ratio);
+      begin
+         if Ratio /= Runtime.Pixel_Ratio then
+            Runtime.Pixel_Ratio := Ratio;
+            Runtime.Font_Pixel_Size := Scaled_Font_Size (Runtime);
+            Runtime.Text_Ready := False;
+            Runtime.Glyph_Text_Valid := False;
+            Runtime.Frame_Cache_Valid := False;
+            Runtime.View.Snapshot_Valid := False;
+         end if;
+      end;
       Glfw.Windows.Get_Cursor_Pos (As_Window (Runtime.Handle), Cursor_X, Cursor_Y);
       Mouse_Down :=
         Glfw.Windows.Mouse_Button_State (As_Window (Runtime.Handle), Glfw.Input.Mouse.Left_Button) =

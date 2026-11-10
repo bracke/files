@@ -1,3 +1,4 @@
+with Files.Protocol_Names;
 with Files.Fs_Primitives;
 with Files.Timing;
 with Files.Diagnostics;
@@ -33,8 +34,8 @@ package body Files.Job_Transports is
    Truncated_Retiring_Header : constant String := "files-job-transport-retiring-3";
    Unbound_Marker_Header : constant String := "files-job-transport-2";
    Pre_Lease_Marker_Header : constant String := "files-job-transport-1";
-   Marker_Name   : constant String := ".files-job-transport";
-   Lease_Name    : constant String := ".files-job-owner";
+   Marker_Name   : constant String := Files.Protocol_Names.Transport_Marker;
+   Lease_Name    : constant String := Files.Protocol_Names.Transport_Lease;
    Transport_Prefix : constant String := "files-job-";
    Witness_Prefix : constant String := ".files-job-creation-";
    Hex_Digits : constant String := "0123456789abcdef";

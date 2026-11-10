@@ -5,9 +5,8 @@ separate (Files.Rendering)
       Line_Height : Positive := Files.UI.Base_Line_Height)
       return Tree_Panel_Layout
    is
-      Preferred_Width : constant Natural :=
-        Natural'Max (Layout.Width / 4, Saturating_Multiply (Line_Height, 16));
-      Panel_Width     : constant Natural := Natural'Min (Layout.Width, Preferred_Width);
+      --  The view starts where the panel ends (Calculate_Layout).
+      Panel_Width     : constant Natural := Layout.Main_X;
       Row_Height      : constant Natural :=
         Saturating_Add (Line_Height, Saturating_Multiply (Guikit.Layout.Input_Field_Padding, 2));
    begin

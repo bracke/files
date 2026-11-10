@@ -30,7 +30,6 @@ separate (Files.Application.Windows.Smoke)
            (Input_Event'
               (Kind      => Key_Press_Event,
                Key       => Key,
-               Physical  => To_Glfw_Key (Key),
                Modifiers => Modifiers,
                Text      => Null_Unbounded_String,
                Parallel  => False));
@@ -39,7 +38,6 @@ separate (Files.Application.Windows.Smoke)
               (Input_Event'
                  (Kind      => Text_Event,
                   Key       => Key,
-                  Physical  => Glfw.Input.Keys.Unknown,
                   Modifiers => Modifiers,
                   Text      => To_Unbounded_String (Typed),
                   Parallel  => True));

@@ -96,6 +96,29 @@ package Files.Folder_Tree is
       Index : Positive)
       return Boolean;
 
+   --  Attach Children to node Index in place of any it had: a node read
+   --  again shows what its folder holds now. The old children are detached,
+   --  not removed, so every node index stays what it was (a click keyed on
+   --  one cannot land on another node).
+   --
+   --  @param T Tree to update.
+   --  @param Index One-based node index.
+   --  @param Children Its direct subdirectories now.
+   procedure Replace_Children
+     (T        : in out Tree;
+      Index    : Positive;
+      Children : Entry_Seed_Vectors.Vector);
+
+   --  Whether the tree's roots are Roots, in order.
+   --
+   --  @param T Tree to inspect.
+   --  @param Roots Root locations to compare with.
+   --  @return True when the tree was seeded with exactly these.
+   function Same_Roots
+     (T     : Tree;
+      Roots : Entry_Seed_Vectors.Vector)
+      return Boolean;
+
    --  Attach a node's child subdirectories and mark it loaded.
    --
    --  Children are appended once; the node's expandability is derived from the

@@ -21,9 +21,7 @@ separate (Files.Controller)
          Node_Path : constant String := Files.Model.Tree_Node_Path (Model, Index);
       begin
          if Toggle then
-            if not Files.Model.Tree_Node_Is_Expanded (Model, Index)
-              and then not Files.Model.Tree_Node_Is_Loaded (Model, Index)
-            then
+            if not Files.Model.Tree_Node_Is_Expanded (Model, Index) then
                Load_Tree_Children (Model, Settings, Index, Node_Path);
             end if;
             Files.Model.Tree_Toggle_Expanded (Model, Index);
@@ -42,7 +40,7 @@ separate (Files.Controller)
               (Controller_Command_Executed, Files.Commands.No_Command, Empty_Operation);
          end if;
 
-         if not Files.Model.Tree_Node_Is_Loaded (Model, Index) then
+         if not Files.Model.Tree_Node_Is_Expanded (Model, Index) then
             Load_Tree_Children (Model, Settings, Index, Node_Path);
          end if;
          Files.Model.Tree_Set_Expanded (Model, Index, True);

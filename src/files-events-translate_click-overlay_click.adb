@@ -30,7 +30,7 @@ begin
          Hit    : constant Files.Rendering.Conflict_Hit_Region :=
            Files.Rendering.Hit.Conflict_Hit_At (Frame, X, Y);
          Dialog : constant Files.Rendering.Conflict_Dialog_Layout :=
-           Files.Rendering.Calculate_Conflict_Dialog_Layout (Snapshot, Layout, Line_Height);
+           Files.Rendering.Calculate_Conflict_Dialog_Layout (Layout, Line_Height);
       begin
          case Hit.Kind is
             when Files.Rendering.Conflict_Hit_Replace =>

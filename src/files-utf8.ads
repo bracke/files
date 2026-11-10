@@ -62,17 +62,6 @@ package Files.UTF8 is
       Codepoint             : out Natural;
       Replacement_Codepoint : Natural := 16#FFFD#);
 
-   --  Return whether Codepoint is a zero-width mark that still needs a glyph.
-   --
-   --  Variation selectors are zero-width but not required glyphs because they
-   --  modify adjacent glyph selection instead of rendering standalone marks.
-   --
-   --  @param Codepoint Unicode codepoint to classify.
-   --  @return True when missing glyph coverage would visibly drop text.
-   function Is_Required_Zero_Width_Codepoint
-     (Codepoint : Natural)
-      return Boolean;
-
    --  Return whether Content is well-formed UTF-8.
    --
    --  @param Content UTF-8 encoded byte string.

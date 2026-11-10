@@ -726,6 +726,17 @@ package body Files.File_System is
       return String
    is separate;
 
+   function Content_Matches
+     (Bytes : String;
+      Query : String)
+      return Boolean is separate;
+
+   function Search_Contents
+     (Root_Path : String;
+      Query     : String;
+      Settings  : Files.Settings.Settings_Model)
+      return Recursive_Search_Result is separate;
+
    function Search_Recursive
      (Root_Path : String;
       Query     : String;

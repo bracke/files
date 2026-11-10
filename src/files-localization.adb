@@ -6,7 +6,6 @@ with Ada.Directories;
 with Ada.Strings;
 with Ada.Strings.Fixed;
 with Ada.Strings.Hash;
-with Ada.Strings.Unbounded;
 
 with Messages.Arguments;
 with Messages.Result;
@@ -785,5 +784,30 @@ package body Files.Localization is
             then Messages.Result.Output_Text (Result.Text) else "");
       end;
    end Count_Text;
+
+   function Text
+     (Key       : String;
+      Arguments : Argument_List;
+      Locale    : String := "")
+      return String
+   is
+      Effective_Locale : constant String :=
+        (if Locale'Length = 0 then System_Locale else Normalize_Locale (Locale));
+      Args   : Messages.Arguments.Arguments;
+      Result : Messages.Result.Render_Result;
+   begin
+      Ensure_Initialized;
+      Load_Locale (Effective_Locale);
+      if not Available then
+         return Key;
+      end if;
+      for Item of Arguments loop
+         Messages.Arguments.Set (Args, To_String (Item.Name), To_String (Item.Value));
+      end loop;
+      Result := Messages.Runtime.Render (Runtime, Effective_Locale, Key, Args);
+      return
+        (if Result.Status = Messages.Result.Success
+         then Messages.Result.Output_Text (Result.Text) else Key);
+   end Text;
 
 end Files.Localization;

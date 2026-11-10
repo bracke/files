@@ -42,6 +42,16 @@ package body Files.Types is
       return Text (First .. Last);
    end Trim_Blanks;
 
+   function Extension_Start (Name : String) return Natural is
+   begin
+      for Index in reverse Name'Range loop
+         if Name (Index) = '.' then
+            return (if Index > Name'First and then Index < Name'Last then Index else 0);
+         end if;
+      end loop;
+      return 0;
+   end Extension_Start;
+
    function Natural_Text (Value : Natural) return String is
       Image : constant String := Natural'Image (Value);
    begin

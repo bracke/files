@@ -2854,13 +2854,36 @@ procedure Check_All is
                               end loop;
                               return False;
                            end Has_Word;
+                           --  What a handler that carries on does with what it
+                           --  caught: notes it (Files.Diagnostics), or keeps it
+                           --  for a caller (Save_Occurrence). Naming it in some
+                           --  other way -- a comparison, an assignment -- is not
+                           --  noting it.
+                           function Hands_On (Occurrence : String) return Boolean is
+                              --  The statements without blanks or line breaks,
+                              --  so a call reads the same however it is laid out.
+                              Squeezed : String (1 .. Statements'Length);
+                              Last     : Natural := 0;
+                              function Has (Text : String) return Boolean is
+                                (Ada.Strings.Fixed.Index (Squeezed (1 .. Last), Text) > 0);
+                           begin
+                              for C of Statements loop
+                                 if C not in ' ' | ASCII.LF | ASCII.CR | ASCII.HT then
+                                    Last := Last + 1;
+                                    Squeezed (Last) := C;
+                                 end if;
+                              end loop;
+                              return Has ("note(" & Occurrence & ",")
+                                or else Has ("note_event_loop(" & Occurrence & ")")
+                                or else (Has ("save_occurrence(") and then Has ("," & Occurrence & ")"));
+                           end Hands_On;
                         begin
                            if not Has_Word ("raise")
                              and then not Has_Word ("reraise_occurrence")
                            then
                               if Name = "" then
                                  Refuse (Number, "a 'when others' handler carries on without noting what it caught");
-                              elsif not Has_Word (Ada.Characters.Handling.To_Lower (Name)) then
+                              elsif not Hands_On (Ada.Characters.Handling.To_Lower (Name)) then
                                  Refuse (Number, "a handler names " & Name & " and carries on without using it");
                               end if;
                            end if;
@@ -3005,6 +3028,23 @@ procedure Check_All is
          raise Program_Error;
       end if;
    end Require_Not_Contains;
+
+   --  The other way round: Path's code must say Pattern. For wiring that
+   --  would otherwise be checked only by a name existing somewhere in src.
+   procedure Require_Contains
+     (Path    : String;
+      Pattern : String;
+      Message : String) is
+   begin
+      if not Project_Tools.Files.File_Exists (Path)
+        or else Ada.Strings.Fixed.Index
+                  (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path))), Pattern) = 0
+      then
+         Put_Line (Standard_Error, Path & ": " & Message);
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         raise Program_Error;
+      end if;
+   end Require_Contains;
 
    --  Like Require_Not_Contains, but also scans every subunit body of the unit
    --  whose body is Base_Path -- the sibling files named <stem>-*.adb. A
@@ -3419,7 +3459,16 @@ procedure Check_All is
           (Root & "/src",
            "FILES_TEST_",
            Hooks);
+      --  A name built in pieces ("FILES_" & "TEST_X") reads a hook the
+      --  search above cannot see: the prefix is never split, anywhere.
+      Split : constant String :=
+        Project_Tools.Ada_Source.First_Source_File_Containing (Root & "/src", "FILES_"" &", Hooks);
    begin
+      if Split /= "" then
+         Put_Line (Standard_Error, Split & ": builds a FILES_ variable name in pieces; spell it whole");
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         raise Program_Error;
+      end if;
       if Unexpected /= "" then
          Put_Line (Standard_Error, Unexpected & ": reads a FILES_TEST_* variable outside the listed test hooks");
          Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
@@ -3708,6 +3757,17 @@ procedure Check_All is
         (Windows_Body,
          "Runtime.Last_Missing_Glyph_Count = 0",
          "live smoke must not reject otherwise visible frames solely for missing-glyph fallback");
+      --  The window's wiring, in the window's own code (the test suite once
+      --  checked these names anywhere in src, which a stale mention passed).
+      Require_Contains
+        (Windows_Body, "Glfw.Windows.Drop.Paths.Watch", "every window must hand its drops to the import queue");
+      Require_Contains
+        (Windows_Body, "Handle_Drop_Input", "the event loop must import queued drops");
+      Require_Contains (Windows_Body, "Files.Window_Icon.Set", "every window must show the application icon");
+      Require_Contains
+        (Windows_Body, "Guikit.Vulkan.Wait_For_Events", "the event loop must wait for events, not spin");
+      Require_Contains
+        (Windows_Body, "Files.Refresh_Jobs.Poll_Watch", "the event loop must poll the folder watch");
       Require_Not_Contains_In_Unit
         (Windows_Body,
          "inotify",
@@ -4092,9 +4152,9 @@ procedure Check_All is
             end if;
          end Require_At_Most;
       begin
-         Require_At_Most ("files-rendering.adb", 1_594);
+         Require_At_Most ("files-rendering.adb", 1_557);
          Require_At_Most ("files-rendering-build_frame_commands.adb", 959);
-         Require_At_Most ("files-application-windows.adb", 1_992);
+         Require_At_Most ("files-application-windows.adb", 1_768);
       end;
    end Check_Rendering_Architecture;
 
@@ -5010,12 +5070,12 @@ procedure Check_All is
       --  The floors are the counts as of the last change to a suite, so a
       --  lost test fails here; raise a floor when a suite grows.
       Require_Tests ("settings", 35);
-      Require_Tests ("startup", 29);
+      Require_Tests ("startup", 30);
       Require_Tests ("commands", 38);
       Require_Tests ("model", 54);
-      Require_Tests ("interaction", 77);
-      Require_Tests ("rendering", 94);
-      Require_Tests ("operations", 277);
+      Require_Tests ("interaction", 78);
+      Require_Tests ("rendering", 97);
+      Require_Tests ("operations", 281);
    end Check_Test_Subsystem_Coverage;
 
 begin

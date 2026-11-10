@@ -23,9 +23,11 @@ package body Files.Descriptor_Streams is
       Written : Integer;
    begin
       while Next <= Item'Last loop
+         --  At most Integer'Last at a time, however long Item is.
          Written := GNAT.OS_Lib.Write
            (Stream.Descriptor, Item (Next)'Address,
-            Integer (Item'Last - Next + 1));
+            Integer (Ada.Streams.Stream_Element_Offset'Min
+                       (Item'Last - Next + 1, Ada.Streams.Stream_Element_Offset (Integer'Last))));
          if Written <= 0 then
             raise Ada.Directories.Use_Error;
          end if;

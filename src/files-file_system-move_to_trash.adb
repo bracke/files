@@ -1,3 +1,4 @@
+with Hostkit.Durability;
 separate (Files.File_System)
 function Move_To_Trash
   (Path          : String;
@@ -251,6 +252,14 @@ begin
          Descriptor := GNAT.OS_Lib.Invalid_FD;
          if not Closed then
             Files.Io_Errors.Capture;
+            raise Ada.Directories.Use_Error;
+         end if;
+         --  On the device before the item moves in: a crash must not leave
+         --  an item in the trash with an empty info file, which the trash
+         --  view could neither list nor restore.
+         if Hostkit.Durability."=" (Hostkit.Durability.Sync_File (To_String (Info_Path)), Hostkit.Durability.Failed)
+           or else Hostkit.Durability."=" (Hostkit.Durability.Sync_Directory (Info_Dir), Hostkit.Durability.Failed)
+         then
             raise Ada.Directories.Use_Error;
          end if;
       exception

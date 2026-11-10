@@ -1,3 +1,5 @@
+with Ada.Containers.Indefinite_Hashed_Sets;
+with Ada.Strings.Hash;
 with Files.Paste;
 separate (Files.File_System)
 function Plan_Drop_Import
@@ -6,6 +8,9 @@ function Plan_Drop_Import
    Mode                  : Drop_Import_Mode := Drop_Copy)
    return Drop_Import_Result
 is
+   package Claimed_Sets is new Ada.Containers.Indefinite_Hashed_Sets
+     (Element_Type => String, Hash => Ada.Strings.Hash, Equivalent_Elements => "=");
+
    Result : Drop_Import_Result :=
      (Success   => False,
       Plans     => Drop_Import_Plan_Vectors.Empty_Vector,
@@ -14,7 +19,7 @@ is
    --  exist on disk, so without tracking them two sources sharing a simple
    --  name (from different directories) would resolve to the same target and
    --  the second would silently overwrite the first.
-   Claimed : Files.Types.String_Vectors.Vector;
+   Claimed : Claimed_Sets.Set;
    --  Whether the destination folds case: Report.txt and report.txt are then
    --  one destination, and the second must be renamed, not written over it.
    Folds   : Boolean := False;
@@ -22,37 +27,12 @@ is
    function Key (Path : String) return String is
      (if Folds then Files.Types.Fold_Case (Path) else Path);
 
-   function Extension_Start (Name : String) return Natural renames Files.Paste.Extension_Start;
-
-   function Is_Claimed (Path : String) return Boolean is
-   begin
-      for Existing of Claimed loop
-         if Key (To_String (Existing)) = Key (Path) then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Is_Claimed;
-
    function Available_Destination (Leaf : String) return String is
-      Dot       : constant Natural := Extension_Start (Leaf);
-      Stem      : constant String :=
-        (if Dot = 0 then Leaf else Leaf (Leaf'First .. Dot - 1));
-      Extension : constant String :=
-        (if Dot = 0 then "" else Leaf (Dot .. Leaf'Last));
-      Counter   : Positive := 2;
-      Candidate : Unbounded_String := To_Unbounded_String (Leaf);
-      Full      : Unbounded_String :=
-        To_Unbounded_String (Join_Path (Destination_Directory, To_String (Candidate)));
+      function Taken (Name : String) return Boolean is
+        (Files.Fs_Primitives.Entry_Exists (Join_Path (Destination_Directory, Name))
+         or else Claimed.Contains (Key (Join_Path (Destination_Directory, Name))));
    begin
-      while Files.Fs_Primitives.Entry_Exists (To_String (Full))
-        or else Is_Claimed (To_String (Full)) loop
-         Candidate := To_Unbounded_String (Stem & " " & Natural_Text (Counter) & Extension);
-         Full := To_Unbounded_String (Join_Path (Destination_Directory, To_String (Candidate)));
-         exit when Counter = Positive'Last;
-         Counter := Counter + 1;
-      end loop;
-      return To_String (Full);
+      return Join_Path (Destination_Directory, Files.Paste.First_Free_Name (Leaf, Taken'Access));
    end Available_Destination;
 
    --  Path with its links resolved: Hostkit.Fs.Real_Path, which also follows
@@ -174,7 +154,7 @@ begin
                else
                   Plan.Destination_Path := To_Unbounded_String (Available_Destination (To_String (Leaf)));
                end if;
-               Claimed.Append (Plan.Destination_Path);
+               Claimed.Include (Key (To_String (Plan.Destination_Path)));
                Plan.Error_Key := Null_Unbounded_String;
             end if;
             Result.Plans.Append (Plan);

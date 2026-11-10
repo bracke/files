@@ -1,3 +1,4 @@
+with Hostkit.Durability;
 with Hostkit.Host;
 with Hostkit.Process;
 
@@ -78,6 +79,15 @@ function Volume_Trash_For (Path : String) return String is
          end loop;
          Ada.Text_IO.Put_Line (File, Base);
          Ada.Text_IO.Close (File);
+         --  Its content on the device first, or a crash could leave the list
+         --  replaced by an empty one. A list that will not sync is still
+         --  better than none: it replaces the old one all the same.
+         declare
+            Synced : constant Hostkit.Durability.Outcome := Hostkit.Durability.Sync_File (Partial);
+            pragma Unreferenced (Synced);
+         begin
+            null;
+         end;
          --  One step that replaces the list, so it is never missing.
          GNAT.OS_Lib.Rename_File (Partial, List, Renamed);
          if not Renamed then
