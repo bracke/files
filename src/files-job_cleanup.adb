@@ -1,5 +1,5 @@
 with Files.Diagnostics;
-with Ada.Directories;
+with Files.Fs_Primitives;
 
 with Files.File_System;
 with Files.Job_Context;
@@ -26,7 +26,7 @@ package body Files.Job_Cleanup is
 
       function Directory_Gone return Boolean is
       begin
-         return not Ada.Directories.Exists (Directory)
+         return not Files.Fs_Primitives.Exists (Directory)
            and then not Hostkit.Fs.Is_Link (Directory);
       exception
          when Swallowed : others =>
@@ -68,7 +68,7 @@ package body Files.Job_Cleanup is
               (Directory, Claim,
                Discard_Unreadable =>
                  Discard_Unreadable_On_Last_Attempt and then Attempt = Attempt_Limit);
-            if not Ada.Directories.Exists (Stages) then
+            if not Files.Fs_Primitives.Exists (Stages) then
                begin
                   if not Files.Job_Transports.Retire (Claim, Directory) then
                      return Cleanup_Failed;

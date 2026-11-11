@@ -1,4 +1,3 @@
-with Ada.Directories;
 with Ada.Containers.Indefinite_Ordered_Maps;
 with Hostkit.Fs;
 with Hostkit.Metadata_Copy;
@@ -30,15 +29,6 @@ private package Files.File_System.Support is
    --  @param Files_Too False when the walk already flushed every file
    --    (Copy_To_New_Path's Durable): then only the folders are synced.
    function Sync_Copy (Source, Destination : String; Files_Too : Boolean := True) return Boolean;
-
-   --  End a directory search, swallowing any exception and doing nothing when
-   --  it was never started; Started is reset to False.
-   --
-   --  @param Search The directory search to end.
-   --  @param Started Whether Search was started; set to False.
-   procedure Safe_End_Search
-     (Search  : in out Ada.Directories.Search_Type;
-      Started : in out Boolean);
 
    --  Whether environment variable Name equals Expected, compared
    --  case-insensitively.

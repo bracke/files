@@ -17,9 +17,7 @@ separate (Files.Settings)
       function Link_Target return String is
          Resolved : constant String := Hostkit.Fs.Real_Path (Path);
       begin
-         return
-           (if Resolved /= "" then Resolved
-            else GNAT.OS_Lib.Normalize_Pathname (Path, Resolve_Links => True));
+         return (if Resolved /= "" then Resolved else Files.Fs_Primitives.Full_Name (Path));
       end Link_Target;
 
       Target : constant String := (if Hostkit.Fs.Is_Link (Path) then Link_Target else Path);
@@ -43,8 +41,8 @@ separate (Files.Settings)
                begin
                   null;
                end;
-            elsif Ada.Directories.Exists (To_String (Temp)) then
-               Ada.Directories.Delete_File (To_String (Temp));
+            elsif Files.Fs_Primitives.Exists (To_String (Temp)) then
+               Files.Fs_Primitives.Delete_File (To_String (Temp));
             end if;
          end if;
       exception
@@ -63,8 +61,8 @@ separate (Files.Settings)
             Durable   => False,
             Path      => To_Unbounded_String (Path),
             Error_Key => To_Unbounded_String ("error.settings.save"));
-      elsif Ada.Directories.Exists (Target)
-        and then Ada.Directories.Kind (Target) /= Ada.Directories.Ordinary_File
+      elsif Files.Fs_Primitives.Exists (Target)
+        and then Files.Fs_Primitives.Kind (Target) /= Ada.Directories.Ordinary_File
       then
             return
               (Success   => False,
@@ -74,8 +72,8 @@ separate (Files.Settings)
       end if;
 
       if Parent /= "" then
-         if Ada.Directories.Exists (Parent) then
-            if Ada.Directories.Kind (Parent) /= Ada.Directories.Directory then
+         if Files.Fs_Primitives.Exists (Parent) then
+            if Files.Fs_Primitives.Kind (Parent) /= Ada.Directories.Directory then
                return
                  (Success   => False,
                   Durable   => False,
@@ -85,7 +83,7 @@ separate (Files.Settings)
          else
             begin
                Files.Io_Errors.Clear_Os_Error;
-               Ada.Directories.Create_Path (Parent);
+               Files.Fs_Primitives.Create_Path (Parent);
             exception
                when others =>
                   Files.Io_Errors.Capture;
@@ -107,7 +105,7 @@ separate (Files.Settings)
               Target & ".tmp" & (if Index = 1 then "" else "-" &
                 Files.Types.Natural_Text (Index));
          begin
-            Descriptor := GNAT.OS_Lib.Create_New_File (Candidate, GNAT.OS_Lib.Binary);
+            Descriptor := Hostkit.Regular_Files.Create_New (Candidate, 8#666#);
             if Descriptor /= GNAT.OS_Lib.Invalid_FD then
                Temp := To_Unbounded_String (Candidate);
                Temp_Identity := To_Unbounded_String (Files.File_Identities.Token (Candidate));

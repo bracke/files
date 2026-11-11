@@ -26,7 +26,7 @@ is
             return Revision.Available and then (Revision.Mode and Type_Mask) = Directory;
          end;
       end if;
-      return not Hostkit.Fs.Is_Link (Full) and then GNAT.OS_Lib.Is_Directory (Full);
+      return not Hostkit.Fs.Is_Link (Full) and then Files.Fs_Primitives.Directory_Exists (Full);
    end Is_Subdirectory;
 
    procedure Add_Entry (Name : String) is
@@ -52,7 +52,7 @@ is
          begin
             if Options.Show_Hidden or else not Hidden then
                begin
-                  Item.Modified_Time := Ada.Directories.Modification_Time (Full);
+                  Item.Modified_Time := Files.Fs_Primitives.Modification_Time (Full);
                   Item.Modified_Available := True;
                exception
                   when Swallowed : others =>
@@ -74,7 +74,7 @@ begin
       return (Success => False, Path => To_Unbounded_String (Path), Items => Items,
               Error_Key => To_Unbounded_String ("error.directory.load"), Signature => <>);
    end if;
-   Normalized := To_Unbounded_String (Ada.Directories.Full_Name (Path));
+   Normalized := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path));
    Support.For_Each_Entry (Path, Add_Entry'Access);
    Sort_Items (Items, Options.Sort_Field, Options.Sort_Ascending);
    return (Success => True, Path => Normalized, Items => Items, Error_Key => Null_Unbounded_String,

@@ -12,6 +12,7 @@ with Files.Exclusive_Streams;
 with Files.Job_Context;
 with Files.Job_Records;
 with Files.Lease_Streams;
+with Files.Fs_Primitives;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
 with Hostkit.Watch;
@@ -598,7 +599,7 @@ package body Files.Refresh_Jobs is
    function Watch_Is_Native (Job : in out Watch_Session) return Boolean is
    begin
       if not Job.Native and then Files.Process_Jobs.Active (Job.Process) then
-         Job.Native := Ada.Directories.Exists (Files.Process_Jobs.Path (Job.Process, "native"));
+         Job.Native := Files.Fs_Primitives.Exists (Files.Process_Jobs.Path (Job.Process, "native"));
       end if;
       return Job.Native and then Files.Process_Jobs.Active (Job.Process);
    exception
@@ -665,8 +666,8 @@ package body Files.Refresh_Jobs is
 
       function Posted return Boolean is
         (not Hostkit.Fs.Is_Link (Target)
-         and then Ada.Directories.Exists (Target)
-         and then Ada.Directories.Kind (Target) = Ada.Directories.Ordinary_File);
+         and then Files.Fs_Primitives.Exists (Target)
+         and then Files.Fs_Primitives.Kind (Target) = Ada.Directories.Ordinary_File);
    begin
       --  One unread marker says it all: the window re-reads the folder, not
       --  the events. And it is made in place, with no sync: it carries no
@@ -700,10 +701,10 @@ package body Files.Refresh_Jobs is
             begin
                null;
             end;
-         elsif Ada.Directories.Exists (Claimed)
-           and then Ada.Directories.Kind (Claimed) = Ada.Directories.Ordinary_File
+         elsif Files.Fs_Primitives.Exists (Claimed)
+           and then Files.Fs_Primitives.Kind (Claimed) = Ada.Directories.Ordinary_File
          then
-            Ada.Directories.Delete_File (Claimed);
+            Files.Fs_Primitives.Delete_File (Claimed);
          end if;
          Job.Claim_Left := False;
       exception

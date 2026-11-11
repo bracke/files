@@ -4,24 +4,24 @@ function Normalize_Path
    return Path_Result
 is
 begin
-   if Path = "" or else not Ada.Directories.Exists (Path) then
+   if Path = "" or else not Files.Fs_Primitives.Exists (Path) then
       return
         (Status         => Path_Missing,
          Directory_Path => Null_Unbounded_String,
          Error_Key      => To_Unbounded_String ("error.path.missing"));
    end if;
 
-   case Ada.Directories.Kind (Path) is
+   case Files.Fs_Primitives.Kind (Path) is
       when Ada.Directories.Directory =>
          return
            (Status         => Path_Valid,
-            Directory_Path => To_Unbounded_String (Ada.Directories.Full_Name (Path)),
+            Directory_Path => To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path)),
             Error_Key      => Null_Unbounded_String);
       when Ada.Directories.Ordinary_File =>
          return
            (Status         => Path_Valid,
             Directory_Path =>
-              To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (Ada.Directories.Full_Name (Path))),
+              To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (Files.Fs_Primitives.Full_Name (Path))),
             Error_Key      => Null_Unbounded_String);
       when Ada.Directories.Special_File =>
          return

@@ -9,6 +9,7 @@ with Ada.Unchecked_Deallocation;
 with Interfaces;
 with Hostkit.Fs;
 with Files.File_System;
+with Files.Fs_Primitives;
 with Files.Job_Context;
 with Files.Types;
 
@@ -322,7 +323,7 @@ package body Files.Archive_Writing is
             end if;
             Names_Seen.Insert (Name);
             Status := Zlib.Input_File_Error;
-            if Ada.Directories.Kind (Path) = Ada.Directories.Directory then
+            if Files.Fs_Primitives.Kind (Path) = Ada.Directories.Directory then
                Directory_Names.Append (To_Unbounded_String (Name & "/"));
             else
                File_Paths.Append (To_Unbounded_String (Path));
@@ -361,7 +362,7 @@ package body Files.Archive_Writing is
             return;
          end if;
          Status := Zlib.Input_File_Error;
-         IO.Open (Source, IO.In_File, Source_Path, Form => "shared=no");
+         Hostkit.Fs.Open_Stream (Source, IO.In_File, Source_Path);
          IO.Set_Index (Source, IO.Size (Source) - 21);
          IO.Read (Source, End_Record, Last);
          if Last /= End_Record'Last or else Number (1, 4) /= 16#0605_4B50#
@@ -378,7 +379,7 @@ package body Files.Archive_Writing is
       end if;
 
       Status := Zlib.Output_File_Error;
-      IO.Create (Output, IO.Out_File, Output_Path, Form => "shared=no");
+      Hostkit.Fs.Create_Stream (Output, IO.Out_File, Output_Path);
       if IO.Is_Open (Source) then
          Copy (Central_Offset);
       end if;
@@ -451,7 +452,7 @@ package body Files.Archive_Writing is
       Status := Zlib.Ok;
       if not File_Paths.Is_Empty then
          begin
-            Ada.Directories.Delete_File (Source_Path);
+            Files.Fs_Primitives.Delete_File (Source_Path);
          exception
             when Ada.IO_Exceptions.Name_Error | Ada.IO_Exceptions.Use_Error =>
                null;

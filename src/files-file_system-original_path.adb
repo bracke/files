@@ -50,8 +50,8 @@ function Original_Path (Trashed_Path : String) return String is
       Read_Succeeded : Boolean;
    begin
       if Hostkit.Fs.Is_Link (Info_File_Path)
-        or else not Ada.Directories.Exists (Info_File_Path)
-        or else Ada.Directories.Kind (Info_File_Path) /= Ada.Directories.Ordinary_File
+        or else not Files.Fs_Primitives.Exists (Info_File_Path)
+        or else Files.Fs_Primitives.Kind (Info_File_Path) /= Ada.Directories.Ordinary_File
       then
          return "";
       end if;

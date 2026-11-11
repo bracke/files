@@ -206,6 +206,7 @@ package body Files_Suite.Operations is
    procedure Test_Rename_Trash_Delete_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Save_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Desktop_Exec_Quoted_Percent (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Long_Path_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    procedure Test_Archive_Completeness (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recent_Archive_Destinations (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -1327,6 +1328,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Desktop_Exec_Quoted_Percent'Access,
          "a quoted %% in a desktop Exec line is a literal percent sign");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Long_Path_Operations'Access,
+         "every file operation works in a folder past the Windows path limit");
    end Register_Tests;
 
    procedure With_Trash_Environment (Check : not null access procedure) is separate;
@@ -2135,5 +2139,7 @@ package body Files_Suite.Operations is
    procedure Test_Settings_Save_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Desktop_Exec_Quoted_Percent (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Long_Path_Operations (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
 end Files_Suite.Operations;

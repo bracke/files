@@ -8,6 +8,7 @@ with Ada.Unchecked_Deallocation;
 
 with Files.File_System;
 with Files.Job_Context;
+with Files.Fs_Primitives;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
 with Hostkit.Process;
@@ -257,7 +258,7 @@ package body Files.Process_Jobs is
 
       function Transport_Gone return Boolean is
       begin
-         return not Ada.Directories.Exists (To_String (Item.Directory))
+         return not Files.Fs_Primitives.Exists (To_String (Item.Directory))
            and then not Hostkit.Fs.Is_Link (To_String (Item.Directory));
       exception
          when Swallowed : others =>
@@ -361,7 +362,7 @@ package body Files.Process_Jobs is
             return;
          end;
       end if;
-      if Ada.Directories.Exists (Stages) then
+      if Files.Fs_Primitives.Exists (Stages) then
          if Ada.Real_Time.Clock < Item.Cleanup_Retry_At then
             Retain_For_Cleanup (Delay_Retry => False);
             return;
@@ -392,7 +393,7 @@ package body Files.Process_Jobs is
       --  error is enough.  Hand it to the same independent cleanup worker so
       --  the failure is retried during application idleness instead of being
       --  forgotten when this state is freed.
-      if not Ada.Directories.Exists (To_String (Item.Directory))
+      if not Files.Fs_Primitives.Exists (To_String (Item.Directory))
         and then not Hostkit.Fs.Is_Link (To_String (Item.Directory))
       then
          Destroy (Item);

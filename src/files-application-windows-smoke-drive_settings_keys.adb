@@ -1,4 +1,4 @@
-with Ada.Directories;
+with Files.Fs_Primitives;
 with Guikit.Settings_Panel;
 with Hostkit.Fs;
 
@@ -280,7 +280,7 @@ separate (Files.Application.Windows.Smoke)
             end Click;
          begin
             if Base /= "" then
-               Ada.Directories.Create_Path (Hostkit.Fs.Join (Inner, "deeper"));
+               Files.Fs_Primitives.Create_Path (Hostkit.Fs.Join (Inner, "deeper"));
                Show (Base);
                Click (1);
                --  A frame between the clicks can take longer than a double
@@ -288,14 +288,14 @@ separate (Files.Application.Windows.Smoke)
                --  clicks, not the host's speed.
                Runtime.Last_Click_Time := Ada.Real_Time.Clock;
                Click (1);
-               Expect (Files.Model.Current_Path (Runtime.Model) = Ada.Directories.Full_Name (Inner));
+               Expect (Files.Model.Current_Path (Runtime.Model) = Files.Fs_Primitives.Full_Name (Inner));
                Runtime.Last_Click_Time := Ada.Real_Time.Clock;
                Click (1);
-               Expect (Files.Model.Current_Path (Runtime.Model) = Ada.Directories.Full_Name (Inner));
+               Expect (Files.Model.Current_Path (Runtime.Model) = Files.Fs_Primitives.Full_Name (Inner));
                Runtime.Last_Click_Item := 0;
                Runtime.Last_Click_Path := Null_Unbounded_String;
                Files.Model.Replace_Items (Runtime.Model, Scenario_Overflow_Items (Runtime.Model));
-               Ada.Directories.Delete_Tree (Base);
+               Files.Fs_Primitives.Delete_Tree (Base);
             end if;
          end;
       end;

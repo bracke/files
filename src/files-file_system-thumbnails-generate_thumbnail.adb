@@ -27,7 +27,7 @@ is
 
    function Generated return Thumbnail_Result is
      (Status         => Thumbnail_Generated,
-      Source_Path    => To_Unbounded_String (Ada.Directories.Full_Name (Source_Path)),
+      Source_Path    => To_Unbounded_String (Files.Fs_Primitives.Full_Name (Source_Path)),
       Thumbnail_Path => Target,
       Width          => Size,
       Height         => Size,
@@ -53,14 +53,13 @@ is
 begin
    if Size > Max_Thumbnail_Dimension then
       return Failed (Thumbnail_Failed, "error.thumbnail.failed");
-   elsif not Ada.Directories.Exists (Source_Path) then
+   elsif not Files.Fs_Primitives.Exists (Source_Path) then
       return Failed (Thumbnail_Source_Missing, "error.thumbnail.source_missing");
-   elsif Ada.Directories.Kind (Source_Path) /= Ada.Directories.Ordinary_File then
+   elsif Files.Fs_Primitives.Kind (Source_Path) /= Ada.Directories.Ordinary_File then
       return Failed (Thumbnail_Unsupported, "error.thumbnail.unsupported");
    end if;
 
-   Ada.Directories.Create_Path
-     (Files.Fs_Primitives.Parent_Directory (Cache_Directory));
+   Files.Fs_Primitives.Create_Path (Files.Fs_Primitives.Parent_Directory (Cache_Directory));
    Files.Private_Directories.Ensure (Cache_Directory);
    Prune_Cache_Once (Cache_Directory);
    Target := To_Unbounded_String (Thumbnail_Path_For (Source_Path, Cache_Directory, Size));
@@ -74,7 +73,7 @@ begin
               & (if Index = 1 then "" else "-" &
                    Files.Types.Natural_Text (Index));
          begin
-            Descriptor := GNAT.OS_Lib.Create_New_File (Candidate, GNAT.OS_Lib.Binary);
+            Descriptor := Hostkit.Regular_Files.Create_New (Candidate, 8#666#);
             if Descriptor /= GNAT.OS_Lib.Invalid_FD then
                Temp := To_Unbounded_String (Candidate);
                Temp_Identity := To_Unbounded_String (Files.File_Identities.Token (Candidate));
@@ -124,7 +123,7 @@ begin
       Row_Bytes : Stream_Element_Array (1 .. Stream_Element_Offset (Size) * 3);
 
    begin
-      Stream_IO.Create (File, Stream_IO.Out_File, To_String (Temp), Form => "shared=no");
+      Hostkit.Fs.Create_Stream (File, Stream_IO.Out_File, To_String (Temp));
       Stream_IO.Write (File, Files.Images.Netpbm.P6_Header (Size, Size));
 
       for Row in 0 .. Size - 1 loop

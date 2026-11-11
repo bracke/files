@@ -10,6 +10,7 @@ with Interfaces;
 with Files.Durable_Writes;
 with Files.Exclusive_Streams;
 with Files.Process_Jobs;
+with Files.Fs_Primitives;
 with Hostkit.Fs;
 with Files.Shared_Bytes;
 with Files.Path_Checks;
@@ -106,7 +107,7 @@ package body Files.Job_Records is
            Files.Durable_Writes.Publish (Staged, Result, Step);
 
          function State (Path : String) return String is
-           (if Ada.Directories.Exists (Path) then "present" else "gone");
+           (if Files.Fs_Primitives.Exists (Path) then "present" else "gone");
       begin
          if not Files.Durable_Writes.Published (Outcome) then
             --  Say which part failed, as a machine-readable diagnostic: an

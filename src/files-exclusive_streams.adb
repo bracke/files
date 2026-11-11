@@ -3,6 +3,7 @@ with Files.Diagnostics;
 with Ada.IO_Exceptions;
 
 with Files.Private_Directories;
+with Hostkit.Regular_Files;
 
 package body Files.Exclusive_Streams is
       use type GNAT.OS_Lib.File_Descriptor;
@@ -14,8 +15,7 @@ package body Files.Exclusive_Streams is
       end if;
       Stream.Length := 0;
       Stream.Pending := 0;
-      Stream.Descriptor :=
-        GNAT.OS_Lib.Create_New_File (Path, GNAT.OS_Lib.Binary);
+      Stream.Descriptor := Hostkit.Regular_Files.Create_New (Path, 8#666#);
       if Stream.Descriptor = GNAT.OS_Lib.Invalid_FD then
          raise Ada.IO_Exceptions.Use_Error;
       end if;

@@ -117,7 +117,7 @@ begin
                      return Failed;
                   end if;
                end;
-               Ada.Directories.Create_Directory (Payload);
+               Files.Fs_Primitives.Create_Directory (Payload);
                Zlib.Extract_Archive_File_To_Directory (Full_Path, Payload, "", Status);
 
                declare

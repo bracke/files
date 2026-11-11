@@ -11,7 +11,7 @@ begin
    --  Already restored (a retry after a crash before its marker was
    --  written): the item is at its original path, by its identity, and no
    --  longer in the trash.
-   if not Ada.Directories.Exists (To_String (Path))
+   if not Files.Fs_Primitives.Exists (To_String (Path))
      and then not Hostkit.Fs.Is_Link (To_String (Path))
      and then Files.File_Identities.Token (To_String (Targets (Index))) = To_String (Identities (Index))
    then

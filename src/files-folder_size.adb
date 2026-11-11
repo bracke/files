@@ -10,6 +10,7 @@ with Files.Bounded_Streams;
 with Files.Job_Context;
 with Files.Exclusive_Streams;
 with Files.Lease_Streams;
+with Files.Fs_Primitives;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
 with Files.Path_Checks;
@@ -252,7 +253,7 @@ package body Files.Folder_Size is
             Result : Files.File_System.Directory_Size_Result;
             Read   : Boolean := False;
          begin
-            exit when not Ada.Directories.Exists (Name);
+            exit when not Files.Fs_Primitives.Exists (Name);
             for Attempt in 1 .. (if Finished then 5 else 1) loop
                begin
                   if Test_Unreadable_Results > 0 then

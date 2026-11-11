@@ -17,7 +17,8 @@ begin
       end if;
    end;
 
-   Descriptor := GNAT.OS_Lib.Create_New_File (Path, GNAT.OS_Lib.Binary);
+   --  0666 less the creation mask, as GNAT's Create_New_File makes it.
+   Descriptor := Hostkit.Regular_Files.Create_New (Path, 8#666#);
    if Descriptor = GNAT.OS_Lib.Invalid_FD then
       --  Before the existence check, whose own calls overwrite errno.
       Files.Io_Errors.Capture;

@@ -15,7 +15,7 @@ begin
 
    begin
       Files.Io_Errors.Clear_Os_Error;
-      Ada.Directories.Create_Directory (Path);
+      Files.Fs_Primitives.Create_Directory (Path);
    exception
       when others =>
          Files.Io_Errors.Capture;

@@ -15,7 +15,7 @@ is
          return False;
       end if;
       declare
-         Full : constant String := Ada.Directories.Full_Name (Path);
+         Full : constant String := Files.Fs_Primitives.Full_Name (Path);
       begin
          return Files.Fs_Primitives.Parent_Text (Full) = "";
       end;
@@ -42,10 +42,10 @@ is
       elsif Hostkit.Fs.Is_Link (Value) then
          --  Resolve the parent to find the link's location, never its target.
          return Hostkit.Fs.Join
-           (Ada.Directories.Full_Name (Files.Fs_Primitives.Parent_Directory (Value)),
+           (Files.Fs_Primitives.Full_Name (Files.Fs_Primitives.Parent_Directory (Value)),
             Files.Fs_Primitives.Leaf_Text (Value));
-      elsif Ada.Directories.Exists (Value) then
-         return Ada.Directories.Full_Name (Value);
+      elsif Files.Fs_Primitives.Exists (Value) then
+         return Files.Fs_Primitives.Full_Name (Value);
       else
          return Value;
       end if;

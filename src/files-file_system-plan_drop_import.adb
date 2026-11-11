@@ -47,8 +47,7 @@ is
       if Real /= "" then
          return Real;
       end if;
-      return GNAT.OS_Lib.Normalize_Pathname
-        (Path, Resolve_Links => True);
+      return Files.Fs_Primitives.Full_Name (Path);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System");

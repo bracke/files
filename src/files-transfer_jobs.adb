@@ -6,6 +6,7 @@ with Ada.IO_Exceptions;
 with Ada.Streams;
 with Ada.Strings.Unbounded;
 
+with Files.Fs_Primitives;
 with Hostkit.Fs;
 with Files.Bounded_Streams;
 with Files.Exclusive_Streams;
@@ -425,9 +426,9 @@ package body Files.Transfer_Jobs is
                     (Files.File_Identities.Token (To_String (Result.Trashed)));
                   --  Retain the replacement original independently of result checkpoints.
                   if Hostkit.Fs.Is_Link (Hostkit.Fs.Join (Directory, "replaced.tmp"))
-                    or else Ada.Directories.Exists (Hostkit.Fs.Join (Directory, "replaced.tmp"))
+                    or else Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Directory, "replaced.tmp"))
                     or else Hostkit.Fs.Is_Link (Hostkit.Fs.Join (Directory, "replaced"))
-                    or else Ada.Directories.Exists (Hostkit.Fs.Join (Directory, "replaced"))
+                    or else Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Directory, "replaced"))
                   then
                      raise Ada.Directories.Use_Error;
                   end if;

@@ -47,9 +47,15 @@ is
       Entry_Name : String;
       Depth      : Natural := 0)
    is
-      Search    : Ada.Directories.Search_Type;
-      Started   : Boolean := False;
-      Dir_Entry : Ada.Directories.Directory_Entry_Type;
+      procedure Visit (Name : String; Kind : Hostkit.Fs.Entry_Kind; Stop : in out Boolean) is
+         use type Hostkit.Fs.Entry_Kind;
+      begin
+         if Collection_Failed or else Files.Job_Context.Cancelled then
+            Stop := True;
+         elsif Kind in Hostkit.Fs.Ordinary_File_Entry | Hostkit.Fs.Directory_Entry then
+            Collect (Hostkit.Fs.Join (Full, Name), Entry_Name & "/" & Name, Depth + 1);
+         end if;
+      end Visit;
    begin
       if Files.Job_Context.Cancelled then
          return;
@@ -74,32 +80,7 @@ is
             Collection_Failed := True;
             return;
          end if;
-         Ada.Directories.Start_Search
-           (Search,
-            Directory => Full,
-            Pattern   => "*",
-            Filter    =>
-              [Ada.Directories.Ordinary_File => True,
-               Ada.Directories.Directory     => True,
-               Ada.Directories.Special_File  => False]);
-         Started := True;
-         while not Collection_Failed
-           and then not Files.Job_Context.Cancelled
-           and then Ada.Directories.More_Entries (Search)
-         loop
-            Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
-            declare
-               Name : constant String := Ada.Directories.Simple_Name (Directory_Entry => Dir_Entry);
-            begin
-               if Name /= "." and then Name /= ".." then
-                  Collect
-                    (Ada.Directories.Full_Name (Dir_Entry),
-                     Entry_Name & "/" & Name,
-                     Depth + 1);
-               end if;
-            end;
-         end loop;
-         Ada.Directories.End_Search (Search);
+         Files.Fs_Primitives.For_Each_Listed (Full, Visit'Access);
       elsif Files.Fs_Primitives.Kind (Full) = Ada.Directories.Ordinary_File then
          if not Record_Entry (Full, Entry_Name) then
             Collection_Failed := True;
@@ -109,9 +90,6 @@ is
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Operations");
          Collection_Failed := True;
-         if Started then
-            Ada.Directories.End_Search (Search);
-         end if;
    end Collect;
 
    function Failed return Operation_Result is

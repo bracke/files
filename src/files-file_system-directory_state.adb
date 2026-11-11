@@ -21,7 +21,7 @@ begin
       return Result;
    end if;
 
-   Result.Path := To_Unbounded_String (Ada.Directories.Full_Name (Path));
+   Result.Path := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path));
    Result.Exists := True;
    Support.For_Each_Entry (Path, Add_Entry'Access);
    return Result;

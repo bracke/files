@@ -1,7 +1,6 @@
 with Files.Items;
 with Files.Environment;
 with Ada.Calendar;
-with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
@@ -175,7 +174,7 @@ package body Files.Application is
       --  record will say, and keeps that distinct from "the home directory is
       --  the current directory". Deciding that last step is this application's
       --  business: a file manager has to open somewhere.
-      return Ada.Directories.Current_Directory;
+      return Hostkit.Fs.Current_Directory;
    end Home_Directory;
 
    --  ~/.config/files/settings.conf -- correct on Linux and what every host got,

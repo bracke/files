@@ -1,17 +1,16 @@
 with Files.Protocol_Names;
 with Files.Diagnostics;
 with Ada.Command_Line;
-with Ada.Directories;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
 with Files.File_System;
+with Files.Fs_Primitives;
 with Files.Localization;
 with Hostkit.Fs;
 
 package body Files.Recovery_CLI is
    use Ada.Strings.Unbounded;
-   use type Ada.Directories.File_Kind;
 
    --  Whether the command being run failed; Run_If_Requested turns it into
    --  the exit status.
@@ -24,45 +23,38 @@ package body Files.Recovery_CLI is
    end Fail;
 
    procedure List (Directory : String) is
-      Search : Ada.Directories.Search_Type;
-      Item   : Ada.Directories.Directory_Entry_Type;
-      Open   : Boolean := False;
+      Prefix : constant String := Files.Protocol_Names.Recovery_Stage_Prefix;
+
+      procedure Show (Name : String; Stop : in out Boolean) is
+         pragma Unreferenced (Stop);
+         --  Absolute, however the folder was named on the command line.
+         Stage : constant String := Hostkit.Fs.Join (Files.Fs_Primitives.Full_Name (Directory), Name);
+      begin
+         if Name'Length >= Prefix'Length
+           and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
+           and then Files.Fs_Primitives.Directory_Exists (Stage)
+         then
+            declare
+               Payload  : constant String := Hostkit.Fs.Join (Stage, "payload");
+               Original : constant String := Files.File_System.Trash_Original_Path (Payload);
+            begin
+               if Files.File_System.Is_Recovery_Payload (Payload) and then Original /= "" then
+                  Ada.Text_IO.Put_Line (Payload & ASCII.HT & Original);
+               end if;
+            end;
+         end if;
+      end Show;
    begin
       if Hostkit.Fs.Is_Link (Directory)
-        or else not Ada.Directories.Exists (Directory)
-        or else Ada.Directories.Kind (Directory) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Directory_Exists (Directory)
       then
          Fail (Files.Localization.Text ("cli.recovery.error.not_directory") & ':' & ' ' & Directory);
          return;
       end if;
-      Ada.Directories.Start_Search
-        (Search, Directory, Files.Protocol_Names.Recovery_Stage_Prefix & "*",
-         [Ada.Directories.Directory => True, others => False]);
-      Open := True;
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Item);
-         declare
-            Payload : constant String :=
-              Hostkit.Fs.Join (Ada.Directories.Full_Name (Item), "payload");
-            Original : constant String := Files.File_System.Trash_Original_Path (Payload);
-         begin
-            if Files.File_System.Is_Recovery_Payload (Payload) and then Original /= "" then
-               Ada.Text_IO.Put_Line (Payload & ASCII.HT & Original);
-            end if;
-         end;
-      end loop;
-      Ada.Directories.End_Search (Search);
+      Files.Fs_Primitives.For_Each_Name (Directory, Show'Access);
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.Recovery_CLI");
-         if Open then
-            begin
-               Ada.Directories.End_Search (Search);
-            exception
-               when Swallowed : others =>
-                  Files.Diagnostics.Note (Swallowed, "Files.Recovery_CLI");
-            end;
-         end if;
          Fail (Files.Localization.Text ("cli.recovery.error.list") & ':' & ' ' & Directory);
    end List;
 

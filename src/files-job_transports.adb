@@ -159,8 +159,8 @@ package body Files.Job_Transports is
         and then Name (Name'First .. Name'First + Transport_Prefix'Length - 1) = Transport_Prefix
         and then (for all Position in Suffix_First .. Name'Last =>
           Name (Position) in '0' .. '9' | 'a' .. 'f')
-        and then Ada.Directories.Full_Name (Files.Fs_Primitives.Parent_Directory (Directory)) =
-          Ada.Directories.Full_Name (Hostkit.Fs.Temp_Directory);
+        and then Files.Fs_Primitives.Full_Name (Files.Fs_Primitives.Parent_Directory (Directory)) =
+          Files.Fs_Primitives.Full_Name (Hostkit.Fs.Temp_Directory);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
@@ -184,7 +184,7 @@ package body Files.Job_Transports is
       Release (Owner);
       if Same then
          begin
-            Ada.Directories.Delete_File (Path);
+            Files.Fs_Primitives.Delete_File (Path);
          exception
             when Swallowed : others =>
                Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
@@ -209,8 +209,8 @@ package body Files.Job_Transports is
         or else Length (Identity) = 0
         or else Owner_Token = ""
         or else Hostkit.Fs.Is_Link (Directory)
-        or else not Ada.Directories.Exists (Directory)
-        or else Ada.Directories.Kind (Directory) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Exists (Directory)
+        or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
       then
          raise Ada.Directories.Use_Error;
       end if;
@@ -229,8 +229,8 @@ package body Files.Job_Transports is
       when others =>
          Files.Exclusive_Streams.Close_Safely (File);
          begin
-            if Ada.Directories.Exists (Temp) then
-               Ada.Directories.Delete_File (Temp);
+            if Files.Fs_Primitives.Exists (Temp) then
+               Files.Fs_Primitives.Delete_File (Temp);
             end if;
          exception
             when Swallowed : others =>
@@ -249,7 +249,7 @@ package body Files.Job_Transports is
          procedure Remove_File (Name : String) is
          begin
             if Files.Fs_Primitives.Entry_Exists (Name) then
-               Ada.Directories.Delete_File (Name);
+               Files.Fs_Primitives.Delete_File (Name);
             end if;
          exception
             when Swallowed : others =>
@@ -263,7 +263,7 @@ package body Files.Job_Transports is
          Remove_File (Hostkit.Fs.Join (Candidate, Marker_Name));
          Remove_File (Hostkit.Fs.Join (Candidate, Lease_Name));
          begin
-            Ada.Directories.Delete_Directory (Candidate);
+            Files.Fs_Primitives.Delete_Directory (Candidate);
          exception
             when Swallowed : others =>
                Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
@@ -340,7 +340,7 @@ package body Files.Job_Transports is
                when others =>
                   Release (Owner);
                   Remove_Failed_Candidate (Candidate);
-                  if not Ada.Directories.Exists (Candidate) then
+                  if not Files.Fs_Primitives.Exists (Candidate) then
                      Forget_Witness (Candidate, Witness);
                   end if;
                   Directory := Null_Unbounded_String;
@@ -377,11 +377,11 @@ package body Files.Job_Transports is
       if Directory = ""
         or else not Is_Transport_Path (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
-        or else not Ada.Directories.Exists (Directory)
-        or else Ada.Directories.Kind (Directory) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Exists (Directory)
+        or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
         or else Hostkit.Fs.Is_Link (Marker)
-        or else not Ada.Directories.Exists (Marker)
-        or else Ada.Directories.Kind (Marker) /= Ada.Directories.Ordinary_File
+        or else not Files.Fs_Primitives.Exists (Marker)
+        or else Files.Fs_Primitives.Kind (Marker) /= Ada.Directories.Ordinary_File
       then
          return;
       end if;
@@ -597,7 +597,7 @@ package body Files.Job_Transports is
          Lease_Path : constant String := Hostkit.Fs.Join (Directory, Lease_Name);
       begin
          if Current
-           and then not Ada.Directories.Exists
+           and then not Files.Fs_Primitives.Exists
              (Hostkit.Fs.Join (Directory, Lease_Name))
            and then not Hostkit.Fs.Is_Link
              (Hostkit.Fs.Join (Directory, Lease_Name))
@@ -639,47 +639,28 @@ package body Files.Job_Transports is
       Owner       : in out Lease;
       Minimum_Age : Duration := 1.0) return Claim_Outcome
    is
-      Search       : Ada.Directories.Search_Type;
-      Item         : Ada.Directories.Directory_Entry_Type;
       Marker_Path  : constant String := Hostkit.Fs.Join (Directory, Marker_Name);
       Marker_Temp  : constant String := Marker_Path & ".tmp";
       Witness_Name : constant String := Witness_Path (Directory);
-      Search_Open  : Boolean := False;
       Protocol_Error : Boolean := False;
 
       function Protocol_Only return Boolean is
-         Filter : constant Ada.Directories.Filter_Type := [others => True];
+         Only_Protocol : Boolean := True;
+
+         procedure Check (Name : String; Stop : in out Boolean) is
+         begin
+            if Name not in Lease_Name | Marker_Name & ".tmp" then
+               Only_Protocol := False;
+               Stop := True;
+            end if;
+         end Check;
       begin
-         Ada.Directories.Start_Search (Search, Directory, "*", Filter);
-         Search_Open := True;
-         while Ada.Directories.More_Entries (Search) loop
-            Ada.Directories.Get_Next_Entry (Search, Item);
-            declare
-               Name : constant String := Ada.Directories.Simple_Name (Directory_Entry => Item);
-            begin
-               if Name not in "." | ".." | Lease_Name | Marker_Name & ".tmp" then
-                  Ada.Directories.End_Search (Search);
-                  Search_Open := False;
-                  return False;
-               end if;
-            end;
-         end loop;
-         Ada.Directories.End_Search (Search);
-         Search_Open := False;
-         return True;
+         Files.Fs_Primitives.For_Each_Name (Directory, Check'Access);
+         return Only_Protocol;
       exception
          when Failure : others =>
             Files.Diagnostics.Note (Failure, "Files.Job_Transports");
             Protocol_Error := True;
-            if Search_Open then
-               begin
-                  Ada.Directories.End_Search (Search);
-               exception
-                  when Swallowed : others =>
-                     Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
-               end;
-               Search_Open := False;
-            end if;
             return False;
       end Protocol_Only;
    begin
@@ -687,11 +668,11 @@ package body Files.Job_Transports is
       if Held (Owner)
         or else not Is_Transport_Path (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
-        or else not Ada.Directories.Exists (Directory)
-        or else Ada.Directories.Kind (Directory) /= Ada.Directories.Directory
-        or else (Ada.Directories.Exists (Marker_Temp)
+        or else not Files.Fs_Primitives.Exists (Directory)
+        or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
+        or else (Files.Fs_Primitives.Exists (Marker_Temp)
           and then (Hostkit.Fs.Is_Link (Marker_Temp)
-            or else Ada.Directories.Kind (Marker_Temp) /= Ada.Directories.Ordinary_File))
+            or else Files.Fs_Primitives.Kind (Marker_Temp) /= Ada.Directories.Ordinary_File))
       then
          return Claim_Refused;
       end if;
@@ -702,7 +683,7 @@ package body Files.Job_Transports is
       if not Protocol_Only then
          return (if Protocol_Error then Claim_Error else Claim_Refused);
       end if;
-      if not Ada.Directories.Exists (Witness_Name) then
+      if not Files.Fs_Primitives.Exists (Witness_Name) then
          return Claim_Unrecoverable;
       end if;
       declare
@@ -740,7 +721,7 @@ package body Files.Job_Transports is
       declare
          Now : constant Ada.Calendar.Time := Ada.Calendar.Clock;
          Modified : constant Ada.Calendar.Time :=
-           Ada.Directories.Modification_Time (Directory);
+           Files.Fs_Primitives.Modification_Time (Directory);
       begin
          if Modified <= Now
            and then not Files.Timing.Elapsed (Now, Modified, Minimum_Age)
@@ -756,68 +737,42 @@ package body Files.Job_Transports is
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.Job_Transports");
-         if Search_Open then
-            begin
-               Ada.Directories.End_Search (Search);
-            exception
-               when Swallowed : others =>
-                  Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
-            end;
-         end if;
          Release (Owner);
          Identity := Null_Unbounded_String;
          return Claim_Error;
    end Claim_Incomplete;
 
    procedure Scavenge_Witnesses is
-      Search : Ada.Directories.Search_Type;
-      Item : Ada.Directories.Directory_Entry_Type;
-      Open : Boolean := False;
-      Filter : constant Ada.Directories.Filter_Type := [others => True];
-   begin
-      Ada.Directories.Start_Search
-        (Search, Hostkit.Fs.Temp_Directory, Witness_Prefix & "*", Filter);
-      Open := True;
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Item);
-         declare
-            Name : constant String := Ada.Directories.Simple_Name (Directory_Entry => Item);
-         begin
-            if Name'Length = Witness_Prefix'Length + 32
-              and then Name (Name'First .. Name'First + Witness_Prefix'Length - 1) = Witness_Prefix
-              and then (for all Position in Name'First + Witness_Prefix'Length .. Name'Last =>
-                Name (Position) in '0' .. '9' | 'a' .. 'f')
-            then
-               declare
-                  Directory : constant String := Hostkit.Fs.Join
-                    (Hostkit.Fs.Temp_Directory,
-                     Transport_Prefix & Name (Name'First + Witness_Prefix'Length .. Name'Last));
-                  Witness_Name : constant String := Ada.Directories.Full_Name (Item);
-                  Owner : Lease;
-               begin
-                  if Claim_Lease (Witness_Name, Owner) = Claim_Acquired then
-                     if (not Ada.Directories.Exists (Directory) and then not Hostkit.Fs.Is_Link (Directory))
-                       or else Recorded_Identity (Directory) /= ""
-                     then
-                        Forget_Witness (Directory, Owner);
-                     end if;
+      Temp : constant String := Hostkit.Fs.Temp_Directory;
+
+      procedure Check (Name : String; Stop : in out Boolean) is
+         pragma Unreferenced (Stop);
+      begin
+         if Name'Length = Witness_Prefix'Length + 32
+           and then Name (Name'First .. Name'First + Witness_Prefix'Length - 1) = Witness_Prefix
+           and then (for all Position in Name'First + Witness_Prefix'Length .. Name'Last =>
+             Name (Position) in '0' .. '9' | 'a' .. 'f')
+         then
+            declare
+               Directory : constant String := Hostkit.Fs.Join
+                 (Temp, Transport_Prefix & Name (Name'First + Witness_Prefix'Length .. Name'Last));
+               Witness_Name : constant String := Hostkit.Fs.Join (Temp, Name);
+               Owner : Lease;
+            begin
+               if Claim_Lease (Witness_Name, Owner) = Claim_Acquired then
+                  if (not Files.Fs_Primitives.Exists (Directory) and then not Hostkit.Fs.Is_Link (Directory))
+                    or else Recorded_Identity (Directory) /= ""
+                  then
+                     Forget_Witness (Directory, Owner);
                   end if;
-               end;
-            end if;
-         end;
-      end loop;
-      Ada.Directories.End_Search (Search);
-      Open := False;
+               end if;
+            end;
+         end if;
+      end Check;
+   begin
+      Files.Fs_Primitives.For_Each_Name (Temp, Check'Access);
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.Job_Transports");
-         if Open then
-            begin
-               Ada.Directories.End_Search (Search);
-            exception
-               when Swallowed : others =>
-                  Files.Diagnostics.Note (Swallowed, "Files.Job_Transports");
-            end;
-         end if;
    end Scavenge_Witnesses;
 end Files.Job_Transports;

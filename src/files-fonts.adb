@@ -2,7 +2,6 @@ with Files.Images;
 with Files.Environment;
 with Files.Diagnostics;
 with Ada.Containers.Vectors;
-with Ada.Directories;
 with Ada.Streams;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
@@ -14,7 +13,6 @@ with Hostkit.Fs;
 
 package body Files.Fonts is
    use Ada.Strings.Unbounded;
-   use type Ada.Directories.File_Kind;
    use type Textrender.Fonts.Glyph_Lookup_Result;
    use type Textrender.Fonts.Load_Result;
 
@@ -177,9 +175,26 @@ package body Files.Fonts is
       Depth : Natural;
       Scanned : in out Natural)
    is
-      Search  : Ada.Directories.Search_Type;
-      Font_Entry : Ada.Directories.Directory_Entry_Type;
-      Started : Boolean := False;
+      use type Hostkit.Fs.Entry_Kind;
+
+      procedure Visit (Name : String; Kind : Hostkit.Fs.Entry_Kind; Stop : in out Boolean) is
+         Full : constant String := Hostkit.Fs.Join (Root, Name);
+      begin
+         if Natural (Paths.Length) >= Max_Discovered_Fonts or else Scanned >= Max_Scanned_Font_Entries then
+            Stop := True;
+            return;
+         elsif Kind not in Hostkit.Fs.Ordinary_File_Entry | Hostkit.Fs.Directory_Entry then
+            return;
+         end if;
+         Scanned := Scanned + 1;
+         if Kind = Hostkit.Fs.Directory_Entry then
+            if not Hostkit.Fs.Is_Link (Full) then
+               Scan_Font_Directory (Paths, Full, Depth + 1, Scanned);
+            end if;
+         elsif Is_Font_File (Full) and then not Is_Known_Unsupported_Renderer_Font (Full) then
+            Append_Unique (Paths, Full);
+         end if;
+      end Visit;
    begin
       if Natural (Paths.Length) >= Max_Discovered_Fonts
         or else Scanned >= Max_Scanned_Font_Entries
@@ -190,49 +205,10 @@ package body Files.Fonts is
          return;
       end if;
 
-      Ada.Directories.Start_Search
-        (Search,
-         Root,
-         "",
-         [Ada.Directories.Ordinary_File => True,
-          Ada.Directories.Directory     => True,
-          Ada.Directories.Special_File  => False]);
-      Started := True;
-
-      while Ada.Directories.More_Entries (Search)
-        and then Natural (Paths.Length) < Max_Discovered_Fonts
-        and then Scanned < Max_Scanned_Font_Entries
-      loop
-         Ada.Directories.Get_Next_Entry (Search, Font_Entry);
-         Scanned := Scanned + 1;
-         declare
-            Name : constant String := Ada.Directories.Simple_Name (Directory_Entry => Font_Entry);
-            Full : constant String := Ada.Directories.Full_Name (Font_Entry);
-         begin
-            if Name /= "." and then Name /= ".." then
-               if Ada.Directories.Kind (Font_Entry) = Ada.Directories.Directory then
-                  if not Hostkit.Fs.Is_Link (Full) then
-                     Scan_Font_Directory (Paths, Full, Depth + 1, Scanned);
-                  end if;
-               elsif Is_Font_File (Full) and then not Is_Known_Unsupported_Renderer_Font (Full) then
-                  Append_Unique (Paths, Full);
-               end if;
-            end if;
-         end;
-      end loop;
-
-      Ada.Directories.End_Search (Search);
+      Files.Fs_Primitives.For_Each_Listed (Root, Visit'Access);
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.Fonts");
-         if Started then
-            begin
-               Ada.Directories.End_Search (Search);
-            exception
-               when Swallowed : others =>
-                  Files.Diagnostics.Note (Swallowed, "Files.Fonts");
-            end;
-         end if;
    end Scan_Font_Directory;
 
    function Candidate_Fonts return Font_Path_Vectors.Vector is

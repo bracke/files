@@ -10,6 +10,7 @@ with Files.Durable_Writes;
 with Files.Job_Context;
 with Files.Lease_Streams;
 with Files.Types;
+with Files.Fs_Primitives;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
 with Files.Path_Checks;
@@ -254,21 +255,21 @@ package body Files.History_Journal is
       end if;
       if not Valid_Directory (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
-        or else not Ada.Directories.Exists (Directory)
-        or else Ada.Directories.Kind (Directory) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Exists (Directory)
+        or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
         or else Hostkit.Fs.Is_Link (Temporary)
-        or else (Ada.Directories.Exists (Temporary)
-          and then Ada.Directories.Kind (Temporary) /= Ada.Directories.Ordinary_File)
+        or else (Files.Fs_Primitives.Exists (Temporary)
+          and then Files.Fs_Primitives.Kind (Temporary) /= Ada.Directories.Ordinary_File)
         or else Hostkit.Fs.Is_Link (Target)
-        or else (Ada.Directories.Exists (Target)
-          and then Ada.Directories.Kind (Target) /= Ada.Directories.Ordinary_File)
+        or else (Files.Fs_Primitives.Exists (Target)
+          and then Files.Fs_Primitives.Kind (Target) /= Ada.Directories.Ordinary_File)
       then
          raise Ada.Directories.Use_Error;
       end if;
       --  A temporary a crash left behind (a plain file, checked above) would
       --  refuse every later save: the journal is ours, so it goes.
-      if Ada.Directories.Exists (Temporary) then
-         Ada.Directories.Delete_File (Temporary);
+      if Files.Fs_Primitives.Exists (Temporary) then
+         Files.Fs_Primitives.Delete_File (Temporary);
       end if;
       Files.Durable_Writes.Write_Private_File (Temporary, Write_Journal'Access, Temporary_Identity);
       Published := Files.Durable_Writes.Publish
@@ -332,9 +333,9 @@ package body Files.History_Journal is
    begin
       if not Valid_Directory (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
-        or else not Ada.Directories.Exists (Directory)
-        or else Ada.Directories.Kind (Directory) /= Ada.Directories.Directory
-        or else not Ada.Directories.Exists (Path)
+        or else not Files.Fs_Primitives.Exists (Directory)
+        or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Exists (Path)
         or else Files.Lease_Streams.Open (Path, Input) /=
           Hostkit.Lease_Files.Opened
       then

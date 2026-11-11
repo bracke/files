@@ -37,11 +37,46 @@ is
 
    Files_Found : Cached_File_Vectors.Vector;
    Total       : Long_Long_Integer := 0;
-   Search      : Ada.Directories.Search_Type;
-   Item        : Ada.Directories.Directory_Entry_Type;
-   Started     : Boolean := False;
    Count       : Natural := 0;
    Overflowed  : Boolean := False;
+   Capped      : Boolean := False;
+
+   procedure Collect (Name : String; Kind : Hostkit.Fs.Entry_Kind; Stop : in out Boolean) is
+      use type Hostkit.Fs.Entry_Kind;
+   begin
+      if Kind /= Hostkit.Fs.Ordinary_File_Entry or else not Is_Thumbnail_Name (Name) then
+         return;
+      elsif Count = Max_Cache_Prune_Entries then
+         Capped := True;
+         Stop := True;
+         return;
+      end if;
+      Count := Count + 1;
+
+      declare
+         Full : constant String := Hostkit.Fs.Join (Cache_Directory, Name);
+         Size : constant Long_Long_Integer := Long_Long_Integer (Files.Fs_Primitives.Size (Full));
+      begin
+         if Size < 0 or else Total > Long_Long_Integer'Last - Size then
+            Overflowed := True;
+         else
+            Files_Found.Append
+              (Cached_File'
+                 (Path     => To_Unbounded_String (Full),
+                  Identity => To_Unbounded_String
+                    (Files.File_Identities.Token (Full)),
+                  Size     => Size,
+                  Modified => Files.Fs_Primitives.Modification_Time (Full)));
+            Total := Total + Size;
+         end if;
+      end;
+   exception
+      --  A file that vanished mid-scan, or whose size the host will not
+      --  report, simply is not counted. Pruning is housekeeping: it must
+      --  never be the reason a thumbnail fails to be written.
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
+   end Collect;
 begin
    --  A cache path may have been replaced with a directory symlink since it
    --  was configured.  Pruning is destructive, so never follow that link
@@ -52,54 +87,10 @@ begin
       return;
    end if;
 
-   Ada.Directories.Start_Search
-     (Search, Cache_Directory, "*",
-      Filter => [Ada.Directories.Ordinary_File => True, others => False]);
-   Started := True;
-
-   while Ada.Directories.More_Entries (Search) loop
-      Ada.Directories.Get_Next_Entry (Search, Item);
-
-      if not Is_Thumbnail_Name (Ada.Directories.Simple_Name (Directory_Entry => Item)) then
-         goto Continue;
-      elsif Count = Max_Cache_Prune_Entries then
-         Ada.Directories.End_Search (Search);
-         Started := False;
-         return;
-      end if;
-      Count := Count + 1;
-
-      begin
-         declare
-            Full : constant String := Ada.Directories.Full_Name (Item);
-            Size : constant Long_Long_Integer :=
-              Long_Long_Integer (Ada.Directories.Size (Item));
-         begin
-            if Size < 0 or else Total > Long_Long_Integer'Last - Size then
-               Overflowed := True;
-            else
-               Files_Found.Append
-                 (Cached_File'
-                    (Path     => To_Unbounded_String (Full),
-                     Identity => To_Unbounded_String
-                       (Files.File_Identities.Token (Full)),
-                     Size     => Size,
-                     Modified => Ada.Directories.Modification_Time (Item)));
-               Total := Total + Size;
-            end if;
-         end;
-      exception
-         --  A file that vanished mid-scan, or whose size the host will not
-         --  report, simply is not counted. Pruning is housekeeping: it must
-         --  never be the reason a thumbnail fails to be written.
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
-      end;
-      <<Continue>>
-   end loop;
-
-   Ada.Directories.End_Search (Search);
-   Started := False;
+   Files.Fs_Primitives.For_Each_Listed (Cache_Directory, Collect'Access);
+   if Capped then
+      return;
+   end if;
 
    if Overflowed or else Total <= Budget_Bytes then
       return;
@@ -120,7 +111,7 @@ begin
            and then Files.File_Identities.Token (To_String (Candidate.Path)) =
              To_String (Candidate.Identity)
          then
-            Ada.Directories.Delete_File (To_String (Candidate.Path));
+            Files.Fs_Primitives.Delete_File (To_String (Candidate.Path));
             Total := Total - Candidate.Size;
          end if;
       exception
@@ -131,13 +122,4 @@ begin
 exception
    when Failure : others =>
       Files.Diagnostics.Note (Failure, "Files.File_System.Thumbnails");
-      if Started then
-         begin
-            Ada.Directories.End_Search (Search);
-         exception
-            when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
-         end;
-      end if;
-      null;
 end Prune_Thumbnail_Cache;

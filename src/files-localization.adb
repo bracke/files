@@ -13,6 +13,7 @@ with Messages.Runtime;
 
 with Files.Environment;
 with Files.Capped_Files;
+with Files.Fs_Primitives;
 with Files.Resources;
 
 with Hostkit.Host;
@@ -426,8 +427,8 @@ package body Files.Localization is
       Max_Config_Bytes : constant := 256 * 1024;
       In_Section : Boolean := Section = "";
    begin
-      if not Ada.Directories.Exists (Path)
-        or else Ada.Directories.Kind (Path) /= Ada.Directories.Ordinary_File
+      if not Files.Fs_Primitives.Exists (Path)
+        or else Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Ordinary_File
       then
          return "";
       end if;
@@ -561,7 +562,7 @@ package body Files.Localization is
          return;
       end if;
 
-      if Ada.Directories.Exists (Path) then
+      if Files.Fs_Primitives.Exists (Path) then
          Messages.Runtime.Load (Runtime, Path);
          Available := Messages.Runtime.Is_Valid (Runtime);
       end if;

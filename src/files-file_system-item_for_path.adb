@@ -49,7 +49,7 @@ begin
          --  directory raises. That is "no size", not a metadata failure, so
          --  it must not abort the times, mode and ownership read below.
          begin
-            Item.Size := Long_Long_Integer (Ada.Directories.Size (Full));
+            Item.Size := Long_Long_Integer (Files.Fs_Primitives.Size (Full));
             Item.Size_Available := True;
          exception
             when Swallowed : others =>
@@ -69,7 +69,7 @@ begin
       Item.Creation_Time :=
         Hostkit.Metadata.File_Creation_Time (Full, Item.Creation_Available);
       begin
-         Item.Modified_Time := Ada.Directories.Modification_Time (Full);
+         Item.Modified_Time := Files.Fs_Primitives.Modification_Time (Full);
          Item.Modified_Available := True;
       exception
          when Swallowed : others =>

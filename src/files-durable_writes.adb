@@ -8,6 +8,7 @@ with Files.Fs_Primitives;
 with Files.Io_Errors;
 with Files.Private_Directories;
 with Hostkit.Fs;
+with Hostkit.Regular_Files;
 
 package body Files.Durable_Writes is
    use type Hostkit.Durability.Outcome;
@@ -72,7 +73,7 @@ package body Files.Durable_Writes is
    procedure Remove_Owned (Temporary : String; Identity : String) is
    begin
       if Identity /= "" and then Files.File_Identities.Token (Temporary) = Identity then
-         Ada.Directories.Delete_File (Temporary);
+         Files.Fs_Primitives.Delete_File (Temporary);
       end if;
    exception
       when Swallowed : others =>
@@ -88,7 +89,7 @@ package body Files.Durable_Writes is
       Output : aliased Files.Descriptor_Streams.Output_Stream;
    begin
       Identity := Files.Types.UString'(Ada.Strings.Unbounded.Null_Unbounded_String);
-      Output.Descriptor := GNAT.OS_Lib.Create_New_File (Temporary, GNAT.OS_Lib.Binary);
+      Output.Descriptor := Hostkit.Regular_Files.Create_New (Temporary, 8#666#);
       if Output.Descriptor = GNAT.OS_Lib.Invalid_FD then
          raise Ada.Directories.Use_Error;
       end if;

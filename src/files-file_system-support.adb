@@ -3,6 +3,7 @@ with Interfaces;
 with Ada.Streams;
 with Files.Environment;
 with Files.Diagnostics;
+with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Unbounded;
 
@@ -117,21 +118,6 @@ package body Files.File_System.Support is
          Visit (To_String (Name));
       end loop;
    end For_Each_Entry;
-
-   procedure Safe_End_Search
-     (Search  : in out Ada.Directories.Search_Type;
-      Started : in out Boolean) is
-   begin
-      if Started then
-         begin
-            Ada.Directories.End_Search (Search);
-         exception
-            when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.File_System.Support");
-         end;
-         Started := False;
-      end if;
-   end Safe_End_Search;
 
    function Environment_Equals
      (Name     : String;
@@ -531,10 +517,12 @@ package body Files.File_System.Support is
          return;
       end if;
       declare
-         Original : constant String := GNAT.OS_Lib.Normalize_Pathname (Source, Resolve_Links => True);
+         --  Links resolved: a copy into its own tree reached through a link
+         --  is still a copy into its own tree.
+         Original : constant String := Files.Fs_Primitives.Full_Name (Source);
          Identity : constant String := Files.File_Identities.Token (Source);
-         Parent : UString := To_Unbounded_String (GNAT.OS_Lib.Normalize_Pathname
-           (Files.Fs_Primitives.Parent_Directory (Destination), Resolve_Links => True));
+         Parent : UString := To_Unbounded_String
+           (Files.Fs_Primitives.Full_Name (Files.Fs_Primitives.Parent_Directory (Destination)));
       begin
          if Original = "" or else Length (Parent) = 0 then
             raise Ada.Directories.Use_Error;
@@ -546,8 +534,8 @@ package body Files.File_System.Support is
                raise Ada.Directories.Use_Error;
             end if;
             declare
-               Next : constant String := GNAT.OS_Lib.Normalize_Pathname
-                 (Hostkit.Fs.Join (To_String (Parent), ".."), Resolve_Links => True);
+               Next : constant String :=
+                 Files.Fs_Primitives.Full_Name (Hostkit.Fs.Join (To_String (Parent), ".."));
             begin
                if Next = "" then
                   raise Ada.Directories.Use_Error;
@@ -1007,7 +995,8 @@ package body Files.File_System.Support is
             raise Ada.Directories.Use_Error;
          end if;
       end;
-      Output := GNAT.OS_Lib.Create_New_File (Destination_Path, GNAT.OS_Lib.Binary);
+      --  0666 less the creation mask, as GNAT's Create_New_File makes it.
+      Output := Hostkit.Regular_Files.Create_New (Destination_Path, 8#666#);
       if Output = GNAT.OS_Lib.Invalid_FD then
          Files.Io_Errors.Capture;
          raise Ada.Directories.Use_Error;
@@ -1231,7 +1220,7 @@ package body Files.File_System.Support is
          when Ada.Directories.Directory =>
             begin
                Files.Io_Errors.Clear_Os_Error;
-               Ada.Directories.Create_Directory (Destination_Path);
+               Files.Fs_Primitives.Create_Directory (Destination_Path);
             exception
                when others =>
                   Files.Io_Errors.Capture;

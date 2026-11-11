@@ -97,10 +97,10 @@ package body Files.Job_Context is
       Temporary_Identity : Files.Types.UString;
    begin
       if Hostkit.Fs.Is_Link (Temporary)
-        or else Ada.Directories.Exists (Temporary)
+        or else Files.Fs_Primitives.Exists (Temporary)
         or else Hostkit.Fs.Is_Link (Target)
-        or else (Ada.Directories.Exists (Target)
-          and then Ada.Directories.Kind (Target) /= Ada.Directories.Ordinary_File)
+        or else (Files.Fs_Primitives.Exists (Target)
+          and then Files.Fs_Primitives.Kind (Target) /= Ada.Directories.Ordinary_File)
       then
          raise Ada.Directories.Use_Error;
       end if;
@@ -194,7 +194,7 @@ package body Files.Job_Context is
    begin
       if Record_Directory /= ""
         and then not Hostkit.Fs.Is_Link (Record_Directory)
-        and then Ada.Directories.Exists (Record_Directory)
+        and then Files.Fs_Primitives.Exists (Record_Directory)
       then
          Files.Fs_Primitives.Delete_Tree (Record_Directory);
       end if;
@@ -261,8 +261,8 @@ package body Files.Job_Context is
    begin
       if Files.Private_Directories.Try_Create (Stages) =
         Files.Private_Directories.Collision
-        and then (Hostkit.Fs.Is_Link (Stages) or else not Ada.Directories.Exists (Stages)
-          or else Ada.Directories.Kind (Stages) /= Ada.Directories.Directory)
+        and then (Hostkit.Fs.Is_Link (Stages) or else not Files.Fs_Primitives.Exists (Stages)
+          or else Files.Fs_Primitives.Kind (Stages) /= Ada.Directories.Directory)
       then
          raise Ada.Directories.Use_Error;
       end if;
@@ -321,7 +321,7 @@ package body Files.Job_Context is
             exception
                when others =>
                   begin
-                     Ada.Directories.Delete_Directory (Candidate);
+                     Files.Fs_Primitives.Delete_Directory (Candidate);
                      Remove_Record (To_String (Record_Directory));
                   exception
                      when Swallowed : others =>
@@ -467,8 +467,8 @@ package body Files.Job_Context is
       Revisions.Clear;
       if not Valid_Absolute_Path (Directory)
         or else Hostkit.Fs.Is_Link (Directory)
-        or else not Ada.Directories.Exists (Directory)
-        or else Ada.Directories.Kind (Directory) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Exists (Directory)
+        or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
         or else Files.Lease_Streams.Open (Path, Input) /=
           Hostkit.Lease_Files.Opened
       then
@@ -689,9 +689,20 @@ package body Files.Job_Context is
       Discard_Unreadable : Boolean := False)
    is
       Stages : constant String := Hostkit.Fs.Join (Directory, "stages");
-      Search : Ada.Directories.Search_Type;
-      Item : Ada.Directories.Directory_Entry_Type;
       Records : Files.Types.String_Vectors.Vector;
+
+      --  The stage folders, a link to one included, as the search listed them.
+      procedure Collect (Name : String; Stop : in out Boolean) is
+         pragma Unreferenced (Stop);
+         Prefix : constant String := "stage-";
+      begin
+         if Name'Length >= Prefix'Length
+           and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
+           and then Files.Fs_Primitives.Directory_Exists (Hostkit.Fs.Join (Stages, Name))
+         then
+            Records.Append (To_Unbounded_String (Hostkit.Fs.Join (Stages, Name)));
+         end if;
+      end Collect;
 
       procedure Clean_Record (Record_Directory : String) is
          Input : aliased Files.Lease_Streams.Input_Stream;
@@ -703,19 +714,19 @@ package body Files.Job_Context is
          Removed : Boolean := False;
       begin
          if Hostkit.Fs.Is_Link (Record_Directory)
-           or else not Ada.Directories.Exists (Record_Directory)
-           or else Ada.Directories.Kind (Record_Directory) /= Ada.Directories.Directory
+           or else not Files.Fs_Primitives.Exists (Record_Directory)
+           or else Files.Fs_Primitives.Kind (Record_Directory) /= Ada.Directories.Directory
          then
             return;
          end if;
          --  No published data means creation stopped before the staging
          --  pathname could be created, so this empty reservation is disposable.
-         if not Ada.Directories.Exists (Data) then
+         if not Files.Fs_Primitives.Exists (Data) then
             Remove_Record (Record_Directory);
             return;
          end if;
          if Hostkit.Fs.Is_Link (Data)
-           or else Ada.Directories.Kind (Data) /= Ada.Directories.Ordinary_File
+           or else Files.Fs_Primitives.Kind (Data) /= Ada.Directories.Ordinary_File
          then
             --  A published record is always an ordinary file.  Discard the
             --  record without inspecting an injected object or trusting it
@@ -820,34 +831,22 @@ package body Files.Job_Context is
       if not Files.Job_Transports.Holds (Owner, Directory) then
          return;
       end if;
-      if not Ada.Directories.Exists (Stages) or else Hostkit.Fs.Is_Link (Stages)
-        or else Ada.Directories.Kind (Stages) /= Ada.Directories.Directory
+      if not Files.Fs_Primitives.Exists (Stages) or else Hostkit.Fs.Is_Link (Stages)
+        or else Files.Fs_Primitives.Kind (Stages) /= Ada.Directories.Directory
       then
          return;
       end if;
-      Ada.Directories.Start_Search
-        (Search, Stages, "stage-*", [Ada.Directories.Directory => True, others => False]);
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Item);
-         Records.Append (To_Unbounded_String (Ada.Directories.Full_Name (Item)));
-      end loop;
-      Ada.Directories.End_Search (Search);
+      Files.Fs_Primitives.For_Each_Name (Stages, Collect'Access);
       for Record_Directory of Records loop
          Clean_Record (To_String (Record_Directory));
       end loop;
       begin
-         Ada.Directories.Delete_Directory (Stages);
+         Files.Fs_Primitives.Delete_Directory (Stages);
       exception
          when Ada.Directories.Use_Error => null;
       end;
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.Job_Context");
-         begin
-            Ada.Directories.End_Search (Search);
-         exception
-            when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
-         end;
    end Clean_Stages;
 end Files.Job_Context;

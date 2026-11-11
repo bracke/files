@@ -38,7 +38,7 @@ is
      (Stream_Element
         ((Channel * Alpha + 255 * (255 - Alpha) + 127) / 255));
 begin
-   Stream_IO.Create (Output, Stream_IO.Out_File, Target_Path, Form => "shared=no");
+   Hostkit.Fs.Create_Stream (Output, Stream_IO.Out_File, Target_Path);
    Stream_IO.Write (Output, Files.Images.Netpbm.P6_Header (Out_W, Out_H));
 
    for Row in 0 .. Out_H - 1 loop

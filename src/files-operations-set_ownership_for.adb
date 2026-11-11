@@ -14,7 +14,7 @@ begin
    declare
       Item      : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
       Path      : constant String :=
-        GNAT.OS_Lib.Normalize_Pathname (To_String (Item.Full_Path), Resolve_Links => True);
+        Files.Fs_Primitives.Full_Name (To_String (Item.Full_Path));
       New_User_Name : constant String :=
         Files.File_System.User_Name_For_Id (User_Id);
       New_Group_Name : constant String :=

@@ -20,7 +20,7 @@ begin
       Original  : Unbounded_String;
       Parent    : Unbounded_String;
    begin
-      if Expected_Original = "" and then not Ada.Directories.Exists (Info_Path) then
+      if Expected_Original = "" and then not Files.Fs_Primitives.Exists (Info_Path) then
          return
            (Success   => False,
             Error_Key => To_Unbounded_String ("error.trash.restore_unavailable"));
@@ -36,8 +36,7 @@ begin
 
       Parent := To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (To_String (Original)));
       if To_String (Parent) = ""
-        or else not Ada.Directories.Exists (To_String (Parent))
-        or else Ada.Directories.Kind (To_String (Parent)) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Directory_Exists (To_String (Parent))
       then
          return
            (Success   => False,
@@ -105,8 +104,8 @@ begin
       end;
 
       begin
-         if Ada.Directories.Exists (Info_Path) then
-            Ada.Directories.Delete_File (Info_Path);
+         if Files.Fs_Primitives.Exists (Info_Path) then
+            Files.Fs_Primitives.Delete_File (Info_Path);
          end if;
       exception
          when Swallowed : others =>

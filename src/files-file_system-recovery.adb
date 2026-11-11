@@ -9,7 +9,6 @@ with Ada.Streams;
 with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 
-with GNAT.OS_Lib;
 with Hostkit.Durability;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
@@ -65,7 +64,7 @@ package body Files.File_System.Recovery is
       return not Hostkit.Fs.Is_Link (Path)
         and then Files.Fs_Primitives.Exists (Path)
         and then Files.Fs_Primitives.Kind (Path) = Ada.Directories.Ordinary_File
-        and then Ada.Directories.Size (Path) <= Ada.Directories.File_Size (Maximum);
+        and then Files.Fs_Primitives.Size (Path) <= Ada.Directories.File_Size (Maximum);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
@@ -96,7 +95,7 @@ package body Files.File_System.Recovery is
                raise Ada.Directories.Use_Error;
             end if;
          elsif Parents then
-            Ada.Directories.Create_Path (Path);
+            Files.Fs_Primitives.Create_Path (Path);
          else
             Files.Private_Directories.Create (Path);
          end if;
@@ -192,36 +191,21 @@ package body Files.File_System.Recovery is
    end Write_Owner;
 
    function Contains_Only_Owned_Entries (Stage : String) return Boolean is
-      Search : Ada.Directories.Search_Type;
-      Item   : Ada.Directories.Directory_Entry_Type;
-      Open   : Boolean := False;
+      Only_Owned : Boolean := True;
+
+      procedure Check (Name : String; Stop : in out Boolean) is
+      begin
+         if Name not in "payload" | "original" | "mode" | Owner_Name then
+            Only_Owned := False;
+            Stop := True;
+         end if;
+      end Check;
    begin
-      Ada.Directories.Start_Search (Search, Stage, "*");
-      Open := True;
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Item);
-         declare
-            Name : constant String := Ada.Directories.Simple_Name (Directory_Entry => Item);
-         begin
-            if Name not in "." | ".." | "payload" | "original" | "mode" | Owner_Name then
-               Ada.Directories.End_Search (Search);
-               return False;
-            end if;
-         end;
-      end loop;
-      Ada.Directories.End_Search (Search);
-      return True;
+      Files.Fs_Primitives.For_Each_Name (Stage, Check'Access);
+      return Only_Owned;
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.File_System.Recovery");
-         if Open then
-            begin
-               Ada.Directories.End_Search (Search);
-            exception
-               when Swallowed : others =>
-                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
-            end;
-         end if;
          return False;
    end Contains_Only_Owned_Entries;
 
@@ -274,10 +258,18 @@ package body Files.File_System.Recovery is
 
    procedure Delete_Registry_Record (Directory : String) is
       Root : constant String := Registry_Root (Create => False);
-      Search : Ada.Directories.Search_Type;
-      Item : Ada.Directories.Directory_Entry_Type;
-      Open : Boolean := False;
       Count : Natural := 0;
+      Other : Boolean := False;
+
+      procedure Check (Name : String; Stop : in out Boolean) is
+      begin
+         if Name = "record" then
+            Count := Count + 1;
+         else
+            Other := True;
+            Stop := True;
+         end if;
+      end Check;
    begin
       if Root = ""
         or else Files.Fs_Primitives.Parent_Directory (Directory) /= Root
@@ -286,33 +278,13 @@ package body Files.File_System.Recovery is
       then
          return;
       end if;
-      Ada.Directories.Start_Search (Search, Directory, "*");
-      Open := True;
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Item);
-         if Ada.Directories.Simple_Name (Directory_Entry => Item) = "record" then
-            Count := Count + 1;
-         elsif Ada.Directories.Simple_Name (Directory_Entry => Item) not in "." | ".." then
-            Ada.Directories.End_Search (Search);
-            return;
-         end if;
-      end loop;
-      Ada.Directories.End_Search (Search);
-      Open := False;
-      if Count = 1 then
+      Files.Fs_Primitives.For_Each_Name (Directory, Check'Access);
+      if Count = 1 and then not Other then
          Delete_Owned_Tree (Directory);
       end if;
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.File_System.Recovery");
-         if Open then
-            begin
-               Ada.Directories.End_Search (Search);
-            exception
-               when Swallowed : others =>
-                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
-            end;
-         end if;
    end Delete_Registry_Record;
 
    --  A record whose stage directory is gone describes nothing recoverable.
@@ -407,41 +379,28 @@ package body Files.File_System.Recovery is
 
    procedure Unregister (Payload : String) is
       Root : constant String := Registry_Root (Create => False);
-      Search : Ada.Directories.Search_Type;
-      Item : Ada.Directories.Directory_Entry_Type;
-      Open : Boolean := False;
+
+      procedure Check (Name : String; Stop : in out Boolean) is
+         pragma Unreferenced (Stop);
+         Recorded, Identity : UString;
+         Directory : constant String := Hostkit.Fs.Join (Root, Name);
+      begin
+         if Starts_With (Name, Files.Protocol_Names.Recovery_Stage_Prefix)
+           and then Files.Fs_Primitives.Directory_Exists (Directory)
+           and then Read_Registry_Record (Directory, Recorded, Identity)
+           and then To_String (Recorded) = Payload
+         then
+            Delete_Registry_Record (Directory);
+         end if;
+      end Check;
    begin
       if Root = "" then
          return;
       end if;
-      Ada.Directories.Start_Search (Search, Root, Files.Protocol_Names.Recovery_Stage_Prefix & "*",
-        [Ada.Directories.Directory => True, others => False]);
-      Open := True;
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Item);
-         declare
-            Recorded, Identity : UString;
-            Directory : constant String := Ada.Directories.Full_Name (Item);
-         begin
-            if Read_Registry_Record (Directory, Recorded, Identity)
-              and then To_String (Recorded) = Payload
-            then
-               Delete_Registry_Record (Directory);
-            end if;
-         end;
-      end loop;
-      Ada.Directories.End_Search (Search);
+      Files.Fs_Primitives.For_Each_Name (Root, Check'Access);
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.File_System.Recovery");
-         if Open then
-            begin
-               Ada.Directories.End_Search (Search);
-            exception
-               when Swallowed : others =>
-                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
-            end;
-         end if;
    end Unregister;
 
    --  Release moves the payload into release/<its original name> before
@@ -450,10 +409,15 @@ package body Files.File_System.Recovery is
    --  recognize again: move the held entry back so the stage is whole.
    procedure Resume_Interrupted_Release (Path : String) is
       Holder : constant String := Hostkit.Fs.Join (Files.Fs_Primitives.Parent_Directory (Path), "release");
-      Search : Ada.Directories.Search_Type;
-      Item   : Ada.Directories.Directory_Entry_Type;
       Held   : UString;
       Count  : Natural := 0;
+
+      procedure Count_One (Name : String; Stop : in out Boolean) is
+         pragma Unreferenced (Stop);
+      begin
+         Count := Count + 1;
+         Held := To_Unbounded_String (Hostkit.Fs.Join (Holder, Name));
+      end Count_One;
    begin
       if Files.Fs_Primitives.Entry_Exists (Path)
         or else Hostkit.Fs.Is_Link (Holder)
@@ -462,15 +426,7 @@ package body Files.File_System.Recovery is
       then
          return;
       end if;
-      Ada.Directories.Start_Search (Search, Holder, "");
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Item);
-         if Ada.Directories.Simple_Name (Directory_Entry => Item) not in "." | ".." then
-            Count := Count + 1;
-            Held := To_Unbounded_String (Ada.Directories.Full_Name (Item));
-         end if;
-      end loop;
-      Ada.Directories.End_Search (Search);
+      Files.Fs_Primitives.For_Each_Name (Holder, Count_One'Access);
       declare
          --  Release names the held entry after the original; anything else
          --  (a stage a nested move left there) is not this payload.
@@ -479,12 +435,12 @@ package body Files.File_System.Recovery is
            (if Valid_Absolute_Path (Original) then Files.Fs_Primitives.Leaf_Text (Original) else "recovered");
       begin
          if Count = 0 then
-            Ada.Directories.Delete_Directory (Holder);
+            Files.Fs_Primitives.Delete_Directory (Holder);
          elsif Count = 1
            and then Files.Fs_Primitives.Leaf_Text (To_String (Held)) = Leaf
            and then Support.Move_No_Replace (To_String (Held), Path)
          then
-            Ada.Directories.Delete_Directory (Holder);
+            Files.Fs_Primitives.Delete_Directory (Holder);
          end if;
       end;
    exception
@@ -532,14 +488,14 @@ package body Files.File_System.Recovery is
          --  stage's own files.
          Named    : constant String := Hostkit.Fs.Join (Holder, Leaf);
       begin
-         Ada.Directories.Create_Directory (Holder);
+         Files.Fs_Primitives.Create_Directory (Holder);
          if not Support.Move_No_Replace (Path, Named) then
-            Ada.Directories.Delete_Directory (Holder);
+            Files.Fs_Primitives.Delete_Directory (Holder);
             return Failed;
          end if;
          if not To_Trash (Named, (if Valid_Absolute_Path (Original) then Original else "")).Success then
             if Support.Move_No_Replace (Named, Path) then
-               Ada.Directories.Delete_Directory (Holder);
+               Files.Fs_Primitives.Delete_Directory (Holder);
             end if;
             return Failed;
          end if;
@@ -748,7 +704,8 @@ package body Files.File_System.Recovery is
    end Discard;
 
    function Preserve (Path : String; Backup : out Files.Types.UString) return Mutation_Result is
-      Original : constant String := GNAT.OS_Lib.Normalize_Pathname (Path, Resolve_Links => False);
+      --  The entry itself, a link included, made absolute from its text.
+      Original : constant String := Files.Fs_Primitives.Absolute_Name (Path);
       Parent   : constant String := Files.Fs_Primitives.Parent_Directory (Original);
       Stage    : UString;
       Registry_Entry : UString;
@@ -916,60 +873,49 @@ package body Files.File_System.Recovery is
 
    function Registered_Payloads return Files.Types.String_Vectors.Vector is
       Root : constant String := Registry_Root (Create => False);
-      Search : Ada.Directories.Search_Type;
-      Item : Ada.Directories.Directory_Entry_Type;
-      Open : Boolean := False;
       Result : Files.Types.String_Vectors.Vector;
       Seen   : Path_Sets.Set;
+
+      procedure Check (Name : String; Stop : in out Boolean) is
+         pragma Unreferenced (Stop);
+         Payload, Expected : UString;
+         Directory : constant String := Hostkit.Fs.Join (Root, Name);
+      begin
+         if not Starts_With (Name, Files.Protocol_Names.Recovery_Stage_Prefix)
+           or else not Files.Fs_Primitives.Directory_Exists (Directory)
+         then
+            return;
+         elsif Is_Stale_Record (Directory) then
+            Delete_Registry_Record (Directory);
+         elsif Read_Registry_Record (Directory, Payload, Expected) then
+            Resume_Interrupted_Release (To_String (Payload));
+            if Seen.Contains (To_String (Payload)) then
+               --  A duplicate left by a reused stage name (see Register);
+               --  one record per payload is all Unregister and recovery need.
+               Delete_Registry_Record (Directory);
+            else
+               Seen.Include (To_String (Payload));
+               if Recognizes (To_String (Payload))
+                 and then
+                   (Length (Expected) = 0
+                    or else Files.File_Identities.Token
+                      (Files.Fs_Primitives.Parent_Directory (To_String (Payload))) =
+                        To_String (Expected))
+               then
+                  Result.Append (Payload);
+               end if;
+            end if;
+         end if;
+      end Check;
    begin
       if Root = "" then
          return Result;
       end if;
-      Ada.Directories.Start_Search (Search, Root, Files.Protocol_Names.Recovery_Stage_Prefix & "*",
-        [Ada.Directories.Directory => True, others => False]);
-      Open := True;
-      while Ada.Directories.More_Entries (Search) loop
-         Ada.Directories.Get_Next_Entry (Search, Item);
-         declare
-            Payload, Expected : UString;
-            Directory : constant String := Ada.Directories.Full_Name (Item);
-         begin
-            if Is_Stale_Record (Directory) then
-               Delete_Registry_Record (Directory);
-            elsif Read_Registry_Record (Directory, Payload, Expected) then
-               Resume_Interrupted_Release (To_String (Payload));
-               if Seen.Contains (To_String (Payload)) then
-                  --  A duplicate left by a reused stage name (see Register);
-                  --  one record per payload is all Unregister and recovery need.
-                  Delete_Registry_Record (Directory);
-               else
-                  Seen.Include (To_String (Payload));
-                  if Recognizes (To_String (Payload))
-                    and then
-                      (Length (Expected) = 0
-                       or else Files.File_Identities.Token
-                         (Files.Fs_Primitives.Parent_Directory (To_String (Payload))) =
-                           To_String (Expected))
-                  then
-                     Result.Append (Payload);
-                  end if;
-               end if;
-            end if;
-         end;
-      end loop;
-      Ada.Directories.End_Search (Search);
+      Files.Fs_Primitives.For_Each_Name (Root, Check'Access);
       return Result;
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.File_System.Recovery");
-         if Open then
-            begin
-               Ada.Directories.End_Search (Search);
-            exception
-               when Swallowed : others =>
-                  Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
-            end;
-         end if;
          return Result;
    end Registered_Payloads;
 

@@ -10,7 +10,7 @@ begin
    if Cache_Directory = "" or else not Files.Fs_Primitives.Directory_Exists (Cache_Directory) then
       return List_Thumbnail_Cache (Cache_Directory);
    end if;
-   Stamp := Ada.Directories.Modification_Time (Cache_Directory);
+   Stamp := Files.Fs_Primitives.Modification_Time (Cache_Directory);
    if not Files.Timing.Elapsed (Ada.Calendar.Clock, Stamp, 2.0) then
       return List_Thumbnail_Cache (Cache_Directory);
    end if;

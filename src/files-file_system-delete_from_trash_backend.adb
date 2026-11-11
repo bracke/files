@@ -30,8 +30,8 @@ begin
          Info_Path : constant String :=
            Hostkit.Fs.Join (Hostkit.Fs.Join (Base, "info"), Simple & ".trashinfo");
       begin
-         if Ada.Directories.Exists (Info_Path) then
-            Ada.Directories.Delete_File (Info_Path);
+         if Files.Fs_Primitives.Exists (Info_Path) then
+            Files.Fs_Primitives.Delete_File (Info_Path);
          end if;
       exception
          when Swallowed : others =>

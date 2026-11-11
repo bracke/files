@@ -92,7 +92,7 @@ begin
       return Result;
    end if;
 
-   Result.Root_Path := To_Unbounded_String (Ada.Directories.Full_Name (Root_Path));
+   Result.Root_Path := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Root_Path));
    Visit (Root_Path, 0);
    Result.Success := Length (Result.Error_Key) = 0;
    return Result;

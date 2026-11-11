@@ -40,7 +40,7 @@ is
       end if;
 
       declare
-         Full : constant String := Ada.Directories.Full_Name (Path);
+         Full : constant String := Files.Fs_Primitives.Full_Name (Path);
       begin
          return Full = "" or else Files.Fs_Primitives.Parent_Text (Full) = "";
       end;

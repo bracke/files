@@ -8,6 +8,7 @@ with GNAT.OS_Lib;
 with Files.Bounded_Streams;
 with Files.Durable_Writes;
 with Files.Lease_Streams;
+with Files.Fs_Primitives;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
 
@@ -66,12 +67,12 @@ package body Files.Copy_Context is
         (if Batch_Directory = "" then ""
          else Hostkit.Fs.Join (Batch_Directory, "links"));
    begin
-      if Path = "" or else not Ada.Directories.Exists (Path) then
+      if Path = "" or else not Files.Fs_Primitives.Exists (Path) then
          return Result;
       end if;
       if Hostkit.Fs.Is_Link (Batch_Directory)
-        or else not Ada.Directories.Exists (Batch_Directory)
-        or else Ada.Directories.Kind (Batch_Directory) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Exists (Batch_Directory)
+        or else Files.Fs_Primitives.Kind (Batch_Directory) /= Ada.Directories.Directory
       then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
@@ -137,13 +138,13 @@ package body Files.Copy_Context is
          return;
       end if;
       if Hostkit.Fs.Is_Link (Batch_Directory)
-        or else not Ada.Directories.Exists (Batch_Directory)
-        or else Ada.Directories.Kind (Batch_Directory) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Exists (Batch_Directory)
+        or else Files.Fs_Primitives.Kind (Batch_Directory) /= Ada.Directories.Directory
         or else Hostkit.Fs.Is_Link (Path)
-        or else (Ada.Directories.Exists (Path)
-          and then Ada.Directories.Kind (Path) /= Ada.Directories.Ordinary_File)
+        or else (Files.Fs_Primitives.Exists (Path)
+          and then Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Ordinary_File)
         or else Hostkit.Fs.Is_Link (Temp)
-        or else Ada.Directories.Exists (Temp)
+        or else Files.Fs_Primitives.Exists (Temp)
       then
          raise Ada.Directories.Use_Error;
       end if;

@@ -18,6 +18,7 @@ with Files.File_Types;
 with Hostkit.Metadata;
 with Hostkit.Fs;
 with Hostkit.Host;
+with Hostkit.Regular_Files;
 with Files.UTF8;
 with Files.Leaf_Names;
 with Files.File_System.Support;

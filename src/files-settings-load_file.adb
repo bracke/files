@@ -18,12 +18,12 @@ separate (Files.Settings)
            (Success   => False,
             Settings  => Default_Settings,
             Error_Key => To_Unbounded_String ("error.settings.load"));
-      elsif not Ada.Directories.Exists (Path) then
+      elsif not Files.Fs_Primitives.Exists (Path) then
          return
            (Success   => True,
             Settings  => Default_Settings,
             Error_Key => Null_Unbounded_String);
-      elsif Ada.Directories.Kind (Path) /= Ada.Directories.Ordinary_File then
+      elsif Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Ordinary_File then
          return
            (Success   => False,
             Settings  => Default_Settings,

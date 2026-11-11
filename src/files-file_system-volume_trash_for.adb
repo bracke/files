@@ -64,10 +64,9 @@ function Volume_Trash_For (Path : String) return String is
       --  Replace the list with Known and Base.
       procedure Write (Known : Files.Types.String_Vectors.Vector) is
          File    : Ada.Text_IO.File_Type;
-         Renamed : Boolean;
       begin
-         Ada.Directories.Create_Path (App);
-         Ada.Text_IO.Create (File, Ada.Text_IO.Out_File, Partial);
+         Files.Fs_Primitives.Create_Path (App);
+         Hostkit.Fs.Create_Text (File, Ada.Text_IO.Out_File, Partial);
          for Item of Known loop
             --  Bounded: the oldest are dropped first.
             if Natural (Known.Length) < Max_Remembered_Volume_Trashes
@@ -87,10 +86,11 @@ function Volume_Trash_For (Path : String) return String is
          begin
             null;
          end;
-         --  One step that replaces the list, so it is never missing.
-         GNAT.OS_Lib.Rename_File (Partial, List, Renamed);
-         if not Renamed then
-            Ada.Directories.Delete_File (Partial);
+         --  One step that replaces the list, so it is never missing: a
+         --  replacing rename on every host, where GNAT's refuses an existing
+         --  target on Windows.
+         if not Hostkit.Fs.Replace_File (Partial, List) then
+            Files.Fs_Primitives.Delete_File (Partial);
          end if;
       exception
          when others =>

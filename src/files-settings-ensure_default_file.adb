@@ -11,8 +11,8 @@ separate (Files.Settings)
             Durable   => False,
             Path      => To_Unbounded_String (Path),
             Error_Key => To_Unbounded_String ("error.settings.save"));
-      elsif Ada.Directories.Exists (Path) then
-         if Ada.Directories.Kind (Path) = Ada.Directories.Ordinary_File then
+      elsif Files.Fs_Primitives.Exists (Path) then
+         if Files.Fs_Primitives.Kind (Path) = Ada.Directories.Ordinary_File then
             return
               (Success   => True,
                Durable   => True,

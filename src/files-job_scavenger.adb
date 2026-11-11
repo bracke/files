@@ -4,7 +4,6 @@ with Files.Fs_Primitives;
 with Files.Helper_Modes;
 with Files.Diagnostics;
 with Files.Environment;
-with Ada.Directories;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Real_Time;
 with Ada.Streams;
@@ -91,13 +90,13 @@ package body Files.Job_Scavenger is
                Files.Environment.Clear (Report_Environment);
             end if;
          end if;
-         if Ada.Directories.Exists (Directory)
+         if Files.Fs_Primitives.Exists (Directory)
            and then not Hostkit.Fs.Is_Link (Directory)
          then
-            if Ada.Directories.Exists (Target) then
-               Ada.Directories.Delete_File (Target);
+            if Files.Fs_Primitives.Exists (Target) then
+               Files.Fs_Primitives.Delete_File (Target);
             end if;
-            Ada.Directories.Delete_Directory (Directory);
+            Files.Fs_Primitives.Delete_Directory (Directory);
          end if;
       end;
       Report_Directory := Null_Unbounded_String;
@@ -203,7 +202,7 @@ package body Files.Job_Scavenger is
               Files.Environment.Value (Report_Environment);
          begin
             if Target_Directory /= ""
-              and then Ada.Directories.Exists (Target_Directory)
+              and then Files.Fs_Primitives.Exists (Target_Directory)
               and then not Hostkit.Fs.Is_Link (Target_Directory)
             then
                declare
@@ -521,24 +520,31 @@ package body Files.Job_Scavenger is
       end Is_Current_Name;
 
       procedure Scan (Retry_Needed : out Boolean) is
-         Search : Ada.Directories.Search_Type;
-         Item   : Ada.Directories.Directory_Entry_Type;
-         Open   : Boolean := False;
-         Filter : constant Ada.Directories.Filter_Type :=
-           [Ada.Directories.Directory => True, others => False];
+         Temp        : constant String := Hostkit.Fs.Temp_Directory;
+         Prefix      : constant String := "files-job-";
+         Directories : Files.Types.String_Vectors.Vector;
+
+         --  The job folders, a link to one included, as the search listed them.
+         procedure Collect (Name : String; Stop : in out Boolean) is
+            pragma Unreferenced (Stop);
+         begin
+            if Name'Length >= Prefix'Length
+              and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
+              and then Files.Fs_Primitives.Directory_Exists (Hostkit.Fs.Join (Temp, Name))
+            then
+               Directories.Append (To_Unbounded_String (Hostkit.Fs.Join (Temp, Name)));
+            end if;
+         end Collect;
       begin
          Retry_Needed := False;
-         Ada.Directories.Start_Search
-           (Search, Hostkit.Fs.Temp_Directory, "files-job-*", Filter);
-         Open := True;
-         while Ada.Directories.More_Entries (Search) loop
+         Files.Fs_Primitives.For_Each_Name (Temp, Collect'Access);
+         for Listed of Directories loop
             if Interruptible and then Monitor_Control.Stop_Requested then
                Retry_Needed := True;
                exit;
             end if;
-            Ada.Directories.Get_Next_Entry (Search, Item);
             declare
-               Directory : constant String := Ada.Directories.Full_Name (Item);
+               Directory : constant String := To_String (Listed);
                Identity  : Files.Types.UString;
                Read_Error : Boolean;
                Claim     : Files.Job_Transports.Lease;
@@ -563,7 +569,7 @@ package body Files.Job_Scavenger is
                      end if;
                   end;
                elsif Is_Current_Name (Directory) then
-                  if Ada.Directories.Exists
+                  if Files.Fs_Primitives.Exists
                     (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Transport_Marker))
                     or else Hostkit.Fs.Is_Link
                       (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Transport_Marker))
@@ -615,21 +621,11 @@ package body Files.Job_Scavenger is
                   Retry_Needed := True;
             end;
          end loop;
-         Ada.Directories.End_Search (Search);
-         Open := False;
          Files.Job_Transports.Scavenge_Witnesses;
       exception
          when Failure : others =>
             Files.Diagnostics.Note (Failure, "Files.Job_Scavenger");
             Retry_Needed := True;
-            if Open then
-               begin
-                  Ada.Directories.End_Search (Search);
-               exception
-                  when Swallowed : others =>
-                     Files.Diagnostics.Note (Swallowed, "Files.Job_Scavenger");
-               end;
-            end if;
       end Scan;
 
       Retry_Needed : Boolean;

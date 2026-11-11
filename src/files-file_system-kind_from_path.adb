@@ -8,7 +8,7 @@ begin
       return Files.Types.Symlink_Item;
    end if;
 
-   case Ada.Directories.Kind (Full) is
+   case Files.Fs_Primitives.Kind (Full) is
       when Ada.Directories.Directory =>
          return Files.Types.Directory_Item;
       when Ada.Directories.Ordinary_File =>

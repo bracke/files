@@ -34,17 +34,19 @@ is
       else Kind = Files.Types.Executable_Item);
 begin
    --  Read and write come out of the mode already read for this item, where
-   --  that mode is the host's own bits. Asking
-   --  GNAT.OS_Lib.Is_Owner_Readable_File and Is_Owner_Writable_File is two
-   --  more stats of a path just stat-ed, for two bits that stat returned.
+   --  that mode is the host's own bits. Asking Hostkit.Fs.Is_Owner_Readable
+   --  and Is_Owner_Writable is two more stats of a path just stat-ed, for two
+   --  bits that stat returned.
    --
    --  Mode_Known is what keeps it honest: on Windows the mode is Hostkit
    --  rendering an ACL into POSIX shape rather than a field the filesystem
-   --  stores, and GNAT answers these from something else again, so there the
-   --  host keeps being asked.
+   --  stores, and the owner's access is answered from something else again
+   --  (the ACL checked against this process's token, as GNAT.OS_Lib's
+   --  Is_Owner_Readable_File does, but at any depth: GNAT's answers False
+   --  past 260 characters), so there the host keeps being asked.
    --
    --  Test_Permission_String_Agrees_With_The_Host walks the mode matrix
-   --  asserting both positions against those same GNAT calls, so a host where
+   --  asserting both positions against GNAT's own calls, so a host where
    --  this disagrees with them fails rather than showing a quietly wrong
    --  column.
    if Mode_Known then
@@ -56,11 +58,11 @@ begin
          Result (2) := 'w';
       end if;
    else
-      if GNAT.OS_Lib.Is_Owner_Readable_File (Path) then
+      if Hostkit.Fs.Is_Owner_Readable (Path) then
          Result (1) := 'r';
       end if;
 
-      if GNAT.OS_Lib.Is_Owner_Writable_File (Path) then
+      if Hostkit.Fs.Is_Owner_Writable (Path) then
          Result (2) := 'w';
       end if;
    end if;

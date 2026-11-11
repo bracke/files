@@ -13,7 +13,7 @@ begin
    declare
       Item      : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
       Path      : constant String :=
-        GNAT.OS_Lib.Normalize_Pathname (To_String (Item.Full_Path), Resolve_Links => True);
+        Files.Fs_Primitives.Full_Name (To_String (Item.Full_Path));
       Old_Mode : Natural;
       Identity : Files.Types.UString;
       Mutation  : constant Files.File_System.Mutation_Result :=

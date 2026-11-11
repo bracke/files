@@ -94,7 +94,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
       end if;
       if Files.Fs_Primitives.Directory_Exists (Path)
       then
-         Full := To_Unbounded_String (Ada.Directories.Full_Name (Path));
+         Full := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path));
          Name := To_Unbounded_String (Files.Fs_Primitives.Leaf_Text (To_String (Full)));
          if Length (Name) = 0 then
             Name := Full;
@@ -140,57 +140,41 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
       Kind     : Root_Kind;
       Per_User : Boolean := False)
    is
-      Search : Ada.Directories.Search_Type;
-      Child  : Ada.Directories.Directory_Entry_Type;
-      Started : Boolean := False;
+      procedure Visit (Name : String; Stop : in out Boolean) is
+         Full : constant String := Hostkit.Fs.Join (Parent, Name);
+      begin
+         if Root_Entries_Scanned >= Max_Root_Entries_Scanned
+           or else Natural (Roots.Length) >= Max_Discovered_Roots
+         then
+            Stop := True;
+            return;
+         end if;
+         --  Folders only, a link to one included.
+         if not Files.Fs_Primitives.Directory_Exists (Full) then
+            return;
+         end if;
+         Root_Entries_Scanned := Root_Entries_Scanned + 1;
+         --  A volumes folder may hold one folder of mounts per user
+         --  (/media/<user>, /run/media/<user>): this user's is opened;
+         --  in a folder of nothing else, another user's is passed by.
+         if User_Name /= "" and then Name = User_Name then
+            Append_Children (Full, Kind);
+         elsif not Per_User then
+            Append_If_Directory (Full, Kind);
+         end if;
+      end Visit;
    begin
       if Root_Entries_Scanned >= Max_Root_Entries_Scanned
         or else Natural (Roots.Length) >= Max_Discovered_Roots
-        or else not Ada.Directories.Exists (Parent)
-        or else Ada.Directories.Kind (Parent) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Directory_Exists (Parent)
       then
          return;
       end if;
 
-      Ada.Directories.Start_Search
-        (Search,
-         Directory => Parent,
-         Pattern   => "*",
-         Filter    =>
-           [Ada.Directories.Ordinary_File => False,
-            Ada.Directories.Directory     => True,
-            Ada.Directories.Special_File  => False]);
-      Started := True;
-
-      while Root_Entries_Scanned < Max_Root_Entries_Scanned
-        and then Natural (Roots.Length) < Max_Discovered_Roots
-        and then Ada.Directories.More_Entries (Search)
-      loop
-         Ada.Directories.Get_Next_Entry (Search, Child);
-         Root_Entries_Scanned := Root_Entries_Scanned + 1;
-         declare
-            Name : constant String := Ada.Directories.Simple_Name (Directory_Entry => Child);
-            Full : constant String := Ada.Directories.Full_Name (Child);
-         begin
-            if Name /= "." and then Name /= ".." then
-               --  A volumes folder may hold one folder of mounts per user
-               --  (/media/<user>, /run/media/<user>): this user's is opened;
-               --  in a folder of nothing else, another user's is passed by.
-               if User_Name /= "" and then Name = User_Name then
-                  Append_Children (Full, Kind);
-               elsif not Per_User then
-                  Append_If_Directory (Full, Kind);
-               end if;
-            end if;
-         end;
-      end loop;
-
-      Safe_End_Search (Search, Started);
+      Files.Fs_Primitives.For_Each_Name (Parent, Visit'Access);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System");
-         Safe_End_Search (Search, Started);
-         null;
    end Append_Children;
 
    procedure Append_Proc_Mounts is
@@ -222,7 +206,7 @@ begin
          Append_If_Directory (To_String (Place.Path), Root_Home);
       end if;
    end loop;
-   Append_If_Directory (Ada.Directories.Current_Directory, Root_Current);
+   Append_If_Directory (Hostkit.Fs.Current_Directory, Root_Current);
    --  Where this host mounts volumes, its own folders only: Linux no
    --  longer looks for /Volumes, nor tries 26 drive letters.
    for Place of Hostkit.Mounts.Volume_Places loop
@@ -256,7 +240,7 @@ begin
 
    if Roots.Is_Empty then
       declare
-         Full : constant String := Ada.Directories.Full_Name (Ada.Directories.Current_Directory);
+         Full : constant String := Files.Fs_Primitives.Full_Name (Hostkit.Fs.Current_Directory);
       begin
          Roots.Append
            (Root_Entry'

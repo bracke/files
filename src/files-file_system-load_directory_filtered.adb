@@ -93,7 +93,7 @@ begin
               Items => Items, Error_Key => To_Unbounded_String ("error.directory.load"), Signature => <>);
    end if;
    Cached.Generate := Generate_Thumbnails;
-   Normalized_Path := To_Unbounded_String (Ada.Directories.Full_Name (Path));
+   Normalized_Path := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path));
    Signature := (Path => Normalized_Path, Exists => True, others => <>);
    Signing := With_Signature;
    Support.For_Each_Entry (Path, Add_Entry'Access);
@@ -105,7 +105,7 @@ begin
          declare
             Volume_Files : constant String := Hostkit.Fs.Join (To_String (Base), "files");
          begin
-            Normalized_Path := To_Unbounded_String (Ada.Directories.Full_Name (Volume_Files));
+            Normalized_Path := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Volume_Files));
             Support.For_Each_Entry (Volume_Files, Add_Entry'Access);
          exception
             when Swallowed : others =>
@@ -113,7 +113,7 @@ begin
                Files.Diagnostics.Note (Swallowed, "Files.File_System");
          end;
       end loop;
-      Normalized_Path := To_Unbounded_String (Ada.Directories.Full_Name (Path));
+      Normalized_Path := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Path));
    end if;
    Sort_Items (Items, Options.Sort_Field, Options.Sort_Ascending);
    return (Success => True, Path => Normalized_Path,

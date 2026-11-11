@@ -13,8 +13,8 @@ begin
       begin
          if Value = "" then
             return False;
-         elsif Ada.Directories.Exists (Value) then
-            return Ada.Directories.Kind (Value) = Ada.Directories.Directory;
+         elsif Files.Fs_Primitives.Exists (Value) then
+            return Files.Fs_Primitives.Directory_Exists (Value);
          end if;
 
          Parent := To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (Value));

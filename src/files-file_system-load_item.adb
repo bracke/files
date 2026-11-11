@@ -14,10 +14,11 @@ begin
    end if;
 
    declare
+      --  A link is the item, not what it points at: only its text is made
+      --  absolute.
       Full   : constant String :=
-        (if Hostkit.Fs.Is_Link (Full_Path) then
-           GNAT.OS_Lib.Normalize_Pathname (Full_Path, Resolve_Links => False)
-         else Ada.Directories.Full_Name (Full_Path));
+        (if Hostkit.Fs.Is_Link (Full_Path) then Files.Fs_Primitives.Absolute_Name (Full_Path)
+         else Files.Fs_Primitives.Full_Name (Full_Path));
       Name   : constant String := Files.Fs_Primitives.Leaf_Text (Full);
       Parent : constant String := Files.Fs_Primitives.Parent_Directory (Full);
       Kind   : constant Files.Types.Item_Kind := Kind_From_Path (Full);

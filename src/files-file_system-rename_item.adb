@@ -21,8 +21,7 @@ is
       --  hard links or two links to one target are separate directory entries.
       --  Keep the leaf comparison so a case-only rename reaches its own path.
       return Exists_Safely (From_Path)
-        and then GNAT.OS_Lib.Normalize_Pathname (From_Path, Resolve_Links => False)
-                 = GNAT.OS_Lib.Normalize_Pathname (To_Path, Resolve_Links => False)
+        and then Files.Fs_Primitives.Absolute_Name (From_Path) = Files.Fs_Primitives.Absolute_Name (To_Path)
         and then Mutation_Leaf_Name (From_Path) = Mutation_Leaf_Name (To_Path);
    exception
       when Swallowed : others =>

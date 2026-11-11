@@ -27,7 +27,7 @@ begin
       if Environment_Equals ("FILES_TRASH_BACKEND", "macos-home")
         or else (Hostkit.Host.Current = Hostkit.Host.MacOS
                  and then not Environment_Equals ("FILES_TRASH_BACKEND", "xdg")
-                 and then Ada.Directories.Exists (Hostkit.Fs.Join (Home, ".Trash")))
+                 and then Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Home, ".Trash")))
       then
          Result :=
            (Backend => Trash_Macos_Home,

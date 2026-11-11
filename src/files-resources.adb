@@ -27,8 +27,7 @@ package body Files.Resources is
          if Levels > 0 and then Length (Base) = 0 then
             return "";
          end if;
-         return Ada.Directories.Full_Name
-           (Hostkit.Fs.Join (To_String (Base), "share"));
+         return Files.Fs_Primitives.Full_Name (Hostkit.Fs.Join (To_String (Base), "share"));
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Resources");
@@ -40,10 +39,10 @@ package body Files.Resources is
          Icons   : constant String := Hostkit.Fs.Join (Path, "files/icons");
       begin
          return Path /= ""
-           and then Ada.Directories.Exists (Catalog)
-           and then Ada.Directories.Kind (Catalog) = Ada.Directories.Ordinary_File
-           and then Ada.Directories.Exists (Icons)
-           and then Ada.Directories.Kind (Icons) = Ada.Directories.Directory;
+           and then Files.Fs_Primitives.Exists (Catalog)
+           and then Files.Fs_Primitives.Kind (Catalog) = Ada.Directories.Ordinary_File
+           and then Files.Fs_Primitives.Exists (Icons)
+           and then Files.Fs_Primitives.Kind (Icons) = Ada.Directories.Directory;
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Resources");

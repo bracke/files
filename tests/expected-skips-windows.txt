@@ -4,6 +4,7 @@
 Test_Autonomous_Cleanup_Worker: the stopped-worker half needs Linux and its /proc
 Test_Backslash_Executable_Lookup: needs a POSIX host: on Windows a backslash separates directories
 Test_Copy_Access_Bits: needs native POSIX mode bits
+Test_Cross_Device_Move_Keeps_Setgid: needs native POSIX mode bits
 Test_Copy_Destination_Revalidation: Normalize_Pathname resolves no links here
 Test_Copy_Extended_Metadata: the xattr and POSIX ACL fixture is Linux C
 Test_Copy_Read_Only_Cause: a read-only directory does not refuse writes here

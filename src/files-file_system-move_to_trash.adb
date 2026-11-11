@@ -108,9 +108,10 @@ is
    --  Where the item came from, as its info file says it: absolute for the
    --  home trash, relative to the volume's top for a volume trash.
    function Info_Path_Text return String is
+      --  The path as given, made absolute: the item moved is the link, not
+      --  what it points at.
       Original : constant String :=
-        GNAT.OS_Lib.Normalize_Pathname
-          ((if Recorded_Path = "" then Path else Recorded_Path), Resolve_Links => False);
+        Files.Fs_Primitives.Absolute_Name (if Recorded_Path = "" then Path else Recorded_Path);
    begin
       if Volume /= "" then
          declare
@@ -126,8 +127,8 @@ is
 
    procedure Delete_Info_File_If_Present is
    begin
-      if Info_Owned and then Ada.Directories.Exists (To_String (Info_Path)) then
-         Ada.Directories.Delete_File (To_String (Info_Path));
+      if Info_Owned and then Files.Fs_Primitives.Exists (To_String (Info_Path)) then
+         Files.Fs_Primitives.Delete_File (To_String (Info_Path));
       end if;
    exception
       when Swallowed : others =>
@@ -179,7 +180,7 @@ begin
    --  metadata is placed in them.
    begin
       Files.Io_Errors.Clear_Os_Error;
-      Ada.Directories.Create_Path (Files.Fs_Primitives.Parent_Directory (Base));
+      Files.Fs_Primitives.Create_Path (Files.Fs_Primitives.Parent_Directory (Base));
    exception
       when others =>
          Files.Io_Errors.Capture;
@@ -206,7 +207,7 @@ begin
            & ASCII.LF & "DeletionDate=" & Trash_Deletion_Date (Ada.Calendar.Clock) & ASCII.LF;
          --  Created last, so nothing runs between a refusal and Capture.
          Descriptor : GNAT.OS_Lib.File_Descriptor :=
-           GNAT.OS_Lib.Create_New_File (To_String (Info_Path), GNAT.OS_Lib.Binary);
+           Hostkit.Regular_Files.Create_New (To_String (Info_Path), 8#666#);
          Written : Integer;
          Next    : Positive := Metadata'First;
          Closed  : Boolean;

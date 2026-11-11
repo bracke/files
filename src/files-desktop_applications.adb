@@ -1,10 +1,10 @@
 with Files.Environment;
 with Files.Diagnostics;
 with Ada.Containers.Indefinite_Ordered_Sets;
-with Ada.Directories;
 with Ada.Strings.Unbounded;
 with GNAT.OS_Lib;
 
+with Files.Fs_Primitives;
 with Hostkit.Fs;
 
 with Files.Capped_Files;
@@ -950,52 +950,38 @@ package body Files.Desktop_Applications is
       Scanned       : in out Natural;
       Depth         : Natural := 0)
    is
-      Search  : Ada.Directories.Search_Type;
-      Element : Ada.Directories.Directory_Entry_Type;
-      use type Ada.Directories.File_Kind;
-   begin
-      if Depth > Max_Application_Scan_Depth
-        or else not Ada.Directories.Exists (Directory)
-      then
-         return;
-      end if;
+      use type Hostkit.Fs.Entry_Kind;
 
-      Ada.Directories.Start_Search
-        (Search    => Search,
-         Directory => Directory,
-         Pattern   => "",
-         Filter    =>
-           [Ada.Directories.Ordinary_File => True,
-            Ada.Directories.Directory     => True,
-            Ada.Directories.Special_File  => False]);
-
-      while Ada.Directories.More_Entries (Search) loop
-         exit when Scanned >= Max_Application_Scan_Entries;
-         Ada.Directories.Get_Next_Entry (Search, Element);
-         Scanned := Scanned + 1;
+      procedure Visit (Simple : String; Stop : in out Boolean) is
+         Full     : constant String := Hostkit.Fs.Join (Directory, Simple);
+         Relative : constant String :=
+           (if Relative_Path = "" then Simple
+            else Relative_Path & "/" & Simple);
+      begin
+         if Scanned >= Max_Application_Scan_Entries then
+            Stop := True;
+            return;
+         end if;
          declare
-            Simple : constant String := Ada.Directories.Simple_Name (Directory_Entry => Element);
-            Full   : constant String := Ada.Directories.Full_Name (Element);
-            Relative : constant String :=
-              (if Relative_Path = "" then Simple
-               else Relative_Path & "/" & Simple);
-            Kind   : constant Ada.Directories.File_Kind :=
-              Ada.Directories.Kind (Element);
+            --  Followed through a link, as Ada.Directories' search read it.
+            Kind : constant Hostkit.Fs.Entry_Kind := Hostkit.Fs.Kind_Of (Full);
          begin
-            --  Ada.Directories.Kind follows links. Descending through one can
-            --  revisit an ancestor forever (or scan outside the configured
-            --  application tree), so a linked folder is never a traversal
-            --  edge here. A linked .desktop file is an ordinary entry: Flatpak
-            --  exports and every NixOS entry are links to their package.
-            if Kind = Ada.Directories.Directory and then Hostkit.Fs.Is_Link (Full) then
+            --  Only what the search listed counts: ordinary files and folders.
+            if Kind not in Hostkit.Fs.Ordinary_File_Entry | Hostkit.Fs.Directory_Entry then
+               return;
+            end if;
+            Scanned := Scanned + 1;
+            --  Descending through a link can revisit an ancestor forever (or
+            --  scan outside the configured application tree), so a linked
+            --  folder is never a traversal edge here. A linked .desktop file
+            --  is an ordinary entry: Flatpak exports and every NixOS entry are
+            --  links to their package.
+            if Kind = Hostkit.Fs.Directory_Entry and then Hostkit.Fs.Is_Link (Full) then
                null;
-            elsif Kind = Ada.Directories.Directory then
-               if Simple /= "." and then Simple /= ".." then
-                  Scan_Directory
-                    (Full, Relative, Locales, Claimed, Apps, Scanned, Depth + 1);
-               end if;
-            elsif Kind = Ada.Directories.Ordinary_File
-              and then Simple'Length > 8
+            elsif Kind = Hostkit.Fs.Directory_Entry then
+               Scan_Directory
+                 (Full, Relative, Locales, Claimed, Apps, Scanned, Depth + 1);
+            elsif Simple'Length > 8
               and then Simple (Simple'Last - 7 .. Simple'Last) = ".desktop"
             then
                declare
@@ -1012,22 +998,22 @@ package body Files.Desktop_Applications is
                   end if;
                end;
             end if;
-         exception
-            when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.Desktop_Applications");
          end;
-      end loop;
+      exception
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Desktop_Applications");
+      end Visit;
+   begin
+      if Depth > Max_Application_Scan_Depth
+        or else not Files.Fs_Primitives.Exists (Directory)
+      then
+         return;
+      end if;
 
-      Ada.Directories.End_Search (Search);
+      Files.Fs_Primitives.For_Each_Name (Directory, Visit'Access);
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.Desktop_Applications");
-         begin
-            Ada.Directories.End_Search (Search);
-         exception
-            when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.Desktop_Applications");
-         end;
    end Scan_Directory;
 
    --  Return the list of XDG base data directories to scan, most specific first.

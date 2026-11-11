@@ -8,10 +8,10 @@ function Remembered_Volume_Trashes return Files.Types.String_Vectors.Vector is
    Line   : Unbounded_String;
    Complete : Boolean;
 begin
-   if List = "" or else Hostkit.Fs.Is_Link (List) or else not Ada.Directories.Exists (List) then
+   if List = "" or else Hostkit.Fs.Is_Link (List) or else not Files.Fs_Primitives.Exists (List) then
       return Result;
    end if;
-   Ada.Text_IO.Open (File, Ada.Text_IO.In_File, List);
+   Hostkit.Fs.Open_Text (File, Ada.Text_IO.In_File, List);
    while not Ada.Text_IO.End_Of_File (File)
      and then Natural (Result.Length) < Max_Remembered_Volume_Trashes
    loop

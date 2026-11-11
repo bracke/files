@@ -26,7 +26,7 @@ begin
       Parent : constant String := Files.Fs_Primitives.Parent_Directory (Base);
       --  A part not made yet, or our own real directory.
       function Absent_Or_Own (Part : String) return Boolean is
-        ((not Hostkit.Fs.Is_Link (Part) and then not Ada.Directories.Exists (Part))
+        ((not Hostkit.Fs.Is_Link (Part) and then not Files.Fs_Primitives.Exists (Part))
          or else Own_Directory (Part));
 
       --  The base, and its files/ and info/: a files/ that is a link would

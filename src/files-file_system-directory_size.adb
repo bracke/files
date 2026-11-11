@@ -50,17 +50,17 @@ is
 
          if Is_Symlink (Full) then
             null;
-         elsif Ada.Directories.Kind (Full) = Ada.Directories.Directory then
+         elsif Files.Fs_Primitives.Kind (Full) = Ada.Directories.Directory then
             declare
                Descended : constant Boolean := Walk (Full, Depth + 1);
                pragma Unreferenced (Descended);
             begin
                null;
             end;
-         elsif Ada.Directories.Kind (Full) = Ada.Directories.Ordinary_File then
+         elsif Files.Fs_Primitives.Kind (Full) = Ada.Directories.Ordinary_File then
             Result.File_Count := Result.File_Count + 1;
             Result.Total_Bytes :=
-              Saturating_Long_Add (Result.Total_Bytes, Long_Long_Integer (Ada.Directories.Size (Full)));
+              Saturating_Long_Add (Result.Total_Bytes, Long_Long_Integer (Files.Fs_Primitives.Size (Full)));
          end if;
       exception
          when Swallowed : others =>
@@ -89,9 +89,9 @@ is
    end Walk;
 begin
    if Path = ""
-     or else not Ada.Directories.Exists (Path)
+     or else not Files.Fs_Primitives.Exists (Path)
      or else Hostkit.Fs.Is_Link (Path)
-     or else Ada.Directories.Kind (Path) /= Ada.Directories.Directory
+     or else Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Directory
    then
       return Result;
    end if;
