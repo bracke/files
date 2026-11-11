@@ -561,18 +561,29 @@ package Files.Operations is
    --  thread through Poll_Selected_Item_Extra instead.
    --
    --  @param Model Window model whose selected item is updated in place.
+   --  @param Show_Hidden Whether the listing shows hidden entries
+   --    (Settings.Show_Hidden_Files): a folder's count includes them only
+   --    then. True, for a caller without settings, counts every entry.
    procedure Ensure_Selected_Item_Extra
-     (Model : in out Files.Model.Window_Model);
+     (Model       : in out Files.Model.Window_Model;
+      Show_Hidden : Boolean := True);
 
    --  Ensure_Selected_Item_Extra for a window: the details are read by
    --  Files.Extra_Info_Reader's worker, asked for here and taken on a later
    --  poll once read.
    --
+   --  The request names the item's revision, so details read for a file
+   --  since rewritten and relisted are not applied to the new item.
+   --
    --  @param Model Window model whose selected item is updated in place.
    --  @param Owner Which window asks (one read in flight per window).
+   --  @param Show_Hidden Whether the window shows hidden entries
+   --    (Settings.Show_Hidden_Files): a folder's count includes them only
+   --    then. True, for a caller without settings, counts every entry.
    procedure Poll_Selected_Item_Extra
-     (Model : in out Files.Model.Window_Model;
-      Owner : Files.Extra_Info_Reader.Requester);
+     (Model       : in out Files.Model.Window_Model;
+      Owner       : Files.Extra_Info_Reader.Requester;
+      Show_Hidden : Boolean := True);
 
    --  Open the info-pane ownership editor for the single selected item,
    --  prefilled with the owner's (or group's) resolved account name. Does

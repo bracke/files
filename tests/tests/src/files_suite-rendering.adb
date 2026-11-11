@@ -31,6 +31,7 @@ with Guikit.Shared_Bytes;
 with Files.Rendering;
 with Files.Rendering.Hit;
 with Files.Accessibility;
+with Files.Icon_Themes;
 with Files.Settings;
 with Files_Suite.Support;
 with A11y.Results;
@@ -81,6 +82,7 @@ package body Files_Suite.Rendering is
    procedure Test_Multi_Rename_Fields_And_Carets (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Show_Extensions_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Caret_Click_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Scrolled_Rename_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Caret_Scales_With_Line_Height (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Click_Translation_Behavior (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Glyph_Rasterization (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -218,6 +220,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Caret_Click_Round_Trip'Access,
          "a click at a drawn caret pixel resolves back to that caret's cursor index");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Scrolled_Rename_Click'Access,
+         "a click on a scrolled rename field maps onto the scrolled text, per field in a multi-rename");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Caret_Scales_With_Line_Height'Access, "the text-input caret height grows with the line height");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -485,6 +490,32 @@ package body Files_Suite.Rendering is
       return Snapshot;
    end Sample_Snapshot;
 
+   function Contains (Haystack : String; Needle : String) return Boolean is
+     (Needle'Length = 0 or else Ada.Strings.Fixed.Index (Haystack, Needle) > 0);
+
+   --  True when any text command in the frame contains Needle.
+   function Frame_Has_Text (Frame : Frame_Commands; Needle : String) return Boolean is
+   begin
+      for Command of Frame.Text loop
+         if Contains (To_String (Command.Text), Needle) then
+            return True;
+         end if;
+      end loop;
+      --  Overlay panels (command palette, settings, Quick Look) draw their text
+      --  into the overlay layer, so a "does the frame show this text" check must
+      --  cover both layers.
+      for Command of Frame.Overlay_Text loop
+         if Contains (To_String (Command.Text), Needle) then
+            return True;
+         end if;
+      end loop;
+      return False;
+   end Frame_Has_Text;
+
+   --  True when the frame's base layer has a text command reading exactly S.
+   function Frame_Has_Exact_Text (Frame : Frame_Commands; S : String) return Boolean is
+     (for some Command of Frame.Text => To_String (Command.Text) = S);
+
    procedure Test_Details_Header_Text_Centered (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Toolbar_Text_Optically_Centered (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -609,6 +640,8 @@ package body Files_Suite.Rendering is
 
    procedure Test_Caret_Click_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Scrolled_Rename_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Caret_Scales_With_Line_Height (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Click_Translation_Behavior (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -619,39 +652,6 @@ package body Files_Suite.Rendering is
    procedure Test_Vulkan_Submission (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Bottom_Bar_Hidden_Count (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-   function Contains (Haystack : String; Needle : String) return Boolean is
-   begin
-      if Needle'Length = 0 or else Needle'Length > Haystack'Length then
-         return Needle'Length = 0;
-      end if;
-
-      for Start in Haystack'First .. Haystack'Last - Needle'Length + 1 loop
-         if Haystack (Start .. Start + Needle'Length - 1) = Needle then
-            return True;
-         end if;
-      end loop;
-
-      return False;
-   end Contains;
-
-   --  True when any text command in the frame contains Needle.
-   function Frame_Has_Text (Frame : Frame_Commands; Needle : String) return Boolean is
-   begin
-      for Command of Frame.Text loop
-         if Contains (To_String (Command.Text), Needle) then
-            return True;
-         end if;
-      end loop;
-      --  Overlay panels (command palette, settings, Quick Look) draw their text
-      --  into the overlay layer, so a "does the frame show this text" check must
-      --  cover both layers.
-      for Command of Frame.Overlay_Text loop
-         if Contains (To_String (Command.Text), Needle) then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Frame_Has_Text;
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Modified_Time_Is_Local (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;

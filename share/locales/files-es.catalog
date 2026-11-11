@@ -220,6 +220,7 @@ es.error.file.parent_missing = La carpeta contenedora no existe.
 es.error.rename.source_missing = El origen para renombrar no existe.
 es.error.rename.invalid_destination = El destino del renombrado no es válido.
 es.error.rename.failed = No se pudo renombrar el elemento.
+es.error.rename.stranded = No se pudo renombrar el elemento; ahora está en {path}.
 es.error.trash.unavailable = La papelera no está disponible en esta plataforma.
 es.error.trash.failed = No se pudo mover el elemento a la papelera.
 es.error.trash.volume_unavailable = Esta unidad no tiene papelera; el elemento no se movió. Elimínelo definitivamente.

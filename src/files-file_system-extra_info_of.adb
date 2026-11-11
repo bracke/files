@@ -1,13 +1,14 @@
 separate (Files.File_System)
 function Extra_Info_Of
-  (Path     : String;
-   Kind     : Files.Types.Item_Kind;
-   Filetype : String)
+  (Path        : String;
+   Kind        : Files.Types.Item_Kind;
+   Filetype    : String;
+   Show_Hidden : Boolean := True)
    return Files.Extra_Info.Info is
 begin
    case Kind is
       when Files.Types.Directory_Item =>
-         return Directory_Count_Info (Path);
+         return Directory_Count_Info (Path, Show_Hidden);
       when Files.Types.Executable_Item =>
          return Executable_Format_Info (Path);
       when Files.Types.Symlink_Item =>

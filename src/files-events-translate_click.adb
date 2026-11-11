@@ -66,21 +66,23 @@ separate (Files.Events)
 
       --  Text_Width and Focused let a click on a focused, scrolled field
       --  (see Files.Rendering.Input_Scroll_Columns) land on the character
-      --  drawn under it rather than one from the unscrolled text.
+      --  drawn under it rather than one from the unscrolled text. Caret is
+      --  the field's own caret, which a rename field of a multi-rename keeps
+      --  per item rather than in the snapshot's single text cursor.
       function Cursor_At
         (Text        : Unbounded_String;
          Text_X      : Natural;
          Click_X     : Natural;
          Text_Width  : Natural := 0;
-         Focused     : Boolean := False)
+         Focused     : Boolean := False;
+         Caret       : Natural := Snapshot.Text_Cursor_Position)
          return Natural
       is
          Char_W : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
          Raw    : constant String := To_String (Text);
          Scroll : constant Natural :=
            (if Focused
-            then Files.Rendering.Input_Scroll_Columns
-                   (Raw, Snapshot.Text_Cursor_Position, Text_Width, Line_Height)
+            then Files.Rendering.Input_Scroll_Columns (Raw, Caret, Text_Width, Line_Height)
             else 0);
          Click_Column : Natural;
       begin

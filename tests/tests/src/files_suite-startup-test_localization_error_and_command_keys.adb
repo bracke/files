@@ -26,6 +26,7 @@ separate (Files_Suite.Startup)
       Add_Error_Key ("error.rename.invalid_destination");
       Add_Error_Key ("error.rename.failed");
       Add_Error_Key ("error.rename.partial");
+      Add_Error_Key ("error.rename.stranded");
       Add_Error_Key ("error.trash.unavailable");
       Add_Error_Key ("error.trash.failed");
       Add_Error_Key ("error.trash.native_unavailable");
@@ -117,7 +118,12 @@ separate (Files_Suite.Startup)
          declare
             Text_Key : constant String := To_String (Key);
          begin
-            Assert (Files.Localization.Text (Text_Key) /= Text_Key, "error localization exists for " & Text_Key);
+            --  A message naming a path is formatted with one.
+            Assert
+              ((if Text_Key = Files.File_System.Rename_Stranded_Key
+                then Files.Localization.Text (Text_Key, "path", "/left/here") /= Text_Key
+                else Files.Localization.Text (Text_Key) /= Text_Key),
+               "error localization exists for " & Text_Key);
          end;
       end loop;
       --  Why an operation failed is shown in every locale that translates

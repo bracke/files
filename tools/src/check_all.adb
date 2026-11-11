@@ -6,6 +6,7 @@ with Ada.Directories;
 with Ada.Exceptions;
 with Ada.Strings.Fixed;
 with Ada.Strings.Hash;
+with Ada.Strings.Maps;
 with Ada.Strings.Unbounded;
 with Ada.Text_IO;
 
@@ -776,8 +777,9 @@ procedure Check_All is
    --  @param Message What the routine tests, as a noun phrase.
    --  Text with its Ada comments removed (a "--" outside a string literal
    --  to the end of its line), so a registration that is only mentioned in a
-   --  comment, or commented out, does not count as one.
-   function Code_Of (Text : String) return String is
+   --  comment, or commented out, does not count as one. With Blank_Strings
+   --  the contents of string literals are spaces too, their quotes kept.
+   function Code_Of (Text : String; Blank_Strings : Boolean := False) return String is
       Result    : String (Text'Range);
       Last      : Natural := Text'First - 1;
       In_String : Boolean := False;
@@ -813,12 +815,20 @@ procedure Check_All is
             exit when Index > Text'Last;
          end if;
          Last := Last + 1;
-         Result (Last) := Text (Index);
+         --  A string's contents blanked, its quotes kept: text in a message
+         --  neither satisfies nor trips a check of code.
+         Result (Last) :=
+           (if Blank_Strings and then In_String and then Text (Index) /= '"' then ' ' else Text (Index));
          Index := Index + 1;
          <<Next>>
       end loop;
       return Result (Text'First .. Last);
    end Code_Of;
+
+   --  Whether a pattern spells a string literal: one that does is looked
+   --  for in code with its strings kept, every other one with them blanked.
+   function Quotes (Pattern : String) return Boolean is
+     (Ada.Strings.Fixed.Index (Pattern, """") > 0);
 
    --  Require the sources in src/ whose names start with Prefix (".ads" and
    --  ".adb": a unit, its children and subunits) to name nothing from
@@ -850,7 +860,8 @@ procedure Check_All is
       end Refuse;
 
       procedure Check (Path : String) is
-         Code : constant String := Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)));
+         Code : constant String :=
+           Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)), Blank_Strings => True);
          From : Positive := Code'First;
          At_Name : Natural;
       begin
@@ -1224,8 +1235,7 @@ procedure Check_All is
          return False;
       end if;
 
-      if Literal = "/Type /Page"
-        or else Literal = "untitled "
+      if Literal = "untitled "
         or else Literal = "untitled.txt"
         or else Literal = "[Trash Info]"
         or else Literal = "Path="
@@ -2416,10 +2426,61 @@ procedure Check_All is
          --  gives it another name: either hides it from the name check below.
          declare
             Lower : constant String := Ada.Characters.Handling.To_Lower (Code);
+
+            --  Whether a use clause (not use type) names a clock package,
+            --  alone or in a list: "use Ada.Calendar, Other;" counts too.
+            function Uses_A_Clock_Package return Boolean is
+               From   : Positive := Lower'First;
+               At_Use : Natural;
+            begin
+               loop
+                  At_Use := Ada.Strings.Fixed.Index (Lower (From .. Lower'Last), "use ");
+                  exit when At_Use = 0;
+                  if At_Use = Lower'First
+                    or else Lower (At_Use - 1) not in 'a' .. 'z' | '0' .. '9' | '_' | '.'
+                  then
+                     declare
+                        Stop    : constant Natural :=
+                          Ada.Strings.Fixed.Index (Lower (At_Use .. Lower'Last), ";");
+                        Clause  : constant String :=
+                          (if Stop = 0 then "" else Lower (At_Use + 4 .. Stop - 1));
+                        Item_At : Positive := Clause'First;
+                        Comma   : Natural;
+                     begin
+                        if Clause'Length > 0
+                          and then Ada.Strings.Fixed.Trim (Clause, Ada.Strings.Both)'Length > 0
+                          and then Ada.Strings.Fixed.Head (Ada.Strings.Fixed.Trim (Clause, Ada.Strings.Left), 5)
+                                     /= "type "
+                          and then Ada.Strings.Fixed.Head (Ada.Strings.Fixed.Trim (Clause, Ada.Strings.Left), 4)
+                                     /= "all "
+                        then
+                           loop
+                              Comma := Ada.Strings.Fixed.Index (Clause (Item_At .. Clause'Last), ",");
+                              declare
+                                 Name : constant String :=
+                                   Ada.Strings.Fixed.Trim
+                                     (Ada.Strings.Fixed.Translate
+                                        (Clause (Item_At .. (if Comma = 0 then Clause'Last else Comma - 1)),
+                                         Ada.Strings.Maps.To_Mapping (ASCII.LF & ASCII.CR & ASCII.HT, "   ")),
+                                      Ada.Strings.Both);
+                              begin
+                                 if Name in "ada.real_time" | "ada.calendar" then
+                                    return True;
+                                 end if;
+                              end;
+                              exit when Comma = 0;
+                              Item_At := Comma + 1;
+                           end loop;
+                        end if;
+                     end;
+                  end if;
+                  exit when At_Use + 4 > Lower'Last;
+                  From := At_Use + 4;
+               end loop;
+               return False;
+            end Uses_A_Clock_Package;
          begin
-            if Ada.Strings.Fixed.Index (Lower, "use ada.real_time;") > 0
-              or else Ada.Strings.Fixed.Index (Lower, "use ada.calendar;") > 0
-            then
+            if Uses_A_Clock_Package then
                Refuse (Path, "a use clause for a clock package (use type is fine)");
             elsif Ada.Strings.Fixed.Index (Lower, " is ada.real_time.time;") > 0
               or else Ada.Strings.Fixed.Index (Lower, " is ada.calendar.time;") > 0
@@ -2943,12 +3004,7 @@ procedure Check_All is
          "hard-coded text checks must exempt developer-diagnostic pragma messages");
       Project_Tools.Files.Require_Contains
         (Check_Source,
-         "if Literal = ""/Type /Page""" & ASCII.LF
-         & "        or else Literal = ""untitled """,
-         "hard-coded text checks must keep file-format marker exemptions narrow");
-      Project_Tools.Files.Require_Contains
-        (Check_Source,
-         "or else Literal = ""untitled """,
+         "if Literal = ""untitled """,
          "hard-coded text checks must keep create-file name template exemptions narrow");
       Project_Tools.Files.Require_Contains
         (Check_Source,
@@ -3032,7 +3088,8 @@ procedure Check_All is
          raise Program_Error;
       end if;
       if Ada.Strings.Fixed.Index
-          (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path))), Pattern) > 0
+          (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)), Blank_Strings => not Quotes (Pattern)),
+           Pattern) > 0
       then
          Put_Line (Standard_Error, Message);
          Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
@@ -3049,7 +3106,9 @@ procedure Check_All is
    begin
       if not Project_Tools.Files.File_Exists (Path)
         or else Ada.Strings.Fixed.Index
-                  (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path))), Pattern) = 0
+                  (Code_Of
+                     (To_String (Project_Tools.Text.Read_Text_File (Path)), Blank_Strings => not Quotes (Pattern)),
+                   Pattern) = 0
       then
          Put_Line (Standard_Error, Path & ": " & Message);
          Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
@@ -3999,6 +4058,7 @@ procedure Check_All is
          [To_Unbounded_String ("Files.Breadcrumbs"),
           To_Unbounded_String ("Files.Commands"),
           To_Unbounded_String ("Files.Folder_Tree"),
+          To_Unbounded_String ("Files.Icon_Themes"),
           To_Unbounded_String ("Files.Model"),
           To_Unbounded_String ("Files.Quick_Look"),
           To_Unbounded_String ("Files.Settings"),
@@ -4046,6 +4106,7 @@ procedure Check_All is
             To_Unbounded_String ("Files.File_System"),
             To_Unbounded_String ("Files.File_Types"),
             To_Unbounded_String ("Files.Folder_Tree"),
+            To_Unbounded_String ("Files.Icon_Themes"),
             To_Unbounded_String ("Files.Fonts"),
             To_Unbounded_String ("Files.Grouping"),
             To_Unbounded_String ("Files.Items"),
@@ -4167,9 +4228,9 @@ procedure Check_All is
             end if;
          end Require_At_Most;
       begin
-         Require_At_Most ("files-rendering.adb", 1_555);
-         Require_At_Most ("files-rendering-build_frame_commands.adb", 941);
-         Require_At_Most ("files-application-windows.adb", 1_752);
+         Require_At_Most ("files-rendering.adb", 1_516);
+         Require_At_Most ("files-rendering-build_frame_commands.adb", 930);
+         Require_At_Most ("files-application-windows.adb", 1_673);
       end;
    end Check_Rendering_Architecture;
 
@@ -5060,6 +5121,52 @@ procedure Check_All is
          Count : Natural := 0;
          From  : Natural := Text'First;
 
+         --  Whether Code calls a check: a name starting Assert, Skip, Expect
+         --  or Require (qualified or not) followed by its arguments or ";",
+         --  and not the name being declared. A message or an identifier
+         --  such as Required_Size does not count.
+         function Calls_A_Check (Code : String) return Boolean is
+            function Identifier_Char (C : Character) return Boolean is
+              (C in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_');
+            function Declares (At_Name : Positive) return Boolean is
+              (At_Name - Code'First >= 10
+               and then (Ada.Strings.Fixed.Tail (Code (Code'First .. At_Name - 1), 10) = "procedure "
+                         or else Ada.Strings.Fixed.Tail (Code (Code'First .. At_Name - 1), 9) = "function "));
+            type Check_Names is array (1 .. 4) of Unbounded_String;
+            Names : constant Check_Names :=
+              [To_Unbounded_String ("Assert"), To_Unbounded_String ("Skip"),
+               To_Unbounded_String ("Expect"), To_Unbounded_String ("Require")];
+         begin
+            for Name of Names loop
+               declare
+                  Word : constant String := To_String (Name);
+                  From : Positive := Code'First;
+                  At_Word : Natural;
+                  Next : Positive;
+               begin
+                  loop
+                     At_Word := Ada.Strings.Fixed.Index (Code (From .. Code'Last), Word);
+                     exit when At_Word = 0;
+                     if At_Word = Code'First or else not Identifier_Char (Code (At_Word - 1)) then
+                        Next := At_Word + Word'Length;
+                        while Next <= Code'Last and then Identifier_Char (Code (Next)) loop
+                           Next := Next + 1;
+                        end loop;
+                        while Next <= Code'Last and then Code (Next) in ' ' | ASCII.LF | ASCII.CR | ASCII.HT loop
+                           Next := Next + 1;
+                        end loop;
+                        if Next <= Code'Last and then Code (Next) in '(' | ';' and then not Declares (At_Word) then
+                           return True;
+                        end if;
+                     end if;
+                     exit when At_Word + Word'Length > Code'Last;
+                     From := At_Word + Word'Length;
+                  end loop;
+               end;
+            end loop;
+            return False;
+         end Calls_A_Check;
+
          --  A registered test must check something: a body with no Assert
          --  (or Skip, or a helper named for its Expect/Require) passes always.
          procedure Require_Checks (Routine : String) is
@@ -5068,7 +5175,7 @@ procedure Check_All is
               & Ada.Characters.Handling.To_Lower (Routine) & ".adb";
             Body_Text : constant String :=
               (if Ada.Directories.Exists (Unit)
-               then Code_Of (To_String (Project_Tools.Text.Read_Text_File (Unit)))
+               then Code_Of (To_String (Project_Tools.Text.Read_Text_File (Unit)), Blank_Strings => True)
                else Text);
             Start : constant Natural :=
               (if Ada.Directories.Exists (Unit) then Body_Text'First
@@ -5077,12 +5184,7 @@ procedure Check_All is
               (if Start = 0 then 0
                else Ada.Strings.Fixed.Index (Body_Text (Start .. Body_Text'Last), "end " & Routine & ";"));
          begin
-            if Start = 0 or else Stop = 0
-              or else (Ada.Strings.Fixed.Index (Body_Text (Start .. Stop), "Assert") = 0
-                       and then Ada.Strings.Fixed.Index (Body_Text (Start .. Stop), "Skip") = 0
-                       and then Ada.Strings.Fixed.Index (Body_Text (Start .. Stop), "Expect") = 0
-                       and then Ada.Strings.Fixed.Index (Body_Text (Start .. Stop), "Require") = 0)
-            then
+            if Start = 0 or else Stop = 0 or else not Calls_A_Check (Body_Text (Start .. Stop)) then
                Put_Line (Standard_Error, "the " & Suite & " test " & Routine & " registers but checks nothing");
                Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
                raise Program_Error;
@@ -5124,9 +5226,9 @@ procedure Check_All is
       Require_Tests ("startup", 30);
       Require_Tests ("commands", 38);
       Require_Tests ("model", 54);
-      Require_Tests ("interaction", 82);
-      Require_Tests ("rendering", 99);
-      Require_Tests ("operations", 285);
+      Require_Tests ("interaction", 84);
+      Require_Tests ("rendering", 100);
+      Require_Tests ("operations", 296);
    end Check_Test_Subsystem_Coverage;
 
 begin

@@ -604,14 +604,7 @@ separate (Files.Rendering)
 
       procedure Add_Hover_Tooltip is separate;
 
-      function Icon_Theme_Name return String is
-      begin
-         if Length (Snapshot.Settings_Icon_Theme) > 0 then
-            return To_String (Snapshot.Settings_Icon_Theme);
-         else
-            return "files-basic";
-         end if;
-      end Icon_Theme_Name;
+      function Icon_Theme_Name return String is (Files.Icon_Themes.Image (Snapshot.Icon_Theme));
 
       procedure Add_Toolbar_Asset_Icon
         (Id      : Files.Commands.Registered_Command_Id;
@@ -653,11 +646,7 @@ separate (Files.Rendering)
 
       function Icon_Asset_Directory return String is
       begin
-         if To_String (Snapshot.Settings_Icon_Theme) = "files-high-contrast" then
-            return "share/files/icons/high-contrast";
-         else
-            return "share/files/icons";
-         end if;
+         return "share/files/icons" & Files.Icon_Themes.Subdirectory (Snapshot.Icon_Theme);
       end Icon_Asset_Directory;
 
       function Is_Bundled_Icon (Name : String) return Boolean is
@@ -797,7 +786,7 @@ separate (Files.Rendering)
       function Bottom_Info_Text return UString is
       begin
          if Length (Snapshot.Last_Error_Key) > 0 then
-            return To_Unbounded_String (Files.Localization.Text (To_String (Snapshot.Last_Error_Key)));
+            return Snapshot.Last_Error_Text;
          end if;
 
          return Count_Status_Text;

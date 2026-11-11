@@ -65,7 +65,10 @@ begin
                     Cursor_At
                       (Text        => Snapshot_Item.Rename_Value,
                        Text_X      => Field_X,
-                       Click_X     => X),
+                       Click_X     => X,
+                       Text_Width  => Field_W,
+                       Focused     => Snapshot.Focus = Files.Types.Focus_Rename_Input,
+                       Caret       => Snapshot_Item.Rename_Cursor),
                     Item_Index);
                return;
             end if;

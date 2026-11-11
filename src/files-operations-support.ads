@@ -25,20 +25,25 @@ private package Files.Operations.Support is
    --  giving up on a free one.
    Max_Name_Attempts : constant := 9_999;
 
-   --  The first of Name (First), Name (First + 1), ... (up to
-   --  Max_Name_Attempts) that names nothing in Directory, with Extension
-   --  ("" for none), or Name (First) when all are taken: how a duplicate,
-   --  a link, an archive or an extracted folder finds its name.
+   --  The first stem of Base & Marker (First), Base & Marker (First + 1),
+   --  ... (up to Max_Name_Attempts) that names nothing in Directory, with
+   --  Extension ("" for none), or the first one when all are taken: how a
+   --  duplicate, a link, an archive or an extracted folder finds its name.
+   --  Base is cut at a whole character where the name would otherwise be
+   --  longer than Directory's filesystem stores; the marker and the
+   --  extension are kept whole.
    --  @param Directory Where the new entry goes.
+   --  @param Base The stem the names start from.
    --  @param Extension Its extension, without the dot.
-   --  @param Name The candidate stem for an attempt.
+   --  @param Marker What follows Base for an attempt (" (copy 2)", "").
    --  @param First The first attempt (0 where the bare name comes first).
    --  @param Attempt An attempt number.
    --  @return The free stem.
    function First_Free_Name
      (Directory : String;
+      Base      : String;
       Extension : String;
-      Name      : not null access function (Attempt : Natural) return String;
+      Marker    : not null access function (Attempt : Natural) return String;
       First     : Natural := 1)
       return String;
 
@@ -121,10 +126,12 @@ private package Files.Operations.Support is
    --  @param Model Window whose error and listing to update.
    --  @param Settings Directory settings for the reload.
    --  @param Error_Key Operation error to preserve through completion.
+   --  @param Path The path the error's message names, or "" when none.
    procedure Reload_With_Error
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Error_Key : String);
+      Error_Key : String;
+      Path : String := "");
 
    --  A listing loaded with Load_Directory_Deferring_Thumbnails: when an
    --  image in it still lacks a thumbnail, start the background listing

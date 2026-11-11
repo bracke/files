@@ -10,7 +10,7 @@ separate (Files.Rendering)
       return Detail_Column_Geometry_Array
    is
       use type Files.Types.Detail_Column;
-      Icon_Gap  : constant Natural := Saturating_Add (Line_Height, 6);
+      Icon_Gap  : constant Natural := Saturating_Add (Line_Height, Guikit.Layout.Scaled (6, Line_Height));
       Base_X    : constant Natural :=
         Saturating_Add (Saturating_Add (Content_X, Pad), Icon_Gap);
       Available : constant Natural :=
@@ -31,9 +31,13 @@ separate (Files.Rendering)
          begin
             if Column /= Files.Types.Name_Column and then Visible (Column) then
                declare
+                  --  A stored width is in reference units (pixels at
+                  --  Guikit.Layout.Reference_Line_Height), so it shows the
+                  --  same number of characters at any line height.
                   Raw   : constant Natural :=
                     (if Widths (Column) > 0
-                     then Natural'Max (Widths (Column), Files.Types.Minimum_Detail_Column_Width)
+                     then Guikit.Layout.Scaled
+                            (Natural'Max (Widths (Column), Files.Types.Minimum_Detail_Column_Width), Line_Height)
                      else Default_Detail_Column_Width (Column, Line_Height));
                   Room  : constant Natural :=
                     (if Available > Saturating_Add (Fixed_Sum, Min_Name)

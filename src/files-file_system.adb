@@ -19,7 +19,7 @@ with Hostkit.Metadata;
 with Hostkit.Fs;
 with Hostkit.Host;
 with Files.UTF8;
-with Ada.Strings.UTF_Encoding.Conversions;
+with Files.Leaf_Names;
 with Files.File_System.Support;
 with Files.File_System.Thumbnails;
 with Files.Images;
@@ -101,7 +101,13 @@ package body Files.File_System is
       Mode_Known : Boolean)
       return String;
 
-   function Count_Text_Lines (Path : String) return Natural;
+   --  Path's line count, stopped at Extra_Line_Limit lines or
+   --  Extra_Scan_Byte_Limit bytes; Capped when it stopped there with more
+   --  of the file left.
+   procedure Count_Text_Lines
+     (Path   : String;
+      Count  : out Natural;
+      Capped : out Boolean);
 
    function Text_Encoding_Name (Path : String) return String;
 
@@ -126,7 +132,11 @@ package body Files.File_System is
 
    function Executable_Format_Info (Path : String) return Files.Extra_Info.Info;
 
-   function Directory_Count_Info (Path : String) return Files.Extra_Info.Info;
+   --  Path's direct entries, hidden ones only when Show_Hidden.
+   function Directory_Count_Info
+     (Path        : String;
+      Show_Hidden : Boolean)
+      return Files.Extra_Info.Info;
 
    --  The detail line's symlink entry: the target as stored, read no-follow.
    function Symlink_Target_Info (Path : String) return Files.Extra_Info.Info;
@@ -183,7 +193,11 @@ package body Files.File_System is
       Last   : out Ada.Streams.Stream_Element_Offset)
    is separate;
 
-   function Count_Text_Lines (Path : String) return Natural is separate;
+   procedure Count_Text_Lines
+     (Path   : String;
+      Count  : out Natural;
+      Capped : out Boolean)
+   is separate;
 
    function Text_Encoding_Name (Path : String) return String is separate;
 
@@ -212,7 +226,11 @@ package body Files.File_System is
 
    function Symlink_Target_Info (Path : String) return Files.Extra_Info.Info is separate;
 
-   function Directory_Count_Info (Path : String) return Files.Extra_Info.Info is separate;
+   function Directory_Count_Info
+     (Path        : String;
+      Show_Hidden : Boolean)
+      return Files.Extra_Info.Info
+   is separate;
 
    function U16_BE
      (Buffer : Ada.Streams.Stream_Element_Array;
@@ -231,9 +249,10 @@ package body Files.File_System is
    is separate;
 
    function Extra_Info_Of
-     (Path     : String;
-      Kind     : Files.Types.Item_Kind;
-      Filetype : String)
+     (Path        : String;
+      Kind        : Files.Types.Item_Kind;
+      Filetype    : String;
+      Show_Hidden : Boolean := True)
       return Files.Extra_Info.Info is separate;
 
    function Kind_From_Path
@@ -716,14 +735,12 @@ package body Files.File_System is
           then Windows_Rules
           else Posix_Rules)));
 
-   --  Whether Name is longer than a filesystem under Directory stores: 255
-   --  UTF-16 units where DOS rules apply (NTFS, FAT, exFAT), 255 bytes
-   --  elsewhere. Checked before the disk is touched, so every host reports it
-   --  alike (a Windows runner was seen creating a 300-character name).
+   --  Whether Name is longer than a filesystem under Directory stores
+   --  (Files.Leaf_Names.Too_Long_Under for that filesystem's rules). Checked
+   --  before the disk is touched, so every host reports it alike (a Windows
+   --  runner was seen creating a 300-character name).
    function Leaf_Too_Long (Name : String; Directory : String) return Boolean is
-     (if Hostkit.Fs.Uses_Dos_Filename_Rules (Directory)
-      then Files.UTF8.Is_Valid (Name) and then Ada.Strings.UTF_Encoding.Conversions.Convert (Name)'Length > 255
-      else Name'Length > 255);
+     (Files.Leaf_Names.Too_Long_Under (Name, Hostkit.Fs.Uses_Dos_Filename_Rules (Directory)));
 
    function Storable_Leaf_Name_At
      (Name      : String;
@@ -799,6 +816,18 @@ package body Files.File_System is
    function Rename_Item
      (From_Path : String;
       To_Path   : String;
+      Expected_Identity : String := "")
+      return Mutation_Result
+   is
+      Left_At : UString;
+   begin
+      return Rename_Item (From_Path, To_Path, Left_At, Expected_Identity);
+   end Rename_Item;
+
+   function Rename_Item
+     (From_Path : String;
+      To_Path   : String;
+      Left_At   : out UString;
       Expected_Identity : String := "")
       return Mutation_Result
    is separate;

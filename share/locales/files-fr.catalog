@@ -220,6 +220,7 @@ fr.error.file.parent_missing = Le dossier parent n'existe pas.
 fr.error.rename.source_missing = La source à renommer n'existe pas.
 fr.error.rename.invalid_destination = La destination du renommage est invalide.
 fr.error.rename.failed = L'élément n'a pas pu être renommé.
+fr.error.rename.stranded = L'élément n'a pas pu être renommé et se trouve maintenant à {path}.
 fr.error.trash.unavailable = La corbeille n'est pas disponible sur cette plateforme.
 fr.error.trash.failed = L'élément n'a pas pu être déplacé vers la corbeille.
 fr.error.trash.volume_unavailable = Ce lecteur n'a pas de corbeille ; l'élément n'a pas été déplacé.

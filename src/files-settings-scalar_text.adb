@@ -36,7 +36,7 @@ separate (Files.Settings)
          when Theme_Setting =>
             return Theme_Name (Settings.Theme);
          when Icon_Theme_Setting =>
-            return To_String (Settings.Icon_Theme_Name);
+            return Files.Icon_Themes.Image (Settings.Icon_Theme);
          when Font_Pixel_Size_Setting =>
             return Files.Types.Natural_Text (Settings.Font_Pixel_Size);
          when Info_Pane_Open_Setting =>

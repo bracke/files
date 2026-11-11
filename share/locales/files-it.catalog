@@ -220,6 +220,7 @@ it.error.file.parent_missing = La cartella superiore non esiste.
 it.error.rename.source_missing = L'origine da rinominare non esiste.
 it.error.rename.invalid_destination = La destinazione della rinomina non è valida.
 it.error.rename.failed = Impossibile rinominare l'elemento.
+it.error.rename.stranded = Impossibile rinominare l'elemento, che ora si trova in {path}.
 it.error.trash.unavailable = Il cestino non è disponibile su questa piattaforma.
 it.error.trash.failed = Impossibile spostare l'elemento nel cestino.
 it.error.trash.volume_unavailable = Questa unità non ha un cestino; l'elemento non è stato spostato.

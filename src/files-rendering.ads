@@ -4,6 +4,7 @@ with Ada.Containers.Vectors;
 with Files.Breadcrumbs;
 with Files.Commands;
 with Files.Folder_Tree;
+with Files.Icon_Themes;
 with Files.Shared_Bytes;
 with Guikit.Draw;
 with Guikit.Item_Grid;
@@ -166,6 +167,9 @@ package Files.Rendering is
       Search_Scope          : Files.Types.Search_Scope := Files.Types.Filter_Here;
       Search_Results_Active : Boolean := False;
       Last_Error_Key        : UString;
+      --  The last error's message, in the user's language, with the path
+      --  it names (error.rename.stranded) filled in.
+      Last_Error_Text       : UString;
       Focus                 : Files.Types.Focus_Target := Files.Types.Focus_None;
       Text_Cursor_Position  : Natural := 0;
       Path_Input_Text       : UString;
@@ -184,9 +188,7 @@ package Files.Rendering is
       --  read, and the platform supports chown.
       Ownership_Editable    : Boolean := False;
       Settings_Pane_Open    : Boolean := False;
-      Settings_Icon_Theme   : UString;  --  the saved icon theme, for icon rendering
-      Theme_Name            : UString;
-      Theme_High_Contrast   : Boolean := False;
+      Icon_Theme            : Files.Icon_Themes.Icon_Theme := Files.Icon_Themes.Basic;
       Theme_Palette         : Theme_Kind := Theme_Dark;
       Theme_Focus_Ring      : Render_Color := Border_Color;
       Info_Pane_Scroll_Lines : Natural := 0;
@@ -1352,7 +1354,9 @@ private
    --  hit-tests, and every item row share it so their columns always align.
    --
    --  @param Visible Per-column visibility flags.
-   --  @param Widths Per-column customized widths (zero means default).
+   --  @param Widths Per-column customized widths in reference units (pixels at
+   --  Guikit.Layout.Reference_Line_Height, scaled to Line_Height here; zero
+   --  means default).
    --  @param Order Left-to-right permutation of the columns (name pinned first).
    --  @param Content_X Left edge of the detail content area.
    --  @param Content_W Width of the detail content area.

@@ -79,14 +79,18 @@ separate (Files_Suite.Operations)
          Assert (Asked and then Ready and then not Image.Available,
                  "the failure is still there on the next poll, so nothing asks again");
 
-         --  More windows than slots: the one asked of longest ago gives way.
+         --  However many windows ask, none gives way to another: each gets
+         --  its preview, and a window let go of drops its slot.
          for Owner in Files.Preview_Decoder.Requester range 201 .. 209 loop
             Files.Preview_Decoder.Request (Owner, First, 8);
          end loop;
-         Await (209, First);
-         Assert (Ready, "the newest of many windows gets its preview");
+         for Owner in Files.Preview_Decoder.Requester range 201 .. 209 loop
+            Await (Owner, First);
+            Assert (Ready and then Image.Available, "window" & Owner'Image & " of nine gets its preview");
+         end loop;
+         Files.Preview_Decoder.Release (201);
          Files.Preview_Decoder.Take (201, First, Image, Ready, Asked);
-         Assert (not Asked, "the oldest of nine windows lost its slot to the ninth");
+         Assert (not Asked, "a released window's slot is gone");
       end;
 
       --  Through the model: the preview opens at once, without its image,

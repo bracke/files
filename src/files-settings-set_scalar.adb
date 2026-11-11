@@ -87,9 +87,9 @@ separate (Files.Settings)
                Valid := False;
             end if;
          when Icon_Theme_Setting =>
-            Valid := Icon_Theme_Name_Is_Valid (Text);
+            Valid := Files.Icon_Themes.Is_Name (Text);
             if Valid then
-               Settings.Icon_Theme_Name := To_Unbounded_String (Lower);
+               Settings.Icon_Theme := Files.Icon_Themes.Value (Text);
             end if;
          when Font_Pixel_Size_Setting =>
             declare

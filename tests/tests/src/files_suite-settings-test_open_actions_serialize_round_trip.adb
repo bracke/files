@@ -76,16 +76,14 @@ separate (Files_Suite.Settings)
             "icon=equals",
             "serialized icon mapping preserves equals");
       end;
+      --  The icon theme is one of a fixed set, written by its name; the
+      --  quoting of free text is covered by the icon mapping above.
       declare
-         Odd_Settings : Files.Settings.Settings_Model := Parsed.Settings;
-         Odd_Text     : Unbounded_String;
-         Expected     : constant String :=
-           "icon_theme = " & '"' & "files " & '"' & '"' & "basic" & '"';
+         Contrast : Files.Settings.Settings_Model := Parsed.Settings;
       begin
-         Odd_Settings.Icon_Theme_Name := To_Unbounded_String ("files ""basic");
-         Odd_Text := To_Unbounded_String (Files.Settings.To_Text (Odd_Settings));
+         Contrast.Icon_Theme := Files.Icon_Themes.High_Contrast;
          Assert
-           (Ada.Strings.Fixed.Index (To_String (Odd_Text), Expected) > 0,
-            "serialized icon theme quotes embedded quote");
+           (Ada.Strings.Fixed.Index (Files.Settings.To_Text (Contrast), "icon_theme = files-high-contrast") > 0,
+            "serialized icon theme is written by its name");
       end;
    end Test_Open_Actions_Serialize_Round_Trip;

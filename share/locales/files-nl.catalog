@@ -220,6 +220,7 @@ nl.error.file.parent_missing = Bovenliggende map bestaat niet.
 nl.error.rename.source_missing = Bron voor hernoemen bestaat niet.
 nl.error.rename.invalid_destination = Doel voor hernoemen is ongeldig.
 nl.error.rename.failed = Item kon niet worden hernoemd.
+nl.error.rename.stranded = Item kon niet worden hernoemd en staat nu op {path}.
 nl.error.trash.unavailable = Prullenbak is niet beschikbaar op dit platform.
 nl.error.trash.failed = Item kon niet naar de prullenbak worden verplaatst.
 nl.error.trash.volume_unavailable = Dit station heeft geen prullenbak; het item is niet verplaatst.

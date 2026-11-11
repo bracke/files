@@ -21,31 +21,7 @@ is
       --  so there a name is cut only when a counter must be added.
       Info_Room : constant Natural := (if Info_Directory = "" then 0 else 10);
 
-      function Fit (Room : Natural) return String is
-         Dot  : Natural := 0;
-         Last : Natural;
-      begin
-         if Name'Length <= Room then
-            return Name;
-         end if;
-         for Index in reverse Name'Range loop
-            if Name (Index) = '.' then
-               Dot := Index;
-               exit;
-            end if;
-         end loop;
-         if Dot <= Name'First or else Name'Last - Dot + 1 > 32 then
-            Dot := Name'Last + 1;
-         end if;
-         Last := Name'First + Room - (Name'Last - Dot + 1) - 1;
-         --  Back off a continuation byte so the cut ends a whole character.
-         while Last >= Name'First
-           and then Character'Pos (Name (Last + 1)) in 16#80# .. 16#BF#
-         loop
-            Last := Last - 1;
-         end loop;
-         return Name (Name'First .. Last) & Name (Dot .. Name'Last);
-      end Fit;
+      function Fit (Room : Natural) return String is (Files.Leaf_Names.Fit (Name, Room));
 
       --  Room for the info file's suffix and the longest counter.
       Base      : constant String :=

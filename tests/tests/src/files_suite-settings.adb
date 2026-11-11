@@ -21,6 +21,7 @@ with Files.Controller;
 with Files.File_System;
 with Files.Model;
 with Files.Operations;
+with Files.Icon_Themes;
 with Files.Settings;
 with Files.Settings_Form;
 with Guikit.Settings_Panel;
@@ -107,7 +108,7 @@ package body Files_Suite.Settings is
          "open action lookup falls back to the unmodified filetype; quoting, equals, empty and shell arguments parse");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Open_Actions_Serialize_Round_Trip'Access,
-         "serialized settings reload open actions and mappings, and quote an embedded icon-theme quote");
+         "serialized settings reload open actions and mappings, and write the icon theme by its name");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Open_Action_Token_Normalization'Access,
          "open action modifier tokens normalize; drafts replace normalized rows; missing lookups report diagnostics");

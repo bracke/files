@@ -32,7 +32,12 @@ separate (Files_Suite.Operations)
    begin
       Write_File (Join (Root, "meta.txt"), "abcd");
       Write_File (Join (Root, "zmarkdown.md"), "# Title" & ASCII.LF & "body");
-      Write_Binary_File (Join (Root, "zsheet.xlsx"), "PK" & Character'Val (1) & Character'Val (2));
+      --  The End Of Central Directory record alone, stating one entry: the
+      --  count is the one the archive records.
+      Write_Binary_File
+        (Join (Root, "zsheet.xlsx"),
+         "PK" & Byte (5) & Byte (6) & Byte (0) & Byte (0) & Byte (0) & Byte (0)
+         & Byte (1) & Byte (0) & Byte (1) & Byte (0) & String'(1 .. 8 => Byte (0)) & Byte (0) & Byte (0));
       Write_Binary_File
         (Join (Root, "zbinary.pdf"),
          "%PDF-1.7" & Character'Val (16#FF#) & ASCII.LF

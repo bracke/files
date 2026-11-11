@@ -109,24 +109,34 @@ package Files.Paste is
    --    case then claim one destination, and the second is renamed; a
    --    replace keeps the existing entry's spelling (the first Existing
    --    path that folds equal), so its original comes back under it.
+   --  @param Dos_Names Whether the destination keeps names in UTF-16
+   --    (Hostkit.Fs.Uses_Dos_Filename_Rules): a numbered name is then cut to
+   --    fit in UTF-16 units rather than bytes (First_Free_Name).
    --  @return One resolved action per work item, in order.
    function Resolve
      (Items     : Work_Item_Vectors.Vector;
       Policy    : Conflict_Policy;
       Overrides : Item_Decision_Vectors.Vector;
       Existing  : Files.Types.String_Vectors.Vector;
-      Fold_Names : Boolean := False)
+      Fold_Names : Boolean := False;
+      Dos_Names  : Boolean := False)
       return Resolved_Action_Vectors.Vector;
 
    --  Name, or the first of "stem 2.ext", "stem 3.ext" ... that Taken says
-   --  is free: the one numbering a paste and a drop give a name in use.
+   --  is free: the one numbering a paste and a drop give a name in use. A
+   --  numbered name the destination could not store is cut down to fit
+   --  (Files.Leaf_Names): the stem loses whole characters from its end, the
+   --  counter and the extension are kept.
    --
    --  @param Name The leaf name wanted.
    --  @param Taken Whether a leaf name is in use.
+   --  @param Dos_Rules Whether the destination measures names in UTF-16
+   --    units (Hostkit.Fs.Uses_Dos_Filename_Rules) rather than bytes.
    --  @return A leaf name Taken says is free.
    function First_Free_Name
-     (Name  : String;
-      Taken : not null access function (Leaf : String) return Boolean)
+     (Name      : String;
+      Taken     : not null access function (Leaf : String) return Boolean;
+      Dos_Rules : Boolean := False)
       return String;
 
 end Files.Paste;

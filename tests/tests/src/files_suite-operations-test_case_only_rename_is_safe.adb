@@ -47,7 +47,7 @@ separate (Files_Suite.Operations)
            (Ada.Strings.Fixed.Index (Project_Tools.Files.Read_Raw_File (Lower), "payload") > 0,
             "no data is lost when the case-only rename rolls back");
          Assert
-           (not Path_Exists (Join (Root, ".files-case-rename-0")),
+           (not Path_Exists (Join (Root, "data (renaming).txt")),
             "the scratch rename name is not left behind");
       end if;
 

@@ -31,4 +31,9 @@ package body Files.Preview_Decoder is
       Decoder.Take (Decoder.Requester (Owner), Path, Image, Ready, Asked);
    end Take;
 
+   procedure Release (Owner : Requester) is
+   begin
+      Decoder.Release (Decoder.Requester (Owner));
+   end Release;
+
 end Files.Preview_Decoder;

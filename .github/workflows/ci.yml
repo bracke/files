@@ -189,8 +189,8 @@ jobs:
           clone_at humanize 60c99ebd3d4080e92b8455fba47adc9c50f19fc3
           clone_at textrender 0a6721cb4239e581518c0d312bb7085e5b1ff402
           clone_at zlib 56d3b4fab7bb749f04952c5ec118aab0ef0787b8
-          clone_at guikit 53fe360ce02431d2a5bb16acc5b9987984d5f2d4
-          clone_at hostkit 1aadb8dd355686e757387a21444fd22364632ed8
+          clone_at guikit cff4c7af928531fe1b06f2d77b0c8ff5d15bb472
+          clone_at hostkit 49798a7f1ecc969bb052d849c0bf8151f17eb506
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
@@ -568,7 +568,7 @@ jobs:
         # Which of the application's code the suite runs. The summary goes
         # to the job page; tests/coverage-floor.txt holds the percentage the
         # run must not fall below (recorded a little under a measured run:
-        # 81.1% on 2026-10-26). Raise it as coverage grows; never lower it to
+        # 82.7% on 2026-11-10). Raise it as coverage grows; never lower it to
         # make a run pass.
         if: runner.os == 'Linux'
         continue-on-error: ${{ hashFiles('files/tests/coverage-floor.txt') == '' }}

@@ -6,21 +6,6 @@ separate (Files_Suite.Rendering)
    procedure Test_Bottom_Bar_Hidden_Count (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
 
-      function Contains (Haystack : String; Needle : String) return Boolean is
-      begin
-         if Needle'Length = 0 or else Needle'Length > Haystack'Length then
-            return Needle'Length = 0;
-         end if;
-
-         for Start in Haystack'First .. Haystack'Last - Needle'Length + 1 loop
-            if Haystack (Start .. Start + Needle'Length - 1) = Needle then
-               return True;
-            end if;
-         end loop;
-
-         return False;
-      end Contains;
-
       Hidden_Word  : constant String := Files.Localization.Text ("status.hidden");
       Toggle_Name  : constant String :=
         Files.Localization.Text (Files.Commands.Name_Key (Files.Commands.Toggle_Hidden_Files_Command));

@@ -137,6 +137,7 @@ package body Files_Suite.Interaction is
    procedure Test_Text_Input_Click_Focuses (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scrollbar_Drag_Begin (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Column_Resize_Drag (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Column_Width_Reference_Units (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Column_Resize_Persists_On_Release (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Column_Reorder_Drag (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Marquee_Selection_Drag (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -171,6 +172,7 @@ package body Files_Suite.Interaction is
    procedure Test_Breadcrumb_Segments_And_Elide (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Breadcrumb_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Expand_Collapse_And_Hidden (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Tree_Unreadable_Folder_Keeps_Children (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Reexpand_Rereads (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Reread_Keeps_Children (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Toggle_Command_And_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -306,6 +308,9 @@ package body Files_Suite.Interaction is
         (T, Test_Column_Resize_Drag'Access,
          "a header separator press begins a resize (not a sort) and drag persists the new width");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Column_Width_Reference_Units'Access,
+         "a column dragged at a 2x line height is stored in reference units and drawn back at the dragged pixel width");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Column_Resize_Persists_On_Release'Access,
          "a column-resize drag writes the settings once, when it ends, not on every move");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -388,6 +393,9 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Tree_Expand_Collapse_And_Hidden'Access,
          "expanding a tree node loads subdirectories, flattens with depths, collapses, and respects hidden files");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Tree_Unreadable_Folder_Keeps_Children'Access,
+         "re-expanding a folder that cannot be read keeps its children and reports why");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Tree_Reexpand_Rereads'Access,
          "a folder expanded again shows what it holds now");
@@ -842,6 +850,8 @@ package body Files_Suite.Interaction is
 
    procedure Test_Column_Resize_Drag (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Column_Width_Reference_Units (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Column_Resize_Persists_On_Release (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Column_Reorder_Drag (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -911,6 +921,8 @@ package body Files_Suite.Interaction is
    procedure Test_Breadcrumb_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Tree_Expand_Collapse_And_Hidden (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Tree_Unreadable_Folder_Keeps_Children (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Tree_Reexpand_Rereads (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

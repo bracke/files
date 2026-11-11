@@ -143,7 +143,8 @@ package Files.Types is
    --  proportional defaults until a width is customized.
    Default_Detail_Column_Widths : constant Detail_Column_Widths := [others => 0];
 
-   --  Smallest pixel width a customized detail column may occupy.
+   --  Smallest width a customized detail column may occupy, in reference
+   --  units (pixels at the reference line height; scaled with it when drawn).
    Minimum_Detail_Column_Width : constant := 48;
 
    --  Number of detail columns; the length of a full column-order permutation.

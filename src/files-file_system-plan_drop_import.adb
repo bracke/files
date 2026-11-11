@@ -32,7 +32,10 @@ is
         (Files.Fs_Primitives.Entry_Exists (Join_Path (Destination_Directory, Name))
          or else Claimed.Contains (Key (Join_Path (Destination_Directory, Name))));
    begin
-      return Join_Path (Destination_Directory, Files.Paste.First_Free_Name (Leaf, Taken'Access));
+      return Join_Path
+        (Destination_Directory,
+         Files.Paste.First_Free_Name
+           (Leaf, Taken'Access, Hostkit.Fs.Uses_Dos_Filename_Rules (Destination_Directory)));
    end Available_Destination;
 
    --  Path with its links resolved: Hostkit.Fs.Real_Path, which also follows

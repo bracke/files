@@ -5,6 +5,7 @@ with Files.Model;
 with Files.Rendering;
 with Files.Settings;
 with Guikit.Input;
+with Guikit.Layout;
 with Files.Types;
 
 --  GLFW-free interaction reducer. Peer to Files.Events (which translates raw
@@ -162,20 +163,27 @@ package Files.Interaction is
    --  applied delta is Origin_X minus Current_X. The details layout reflows the
    --  name column to honour its minimum on the next frame.
    --  Result.Settings_Changed is set when the width actually changed.
+   --  The pointer works in framebuffer pixels, but the width is stored in
+   --  reference units (pixels at Guikit.Layout.Reference_Line_Height, rounded),
+   --  which Compute_Detail_Columns scales back up: a width set on a 1x display
+   --  shows the same characters on a 2x one, and at the reference line height
+   --  the two units coincide, so existing settings files keep their meaning.
    --
    --  @param Settings Live settings model, updated in place when the width changes.
    --  @param Column Optional detail column being resized.
    --  @param Origin_X Separator x edge captured when the drag began.
-   --  @param Origin_Width Column's effective width when the drag began.
+   --  @param Origin_Width Column's effective width in pixels when the drag began.
    --  @param Current_X Current pointer x coordinate in window pixels.
    --  @param Result Follow-up flags; Settings_Changed reports a width change.
+   --  @param Line_Height Text line height the columns are drawn at.
    procedure Apply_Column_Resize
      (Settings     : in out Files.Settings.Settings_Model;
       Column       : Files.Types.Detail_Column;
       Origin_X     : Integer;
       Origin_Width : Natural;
       Current_X    : Integer;
-      Result       : out Interaction_Result);
+      Result       : out Interaction_Result;
+      Line_Height  : Positive := Guikit.Layout.Reference_Line_Height);
 
    --  End a details-header column-resize drag: when any of its steps changed a
    --  width, write the settings once. A failed write is reported in the

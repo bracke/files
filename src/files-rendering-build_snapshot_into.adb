@@ -29,11 +29,6 @@ separate (Files.Rendering)
            and then Pixel_Count = Ada.Containers.Count_Type (Area * 4);
       end Complete_RGBA_Image;
 
-      Theme : constant Render_Theme :=
-        (case Settings.Theme is
-            when Files.Settings.Theme_High_Contrast => High_Contrast_Theme,
-            when others => Default_Theme);
-
       --  Kind labels looked up once per rebuild, not once per item: most
       --  items in a folder share a handful of them.
       package Text_Maps is new Ada.Containers.Indefinite_Hashed_Maps
@@ -115,6 +110,13 @@ separate (Files.Rendering)
       Snapshot.Search_Scope := Files.Model.Search_Scope_Of (Model);
       Snapshot.Search_Results_Active := Files.Model.Search_Results_Are_Active (Model);
       Snapshot.Last_Error_Key := To_Unbounded_String (Files.Model.Last_Error_Key (Model));
+      Snapshot.Last_Error_Text :=
+        (if Length (Snapshot.Last_Error_Key) = 0 then Null_Unbounded_String
+         elsif Files.Model.Last_Error_Path (Model) = ""
+         then To_Unbounded_String (Files.Localization.Text (To_String (Snapshot.Last_Error_Key)))
+         else To_Unbounded_String
+             (Files.Localization.Text
+                (To_String (Snapshot.Last_Error_Key), "path", Files.Model.Last_Error_Path (Model))));
       Snapshot.Focus := Files.Model.Focus (Model);
       Snapshot.Text_Cursor_Position := Files.Model.Text_Cursor_Position (Model);
       Snapshot.Path_Input_Text := To_Unbounded_String (Files.Model.Path_Input_Text (Model));
@@ -128,7 +130,7 @@ separate (Files.Rendering)
       --  palette or a paste dialog, so the frame does not leave a hole for it.
       Snapshot.Settings_Pane_Open :=
         Files.Model.Window_Overlay_Shown (Model, Files.Model.Settings_Pane_Overlay);
-      Snapshot.Settings_Icon_Theme := Settings.Icon_Theme_Name;
+      Snapshot.Icon_Theme := Settings.Icon_Theme;
       Snapshot.Info_Pane_Scroll_Lines := Files.Model.Info_Pane_Scroll_Lines (Model);
       Snapshot.Main_View_Scroll_Lines := Files.Model.Main_View_Scroll_Lines (Model);
       Snapshot.Context_Menu_Open := Files.Model.Context_Menu_Is_Open (Model);
@@ -152,14 +154,16 @@ separate (Files.Rendering)
          Snapshot.Paste_Progress_Moving :=
            Files.Model.Paste_Execution_Mode (Model) = Files.File_System.Drop_Move;
       end;
-      Snapshot.Theme_Name := Theme.Name;
-      Snapshot.Theme_High_Contrast := Theme.High_Contrast;
       Snapshot.Theme_Palette :=
         (case Settings.Theme is
             when Files.Settings.Theme_Dark          => Theme_Dark,
             when Files.Settings.Theme_Light         => Theme_Light,
             when Files.Settings.Theme_High_Contrast => Theme_High_Contrast);
-      Snapshot.Theme_Focus_Ring := Theme.Focus_Ring;
+      --  High contrast rings focus in the selection colour, which stands out
+      --  more than the border colour the other themes use.
+      Snapshot.Theme_Focus_Ring :=
+        (if Files.Settings."=" (Settings.Theme, Files.Settings.Theme_High_Contrast) then Selection_Color
+         else Border_Color);
       --  The command palette owns its query/selection/results and renders itself
       --  (Guikit.Command_Palette, merged at the window layer); the snapshot only
       --  records that it is open, for overlay hit-testing.

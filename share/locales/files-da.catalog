@@ -220,6 +220,7 @@ da.error.file.parent_missing = Den overordnede mappe findes ikke.
 da.error.rename.source_missing = Kilden til omdøbning findes ikke.
 da.error.rename.invalid_destination = Destinationen for omdøbning er ugyldig.
 da.error.rename.failed = Elementet kunne ikke omdøbes.
+da.error.rename.stranded = Elementet kunne ikke omdøbes og ligger nu som {path}.
 da.error.trash.unavailable = Papirkurven er ikke tilgængelig på denne platform.
 da.error.trash.failed = Elementet kunne ikke flyttes til papirkurven.
 da.error.trash.volume_unavailable = Drevet har ingen papirkurv; elementet blev ikke flyttet. Slet det permanent.

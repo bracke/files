@@ -17,6 +17,14 @@ separate (Files_Suite.Model)
       Xml_Path  : constant String := Join (Root, "doc.xml");
       Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Load      : Files.File_System.Directory_Load_Result;
+
+      --  An End Of Central Directory record stating Count entries, with
+      --  Comment after it (a central directory of no bytes, at offset 0).
+      function Zip_End (Count : Natural; Comment : String := "") return String is
+        ("PK" & Byte (5) & Byte (6) & Byte (0) & Byte (0) & Byte (0) & Byte (0)
+         & Byte (Count) & Byte (0) & Byte (Count) & Byte (0)
+         & String'(1 .. 8 => Byte (0)) & Byte (Comment'Length) & Byte (0) & Comment);
+
       Found_Png : Boolean := False;
       Found_Jpeg : Boolean := False;
       Found_Dir : Boolean := False;
@@ -48,12 +56,14 @@ separate (Files_Suite.Model)
          "%PDF-1.7" & ASCII.LF &
          "1 0 obj /Type /Page" & ASCII.VT & "endobj" & ASCII.LF &
          "2 0 obj /Type /Page" & ASCII.FF & "endobj");
-      Write_Binary_File (Zip_Path, "PK" & Character'Val (1) & Character'Val (2));
+      Write_Binary_File (Zip_Path, Zip_End (1));
+      --  Behind other data, and followed by a comment holding a stray
+      --  central-directory signature: neither is counted.
       Write_Binary_File
         (Split_Zip_Path,
-         String'(1 .. 4094 => 'x') & "PK" & Character'Val (1) & Character'Val (2));
-      Write_Binary_File (Docx_Path, "PK" & Character'Val (1) & Character'Val (2));
-      Write_Binary_File (Xlsx_Path, "PK" & Character'Val (1) & Character'Val (2));
+         String'(1 .. 4094 => 'x') & Zip_End (1, "PK" & Byte (1) & Byte (2) & " note"));
+      Write_Binary_File (Docx_Path, Zip_End (1));
+      Write_Binary_File (Xlsx_Path, Zip_End (1));
       Write_File (Mp3_Path, "ID3");
       Write_File (Mp4_Path, "....ftyp");
       Write_Binary_File (Tar_Gz_Path, Character'Val (16#1F#) & Character'Val (16#8B#) & "gzip");
@@ -113,7 +123,7 @@ separate (Files_Suite.Model)
             Files_Suite.Support.Assert_Equal
               (Item_Extra (Item),
                "archive.zip.entries|1",
-               "ZIP entry counting detects signatures split across read buffers");
+               "ZIP entry count is read from the end record behind data and a comment");
          elsif To_String (Item.Name) = "report.docx" then
             Found_Docx := True;
             Files_Suite.Support.Assert_Equal

@@ -125,7 +125,7 @@ separate (Files_Suite.Settings)
            (Draft_Settings.Theme = Files.Settings.Theme_High_Contrast,
             "controller save updates the live theme setting");
          Files_Suite.Support.Assert_Equal
-           (To_String (Draft_Settings.Icon_Theme_Name),
+           (Files.Icon_Themes.Image (Draft_Settings.Icon_Theme),
             "files-high-contrast",
             "controller save updates live icon theme");
          Files_Suite.Support.Assert_Equal

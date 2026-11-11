@@ -308,11 +308,15 @@ package Files.File_System is
    --  @param Path Full path of the item.
    --  @param Kind Item kind.
    --  @param Filetype Detected filetype (MIME-style) of the item.
+   --  @param Show_Hidden Whether a folder's count includes hidden entries,
+   --    as the listing shows them only when Settings.Show_Hidden_Files is
+   --    set; True counts every entry.
    --  @return The extra info, or No_Info when there is none for the item.
    function Extra_Info_Of
-     (Path     : String;
-      Kind     : Files.Types.Item_Kind;
-      Filetype : String)
+     (Path        : String;
+      Kind        : Files.Types.Item_Kind;
+      Filetype    : String;
+      Show_Hidden : Boolean := True)
       return Files.Extra_Info.Info;
 
    --  Sort Items in place into the display order for the given sort field and
@@ -597,6 +601,28 @@ package Files.File_System is
    function Rename_Item
      (From_Path : String;
       To_Path   : String;
+      Expected_Identity : String := "")
+      return Mutation_Result;
+
+   --  The error a rename reports when it left the entry at neither name.
+   Rename_Stranded_Key : constant String := "error.rename.stranded";
+
+   --  As Rename_Item, also telling where the entry was left when it is at
+   --  neither name: a case-only rename goes through a scratch name beside
+   --  the original, and when the second hop and the way back both fail the
+   --  entry stays at that scratch name -- reported as Rename_Stranded_Key,
+   --  whose message names Left_At.
+   --
+   --  @param From_Path Existing path.
+   --  @param To_Path Destination path.
+   --  @param Left_At The path the entry was left at for Rename_Stranded_Key;
+   --    empty otherwise.
+   --  @param Expected_Identity Optional history snapshot verified before and after quarantining the source.
+   --  @return Mutation result.
+   function Rename_Item
+     (From_Path : String;
+      To_Path   : String;
+      Left_At   : out UString;
       Expected_Identity : String := "")
       return Mutation_Result;
 

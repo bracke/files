@@ -884,8 +884,10 @@ package body Files.Controller is
 
    --  Load a tree node's direct subdirectories and attach them in place of
    --  any it had, honouring the hidden-files setting. Run on every expand, so
-   --  a folder made, renamed or removed since shows as it is now. Failures
-   --  and empty directories mark the node loaded, with no children.
+   --  a folder made, renamed or removed since shows as it is now. An empty
+   --  directory marks the node loaded, with no children; a read that fails
+   --  (a permission change, a share that dropped out) keeps the children it
+   --  had and reports why, rather than passing the folder off as empty.
    procedure Load_Tree_Children
      (Model      : in out Files.Model.Window_Model;
       Settings   : Files.Settings.Settings_Model;
@@ -897,16 +899,18 @@ package body Files.Controller is
         Files.File_System.Load_Subdirectories (Node_Path, Settings, Files.Settings.Listing_Options_Of (Settings));
       Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
    begin
-      if Load.Success then
-         for Item of Load.Items loop
-            if Item.Kind = Files.Types.Directory_Item then
-               Children.Append
-                 (Files.Folder_Tree.Entry_Seed'
-                    (Path => Item.Full_Path,
-                     Name => Item.Name));
-            end if;
-         end loop;
+      if not Load.Success then
+         Files.Model.Set_Error (Model, To_String (Load.Error_Key));
+         return;
       end if;
+      for Item of Load.Items loop
+         if Item.Kind = Files.Types.Directory_Item then
+            Children.Append
+              (Files.Folder_Tree.Entry_Seed'
+                 (Path => Item.Full_Path,
+                  Name => Item.Name));
+         end if;
+      end loop;
       Files.Model.Tree_Set_Children (Model, Node_Index, Children);
    end Load_Tree_Children;
 

@@ -604,6 +604,7 @@ package body Files.Model is
       Model.Temporary_Is_Directory := False;
       Model.Temporary_Name_Value := Null_Unbounded_String;
       Model.Last_Error := Null_Unbounded_String;
+      Model.Last_Error_Path_Value := Null_Unbounded_String;
    end Initialize;
 
    function Current_Path
@@ -1972,11 +1973,16 @@ package body Files.Model is
 
    procedure Set_Error
      (Model     : in out Window_Model;
-      Error_Key : String) is separate;
+      Error_Key : String;
+      Path      : String := "") is separate;
 
    function Last_Error_Key
      (Model : Window_Model)
       return String is separate;
+
+   function Last_Error_Path
+     (Model : Window_Model)
+      return String is (To_String (Model.Last_Error_Path_Value));
 
    procedure Set_System_Clipboard_Request
      (Model : in out Window_Model;

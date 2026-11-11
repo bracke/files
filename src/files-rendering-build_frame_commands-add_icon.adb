@@ -212,7 +212,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                         Y                => Text_Y,
                         Size             => Lbl.Width,
                         Icon_Id          => To_Unbounded_String ("extlabel:" & Shown),
-                        Theme_Name       => Snapshot.Theme_Name,
+                        Theme_Name       => To_Unbounded_String (Icon_Theme_Name),
                         Asset_Path       => Null_Unbounded_String,
                         Thumbnail_Width  => Lbl.Width,
                         Thumbnail_Height => Lbl.Height,

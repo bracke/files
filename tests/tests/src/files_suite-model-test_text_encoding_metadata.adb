@@ -34,8 +34,8 @@ separate (Files_Suite.Model)
       Write_Binary_File (Sampled_Text_Path, String'(1 .. 131_072 => 'x') & Character'Val (0));
       --  Bigger than the metadata readers' 8 MiB scan cap and newline-free until
       --  past it: a correctly capped line count stops early and reports the one
-      --  trailing partial line (1), rather than reading the whole file to find
-      --  the two newlines near its end.
+      --  trailing partial line (1, capped: "1+"), rather than reading the whole
+      --  file to find the two newlines near its end.
       Write_Filler_File
         (Huge_Oneline_Path, 'x', 8_388_610, Character'Val (10) & "A" & Character'Val (10));
       Write_Binary_File
@@ -86,8 +86,8 @@ separate (Files_Suite.Model)
             Found_Huge_Oneline := True;
             Files_Suite.Support.Assert_Equal
               (Item_Extra (Item),
-               "text.lines_encoding|1|ascii",
-               "line counting stops at the byte-scan cap instead of reading a huge file");
+               "text.lines_encoding|1+|ascii",
+               "line counting stops at the byte-scan cap instead of reading a huge file, and says so");
          elsif To_String (Item.Name) = "split-utf8.txt" then
             Found_Split_Utf8 := True;
             Files_Suite.Support.Assert_Equal

@@ -220,6 +220,7 @@ sv.error.file.parent_missing = Den överordnade mappen finns inte.
 sv.error.rename.source_missing = Källan för namnbyte finns inte.
 sv.error.rename.invalid_destination = Målet för namnbytet är ogiltigt.
 sv.error.rename.failed = Objektet kunde inte byta namn.
+sv.error.rename.stranded = Objektet kunde inte byta namn och ligger nu som {path}.
 sv.error.trash.unavailable = Papperskorgen är inte tillgänglig på denna plattform.
 sv.error.trash.failed = Objektet kunde inte flyttas till papperskorgen.
 sv.error.trash.volume_unavailable = Enheten har ingen papperskorg; objektet flyttades inte. Ta bort det permanent.

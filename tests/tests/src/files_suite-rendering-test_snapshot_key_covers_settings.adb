@@ -11,7 +11,7 @@ separate (Files_Suite.Rendering)
       type Setting_Field is
         (Extension_Filetypes, Icon_Mappings, Open_Actions, Default_View, Show_Hidden_Files,
          Show_File_Extensions, Show_Used_Space, Show_Space_Bar, Sort_Field_Value, Sort_Ascending,
-         Theme, Icon_Theme_Name, Font_Pixel_Size, Window_Width, Window_Height, Info_Pane_Open,
+         Theme, Icon_Theme, Font_Pixel_Size, Window_Width, Window_Height, Info_Pane_Open,
          Favorite_Paths, Recent_Paths_Value, Labels, Use_System_Default_Opener, Column_Visible,
          Column_Widths, Column_Order, Group_By, Shortcut_Overrides);
 
@@ -62,8 +62,10 @@ separate (Files_Suite.Rendering)
                Result.Theme :=
                  (if Base.Theme = Files.Settings.Theme_Light then Files.Settings.Theme_Dark
                   else Files.Settings.Theme_Light);
-            when Icon_Theme_Name =>
-               Append (Result.Icon_Theme_Name, "-other");
+            when Icon_Theme =>
+               Result.Icon_Theme :=
+                 (if Files.Icon_Themes."=" (Base.Icon_Theme, Files.Icon_Themes.Basic)
+                  then Files.Icon_Themes.High_Contrast else Files.Icon_Themes.Basic);
             when Font_Pixel_Size =>
                Result.Font_Pixel_Size := Base.Font_Pixel_Size + 4;
             when Window_Width =>

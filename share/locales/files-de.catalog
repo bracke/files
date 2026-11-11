@@ -223,6 +223,7 @@ de.error.file.parent_missing = Übergeordneter Ordner existiert nicht.
 de.error.rename.source_missing = Quelle zum Umbenennen existiert nicht.
 de.error.rename.invalid_destination = Zielname ist ungültig.
 de.error.rename.failed = Element konnte nicht umbenannt werden.
+de.error.rename.stranded = Element konnte nicht umbenannt werden und liegt jetzt unter {path}.
 de.error.trash.unavailable = Papierkorb ist auf dieser Plattform nicht verfügbar.
 de.error.trash.failed = Element konnte nicht in den Papierkorb verschoben werden.
 de.error.trash.volume_unavailable = Dieses Laufwerk hat keinen Papierkorb; nichts wurde verschoben. Endgültig löschen?

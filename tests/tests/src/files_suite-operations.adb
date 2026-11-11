@@ -227,6 +227,7 @@ package body Files_Suite.Operations is
    procedure Test_Navigation_Defers_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Plain_Listing_Makes_No_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Access_Bits (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Cross_Device_Move_Keeps_Setgid (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Entry_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_Entry_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_Without_Read_Access (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -237,8 +238,11 @@ package body Files_Suite.Operations is
    procedure Test_Read_Only_Survives_Copy_And_Move (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_Keeps_Trash_Until_Synced (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Name_Too_Long_Is_Reported (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Leaf_Name_Length_Rules (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Generated_Names_Fit (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Path_Text_Leaf_And_Parent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Stem_And_Extension (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Numbered_Name_Fits (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Netpbm_Fields (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Without_Xattr_Support (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Metadata_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -349,6 +353,12 @@ package body Files_Suite.Operations is
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Type_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Localized_Extras (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Pdf_Page_Markers_Any_Spacing (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Extra_Counts_Mark_Capped (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Zip_Entries_From_End_Record (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Folder_Count_Honours_Hidden (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Item_Details_Reject_Stale_Revision (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Background_Slots_Serve_Many_Windows (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Frame_Layout (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Word_Wrap (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Item_Field_Fallbacks (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -423,6 +433,7 @@ package body Files_Suite.Operations is
    procedure Test_Multi_Item_Undo_Recompletes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Replace_Undo_Retry (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Case_Only_Rename_Is_Safe (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Rename_Stranded_Message (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Case_Only_Rename_Flips_Case (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Permission_Grid_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Set_Ownership_Identity_And_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -858,6 +869,24 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Localized_Extras'Access, "info pane localizes every kind of extra info");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Pdf_Page_Markers_Any_Spacing'Access,
+         "pdf page markers allow any white-space between the type and page names");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Extra_Counts_Mark_Capped'Access,
+         "counts stopped at a limit are marked capped");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Zip_Entries_From_End_Record'Access,
+         "zip entries are read from the end of central directory record");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Folder_Count_Honours_Hidden'Access,
+         "a folder's item count includes hidden entries only when they are shown");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Item_Details_Reject_Stale_Revision'Access,
+         "item details read before a file changed are not applied to its new listing");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Background_Slots_Serve_Many_Windows'Access,
+         "the background reader serves every window however many ask");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Frame_Layout'Access, "info pane frame lays out heading, rows and permission matrix");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Word_Wrap'Access, "info metadata wraps at word boundaries");
@@ -985,6 +1014,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Case_Only_Rename_Is_Safe'Access,
          "a case-only rename never loses data and distinct collisions stay refused");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Rename_Stranded_Message'Access,
+         "a stranded case-only rename names where the item was left");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Case_Only_Rename_Flips_Case'Access,
          "renaming report.txt to Report.txt changes the case, on a case-insensitive volume too");
@@ -1152,6 +1184,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Copy_Access_Bits'Access, "copies retain executable and ordinary access bits");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Cross_Device_Move_Keeps_Setgid'Access,
+         "a cross-device move keeps setgid with the owner");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Recovery_Entry_Identity'Access, "lost helper metadata retains original creation identities");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Move_Entry_Identity'Access, "rename and move Undo and Redo refuse unrelated replacements");
@@ -1177,11 +1212,20 @@ package body Files_Suite.Operations is
         (T, Test_Name_Too_Long_Is_Reported'Access,
          "a name too long for any filesystem is reported as such");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Leaf_Name_Length_Rules'Access,
+         "leaf name length is measured in bytes or utf-16 units by destination rules");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Generated_Names_Fit'Access,
+         "a duplicate of a name at the length limit is cut to fit");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Path_Text_Leaf_And_Parent'Access,
          "a path's leaf and parent read from its text, for names the runtime will not parse");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Stem_And_Extension'Access,
          "a leaf name splits into stem and extension one way everywhere");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Numbered_Name_Fits'Access,
+         "a numbered keep-both name is cut to fit the destination");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Netpbm_Fields'Access,
          "the Netpbm reader splits fields, refuses bad numbers and scales samples");
@@ -1462,6 +1506,18 @@ package body Files_Suite.Operations is
 
    procedure Test_Info_Pane_Localized_Extras (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Pdf_Page_Markers_Any_Spacing (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Extra_Counts_Mark_Capped (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Zip_Entries_From_End_Record (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Folder_Count_Honours_Hidden (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Item_Details_Reject_Stale_Revision (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Background_Slots_Serve_Many_Windows (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Info_Pane_Frame_Layout (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Info_Pane_Word_Wrap (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -1568,6 +1624,8 @@ package body Files_Suite.Operations is
 
    procedure Test_Copy_Access_Bits (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Cross_Device_Move_Keeps_Setgid (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Recovery_Entry_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Move_Entry_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -1606,9 +1664,15 @@ package body Files_Suite.Operations is
 
    procedure Test_Name_Too_Long_Is_Reported (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Leaf_Name_Length_Rules (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Generated_Names_Fit (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Path_Text_Leaf_And_Parent (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Stem_And_Extension (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Numbered_Name_Fits (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Netpbm_Fields (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -1753,6 +1817,8 @@ package body Files_Suite.Operations is
    procedure Test_Case_Only_Rename_Flips_Case (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Case_Only_Rename_Is_Safe (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Rename_Stranded_Message (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Permission_Grid_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

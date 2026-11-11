@@ -80,7 +80,7 @@ separate (Files_Suite.Settings)
            (Draft_Load.Settings.Theme = Files.Settings.Theme_High_Contrast,
             "draft applies the high-contrast theme");
          Files_Suite.Support.Assert_Equal
-           (To_String (Draft_Load.Settings.Icon_Theme_Name),
+           (Files.Icon_Themes.Image (Draft_Load.Settings.Icon_Theme),
             "files-high-contrast",
             "draft applies icon theme selection");
          Files_Suite.Support.Assert_Equal

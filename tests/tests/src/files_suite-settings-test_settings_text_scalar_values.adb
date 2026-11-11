@@ -15,7 +15,7 @@ separate (Files_Suite.Settings)
         (Parsed.Settings.Theme = Files.Settings.Theme_High_Contrast,
          "legacy high_contrast_theme key maps to the high-contrast theme");
       Files_Suite.Support.Assert_Equal
-        (To_String (Parsed.Settings.Icon_Theme_Name),
+        (Files.Icon_Themes.Image (Parsed.Settings.Icon_Theme),
          "files-high-contrast",
          "icon theme setting parses");
       declare

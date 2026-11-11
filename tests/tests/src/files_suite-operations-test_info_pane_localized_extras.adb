@@ -79,6 +79,20 @@ separate (Files_Suite.Operations)
          Expected =>
            Detail_Value ("info.extra.document.pdf.pages", "pages", "3"),
          Message  => "item snapshot localizes PDF page metadata");
+      --  A count that stopped at its limit says so.
+      Assert_Localized_Extra
+        (Name     => "huge.pdf",
+         Filetype => "application/pdf",
+         Extra    => Files.Extra_Info.Make (Files.Extra_Info.Pdf_Pages, Count => 3, Capped => True),
+         Expected => Detail_Value ("info.extra.document.pdf.pages", "pages", Files.Types.Natural_Text (3) & "+"),
+         Message  => "a capped count is shown as a lower bound");
+      --  A PDF that could not be read names its kind only.
+      Assert_Localized_Extra
+        (Name     => "locked.pdf",
+         Filetype => "application/pdf",
+         Extra    => Files.Extra_Info.Make (Files.Extra_Info.Document_Kind, Value => "pdf"),
+         Expected => Files.Localization.Text ("info.extra.document.pdf"),
+         Message  => "item snapshot localizes document kind metadata");
       Assert_Localized_Extra
         (Name     => "archive.tar",
          Filetype => "application/x-tar",

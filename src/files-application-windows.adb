@@ -668,7 +668,8 @@ package body Files.Application.Windows is
       Files.Refresh_Jobs.Resume_Owed (Runtime.Model, Runtime.Settings);
       --  The selected item's type details, read off the UI thread; this also
       --  serves selections deferred by a cancelled or failed refresh.
-      Files.Operations.Poll_Selected_Item_Extra (Runtime.Model, Files.Extra_Info_Reader.Requester (Runtime.A11y_Key));
+      Files.Operations.Poll_Selected_Item_Extra
+        (Runtime.Model, Files.Extra_Info_Reader.Requester (Runtime.A11y_Key), Runtime.Settings.Show_Hidden_Files);
 
       declare
          Changed     : constant Boolean := Drain_Native_Watch (Runtime);
@@ -1054,6 +1055,9 @@ package body Files.Application.Windows is
       --  Stop helpers before settings writes or graphics shutdown can delay
       --  native cleanup. A cleared handle also prevents queued input dispatch.
       Release_Window_Jobs (Runtime.Model, Runtime.Watch);
+      --  The background readers' slots for this window go with it.
+      Files.Extra_Info_Reader.Release (Files.Extra_Info_Reader.Requester (Runtime.A11y_Key));
+      Files.Preview_Decoder.Release (Files.Preview_Decoder.Requester (Runtime.A11y_Key));
       if Runtime.Handle = null then
          return;
       end if;
@@ -1244,7 +1248,8 @@ package body Files.Application.Windows is
          Origin_X     => Runtime.Column_Resize.Origin_X,
          Origin_Width => Runtime.Column_Resize.Origin_W,
          Current_X    => Scale_Coordinate (Cursor_X, Window_W, Frame_W),
-         Result       => Result);
+         Result       => Result,
+         Line_Height  => Cell_Height_For (Runtime.Font_Pixel_Size));
       if Result.Settings_Changed then
          Runtime.Column_Resize.Changed := True;
       end if;
@@ -1264,91 +1269,7 @@ package body Files.Application.Windows is
       Frame_W    : Glfw.Size;
       Frame_H    : Glfw.Size;
       Mouse_Down : Boolean)
-   is
-      X_Frame : Integer;
-   begin
-      if not Runtime.Column_Reorder.Active then
-         return;
-      elsif Window_W = 0 or else Window_H = 0 or else Frame_W = 0 or else Frame_H = 0 then
-         Runtime.Column_Reorder.Active := False;
-         Runtime.Column_Reorder.Started := False;
-         Runtime.Column_Reorder.Sort := Files.Commands.No_Command;
-         return;
-      end if;
-
-      X_Frame := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
-
-      if Mouse_Down then
-         if abs (X_Frame - Runtime.Column_Reorder.Origin_X) > Column_Reorder_Threshold then
-            Runtime.Column_Reorder.Started := True;
-         end if;
-         return;
-      end if;
-
-      --  Mouse released: end the gesture. A crossed threshold applies the
-      --  reorder at the drop target; otherwise the press was a plain click and
-      --  falls back to the column's sort command (if any), but only when the
-      --  release still lands on the cell that was pressed.
-      Runtime.Column_Reorder.Active := False;
-
-      if not Cursor_Is_Inside_Window (Cursor_X, Cursor_Y, Window_W, Window_H) then
-         Runtime.Column_Reorder.Started := False;
-         Runtime.Column_Reorder.Sort := Files.Commands.No_Command;
-         return;
-      end if;
-
-      if Runtime.Column_Reorder.Started then
-         declare
-            Y_Frame  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-            Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-            Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Hit_Slot (Runtime));
-            Layout   : constant Files.Rendering.Layout_Metrics :=
-              Files.Rendering.Calculate_Layout
-                (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
-            Drop     : constant Natural :=
-              Files.Rendering.Hit.Details_Header_Drop_Index
-                (Snapshot, Layout, Natural'Max (0, X_Frame), Y_Frame, Line_Height);
-            Result   : Files.Interaction.Interaction_Result;
-         begin
-            if Drop in Files.Types.Detail_Column_Index then
-               Files.Interaction.Apply_Column_Reorder
-                 (Model         => Runtime.Model,
-                  Settings      => Runtime.Settings,
-                  Settings_Path => To_String (Runtime.Settings_Path),
-                  Column        => Runtime.Column_Reorder.Target,
-                  To_Index      => Drop,
-                  Result        => Result);
-               Apply_Interaction_Result (Runtime, Result);
-            end if;
-         end;
-      elsif Runtime.Column_Reorder.Sort /= Files.Commands.No_Command then
-         declare
-            Y_Frame  : constant Natural := Scale_Coordinate (Cursor_Y, Window_H, Frame_H);
-            Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-            Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Hit_Slot (Runtime));
-            Layout   : constant Files.Rendering.Layout_Metrics :=
-              Files.Rendering.Calculate_Layout
-                (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
-            Cell     : constant Files.Rendering.Detail_Header_Cell :=
-              Files.Rendering.Hit.Details_Header_Cell_At
-                (Snapshot, Layout, Natural'Max (0, X_Frame), Y_Frame, Line_Height);
-         begin
-            if Cell.Present
-              and then Cell.Column = Runtime.Column_Reorder.Target
-              and then Cell.Command = Runtime.Column_Reorder.Sort
-            then
-               Dispatch_Click_Action
-                 (Runtime,
-                  (Kind    => Files.Events.Command_Input_Action,
-                   Command => Runtime.Column_Reorder.Sort),
-                  Guikit.Input.No_Modifiers);
-            end if;
-         end;
-      end if;
-
-      Runtime.Column_Reorder.Started := False;
-      Runtime.Column_Reorder.Sort := Files.Commands.No_Command;
-   end Update_Column_Reorder_Drag;
+   is separate;
 
    --  Minimum pointer travel, in frame pixels, before an armed empty-space press
    --  becomes a marquee. Below it the press/release is a plain empty-space click

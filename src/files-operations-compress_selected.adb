@@ -197,10 +197,10 @@ begin
 
       --  A directory-unique simple archive name, e.g. "report.zip" or
       --  "report (1).zip" when the first choice already exists.
-      function Stem (Attempt : Natural) return String is
-        (if Attempt = 0 then Base else Base & " (" & Files.Types.Natural_Text (Attempt) & ")");
+      function Marker (Attempt : Natural) return String is
+        (if Attempt = 0 then "" else " (" & Files.Types.Natural_Text (Attempt) & ")");
       function Unique_Name return String is
-        (First_Free_Name (Directory, Extension, Stem'Access, First => 0) & "." & Extension);
+        (First_Free_Name (Directory, Base, Extension, Marker'Access, First => 0) & "." & Extension);
 
       Archive_Name : constant String := Unique_Name;
       Output_Path  : constant String := Ada.Directories.Compose (Directory, Archive_Name);

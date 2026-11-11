@@ -33,6 +33,7 @@ Test_Sparse_Transfers: the sparse-file fixture is Linux-only C
 Test_Staging_Default_ACL: the default-ACL fixture is a Linux POSIX ACL
 Test_Stray_Home_Trash_Stays_Freedesktop: only Linux and macOS read a ~/.Trash folder; Windows uses the Recycle Bin
 Test_Transport_Cleanup_Retry: needs mode 0 to make a transport undeletable
+Test_Tree_Unreadable_Folder_Keeps_Children: needs mode 0 to make a folder unreadable
 Test_Transport_Lease_Claims: a held lease file cannot be replaced here
 Test_Trash_Long_Name: the name passes the Windows path limit
 Test_Trash_Refuses_Volume_Trash: Windows has no freedesktop volume trash

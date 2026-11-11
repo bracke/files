@@ -4,6 +4,7 @@ with Ada.Containers.Vectors;
 with Ada.Strings.Hash;
 
 with Guikit.Input;
+with Files.Icon_Themes;
 with Files.Types;
 
 --  Settings loading, validation, and filetype-to-action mapping.
@@ -77,7 +78,7 @@ package Files.Settings is
       Sort_Ascending         : Boolean := True;
       --  Selected color theme applied to the rendering palette.
       Theme                  : Theme_Choice := Theme_Dark;
-      Icon_Theme_Name        : UString;
+      Icon_Theme             : Files.Icon_Themes.Icon_Theme := Files.Icon_Themes.Basic;
       Font_Pixel_Size        : Positive := 16;
       --  Global UI state remembered across launches. Window_Width / Height
       --  default to 0 meaning "use platform default". Info_Pane_Open mirrors
@@ -102,8 +103,10 @@ package Files.Settings is
       Use_System_Default_Opener : Boolean := True;
       --  Detail-view column customization. Column_Visible toggles individual
       --  columns (the name column is always shown), Column_Widths overrides the
-      --  proportional default width per column (zero keeps the default), and
-      --  Group_By selects the optional non-selectable grouping bands.
+      --  proportional default width per column (zero keeps the default; a
+      --  width is in reference units, pixels at
+      --  Guikit.Layout.Reference_Line_Height, scaled with the line height when
+      --  drawn), and Group_By selects the optional non-selectable grouping bands.
       Column_Visible         : Files.Types.Detail_Column_Visibility :=
         Files.Types.Default_Detail_Column_Visibility;
       Column_Widths          : Files.Types.Detail_Column_Widths :=
@@ -147,7 +150,7 @@ package Files.Settings is
       Show_Used_Space      : Boolean := False;
       Show_Space_Bar       : Boolean := False;
       Theme                : Theme_Choice := Theme_Dark;
-      Icon_Theme_Name      : UString;
+      Icon_Theme           : Files.Icon_Themes.Icon_Theme := Files.Icon_Themes.Basic;
       Column_Visible       : Files.Types.Detail_Column_Visibility :=
         Files.Types.Default_Detail_Column_Visibility;
       Column_Widths        : Files.Types.Detail_Column_Widths :=
@@ -332,7 +335,8 @@ package Files.Settings is
    --
    --  @param Settings Settings model to update.
    --  @param Column Detail column to resize.
-   --  @param Width Requested pixel width, or zero to reset to the default.
+   --  @param Width Requested width in reference units (pixels at
+   --  Guikit.Layout.Reference_Line_Height), or zero to reset to the default.
    --  @return Updated settings model.
    function With_Column_Width
      (Settings : Settings_Model;

@@ -428,36 +428,6 @@ package body Files.Rendering is
       end case;
    end Label_Render_Color;
 
-   type Render_Theme is record
-      Name             : UString;
-      High_Contrast    : Boolean := False;
-      Selection_Strong : Boolean := False;
-      Focus_Ring       : Render_Color := Border_Color;
-      Warning_Color    : Render_Color := Error_Text_Color;
-   end record;
-
-   --  Return the default render theme metadata.
-   function Default_Theme return Render_Theme is
-   begin
-      return
-        (Name             => To_Unbounded_String ("default"),
-         High_Contrast    => False,
-         Selection_Strong => False,
-         Focus_Ring       => Border_Color,
-         Warning_Color    => Error_Text_Color);
-   end Default_Theme;
-
-   --  Return high-contrast render theme metadata.
-   function High_Contrast_Theme return Render_Theme is
-   begin
-      return
-        (Name             => To_Unbounded_String ("high_contrast"),
-         High_Contrast    => True,
-         Selection_Strong => True,
-         Focus_Ring       => Selection_Color,
-         Warning_Color    => Error_Text_Color);
-   end High_Contrast_Theme;
-
    --  Cell sizing lives in Guikit.Item_Grid now; this alias keeps existing
    --  Item_Cell_Metrics references (Width/Height/Icon_Size/Large) compiling.
    subtype Item_Cell_Metrics is Guikit.Item_Grid.Cell_Metrics;
@@ -981,16 +951,8 @@ package body Files.Rendering is
       Line_Height : Positive)
       return Natural
    is
-      Char_W   : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
-      Capacity : constant Natural := Text_Width / Char_W;
-      Caret    : constant Natural :=
-        Files.UTF8.Display_Units_Before (Text, Natural'Min (Cursor, Text'Length));
-   begin
-      if Capacity = 0 or else Caret < Capacity then
-         return 0;
-      end if;
-      return Caret - Capacity + 1;
-   end Input_Scroll_Columns;
+     (Guikit.Layout.Input_Scroll_Columns
+        (Files.UTF8.Display_Units_Before (Text, Natural'Min (Cursor, Text'Length)), Text_Width, Line_Height));
 
    function Tree_Row_Capacity
      (Snapshot : View_Snapshot;

@@ -3076,19 +3076,29 @@ package Files.Model is
       Path  : String)
       return Files.File_System.Directory_Size_Result;
 
-   --  Record a recoverable error key.
+   --  Record a recoverable error key, and the path its message names.
    --
    --  @param Model Model to update.
    --  @param Error_Key Localized error key.
+   --  @param Path The value of the message's {path}, or "" when it has none.
    procedure Set_Error
      (Model     : in out Window_Model;
-      Error_Key : String);
+      Error_Key : String;
+      Path      : String := "");
 
    --  Return the last recoverable error key.
    --
    --  @param Model Model to inspect.
    --  @return Error key or an empty string.
    function Last_Error_Key
+     (Model : Window_Model)
+      return String;
+
+   --  Return the path the last recoverable error's message names.
+   --
+   --  @param Model Model to inspect.
+   --  @return The path given to Set_Error with the last error, or "".
+   function Last_Error_Path
      (Model : Window_Model)
       return String;
 
@@ -3308,6 +3318,7 @@ private
       Temporary_Name_Value : UString;
       Filter_Cursor        : Natural := 0;
       Last_Error           : UString;
+      Last_Error_Path_Value : UString;
       System_Clipboard_Request_Value   : UString;
       System_Clipboard_Request_Pending : Boolean := False;
       Clipboard_Paths_Value : Files.Types.String_Vectors.Vector;

@@ -4,7 +4,7 @@ separate (Files.Settings)
       Settings : Settings_Model;
       Args     : String_Vectors.Vector;
    begin
-      Settings.Icon_Theme_Name := To_Unbounded_String ("files-basic");
+      Settings.Icon_Theme := Files.Icon_Themes.Basic;
       Add_Extension_Mapping (Settings, "txt", "text/plain");
       Add_Extension_Mapping (Settings, "adb", "text/x-ada");
       Add_Extension_Mapping (Settings, "ads", "text/x-ada");

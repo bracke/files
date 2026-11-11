@@ -15,6 +15,14 @@ is
    First_Error_Key  : Unbounded_String := Null_Unbounded_String;
    First_Error_Path : Unbounded_String := Null_Unbounded_String;
    Focus_Name       : Unbounded_String := Null_Unbounded_String;
+   --  Where the first entry left at neither name (Rename_Stranded_Key) is:
+   --  told over any other error, as the user has to go and find it.
+   Stranded_Path    : Unbounded_String := Null_Unbounded_String;
+
+   --  The path the first error's message names: only a stranded entry's.
+   function First_Error_Argument return String is
+     (if To_String (First_Error_Key) = Files.File_System.Rename_Stranded_Key
+      then To_String (First_Error_Path) else "");
 
    procedure Record_First_Error (Key : String; Path : String) is
    begin
@@ -65,8 +73,9 @@ begin
          else
             declare
                New_Path : constant String := Files.File_System.Join_Path (Parent, New_Name);
+               Left_At  : Unbounded_String;
                Mutation : constant Files.File_System.Mutation_Result :=
-                 Files.File_System.Rename_Item (Old_Full, New_Path);
+                 Files.File_System.Rename_Item (Old_Full, New_Path, Left_At);
             begin
                if Mutation.Success then
                   Success := Success + 1;
@@ -81,8 +90,17 @@ begin
                   Failure := Failure + 1;
                   if To_String (Mutation.Error_Key) = "error.rename.source_missing" then
                      Need_Reload := True;
+                     Record_First_Error (To_String (Mutation.Error_Key), New_Path);
+                  elsif To_String (Mutation.Error_Key) = Files.File_System.Rename_Stranded_Key then
+                     --  The entry is at a name the listing does not show yet.
+                     Need_Reload := True;
+                     if Stranded_Path = Null_Unbounded_String then
+                        Stranded_Path := Left_At;
+                     end if;
+                     Record_First_Error (To_String (Mutation.Error_Key), To_String (Left_At));
+                  else
+                     Record_First_Error (To_String (Mutation.Error_Key), New_Path);
                   end if;
-                  Record_First_Error (To_String (Mutation.Error_Key), New_Path);
                end if;
             end;
          end if;
@@ -93,15 +111,19 @@ begin
    --  correct them) unless a vanished source forces a reload -- matching the
    --  single-item behavior exactly.
    if Success = 0 then
+      if Stranded_Path /= Null_Unbounded_String then
+         First_Error_Key := To_Unbounded_String (Files.File_System.Rename_Stranded_Key);
+         First_Error_Path := Stranded_Path;
+      end if;
       declare
          Failed_Status : constant Operation_Status :=
            (if To_String (First_Error_Key) = "error.name.invalid"
             then Operation_Invalid_Name
             else Operation_Failed);
       begin
-         Files.Model.Set_Error (Model, To_String (First_Error_Key));
+         Files.Model.Set_Error (Model, To_String (First_Error_Key), First_Error_Argument);
          if Need_Reload then
-            Reload_With_Error (Model, Settings, To_String (First_Error_Key));
+            Reload_With_Error (Model, Settings, To_String (First_Error_Key), First_Error_Argument);
          end if;
          return
            Make_Result
@@ -131,7 +153,15 @@ begin
       end;
    end if;
 
-   if Failure > 0 then
+   if Stranded_Path /= Null_Unbounded_String then
+      --  Some items renamed, but one was left at neither name: say where.
+      Files.Model.Set_Error (Model, Files.File_System.Rename_Stranded_Key, To_String (Stranded_Path));
+      return
+        Make_Result
+          (Operation_Success,
+           Files.File_System.Rename_Stranded_Key,
+           To_String (Stranded_Path));
+   elsif Failure > 0 then
       --  Some items renamed, some failed: report partial success so the
       --  user learns not every rename landed.
       Files.Model.Set_Error (Model, "error.rename.partial");

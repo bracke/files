@@ -379,7 +379,7 @@ package body Files.Interaction is
    begin
       Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
       Files.Operations.Update_Folder_Size (Model, Settings);
-      Files.Operations.Ensure_Selected_Item_Extra (Model);
+      Files.Operations.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
    end Finish_Dispatch;
 
    procedure Handle_Key
@@ -868,7 +868,8 @@ package body Files.Interaction is
       Origin_X     : Integer;
       Origin_Width : Natural;
       Current_X    : Integer;
-      Result       : out Interaction_Result)
+      Result       : out Interaction_Result;
+      Line_Height  : Positive := Guikit.Layout.Reference_Line_Height)
    is
       --  The name column is the flexible remainder on the left, so a wider fixed
       --  column pushes its own left edge left: dragging the separator left grows
@@ -881,10 +882,17 @@ package body Files.Interaction is
         Long_Long_Integer (Origin_Width)
         + Long_Long_Integer (Origin_X)
         - Long_Long_Integer (Current_X);
-      New_Width  : constant Natural :=
+      --  Store the pixel width in reference units, rounded to nearest, the
+      --  inverse of the Guikit.Layout.Scaled the renderer applies (which never
+      --  shrinks below the reference, hence the same floor on the divisor).
+      Scale      : constant Long_Long_Integer :=
+        Long_Long_Integer (Positive'Max (Line_Height, Guikit.Layout.Reference_Line_Height));
+      Target_Ref : constant Long_Long_Integer :=
         (if Target_Raw <= 0 then 0
-         elsif Target_Raw >= Long_Long_Integer (Natural'Last) then Natural'Last
-         else Natural (Target_Raw));
+         else (Target_Raw * Long_Long_Integer (Guikit.Layout.Reference_Line_Height) + Scale / 2) / Scale);
+      New_Width  : constant Natural :=
+        (if Target_Ref >= Long_Long_Integer (Natural'Last) then Natural'Last
+         else Natural (Target_Ref));
       Updated    : constant Files.Settings.Settings_Model :=
         Files.Settings.With_Column_Width (Settings, Column, New_Width);
    begin

@@ -538,7 +538,8 @@ package body Files.Operations is
    end Settle_Current_Is_Trash;
 
    procedure Ensure_Selected_Item_Extra
-     (Model : in out Files.Model.Window_Model) is
+     (Model       : in out Files.Model.Window_Model;
+      Show_Hidden : Boolean := True) is
    begin
       if not Files.Model.Background_Transfers (Model)
         and then Files.Model.Selected_Item_Needs_Extra (Model)
@@ -549,26 +550,28 @@ package body Files.Operations is
             Files.Model.Set_Selected_Item_Extra
               (Model,
                Files.File_System.Extra_Info_Of
-                 (To_String (Item.Full_Path), Item.Kind, To_String (Item.Filetype)));
+                 (To_String (Item.Full_Path), Item.Kind, To_String (Item.Filetype), Show_Hidden));
          end;
       end if;
    end Ensure_Selected_Item_Extra;
 
    procedure Poll_Selected_Item_Extra
-     (Model : in out Files.Model.Window_Model;
-      Owner : Files.Extra_Info_Reader.Requester) is
+     (Model       : in out Files.Model.Window_Model;
+      Owner       : Files.Extra_Info_Reader.Requester;
+      Show_Hidden : Boolean := True) is
    begin
       if Files.Model.Selected_Item_Needs_Extra (Model) then
          declare
             Item  : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
-            Path  : constant String := To_String (Item.Full_Path);
             Extra : Files.Extra_Info.Info;
             Ready : Boolean;
             Asked : Boolean;
          begin
-            Files.Extra_Info_Reader.Take (Owner, Path, Extra, Ready, Asked);
+            --  Taken only when read for the item as listed now: a read of
+            --  the file before a refresh relisted it is asked for again.
+            Files.Extra_Info_Reader.Take (Owner, Item, Show_Hidden, Extra, Ready, Asked);
             if not Asked then
-               Files.Extra_Info_Reader.Request (Owner, Path, Item.Kind, To_String (Item.Filetype));
+               Files.Extra_Info_Reader.Request (Owner, Item, Show_Hidden);
             elsif Ready then
                Files.Model.Set_Selected_Item_Extra (Model, Extra);
             end if;

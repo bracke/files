@@ -220,6 +220,7 @@ fi.error.file.parent_missing = Yläkansiota ei ole olemassa.
 fi.error.rename.source_missing = Uudelleennimeämisen lähdettä ei ole olemassa.
 fi.error.rename.invalid_destination = Uudelleennimeämisen kohde on virheellinen.
 fi.error.rename.failed = Kohdetta ei voitu nimetä uudelleen.
+fi.error.rename.stranded = Kohdetta ei voitu nimetä uudelleen, ja se on nyt nimellä {path}.
 fi.error.trash.unavailable = Roskakori ei ole käytettävissä tällä alustalla.
 fi.error.trash.failed = Kohdetta ei voitu siirtää roskakoriin.
 fi.error.trash.volume_unavailable = Asemalla ei ole roskakoria; kohdetta ei siirretty. Poista se pysyvästi.

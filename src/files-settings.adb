@@ -74,7 +74,7 @@ package body Files.Settings is
          Show_Used_Space      => Settings.Show_Used_Space,
          Show_Space_Bar       => Settings.Show_Space_Bar,
          Theme                => Settings.Theme,
-         Icon_Theme_Name      => Settings.Icon_Theme_Name,
+         Icon_Theme           => Settings.Icon_Theme,
          Column_Visible       => Settings.Column_Visible,
          Column_Widths        => Settings.Column_Widths,
          Column_Order         => Settings.Column_Order,
@@ -105,7 +105,7 @@ package body Files.Settings is
    begin
       return Settings.Show_File_Extensions = Key.Show_File_Extensions
         and then Settings.Theme = Key.Theme
-        and then Settings.Icon_Theme_Name = Key.Icon_Theme_Name
+        and then Files.Icon_Themes."=" (Settings.Icon_Theme, Key.Icon_Theme)
         and then Files.Types."=" (Settings.Group_By, Key.Group_By)
         and then String_Vectors."=" (Settings.Favorite_Paths, Key.Favorite_Paths)
         and then Path_Label_Vectors."=" (Settings.Labels, Key.Labels);
@@ -330,12 +330,6 @@ package body Files.Settings is
    function Quoted_Value_Is_Valid (Text : String) return Boolean is separate;
 
    function Parent_Directory (Path : String) return String renames Files.Fs_Primitives.Parent_Directory;
-
-   function Icon_Theme_Name_Is_Valid (Name : String) return Boolean is
-      Clean : constant String := Files.Types.To_Lower (Trim (Name));
-   begin
-      return Clean = "files-basic" or else Clean = "files-high-contrast";
-   end Icon_Theme_Name_Is_Valid;
 
    function Next_Action_Token
      (Text  : String;

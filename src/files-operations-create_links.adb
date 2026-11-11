@@ -88,8 +88,8 @@ begin
 
          --  A directory-unique link stem (without extension), e.g. "report
          --  (link)" or "report (link 2)" when earlier choices already exist.
-         function Stem (Attempt : Natural) return String is (Base & Link_Marker (Attempt));
-         function Unique_Stem return String is (First_Free_Name (Link_Directory, Ext, Stem'Access));
+         function Marker (Attempt : Natural) return String is (Link_Marker (Attempt));
+         function Unique_Stem return String is (First_Free_Name (Link_Directory, Base, Ext, Marker'Access));
 
          Dest_Path : constant String :=
            Ada.Directories.Compose (Link_Directory, Unique_Stem, Ext);

@@ -220,6 +220,7 @@ nb.error.file.parent_missing = Den overordnede mappen finnes ikke.
 nb.error.rename.source_missing = Kilden for omdøping finnes ikke.
 nb.error.rename.invalid_destination = Målet for omdøping er ugyldig.
 nb.error.rename.failed = Elementet kunne ikke få nytt navn.
+nb.error.rename.stranded = Elementet kunne ikke få nytt navn og ligger nå som {path}.
 nb.error.trash.unavailable = Papirkurv er ikke tilgjengelig på denne plattformen.
 nb.error.trash.failed = Elementet kunne ikke flyttes til papirkurven.
 nb.error.trash.volume_unavailable = Stasjonen har ingen papirkurv; elementet ble ikke flyttet. Slett det permanent.

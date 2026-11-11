@@ -2,6 +2,7 @@ with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Containers.Indefinite_Hashed_Sets;
 with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
+with Files.Leaf_Names;
 with Hostkit.Fs;
 
 package body Files.Paste is
@@ -107,8 +108,9 @@ package body Files.Paste is
    end Next_Unresolved_Conflict;
 
    function First_Free_Name
-     (Name  : String;
-      Taken : not null access function (Leaf : String) return Boolean)
+     (Name      : String;
+      Taken     : not null access function (Leaf : String) return Boolean;
+      Dos_Rules : Boolean := False)
       return String
    is
       Stem      : constant String := Files.Types.Stem_Of (Name);
@@ -120,7 +122,15 @@ package body Files.Paste is
       end if;
       for Counter in 2 .. Positive'Last loop
          declare
-            Candidate : constant String := Stem & " " & Files.Types.Natural_Text (Counter) & Extension;
+            Counted   : constant String := " " & Files.Types.Natural_Text (Counter);
+            --  A long name is cut down, never made longer than the
+            --  destination stores; an extension too long to keep with it
+            --  goes by Fit's rule instead.
+            Shortened : constant String :=
+              Files.Leaf_Names.Cut (Stem, Counted & Extension, Files.Leaf_Names.Max_Length, Dos_Rules);
+            Candidate : constant String :=
+              (if not Files.Leaf_Names.Too_Long_Under (Shortened, Dos_Rules) then Shortened
+               else Files.Leaf_Names.Fit (Name, Files.Leaf_Names.Max_Length, Dos_Rules, Insert => Counted));
          begin
             if not Taken (Candidate) then
                return Candidate;
@@ -139,7 +149,8 @@ package body Files.Paste is
       Name     : String;
       Existing : Path_Sets.Set;
       Claimed  : Path_Sets.Set;
-      Fold     : Boolean)
+      Fold     : Boolean;
+      Dos      : Boolean)
       return String
    is
       function Key (Path : String) return String is
@@ -149,7 +160,7 @@ package body Files.Paste is
         (Existing.Contains (Key (Desired_Path (Dir, Leaf)))
          or else Claimed.Contains (Key (Desired_Path (Dir, Leaf))));
    begin
-      return Desired_Path (Dir, First_Free_Name (Name, Taken'Access));
+      return Desired_Path (Dir, First_Free_Name (Name, Taken'Access, Dos));
    end Unique_Path;
 
    function Resolve
@@ -157,7 +168,8 @@ package body Files.Paste is
       Policy    : Conflict_Policy;
       Overrides : Item_Decision_Vectors.Vector;
       Existing  : Files.Types.String_Vectors.Vector;
-      Fold_Names : Boolean := False)
+      Fold_Names : Boolean := False;
+      Dos_Names  : Boolean := False)
       return Resolved_Action_Vectors.Vector
    is
       --  The name a set holds a path under: folded where the destination
@@ -229,7 +241,7 @@ package body Files.Paste is
                if Claimed.Contains (Key (Desired)) then
                   Emit_Write
                     (Item.Source_Path,
-                     Unique_Path (Dir, Name, Existing_Set, Claimed, Fold_Names), False);
+                     Unique_Path (Dir, Name, Existing_Set, Claimed, Fold_Names, Dos_Names), False);
                else
                   Emit_Write (Item.Source_Path, Desired, False);
                end if;
@@ -243,14 +255,14 @@ package body Files.Paste is
                      if Claimed.Contains (Key (Desired)) then
                         Emit_Write
                           (Item.Source_Path,
-                           Unique_Path (Dir, Name, Existing_Set, Claimed, Fold_Names), False);
+                           Unique_Path (Dir, Name, Existing_Set, Claimed, Fold_Names, Dos_Names), False);
                      else
                         Emit_Write (Item.Source_Path, Replace_Target (Desired), True);
                      end if;
                   when Decision_Rename =>
                      Emit_Write
                        (Item.Source_Path,
-                        Unique_Path (Dir, Name, Existing_Set, Claimed, Fold_Names), False);
+                        Unique_Path (Dir, Name, Existing_Set, Claimed, Fold_Names, Dos_Names), False);
                   when Decision_Skip | Decision_Pending =>
                      --  Skip, and treat an undecided conflict as Skip so the
                      --  destination is never silently overwritten.

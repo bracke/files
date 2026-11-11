@@ -2,6 +2,7 @@ with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
 
 with Files.Capped_Files;
+with Files.Icon_Themes;
 with Files.Resources;
 with Guikit.Draw;
 
@@ -31,7 +32,7 @@ package body Files.Icon_Assets is
    end Valid_Icon_Id;
 
    function Valid_Theme_Name (Value : String) return Boolean is
-     (Value in "" | "files-basic" | "files-high-contrast");
+     (Value = "" or else Files.Icon_Themes.Is_Name (Value));
 
    function Icons_Root return String is
      (Files.Resources.Share_Path ("files/icons"));
@@ -63,7 +64,7 @@ package body Files.Icon_Assets is
          Key  : constant String := Theme_Name & "|" & Icon_Id;
          Root : constant String := Icons_Root;
          Sub  : constant String :=
-           (if Theme_Name = "files-high-contrast" then "/high-contrast" else "");
+           (if Theme_Name = "" then "" else Files.Icon_Themes.Subdirectory (Files.Icon_Themes.Value (Theme_Name)));
          Path : constant String := Root & Sub & "/" & Icon_Id & ".icon";
       begin
          if Root = "" then

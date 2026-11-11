@@ -14,7 +14,7 @@ separate (Files_Suite.Settings)
         (Default_Parse.Settings.Theme = Files.Settings.Theme_Dark,
          "default settings text keeps the dark theme selected");
       Files_Suite.Support.Assert_Equal
-        (To_String (Default_Parse.Settings.Icon_Theme_Name),
+        (Files.Icon_Themes.Image (Default_Parse.Settings.Icon_Theme),
          "files-basic",
          "default settings text keeps basic icon theme selected");
       declare

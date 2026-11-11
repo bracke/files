@@ -6,16 +6,29 @@ with Ada.Strings.Unbounded;
 with Files.File_System;
 with Files.Refresh_Jobs;
 with Files.Fs_Primitives;
+with Files.Leaf_Names;
+with Hostkit.Fs;
 
 package body Files.Operations.Support is
    use Ada.Strings.Unbounded;
 
    function First_Free_Name
      (Directory : String;
+      Base      : String;
       Extension : String;
-      Name      : not null access function (Attempt : Natural) return String;
+      Marker    : not null access function (Attempt : Natural) return String;
       First     : Natural := 1)
-      return String is
+      return String
+   is
+      Dos_Rules : constant Boolean := Hostkit.Fs.Uses_Dos_Filename_Rules (Directory);
+      Dotted    : constant Natural :=
+        (if Extension = "" then 0 else Files.Leaf_Names.Length_Under ("." & Extension, Dos_Rules));
+
+      function Name (Attempt : Natural) return String is
+        (Files.Leaf_Names.Cut
+           (Base, Marker (Attempt),
+            (if Dotted >= Files.Leaf_Names.Max_Length then 0 else Files.Leaf_Names.Max_Length - Dotted),
+            Dos_Rules));
    begin
       for Attempt in First .. Max_Name_Attempts loop
          if not Exists_Safely (Ada.Directories.Compose (Directory, Name (Attempt), Extension)) then
@@ -183,17 +196,18 @@ package body Files.Operations.Support is
    procedure Reload_With_Error
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Error_Key : String)
+      Error_Key : String;
+      Path : String := "")
    is
       Reload : Operation_Result;
       pragma Unreferenced (Reload);
    begin
       --  Set before the reload is scheduled (a background one keeps it) and
       --  again after one done here, which clears the error it finds.
-      Files.Model.Set_Error (Model, Error_Key);
+      Files.Model.Set_Error (Model, Error_Key, Path);
       Reload := Reload_Current_Directory (Model, Settings);
       if not Files.Model.Background_Transfers (Model) then
-         Files.Model.Set_Error (Model, Error_Key);
+         Files.Model.Set_Error (Model, Error_Key, Path);
       end if;
    end Reload_With_Error;
 

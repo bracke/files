@@ -77,9 +77,10 @@ begin
                --  A directory-unique destination folder name, e.g. "report"
                --  or "report (1)" when the first choice already exists.
                --  The bare name first, then "name (1)", "name (2)" and so on.
-               function Stem (Attempt : Natural) return String is
-                 (if Attempt = 0 then Base else Base & " (" & Files.Types.Natural_Text (Attempt) & ")");
-               function Unique_Name return String is (First_Free_Name (Destination, "", Stem'Access, First => 0));
+               function Marker (Attempt : Natural) return String is
+                 (if Attempt = 0 then "" else " (" & Files.Types.Natural_Text (Attempt) & ")");
+               function Unique_Name return String is
+                 (First_Free_Name (Destination, Base, "", Marker'Access, First => 0));
 
                Dest_Name : constant String := Unique_Name;
                Dest_Dir  : constant String := Ada.Directories.Compose (Destination, Dest_Name);

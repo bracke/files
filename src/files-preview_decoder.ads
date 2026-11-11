@@ -38,4 +38,9 @@ package Files.Preview_Decoder is
       Ready : out Boolean;
       Asked : out Boolean);
 
+   --  Forget Owner's request: called when its window goes.
+   --
+   --  @param Owner The window going away.
+   procedure Release (Owner : Requester);
+
 end Files.Preview_Decoder;

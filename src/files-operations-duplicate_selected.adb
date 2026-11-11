@@ -92,8 +92,9 @@ begin
 
             --  A directory-unique copy stem (without extension), e.g. "report
             --  (copy)" or "report (copy 2)" when earlier choices already exist.
-            function Stem (Attempt : Natural) return String is (Base & Copy_Marker (Attempt));
-            function Unique_Stem return String is (First_Free_Name (Destination_Directory, Ext, Stem'Access));
+            function Marker (Attempt : Natural) return String is (Copy_Marker (Attempt));
+            function Unique_Stem return String is
+              (First_Free_Name (Destination_Directory, Base, Ext, Marker'Access));
 
             Dest_Path : constant String :=
               Ada.Directories.Compose (Destination_Directory, Unique_Stem, Ext);
