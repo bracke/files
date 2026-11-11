@@ -3,6 +3,7 @@ with Ada.Strings.Unbounded;
 with GNAT.OS_Lib;
 with Files.Descriptor_Streams;
 with Files.Diagnostics;
+with Files.Durability;
 with Files.File_Identities;
 with Files.Fs_Primitives;
 with Files.Io_Errors;
@@ -39,7 +40,7 @@ package body Files.Durable_Writes is
    begin
       Step := Raised;
       Files.Io_Errors.Clear_Os_Error;
-      File_Sync := Hostkit.Durability.Sync_File (Temporary);
+      File_Sync := Files.Durability.Sync_File (Temporary);
       if File_Sync /= Hostkit.Durability.Synced then
          --  A full disk often shows only here, when the data is flushed.
          Files.Io_Errors.Capture;
@@ -57,7 +58,7 @@ package body Files.Durable_Writes is
       return Outcome_Of
         (File_Sync,
          Replaced       => True,
-         Directory_Sync => Hostkit.Durability.Sync_Directory
+         Directory_Sync => Files.Durability.Sync_Directory
            (Files.Fs_Primitives.Parent_Directory (Target)));
    exception
       when Swallowed : others =>

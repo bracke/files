@@ -28,12 +28,8 @@ separate (Files_Suite.Operations)
                  "sparse transfers retain every byte and the trailing hole without allocating the logical size");
       end Check;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip
-           ("Test_Sparse_Transfers",
-            (if Hostkit.Host.Current = Hostkit.Host.Windows
-             then "the sparse-file fixture is Linux-only C"
-             else "the second test volume (HFS+) has no sparse files"));
+      if Hostkit.Host.Current not in Hostkit.Host.Linux | Hostkit.Host.Windows then
+         Files_Suite.Support.Skip ("Test_Sparse_Transfers", "the second test volume (HFS+) has no sparse files");
          return;
       end if;
       Remote.Create ("files-test-sparse-move-");

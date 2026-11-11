@@ -1,11 +1,11 @@
 with Hostkit.Host;
+with Hostkit.Metadata;
 separate (Files_Suite.Interaction)
    --  Expanding a folder the tree can no longer read keeps the children it
    --  showed and says why: the folder is not passed off as empty, and its
    --  expander stays.
    procedure Test_Tree_Unreadable_Folder_Keeps_Children (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Hostkit.Host.Kind;
       use Ada.Strings.Unbounded;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
@@ -13,11 +13,11 @@ separate (Files_Suite.Interaction)
       Seeds    : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
       Ignored  : Files.Controller.Controller_Result;
    begin
-      if Hostkit.Host.Current = Hostkit.Host.Windows or else Hostkit.Host.Is_Elevated then
+      --  Mode 0 is an empty DACL on Windows, which refuses listing to an
+      --  elevated process too; POSIX root reads past mode 0.
+      if Hostkit.Metadata.Mode_Bits_Are_Native and then Hostkit.Host.Is_Elevated then
          Files_Suite.Support.Skip
-           ("Test_Tree_Unreadable_Folder_Keeps_Children",
-            (if Hostkit.Host.Current = Hostkit.Host.Windows then "needs mode 0 to make a folder unreadable"
-             else "an elevated process ignores mode 0"));
+           ("Test_Tree_Unreadable_Folder_Keeps_Children", "an elevated process ignores mode 0");
          return;
       end if;
       Files_Suite.Support.Reset_Root;

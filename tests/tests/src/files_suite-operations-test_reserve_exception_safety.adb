@@ -4,21 +4,25 @@ separate (Files_Suite.Operations)
       Invalid_Temp : constant String := Join (Root, "not-a-temp-directory");
       Job          : Files.Process_Jobs.Session;
       Failed       : Boolean := False;
+      type Name_Access is access constant String;
+      Tmpdir : aliased constant String := "TMPDIR";
+      Tmp    : aliased constant String := "TMP";
+      Temp   : aliased constant String := "TEMP";
+      Temp_Variables : constant array (1 .. 3) of Name_Access :=
+        [Tmpdir'Access, Tmp'Access, Temp'Access];
    begin
-      if Hostkit.Host.Current not in Hostkit.Host.Linux | Hostkit.Host.MacOS then
-         Files_Suite.Support.Skip
-           ("Test_Reserve_Exception_Safety",
-            "needs Linux or macOS");
-         return;
-      end if;
       Reset_Root;
       Write_Binary_File (Invalid_Temp, "ordinary file");
       declare
-         --  TMPDIR comes back when this block ends, on failure too.
+         --  The temporary directory's variables come back when this block
+         --  ends, on failure too. POSIX reads TMPDIR; Windows' GetTempPathW
+         --  reads TMP, then TEMP.
          Environment : Files_Suite.Support.Environment_Guard;
       begin
-         Files_Suite.Support.Save (Environment, "TMPDIR");
-         Ada.Environment_Variables.Set ("TMPDIR", Invalid_Temp);
+         for Name of Temp_Variables loop
+            Files_Suite.Support.Save (Environment, Name.all);
+            Ada.Environment_Variables.Set (Name.all, Invalid_Temp);
+         end loop;
          begin
             Files.Process_Jobs.Reserve (Job);
          exception

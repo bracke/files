@@ -13,11 +13,11 @@ separate (Files_Suite.Operations)
          end if;
       end Restore;
    begin
-      if Hostkit.Host.Current = Hostkit.Host.Windows or else Hostkit.Host.Is_Elevated then
-         Files_Suite.Support.Skip
-           ("Test_Transport_Cleanup_Retry",
-            (if Hostkit.Host.Current = Hostkit.Host.Windows then "needs mode 0 to make a transport undeletable"
-             else "an elevated process ignores mode 0"));
+      --  Mode 0 is an empty DACL on Windows: a folder that refuses listing,
+      --  and a file that refuses reading, to an elevated process too. POSIX
+      --  root reads past mode 0.
+      if Hostkit.Metadata.Mode_Bits_Are_Native and then Hostkit.Host.Is_Elevated then
+         Files_Suite.Support.Skip ("Test_Transport_Cleanup_Retry", "an elevated process ignores mode 0");
          return;
       end if;
       --  The hard-link alias below goes in the test root.

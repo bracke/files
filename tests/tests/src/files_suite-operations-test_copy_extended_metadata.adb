@@ -24,17 +24,29 @@ separate (Files_Suite.Operations)
          Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Path);
       begin
          Assert (Prepare_Native (Name'Address, Boolean'Pos (Directory)) = 1,
-                 "prepare extended attributes, ACL and nanosecond timestamp fixtures");
+                 "prepare extended attributes (named streams on Windows), ACL and nanosecond timestamp fixtures");
       end Prepare;
+      --  The times are read first: reading the streams back could move the
+      --  access time on an NTFS volume that keeps it.
       procedure Check (Path : String; Directory : Boolean; Expected : Times_Array) is
-         Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Path);
+         Name   : aliased Interfaces.C.char_array := Interfaces.C.To_C (Path);
+         Actual : constant Times_Array := Times_Of (Path);
       begin
-         Assert (Check_Native (Name'Address, Boolean'Pos (Directory)) = 1,
-                 "preserve populated and empty extended attributes and the file ACL");
-         Assert (Times_Of (Path) = Expected, "preserve access and modification timestamps before any read");
+         if Hostkit.Host.Current = Hostkit.Host.Windows then
+            Assert (Check_Native (Name'Address, Boolean'Pos (Directory)) = 1,
+                    "preserve the Zone.Identifier and a custom named stream, and a file's read-only attribute");
+            --  NTFS updates a small volume's access time on every read, the
+            --  copy's own verification among them: only the modification
+            --  time is the copy's to keep there.
+            Assert (Actual (3 .. 4) = Expected (3 .. 4), "preserve the modification timestamp");
+         else
+            Assert (Check_Native (Name'Address, Boolean'Pos (Directory)) = 1,
+                    "preserve populated and empty extended attributes and the file ACL");
+            Assert (Actual = Expected, "preserve access and modification timestamps before any read");
+         end if;
       end Check;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
+      if Hostkit.Host.Current not in Hostkit.Host.Linux | Hostkit.Host.Windows then
          Files_Suite.Support.Skip
            ("Test_Copy_Extended_Metadata",
             "the xattr and POSIX ACL fixture is Linux C");

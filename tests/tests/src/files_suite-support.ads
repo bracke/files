@@ -413,6 +413,39 @@ package Files_Suite.Support is
    --  Delete and recreate the temporary test root directory.
    procedure Reset_Root;
 
+   --  Make Path one its owner cannot delete, where locking its folder alone
+   --  does not stop that. On POSIX a mode-555 folder refuses every unlink in
+   --  it, so this does nothing there. On Windows deleting needs DELETE on the
+   --  entry itself or FILE_DELETE_CHILD on its folder, and an entry made
+   --  before its folder was locked keeps DELETE through the ACE it inherited;
+   --  there Path's own DACL is made read-only (444, 555 for a folder), which
+   --  binds an elevated process too. Allow_Deletion undoes it.
+   --
+   --  @param Path An existing file or folder.
+   procedure Forbid_Deletion (Path : String);
+
+   --  Give Path's owner write and delete access back after Forbid_Deletion
+   --  (644, 755 for a folder). Nothing on POSIX, nor when nothing is there.
+   --
+   --  @param Path A file or folder Forbid_Deletion was given.
+   procedure Allow_Deletion (Path : String);
+
+   --  Create or replace a file with byte-for-byte Content through
+   --  Hostkit.Fs.Create_Stream, which reaches past Windows' 260-character
+   --  path limit where GNAT's own file calls stop.
+   --
+   --  @param Path File to create.
+   --  @param Content Raw bytes represented as String characters.
+   procedure Write_Long_Path_File (Path : String; Content : String);
+
+   --  Does the file at Path hold exactly these bytes? Read through
+   --  Hostkit.Fs.Open_Stream, past Windows' path limit.
+   --
+   --  @param Path File to read.
+   --  @param Bytes Expected content, byte for byte.
+   --  @return True when the file is there and holds exactly Bytes.
+   function Long_Path_File_Is (Path : String; Bytes : String) return Boolean;
+
    --  Create or replace a text file with Content.
    --
    --  @param Path File to create.

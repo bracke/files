@@ -213,7 +213,9 @@ separate (Files_Suite.Operations)
          Show (Model, "moved.zip");
          Routed := Files.Controller.Execute_Non_Settings_Command
            (Files.Commands.Extract_Archive_Command, Model, Settings);
-         Assert_Equal (Routed.Operation.Status, Files.Operations.Operation_Success, "the deep archive is extracted");
+         Assert_Equal
+           (Routed.Operation.Status, Files.Operations.Operation_Success,
+            "the deep archive is extracted: " & To_String (Routed.Operation.Error_Key));
          Assert_Equal (Got (Join (Join (Join (Join (Moved, "moved"), "tree"), "sub"), "leaf.txt")), "leaf bytes",
                        "the extracted tree holds its deepest file");
 

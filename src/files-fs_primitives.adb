@@ -193,6 +193,18 @@ package body Files.Fs_Primitives is
       return Resolved (Whole);
    end Full_Name;
 
+   function Real_Name (Path : String) return String is
+   begin
+      if Hostkit.Host.Current /= Hostkit.Host.Windows then
+         return Full_Name (Path);
+      end if;
+      declare
+         Whole : constant String := Absolute_Name (Path);
+      begin
+         return (if Whole = "" then "" else Resolved (Whole));
+      end;
+   end Real_Name;
+
    procedure Create_Directory (Path : String) is
    begin
       if not Hostkit.Fs.Create_Directory (Path) then

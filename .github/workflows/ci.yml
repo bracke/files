@@ -188,9 +188,9 @@ jobs:
           clone_at messages a6fb47b2a1d520d2e202dd9d7ac318375116615a
           clone_at humanize 60c99ebd3d4080e92b8455fba47adc9c50f19fc3
           clone_at textrender 0a6721cb4239e581518c0d312bb7085e5b1ff402
-          clone_at zlib 850f2f804f9dc9721909e0a06c26f6fec3eb15e7
+          clone_at zlib 3a2ba8c62419b26e6ceb629e9b1702c5e1cdb6ed
           clone_at guikit 6602565e1591a65687d91d84f54353b3849b77c7
-          clone_at hostkit 6573288b986e77f4bf6ac7fea80a21c6788b3409
+          clone_at hostkit d271bda5fc4e48b66029c0c5cf17f61fd7d67491
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
@@ -408,6 +408,99 @@ jobs:
           if (-not (Test-Path 'R:\')) { throw 'the VHD did not mount as R:' }
           'FILES_TEST_OTHER_VOLUME=R:\' | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
+      # Test_Copy_Without_Xattr_Support copies a file carrying named streams
+      # (a download's Zone.Identifier) onto a volume that keeps none, as a
+      # USB stick's FAT or exFAT does, and reads its path from
+      # FILES_TEST_STREAMLESS_VOLUME. Not fatal here either: without it that
+      # test skips, which FILES_TEST_EXPECTED_SKIPS turns red.
+      - name: Mount a volume without named streams (Windows)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vhd = Join-Path $env:RUNNER_TEMP 'files-test-streamless.vhd'
+          $script = Join-Path $env:RUNNER_TEMP 'files-test-streamless.diskpart'
+          @(
+            "create vdisk file=`"$vhd`" maximum=64 type=expandable",
+            "select vdisk file=`"$vhd`"",
+            "attach vdisk",
+            "create partition primary",
+            "format fs=exfat quick label=FilesNoADS",
+            "assign letter=V"
+          ) | Set-Content -Path $script -Encoding ascii
+          diskpart /s $script
+          if ($LASTEXITCODE -ne 0) { throw "diskpart exited with $LASTEXITCODE" }
+          if (-not (Test-Path 'V:\')) { throw 'the VHD did not mount as V:' }
+          (Get-Volume -DriveLetter V).FileSystem
+          'FILES_TEST_STREAMLESS_VOLUME=V:\' | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      # Test_Decode_Emoji_Png_From_Font and Test_Emoji_Draws_As_Colour_Icons
+      # need Noto Color Emoji, a bitmap (CBDT) colour font that Windows and
+      # macOS do not ship. It is installed for the user alone -- copied into
+      # %LOCALAPPDATA%\Microsoft\Windows\Fonts or ~/Library/Fonts, the per-user
+      # folders Hostkit.Fs.Font_Directories names -- because that is where the
+      # fallback chain (Files.Fonts) must find it by name for the rendering
+      # test to draw an emoji; FILES_TEST_EMOJI_FONT points both tests at it.
+      # Fetched from a fixed revision, never main: noto-emoji has moved its
+      # fonts on main before, and the old path then served a 404 page.
+      - name: Install Noto Color Emoji for the user (Windows and macOS)
+        if: runner.os != 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          # TODO(coordinator): set the SHA-256 the first run prints below (and
+          # keep only the URL that served it); a mismatch then fails the job.
+          expected_sha256=''
+          # The commit textrender's CI pins for Noto-COLRv1.ttf, at both of the
+          # layouts the repository has used, then the v2.047 release tag.
+          base=https://raw.githubusercontent.com/googlefonts/noto-emoji
+          rev=1ffdd21391dd1f25c081fa93a9dea0c7c029442b
+          font="$RUNNER_TEMP/NotoColorEmoji.ttf"
+          fetched=''
+          for url in "$base/$rev/fonts/NotoColorEmoji.ttf" \
+                     "$base/$rev/2D/fonts/NotoColorEmoji.ttf" \
+                     "$base/v2.047/fonts/NotoColorEmoji.ttf"; do
+            rm -f "$font"
+            if curl -fsSL --retry 3 -o "$font" "$url"; then
+              # sfnt version 0x00010000 (TrueType): anything else is an error
+              # page, not a font.
+              magic=$(head -c 4 "$font" | od -An -tx1 | tr -d ' \n')
+              if [ "$magic" = 00010000 ]; then
+                fetched="$url"
+                break
+              fi
+              echo "$url did not serve a font (starts $magic)"
+            else
+              echo "$url could not be fetched"
+            fi
+          done
+          if [ -z "$fetched" ]; then
+            echo "::error::no pinned NotoColorEmoji.ttf could be fetched"
+            exit 1
+          fi
+          if command -v sha256sum >/dev/null 2>&1; then
+            actual=$(sha256sum "$font" | awk '{ print $1 }')
+          else
+            actual=$(shasum -a 256 "$font" | awk '{ print $1 }')
+          fi
+          echo "NotoColorEmoji.ttf from $fetched"
+          echo "NotoColorEmoji.ttf SHA-256: $actual"
+          if [ -n "$expected_sha256" ] && [ "$actual" != "$expected_sha256" ]; then
+            echo "::error::NotoColorEmoji.ttf SHA-256 $actual, expected $expected_sha256"
+            exit 1
+          fi
+          if [ "$RUNNER_OS" = Windows ]; then
+            folder="$(cygpath -u "$LOCALAPPDATA")/Microsoft/Windows/Fonts"
+            installed="$LOCALAPPDATA\Microsoft\Windows\Fonts\NotoColorEmoji.ttf"
+          else
+            folder="$HOME/Library/Fonts"
+            installed="$folder/NotoColorEmoji.ttf"
+          fi
+          mkdir -p "$folder"
+          cp "$font" "$folder/NotoColorEmoji.ttf"
+          echo "FILES_TEST_EMOJI_FONT=$installed" >> "$GITHUB_ENV"
+
       - name: Build and run the test suite
         shell: bash
         working-directory: files/tests
@@ -498,8 +591,8 @@ jobs:
       - name: Run the test suite's C fixture under UBSan and the static analyzer (Linux)
         # What this covers: files.gpr is Ada-only, so FILES_CFLAGS reaches
         # exactly one C unit -- the suite's own native fixture,
-        # tests/tests/src/files_test_metadata.c (its fsync/chmod/utimensat
-        # fault shims and the xattr/ACL/sparse helpers). tests.gpr appends
+        # tests/tests/src/files_test_metadata.c (its lsetxattr
+        # fault and the xattr/ACL/sparse helpers). tests.gpr appends
         # FILES_CFLAGS after its own "-Wall -Wextra -Wpedantic -Werror", so
         # every -fanalyzer finding is already a compile error; the
         # -Werror=analyzer-* flags below pin the main classes as errors even

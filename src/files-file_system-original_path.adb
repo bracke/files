@@ -162,7 +162,18 @@ function Original_Path (Trashed_Path : String) return String is
    --  The home trash or the volume trash that holds it.
    Base : constant String := Trash_Base_Of (Trashed_Path);
 begin
-   if Base = "" then
+   --  A Recycle Bin item's $I record says where it came from.
+   if Trash_Backend_Of_Current_Environment = Trash_Windows_Recycle_Bin then
+      declare
+         Item : Hostkit.Trash.Recycle_Bin_Entry;
+      begin
+         if Hostkit.Trash.Entry_Of (Trashed_Path, Item) and then Valid_Original_Path (To_String (Item.Original_Path))
+         then
+            return To_String (Item.Original_Path);
+         end if;
+         return "";
+      end;
+   elsif Base = "" then
       return "";
    end if;
    declare

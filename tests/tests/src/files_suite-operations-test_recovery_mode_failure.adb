@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Recovery_Mode_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,16 +9,19 @@ separate (Files_Suite.Operations)
       Environment : Files_Suite.Support.Environment_Guard;
       procedure Cleanup is
       begin
+         Files.File_System.Testing.Stop_Failing_Directory_Restore;
          Mutation := Files.File_System.Set_Permissions (Source, 8#755#);
       end Cleanup;
    begin
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       Files_Suite.Support.Save (Environment, "FILES_TEST_DIRECTORY_RESTORE_FAULT");
       Files_Suite.Support.Save (Environment, "FILES_TEST_DIRECTORY_RESTORE_BLOCK");
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
+      --  Where the bits are rendered from an ACL, setting them would replace
+      --  the folder's ACL: recovery leaves the mode alone there.
+      if not Hostkit.Metadata.Mode_Bits_Are_Native then
          Files_Suite.Support.Skip
            ("Test_Recovery_Mode_Failure",
-            "the restore fault hooks chmod in Linux-only C");
+            "recovery records a folder's mode only where mode bits are native");
          return;
       end if;
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
@@ -26,11 +30,10 @@ separate (Files_Suite.Operations)
          Ada.Directories.Create_Directory (Source);
          Write_Binary_File (Join (Source, "child"), "original bytes");
          Assert (Files.File_System.Set_Permissions (Source, 8#555#).Success, "prepare a read-only original");
-         Ada.Environment_Variables.Set
-           ("FILES_TEST_DIRECTORY_RESTORE_FAULT", Join (Root, ".files-recovery-1/payload"));
-         if Block_Rollback then
-            Ada.Environment_Variables.Set ("FILES_TEST_DIRECTORY_RESTORE_BLOCK", Source);
-         end if;
+         --  Giving the staged original its mode back fails; with a block,
+         --  something new appears at its name meanwhile.
+         Files.File_System.Testing.Fail_Directory_Restore
+           (Join (Root, ".files-recovery-1/payload"), (if Block_Rollback then Source else ""));
          Mutation := Files.File_System.Preserve_For_Replace (Source, Backup);
          Assert (not Mutation.Success, "a failed mode restoration reports failure");
          if Block_Rollback then
@@ -50,8 +53,7 @@ separate (Files_Suite.Operations)
               (Metadata_Mode_Of (Source) = 8#555#,
                "a failed restoration rolls back the complete original and its mode: mode restored");
          end if;
-         Ada.Environment_Variables.Clear ("FILES_TEST_DIRECTORY_RESTORE_FAULT");
-         Ada.Environment_Variables.Clear ("FILES_TEST_DIRECTORY_RESTORE_BLOCK");
+         Files.File_System.Testing.Stop_Failing_Directory_Restore;
          if Block_Rollback then
             Mutation := Files.File_System.Delete_Permanently (Source);
             Assert (Mutation.Success, "remove the test replacement before retrying recovery");
@@ -100,6 +102,8 @@ separate (Files_Suite.Operations)
             Write_Binary_File (Join (Source, "child"), "original bytes");
             Write_Binary_File (Join (Copy_Source, "child"), "replacement copy");
             Assert (Files.File_System.Set_Permissions (Source, 8#555#).Success, "prepare paste replacement");
+            --  Here, and in the environment for a background transfer's helper.
+            Files.File_System.Testing.Fail_Directory_Restore (Join (Root, ".files-recovery-1/payload"), Source);
             Ada.Environment_Variables.Set
               ("FILES_TEST_DIRECTORY_RESTORE_FAULT", Join (Root, ".files-recovery-1/payload"));
             Ada.Environment_Variables.Set ("FILES_TEST_DIRECTORY_RESTORE_BLOCK", Source);
@@ -113,6 +117,7 @@ separate (Files_Suite.Operations)
             Await_View (Model, Settings);
             Assert (Step.Status = Files.Operations.Operation_Failed and then Files.Model.Undo_Available (Model),
                     "failed replacement retains guarded recovery history in foreground and background");
+            Files.File_System.Testing.Stop_Failing_Directory_Restore;
             Ada.Environment_Variables.Clear ("FILES_TEST_DIRECTORY_RESTORE_FAULT");
             Ada.Environment_Variables.Clear ("FILES_TEST_DIRECTORY_RESTORE_BLOCK");
             Assert (Files.File_System.Delete_Permanently (Source).Success, "remove the test rollback obstruction");

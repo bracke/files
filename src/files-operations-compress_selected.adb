@@ -228,6 +228,17 @@ begin
          Discard_Stage;
          return Failed;
       end if;
+      --  The stage handed the archive owner-only access, which the rename
+      --  kept on Windows: let the destination's inheritance replace it, as
+      --  for any file made there. A file's revision leaves out the change
+      --  time this writes; a failure leaves the archive owner-only, no
+      --  reason to undo it.
+      declare
+         Inherited : constant Boolean := Hostkit.Metadata.Inherit_From_Parent (Output_Path);
+         pragma Unreferenced (Inherited);
+      begin
+         null;
+      end;
       Files.Job_Context.Record_Created
         (Output_Path, "", To_String (Identities.First_Element), To_String (Tree_Revisions.First_Element));
       Discard_Stage;

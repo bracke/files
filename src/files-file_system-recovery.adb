@@ -9,9 +9,11 @@ with Ada.Streams;
 with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 
+with Files.Durability;
 with Hostkit.Durability;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
+with Hostkit.Metadata;
 with Files.Bounded_Streams;
 with Files.Exclusive_Streams;
 with Files.Lease_Streams;
@@ -181,7 +183,7 @@ package body Files.File_System.Recovery is
       Write_Bounded
         (File'Access, Files.File_Identities.Token (Stage), Max_Identity_Length);
       Files.Exclusive_Streams.Close (File);
-      if Hostkit.Durability.Sync_File (Hostkit.Fs.Join (Stage, Owner_Name)) /=
+      if Files.Durability.Sync_File (Hostkit.Fs.Join (Stage, Owner_Name)) /=
         Hostkit.Durability.Synced
       then
          raise Ada.Directories.Use_Error;
@@ -359,11 +361,11 @@ package body Files.File_System.Recovery is
          Files.File_Identities.Token (Files.Fs_Primitives.Parent_Directory (Payload)),
          Max_Identity_Length);
       Files.Exclusive_Streams.Close (File);
-      if Hostkit.Durability.Sync_File (Hostkit.Fs.Join (To_String (Directory), "record")) /=
+      if Files.Durability.Sync_File (Hostkit.Fs.Join (To_String (Directory), "record")) /=
           Hostkit.Durability.Synced
-        or else Hostkit.Durability.Sync_Directory (To_String (Directory)) =
+        or else Files.Durability.Sync_Directory (To_String (Directory)) =
           Hostkit.Durability.Failed
-        or else Hostkit.Durability.Sync_Directory (Root) = Hostkit.Durability.Failed
+        or else Files.Durability.Sync_Directory (Root) = Hostkit.Durability.Failed
       then
          raise Ada.Directories.Use_Error;
       end if;
@@ -756,7 +758,7 @@ package body Files.File_System.Recovery is
       Write_Bounded
         (File'Access, Original, Max_Path_Length);
       Files.Exclusive_Streams.Close (File);
-      if Hostkit.Durability.Sync_File (Hostkit.Fs.Join (To_String (Stage), "original")) /=
+      if Files.Durability.Sync_File (Hostkit.Fs.Join (To_String (Stage), "original")) /=
         Hostkit.Durability.Synced
       then
          raise Ada.Directories.Use_Error;
@@ -764,7 +766,14 @@ package body Files.File_System.Recovery is
       Write_Owner (To_String (Stage), Original);
       Registry_Entry := To_Unbounded_String
         (Register (Hostkit.Fs.Join (To_String (Stage), "payload")));
-      if not Hostkit.Fs.Is_Link (Path) and then Files.Fs_Primitives.Kind (Path) = Ada.Directories.Directory then
+      --  A read-only folder's mode, to give it back after the rename that
+      --  lent it write access. Only where the bits are the host's own: on
+      --  Windows they are read out of the folder's ACL, and setting them
+      --  writes a new ACL in its place, which would drop what it inherits.
+      if Hostkit.Metadata.Mode_Bits_Are_Native
+        and then not Hostkit.Fs.Is_Link (Path)
+        and then Files.Fs_Primitives.Kind (Path) = Ada.Directories.Directory
+      then
          declare
             Available : Boolean;
             Mode : constant Natural := Permission_Bits_Of (Path, Available);
@@ -777,7 +786,7 @@ package body Files.File_System.Recovery is
                  (File'Access,
                   Files.File_Identities.Token (Path), Max_Identity_Length);
                Files.Exclusive_Streams.Close (File);
-               if Hostkit.Durability.Sync_File (Hostkit.Fs.Join (To_String (Stage), "mode")) /=
+               if Files.Durability.Sync_File (Hostkit.Fs.Join (To_String (Stage), "mode")) /=
                  Hostkit.Durability.Synced
                then
                   raise Ada.Directories.Use_Error;
@@ -785,8 +794,8 @@ package body Files.File_System.Recovery is
             end if;
          end;
       end if;
-      if Hostkit.Durability.Sync_Directory (To_String (Stage)) = Hostkit.Durability.Failed
-        or else Hostkit.Durability.Sync_Directory (Parent) = Hostkit.Durability.Failed
+      if Files.Durability.Sync_Directory (To_String (Stage)) = Hostkit.Durability.Failed
+        or else Files.Durability.Sync_Directory (Parent) = Hostkit.Durability.Failed
       then
          raise Ada.Directories.Use_Error;
       end if;
@@ -796,8 +805,8 @@ package body Files.File_System.Recovery is
          raise Ada.Directories.Use_Error;
       end if;
       Backup := To_Unbounded_String (Hostkit.Fs.Join (To_String (Stage), "payload"));
-      if Hostkit.Durability.Sync_Directory (To_String (Stage)) = Hostkit.Durability.Failed
-        or else Hostkit.Durability.Sync_Directory (Parent) = Hostkit.Durability.Failed
+      if Files.Durability.Sync_Directory (To_String (Stage)) = Hostkit.Durability.Failed
+        or else Files.Durability.Sync_Directory (Parent) = Hostkit.Durability.Failed
       then
          return Put_Back;
       end if;
@@ -939,8 +948,10 @@ package body Files.File_System.Recovery is
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_exists"));
       end if;
       --  A failed post-rename permission restoration can leave the private
-      --  payload writable. Restore its recorded mode before retrying the move.
-      if Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Parent, "mode")) then
+      --  payload writable. Restore its recorded mode before retrying the move
+      --  -- where the bits are the host's own, as Preserve records them.
+      if Hostkit.Metadata.Mode_Bits_Are_Native and then Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Parent, "mode"))
+      then
          declare
             Input : aliased Files.Lease_Streams.Input_Stream;
             Record_Path : constant String := Hostkit.Fs.Join (Parent, "mode");

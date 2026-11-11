@@ -35,12 +35,6 @@ separate (Files_Suite.Operations)
          Write_Binary_File (Join (Locked, "b.txt"), "locked");
       end Prepare_Tree;
    begin
-      if Hostkit.Host.Current = Hostkit.Host.Windows then
-         Files_Suite.Support.Skip
-           ("Test_Cross_Device_Recovery",
-            "a mode-555 folder does not refuse an unlink here");
-         return;
-      end if;
       Reset_Root;
       Remote.Create ("files-test-recovery-");
       if Remote.Path = "" then

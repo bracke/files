@@ -12,7 +12,7 @@ begin
    end if;
 
    Result.Attempted := True;
-   Result.Completed := Hostkit.Trash.Move_To_Trash (To_String (Request.Path));
+   Result.Completed := not Native_Trash_Refused and then Hostkit.Trash.Move_To_Trash (To_String (Request.Path));
    if not Result.Completed then
       Result.Error_Key := To_Unbounded_String ("error.trash.failed");
    end if;

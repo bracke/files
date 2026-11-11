@@ -9,12 +9,8 @@ separate (Files_Suite.Operations)
       Denied : Unbounded_String;
       Read_Ok : Boolean;
    begin
-      if Hostkit.Host.Current = Hostkit.Host.Windows then
-         Files_Suite.Support.Skip
-           ("Test_Search_Read_Errors",
-            "needs mode 0 to make a folder unreadable");
-         return;
-      end if;
+      --  Mode 0 is an empty DACL on Windows, which refuses listing and
+      --  reading to an elevated process too.
       for Background in Boolean loop
          for Contents in Boolean loop
             for Case_Id in 1 .. (if Contents then 3 else 2) loop
@@ -92,7 +88,7 @@ separate (Files_Suite.Operations)
       end if;
       declare
          Text : constant String := Files.File_System.Read_Preview_Text
-           ("/dev/null", 100, Read_Ok);
+           (Hostkit.Fs.Null_Device, 100, Read_Ok);
       begin
          Assert
            (not Read_Ok and then Text = "",

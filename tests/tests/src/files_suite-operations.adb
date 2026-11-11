@@ -158,8 +158,9 @@ package body Files_Suite.Operations is
    end Await_Item_Details;
 
    --  Make Directory read-only and say whether that refuses a new entry: as
-   --  root, or on a host whose mode bits this suite does not drive, a create
-   --  still succeeds and a refused write has nothing to observe.
+   --  POSIX root a create still succeeds and a refused write has nothing to
+   --  observe. On Windows the mode is a protected DACL, which binds an
+   --  elevated process too, so being elevated is no reason to give up there.
    --  @param Directory Existing directory to lock.
    --  @return True when a file can no longer be created in Directory.
    function Lock_Directory (Directory : String) return Boolean;
@@ -184,7 +185,7 @@ package body Files_Suite.Operations is
       --  Every host is asked: the probe below says where a mode does not
       --  stop a write (Windows), and the refusal's mapping is host code
       --  worth proving on macOS too.
-      if Hostkit.Host.Is_Elevated
+      if (Hostkit.Metadata.Mode_Bits_Are_Native and then Hostkit.Host.Is_Elevated)
         or else not Files.File_System.Set_Permissions (Directory, 8#555#).Success
       then
          return False;
@@ -252,6 +253,7 @@ package body Files_Suite.Operations is
    procedure Test_Private_Copy_Stages (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Trash_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Extended_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Copy_Encrypted_File (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_Commit_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    procedure Test_Recorded_Restore_Targets (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -286,6 +288,7 @@ package body Files_Suite.Operations is
    procedure Test_Trash_Deletion_Date (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Trash_Backend_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Native_Trash_Adapters (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Recycle_Bin_Trash_View (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Xdg_Trash_Move (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Trash_Name_Collisions (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Trash_Backspace_And_Encoding (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -405,6 +408,7 @@ package body Files_Suite.Operations is
    procedure Test_History_Journal_Fits_Large_Actions (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Symlink_Creation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Set_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Permission_Undo_Restores_Access (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Set_Ownership_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Paste_Move (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Partial_Redo_Creation (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -707,6 +711,9 @@ package body Files_Suite.Operations is
         (T, Test_Native_Trash_Adapters'Access,
          "native Windows and macOS trash adapters report their support per host");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Recycle_Bin_Trash_View'Access,
+         "the windows recycle bin is the trash view, restored from, undone and deleted from");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Xdg_Trash_Move'Access, "Delete moves the selected item into an owner-only XDG trash");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Trash_Name_Collisions'Access, "trash name collisions choose a suffixed name and metadata");
@@ -974,6 +981,9 @@ package body Files_Suite.Operations is
         (T, Test_Redo_Symlink_Creation'Access, "a created symlink undoes and redoes symmetrically");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Redo_Set_Permissions'Access, "chmod undoes to the old mode and redoes to the new mode");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Permission_Undo_Restores_Access'Access,
+         "a permission edit keeps inherited access and its undo restores the access it replaced");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Redo_Set_Ownership_Identity'Access, "identity chown undoes and redoes symmetrically");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1262,6 +1272,9 @@ package body Files_Suite.Operations is
         (T, Test_Copy_Extended_Metadata'Access,
          "copies and cross-device moves retain access times, extended attributes and ACLs");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Copy_Encrypted_File'Access,
+         "copies and cross-device moves of encrypted files are encrypted from creation");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Move_Commit_Recovery'Access,
          "lost move results retain Undo when the source pathname is recreated");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1340,6 +1353,7 @@ package body Files_Suite.Operations is
    procedure Test_Trash_Backend_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Native_Trash_Adapters (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Recycle_Bin_Trash_View (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Xdg_Trash_Move (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -1711,6 +1725,8 @@ package body Files_Suite.Operations is
 
    procedure Test_Copy_Extended_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Copy_Encrypted_File (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Move_Commit_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Recorded_Restore_Targets (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -1891,6 +1907,8 @@ package body Files_Suite.Operations is
 
    procedure Test_Redo_Set_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Permission_Undo_Restores_Access (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Redo_Set_Ownership_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Redo_Paste_Move (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -2018,7 +2036,7 @@ package body Files_Suite.Operations is
 
    procedure Test_Symlink_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-   --  The stage sync after the move fails (files_test_metadata.c): the
+   --  The stage sync after the move fails (Files.Durability.Testing): the
    --  original must be at its own path again, not left hidden in the stage.
    procedure Test_Preserve_Puts_Original_Back (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

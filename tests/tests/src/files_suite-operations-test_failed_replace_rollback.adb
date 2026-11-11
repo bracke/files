@@ -22,12 +22,6 @@ separate (Files_Suite.Operations)
          Result := Files.File_System.Set_Permissions (Locked, 8#755#);
       end Cleanup;
    begin
-      if Hostkit.Host.Current = Hostkit.Host.Windows then
-         Files_Suite.Support.Skip
-           ("Test_Failed_Replace_Rollback",
-            "a mode-555 folder does not refuse an unlink here");
-         return;
-      end if;
       Reset_Root;
       Remote.Create ("files-test-replace-recovery-");
       if Remote.Path = "" then

@@ -90,15 +90,12 @@ separate (Files_Suite.Settings)
             Files_Suite.Support.Link_Not_Made ("Test_Settings_Load_File_Inputs", Files_Suite.Support.Symbolic_Link);
          end if;
       end;
-      if Hostkit.Host.Current = Hostkit.Host.Windows then
-         Files_Suite.Support.Skip ("Test_Settings_Load_File_Inputs", "Windows has no /dev/null special file");
-      else
-         Loaded := Files.Settings.Load_File ("/dev/null");
-         Assert
-           (not Loaded.Success
-            and then To_String (Loaded.Error_Key) = "error.settings.not_file",
-            "settings loading rejects a special file without reading it");
-      end if;
+      --  /dev/null, or Windows' NUL device.
+      Loaded := Files.Settings.Load_File (Hostkit.Fs.Null_Device);
+      Assert
+        (not Loaded.Success
+         and then To_String (Loaded.Error_Key) = "error.settings.not_file",
+         "settings loading rejects a special file without reading it: " & To_String (Loaded.Error_Key));
 
       Write_File
         (Long_Path,

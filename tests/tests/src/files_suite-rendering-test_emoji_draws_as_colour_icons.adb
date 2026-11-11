@@ -14,8 +14,15 @@ separate (Files_Suite.Rendering)
    procedure Test_Emoji_Draws_As_Colour_Icons (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
 
+      --  Debian's Noto Color Emoji, unless FILES_TEST_EMOJI_FONT names another
+      --  copy: on Windows and macOS, which ship none, CI installs one in the
+      --  user's own font folder, where the fallback chain (Files.Fonts) finds
+      --  it by name.
       Emoji_Font : constant String :=
-        "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf";
+        (if Ada.Environment_Variables.Exists ("FILES_TEST_EMOJI_FONT")
+           and then Ada.Environment_Variables.Value ("FILES_TEST_EMOJI_FONT") /= ""
+         then Ada.Environment_Variables.Value ("FILES_TEST_EMOJI_FONT")
+         else "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf");
 
       --  U+1F389 PARTY POPPER, spelled out so the file stays plain ASCII.
       Party : constant String :=

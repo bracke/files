@@ -2,6 +2,7 @@ with Files_Suite.Volumes;
 separate (Files_Suite.Operations)
    procedure Test_Deep_Tree_Copy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      use type Hostkit.Fs.Entry_Kind;
       Source : constant String := Join (Root, "source");
       Dest : constant String := Join (Root, "copy");
       Leaf : Unbounded_String;
@@ -10,8 +11,18 @@ separate (Files_Suite.Operations)
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Load : Files.File_System.Directory_Load_Result;
       Remote : Files_Suite.Volumes.Remote_Directory;
+
+      --  The fixture is built through Hostkit, which reaches past Windows'
+      --  260-character limit where GNAT's own calls stop: 1025 levels of
+      --  "\d" are some 2000 characters there.
+      procedure Make_Directory (Path : String) is
+      begin
+         Assert (Hostkit.Fs.Create_Directory (Path), "make the deep fixture's folder " & Path);
+      end Make_Directory;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
+      --  macOS refuses any path past PATH_MAX, 1024 bytes, which 1025 levels
+      --  of "/d" pass; Windows' 32767 UTF-16 units hold them.
+      if Hostkit.Host.Current = Hostkit.Host.MacOS then
          Files_Suite.Support.Skip
            ("Test_Deep_Tree_Copy",
             "the 1025-deep fixture passes the host's path limit");
@@ -22,22 +33,23 @@ separate (Files_Suite.Operations)
          Reset_Root;
          Relative := Null_Unbounded_String;
          Leaf := To_Unbounded_String (Source);
-         Ada.Directories.Create_Directory (Source);
+         Make_Directory (Source);
          for N in 1 .. (if Depth = 1 then 128 elsif Depth = 2 then 256 else 1_025) loop
             Append (Leaf, "/d");
             Append (Relative, "/d");
-            Ada.Directories.Create_Directory (To_String (Leaf));
+            Make_Directory (To_String (Leaf));
          end loop;
-         Write_Binary_File (Join (To_String (Leaf), "child"), "deep bytes");
+         Write_Long_Path_File (Join (To_String (Leaf), "child"), "deep bytes");
          Mutation := Files.File_System.Copy_Tree (Source, Dest);
          if Depth < 3 then
-            Assert (Mutation.Success and then File_Has_Bytes (Dest & To_String (Relative) & "/child", "deep bytes"),
+            Assert (Mutation.Success and then Long_Path_File_Is (Dest & To_String (Relative) & "/child", "deep bytes"),
                     "copying a valid deep directory tree completes without a stack overflow");
          else
-            Assert (not Mutation.Success and then not Ada.Directories.Exists (Dest),
+            Assert (not Mutation.Success and then Hostkit.Fs.Kind_Of (Dest) = Hostkit.Fs.Missing_Entry,
                     "exceeding the traversal depth cap fails without publishing an incomplete copy");
          end if;
-         Assert (File_Has_Bytes (Join (To_String (Leaf), "child"), "deep bytes"), "deep copies preserve their source");
+         Assert (Long_Path_File_Is (Join (To_String (Leaf), "child"), "deep bytes"),
+                 "deep copies preserve their source");
          Load := Files.File_System.Load_Directory (Root, Settings);
          for Item of Load.Items loop
             Assert (Ada.Strings.Fixed.Index (To_String (Item.Name), ".files-work-") /= 1,
@@ -58,12 +70,12 @@ separate (Files_Suite.Operations)
             Moved    : Files.File_System.Mutation_Result;
          begin
             Leaf := To_Unbounded_String (Source);
-            Ada.Directories.Create_Directory (Source);
+            Make_Directory (Source);
             for N in 1 .. 1_000 loop
                Append (Leaf, "/d");
-               Ada.Directories.Create_Directory (To_String (Leaf));
+               Make_Directory (To_String (Leaf));
             end loop;
-            Write_Binary_File (Join (To_String (Leaf), "child"), "deep bytes");
+            Write_Long_Path_File (Join (To_String (Leaf), "child"), "deep bytes");
             Paths.Append (To_Unbounded_String (Source));
             Plans := Files.File_System.Plan_Drop_Import (Paths, Remote.Path, Files.File_System.Drop_Move);
             Moved := Files.File_System.Execute_Drop_Import (Plans.Plans);

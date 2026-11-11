@@ -2,6 +2,7 @@ separate (Files.Operations)
 function Execute_Open_Action
   (Action      : Files.Settings.Open_Action;
    Exit_Status : out Integer;
+   Failure_Key : out UString;
    Detach      : Boolean := False)
    return Boolean
 is
@@ -9,17 +10,25 @@ is
    Arguments  : constant Hostkit.String_Vectors.Vector := Host_Arguments (Action.Arguments);
 begin
    Exit_Status := -1;
+   Failure_Key := Null_Unbounded_String;
 
    if Executable = "" then
       return False;
    end if;
 
    if not Action.Use_Shell and then Is_Windows_Start_Opener (Executable, Arguments) then
-      if Hostkit.Process.Open_Native (To_String (Arguments (4))) then
-         Exit_Status := 0;
-         return True;
-      end if;
-      return False;
+      case Hostkit.Process.Open_Native_Outcome (To_String (Arguments (4))) is
+         when Hostkit.Process.Opened =>
+            Exit_Status := 0;
+            return True;
+         when Hostkit.Process.Open_Path_Too_Long =>
+            --  Not a failed launch: nothing was launched, because the shell
+            --  cannot take a path this long here.
+            Failure_Key := To_Unbounded_String ("error.open.path_too_long");
+            return False;
+         when Hostkit.Process.Open_Failed =>
+            return False;
+      end case;
    end if;
 
    --  An explicit-shell action is a command line, so it goes through the shell, and

@@ -23,6 +23,7 @@ with GNAT.CRC32;
 
 with Hostkit.Fs;
 with Hostkit.Host;
+with Hostkit.Metadata;
 
 package body Files_Suite.Support is
 
@@ -168,6 +169,76 @@ package body Files_Suite.Support is
       end if;
       Ada.Directories.Create_Path (Root);
    end Reset_Root;
+
+   procedure Forbid_Deletion (Path : String) is
+      use type Hostkit.Fs.Entry_Kind;
+   begin
+      if not Hostkit.Metadata.Mode_Bits_Are_Native then
+         Assert
+           (Hostkit.Metadata.Set_Exact_Permissions
+              (Path, (if Hostkit.Fs.Kind_Of (Path) = Hostkit.Fs.Directory_Entry then 8#555# else 8#444#)),
+            "the fixture's own access is made read-only so it cannot be deleted: " & Path);
+      end if;
+   end Forbid_Deletion;
+
+   procedure Allow_Deletion (Path : String) is
+      use type Hostkit.Fs.Entry_Kind;
+      Ignored : Boolean;
+   begin
+      if not Hostkit.Metadata.Mode_Bits_Are_Native and then Hostkit.Fs.Kind_Of (Path) /= Hostkit.Fs.Missing_Entry
+      then
+         Ignored := Hostkit.Metadata.Set_Exact_Permissions
+           (Path, (if Hostkit.Fs.Kind_Of (Path) = Hostkit.Fs.Directory_Entry then 8#755# else 8#644#));
+      end if;
+   end Allow_Deletion;
+
+   procedure Write_Long_Path_File (Path : String; Content : String) is
+      File   : Ada.Streams.Stream_IO.File_Type;
+      Buffer : Ada.Streams.Stream_Element_Array (1 .. Content'Length);
+   begin
+      for Index in Content'Range loop
+         Buffer (Ada.Streams.Stream_Element_Offset (Index - Content'First + 1)) :=
+           Ada.Streams.Stream_Element (Character'Pos (Content (Index)));
+      end loop;
+      Hostkit.Fs.Create_Stream (File, Ada.Streams.Stream_IO.Out_File, Path);
+      Ada.Streams.Stream_IO.Write (File, Buffer);
+      Ada.Streams.Stream_IO.Close (File);
+   exception
+      when others =>
+         if Ada.Streams.Stream_IO.Is_Open (File) then
+            Ada.Streams.Stream_IO.Close (File);
+         end if;
+         raise;
+   end Write_Long_Path_File;
+
+   function Long_Path_File_Is (Path : String; Bytes : String) return Boolean is
+      use type Ada.Streams.Stream_Element_Offset;
+      use type Hostkit.Fs.Entry_Kind;
+      File   : Ada.Streams.Stream_IO.File_Type;
+      Buffer : Ada.Streams.Stream_Element_Array (1 .. 4_096);
+      Last   : Ada.Streams.Stream_Element_Offset;
+      Whole  : Unbounded_String;
+   begin
+      if Hostkit.Fs.Kind_Of (Path) /= Hostkit.Fs.Ordinary_File_Entry then
+         return False;
+      end if;
+      Hostkit.Fs.Open_Stream (File, Ada.Streams.Stream_IO.In_File, Path);
+      loop
+         Ada.Streams.Stream_IO.Read (File, Buffer, Last);
+         for Index in Buffer'First .. Last loop
+            Append (Whole, Character'Val (Buffer (Index)));
+         end loop;
+         exit when Last < Buffer'Last;
+      end loop;
+      Ada.Streams.Stream_IO.Close (File);
+      return To_String (Whole) = Bytes;
+   exception
+      when others =>
+         if Ada.Streams.Stream_IO.Is_Open (File) then
+            Ada.Streams.Stream_IO.Close (File);
+         end if;
+         raise;
+   end Long_Path_File_Is;
 
    procedure Write_File (Path : String; Content : String := "x") is
    begin

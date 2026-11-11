@@ -9,6 +9,7 @@ with Files.Fs_Primitives;
 with Files.Durable_Writes;
 with Files.Private_Directories;
 with Files.Process_Jobs;
+with Files.Durability;
 with Hostkit.Durability;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
@@ -173,10 +174,10 @@ package body Files.Job_Context is
 
    procedure Sync_Journal (Path : String) is
    begin
-      if Hostkit.Durability.Sync_File (Path) = Hostkit.Durability.Synced then
+      if Files.Durability.Sync_File (Path) = Hostkit.Durability.Synced then
          declare
             Outcome : constant Hostkit.Durability.Outcome :=
-              Hostkit.Durability.Sync_Directory (Files.Fs_Primitives.Parent_Directory (Path));
+              Files.Durability.Sync_Directory (Files.Fs_Primitives.Parent_Directory (Path));
             pragma Unreferenced (Outcome);
          begin
             null;

@@ -1,3 +1,4 @@
+with Files.Durability.Testing;
 with Files_Suite.Volumes;
 separate (Files_Suite.Operations)
    --  A restore from a trash on another device copies the item back. When
@@ -11,11 +12,6 @@ separate (Files_Suite.Operations)
       Result      : Files.File_System.Mutation_Result;
       Environment : Files_Suite.Support.Environment_Guard;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip
-           ("Test_Restore_Keeps_Trash_Until_Synced", "the sync fault hooks fsync in Linux-only C");
-         return;
-      end if;
       Reset_Root;
       Remote.Create ("files-test-restore-sync-");
       if Remote.Path = "" then
@@ -24,7 +20,6 @@ separate (Files_Suite.Operations)
       end if;
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");
-      Files_Suite.Support.Save (Environment, "FILES_TEST_SYNC_FAULT_SUFFIX");
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Remote.Path, "data"));
       Write_Binary_File (Original, "kept");
@@ -37,9 +32,9 @@ separate (Files_Suite.Operations)
                  Ada.Directories.Simple_Name (To_String (Trashed)) & ".trashinfo");
       begin
          --  The restored file is flushed as it is written, staged as "payload".
-         Ada.Environment_Variables.Set ("FILES_TEST_SYNC_FAULT_SUFFIX", "/payload");
+         Files.Durability.Testing.Fail_Syncs_Ending_With ("/payload");
          Result := Files.File_System.Restore_From_Trash (To_String (Trashed));
-         Ada.Environment_Variables.Clear ("FILES_TEST_SYNC_FAULT_SUFFIX");
+         Files.Durability.Testing.Clear;
          --  The copy is flushed as it is written, so a flush that fails
          --  fails the restore before anything is published.
          Assert (not Result.Success and then not Ada.Directories.Exists (Original),
@@ -47,4 +42,8 @@ separate (Files_Suite.Operations)
          Assert (File_Has_Bytes (To_String (Trashed), "kept"), "the trash keeps its copy");
          Assert (Ada.Directories.Exists (Info), "and its info file, so the trash still lists it");
       end;
+   exception
+      when others =>
+         Files.Durability.Testing.Clear;
+         raise;
    end Test_Restore_Keeps_Trash_Until_Synced;

@@ -3,18 +3,13 @@
 -- test that skips for another reason fails the run as an unlisted skip does.
 Test_Autonomous_Cleanup_Worker: the stopped-worker half needs Linux and its /proc
 Test_Copy_Extended_Metadata: the xattr and POSIX ACL fixture is Linux C
-Test_Decode_Emoji_Png_From_Font: the Noto Color Emoji font is not installed
 Test_Deep_Tree_Copy: the 1025-deep fixture passes the host's path limit
-Test_Emoji_Draws_As_Colour_Icons: the Noto Color Emoji font is not installed
 Test_Hardlink_Dangling_Symlink: link() follows a symlink here; a dangling one fails
 Test_Hard_Linked_Symbolic_Links: link() follows a symlink here; a dangling one fails
 Test_Invalid_UTF8_Names: this filesystem would not store a name that is not valid UTF-8
 Test_Move_Ownership: the owning-group fixture is Linux-only C
-Test_Preserve_Puts_Original_Back: the stage-sync fault hooks fsync in Linux-only C
-Test_Recovery_Mode_Failure: the restore fault hooks chmod in Linux-only C
 Test_Sparse_Transfers: the second test volume (HFS+) has no sparse files
 Test_Staging_Default_ACL: the default-ACL fixture is a Linux POSIX ACL
-Test_Trash_Source_Verification: the trash fault hooks utimensat in Linux-only C
-Test_Move_Keeps_Source_Until_Copy_Synced: the sync fault hooks fsync in Linux-only C
-Test_Restore_Keeps_Trash_Until_Synced: the sync fault hooks fsync in Linux-only C
 Test_Copy_Without_Xattr_Support: the xattr fault hooks lsetxattr in Linux-only C
+Test_Recycle_Bin_Trash_View: needs the Windows Recycle Bin
+Test_Copy_Encrypted_File: EFS encryption is Windows'

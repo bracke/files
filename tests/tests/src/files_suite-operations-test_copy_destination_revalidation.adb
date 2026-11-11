@@ -20,12 +20,8 @@ separate (Files_Suite.Operations)
          Assert (File_Has_Bytes (Join (Source, "original"), "original bytes"), "the source is unchanged");
       end Check_Source;
    begin
-      if Hostkit.Host.Current = Hostkit.Host.Windows then
-         Files_Suite.Support.Skip
-           ("Test_Copy_Destination_Revalidation",
-            "Normalize_Pathname resolves no links here");
-         return;
-      end if;
+      --  On Windows too: the destination's links and junctions are resolved
+      --  (Files.Fs_Primitives.Real_Name) though its Full_Name reads text.
       Settings.Show_Hidden_Files := True;
       for Background in Boolean loop
          Reset_Root;

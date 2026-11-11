@@ -9,47 +9,10 @@
 #include <sys/syscall.h>
 #include <stdlib.h>
 #include <errno.h>
-#include <stdio.h>
 
-static int trash_fault_applied;
-void files_test_fault_reset(void) { trash_fault_applied = 0; }
-
-/* Faults are linked only into the test executable, never the application. */
-/* With FILES_TEST_STAGE_SYNC_FAULT set, syncing a recovery stage that already
-   holds its payload fails: the original has moved and Preserve must put it back. */
-/* With FILES_TEST_SYNC_FAULT_SUFFIX set, syncing any file whose path ends
-   with it fails: a move must not remove its source after that. */
-int fsync(int fd) {
-    const char *suffix = getenv("FILES_TEST_SYNC_FAULT_SUFFIX");
-    if (suffix) {
-        char link[64], actual[4096];
-        snprintf(link, sizeof(link), "/proc/self/fd/%d", fd);
-        ssize_t count = readlink(link, actual, sizeof(actual)-1);
-        size_t length = strlen(suffix);
-        if (count >= 0 && (size_t)count >= length) {
-            actual[count] = 0;
-            if (!strcmp(actual + count - length, suffix)) {
-                errno = EIO;
-                return -1;
-            }
-        }
-    }
-    if (getenv("FILES_TEST_STAGE_SYNC_FAULT")) {
-        char link[64], actual[4096], payload[4200];
-        snprintf(link, sizeof(link), "/proc/self/fd/%d", fd);
-        ssize_t count = readlink(link, actual, sizeof(actual)-1);
-        if (count >= 0) {
-            actual[count] = 0;
-            const char *base = strrchr(actual, '/');
-            snprintf(payload, sizeof(payload), "%s/payload", actual);
-            if (base && !strncmp(base + 1, ".files-recovery-", 16) && access(payload, F_OK) == 0) {
-                errno = EIO;
-                return -1;
-            }
-        }
-    }
-    return (int)syscall(SYS_fsync, fd);
-}
+/* Faults are linked only into the test executable, never the application.
+   The flush, copy and restore faults are Ada seams (Files.Durability.Testing,
+   Files.File_System.Testing), so that they run on every host. */
 
 /* With FILES_TEST_XATTR_UNSUPPORTED set, setting any extended attribute
    fails as on a volume that holds none (vfat, exFAT): a copy must still
@@ -60,50 +23,6 @@ int lsetxattr(const char *path, const char *name, const void *value, size_t size
         return -1;
     }
     return (int)syscall(SYS_lsetxattr, path, name, value, size, flags);
-}
-
-int chmod(const char *path, mode_t mode) {
-    const char *trigger = getenv("FILES_TEST_DIRECTORY_RESTORE_FAULT");
-    if (trigger && mode == 0555 && !strncmp(path, "/proc/self/fd/", 14)) {
-        char actual[4096];
-        ssize_t count = readlink(path, actual, sizeof(actual)-1);
-        if (count >= 0) {
-            actual[count] = 0;
-            if (!strcmp(actual, trigger)) {
-                const char *block = getenv("FILES_TEST_DIRECTORY_RESTORE_BLOCK");
-                if (block && mkdir(block, 0700) == 0) {
-                    char child[4096];
-                    snprintf(child, sizeof(child), "%s/replacement", block);
-                    int output = open(child, O_WRONLY | O_CREAT | O_EXCL, 0600);
-                    if (output >= 0) { (void)write(output, "replacement bytes", 17); close(output); }
-                }
-                errno = EIO;
-                return -1;
-            }
-        }
-    }
-    return (int)syscall(SYS_fchmodat, AT_FDCWD, path, mode);
-}
-
-int utimensat(int fd, const char *path, const struct timespec times[2], int flags) {
-    int result = (int)syscall(SYS_utimensat, fd, path, times, flags);
-    const char *trigger = getenv("FILES_TEST_TRASH_TRIGGER");
-    const char *source = getenv("FILES_TEST_TRASH_SOURCE");
-    const char *fault = getenv("FILES_TEST_TRASH_FAULT");
-    if (!result && !trash_fault_applied && trigger && source && fault &&
-        !strncmp(path, trigger, strlen(trigger)) && strlen(path) >= 8 &&
-        !strcmp(path + strlen(path) - 8, "/payload")) {
-        trash_fault_applied = 1;
-        char changed[4096];
-        if (!strcmp(fault, "replace")) {
-            snprintf(changed, sizeof(changed), "%s.saved", source);
-            if (rename(source, changed)) return result;
-        }
-        snprintf(changed, sizeof(changed), "%s%s", source, !strcmp(fault, "folder") ? "/child" : "");
-        int output = open(changed, O_WRONLY | O_CREAT | O_TRUNC, 0600);
-        if (output >= 0) { (void)write(output, "new edits", 9); close(output); }
-    }
-    return result;
 }
 
 static const unsigned char access_acl[] = {
@@ -196,8 +115,147 @@ int files_test_sparse_check(const char *path, int mixed) {
     }
     return close(fd) == 0 && ok;
 }
+#elif defined(_WIN32)
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0A00
+#endif
+#include <windows.h>
+#include <string.h>
+#include <wchar.h>
+
+/* Windows keeps in named data streams what Linux keeps in xattrs: the Mark
+   of the Web a browser puts on a download is the Zone.Identifier stream. */
+static const char zone_value[] = "[ZoneTransfer]\r\nZoneId=3\r\n";
+static const char stream_value[] = "metadata retained";
+
+static int widen(const char *path, const wchar_t *suffix, wchar_t *out, int size) {
+    int length = MultiByteToWideChar(CP_UTF8, 0, path, -1, out, size);
+    if (length <= 0) return 0;
+    if (suffix) {
+        if ((size_t)length + wcslen(suffix) > (size_t)size) return 0;
+        wcscat(out, suffix);
+    }
+    return 1;
+}
+
+static int write_stream(const char *path, const wchar_t *stream, const char *value, DWORD size) {
+    wchar_t name[2048];
+    DWORD written = 0;
+    if (!widen(path, stream, name, 2048)) return 0;
+    HANDLE file = CreateFileW(name, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (file == INVALID_HANDLE_VALUE) return 0;
+    int ok = WriteFile(file, value, size, &written, NULL) && written == size;
+    return CloseHandle(file) && ok;
+}
+
+static int stream_holds(const char *path, const wchar_t *stream, const char *value, DWORD size) {
+    wchar_t name[2048];
+    char actual[256];
+    DWORD count = 0;
+    if (!widen(path, stream, name, 2048)) return 0;
+    HANDLE file = CreateFileW(name, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING,
+                              FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (file == INVALID_HANDLE_VALUE) return 0;
+    int ok = ReadFile(file, actual, sizeof(actual), &count, NULL) && count == size && !memcmp(actual, value, size);
+    return CloseHandle(file) && ok;
+}
+
+static FILETIME file_time(ULONGLONG unix_seconds, ULONGLONG ticks) {
+    ULONGLONG value = (unix_seconds + 11644473600ULL) * 10000000ULL + ticks;
+    FILETIME result;
+    result.dwLowDateTime = (DWORD)(value & 0xFFFFFFFFULL);
+    result.dwHighDateTime = (DWORD)(value >> 32);
+    return result;
+}
+
+/* A file is left read-only: its streams must be copied before that
+   attribute is, or the copy could not take them. Writing a stream moves
+   the modification time, so the times are set afterwards, to the Linux
+   fixture's (to the 100 ns NTFS keeps). */
+int files_test_metadata_prepare(const char *path, int directory) {
+    wchar_t name[2048];
+    if (!widen(path, NULL, name, 2048)) return 0;
+    if (!directory && !SetFileAttributesW(name, FILE_ATTRIBUTE_NORMAL)) return 0;
+    if (!write_stream(path, L":Zone.Identifier", zone_value, sizeof(zone_value) - 1) ||
+        !write_stream(path, L":files.test", stream_value, sizeof(stream_value) - 1)) return 0;
+    HANDLE entry = CreateFileW(name, FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                               NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+    if (entry == INVALID_HANDLE_VALUE) return 0;
+    FILETIME accessed = file_time(1577836800ULL, 1234567), modified = file_time(1609459200ULL, 9876543);
+    int ok = SetFileTime(entry, NULL, &accessed, &modified);
+    if (!CloseHandle(entry) || !ok) return 0;
+    return directory || SetFileAttributesW(name, FILE_ATTRIBUTE_READONLY);
+}
+
+int files_test_metadata_check(const char *path, int directory) {
+    wchar_t name[2048];
+    if (!widen(path, NULL, name, 2048)) return 0;
+    DWORD attributes = GetFileAttributesW(name);
+    if (attributes == INVALID_FILE_ATTRIBUTES) return 0;
+    if (!directory && !(attributes & FILE_ATTRIBUTE_READONLY)) return 0;
+    return stream_holds(path, L":Zone.Identifier", zone_value, sizeof(zone_value) - 1) &&
+           stream_holds(path, L":files.test", stream_value, sizeof(stream_value) - 1);
+}
+
+long long files_test_supplementary_group(void) { return -1; }
+int files_test_set_copy_group(const char *path) { (void)path; return 0; }
+long long files_test_entry_group(const char *path) { (void)path; return -1; }
+int files_test_default_acl(const char *path, int owner) { (void)path; (void)owner; return 0; }
+
+static int write_byte_at(HANDLE file, LONGLONG offset, char value) {
+    LARGE_INTEGER position;
+    DWORD written = 0;
+    position.QuadPart = offset;
+    return SetFilePointerEx(file, position, NULL, FILE_BEGIN) &&
+           WriteFile(file, &value, 1, &written, NULL) && written == 1;
+}
+
+/* The Linux fixture's shape, made sparse the Windows way: FSCTL_SET_SPARSE,
+   then an end of file 16 MiB + 3 out that allocates nothing. */
+int files_test_sparse_prepare(const char *path, int mixed) {
+    wchar_t name[2048];
+    DWORD returned = 0;
+    LARGE_INTEGER end;
+    if (!widen(path, NULL, name, 2048)) return 0;
+    HANDLE file = CreateFileW(name, GENERIC_READ | GENERIC_WRITE, 0, NULL, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file == INVALID_HANDLE_VALUE) return 0;
+    end.QuadPart = 16 * 1024 * 1024 + 3;
+    int ok = DeviceIoControl(file, FSCTL_SET_SPARSE, NULL, 0, NULL, 0, &returned, NULL) &&
+             SetFilePointerEx(file, end, NULL, FILE_BEGIN) && SetEndOfFile(file);
+    if (ok && mixed) ok = write_byte_at(file, 1024 * 1024 + 7, 'A') &&
+                          write_byte_at(file, 12 * 1024 * 1024 + 3, 'Z');
+    return CloseHandle(file) && ok;
+}
+
+/* Every byte, and an allocation (GetCompressedFileSizeW: what a sparse file
+   really holds, in 64 KiB units on NTFS) under 1 MiB. */
+int files_test_sparse_check(const char *path, int mixed) {
+    wchar_t name[2048];
+    static unsigned char buffer[65536];
+    LARGE_INTEGER size;
+    DWORD high = 0, count = 0;
+    LONGLONG offset = 0;
+    if (!widen(path, NULL, name, 2048)) return 0;
+    SetLastError(NO_ERROR);
+    DWORD low = GetCompressedFileSizeW(name, &high);
+    if (low == INVALID_FILE_SIZE && GetLastError() != NO_ERROR) return 0;
+    if ((((ULONGLONG)high << 32) | low) >= 1024 * 1024) return 0;
+    HANDLE file = CreateFileW(name, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file == INVALID_HANDLE_VALUE) return 0;
+    int ok = GetFileSizeEx(file, &size) && size.QuadPart == 16 * 1024 * 1024 + 3;
+    while (ok && offset < size.QuadPart) {
+        if (!ReadFile(file, buffer, sizeof(buffer), &count, NULL) || count == 0) { ok = 0; break; }
+        for (DWORD i = 0; i < count; ++i) {
+            LONGLONG position = offset + i;
+            unsigned char expected = mixed && position == 1024 * 1024 + 7 ? 'A' :
+                                     mixed && position == 12 * 1024 * 1024 + 3 ? 'Z' : 0;
+            if (buffer[i] != expected) { ok = 0; break; }
+        }
+        offset += count;
+    }
+    return CloseHandle(file) && ok;
+}
 #else
-void files_test_fault_reset(void) {}
 int files_test_metadata_prepare(const char *path, int directory) { (void)path; (void)directory; return 0; }
 int files_test_metadata_check(const char *path, int directory) { (void)path; (void)directory; return 0; }
 long long files_test_supplementary_group(void) { return -1; }
@@ -206,6 +264,107 @@ long long files_test_entry_group(const char *path) { (void)path; return -1; }
 int files_test_default_acl(const char *path, int owner) { (void)path; (void)owner; return 0; }
 int files_test_sparse_prepare(const char *path, int mixed) { (void)path; (void)mixed; return 0; }
 int files_test_sparse_check(const char *path, int mixed) { (void)path; (void)mixed; return 0; }
+#endif
+
+/* Windows-only fixtures: streams, EFS and inherited ACEs. Elsewhere they
+   answer "not done", and the tests that call them run only on Windows. */
+#if defined(_WIN32)
+#include <aclapi.h>
+#include <sddl.h>
+
+/* How many named data streams the entry has (its unnamed ::$DATA left out);
+   a volume without streams has none to list. */
+int files_test_named_stream_count(const char *path) {
+    wchar_t name[2048];
+    WIN32_FIND_STREAM_DATA data;
+    int count = 0;
+    if (!widen(path, NULL, name, 2048)) return -1;
+    HANDLE find = FindFirstStreamW(name, FindStreamInfoStandard, &data, 0);
+    if (find == INVALID_HANDLE_VALUE) return 0;
+    do {
+        if (wcscmp(data.cStreamName, L"::$DATA")) ++count;
+    } while (FindNextStreamW(find, &data));
+    FindClose(find);
+    return count;
+}
+
+int files_test_encrypt(const char *path) {
+    wchar_t name[2048];
+    return widen(path, NULL, name, 2048) && EncryptFileW(name);
+}
+
+int files_test_is_encrypted(const char *path) {
+    wchar_t name[2048];
+    if (!widen(path, NULL, name, 2048)) return 0;
+    DWORD attributes = GetFileAttributesW(name);
+    return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_ENCRYPTED) != 0;
+}
+
+/* Give a folder an extra ACE its contents inherit: Everyone may read. */
+int files_test_add_inherited_ace(const char *path) {
+    wchar_t name[2048];
+    PACL old = NULL, acl = NULL;
+    PSECURITY_DESCRIPTOR descriptor = NULL;
+    PSID everyone = NULL;
+    EXPLICIT_ACCESS_W grant;
+    if (!widen(path, NULL, name, 2048)) return 0;
+    if (GetNamedSecurityInfoW(name, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, &old, NULL,
+                              &descriptor) != ERROR_SUCCESS) return 0;
+    DWORD result = ConvertStringSidToSidW(L"S-1-1-0", &everyone) ? ERROR_SUCCESS : GetLastError();
+    if (result == ERROR_SUCCESS) {
+        memset(&grant, 0, sizeof(grant));
+        grant.grfAccessPermissions = FILE_GENERIC_READ;
+        grant.grfAccessMode = GRANT_ACCESS;
+        grant.grfInheritance = SUB_CONTAINERS_AND_OBJECTS_INHERIT;
+        grant.Trustee.TrusteeForm = TRUSTEE_IS_SID;
+        grant.Trustee.TrusteeType = TRUSTEE_IS_WELL_KNOWN_GROUP;
+        grant.Trustee.ptstrName = (LPWSTR)everyone;
+        result = SetEntriesInAclW(1, &grant, old, &acl);
+    }
+    if (result == ERROR_SUCCESS)
+        result = SetNamedSecurityInfoW(name, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, acl, NULL);
+    if (acl) LocalFree(acl);
+    if (everyone) LocalFree(everyone);
+    LocalFree(descriptor);
+    return result == ERROR_SUCCESS;
+}
+
+/* Whether the entry inherited that ACE, and carries no OWNER RIGHTS
+   (S-1-3-4) ACE: the one a private staging folder hands down. */
+int files_test_inherits_ace(const char *path) {
+    wchar_t name[2048];
+    PACL dacl = NULL;
+    PSECURITY_DESCRIPTOR descriptor = NULL;
+    PSID everyone = NULL, owner_rights = NULL;
+    int inherited = 0, owner_only = 0;
+    if (!widen(path, NULL, name, 2048)) return 0;
+    if (GetNamedSecurityInfoW(name, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, NULL, NULL, &dacl, NULL,
+                              &descriptor) != ERROR_SUCCESS) return 0;
+    if (dacl && ConvertStringSidToSidW(L"S-1-1-0", &everyone) &&
+        ConvertStringSidToSidW(L"S-1-3-4", &owner_rights)) {
+        for (DWORD index = 0; index < dacl->AceCount; ++index) {
+            LPVOID raw = NULL;
+            if (!GetAce(dacl, index, &raw)) continue;
+            ACE_HEADER *header = (ACE_HEADER *)raw;
+            if (header->AceType != ACCESS_ALLOWED_ACE_TYPE) continue;
+            ACCESS_ALLOWED_ACE *ace = (ACCESS_ALLOWED_ACE *)header;
+            PSID sid = (PSID)&ace->SidStart;
+            if (EqualSid(sid, everyone) && (header->AceFlags & INHERITED_ACE) && (ace->Mask & FILE_READ_DATA))
+                inherited = 1;
+            if (EqualSid(sid, owner_rights)) owner_only = 1;
+        }
+    }
+    if (everyone) LocalFree(everyone);
+    if (owner_rights) LocalFree(owner_rights);
+    LocalFree(descriptor);
+    return inherited && !owner_only;
+}
+#else
+int files_test_named_stream_count(const char *path) { (void)path; return -1; }
+int files_test_encrypt(const char *path) { (void)path; return 0; }
+int files_test_is_encrypted(const char *path) { (void)path; return 0; }
+int files_test_add_inherited_ace(const char *path) { (void)path; return 0; }
+int files_test_inherits_ace(const char *path) { (void)path; return 0; }
 #endif
 
 /* A FIFO for the non-blocking checks; Windows has none. */

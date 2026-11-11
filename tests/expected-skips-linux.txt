@@ -2,3 +2,5 @@
 -- each as "Test: reason", exactly as the test's Skip call gives them: a listed
 -- test that skips for another reason fails the run as an unlisted skip does.
 Test_Case_Only_Paste_Conflicts: the test root's filesystem is case-sensitive
+Test_Recycle_Bin_Trash_View: needs the Windows Recycle Bin
+Test_Copy_Encrypted_File: EFS encryption is Windows'

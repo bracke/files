@@ -130,9 +130,12 @@ pacman -S --needed mingw-w64-x86_64-vulkan-loader \
 
 Set `CPATH` to `C:/msys64/mingw64/include`, `LIBRARY_PATH` to
 `C:/msys64/mingw64/lib`, and add `C:\msys64\mingw64\bin` to `PATH`. The LunarG
-SDK's MSVC `.lib` files are not compatible with GNAT's MinGW linker. System
-fonts under `C:\Windows\Fonts` are used for text rendering; set
-`FILES_FONT_PATH` to override.
+SDK's MSVC `.lib` files are not compatible with GNAT's MinGW linker. Fonts
+in the system's Fonts folder (wherever Windows is installed) and in the
+per-user `%LOCALAPPDATA%\Microsoft\Windows\Fonts` are used for text
+rendering; set `FILES_FONT_PATH` to override. Noto Color Emoji
+(`NotoColorEmoji.ttf`) in either folder is used for emoji ahead of Segoe UI
+Emoji.
 
 ### Build and run
 

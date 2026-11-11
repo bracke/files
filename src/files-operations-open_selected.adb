@@ -53,18 +53,21 @@ begin
             declare
                Path        : constant String := To_String (Items (Index).Full_Path);
                Exit_Status : Integer := 0;
+               Failure_Key : Unbounded_String;
                Spawn_OK    : constant Boolean :=
-                 Execute_Open_Action (Actions (Index), Exit_Status, Detach => True);
+                 Execute_Open_Action (Actions (Index), Exit_Status, Failure_Key, Detach => True);
+               Error_Key   : constant String :=
+                 (if Length (Failure_Key) > 0 then To_String (Failure_Key) else "error.open_action.execution");
             begin
                --  System-fallback handlers (xdg-open / open / cmd start)
                --  are launched detached: Spawn_OK reflects whether the
                --  fork+exec succeeded, not the handler's own exit code.
                if not Spawn_OK then
-                  Files.Model.Set_Error (Model, "error.open_action.execution");
+                  Files.Model.Set_Error (Model, Error_Key);
                   return
                     Make_Result
                       (Operation_Failed,
-                       "error.open_action.execution",
+                       Error_Key,
                        Path,
                        Actions (Index),
                        Attempted => True,
@@ -133,9 +136,12 @@ begin
       else
          declare
             Exit_Status : Integer := 0;
+            Failure_Key : Unbounded_String;
             Spawn_OK    : constant Boolean :=
               Execute_Open_Action
-                (Prepared.Action, Exit_Status, Detach => True);
+                (Prepared.Action, Exit_Status, Failure_Key, Detach => True);
+            Error_Key   : constant String :=
+              (if Length (Failure_Key) > 0 then To_String (Failure_Key) else "error.open_action.execution");
          begin
             --  Open actions are always detached: the launched application
             --  is fire-and-forget and inherits no Files-side FDs / signal
@@ -156,11 +162,11 @@ begin
                     Exit_Status => Exit_Status);
             end if;
 
-            Files.Model.Set_Error (Model, "error.open_action.execution");
+            Files.Model.Set_Error (Model, Error_Key);
             return
               Make_Result
                 (Operation_Failed,
-                 "error.open_action.execution",
+                 Error_Key,
                  To_String (Prepared.Path),
                  Prepared.Action,
                  Attempted => True,

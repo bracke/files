@@ -12,11 +12,9 @@ separate (Files_Suite.Operations)
       Routed : Files.Controller.Controller_Result;
       Step : Files.Operations.Operation_Result;
    begin
-      if not Hostkit.Metadata.Mode_Bits_Are_Native then
-         Files_Suite.Support.Skip ("Test_Unreadable_Hardlink_History", "needs native POSIX mode bits");
-         return;
-      end if;
-
+      --  Mode 0 is an empty DACL on Windows, which binds an elevated process
+      --  too: nothing reads the file, and CreateHardLinkW, which must write
+      --  the file's own record, is refused as well.
       Reset_Root;
       Ada.Directories.Create_Path (Dir);
       Write_File (Source, "hard link contents");
@@ -64,12 +62,22 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "report.txt");
       Routed := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Create_Hardlink_Command, Model, Settings);
-      Files_Suite.Support.Assert_Equal
-        (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
-         "creating an unreadable hard link reports success");
-      Assert (Ada.Directories.Exists (Link_Path),
-              "unreadable hard link is actually published");
+      if Hostkit.Metadata.Mode_Bits_Are_Native then
+         Files_Suite.Support.Assert_Equal
+           (Routed.Operation.Status,
+            Files.Operations.Operation_Success,
+            "creating an unreadable hard link reports success");
+         Assert (Ada.Directories.Exists (Link_Path),
+                 "unreadable hard link is actually published");
+      else
+         --  POSIX links a file it cannot read; Windows refuses it a name.
+         Files_Suite.Support.Assert_Equal
+           (Routed.Operation.Status,
+            Files.Operations.Operation_Failed,
+            "Windows refuses a hard link to a file whose DACL grants nothing");
+         Assert (not Ada.Directories.Exists (Link_Path),
+                 "the refused hard link leaves nothing behind");
+      end if;
       Assert (not Files.Model.Undo_Available (Model),
               "unsafe deletion is not recorded as Undo");
       Assert (Files.File_System.Set_Permissions (Source, 8#644#).Success,

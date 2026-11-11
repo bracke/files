@@ -2721,6 +2721,38 @@ procedure Check_All is
       Ada.Directories.End_Search (Search);
    end Check_Path_Text_Calls;
 
+   --  Every flush goes through Files.Durability, where the suite can make
+   --  one fail on every host: a Hostkit.Durability.Sync_* call elsewhere in
+   --  src/ is a flush no test can fail.
+   procedure Check_Durability_Calls is
+      Search : Ada.Directories.Search_Type;
+      Item   : Ada.Directories.Directory_Entry_Type;
+   begin
+      Ada.Directories.Start_Search
+        (Search, Root & "/src", "*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Item);
+         declare
+            Path  : constant String := Ada.Directories.Full_Name (Item);
+            Lower : constant String :=
+              Ada.Characters.Handling.To_Lower
+                (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)), Blank_Strings => True));
+         begin
+            if Ada.Directories.Simple_Name (Item) /= "files-durability.adb"
+              and then Ada.Strings.Fixed.Index (Lower, "hostkit.durability.sync_") > 0
+            then
+               Ada.Directories.End_Search (Search);
+               Put_Line
+                 (Standard_Error,
+                  Path & ": flushes with Hostkit.Durability.Sync_*; use Files.Durability, which tests can fail");
+               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+               raise Program_Error;
+            end if;
+         end;
+      end loop;
+      Ada.Directories.End_Search (Search);
+   end Check_Durability_Calls;
+
    --  GNAT's Windows runtime refuses a path past 260 characters before
    --  Windows is asked -- in Ada.Directories, GNAT.OS_Lib,
    --  GNAT.Directory_Operations and System.File_IO (Stream_IO and Text_IO
@@ -5488,7 +5520,7 @@ procedure Check_All is
       Require_Tests ("model", 54);
       Require_Tests ("interaction", 84);
       Require_Tests ("rendering", 100);
-      Require_Tests ("operations", 300);
+      Require_Tests ("operations", 303);
    end Check_Test_Subsystem_Coverage;
 
 begin
@@ -5515,6 +5547,7 @@ begin
    Check_Clock_Arithmetic;
    Check_Environment_Access;
    Check_Path_Text_Calls;
+   Check_Durability_Calls;
    Check_Raw_File_System_Calls;
    Check_Visible_Cache_Invalidation;
    Check_Swallowing_Handlers;

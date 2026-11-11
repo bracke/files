@@ -2,7 +2,15 @@ separate (Files.File_System)
 function Trash_Base_Of (Trashed_Path : String) return String is
    Home : constant String := Trash_Base_Path;
 begin
-   if Trash_Backend_Of_Current_Environment not in Trash_Xdg_Data_Home | Trash_Home_Data then
+   --  A Recycle Bin item's base is its bin folder: no info/ beside it, so
+   --  only Is_Volume_Trash_Item asks this of one; restore, purge and the
+   --  original path ask Hostkit.Trash.
+   if Trash_Backend_Of_Current_Environment = Trash_Windows_Recycle_Bin then
+      return
+        (if Hostkit.Trash.Is_Recycled_Item (Trashed_Path)
+         then Files.Fs_Primitives.Parent_Directory (Trashed_Path)
+         else "");
+   elsif Trash_Backend_Of_Current_Environment not in Trash_Xdg_Data_Home | Trash_Home_Data then
       return "";
    elsif Home /= "" and then Is_Trash_Payload (Trashed_Path, Hostkit.Fs.Join (Home, "files")) then
       return Home;

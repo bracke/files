@@ -5,8 +5,48 @@ function Restore_From_Trash_Backend
 is
    --  The home trash or the volume trash that holds it.
    Base      : constant String := Trash_Base_Of (Trashed_Path);
+
+   --  An item in the Recycle Bin goes back as Explorer's Restore puts it:
+   --  to the path its $I record names (or the one history recorded), never
+   --  over anything that has taken its place.
+   function From_Recycle_Bin return Mutation_Result is
+      Item : Hostkit.Trash.Recycle_Bin_Entry;
+   begin
+      if not Hostkit.Trash.Entry_Of (Trashed_Path, Item) then
+         return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_unavailable"));
+      end if;
+      declare
+         Original : constant String :=
+           (if Expected_Original /= "" then Expected_Original else To_String (Item.Original_Path));
+      begin
+         if not Valid_Original_Path (Original) then
+            return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
+         elsif Files.Fs_Primitives.Entry_Exists (Original) then
+            return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_exists"));
+         elsif Expected_Identity /= ""
+           and then Files.File_Identities.Token (Trashed_Path) /= Expected_Identity
+         then
+            --  Undo names the item it trashed; another under its $R name is
+            --  not restored in its place.
+            return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
+         end if;
+         case Hostkit.Trash.Restore (Trashed_Path, Original) is
+            when Hostkit.Trash.Restored =>
+               return (Success => True, Error_Key => Null_Unbounded_String);
+            when Hostkit.Trash.Restore_Taken =>
+               return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_exists"));
+            when Hostkit.Trash.Restore_Not_In_Bin | Hostkit.Trash.Restore_Unsupported =>
+               return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_unavailable"));
+            when Hostkit.Trash.Restore_Failed =>
+               return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
+         end case;
+      end;
+   end From_Recycle_Bin;
 begin
    Files.Io_Errors.Reset;
+   if Trash_Backend_Of_Current_Environment = Trash_Windows_Recycle_Bin then
+      return From_Recycle_Bin;
+   end if;
    if Base = "" then
       return
         (Success   => False,

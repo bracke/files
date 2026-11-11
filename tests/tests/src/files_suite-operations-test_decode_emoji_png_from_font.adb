@@ -2,8 +2,14 @@ with Files.Images;
 separate (Files_Suite.Operations)
    procedure Test_Decode_Emoji_Png_From_Font (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      --  Debian's Noto Color Emoji, unless FILES_TEST_EMOJI_FONT names another
+      --  copy: CI installs one for the user on Windows and macOS, which ship
+      --  none.
       Emoji_Path : constant String :=
-        "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf";
+        (if Ada.Environment_Variables.Exists ("FILES_TEST_EMOJI_FONT")
+           and then Ada.Environment_Variables.Value ("FILES_TEST_EMOJI_FONT") /= ""
+         then Ada.Environment_Variables.Value ("FILES_TEST_EMOJI_FONT")
+         else "/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf");
       F : Textrender.Fonts.Font;
       use type Textrender.Fonts.Colour_Image_Format;
    begin

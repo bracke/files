@@ -4,6 +4,7 @@ with Ada.Environment_Variables;
 with Ada.Strings.Fixed;
 with Ada.Text_IO;
 
+with Hostkit.Fs;
 with Hostkit.Host;
 with Hostkit.Metadata;
 with Hostkit.Process;
@@ -167,8 +168,14 @@ package body Files_Suite.Volumes is
       Location : constant String := To_String (Directory.Location);
    begin
       Directory.Location := Null_Unbounded_String;
-      if Location /= "" and then Ada.Directories.Exists (Location) then
-         Project_Tools.Files.Delete_Tree (Location);
+      --  Through Hostkit, links never followed: a test may leave a tree
+      --  deeper than Windows' 260-character limit there (a 1000-level move),
+      --  which GNAT's own calls cannot reach.
+      if Location /= "" and then Ada.Directories.Exists (Location)
+        and then Hostkit.Fs."/=" (Hostkit.Fs.Delete_Tree_No_Follow (Location), Hostkit.Fs.Tree_Deleted)
+      then
+         Ada.Text_IO.Put_Line
+           (Ada.Text_IO.Standard_Error, "could not remove the test's other-volume folder " & Location);
       end if;
       --  Only while it holds nothing: what is in it is another run's (two
       --  suites can share a volume) or the user's, never ours to delete.

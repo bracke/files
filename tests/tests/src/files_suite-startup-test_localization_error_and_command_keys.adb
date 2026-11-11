@@ -37,6 +37,7 @@ separate (Files_Suite.Startup)
       Add_Error_Key ("error.trash.empty_partial");
       Add_Error_Key ("error.trash.volume_unavailable");
       Add_Error_Key ("error.trash.empty_failed");
+      Add_Error_Key ("error.trash.recycle_bin_unusable");
       Add_Error_Key ("error.search.failed");
       Add_Error_Key ("search.no_matches");
       Add_Error_Key ("error.permanent_delete.refused");
@@ -91,6 +92,7 @@ separate (Files_Suite.Startup)
       Add_Error_Key ("error.open_action.execution");
       Add_Error_Key ("error.open_action.executable_missing");
       Add_Error_Key ("error.open_action.unsafe_placeholder");
+      Add_Error_Key ("error.open.path_too_long");
       Add_Error_Key ("error.settings.unknown_section");
       Add_Error_Key ("error.settings.expected_equals");
       Add_Error_Key ("error.settings.invalid_open_action");

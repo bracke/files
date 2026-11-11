@@ -52,13 +52,19 @@ package body Files.Undo_Payloads is
          return False;
    end Parse_Ownership;
 
-   function Mode_Text (Mode : Natural) return String is (Natural'Image (Mode));
+   function Mode_Text (Mode : Natural; Access_Text : String := "") return String is
+     (Natural'Image (Mode) & (if Access_Text = "" then "" else ASCII.NUL & Access_Text));
 
    function Parse_Mode (Text : String; Mode : out Natural) return Boolean is
-      Clean : constant String := Ada.Strings.Fixed.Trim (Text, Ada.Strings.Both);
+      Nul   : constant Natural := Ada.Strings.Fixed.Index (Text, [1 => ASCII.NUL]);
+      Clean : constant String :=
+        Ada.Strings.Fixed.Trim (Text (Text'First .. (if Nul = 0 then Text'Last else Nul - 1)), Ada.Strings.Both);
    begin
       Mode := 0;
-      if Clean = "" or else (for some C of Clean => C not in '0' .. '9') then
+      if Clean = ""
+        or else (for some C of Clean => C not in '0' .. '9')
+        or else (Nul /= 0 and then Ada.Strings.Fixed.Index (Text (Nul + 1 .. Text'Last), [1 => ASCII.NUL]) /= 0)
+      then
          return False;
       end if;
       Mode := Natural'Value (Clean);
@@ -69,6 +75,12 @@ package body Files.Undo_Payloads is
          Mode := 0;
          return False;
    end Parse_Mode;
+
+   function Mode_Access (Text : String) return String is
+      Nul : constant Natural := Ada.Strings.Fixed.Index (Text, [1 => ASCII.NUL]);
+   begin
+      return (if Nul = 0 then "" else Text (Nul + 1 .. Text'Last));
+   end Mode_Access;
 
    function Is_Mode_Text (Text : String) return Boolean is
       Mode : Natural;

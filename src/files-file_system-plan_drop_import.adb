@@ -40,14 +40,16 @@ is
 
    --  Path with its links resolved: Hostkit.Fs.Real_Path, which also follows
    --  Windows reparse points and gives the names' stored case there, where
-   --  Normalize_Pathname resolves nothing.
+   --  Normalize_Pathname resolves nothing. A path Real_Path cannot answer
+   --  for (a part missing past the leaf) still has its links resolved
+   --  below that part: Real_Name, not the text-only Full_Name of Windows.
    function Resolved_Directory (Path : String) return String is
       Real : constant String := Hostkit.Fs.Real_Path (Path);
    begin
       if Real /= "" then
          return Real;
       end if;
-      return Files.Fs_Primitives.Full_Name (Path);
+      return Files.Fs_Primitives.Real_Name (Path);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System");

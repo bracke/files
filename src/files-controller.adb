@@ -859,6 +859,7 @@ package body Files.Controller is
         Actions.First_Element;
       Operation   : Files.Operations.Operation_Result := Empty_Operation;
       Exit_Status : Integer := 0;
+      Failure_Key : Unbounded_String;
       Target_Path : constant Unbounded_String :=
         (if Targets.Is_Empty then Null_Unbounded_String else Targets.First_Element);
    begin
@@ -880,12 +881,15 @@ package body Files.Controller is
       Operation.Execution.Executable_Found := True;
       for Candidate of Actions loop
          if not Files.Operations.Execute_Open_Action
-           (Candidate, Exit_Status, Detach => True)
+           (Candidate, Exit_Status, Failure_Key, Detach => True)
          then
+            --  "Path too long" when that is why, not "failed to execute".
             Operation.Status := Files.Operations.Operation_Failed;
-            Operation.Error_Key := To_Unbounded_String ("error.open_action.execution");
+            Operation.Error_Key :=
+              (if Length (Failure_Key) > 0 then Failure_Key
+               else To_Unbounded_String ("error.open_action.execution"));
             Operation.Execution.Exit_Status := Exit_Status;
-            Files.Model.Set_Error (Model, "error.open_action.execution");
+            Files.Model.Set_Error (Model, To_String (Operation.Error_Key));
             return Make_Result
               (Controller_Command_Executed, Files.Commands.Open_With_Command, Operation);
          end if;

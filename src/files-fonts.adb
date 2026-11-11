@@ -46,23 +46,49 @@ package body Files.Fonts is
       To_Unbounded_String ("/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf"),
       To_Unbounded_String ("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
       To_Unbounded_String ("/usr/share/fonts/truetype/fonts-japanese-gothic.ttf"),
-      To_Unbounded_String ("/System/Library/Fonts/PingFang.ttc"),
-      To_Unbounded_String ("C:\Windows\Fonts\malgun.ttf"),
-      To_Unbounded_String ("C:\Windows\Fonts\msgothic.ttc"),
-      To_Unbounded_String ("C:\Windows\Fonts\seguiemj.ttf"),
-      To_Unbounded_String ("C:\Windows\Fonts\segoeui.ttf"),
-      To_Unbounded_String ("C:\Windows\Fonts\arial.ttf")];
+      To_Unbounded_String ("/System/Library/Fonts/PingFang.ttc")];
+
+   --  Fonts known by their file name alone, looked for after Candidate_Paths
+   --  in each of the host's font folders (Hostkit.Fs.Font_Directories): on
+   --  Windows the Fonts folder is wherever Windows is, which need not be
+   --  C:\Windows, and a font installed for one user lives in their profile.
+   Candidate_Leaves : constant Font_Path_Array :=
+     [To_Unbounded_String ("malgun.ttf"),
+      To_Unbounded_String ("msgothic.ttc"),
+      To_Unbounded_String ("seguiemj.ttf"),
+      To_Unbounded_String ("segoeui.ttf"),
+      To_Unbounded_String ("arial.ttf")];
 
    Cached_Default_Override : Unbounded_String;
    Cached_Default_Path     : Unbounded_String;
    Cached_Default_Ready    : Boolean := False;
 
-   Font_Search_Roots : constant Font_Path_Array :=
-     [To_Unbounded_String ("/usr/share/fonts"),
-      To_Unbounded_String ("/usr/local/share/fonts"),
-      To_Unbounded_String ("/Library/Fonts"),
-      To_Unbounded_String ("/System/Library/Fonts"),
-      To_Unbounded_String ("C:\Windows\Fonts")];
+   --  Leaf in each of the host's font folders, the system's first.
+   function In_Font_Directories (Leaf : String) return Font_Path_Array is
+      Folders : constant Hostkit.Fs.Path_List := Hostkit.Fs.Font_Directories;
+   begin
+      return [for Index in Folders'Range =>
+                To_Unbounded_String (Hostkit.Fs.Join (To_String (Folders (Index)), Leaf))];
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Fonts");
+         return [];
+   end In_Font_Directories;
+
+   --  Candidate_Paths, then each Candidate_Leaves entry in every font folder.
+   function Named_Candidates return Font_Path_Array is
+      Result : Font_Path_Vectors.Vector;
+   begin
+      for Path of Candidate_Paths loop
+         Result.Append (Path);
+      end loop;
+      for Leaf of Candidate_Leaves loop
+         for Path of In_Font_Directories (To_String (Leaf)) loop
+            Result.Append (Path);
+         end loop;
+      end loop;
+      return [for Index in 1 .. Natural (Result.Length) => Result.Element (Index)];
+   end Named_Candidates;
 
    function Is_Ordinary_File
      (Path : String)
@@ -216,7 +242,7 @@ package body Files.Fonts is
       Discovered : Font_Path_Vectors.Vector;
       Scanned    : Natural := 0;
    begin
-      for Path of Candidate_Paths loop
+      for Path of Named_Candidates loop
          if Is_Font_File (To_String (Path))
            and then not Is_Known_Unsupported_Renderer_Font (To_String (Path))
          then
@@ -224,7 +250,7 @@ package body Files.Fonts is
          end if;
       end loop;
 
-      for Root of Font_Search_Roots loop
+      for Root of Hostkit.Fs.Font_Directories loop
          Scan_Font_Directory (Discovered, To_String (Root), 0, Scanned);
          exit when Scanned >= Max_Scanned_Font_Entries;
       end loop;
@@ -452,7 +478,7 @@ package body Files.Fonts is
          return Override_Path;
       end if;
 
-      for Path of Candidate_Paths loop
+      for Path of Named_Candidates loop
          if Is_Font_File (To_String (Path))
            and then not Is_Known_Unsupported_Renderer_Font (To_String (Path))
            and then Is_Loadable_Font (To_String (Path))
@@ -505,46 +531,12 @@ package body Files.Fonts is
       --    * NotoSans       -- broad international Latin/diacritic coverage
       --  Non-existent or unsupported entries are simply skipped on systems that
       --  lack them; Is_Loadable_Font also rejects the renderer's known-bad faces.
-      Fallback_Candidate_Paths : constant Font_Path_Array :=
+      Text_Fallback_Paths : constant Font_Path_Array :=
         [To_Unbounded_String ("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"),
          To_Unbounded_String ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
          To_Unbounded_String ("/usr/share/fonts/truetype/vlgothic/VL-Gothic-Regular.ttf"),
          To_Unbounded_String ("/usr/share/fonts/truetype/vlgothic/VL-PGothic-Regular.ttf"),
-         To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"),
-
-         --  Colour emoji, and last on purpose. The chain is resolved by asking
-         --  each font whether it maps a codepoint and taking the first that
-         --  says yes, and these fonts map far more than emoji -- arrows, stars,
-         --  the check mark. Ahead of the text fonts it would capture characters
-         --  they draw perfectly well today.
-         To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"),
-         To_Unbounded_String ("/System/Library/Fonts/Apple Color Emoji.ttc"),
-
-         --  The layered kind, which costs a reader nothing: a COLR/CPAL emoji is
-         --  outlines and a palette, both of which Textrender reads on its own,
-         --  where the two above are PNGs and need the decoder this application
-         --  installs. Listed because not every application sharing this chain has
-         --  one -- the desktop search front end builds its renderer straight from
-         --  Guikit.Text, and these are the only emoji fonts it can draw.
-         To_Unbounded_String ("C:\Windows\Fonts\seguiemj.ttf"),
-         To_Unbounded_String ("/usr/share/fonts/truetype/twemoji/TwemojiMozilla.ttf"),
-         To_Unbounded_String ("/usr/share/fonts/TTF/TwemojiMozilla.ttf")];
-
-      --  A font the user installed for themselves, which is where one lands on a
-      --  machine without root. Skipped when HOME is unset.
-      function User_Font (Leaf : String) return String is
-      begin
-         if Files.Environment.Value ("HOME") = "" then
-            return "";
-         end if;
-
-         return Files.Environment.Value ("HOME")
-           & "/.local/share/fonts/" & Leaf;
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Fonts");
-            return "";
-      end User_Font;
+         To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf")];
 
       procedure Consider (Path : String) is
       begin
@@ -562,12 +554,41 @@ package body Files.Fonts is
             Result.Append (To_Unbounded_String (Path));
          end if;
       end Consider;
+
+      --  Leaf in every one of the host's font folders: the system's, then the
+      --  one a font installed without administrator rights lands in.
+      procedure Consider_In_Font_Directories (Leaf : String) is
+      begin
+         for Path of In_Font_Directories (Leaf) loop
+            Consider (To_String (Path));
+         end loop;
+      end Consider_In_Font_Directories;
    begin
-      for Path of Fallback_Candidate_Paths loop
+      for Path of Text_Fallback_Paths loop
          Consider (To_String (Path));
       end loop;
 
-      Consider (User_Font ("TwemojiMozilla.ttf"));
+      --  Colour emoji, and last on purpose. The chain is resolved by asking
+      --  each font whether it maps a codepoint and taking the first that says
+      --  yes, and these fonts map far more than emoji -- arrows, stars, the
+      --  check mark. Ahead of the text fonts it would capture characters they
+      --  draw perfectly well today. Noto Color Emoji is also looked for by name
+      --  in the host's font folders: Windows and macOS ship none, so it is
+      --  wherever its user installed it.
+      Consider ("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf");
+      Consider_In_Font_Directories ("NotoColorEmoji.ttf");
+      Consider ("/System/Library/Fonts/Apple Color Emoji.ttc");
+
+      --  The layered kind, which costs a reader nothing: a COLR/CPAL emoji is
+      --  outlines and a palette, both of which Textrender reads on its own,
+      --  where the ones above are PNGs and need the decoder this application
+      --  installs. Listed because not every application sharing this chain has
+      --  one -- the desktop search front end builds its renderer straight from
+      --  Guikit.Text, and these are the only emoji fonts it can draw.
+      Consider_In_Font_Directories ("seguiemj.ttf");
+      Consider ("/usr/share/fonts/truetype/twemoji/TwemojiMozilla.ttf");
+      Consider ("/usr/share/fonts/TTF/TwemojiMozilla.ttf");
+      Consider_In_Font_Directories ("TwemojiMozilla.ttf");
 
       return Result;
    exception

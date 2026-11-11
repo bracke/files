@@ -885,14 +885,18 @@ package body Files.File_System is
 
    subtype Update_Field is Hostkit.Metadata.Identity_Field;
 
-   --  The one mutation behind Change_Mode and Change_Ownership: verify the
-   --  recorded identity (when there is one), update through the held entry,
-   --  and report the value it had and the identity actually changed. A
-   --  previous value above Max_Previous is refused rather than truncated.
+   --  The one mutation behind Change_Mode, Change_Access and
+   --  Change_Ownership: verify the recorded identity (when there is one),
+   --  update through the held entry, and report the value it had and the
+   --  identity actually changed. A previous value above Max_Previous is
+   --  refused rather than truncated. Access_Text and the two access records
+   --  are a permission update's, as Hostkit.Metadata.Update_Entry_Metadata
+   --  has them.
    function Update_Verified_Entry
      (Path, Expected_Identity : String; Kind : Hostkit.Metadata.Metadata_Update_Kind;
-      Value, Group, Max_Previous : Update_Field; Owner_Name, Group_Name : String;
-      Previous, Previous_Group : out Update_Field; Identity : out Files.Types.UString) return Boolean
+      Value, Group, Max_Previous : Update_Field; Owner_Name, Group_Name, Access_Text : String;
+      Previous, Previous_Group : out Update_Field;
+      Previous_Access, Applied_Access, Identity : out Files.Types.UString) return Boolean
    is
       subtype U64 is Update_Field;
       use type U64;
@@ -944,6 +948,8 @@ package body Files.File_System is
    begin
       Previous := 0;
       Previous_Group := 0;
+      Previous_Access := Null_Unbounded_String;
+      Applied_Access := Null_Unbounded_String;
       Identity := Null_Unbounded_String;
       if Expected_Identity /= ""
         and then not Parse_Identity (Expected_Identity, Expected)
@@ -959,7 +965,8 @@ package body Files.File_System is
          Group          => Group,
          Max_Previous   => Max_Previous,
          Owner_Name     => Owner_Name,
-         Group_Name     => Group_Name);
+         Group_Name     => Group_Name,
+         Access_Text    => Access_Text);
       if not Updated.Success
         or else Updated.Previous > Max_Previous
         or else Updated.Previous_Group > Max_Previous
@@ -968,6 +975,8 @@ package body Files.File_System is
       end if;
       Previous := Updated.Previous;
       Previous_Group := Updated.Previous_Group;
+      Previous_Access := Updated.Previous_Access;
+      Applied_Access := Updated.Applied_Access;
       Identity := To_Unbounded_String
         (U64'Image (Updated.Identity.Volume)
          & U64'Image (Updated.Identity.File_Number)
@@ -980,15 +989,18 @@ package body Files.File_System is
          return False;
    end Update_Verified_Entry;
 
-   function Change_Mode
-     (Path, Expected_Identity : String; Mode : Natural;
-      Previous : out Natural; Identity : out Files.Types.UString) return Mutation_Result
+   function Change_Access
+     (Path, Expected_Identity : String; Mode : Natural; Access_Text : String;
+      Previous : out Natural; Previous_Access, Applied_Access, Identity : out Files.Types.UString)
+      return Mutation_Result
    is
       Failed : constant Mutation_Result :=
         (Success => False, Error_Key => To_Unbounded_String ("error.permissions.failed"));
       Old_Mode, Unused_Group : Update_Field;
    begin
       Previous := 0;
+      Previous_Access := Null_Unbounded_String;
+      Applied_Access := Null_Unbounded_String;
       Identity := Null_Unbounded_String;
       if Mode > 8#7777# then
          return Failed;
@@ -996,8 +1008,9 @@ package body Files.File_System is
       if not Update_Verified_Entry
         (Path, Expected_Identity, Hostkit.Metadata.Update_Permissions,
          Value => Update_Field (Mode), Group => 0, Max_Previous => Update_Field (Natural'Last),
-         Owner_Name => "", Group_Name => "",
-         Previous => Old_Mode, Previous_Group => Unused_Group, Identity => Identity)
+         Owner_Name => "", Group_Name => "", Access_Text => Access_Text,
+         Previous => Old_Mode, Previous_Group => Unused_Group,
+         Previous_Access => Previous_Access, Applied_Access => Applied_Access, Identity => Identity)
       then
          return Failed;
       end if;
@@ -1007,6 +1020,16 @@ package body Files.File_System is
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System");
          return Failed;
+   end Change_Access;
+
+   function Change_Mode
+     (Path, Expected_Identity : String; Mode : Natural;
+      Previous : out Natural; Identity : out Files.Types.UString) return Mutation_Result
+   is
+      Unused_Previous_Access, Unused_Applied_Access : Files.Types.UString;
+   begin
+      return Change_Access
+        (Path, Expected_Identity, Mode, "", Previous, Unused_Previous_Access, Unused_Applied_Access, Identity);
    end Change_Mode;
 
    function Change_Ownership
@@ -1017,6 +1040,7 @@ package body Files.File_System is
       Failed : constant Mutation_Result :=
         (Success => False, Error_Key => To_Unbounded_String ("error.ownership.denied"));
       Old_User, Old_Group : Update_Field;
+      Unused_Previous_Access, Unused_Applied_Access : Files.Types.UString;
    begin
       Previous_User := 0;
       Previous_Group := 0;
@@ -1027,7 +1051,10 @@ package body Files.File_System is
          Max_Previous => Update_Field (Files.Types.Account_Id'Last),
          Owner_Name => (if Owner_Name /= "" then Owner_Name else User_Name_For_Id (User_Id)),
          Group_Name => (if Group_Name /= "" then Group_Name else Group_Name_For_Id (Group_Id)),
-         Previous => Old_User, Previous_Group => Old_Group, Identity => Identity)
+         Access_Text => "",
+         Previous => Old_User, Previous_Group => Old_Group,
+         Previous_Access => Unused_Previous_Access, Applied_Access => Unused_Applied_Access,
+         Identity => Identity)
       then
          return Failed;
       end if;

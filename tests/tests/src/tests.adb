@@ -20,7 +20,9 @@ with Files.Job_Transports;
 with Files.File_Identities;
 with Files.File_Identities.Testing;
 with Files.Private_Directories;
+with Files.Durability.Testing;
 with Files.File_System;
+with Files.File_System.Testing;
 with Files.Process_Jobs;
 with Files.Operation_Jobs;
 with Files.Operation_Jobs.Testing;
@@ -642,6 +644,11 @@ begin
          end if;
       end;
    end if;
+   --  A helper runs a transfer in this executable: the flush, copy and
+   --  restore faults the test that started it armed reach it through the
+   --  environment, on every host.
+   Files.Durability.Testing.Install_From_Environment;
+   Files.File_System.Testing.Install_From_Environment;
    if Files.Job_Helpers.Run_If_Requested then
       if Ada.Command_Line.Argument (1) = HM.Flag (HM.Refresh)
         and then Ada.Environment_Variables.Value

@@ -151,6 +151,17 @@ package Files.Fs_Primitives is
    --  @return The absolute path, indexed from 1.
    function Full_Name (Path : String) return String;
 
+   --  Path made absolute with its links resolved on every host, for asking
+   --  whether one path lies inside another -- never for showing: Full_Name
+   --  on POSIX, and on Windows, where Full_Name follows no link, the same
+   --  resolution of Hostkit.Fs.Real_Path (symbolic links and junctions, in
+   --  the names' stored case). A copy into its own tree through a link to
+   --  it is then still seen as one.
+   --
+   --  @param Path A path, absolute or relative.
+   --  @return The resolved absolute path, indexed from 1, or "".
+   function Real_Name (Path : String) return String;
+
    --  Make one directory, as Ada.Directories.Create_Directory makes it, with
    --  the host's default permissions (Hostkit.Fs.Create_Directory).
    --

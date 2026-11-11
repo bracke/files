@@ -30,7 +30,7 @@ begin
    --  such, not as the generic failure.
    Files.Io_Errors.Reset;
    Files.Io_Errors.Clear_Os_Error;
-   if Hostkit.Metadata.Set_Permissions (Path, Mode) then
+   if Hostkit.Metadata.Set_Exact_Permissions (Path, Mode) then
       return (Success => True, Error_Key => Null_Unbounded_String);
    end if;
    Files.Io_Errors.Capture;

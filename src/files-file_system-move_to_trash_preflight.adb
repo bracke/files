@@ -1,3 +1,4 @@
+with Hostkit.Trash.Recycle_Bin_Format;
 separate (Files.File_System)
 function Move_To_Trash_Preflight
   (Path : String)
@@ -116,6 +117,14 @@ begin
    --  Refuse there, before anything is touched, so the user can choose a
    --  permanent delete knowingly.
    if Uses_Native_Trash then
+      --  The Recycle Bin, or anything in it, cannot go into itself.
+      if Trash_Backend_Of_Current_Environment = Trash_Windows_Recycle_Bin
+        and then Hostkit.Trash.Recycle_Bin_Format.Inside_Recycle_Bin (Path)
+      then
+         return
+           (Success   => False,
+            Error_Key => To_Unbounded_String ("error.trash.failed"));
+      end if;
       if Hostkit.Trash.Current.Uses_Recycle_Bin and then not Hostkit.Trash.Can_Hold (Path) then
          return
            (Success   => False,

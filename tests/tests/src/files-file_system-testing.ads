@@ -11,6 +11,53 @@ package Files.File_System.Testing is
      (Path : String)
       return Native_Trash_Request;
 
+   --  Make the desktop's own trash refuse every item from now on (Refuse
+   --  True), as an unreachable Recycle Bin would, or take items again
+   --  (False). Nothing is attempted while it refuses.
+   --
+   --  @param Refuse Whether the native trash refuses.
+   procedure Refuse_Native_Trash (Refuse : Boolean);
+
+   --  How Change_Source_After_Copy changes a source once it is copied:
+   --  Edit_Source writes "new edits" over the source file; Replace_Source
+   --  renames it to Source & ".saved" and makes a new file holding "new
+   --  edits" at its name; Edit_Folder_Child writes "new edits" over the
+   --  source folder's "child".
+   type Source_Change is (Edit_Source, Replace_Source, Edit_Folder_Child);
+
+   --  Change Source, once, as an editor saving at that moment would: the
+   --  first time a copy has set the metadata of an entry whose path starts
+   --  with Trigger and ends with "/payload" -- the copy is complete, and
+   --  the source not yet checked against it. Arming it again rearms it.
+   --
+   --  @param Trigger The start of the copy's path (separators compare as one).
+   --  @param Source The source to change.
+   --  @param Change How it changes.
+   procedure Change_Source_After_Copy (Trigger, Source : String; Change : Source_Change);
+
+   --  Change no source any more.
+   procedure Stop_Changing_Source;
+
+   --  From now on, refuse to give a read-only folder back its mode after a
+   --  rename that leaves it at Trigger, as a failing chmod would. With a
+   --  Block, the first refusal also makes a folder at Block holding a
+   --  "replacement" file of "replacement bytes" -- something new at the
+   --  original's name, which putting the original back must not replace.
+   --
+   --  @param Trigger The folder's path after the rename (separators compare as one).
+   --  @param Block Where to make the replacement folder, or "" for none.
+   procedure Fail_Directory_Restore (Trigger : String; Block : String := "");
+
+   --  Give folders their modes back again.
+   procedure Stop_Failing_Directory_Restore;
+
+   --  Arm the faults the environment names, for a helper the suite started:
+   --  FILES_TEST_TRASH_TRIGGER, FILES_TEST_TRASH_SOURCE and
+   --  FILES_TEST_TRASH_FAULT ("edit", "replace" or "folder") as
+   --  Change_Source_After_Copy; FILES_TEST_DIRECTORY_RESTORE_FAULT and
+   --  FILES_TEST_DIRECTORY_RESTORE_BLOCK as Fail_Directory_Restore.
+   procedure Install_From_Environment;
+
    --  Execute a trash request through the selected backend when supported.
    --
    --  @param Request Native trash request metadata.

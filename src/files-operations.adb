@@ -69,9 +69,21 @@ package body Files.Operations is
    function Execute_Open_Action
      (Action      : Files.Settings.Open_Action;
       Exit_Status : out Integer;
+      Failure_Key : out UString;
       Detach      : Boolean := False)
       return Boolean
    is separate;
+
+   function Execute_Open_Action
+     (Action      : Files.Settings.Open_Action;
+      Exit_Status : out Integer;
+      Detach      : Boolean := False)
+      return Boolean
+   is
+      Ignored_Key : UString;
+   begin
+      return Execute_Open_Action (Action, Exit_Status, Ignored_Key, Detach);
+   end Execute_Open_Action;
 
    function Open_Action_Executable_Is_Available
      (Action : Files.Settings.Open_Action)
@@ -736,8 +748,10 @@ package body Files.Operations is
       Forward : Boolean) return Boolean
    is separate;
 
+   --  Apply Mode, or the access record Access_Text when there is one, to
+   --  Action's entry Index, verified by its recorded identity.
    function Change_Recorded_Mode
-     (Action : Files.Model.Undo_Entry; Index : Positive; Mode : Natural) return Boolean
+     (Action : Files.Model.Undo_Entry; Index : Positive; Mode : Natural; Access_Text : String := "") return Boolean
    is separate;
 
    function Change_Recorded_Ownership

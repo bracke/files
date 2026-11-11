@@ -136,12 +136,11 @@ begin
                if New_Text = "" then
                   Succeeded := False;
                else
-                  if not Files.Undo_Payloads.Parse_Mode (New_Text, New_Mode) then
-                     Succeeded := False;
-                  end if;
-
-                  if (New_Mode > 0 or else New_Text = "0")
-                    and then not Change_Recorded_Mode (Action, Index, New_Mode)
+                  --  As the change left it: the access record whole, where
+                  --  one was kept.
+                  if not Files.Undo_Payloads.Parse_Mode (New_Text, New_Mode)
+                    or else not Change_Recorded_Mode
+                      (Action, Index, New_Mode, Files.Undo_Payloads.Mode_Access (New_Text))
                   then
                      Succeeded := False;
                   end if;

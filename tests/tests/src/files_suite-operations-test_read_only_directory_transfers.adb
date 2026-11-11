@@ -30,17 +30,55 @@ separate (Files_Suite.Operations)
             Remove (Remote.Path);
          end if;
       end Cleanup;
+      --  Path made read-only as its host keeps that: mode 444 or 555 where
+      --  mode bits are native; on Windows FILE_ATTRIBUTE_READONLY, on a
+      --  folder as on a file, which is what a copy there carries over (a
+      --  DACL is the destination's to hand down, not the source's).
+      procedure Protect (Path : String; Mode : Natural) is
+      begin
+         if Hostkit.Metadata.Mode_Bits_Are_Native then
+            Assert (Files.File_System.Set_Permissions (Path, Mode).Success, "protect " & Path);
+         else
+            declare
+               use type GNAT.OS_Lib.String_Access;
+               Attrib    : GNAT.OS_Lib.String_Access := GNAT.OS_Lib.Locate_Exec_On_Path ("attrib.exe");
+               Arguments : GNAT.OS_Lib.Argument_List := [new String'("+R"), new String'(Path)];
+               Done      : Boolean := False;
+            begin
+               Assert (Attrib /= null, "attrib.exe is on the path");
+               GNAT.OS_Lib.Spawn (Attrib.all, Arguments, Done);
+               GNAT.OS_Lib.Free (Attrib);
+               for Argument of Arguments loop
+                  GNAT.OS_Lib.Free (Argument);
+               end loop;
+               Assert (Done and then not Hostkit.Fs.Is_Owner_Writable (Path), "protect " & Path);
+            end;
+         end if;
+      end Protect;
+
       procedure Check (Path : String) is
       begin
-         Assert
-           (Metadata_Mode_Of (Path) = 8#555#,
-            "publication and history preserve root, child directory and file permissions: root mode");
-         Assert
-           (Metadata_Mode_Of (Join (Path, "locked")) = 8#555#,
-            "publication and history preserve root, child directory and file permissions: child directory mode");
-         Assert
-           (Metadata_Mode_Of (Join (Path, "locked/child")) = 8#444#,
-            "publication and history preserve root, child directory and file permissions: file mode");
+         if Hostkit.Metadata.Mode_Bits_Are_Native then
+            Assert
+              (Metadata_Mode_Of (Path) = 8#555#,
+               "publication and history preserve root, child directory and file permissions: root mode");
+            Assert
+              (Metadata_Mode_Of (Join (Path, "locked")) = 8#555#,
+               "publication and history preserve root, child directory and file permissions: child directory mode");
+            Assert
+              (Metadata_Mode_Of (Join (Path, "locked/child")) = 8#444#,
+               "publication and history preserve root, child directory and file permissions: file mode");
+         else
+            Assert
+              (not Hostkit.Fs.Is_Owner_Writable (Path),
+               "publication and history keep the root folder's read-only attribute");
+            Assert
+              (not Hostkit.Fs.Is_Owner_Writable (Join (Path, "locked")),
+               "publication and history keep the child folder's read-only attribute");
+            Assert
+              (not Hostkit.Fs.Is_Owner_Writable (Join (Path, "locked/child")),
+               "publication and history keep the file's read-only attribute");
+         end if;
          Assert
            (File_Has_Bytes (Join (Path, "locked/child"), "read-only bytes"),
             "publication and history preserve root, child directory and file permissions: file bytes");
@@ -59,12 +97,6 @@ separate (Files_Suite.Operations)
          end loop;
       end Check_Backups;
    begin
-      if Hostkit.Host.Current = Hostkit.Host.Windows then
-         Files_Suite.Support.Skip
-           ("Test_Read_Only_Directory_Transfers",
-            "needs POSIX mode bits (555, 444)");
-         return;
-      end if;
       Settings.Show_Hidden_Files := True;
       Remote.Create ("files-test-read-only-move-");
       if Remote.Path = "" then
@@ -75,11 +107,9 @@ separate (Files_Suite.Operations)
          Reset_Root;
          Ada.Directories.Create_Path (Join (Source, "locked"));
          Write_Binary_File (Join (Source, "locked/child"), "read-only bytes");
-         Assert (Files.File_System.Set_Permissions (Join (Source, "locked/child"), 8#444#).Success,
-                 "protect the source file");
-         Assert (Files.File_System.Set_Permissions (Join (Source, "locked"), 8#555#).Success,
-                 "protect the child source directory");
-         Assert (Files.File_System.Set_Permissions (Source, 8#555#).Success, "protect the source root");
+         Protect (Join (Source, "locked/child"), 8#444#);
+         Protect (Join (Source, "locked"), 8#555#);
+         Protect (Source, 8#555#);
          Mutation := Files.File_System.Copy_Tree (Source, Join (Root, "copy"));
          Assert (Mutation.Success, "publish a copy of a read-only directory");
          Check (Source);

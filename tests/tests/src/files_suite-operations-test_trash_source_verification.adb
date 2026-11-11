@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 with Files_Suite.Volumes;
 separate (Files_Suite.Operations)
    procedure Test_Trash_Source_Verification (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -5,27 +6,23 @@ separate (Files_Suite.Operations)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Source : constant String := Join (Root, "changing");
       Remote : Files_Suite.Volumes.Remote_Directory;
+      --  The start of the trash's private copy of the item.
+      function Trigger return String is (Join (Remote.Path, "data/Trash/files/.files-work-"));
       Model : Files.Model.Window_Model;
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
-      procedure Reset_Fault with Import, Convention => C, External_Name => "files_test_fault_reset";
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Environment_Guard;
       procedure Cleanup is
       begin
          Files.Model.Clear_Paste_Execution (Model);
          Files.Refresh_Jobs.Cancel (Model);
+         Files.File_System.Testing.Stop_Changing_Source;
          Ada.Environment_Variables.Clear ("FILES_TEST_TRASH_TRIGGER");
          Ada.Environment_Variables.Clear ("FILES_TEST_TRASH_SOURCE");
          Ada.Environment_Variables.Clear ("FILES_TEST_TRASH_FAULT");
       end Cleanup;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip
-           ("Test_Trash_Source_Verification",
-            "the trash fault hooks utimensat in Linux-only C");
-         return;
-      end if;
       Remote.Create ("files-test-trash-source-");
       if Remote.Path = "" then
          Files_Suite.Support.Skip ("Test_Trash_Source_Verification", Files_Suite.Volumes.No_Other_Volume);
@@ -35,8 +32,9 @@ separate (Files_Suite.Operations)
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Join (Remote.Path, "data"));
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
-      Ada.Environment_Variables.Set
-        ("FILES_TEST_TRASH_TRIGGER", Join (Remote.Path, "data/Trash/files/.files-work-"));
+      --  Once the copy into the trash is complete, the source changes: set
+      --  here, and in the environment for a background transfer's helper.
+      Ada.Environment_Variables.Set ("FILES_TEST_TRASH_TRIGGER", Trigger);
       Ada.Environment_Variables.Set ("FILES_TEST_TRASH_SOURCE", Source);
       for Background in Boolean loop
          for Fault in 1 .. 3 loop
@@ -50,7 +48,11 @@ separate (Files_Suite.Operations)
             end if;
             Ada.Environment_Variables.Set
               ("FILES_TEST_TRASH_FAULT", (if Fault = 1 then "edit" elsif Fault = 2 then "replace" else "folder"));
-            Reset_Fault;
+            Files.File_System.Testing.Change_Source_After_Copy
+              (Trigger, Source,
+               (if Fault = 1 then Files.File_System.Testing.Edit_Source
+                elsif Fault = 2 then Files.File_System.Testing.Replace_Source
+                else Files.File_System.Testing.Edit_Folder_Child));
             Load := Files.File_System.Load_Directory (Root, Settings);
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Operations.Clear_Undo (Model);

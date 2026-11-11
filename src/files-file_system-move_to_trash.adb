@@ -1,3 +1,4 @@
+with Files.Durability;
 with Hostkit.Durability;
 separate (Files.File_System)
 function Move_To_Trash
@@ -145,14 +146,50 @@ begin
       end if;
    end;
 
-   --  Hand the item to the desktop's own trash where the platform has one.
-   --  These backends were written and then never called: everything went down
-   --  the freedesktop path, so deleting on Windows built a .trashinfo sidecar
-   --  in a directory the Recycle Bin knows nothing about.
+   --  The Recycle Bin says where the item went -- its $R path, beside the $I
+   --  record of where it came from -- so that is the trashed path, and Undo
+   --  and the trash view restore from it as from the freedesktop trash. The
+   --  record names the item's real place; Recorded_Path is for a trash whose
+   --  record is ours to write.
+   if Backend = Trash_Windows_Recycle_Bin then
+      declare
+         Request : constant Native_Trash_Request :=
+           (Backend                 => Backend,
+            Path                    => To_Unbounded_String (Path),
+            Requires_Native_Api     => True,
+            Can_Use_Current_Process => True);
+         Evaluation : constant Native_Trash_Result := Evaluate_Native_Trash (Request);
+         Recycled, Ignored_Info : Files.Types.UString;
+         Outcome : Hostkit.Trash.Recycle_Outcome;
+      begin
+         if not Evaluation.Supported then
+            return (Success => False, Error_Key => Evaluation.Error_Key);
+         elsif Native_Trash_Refused then
+            return (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
+         end if;
+         Outcome := Hostkit.Trash.Move_To_Recycle_Bin (Path, Recycled, Ignored_Info);
+         case Outcome is
+            when Hostkit.Trash.Recycled =>
+               Trashed_Path := Recycled;
+               return (Success => True, Error_Key => Null_Unbounded_String);
+            when Hostkit.Trash.Recycle_Unsupported =>
+               return (Success => False, Error_Key => To_Unbounded_String ("error.trash.native_unavailable"));
+            when Hostkit.Trash.Recycle_Volume_Unavailable =>
+               return (Success => False, Error_Key => To_Unbounded_String ("error.trash.volume_unavailable"));
+            when Hostkit.Trash.Recycle_Bin_Missing | Hostkit.Trash.Recycle_Bin_Newer_Format =>
+               return (Success => False, Error_Key => To_Unbounded_String ("error.trash.recycle_bin_unusable"));
+            when Hostkit.Trash.Recycle_Refused =>
+               return (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
+         end case;
+      end;
+   end if;
+
+   --  Hand the item to the Finder's trash. These backends were written and
+   --  then never called: everything went down the freedesktop path.
    --
-   --  The shell owns the item afterwards, so there is no path to hand back --
+   --  The Finder owns the item afterwards, so there is no path to hand back --
    --  which is also why an undo cannot restore it, and says so.
-   if Backend in Trash_Windows_Recycle_Bin | Trash_Macos_Native then
+   if Backend = Trash_Macos_Native then
       declare
          Request : constant Native_Trash_Request :=
            (Backend                 => Backend,
@@ -235,8 +272,8 @@ begin
          --  On the device before the item moves in: a crash must not leave
          --  an item in the trash with an empty info file, which the trash
          --  view could neither list nor restore.
-         if Hostkit.Durability."=" (Hostkit.Durability.Sync_File (To_String (Info_Path)), Hostkit.Durability.Failed)
-           or else Hostkit.Durability."=" (Hostkit.Durability.Sync_Directory (Info_Dir), Hostkit.Durability.Failed)
+         if Hostkit.Durability."=" (Files.Durability.Sync_File (To_String (Info_Path)), Hostkit.Durability.Failed)
+           or else Hostkit.Durability."=" (Files.Durability.Sync_Directory (Info_Dir), Hostkit.Durability.Failed)
          then
             raise Ada.Directories.Use_Error;
          end if;

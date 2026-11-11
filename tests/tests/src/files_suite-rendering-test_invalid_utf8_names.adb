@@ -1,30 +1,45 @@
+with Ada.Text_IO;
+with Hostkit.Fs;
 separate (Files_Suite.Rendering)
-   --  POSIX file names are bytes: one that is not valid UTF-8 ("bad\xFF.txt")
-   --  must list, render (snapshot, frame, accessibility tree), rename and
-   --  delete like any other. Hosts whose file systems refuse such a name skip,
-   --  and so does Windows, whose UTF-16 names translate the bytes on the way in.
+   --  A file name need not be text: POSIX names are bytes, and one that is not
+   --  valid UTF-8 ("bad\xFF.txt") must list, render (snapshot, frame,
+   --  accessibility tree), rename and delete like any other. Windows names are
+   --  UTF-16 that need not be well formed -- NTFS keeps a lone surrogate -- and
+   --  hostkit hands such a name over as WTF-8, the surrogate as its own three
+   --  bytes (ED A0 80 for U+D800), which is just as invalid as UTF-8 and must
+   --  work the same way. Hosts whose file systems refuse such a name skip.
+   --  Existence is asked of hostkit throughout: GNAT's runtime would turn the
+   --  bytes into U+FFFD on Windows and look for another name.
    procedure Test_Invalid_UTF8_Names (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Bad      : constant String := "bad" & Character'Val (16#FF#) & Character'Val (16#C3#) & ".txt";
+      Windows  : constant Boolean := Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows);
+      Bad      : constant String :=
+        (if Windows
+         then "bad" & Character'Val (16#ED#) & Character'Val (16#A0#) & Character'Val (16#80#) & ".txt"
+         else "bad" & Character'Val (16#FF#) & Character'Val (16#C3#) & ".txt");
       Bad_Path : constant String := Files_Suite.Support.Root & "/" & Bad;
       Good     : constant String := Files_Suite.Support.Root & "/good.txt";
       Created  : Boolean := True;
+
+      function Exists (Path : String) return Boolean is
+        (Hostkit.Fs."/=" (Hostkit.Fs.Kind_Of (Path), Hostkit.Fs.Missing_Entry));
    begin
-      if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows) then
-         Files_Suite.Support.Skip
-           ("Test_Invalid_UTF8_Names",
-            "Windows file names cannot hold bytes that are not UTF-8");
-         return;
-      end if;
       Files_Suite.Support.Reset_Root;
+      declare
+         File : Ada.Text_IO.File_Type;
       begin
-         Files_Suite.Support.Write_File (Bad_Path, "bytes");
+         Hostkit.Fs.Create_Text (File, Path => Bad_Path);
+         Ada.Text_IO.Put (File, "bytes");
+         Ada.Text_IO.Close (File);
       exception
          when others =>
+            if Ada.Text_IO.Is_Open (File) then
+               Ada.Text_IO.Close (File);
+            end if;
             Created := False;
       end;
-      if not Created or else not Ada.Directories.Exists (Bad_Path) then
+      if not Created or else not Exists (Bad_Path) then
          Files_Suite.Support.Skip
            ("Test_Invalid_UTF8_Names",
             "this filesystem would not store a name that is not valid UTF-8");
@@ -56,7 +71,7 @@ separate (Files_Suite.Rendering)
       end;
 
       Assert (Files.File_System.Rename_Item (Bad_Path, Good).Success, "a non-UTF-8 name renames to a valid one");
-      Assert (Ada.Directories.Exists (Good) and then not Ada.Directories.Exists (Bad_Path), "the rename moved it");
+      Assert (Exists (Good) and then not Exists (Bad_Path), "the rename moved it");
       declare
          Back : constant Files.File_System.Mutation_Result := Files.File_System.Rename_Item (Good, Bad_Path);
       begin
@@ -78,10 +93,11 @@ separate (Files_Suite.Rendering)
             Assert (Plan.Plans.First_Element.Valid, "a non-UTF-8 name can be copied: "
                     & Ada.Strings.Unbounded.To_String (Plan.Error_Key));
             Assert (Files.File_System.Execute_Drop_Import (Plan.Plans).Success, "the copy runs");
-            Assert (Ada.Directories.Exists (Into & "/" & Bad), "the copy keeps the name's bytes");
+            Assert (Exists (Into & "/" & Bad), "the copy keeps the name's bytes");
          end;
+         Assert (Files.File_System.Delete_Permanently (Into & "/" & Bad).Success, "the copy deletes");
       end;
       Assert (Files.File_System.Delete_Permanently (Bad_Path).Success, "a non-UTF-8 name deletes");
-      Assert (not Ada.Directories.Exists (Bad_Path), "the delete removed it");
+      Assert (not Exists (Bad_Path), "the delete removed it");
       Files_Suite.Support.Reset_Root;
    end Test_Invalid_UTF8_Names;

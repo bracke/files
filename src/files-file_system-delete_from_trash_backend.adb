@@ -9,6 +9,16 @@ is
    --  trash has no info files.
    Base    : constant String := Trash_Base_Of (Trashed_Path);
 begin
+   --  A Recycle Bin item goes with its $I record, as Explorer's Delete does.
+   if Backend = Trash_Windows_Recycle_Bin then
+      if not Hostkit.Trash.Is_Recycled_Item (Trashed_Path) then
+         return (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
+      elsif not Hostkit.Trash.Purge (Trashed_Path) then
+         return (Success => False, Error_Key => To_Unbounded_String ("error.permanent_delete.failed"));
+      end if;
+      return (Success => True, Error_Key => Null_Unbounded_String);
+   end if;
+
    if Base = ""
      and then (Backend /= Trash_Macos_Home or else not Is_Trash_Payload (Trashed_Path, Trash_Files_Directory))
    then

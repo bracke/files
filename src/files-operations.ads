@@ -70,6 +70,23 @@ package Files.Operations is
       Detach      : Boolean := False)
       return Boolean;
 
+   --  As Execute_Open_Action, also saying why a launch did not start when
+   --  there is more to say than that it failed.
+   --
+   --  @param Action Open action describing the executable and arguments.
+   --  @param Exit_Status Exit status, or -1 when none was awaited or none started.
+   --  @param Failure_Key On failure, the error key to show: error.open.path_too_long
+   --    when the system opener cannot take the path (Windows, past 259
+   --    characters with no short name), else empty for the caller's own.
+   --  @param Detach Whether to launch the process without waiting for it.
+   --  @return True when the process ran successfully, or (detached) was started.
+   function Execute_Open_Action
+     (Action      : Files.Settings.Open_Action;
+      Exit_Status : out Integer;
+      Failure_Key : out UString;
+      Detach      : Boolean := False)
+      return Boolean;
+
    --  Apply the persisted global UI state -- view mode and sort field/direction --
    --  from Settings to the model, deterministically (an absolute set, not a
    --  toggle). Used at startup and after a settings save so the model matches the

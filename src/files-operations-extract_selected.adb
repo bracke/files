@@ -1,3 +1,4 @@
+with Hostkit.Host;
 with Files.File_Types;
 separate (Files.Operations)
 function Extract_Selected
@@ -133,9 +134,23 @@ begin
                      return Failed;
                   end if;
 
-                  Files.Job_Context.Record_Created (Dest_Dir, "", Identity, Revision);
-                  Identities.Append (To_Unbounded_String (Identity));
-                  Tree_Revisions.Append (To_Unbounded_String (Revision));
+                  declare
+                     --  The stage handed the payload owner-only access, which
+                     --  the rename kept on Windows: let the destination's
+                     --  inheritance replace it, as for any folder made there.
+                     --  That writes the change times the folder's revision
+                     --  reads, so it is taken afresh. A failure leaves the
+                     --  folder owner-only, no reason to undo the extraction.
+                     Published : constant String :=
+                       (if Hostkit.Metadata.Inherit_From_Parent (Dest_Dir)
+                          and then Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows)
+                        then Files.File_System.Tree_Revision (Dest_Dir)
+                        else Revision);
+                  begin
+                     Files.Job_Context.Record_Created (Dest_Dir, "", Identity, Published);
+                     Identities.Append (To_Unbounded_String (Identity));
+                     Tree_Revisions.Append (To_Unbounded_String (Published));
+                  end;
                end;
                Discard_Stage;
                Created.Append (To_Unbounded_String (Dest_Dir));

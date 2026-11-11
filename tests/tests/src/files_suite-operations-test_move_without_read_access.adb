@@ -10,10 +10,9 @@ separate (Files_Suite.Operations)
       Destination : constant String := Join (Root, "destination");
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
    begin
-      if not Hostkit.Metadata.Mode_Bits_Are_Native then
-         Files_Suite.Support.Skip ("Test_Move_Without_Read_Access", "needs native POSIX mode bits");
-         return;
-      end if;
+      --  Mode 0 is an empty DACL on Windows: nothing may be read, and only
+      --  the folder's own FILE_DELETE_CHILD lets the entry be renamed away,
+      --  as a POSIX folder's write bit does.
       for Directory_Move in Boolean loop
          Reset_Root;
          if Directory_Move then
@@ -56,6 +55,8 @@ separate (Files_Suite.Operations)
          Assert (Step.Status = Files.Operations.Operation_Success
                  and then Ada.Directories.Exists (Destination),
                  "Redo moves the unreadable entry by identity");
+         Mutation := Files.File_System.Set_Permissions
+           ((if Directory_Move then Join (Destination, "child") else Destination), 8#644#);
       end loop;
    exception
       when others =>

@@ -28,15 +28,26 @@ package Files.Undo_Payloads is
    function Parse_Ownership (Text : String; Value : out Ownership) return Boolean;
 
    --  @param Mode Permission bits.
-   --  @return Them as recorded.
-   function Mode_Text (Mode : Natural) return String;
+   --  @param Access_Text The entry's whole access record where the bits
+   --    cannot hold it all (a Windows DACL as SDDL,
+   --    Files.File_System.Change_Access), or "" where they are all of it.
+   --  @return Them as recorded: the bits, then the record after a NUL when
+   --    there is one.
+   function Mode_Text (Mode : Natural; Access_Text : String := "") return String;
 
-   --  Read what Mode_Text wrote (blanks around it allowed).
+   --  Read the bits Mode_Text wrote (blanks around them allowed). A record
+   --  after them must hold no NUL.
    --
    --  @param Text Recorded text.
    --  @param Mode The bits read; 0 when the result is False.
    --  @return True when Text is a mode payload.
    function Parse_Mode (Text : String; Mode : out Natural) return Boolean;
+
+   --  The access record Mode_Text wrote after the bits.
+   --
+   --  @param Text Recorded text.
+   --  @return The record, or "" when none was recorded.
+   function Mode_Access (Text : String) return String;
 
    --  @param Text Recorded text.
    --  @return Whether Parse_Mode would read it.

@@ -33,6 +33,17 @@ separate (Files_Suite.Model)
       Assert (not Is_Ownership ("-1 2"), "no sign");
 
       Assert (Parse_Mode (Mode_Text (8#755#), Mode) and then Mode = 8#755#, "a mode payload reads back");
+      Assert (Mode_Access (Mode_Text (8#755#)) = "", "with no access record where none was given");
+      --  A Windows DACL, as Change_Access reports it, rides after the bits.
+      Assert
+        (Parse_Mode (Mode_Text (8#640#, "D:AI(A;;FA;;;SY)(A;ID;0x1200a9;;;BU)"), Mode) and then Mode = 8#640#,
+         "a mode payload with an access record reads its bits back");
+      Assert
+        (Mode_Access (Mode_Text (8#640#, "D:AI(A;;FA;;;SY)(A;ID;0x1200a9;;;BU)"))
+         = "D:AI(A;;FA;;;SY)(A;ID;0x1200a9;;;BU)",
+         "and the record whole");
+      Assert (Is_Mode (" 420" & ASCII.NUL & "D:P"), "a recorded payload is a mode payload");
+      Assert (not Is_Mode (" 420" & ASCII.NUL & "D:P" & ASCII.NUL & "x"), "but not with a second NUL");
       Assert (not Is_Mode ("16#1ED#"), "no Ada literal syntax");
       Assert (not Is_Mode (""), "and not empty");
    end Test_Undo_Payloads_Round_Trip;

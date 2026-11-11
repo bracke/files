@@ -1,3 +1,4 @@
+with Files.Durability;
 with Hostkit.Durability;
 with Hostkit.Host;
 with Hostkit.Process;
@@ -81,7 +82,7 @@ function Volume_Trash_For (Path : String) return String is
          --  replaced by an empty one. A list that will not sync is still
          --  better than none: it replaces the old one all the same.
          declare
-            Synced : constant Hostkit.Durability.Outcome := Hostkit.Durability.Sync_File (Partial);
+            Synced : constant Hostkit.Durability.Outcome := Files.Durability.Sync_File (Partial);
             pragma Unreferenced (Synced);
          begin
             null;

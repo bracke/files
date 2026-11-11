@@ -1,3 +1,4 @@
+with Files.Durability.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Preserve_Puts_Original_Back (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -23,20 +24,14 @@ separate (Files_Suite.Operations)
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Environment_Guard;
    begin
-      if Hostkit.Host.Current /= Hostkit.Host.Linux then
-         Files_Suite.Support.Skip
-           ("Test_Preserve_Puts_Original_Back",
-            "the stage-sync fault hooks fsync in Linux-only C");
-         return;
-      end if;
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
-      Files_Suite.Support.Save (Environment, "FILES_TEST_STAGE_SYNC_FAULT");
       Reset_Root;
       Write_Binary_File (Dest, "the original");
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "windows");
-      Ada.Environment_Variables.Set ("FILES_TEST_STAGE_SYNC_FAULT", "1");
+      --  Syncing the stage once the original has moved into it fails.
+      Files.Durability.Testing.Fail_Stage_Sync;
       Result := Files.File_System.Preserve_For_Replace (Dest, Backup);
-      Ada.Environment_Variables.Clear ("FILES_TEST_STAGE_SYNC_FAULT");
+      Files.Durability.Testing.Clear;
       Assert (not Result.Success, "the preserve reports the failed sync");
       Files_Suite.Support.Assert_Equal (Length (Backup), 0, "no backup is left to recover from");
       Files_Suite.Support.Assert_Equal
@@ -44,4 +39,8 @@ separate (Files_Suite.Operations)
          "the original",
          "the original is back at its own path");
       Files_Suite.Support.Assert_Equal (Stages_Left, 0, "no hidden recovery folder is left behind");
+   exception
+      when others =>
+         Files.Durability.Testing.Clear;
+         raise;
    end Test_Preserve_Puts_Original_Back;

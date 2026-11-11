@@ -637,6 +637,12 @@ package Files.File_System is
    --  bits (the low 12 bits). Failures map to error.permissions.failed, and an
    --  unsupported platform maps to error.permissions.unsupported.
    --
+   --  Exact, not an edit: on Windows the entry's access becomes just the
+   --  three accounts' bits (Hostkit.Metadata.Set_Exact_Permissions), so 0
+   --  takes access away even from an administrator -- what a test's fixture
+   --  needs. A user's edit goes through Change_Access, which changes only
+   --  what the bits do.
+   --
    --  @param Path Existing filesystem path whose mode is changed.
    --  @param Mode New permission bits to apply.
    --  @return Mutation result with a localized error key on failure.
@@ -662,6 +668,29 @@ package Files.File_System is
    function Change_Mode
      (Path, Expected_Identity : String; Mode : Natural;
       Previous : out Natural; Identity : out Files.Types.UString) return Mutation_Result;
+
+   --  Change_Mode as a user's edit makes it, reporting the entry's whole
+   --  access record too where the mode cannot hold it all: on Windows the
+   --  DACL, before and after (Hostkit.Metadata.Update_Entry_Metadata), which
+   --  the edit changes only where the bits do. With Access_Text -- a record
+   --  reported earlier -- that record is put back exactly instead of Mode:
+   --  how an undo restores the access an edit changed. The records are empty
+   --  on a POSIX host, where the mode is the whole of it and Access_Text is
+   --  ignored.
+   --
+   --  @param Path Existing entry; symbolic links must be resolved by the caller.
+   --  @param Expected_Identity History identity to verify, or empty for a new live change.
+   --  @param Mode New permission bits, 0 .. 8#7777#.
+   --  @param Access_Text An access record to restore instead of Mode, or "".
+   --  @param Previous Live previous permission bits captured before mutation.
+   --  @param Previous_Access The access record before the change, or "".
+   --  @param Applied_Access The access record after it, or "".
+   --  @param Identity Identity of the entry actually changed.
+   --  @return Result of applying the change to the verified entry.
+   function Change_Access
+     (Path, Expected_Identity : String; Mode : Natural; Access_Text : String;
+      Previous : out Natural; Previous_Access, Applied_Access, Identity : out Files.Types.UString)
+      return Mutation_Result;
 
    --  Change the owner and group of one verified entry through a handle that
    --  pins it, capturing the ids it had.
@@ -1014,5 +1043,33 @@ private
    function Read_Bounded_Regular_File
      (Path : String; Max_Bytes : Natural;
       Success, Complete : out Boolean) return String;
+
+   --  Set only by the test suite (Files.File_System.Testing.Refuse_Native_Trash):
+   --  the desktop's own trash then refuses every item, as an unreachable
+   --  Recycle Bin would, so the refusal paths can be exercised where the
+   --  trash is reachable. The application never sets it.
+   Native_Trash_Refused : Boolean := False
+     with Atomic;
+
+   --  What a copy calls with the path of each entry whose metadata it has
+   --  just set, before it checks the source against the copy.
+   type Copy_Hook is access procedure (Destination : String);
+
+   --  Set only by the test suite (Files.File_System.Testing): it changes the
+   --  source there, as an editor saving at that moment would, so that the
+   --  check that refuses to remove a changed source is exercised on every
+   --  host. The application never sets it.
+   After_Metadata : Copy_Hook := null
+     with Atomic;
+
+   --  What a rename asks before it gives a read-only folder back the mode
+   --  it lent it write access from (Hostkit.Directory_Write_Access).
+   type Restore_Hook is access function (Directory : String) return Boolean;
+
+   --  Set only by the test suite (Files.File_System.Testing): True for the
+   --  folder now at Directory refuses the restoration, as a failing chmod
+   --  would. The application never sets it.
+   Refuse_Directory_Restore : Restore_Hook := null
+     with Atomic;
 
 end Files.File_System;

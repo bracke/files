@@ -14,7 +14,9 @@ with Files.File_Identities;
 with Files.Io_Errors;
 with CryptoLib.Hashes;
 
+with Files.Durability;
 with Hostkit.Durability;
+with Hostkit.Host;
 with Hostkit.Metadata;
 with Hostkit.Regular_Files;
 with Files.Path_Checks;
@@ -70,9 +72,9 @@ package body Files.File_System.Support is
                For_Each_Entry (From, Visit'Access);
             end if;
             Synced := Synced
-              and then Hostkit.Durability.Sync_Directory (To) /= Hostkit.Durability.Failed;
+              and then Files.Durability.Sync_Directory (To) /= Hostkit.Durability.Failed;
          elsif Files_Too and then Files.Fs_Primitives.Kind (To) = Ada.Directories.Ordinary_File then
-            Synced := Hostkit.Durability.Sync_File (To) /= Hostkit.Durability.Failed;
+            Synced := Files.Durability.Sync_File (To) /= Hostkit.Durability.Failed;
          end if;
       end Sync;
       procedure Sync_Root is
@@ -83,7 +85,7 @@ package body Files.File_System.Support is
       --  As deep as the copy went (1024 levels): on a stack that holds it.
       On_Large_Stack (Sync_Root'Access);
       return Synced
-        and then Hostkit.Durability.Sync_Directory (Files.Fs_Primitives.Parent_Directory (Destination)) /=
+        and then Files.Durability.Sync_Directory (Files.Fs_Primitives.Parent_Directory (Destination)) /=
           Hostkit.Durability.Failed;
    exception
       when Swallowed : others =>
@@ -475,8 +477,19 @@ package body Files.File_System.Support is
    is
       Context  : Hostkit.Directory_Write_Access.Context;
       Outcome  : Hostkit.Fs.Move_Outcome;
-      Moved    : Boolean;
+      Moved    : Boolean := False;
       Restored : Boolean;
+
+      --  Give the folder back its mode, wherever it is now -- unless the
+      --  test suite refuses that there (Refuse_Directory_Restore).
+      function Finish return Boolean is
+         Refuse : constant Restore_Hook := Refuse_Directory_Restore;
+      begin
+         if Refuse /= null and then Refuse (if Moved then Destination else Source) then
+            return False;
+         end if;
+         return Hostkit.Directory_Write_Access.Finish (Context);
+      end Finish;
    begin
       if not Hostkit.Directory_Write_Access.Prepare (Source, Context) then
          return Hostkit.Fs.Move_Refused;
@@ -488,14 +501,14 @@ package body Files.File_System.Support is
          --  Before restoring access below, which makes calls of its own.
          Files.Io_Errors.Capture;
       end if;
-      Restored := Hostkit.Directory_Write_Access.Finish (Context);
+      Restored := Finish;
       if not Restored then
          --  Restore the original pathname before reporting a refused operation.
          --  If that pathname is occupied, leave the committed payload in place.
          if Moved and then Hostkit.Fs.Move_No_Replace (Destination, Source) then
             Moved := False;
          end if;
-         Restored := Hostkit.Directory_Write_Access.Finish (Context);
+         Restored := Finish;
          if not Restored then
             Hostkit.Directory_Write_Access.Release (Context);
          end if;
@@ -504,7 +517,7 @@ package body Files.File_System.Support is
       return Outcome;
    exception
       when others =>
-         Restored := Hostkit.Directory_Write_Access.Finish (Context);
+         Restored := Finish;
          if not Restored then
             Hostkit.Directory_Write_Access.Release (Context);
          end if;
@@ -517,12 +530,12 @@ package body Files.File_System.Support is
          return;
       end if;
       declare
-         --  Links resolved: a copy into its own tree reached through a link
-         --  is still a copy into its own tree.
-         Original : constant String := Files.Fs_Primitives.Full_Name (Source);
+         --  Links resolved, on Windows too: a copy into its own tree reached
+         --  through a link or junction is still a copy into its own tree.
+         Original : constant String := Files.Fs_Primitives.Real_Name (Source);
          Identity : constant String := Files.File_Identities.Token (Source);
          Parent : UString := To_Unbounded_String
-           (Files.Fs_Primitives.Full_Name (Files.Fs_Primitives.Parent_Directory (Destination)));
+           (Files.Fs_Primitives.Real_Name (Files.Fs_Primitives.Parent_Directory (Destination)));
       begin
          if Original = "" or else Length (Parent) = 0 then
             raise Ada.Directories.Use_Error;
@@ -535,7 +548,7 @@ package body Files.File_System.Support is
             end if;
             declare
                Next : constant String :=
-                 Files.Fs_Primitives.Full_Name (Hostkit.Fs.Join (To_String (Parent), ".."));
+                 Files.Fs_Primitives.Real_Name (Hostkit.Fs.Join (To_String (Parent), ".."));
             begin
                if Next = "" then
                   raise Ada.Directories.Use_Error;
@@ -678,6 +691,33 @@ package body Files.File_System.Support is
          Preserve_Ownership, Batch);
    end Copy_To_New_Path;
 
+   --  Give a copy just published from its private stage the access its new
+   --  folder hands down, and its revision afresh where that changed it.
+   procedure Inherit_Destination_Access
+     (Path                   : String;
+      Revision               : in out Files.Types.UString;
+      Check_Job_Cancellation : Boolean) is
+   begin
+      --  The stage handed the payload its owner-only access, and a rename
+      --  into place keeps that on Windows. What the destination hands down
+      --  is the copy's, as for any file made there (files copies no DACL: a
+      --  copy inherits, as Explorer's does). A failure leaves the copy
+      --  owner-only, which is no reason to undo a finished copy.
+      if not Hostkit.Metadata.Inherit_From_Parent (Path) then
+         return;
+      end if;
+      --  Inheriting wrote the change time of every entry it reached, which a
+      --  folder's revision reads for the files inside it: take it afresh, or
+      --  Undo and crash recovery would see a changed copy. A file's revision
+      --  leaves the change time out.
+      if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows)
+        and then not Hostkit.Fs.Is_Link (Path)
+        and then Files.Fs_Primitives.Kind (Path) = Ada.Directories.Directory
+      then
+         Revision := To_Unbounded_String (Tree_Revision_Of (Path, Check_Job_Cancellation));
+      end if;
+   end Inherit_Destination_Access;
+
    procedure Copy_To_New_Path
      (Source_Path, Destination_Path : String;
       Identity, Tree_Revision_Value : out Files.Types.UString;
@@ -744,6 +784,7 @@ package body Files.File_System.Support is
       if not Move_No_Replace (Hostkit.Fs.Join (To_String (Stage), "payload"), Destination_Path) then
          raise Ada.Directories.Use_Error;
       end if;
+      Inherit_Destination_Access (Destination_Path, Tree_Revision_Value, Check_Job_Cancellation);
       Files.Job_Context.Record_Created
         (Destination_Path, Source_Path, To_String (Identity), To_String (Tree_Revision_Value));
       --  Publication is complete; leftover staging must not falsify its result.
@@ -922,11 +963,14 @@ package body Files.File_System.Support is
    --  Copy a regular file's bytes into a new file, sparse where the source
    --  reads as zeros, flushed when the walk is durable; digested when asked
    --  (into State.Copied_Digest, and the walk's root digest for the root).
+   --  Encrypted makes the new file encrypted before its first byte (an EFS
+   --  source on Windows): the copy fails rather than land decrypted.
    procedure Copy_File_Bytes
      (Source_Path      : String;
       Destination_Path : String;
       Walk             : in out Copy_Walk;
       Wants_Digest     : Boolean;
+      Encrypted        : Boolean;
       State            : in out Node_State)
    is
       Track_Hard_Link     : Boolean renames State.Track_Hard_Link;
@@ -996,7 +1040,7 @@ package body Files.File_System.Support is
          end if;
       end;
       --  0666 less the creation mask, as GNAT's Create_New_File makes it.
-      Output := Hostkit.Regular_Files.Create_New (Destination_Path, 8#666#);
+      Output := Hostkit.Regular_Files.Create_New (Destination_Path, 8#666#, Encrypted);
       if Output = GNAT.OS_Lib.Invalid_FD then
          Files.Io_Errors.Capture;
          raise Ada.Directories.Use_Error;
@@ -1023,7 +1067,7 @@ package body Files.File_System.Support is
       --  Through the descriptor that wrote it, before its metadata is set:
       --  no reopening, which a read-only copy would refuse on Windows.
       if Walk.Durable
-        and then Hostkit.Durability."=" (Hostkit.Durability.Sync_Descriptor (Integer (Output)),
+        and then Hostkit.Durability."=" (Files.Durability.Sync_Descriptor (Integer (Output), Destination_Path),
                                           Hostkit.Durability.Failed)
       then
          Files.Io_Errors.Capture;
@@ -1093,6 +1137,8 @@ package body Files.File_System.Support is
       Copied_Bytes_Digest : Files.Types.UString renames State.Copied_Digest;
 
       procedure Copy_Metadata is
+         --  Null but in the test suite (Files.File_System.Testing).
+         Hook : constant Copy_Hook := After_Metadata;
       begin
          if not Hostkit.Metadata_Copy.Apply
            (Metadata, Destination_Path, Preserve_Ownership)
@@ -1100,6 +1146,9 @@ package body Files.File_System.Support is
             raise Ada.Directories.Use_Error;
          end if;
          Metadata := Hostkit.Metadata_Copy.No_Snapshot;
+         if Hook /= null then
+            Hook (Destination_Path);
+         end if;
       end Copy_Metadata;
 
       procedure Record_Hard_Link is
@@ -1229,7 +1278,8 @@ package body Files.File_System.Support is
             Owned := True;
             For_Each_Entry (Source_Path, Copy_Entry'Access);
          when Ada.Directories.Ordinary_File =>
-            Copy_File_Bytes (Source_Path, Destination_Path, Walk, Wants_Digest, State);
+            Copy_File_Bytes
+              (Source_Path, Destination_Path, Walk, Wants_Digest, Hostkit.Metadata_Copy.Is_Encrypted (Metadata), State);
          when Ada.Directories.Special_File =>
             --  Opening a FIFO or device can block without a cancellation point.
             raise Ada.Directories.Use_Error;
