@@ -6,7 +6,7 @@ separate (Files.Rendering)
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height;
+      Line_Height : Positive;
       Pointer     : Pointer_State := No_Pointer)
       return Frame_Commands
    is
@@ -47,7 +47,7 @@ separate (Files.Rendering)
       --  a pixel low.
       Toolbar_Input_Text_Y : constant Natural :=
         (if Toolbar_Input_H > Line_Height
-         then Optically_Raised (Saturating_Add (Toolbar_Input_Y, (Toolbar_Input_H - Line_Height) / 2))
+         then Optically_Raised (Saturating_Add (Toolbar_Input_Y, (Toolbar_Input_H - Line_Height) / 2), Line_Height)
          else Toolbar_Input_Y);
       Toolbar_Input_Text_H : constant Natural :=
         Natural'Min (Line_Height, Toolbar_Input_H);
@@ -66,11 +66,12 @@ separate (Files.Rendering)
         Guikit.Layout.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
       Bottom_Y      : constant Natural :=
         (if Height > Layout.Bottom_Bar_Height then Height - Layout.Bottom_Bar_Height else 0);
+      Bottom_Pad    : constant Natural := Guikit.Layout.Scaled (Guikit.Layout.Bottom_Bar_Padding, Line_Height);
       Bottom_Content_Y : constant Natural :=
-        Saturating_Add (Bottom_Y, Optically_Raised (Guikit.Layout.Bottom_Bar_Padding));
+        Saturating_Add (Bottom_Y, Optically_Raised (Bottom_Pad, Line_Height));
       Bottom_Content_H : constant Natural :=
-        (if Layout.Bottom_Bar_Height > Saturating_Multiply (Guikit.Layout.Bottom_Bar_Padding, 2)
-         then Layout.Bottom_Bar_Height - Saturating_Multiply (Guikit.Layout.Bottom_Bar_Padding, 2)
+        (if Layout.Bottom_Bar_Height > Saturating_Multiply (Bottom_Pad, 2)
+         then Layout.Bottom_Bar_Height - Saturating_Multiply (Bottom_Pad, 2)
          else Layout.Bottom_Bar_Height);
 
       function Intersects
@@ -578,7 +579,8 @@ separate (Files.Rendering)
             Y           => Y,
             Width       => Shadow_W,
             Height      => Shadow_H,
-            Color       => Shadow_Color);
+            Color       => Shadow_Color,
+            Line_Height => Line_Height);
       end Add_Overlay_Drop_Shadow;
 
       procedure Add_Scrollbar
@@ -644,23 +646,11 @@ separate (Files.Rendering)
          end case;
       end Icon_Color;
 
-      function Icon_Asset_Directory return String is
-      begin
-         return "share/files/icons" & Files.Icon_Themes.Subdirectory (Snapshot.Icon_Theme);
-      end Icon_Asset_Directory;
-
-      function Is_Bundled_Icon (Name : String) return Boolean is
-      begin
-         return
-           Name = "folder"
-           or else Name = "text"
-           or else Name = "image"
-           or else Name = "executable"
-           or else Name = "link"
-           or else Name = "unknown"
-           or else Name = "ada"
-           or else Name = "markdown";
-      end Is_Bundled_Icon;
+      --  The colour the backend rasterizes an atlas icon's base-role shapes in:
+      --  a folder's blue, every other asset a neutral grey (the backend knows no
+      --  icon names, so files says which is which).
+      function Atlas_Base_Color (Icon_Name : String) return Guikit.Draw.Icon_Rgb is
+        (if Icon_Name = "folder" then (R => 82, G => 128, B => 209) else Guikit.Draw.Default_Icon_Base_Color);
 
       procedure Add_Icon
         (Item : Item_Snapshot;

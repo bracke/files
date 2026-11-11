@@ -23,7 +23,8 @@ separate (Files_Suite.Interaction)
             Origin_X     => Origin_X,
             Origin_Width => Origin_W,
             Current_X    => Origin_X - 10 * Step,
-            Result       => Result);
+            Result       => Result,
+            Line_Height  => Line);
          Changed := Changed or else Result.Settings_Changed;
          Assert (not Ada.Directories.Exists (Path), "a resize move does not write the settings file");
       end loop;

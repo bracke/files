@@ -16,14 +16,14 @@ separate (Files_Suite.Rendering)
       Shadow_Count  : Natural := 0;
       Accessibility_Count : Natural := 0;
    begin
-      Snap.Paste_Progress_Open := True;
-      Snap.Paste_Progress_Done := 3;
-      Snap.Paste_Progress_Total := 10;
-      Snap.Paste_Progress_Name := To_Unbounded_String ("bigfile.bin");
+      Snap.Paste_Progress.Open := True;
+      Snap.Paste_Progress.Done := 3;
+      Snap.Paste_Progress.Total := 10;
+      Snap.Paste_Progress.Name := To_Unbounded_String ("bigfile.bin");
       Layout := Calculate_Layout (Snap, Width, Height, LH);
       Panel  := Files.Rendering.Testing.Calculate_Paste_Progress_Layout (Layout, LH);
       Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
-      Expected_Fill := (Panel.Bar_Width * Snap.Paste_Progress_Done) / Snap.Paste_Progress_Total;
+      Expected_Fill := (Panel.Bar_Width * Snap.Paste_Progress.Done) / Snap.Paste_Progress.Total;
       Assert
         (Files.Rendering.Hit.Conflict_Hit_At (Frame, Panel.Cancel_X + Panel.Cancel_Width / 2,
            Panel.Cancel_Y + Panel.Cancel_Height / 2).Kind = Conflict_Hit_Progress_Cancel,

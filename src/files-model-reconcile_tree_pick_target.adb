@@ -5,13 +5,13 @@ procedure Reconcile_Tree_Pick_Target
 is
    Rows : constant Files.Folder_Tree.Visible_Row_Vectors.Vector :=
      Files.Folder_Tree.Visible_Rows (Model.Folder_Tree_Value);
-   Target : constant String := To_String (Model.Tree_Pick_Target_Value);
+   Target : constant String := To_String (Model.Tree_Pick.Target);
    Fallback : constant String :=
      Files.Folder_Tree.Node_Path (Model.Folder_Tree_Value, Fallback_Index);
    Target_Visible   : Boolean := False;
    Fallback_Visible : Boolean := False;
 begin
-   if Model.Tree_Pick_Mode_Value = Pick_None or else Target = "" then
+   if Model.Tree_Pick.Mode = Pick_None or else Target = "" then
       return;
    end if;
 
@@ -25,10 +25,10 @@ begin
    if Target_Visible then
       return;
    elsif Fallback_Visible then
-      Model.Tree_Pick_Target_Value := To_Unbounded_String (Fallback);
+      Model.Tree_Pick.Target := To_Unbounded_String (Fallback);
    elsif not Rows.Is_Empty then
-      Model.Tree_Pick_Target_Value := Rows.First_Element.Path;
+      Model.Tree_Pick.Target := Rows.First_Element.Path;
    else
-      Model.Tree_Pick_Target_Value := Null_Unbounded_String;
+      Model.Tree_Pick.Target := Null_Unbounded_String;
    end if;
 end Reconcile_Tree_Pick_Target;

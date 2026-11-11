@@ -12,8 +12,8 @@ begin
    if Source_Path = ""
      or else (Hard
               and then not Hostkit.Fs.Is_Link (Source_Path)
-              and then (not Ada.Directories.Exists (Source_Path)
-                        or else Ada.Directories.Kind (Source_Path) = Ada.Directories.Directory))
+              and then (not Files.Fs_Primitives.Exists (Source_Path)
+                        or else Files.Fs_Primitives.Kind (Source_Path) = Ada.Directories.Directory))
    then
       return
         (Success   => False,

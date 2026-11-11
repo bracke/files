@@ -2,6 +2,7 @@ with Ada.Strings.Unbounded;
 
 with Guikit.Layout;
 with Files.Rendering.Hit;
+with Files.UI;
 with Files.UTF8;
 
 package body Files.Events is
@@ -178,7 +179,7 @@ package body Files.Events is
       Height      : Natural;
       Activate    : Boolean := False;
       Modifiers   : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Input_Action
  is separate;
 
@@ -201,7 +202,7 @@ package body Files.Events is
       Width       : Natural;
       Height      : Natural;
       Y_Offset    : Integer;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Input_Action
  is separate;
 

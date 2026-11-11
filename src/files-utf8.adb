@@ -404,4 +404,33 @@ package body Files.UTF8 is
            else "");
    end Remove_Range;
 
+   procedure Delete_At
+     (Text       : String;
+      Cursor     : Natural;
+      Backward   : Boolean;
+      By_Word    : Boolean;
+      New_Text   : out Ada.Strings.Unbounded.Unbounded_String;
+      New_Cursor : out Natural)
+   is
+      Boundary : Natural;
+   begin
+      New_Text := Ada.Strings.Unbounded.To_Unbounded_String (Text);
+      New_Cursor := Cursor;
+      if Backward then
+         if Cursor = 0 then
+            return;
+         end if;
+         Boundary :=
+           (if By_Word then Previous_Word_Boundary (Text, Cursor) else Previous_Boundary (Text, Cursor));
+         New_Text := Ada.Strings.Unbounded.To_Unbounded_String (Remove_Range (Text, Boundary, Cursor));
+         New_Cursor := Boundary;
+      else
+         if Cursor >= Text'Length then
+            return;
+         end if;
+         Boundary := (if By_Word then Next_Word_Boundary (Text, Cursor) else Next_Boundary (Text, Cursor));
+         New_Text := Ada.Strings.Unbounded.To_Unbounded_String (Remove_Range (Text, Cursor, Boundary));
+      end if;
+   end Delete_At;
+
 end Files.UTF8;

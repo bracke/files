@@ -60,14 +60,6 @@ package body Files.Folder_Tree is
       return To_String (T.Nodes.Element (Index).Path);
    end Node_Path;
 
-   function Node_Is_Loaded
-     (T     : Tree;
-      Index : Positive)
-      return Boolean is
-   begin
-      return In_Range (T, Index) and then T.Nodes.Element (Index).Loaded;
-   end Node_Is_Loaded;
-
    function Node_Is_Expanded
      (T     : Tree;
       Index : Positive)
@@ -75,43 +67,6 @@ package body Files.Folder_Tree is
    begin
       return In_Range (T, Index) and then T.Nodes.Element (Index).Expanded;
    end Node_Is_Expanded;
-
-   procedure Set_Children
-     (T        : in out Tree;
-      Index    : Positive;
-      Children : Entry_Seed_Vectors.Vector) is
-   begin
-      if not In_Range (T, Index) or else T.Nodes.Element (Index).Loaded then
-         return;
-      end if;
-
-      declare
-         Parent_Depth : constant Natural := T.Nodes.Element (Index).Depth;
-         Rank         : Natural := 0;
-      begin
-         for Child of Children loop
-            Rank := Rank + 1;
-            T.Nodes.Append
-              (Node'
-                 (Path         => Child.Path,
-                  Name         => Child.Name,
-                  Depth        => Parent_Depth + 1,
-                  Parent       => Index,
-                  Expanded     => False,
-                  Loaded       => False,
-                  Has_Children => True,
-                  Rank         => Rank));
-         end loop;
-      end;
-
-      declare
-         Parent_Node : Node := T.Nodes.Element (Index);
-      begin
-         Parent_Node.Loaded := True;
-         Parent_Node.Has_Children := not Children.Is_Empty;
-         T.Nodes.Replace_Element (Index, Parent_Node);
-      end;
-   end Set_Children;
 
    --  A detached node's parent: no node, and not a root (0).
    Detached : constant Natural := Natural'Last;
@@ -356,7 +311,7 @@ package body Files.Folder_Tree is
       end if;
 
       declare
-         --  Set_Children appends children after their parent, so one forward
+         --  Replace_Children appends children after their parent, so one forward
          --  pass sees each parent's visibility before any of its children.
          --  On the heap, as Visible_Rows' links are.
          Shown : Flag_Array_Access :=

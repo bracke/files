@@ -177,11 +177,11 @@ separate (Files_Suite.Interaction)
          Assert_Overlay_Swallows_Scroll (Overlay, "the paste-conflict dialog");
 
          Overlay := Base;
-         Overlay.Paste_Progress_Open := True;
+         Overlay.Paste_Progress.Open := True;
          Assert_Overlay_Swallows_Scroll (Overlay, "the paste-progress dialog");
 
          Overlay := Base;
-         Overlay.Quick_Look_Open := True;
+         Overlay.Quick_Look.Open := True;
          Assert_Overlay_Swallows_Scroll (Overlay, "Quick Look");
 
          Overlay := Base;

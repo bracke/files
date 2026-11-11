@@ -1,5 +1,4 @@
 with Files.Diagnostics;
-with Ada.Directories;
 with Ada.Unchecked_Deallocation;
 with GNAT.Directory_Operations;
 
@@ -8,17 +7,15 @@ with Hostkit.Path_Text;
 with Hostkit.Regular_Files;
 
 package body Files.Fs_Primitives is
-   use type Ada.Directories.File_Kind;
    use type Hostkit.Fs.Delete_Tree_Outcome;
+   use type Hostkit.Fs.Entry_Kind;
 
    function Exists (Path : String) return Boolean is
-   begin
-      return Ada.Directories.Exists (Path);
-   end Exists;
+     (Hostkit.Fs.Kind_Of (Path) /= Hostkit.Fs.Missing_Entry);
 
    function Entry_Exists (Path : String) return Boolean is
    begin
-      return Path /= "" and then (Ada.Directories.Exists (Path) or else Hostkit.Fs.Is_Link (Path));
+      return Path /= "" and then (Exists (Path) or else Hostkit.Fs.Is_Link (Path));
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Fs_Primitives");
@@ -26,24 +23,10 @@ package body Files.Fs_Primitives is
    end Entry_Exists;
 
    function File_Exists (Path : String) return Boolean is
-   begin
-      return Ada.Directories.Exists (Path)
-        and then Ada.Directories.Kind (Path) = Ada.Directories.Ordinary_File;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Fs_Primitives");
-         return False;
-   end File_Exists;
+     (Hostkit.Fs.Kind_Of (Path) = Hostkit.Fs.Ordinary_File_Entry);
 
    function Directory_Exists (Path : String) return Boolean is
-   begin
-      return Ada.Directories.Exists (Path)
-        and then Ada.Directories.Kind (Path) = Ada.Directories.Directory;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Fs_Primitives");
-         return False;
-   end Directory_Exists;
+     (Hostkit.Fs.Kind_Of (Path) = Hostkit.Fs.Directory_Entry);
 
    function Open_Regular_Read
      (Path : String) return GNAT.OS_Lib.File_Descriptor
@@ -73,7 +56,7 @@ package body Files.Fs_Primitives is
 
    procedure Delete_Tree (Path : String) is
    begin
-      if not Ada.Directories.Exists (Path) and then not Hostkit.Fs.Is_Link (Path) then
+      if not Exists (Path) and then not Hostkit.Fs.Is_Link (Path) then
          return;
       end if;
       if Hostkit.Fs.Delete_Tree_No_Follow (Path) /= Hostkit.Fs.Tree_Deleted then
@@ -81,52 +64,26 @@ package body Files.Fs_Primitives is
       end if;
    end Delete_Tree;
 
-   --  The last index of Path before its trailing separators.
-   function Content_Last (Path : String) return Natural is
-      Last : Natural := Path'Last;
-   begin
-      while Last >= Path'First and then Hostkit.Path_Text.Is_Separator_In (Path, Path (Last)) loop
-         Last := Last - 1;
-      end loop;
-      return Last;
-   end Content_Last;
+   function Leaf_Text (Path : String) return String renames Hostkit.Path_Text.Leaf;
 
-   --  Where Path's last component starts (Content_Last + 1 for none).
-   function Leaf_First (Path : String) return Positive is
-      First : Positive := Content_Last (Path) + 1;
-   begin
-      while First > Path'First and then not Hostkit.Path_Text.Is_Separator_In (Path, Path (First - 1)) loop
-         First := First - 1;
-      end loop;
-      return First;
-   end Leaf_First;
+   function Parent_Text (Path : String) return String renames Hostkit.Path_Text.Parent;
 
-   function Leaf_Text (Path : String) return String is
-      Last  : constant Natural := Content_Last (Path);
-      First : constant Positive := Leaf_First (Path);
-   begin
-      --  A drive ("C:") is a root, not a name.
-      if Last < First or else Path (Last) = ':' then
-         return "";
-      end if;
-      return Path (First .. Last);
-   end Leaf_Text;
+   function Compose_Text (Directory : String; Stem : String; Extension : String := "") return String is
+     (Hostkit.Fs.Join (Directory, (if Extension = "" then Stem else Stem & "." & Extension)));
 
-   function Parent_Text (Path : String) return String is
-      First : constant Positive := Leaf_First (Path);
-      Last  : Natural := First - 1;
+   function Kind (Path : String) return Ada.Directories.File_Kind is
    begin
-      if Leaf_Text (Path) = "" then
-         return "";
-      end if;
-      --  The separators before the leaf, all but a root's own.
-      while Last > Path'First and then Hostkit.Path_Text.Is_Separator_In (Path, Path (Last))
-        and then not (Last = Path'First + 2 and then Path (Path'First + 1) = ':')
-      loop
-         Last := Last - 1;
-      end loop;
-      return Path (Path'First .. Last);
-   end Parent_Text;
+      case Hostkit.Fs.Kind_Of (Path) is
+         when Hostkit.Fs.Missing_Entry =>
+            raise Ada.Directories.Name_Error;
+         when Hostkit.Fs.Directory_Entry =>
+            return Ada.Directories.Directory;
+         when Hostkit.Fs.Ordinary_File_Entry =>
+            return Ada.Directories.Ordinary_File;
+         when Hostkit.Fs.Special_File_Entry =>
+            return Ada.Directories.Special_File;
+      end case;
+   end Kind;
 
    procedure For_Each_Name
      (Path  : String;
@@ -169,31 +126,15 @@ package body Files.Fs_Primitives is
    end For_Each_Name;
 
    function Parent_Directory (Path : String) return String is
+      Parent : constant String := Parent_Text (Path);
+      Leaf   : constant String := Leaf_Text (Path);
    begin
-      if Path = "" then
-         return "";
+      --  A name alone lies in the current directory, as
+      --  Ada.Directories.Containing_Directory says.
+      if Parent = "" and then Leaf not in "" | "." | ".." and then Hostkit.Path_Text.Root_Length (Path) = 0 then
+         return ".";
       end if;
-
-      declare
-         --  Containing_Directory resolves the parent cross-platform, trimming
-         --  the final path component and handling trailing separators. It
-         --  raises Use_Error at a filesystem root, where no parent exists.
-         Parent : constant String := Ada.Directories.Containing_Directory (Path);
-      begin
-         if Parent = "" or else Parent = Path then
-            return "";
-         end if;
-
-         return Parent;
-      end;
-   exception
-      when Refused : Ada.Directories.Name_Error =>
-         --  A name GNAT will not parse (Leaf_Text); a root raises Use_Error.
-         Files.Diagnostics.Note (Refused, "Files.Fs_Primitives");
-         return Parent_Text (Path);
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Fs_Primitives");
-         return "";
+      return Parent;
    end Parent_Directory;
 
 end Files.Fs_Primitives;

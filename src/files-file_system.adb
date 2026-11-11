@@ -405,7 +405,7 @@ package body Files.File_System is
    begin
       return
         (Name        => To_Unbounded_String (Name),
-         Full_Path   => To_Unbounded_String (Join_Path (Parent_Path, Name)),
+         Full_Path   => To_Unbounded_String (Hostkit.Fs.Join (Parent_Path, Name)),
          Parent_Path => To_Unbounded_String (Parent_Path),
          Hidden      => Name'Length > 0 and then Name (Name'First) = '.',
          Kind        => Kind,
@@ -474,10 +474,10 @@ package body Files.File_System is
    end Relative_To_Top;
 
    function Volume_Trash_Top (Base : String) return String is
-     (if Ada.Directories.Simple_Name (Base) (1 .. Natural'Min (7, Ada.Directories.Simple_Name (Base)'Length))
+     (if Files.Fs_Primitives.Leaf_Text (Base) (1 .. Natural'Min (7, Files.Fs_Primitives.Leaf_Text (Base)'Length))
            = ".Trash-"
-      then Ada.Directories.Containing_Directory (Base)
-      else Ada.Directories.Containing_Directory (Ada.Directories.Containing_Directory (Base)));
+      then Files.Fs_Primitives.Parent_Directory (Base)
+      else Files.Fs_Primitives.Parent_Directory (Files.Fs_Primitives.Parent_Directory (Base)));
 
    function Volume_Trash_For (Path : String) return String is separate;
 
@@ -581,8 +581,8 @@ package body Files.File_System is
       --  stage, it stays there -- in its own folder, not lost.
       function Natively (Entry_Path, Original : String) return Mutation_Result is
          Ignored   : Files.Types.UString;
-         Directory : constant String := Ada.Directories.Containing_Directory (Original);
-         Leaf      : constant String := Ada.Directories.Simple_Name (Original);
+         Directory : constant String := Files.Fs_Primitives.Parent_Directory (Original);
+         Leaf      : constant String := Files.Fs_Primitives.Leaf_Text (Original);
          Stem      : constant String := Files.Types.Stem_Of (Leaf);
          Extension : constant String :=
            (if Files.Types.Extension_Of (Leaf) = "" then "" else "." & Files.Types.Extension_Of (Leaf));
@@ -590,7 +590,7 @@ package body Files.File_System is
          for Attempt in 1 .. 99 loop
             declare
                Beside : constant String :=
-                 Join_Path
+                 Hostkit.Fs.Join
                    (Directory,
                     (if Attempt = 1 then Leaf
                      else Stem & " " & Files.Types.Natural_Text (Attempt) & Extension));
@@ -704,11 +704,6 @@ package body Files.File_System is
      (Path : String)
       return Path_Result
    is separate;
-
-   function Join_Path
-     (Parent_Path : String;
-      Name        : String)
-      return String renames Hostkit.Fs.Join;
 
    function Windows_Device_Basename (Name : String) return String is separate;
 
@@ -1158,13 +1153,13 @@ package body Files.File_System is
          end if;
       end;
       declare
-         Stage : constant String := Ada.Directories.Containing_Directory (To_String (Backup));
+         Stage : constant String := Files.Fs_Primitives.Parent_Directory (To_String (Backup));
          Removed : constant Mutation_Result := Delete_Permanently (Stage);
          pragma Unreferenced (Removed);
       begin
          --  Preserve registered the backup; once its stage is gone the record
          --  would otherwise leak and slowly exhaust the registry.
-         if not Ada.Directories.Exists (Stage) and then not Hostkit.Fs.Is_Link (Stage) then
+         if not Files.Fs_Primitives.Exists (Stage) and then not Hostkit.Fs.Is_Link (Stage) then
             Recovery.Unregister (To_String (Backup));
          end if;
          return (Success => True, Error_Key => Null_Unbounded_String);

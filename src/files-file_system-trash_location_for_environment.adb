@@ -19,7 +19,7 @@ begin
    if Xdg_Data_Home /= "" and then GNAT.OS_Lib.Is_Absolute_Path (Xdg_Data_Home) then
       Result :=
         (Backend => Trash_Xdg_Data_Home,
-         Base    => To_Unbounded_String (Join_Path (Xdg_Data_Home, "Trash")));
+         Base    => To_Unbounded_String (Hostkit.Fs.Join (Xdg_Data_Home, "Trash")));
    elsif Home /= "" and then GNAT.OS_Lib.Is_Absolute_Path (Home) then
       --  ~/.Trash is the macOS layout (no info files), taken only on macOS
       --  or when asked for: on Linux a stray ~/.Trash is just a folder, and
@@ -27,17 +27,17 @@ begin
       if Environment_Equals ("FILES_TRASH_BACKEND", "macos-home")
         or else (Hostkit.Host.Current = Hostkit.Host.MacOS
                  and then not Environment_Equals ("FILES_TRASH_BACKEND", "xdg")
-                 and then Ada.Directories.Exists (Join_Path (Home, ".Trash")))
+                 and then Ada.Directories.Exists (Hostkit.Fs.Join (Home, ".Trash")))
       then
          Result :=
            (Backend => Trash_Macos_Home,
-            Base    => To_Unbounded_String (Join_Path (Home, ".Trash")));
+            Base    => To_Unbounded_String (Hostkit.Fs.Join (Home, ".Trash")));
       else
          Result :=
            (Backend => Trash_Home_Data,
             Base    =>
               To_Unbounded_String
-                (Join_Path (Join_Path (Join_Path (Home, ".local"), "share"), "Trash")));
+                (Hostkit.Fs.Join (Hostkit.Fs.Join (Hostkit.Fs.Join (Home, ".local"), "share"), "Trash")));
       end if;
    end if;
 

@@ -2,7 +2,7 @@ separate (Files.Rendering)
    function Calculate_Tree_Panel_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Tree_Panel_Layout
    is
       --  The view starts where the panel ends (Calculate_Layout).

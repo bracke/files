@@ -29,10 +29,11 @@ is
       Counter   : Positive := 2;
       Candidate : Unbounded_String := To_Unbounded_String (Base);
    begin
-      while Files.Fs_Primitives.Entry_Exists (Join_Path (Files_Directory, To_String (Candidate)))
+      while Files.Fs_Primitives.Entry_Exists (Hostkit.Fs.Join (Files_Directory, To_String (Candidate)))
         or else (Info_Directory /= ""
                  and then
-                   Files.Fs_Primitives.Entry_Exists (Join_Path (Info_Directory, To_String (Candidate) & ".trashinfo")))
+                   Files.Fs_Primitives.Entry_Exists
+                     (Hostkit.Fs.Join (Info_Directory, To_String (Candidate) & ".trashinfo")))
       loop
          declare
             Suffix : constant String := "." & Natural_Text (Counter);
@@ -96,9 +97,9 @@ is
    Files_Dir  : constant String :=
      (if Base = "" then ""
       elsif Macos_Home then Base
-      else Join_Path (Base, "files"));
+      else Hostkit.Fs.Join (Base, "files"));
    Info_Dir   : constant String :=
-     (if Base = "" or else Macos_Home then "" else Join_Path (Base, "info"));
+     (if Base = "" or else Macos_Home then "" else Hostkit.Fs.Join (Base, "info"));
    Name      : Unbounded_String;
    Target    : Unbounded_String;
    Info_Path : Unbounded_String;
@@ -178,7 +179,7 @@ begin
    --  metadata is placed in them.
    begin
       Files.Io_Errors.Clear_Os_Error;
-      Ada.Directories.Create_Path (Ada.Directories.Containing_Directory (Base));
+      Ada.Directories.Create_Path (Files.Fs_Primitives.Parent_Directory (Base));
    exception
       when others =>
          Files.Io_Errors.Capture;
@@ -193,11 +194,11 @@ begin
    end if;
 
    Name := To_Unbounded_String
-     (Unique_Trash_Name (Files_Dir, Info_Dir, Ada.Directories.Simple_Name (Path)));
-   Target := To_Unbounded_String (Join_Path (Files_Dir, To_String (Name)));
+     (Unique_Trash_Name (Files_Dir, Info_Dir, Files.Fs_Primitives.Leaf_Text (Path)));
+   Target := To_Unbounded_String (Hostkit.Fs.Join (Files_Dir, To_String (Name)));
 
    if not Macos_Home then
-      Info_Path := To_Unbounded_String (Join_Path (Info_Dir, To_String (Name) & ".trashinfo"));
+      Info_Path := To_Unbounded_String (Hostkit.Fs.Join (Info_Dir, To_String (Name) & ".trashinfo"));
       declare
          Metadata : constant String :=
            "[Trash Info]" & ASCII.LF

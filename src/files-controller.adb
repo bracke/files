@@ -2,7 +2,6 @@ with Files.Fs_Primitives;
 with Files.Diagnostics;
 with Files.Items;
 with Files.Commands.Status;
-with Ada.Directories;
 with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
@@ -355,99 +354,22 @@ package body Files.Controller is
       return Controller_Result
  is separate;
 
-   function Previous_Text_Boundary
-     (Text   : String;
-      Cursor : Natural)
-      return Natural is
-   begin
-      return Files.UTF8.Previous_Boundary (Text, Cursor);
-   end Previous_Text_Boundary;
-
-   function Next_Text_Boundary
-     (Text   : String;
-      Cursor : Natural)
-      return Natural is
-   begin
-      return Files.UTF8.Next_Boundary (Text, Cursor);
-   end Next_Text_Boundary;
-
    type Delete_Direction is (Delete_Backward, Delete_Forward);
 
-   --  Shared body for the four Delete_Focused_Text_* variants, which are identical
-   --  bar the direction and whether they delete to a word or a single character
-   --  boundary. Defined below, after the word-boundary helpers it dispatches to.
-   function Delete_Focused_Text
-     (Model     : in out Files.Model.Window_Model;
-      Direction : Delete_Direction;
-      By_Word   : Boolean)
-      return Controller_Result;
-
-   --  Remove the final character from the currently focused text input.
+   --  Delete the character, or By_Word the word, before (Delete_Backward) or
+   --  after the caret of the focused text input; for rename, at every
+   --  synchronized caret. Both go through Files.UTF8.Delete_At.
    --
    --  @param Model Window model to update.
+   --  @param Direction Which side of the caret to delete.
+   --  @param By_Word Whether to delete to a word boundary.
    --  @return Controller result indicating whether text changed.
-   function Delete_Focused_Text_Backward
-     (Model : in out Files.Model.Window_Model)
-      return Controller_Result is
-   begin
-      return Delete_Focused_Text (Model, Delete_Backward, By_Word => False);
-   end Delete_Focused_Text_Backward;
-
-   --  Remove the character at the cursor from the currently focused text input.
-   --
-   --  @param Model Window model to update.
-   --  @return Controller result indicating whether text changed.
-   function Delete_Focused_Text_Forward
-     (Model : in out Files.Model.Window_Model)
-      return Controller_Result is
-   begin
-      return Delete_Focused_Text (Model, Delete_Forward, By_Word => False);
-   end Delete_Focused_Text_Forward;
-
-   function Previous_Word_Boundary
-     (Text   : String;
-      Cursor : Natural)
-      return Natural is
-   begin
-      return Files.UTF8.Previous_Word_Boundary (Text, Cursor);
-   end Previous_Word_Boundary;
-
-   function Next_Word_Boundary
-     (Text   : String;
-      Cursor : Natural)
-      return Natural is
-   begin
-      return Files.UTF8.Next_Word_Boundary (Text, Cursor);
-   end Next_Word_Boundary;
-
    function Delete_Focused_Text
      (Model     : in out Files.Model.Window_Model;
       Direction : Delete_Direction;
       By_Word   : Boolean)
       return Controller_Result
  is separate;
-
-   --  Remove the previous word from the currently focused text input.
-   --
-   --  @param Model Window model to update.
-   --  @return Controller result indicating whether text changed.
-   function Delete_Focused_Text_Word_Backward
-     (Model : in out Files.Model.Window_Model)
-      return Controller_Result is
-   begin
-      return Delete_Focused_Text (Model, Delete_Backward, By_Word => True);
-   end Delete_Focused_Text_Word_Backward;
-
-   --  Remove the next word from the currently focused text input.
-   --
-   --  @param Model Window model to update.
-   --  @return Controller result indicating whether text changed.
-   function Delete_Focused_Text_Word_Forward
-     (Model : in out Files.Model.Window_Model)
-      return Controller_Result is
-   begin
-      return Delete_Focused_Text (Model, Delete_Forward, By_Word => True);
-   end Delete_Focused_Text_Word_Forward;
 
    --  Forward declaration: the reveal helper is defined alongside the other
    --  navigation helpers below, but Execute_Command routes to it above them.
@@ -742,7 +664,7 @@ package body Files.Controller is
          if Operation.Status = Files.Operations.Operation_Navigated then
             declare
                Selected : constant Boolean :=
-                 Files.Model.Select_By_Name (Model, Ada.Directories.Simple_Name (Path));
+                 Files.Model.Select_By_Name (Model, Files.Fs_Primitives.Leaf_Text (Path));
                pragma Unreferenced (Selected);
             begin
                null;
@@ -784,7 +706,7 @@ package body Files.Controller is
             if Operation.Status = Files.Operations.Operation_Navigated then
                declare
                   Selected : constant Boolean :=
-                    Files.Model.Select_By_Name (Model, Ada.Directories.Simple_Name (Path));
+                    Files.Model.Select_By_Name (Model, Files.Fs_Primitives.Leaf_Text (Path));
                   pragma Unreferenced (Selected);
                begin
                   null;
@@ -939,18 +861,10 @@ package body Files.Controller is
       Exit_Status : Integer := 0;
       Target_Path : constant Unbounded_String :=
         (if Targets.Is_Empty then Null_Unbounded_String else Targets.First_Element);
-
-      procedure Set_Action_Result_Fields is
-      begin
-         Operation.Path := Target_Path;
-         Operation.Action := Action;
-         Operation.Action_Executable := Action.Executable;
-         Operation.Action_Arguments := Natural (Action.Arguments.Length);
-         Operation.Action_Uses_Shell := Action.Use_Shell;
-      end Set_Action_Result_Fields;
    begin
       Files.Model.Close_Command_Palette (Model);
-      Set_Action_Result_Fields;
+      Operation.Path := Target_Path;
+      Operation.Action := Action;
 
       for Candidate of Actions loop
          if not Files.Operations.Open_Action_Executable_Is_Available (Candidate) then
@@ -962,15 +876,15 @@ package body Files.Controller is
          end if;
       end loop;
 
-      Operation.Execution_Attempted := True;
-      Operation.Executable_Found := True;
+      Operation.Execution.Attempted := True;
+      Operation.Execution.Executable_Found := True;
       for Candidate of Actions loop
          if not Files.Operations.Execute_Open_Action
            (Candidate, Exit_Status, Detach => True)
          then
             Operation.Status := Files.Operations.Operation_Failed;
             Operation.Error_Key := To_Unbounded_String ("error.open_action.execution");
-            Operation.Exit_Status := Exit_Status;
+            Operation.Execution.Exit_Status := Exit_Status;
             Files.Model.Set_Error (Model, "error.open_action.execution");
             return Make_Result
               (Controller_Command_Executed, Files.Commands.Open_With_Command, Operation);
@@ -978,7 +892,7 @@ package body Files.Controller is
       end loop;
 
       Operation.Status := Files.Operations.Operation_Action_Executed;
-      Operation.Exit_Status := Exit_Status;
+      Operation.Execution.Exit_Status := Exit_Status;
       Files.Model.Set_Error (Model, "");
       return Make_Result (Controller_Command_Executed, Files.Commands.Open_With_Command, Operation);
    end Launch_Application_Result;

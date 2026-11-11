@@ -10,11 +10,11 @@ separate (Files_Suite.Rendering)
          Snap  : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
          Frame : Frame_Commands;
       begin
-         Snap.Quick_Look_Open := True;
-         Snap.Quick_Look_Kind := Files.Quick_Look.Text_Content;
-         Snap.Quick_Look_Name := To_Unbounded_String ("readme.txt");
-         Snap.Quick_Look_Text_Lines.Append (To_Unbounded_String ("first preview line"));
-         Snap.Quick_Look_Text_Lines.Append (To_Unbounded_String ("second preview line"));
+         Snap.Quick_Look.Open := True;
+         Snap.Quick_Look.Kind := Files.Quick_Look.Text_Content;
+         Snap.Quick_Look.Name := To_Unbounded_String ("readme.txt");
+         Snap.Quick_Look.Text_Lines.Append (To_Unbounded_String ("first preview line"));
+         Snap.Quick_Look.Text_Lines.Append (To_Unbounded_String ("second preview line"));
          Frame := Build_Frame_Commands (Snap, Width, Height, LH);
          Assert (Frame_Has_Role (Frame, Role_Dialog), "the quick look overlay emits a dialog panel node");
          Assert (Frame_Has_Text (Frame, "readme.txt"), "the quick look title shows the item name");
@@ -28,11 +28,11 @@ separate (Files_Suite.Rendering)
          Snap  : View_Snapshot := Sample_Snapshot (3, Files.Types.Small_Icons);
          Frame : Frame_Commands;
       begin
-         Snap.Quick_Look_Open := True;
-         Snap.Quick_Look_Kind := Files.Quick_Look.Text_Content;
-         Snap.Quick_Look_Name := To_Unbounded_String ("long.txt");
+         Snap.Quick_Look.Open := True;
+         Snap.Quick_Look.Kind := Files.Quick_Look.Text_Content;
+         Snap.Quick_Look.Name := To_Unbounded_String ("long.txt");
          for Line in 1 .. 30 loop
-            Snap.Quick_Look_Text_Lines.Append
+            Snap.Quick_Look.Text_Lines.Append
               (To_Unbounded_String ("preview line" & Integer'Image (Line)));
          end loop;
          Frame := Build_Frame_Commands (Snap, 480, 360, LH);

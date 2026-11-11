@@ -12,7 +12,7 @@ is
    Path_Result : constant Files.File_System.Path_Result :=
      Files.File_System.Normalize_Path
        (if Typed = "" or else GNAT.OS_Lib.Is_Absolute_Path (Typed) then Typed
-        else Files.File_System.Join_Path (Files.Model.Current_Path (Model), Typed));
+        else Hostkit.Fs.Join (Files.Model.Current_Path (Model), Typed));
    Empty_Items : Files.Items.Item_Vectors.Vector;
 begin
    if Path_Result.Status /= Files.File_System.Path_Valid then

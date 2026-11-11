@@ -42,14 +42,16 @@ separate (Files_Suite.Model)
          1,
          "snapshot captures selected root selector row");
       Files_Suite.Support.Assert_Equal
-        (Natural (Snapshot.Root_Paths.Length),
+        (Natural (Snapshot.Roots.Length),
          Files.Model.Root_Count (Model),
-         "snapshot captures root selector paths");
-      Files_Suite.Support.Assert_Equal
-        (Natural (Snapshot.Root_Labels.Length),
-         Files.Model.Root_Count (Model),
-         "snapshot captures root selector labels");
-      Assert (To_String (Snapshot.Root_Labels.Element (1)) /= "", "root selector label is non-empty");
+         "snapshot captures one root selector row per root");
+      for Index in 1 .. Files.Model.Root_Count (Model) loop
+         Files_Suite.Support.Assert_Equal
+           (To_String (Snapshot.Roots (Index).Path),
+            Files.Model.Root_Path (Model, Index),
+            "each root selector row carries its root's path");
+      end loop;
+      Assert (To_String (Snapshot.Roots (1).Label) /= "", "root selector label is non-empty");
       Entries.Clear;
       Entries.Append
         (Files.File_System.Root_Entry'
@@ -64,7 +66,7 @@ separate (Files_Suite.Model)
       Files.Model.Open_Root_Selector (Model, Entries);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Assert
-        (To_String (Snapshot.Root_Labels.Element (1)) =
+        (To_String (Snapshot.Roots (1).Label) =
          Files.Localization.Text ("root.mount", "name", "example-mount"),
          "root selector renders the root kind's localized pattern");
       Entries.Clear;
@@ -81,7 +83,7 @@ separate (Files_Suite.Model)
       Files.Model.Open_Root_Selector (Model, Entries);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Assert
-        (To_String (Snapshot.Root_Labels.Element (1)) = Mount_With_Detail ("example-mount"),
+        (To_String (Snapshot.Roots (1).Label) = Mount_With_Detail ("example-mount"),
          "root selector renders localized platform detail suffix");
 
       --  A name may hold any character a file name can, '|' too: it was a
@@ -100,6 +102,6 @@ separate (Files_Suite.Model)
       Files.Model.Open_Root_Selector (Model, Entries);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Files_Suite.Support.Assert_Equal
-        (To_String (Snapshot.Root_Labels.Element (1)), Mount_With_Detail ("a|b"),
+        (To_String (Snapshot.Roots (1).Label), Mount_With_Detail ("a|b"),
          "a mount whose name holds '|' keeps its whole name and its detail");
    end Test_Root_Selector_Open_And_Snapshot;

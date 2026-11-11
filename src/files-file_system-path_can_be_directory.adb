@@ -17,7 +17,7 @@ begin
             return Ada.Directories.Kind (Value) = Ada.Directories.Directory;
          end if;
 
-         Parent := To_Unbounded_String (Ada.Directories.Containing_Directory (Value));
+         Parent := To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (Value));
          if To_String (Parent) = Value then
             return False;
          end if;

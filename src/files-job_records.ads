@@ -5,6 +5,7 @@ with Files.Bounded_Streams;
 with Files.File_System;
 with Files.Operations;
 with Files.Settings;
+with Files.Types;
 
 --  Bounded wire primitives shared by private background-job transports.
 package Files.Job_Records is
@@ -91,6 +92,29 @@ package Files.Job_Records is
    function Read_Items
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
       return Files.Items.Item_Vectors.Vector;
+
+   --  The most path moves one record carries (Write_Path_Moves).
+   Max_Path_Moves : constant := 100_000;
+
+   --  Encode the renames, moves and removals a helper made, each as its kind,
+   --  its old path and its new one (empty for a removal). At most
+   --  Max_Path_Moves, as Read_Path_Moves accepts: past that the labels of the
+   --  rest do not follow, but the rest of the record still reads back.
+   --  A move whose To does not match its Kind raises Use_Error.
+   --  @param Stream Destination stream.
+   --  @param Value Moves to encode, in order.
+   procedure Write_Path_Moves
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Value  : Files.Types.Path_Move_Vectors.Vector);
+
+   --  Decode the moves Write_Path_Moves wrote. A count past Max_Path_Moves,
+   --  an unknown kind, an empty old path, or a new path that does not match
+   --  the kind raises Data_Error.
+   --  @param Stream Source stream.
+   --  @return Decoded moves, in order.
+   function Read_Path_Moves
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
+      return Files.Types.Path_Move_Vectors.Vector;
 
    --  Encode a background operation result.
    --  @param Stream Destination stream.

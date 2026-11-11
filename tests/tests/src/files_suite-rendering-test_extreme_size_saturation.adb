@@ -44,7 +44,7 @@ separate (Files_Suite.Rendering)
       declare
          Overlay : View_Snapshot := Sample_Snapshot (1, Files.Types.Small_Icons);
       begin
-         Overlay.Quick_Look_Open := True;
+         Overlay.Quick_Look.Open := True;
          Overlay.Context_Menu_Open := True;
          Overlay.Context_Menu_Target := Files.Types.Context_Menu_Item;
          Overlay.Context_Menu_X := Natural'Last;
@@ -94,6 +94,8 @@ separate (Files_Suite.Rendering)
          Boundary_Menu.Height := 1;
          Boundary_Menu.Row_Height := 1;
          Boundary_Menu.Row_Count := 1;
+         Boundary_Menu.Rows (1) :=
+           (Kind => Files.Commands.Menu_Command, Command => Files.Commands.Toggle_Info_Pane_Command);
          Files_Suite.Support.Assert_Equal
            (Files.Rendering.Hit.Context_Menu_Row_At (Boundary_Menu, Natural'Last, Natural'Last),
             1,

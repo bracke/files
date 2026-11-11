@@ -40,12 +40,7 @@ separate (Files_Suite.Operations)
         (To_String (Result.Action.Executable),
          No_Op_Executable,
          "prepared action uses configured executable");
-      Files_Suite.Support.Assert_Equal
-        (To_String (Result.Action_Executable),
-         No_Op_Executable,
-         "prepared result exposes executable text");
-      Files_Suite.Support.Assert_Equal (Result.Action_Arguments, 3, "prepared result exposes argument count");
-      Assert (not Result.Execution_Attempted, "prepared action does not execute");
+      Assert (not Result.Execution.Attempted, "prepared action does not execute");
       Assert (not Result.Action.Use_Shell, "prepared action preserves non-shell execution");
       Files_Suite.Support.Assert_Equal
         (Natural (Result.Action.Arguments.Length),
@@ -70,7 +65,7 @@ separate (Files_Suite.Operations)
          Files.Operations.Operation_Action_Executed,
          "file open executes an action; got "
          & Files.Operations.Operation_Status'Image (Result.Status)
-         & " with executable " & To_String (Result.Action_Executable));
+         & " with executable " & To_String (Result.Action.Executable));
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Path),
          Join (Root, "Alpha.txt"),
@@ -83,13 +78,8 @@ separate (Files_Suite.Operations)
         (To_String (Result.Action.Executable),
          No_Op_Executable,
          "executed action uses configured executable");
-      Files_Suite.Support.Assert_Equal
-        (To_String (Result.Action_Executable),
-         No_Op_Executable,
-         "executed result exposes executable text");
-      Files_Suite.Support.Assert_Equal (Result.Action_Arguments, 3, "executed result exposes argument count");
-      Assert (Result.Execution_Attempted, "executed result records process attempt");
-      Assert (Result.Executable_Found, "executed result records executable discovery");
+      Assert (Result.Execution.Attempted, "executed result records process attempt");
+      Assert (Result.Execution.Executable_Found, "executed result records executable discovery");
       Assert (not Result.Action.Use_Shell, "executed non-shell action does not request shell execution");
       Files_Suite.Support.Assert_Equal
         (Natural (Result.Action.Arguments.Length),
@@ -134,16 +124,16 @@ separate (Files_Suite.Operations)
          Files.Operations.Operation_Action_Executed,
          "zero-argument open action executes");
       Files_Suite.Support.Assert_Equal
-        (To_String (Result.Action_Executable),
+        (To_String (Result.Action.Executable),
          No_Op_Executable,
          "zero-argument action exposes executable");
       Files_Suite.Support.Assert_Equal
-        (Result.Action_Arguments,
+        (Natural (Result.Action.Arguments.Length),
          0,
          "zero-argument action exposes empty argument vector");
-      Assert (Result.Execution_Attempted, "zero-argument action records process attempt");
-      Assert (Result.Executable_Found, "zero-argument action records executable discovery");
-      Assert (not Result.Exit_Status_Known, "zero-argument detached action records no exit status");
+      Assert (Result.Execution.Attempted, "zero-argument action records process attempt");
+      Assert (Result.Execution.Executable_Found, "zero-argument action records executable discovery");
+      Assert (not Result.Execution.Exit_Status_Known, "zero-argument detached action records no exit status");
 
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
@@ -153,13 +143,13 @@ separate (Files_Suite.Operations)
         (Result.Status,
          Files.Operations.Operation_Success,
          "multi-file open action can be prepared");
-      Assert (not Result.Execution_Attempted, "multi-file open preparation does not execute actions");
+      Assert (not Result.Execution.Attempted, "multi-file open preparation does not execute actions");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Path),
          Join (Root, "Alpha.txt"),
          "multi-file open preparation reports first selected path");
       Files_Suite.Support.Assert_Equal
-        (To_String (Result.Action_Executable),
+        (To_String (Result.Action.Executable),
          No_Op_Executable,
          "multi-file open preparation exposes first executable");
       Files_Suite.Support.Assert_Equal
@@ -175,14 +165,14 @@ separate (Files_Suite.Operations)
         (To_String (Result.Path),
          Join (Root, "Alpha.txt"),
          "multi-file open reports first selected path");
-      Assert (Result.Execution_Attempted, "multi-file open records process attempts");
-      Assert (Result.Executable_Found, "multi-file open records executable discovery");
+      Assert (Result.Execution.Attempted, "multi-file open records process attempts");
+      Assert (Result.Execution.Executable_Found, "multi-file open records executable discovery");
       Files_Suite.Support.Assert_Equal
-        (To_String (Result.Action_Executable),
+        (To_String (Result.Action.Executable),
          No_Op_Executable,
          "multi-file open exposes first action executable");
       Files_Suite.Support.Assert_Equal
-        (Result.Action_Arguments,
+        (Natural (Result.Action.Arguments.Length),
          3,
          "multi-file open exposes first action argument count");
       Files_Suite.Support.Assert_Equal

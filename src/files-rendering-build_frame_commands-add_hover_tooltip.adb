@@ -1,12 +1,14 @@
 separate (Files.Rendering.Build_Frame_Commands)
    procedure Add_Hover_Tooltip is
-      Padding     : constant Natural := 6;
+      --  Chrome sizes at the reference line height, scaled with the text.
+      Padding     : constant Natural := Guikit.Layout.Scaled (6, Line_Height);
       --  Even inset on every side; the vertical inset is derived so the box
       --  is comfortably taller than the text with matching top/bottom bands.
-      Padding_V   : constant Natural := Natural'Max (Padding, Line_Height / 3 + 2);
-      Margin      : constant Natural := 4;
-      Horizontal_Gap : constant Natural := 12;
-      Vertical_Gap   : constant Natural := 18;
+      Padding_V   : constant Natural :=
+        Natural'Max (Padding, Saturating_Add (Line_Height / 3, Guikit.Layout.Scaled (2, Line_Height)));
+      Margin      : constant Natural := Guikit.Layout.Scaled (4, Line_Height);
+      Horizontal_Gap : constant Natural := Guikit.Layout.Scaled (12, Line_Height);
+      Vertical_Gap   : constant Natural := Guikit.Layout.Scaled (18, Line_Height);
       Text        : constant UString := Tooltip_At (Hover_X, Hover_Y);
       Text_Raw    : constant String := To_String (Text);
       Text_Len    : constant Natural := Files.UTF8.Display_Units (Text_Raw);

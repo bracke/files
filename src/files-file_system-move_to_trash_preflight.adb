@@ -8,8 +8,7 @@ is
    Uses_Native_Trash : constant Boolean :=
      Trash_Backend_Of_Current_Environment in Trash_Windows_Recycle_Bin | Trash_Macos_Native;
 
-   --  A filesystem root ("/", "C:\"): its containing directory is itself,
-   --  or does not exist at all.
+   --  A filesystem root ("/", "C:\", "\\server\share"): it has no parent.
    function Is_Filesystem_Root return Boolean is
    begin
       if Hostkit.Fs.Is_Link (Path) then
@@ -18,7 +17,7 @@ is
       declare
          Full : constant String := Ada.Directories.Full_Name (Path);
       begin
-         return Full = "" or else Ada.Directories.Containing_Directory (Full) = Full;
+         return Files.Fs_Primitives.Parent_Text (Full) = "";
       end;
    exception
       when Ada.Directories.Use_Error => return True;
@@ -42,9 +41,9 @@ is
          return "";
       elsif Hostkit.Fs.Is_Link (Value) then
          --  Resolve the parent to find the link's location, never its target.
-         return Join_Path
-           (Ada.Directories.Full_Name (Ada.Directories.Containing_Directory (Value)),
-            Ada.Directories.Simple_Name (Value));
+         return Hostkit.Fs.Join
+           (Ada.Directories.Full_Name (Files.Fs_Primitives.Parent_Directory (Value)),
+            Files.Fs_Primitives.Leaf_Text (Value));
       elsif Ada.Directories.Exists (Value) then
          return Ada.Directories.Full_Name (Value);
       else
@@ -71,10 +70,10 @@ is
          declare
             Text   : constant String := To_String (Current);
             Parent : constant String :=
-              (if Text = "" then "" else Ada.Directories.Containing_Directory (Text));
-            Name   : constant String := (if Text = "" then "" else Ada.Directories.Simple_Name (Text));
+              (if Text = "" then "" else Files.Fs_Primitives.Parent_Directory (Text));
+            Name   : constant String := (if Text = "" then "" else Files.Fs_Primitives.Leaf_Text (Text));
             Upper  : constant String :=
-              (if Parent = "" then "" else Ada.Directories.Simple_Name (Parent));
+              (if Parent = "" then "" else Files.Fs_Primitives.Leaf_Text (Parent));
          begin
             exit when Text = "" or else Parent = Text;
             if ((Name'Length >= 6 and then Name (Name'First .. Name'First + 5) = ".Trash")

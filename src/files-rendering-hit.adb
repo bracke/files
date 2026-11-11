@@ -6,6 +6,7 @@ package body Files.Rendering.Hit is
 
    use Guikit.Layout;
    use type Files.Types.View_Mode;
+   use type Files.Commands.Context_Menu_Row_Kind;
 
    --  The region a point is in. A frame records regions in drawing order,
    --  so the last one recorded there is the one drawn on top: the search runs
@@ -86,12 +87,12 @@ package body Files.Rendering.Hit is
          for Row in First_Row .. Last_Row loop
             declare
                Row_H : constant Natural :=
-                 (if Menu.Row_Kinds (Row) = Separator_Row
+                 (if Menu.Rows (Row).Kind = Files.Commands.Menu_Separator
                   then Menu.Separator_Height
                   else Menu.Row_Height);
             begin
                if Y >= Row_Top and then Y - Row_Top < Row_H then
-                  if Menu.Row_Kinds (Row) = Separator_Row then
+                  if Menu.Rows (Row).Kind = Files.Commands.Menu_Separator then
                      return 0;
                   else
                      return Row;
@@ -142,7 +143,7 @@ package body Files.Rendering.Hit is
       Layout      : Layout_Metrics;
       X           : Natural;
       Y           : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Detail_Header_Cell
    is
       Header    : constant Details_Header_Layout :=
@@ -184,7 +185,7 @@ package body Files.Rendering.Hit is
       Layout      : Layout_Metrics;
       X           : Natural;
       Y           : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Natural
    is
       use type Files.Types.Detail_Column;
@@ -238,7 +239,7 @@ package body Files.Rendering.Hit is
       Layout      : Layout_Metrics;
       X           : Natural;
       Y           : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Detail_Column_Separator
    is
       Header    : constant Details_Header_Layout :=
@@ -344,7 +345,7 @@ package body Files.Rendering.Hit is
      (X           : Natural;
       Y           : Natural;
       Width       : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Files.Commands.Command_Id
    is
       Toolbar  : constant Toolbar_Layout := Calculate_Toolbar_Layout (Width, Line_Height);
@@ -385,7 +386,7 @@ package body Files.Rendering.Hit is
       Height           : Natural;
       Sort_Field       : Files.Types.Sort_Field;
       Free_Label_Width : Natural := 0;
-      Line_Height      : Positive := Files.UI.Base_Line_Height)
+      Line_Height      : Positive)
       return Files.Commands.Command_Id
    is
       Bottom   : constant Bottom_Bar_Layout := Files.UI.Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
@@ -438,7 +439,7 @@ package body Files.Rendering.Hit is
       Width       : Natural;
       Height      : Natural;
       Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Files.Commands.Command_Id
    is
       --  No sort button, no menu: its width is then 0.
@@ -466,7 +467,7 @@ package body Files.Rendering.Hit is
       Width       : Natural;
       Height      : Natural;
       Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Boolean
    is
       Menu        : constant Files.UI.Sort_Menu_Layout :=

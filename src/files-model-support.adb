@@ -206,7 +206,7 @@ package body Files.Model.Support is
      (Model : Window_Model)
       return Boolean is
    begin
-      if not Model.Temporary_Active then
+      if not Model.Temporary.Active then
          return False;
       end if;
 
@@ -224,9 +224,9 @@ package body Files.Model.Support is
       Field : Rename_Field) is
    begin
       Touch (Model);
-      if Field.Item_Index = 0 and then Model.Temporary_Active then
+      if Field.Item_Index = 0 and then Model.Temporary.Active then
          Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
-         Model.Temporary_Name_Value := Field.Value;
+         Model.Temporary.Name := Field.Value;
       end if;
    end Sync_Temporary_From_Field;
 
@@ -316,18 +316,18 @@ package body Files.Model.Support is
 
    function Temporary_Is_Visible (Model : Window_Model) return Boolean is
    begin
-      return Model.Temporary_Active;
+      return Model.Temporary.Active;
    end Temporary_Is_Visible;
 
    function Temporary_Item (Model : Window_Model) return Files.Items.Directory_Item is
-     (if Model.Temporary_Is_Directory
+     (if Model.Temporary.Is_Directory
       then Files.File_System.Make_Item
         (Parent_Path => Current_Path (Model),
-         Name        => To_String (Model.Temporary_Name_Value),
+         Name        => To_String (Model.Temporary.Name),
          Kind        => Files.Types.Directory_Item)
       else Files.File_System.Make_Item
         (Parent_Path => Current_Path (Model),
-         Name        => To_String (Model.Temporary_Name_Value),
+         Name        => To_String (Model.Temporary.Name),
          Kind        => Files.Types.Regular_File_Item,
          Filetype    => "text/plain"));
 
@@ -433,7 +433,7 @@ package body Files.Model.Support is
 
       --  The temporary create item keeps its rename field until it is
       --  explicitly committed or cancelled, so leave it untouched here.
-      if Model.Temporary_Active then
+      if Model.Temporary.Active then
          return;
       end if;
 
@@ -865,7 +865,7 @@ package body Files.Model.Support is
    begin
       case Model.Focus_Value is
          when Files.Types.Focus_Path_Input =>
-            return Length (Model.Path_Input_Value);
+            return Length (Model.Path_Input.Text);
          when Files.Types.Focus_Filter_Input =>
             return Length (Model.Filter_Value);
          when Files.Types.Focus_Rename_Input =>
@@ -887,7 +887,7 @@ package body Files.Model.Support is
    begin
       case Model.Focus_Value is
          when Files.Types.Focus_Path_Input =>
-            return To_String (Model.Path_Input_Value);
+            return To_String (Model.Path_Input.Text);
          when Files.Types.Focus_Filter_Input =>
             return To_String (Model.Filter_Value);
          when Files.Types.Focus_Rename_Input =>
@@ -983,9 +983,7 @@ package body Files.Model.Support is
       Touch (Model);
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Clear_Overlay_State_For_Edit (Model);
-      Model.Temporary_Active := True;
-      Model.Temporary_Is_Directory := Is_Directory;
-      Model.Temporary_Name_Value := To_Unbounded_String (Name);
+      Model.Temporary := (Active => True, Is_Directory => Is_Directory, Name => To_Unbounded_String (Name));
       Model.Rename_Fields.Clear;
       Model.Rename_Fields.Append
         (Rename_Field'

@@ -26,10 +26,10 @@ separate (Files_Suite.Interaction)
          Saw_Folder : Boolean := False;
          Saw_File   : Boolean := False;
       begin
-         for Label of Snapshot.Root_Labels loop
-            if Ada.Strings.Unbounded.To_String (Label) = Star ("fav-folder") then
+         for Row of Snapshot.Roots loop
+            if Ada.Strings.Unbounded.To_String (Row.Label) = Star ("fav-folder") then
                Saw_Folder := True;
-            elsif Ada.Strings.Unbounded.To_String (Label) = Star ("fav-file.txt") then
+            elsif Ada.Strings.Unbounded.To_String (Row.Label) = Star ("fav-file.txt") then
                Saw_File := True;
             end if;
          end loop;

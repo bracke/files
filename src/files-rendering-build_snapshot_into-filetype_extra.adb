@@ -5,8 +5,6 @@ separate (Files.Rendering.Build_Snapshot_Into)
      (Item : Files.Items.Directory_Item)
       return UString
    is
-      Type_Name : constant String := To_String (Item.Filetype);
-
       --  The extra info in words: each kind its own pattern.
       function Detail (Extra : Files.Extra_Info.Info) return UString is
          Subject : constant String := To_String (Extra.Subject);
@@ -94,17 +92,14 @@ separate (Files.Rendering.Build_Snapshot_Into)
          when Files.Types.Unknown_Item =>
             return To_Unbounded_String (Files.Localization.Text ("info.extra.unknown"));
          when Files.Types.Regular_File_Item =>
-            if Type_Name = "text/plain" then
-               return To_Unbounded_String (Files.Localization.Text ("info.extra.text"));
-            elsif Type_Name = "text/markdown" then
-               return To_Unbounded_String (Files.Localization.Text ("info.extra.markdown"));
-            elsif Type_Name'Length >= 6
-              and then Type_Name (Type_Name'First .. Type_Name'First + 5) = "image/"
-            then
-               return To_Unbounded_String (Files.Localization.Text ("info.extra.image"));
-            elsif Type_Name = "application/octet-stream" then
-               return To_Unbounded_String (Extension_Detail (To_String (Item.Name)));
-            end if;
+            declare
+               Key : constant String :=
+                 Files.File_Types.Extra_Key (Files.File_Types.Facts_For (To_String (Item.Filetype)).Extra);
+            begin
+               if Key /= "" then
+                  return To_Unbounded_String (Files.Localization.Text (Key));
+               end if;
+            end;
       end case;
 
       return To_Unbounded_String (Extension_Detail (To_String (Item.Name)));

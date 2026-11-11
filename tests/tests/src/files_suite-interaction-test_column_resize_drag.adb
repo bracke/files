@@ -81,7 +81,8 @@ separate (Files_Suite.Interaction)
             Origin_X     => Action.Origin_X,
             Origin_Width => Action.Column_Width,
             Current_X    => Sep_X - 40,
-            Result       => Result);
+            Result       => Result,
+            Line_Height  => Line);
          Assert (Result.Settings_Changed, "the resize step reports a width change");
          Files_Suite.Support.Assert_Equal
            (Settings.Column_Widths (Files.Types.Size_Column),
@@ -114,7 +115,8 @@ separate (Files_Suite.Interaction)
             Origin_X     => Action.Origin_X,
             Origin_Width => Action.Column_Width,
             Current_X    => Sep_X + (Base_W - 10),
-            Result       => Result);
+            Result       => Result,
+            Line_Height  => Line);
          Files_Suite.Support.Assert_Equal
            (Settings.Column_Widths (Files.Types.Size_Column),
             Files.Types.Minimum_Detail_Column_Width,
@@ -127,7 +129,8 @@ separate (Files_Suite.Interaction)
             Origin_X     => Integer'Last,
             Origin_Width => Natural'Last,
             Current_X    => Integer'First,
-            Result       => Result);
+            Result       => Result,
+            Line_Height  => Line);
          Files_Suite.Support.Assert_Equal
            (Settings.Column_Widths (Files.Types.Size_Column),
             Natural'Last,
@@ -137,7 +140,8 @@ separate (Files_Suite.Interaction)
             Origin_X     => Integer'First,
             Origin_Width => 0,
             Current_X    => Integer'Last,
-            Result       => Result);
+            Result       => Result,
+            Line_Height  => Line);
          Files_Suite.Support.Assert_Equal
            (Settings.Column_Widths (Files.Types.Size_Column),
             0,

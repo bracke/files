@@ -34,7 +34,7 @@ is
    function Walk (Directory : String; Depth : Natural) return Boolean is
 
       procedure Visit (Name : String) is
-         Full : constant String := Join_Path (Directory, Name);
+         Full : constant String := Hostkit.Fs.Join (Directory, Name);
       begin
          if Result.Capped then
             return;

@@ -5,9 +5,10 @@ separate (Files.Controller)
       By_Word   : Boolean)
       return Controller_Result
    is
-      Text     : constant String := Focused_Text (Model);
-      Cursor   : constant Natural := Files.Model.Text_Cursor_Position (Model);
-      Boundary : Natural;
+      Text       : constant String := Focused_Text (Model);
+      Cursor     : constant Natural := Files.Model.Text_Cursor_Position (Model);
+      New_Text   : Unbounded_String;
+      New_Cursor : Natural;
    begin
       --  No focused field: the grid owns the key, so deletion is a no-op here.
       if Files.Model.Focus (Model) = Files.Types.Focus_None then
@@ -26,26 +27,15 @@ separate (Files.Controller)
          end;
       end if;
 
-      --  Nothing to delete past the near edge of the field.
-      if (Direction = Delete_Backward and then Cursor = 0)
-        or else (Direction = Delete_Forward and then Cursor >= Text'Length)
-      then
+      --  Delete at the caret; a key at the near edge of the field deletes
+      --  nothing and is ignored.
+      Files.UTF8.Delete_At
+        (Text, Cursor, Backward => Direction = Delete_Backward, By_Word => By_Word,
+         New_Text => New_Text, New_Cursor => New_Cursor);
+      if Length (New_Text) = Text'Length then
          return Make_Result (Controller_Ignored);
       end if;
-
-      case Direction is
-         when Delete_Backward =>
-            Boundary :=
-              (if By_Word then Previous_Word_Boundary (Text, Cursor)
-               else Previous_Text_Boundary (Text, Cursor));
-            Replace_Focused_Text (Model, Files.UTF8.Remove_Range (Text, Boundary, Cursor));
-            Files.Model.Set_Text_Cursor_Position (Model, Boundary);
-         when Delete_Forward =>
-            Boundary :=
-              (if By_Word then Next_Word_Boundary (Text, Cursor)
-               else Next_Text_Boundary (Text, Cursor));
-            Replace_Focused_Text (Model, Files.UTF8.Remove_Range (Text, Cursor, Boundary));
-            Files.Model.Set_Text_Cursor_Position (Model, Cursor);
-      end case;
+      Replace_Focused_Text (Model, To_String (New_Text));
+      Files.Model.Set_Text_Cursor_Position (Model, New_Cursor);
       return Make_Result (Controller_Text_Updated);
    end Delete_Focused_Text;

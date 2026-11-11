@@ -6,10 +6,7 @@ begin
    Reset_Type_Ahead (Model);
    Model.Focus_Value := Files.Types.Focus_Path_Input;
    Model.Tree_Keyboard_Value := False;
-   Model.Path_Input_Value := Model.Current_Path_Value;
-   Model.Path_Input_Cursor := Length (Model.Path_Input_Value);
-   Model.Path_Input_Valid := True;
-   Model.Path_Input_Error := Null_Unbounded_String;
+   Model.Path_Input := (Text => Model.Current_Path_Value, Cursor => Length (Model.Current_Path_Value), others => <>);
    Clear_Root_Selector_State (Model);
    Model.Command_Palette_Open := False;
    Guikit.Command_Palette.Reset (Model.Command_Palette_View);

@@ -6,7 +6,7 @@ begin
    --  The paste-progress overlay is a modal-lite top-most panel: while a long
    --  copy/move runs, a click either hits its Cancel button or is swallowed so
    --  nothing behind it reacts.
-   if Snapshot.Paste_Progress_Open then
+   if Snapshot.Paste_Progress.Open then
       declare
          use type Files.Rendering.Conflict_Hit_Kind;
          Hit : constant Files.Rendering.Conflict_Hit_Region :=
@@ -63,7 +63,7 @@ begin
    --  The Quick Look overlay is a modal-lite top-most panel: a click on its
    --  close button or anywhere outside the panel toggles it shut, and a click
    --  inside the panel body is swallowed so nothing behind it reacts.
-   if Snapshot.Quick_Look_Open then
+   if Snapshot.Quick_Look.Open then
       declare
          QL : constant Files.Rendering.Quick_Look_Layout :=
            Files.Rendering.Calculate_Quick_Look_Layout (Layout, Line_Height);

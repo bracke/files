@@ -32,7 +32,7 @@ separate (Files_Suite.Operations)
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Frame    : constant Files.Rendering.Frame_Commands :=
-           Files.Rendering.Build_Frame_Commands (Snapshot, Width, Height);
+           Files.Rendering.Build_Frame_Commands (Snapshot, Width, Height, 20);
       begin
          Assert (Snapshot.Permissions_Editable, "single directory selection is permission-editable");
          for Index in 1 .. Natural (Frame.Permission_Hits.Length) loop

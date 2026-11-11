@@ -60,7 +60,7 @@ begin
    end if;
 
    Ada.Directories.Create_Path
-     (Ada.Directories.Containing_Directory (Cache_Directory));
+     (Files.Fs_Primitives.Parent_Directory (Cache_Directory));
    Files.Private_Directories.Ensure (Cache_Directory);
    Prune_Cache_Once (Cache_Directory);
    Target := To_Unbounded_String (Thumbnail_Path_For (Source_Path, Cache_Directory, Size));

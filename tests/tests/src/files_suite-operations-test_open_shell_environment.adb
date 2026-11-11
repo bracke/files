@@ -84,10 +84,10 @@ separate (Files_Suite.Operations)
             Files.Operations.Operation_Failed,
             "explicit shell action fails preflight when shell executable is missing");
          Assert
-           (not Missing_Shell_Action.Execution_Attempted,
+           (not Missing_Shell_Action.Execution.Attempted,
             "missing shell executable is rejected before spawn");
          Assert
-           (not Missing_Shell_Action.Executable_Found,
+           (not Missing_Shell_Action.Execution.Executable_Found,
             "missing shell executable records failed executable lookup");
          Files_Suite.Support.Assert_Equal
            (To_String (Missing_Shell_Action.Error_Key),

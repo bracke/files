@@ -1,3 +1,4 @@
+with Files.File_Types;
 with Files.Shared_Bytes;
 
 with Files.Diagnostics;
@@ -46,7 +47,7 @@ separate (Files.Application.Windows.Smoke)
                    (Snapshot    => Snapshot,
                     Width       => Width,
                     Height      => Height,
-                    Line_Height => Files.UI.Base_Line_Height);
+                    Line_Height => Guikit.Layout.Reference_Line_Height);
                Drag_Snapshot : Files.Rendering.View_Snapshot := Snapshot;
                Text     : Files.Rendering.Text_Renderer;
                Text_Status : constant Files.Rendering.Text_Render_Status :=
@@ -80,7 +81,7 @@ separate (Files.Application.Windows.Smoke)
                         Full_Path          => To_Unbounded_String ("quality-drag.txt"),
                         Filetype           => To_Unbounded_String ("text/plain"),
                         Filetype_Detail    => To_Unbounded_String ("text"),
-                        Icon_Id            => To_Unbounded_String ("text"),
+                        Icon               => Files.File_Types.Text_Icon,
                         Kind               => Files.Types.Regular_File_Item,
                         Size_Available     => False,
                         Size               => 0,
@@ -114,7 +115,7 @@ separate (Files.Application.Windows.Smoke)
                       (Snapshot        => Drag_Snapshot,
                        Width           => Width,
                        Height          => Height,
-                       Line_Height     => Files.UI.Base_Line_Height,
+                       Line_Height     => Guikit.Layout.Reference_Line_Height,
                        Pointer =>
                          (Hover_X => Natural'Min (Width, 96),
                           Hover_Y => Natural'Min (Height, 96),

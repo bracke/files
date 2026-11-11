@@ -37,7 +37,7 @@ separate (Files_Suite.Operations)
             Files.Operations.Operation_Missing_Open_Action,
             "multi-file open preparation preflights all actions");
          Assert
-           (not Preflight_Result.Execution_Attempted,
+           (not Preflight_Result.Execution.Attempted,
             "multi-file open preparation failure records no process attempt");
          Files_Suite.Support.Assert_Equal
            (To_String (Preflight_Result.Path),
@@ -92,7 +92,7 @@ separate (Files_Suite.Operations)
             "error.open_action.executable_missing",
             "multi-file executable preflight reports executable diagnostic");
          Assert
-           (not Preflight_Result.Execution_Attempted,
+           (not Preflight_Result.Execution.Attempted,
             "multi-file executable preflight failure records no process attempt");
          Assert
            (not Ada.Directories.Exists (Marker_Path),
@@ -128,20 +128,20 @@ separate (Files_Suite.Operations)
             Join (Root, "Alpha.txt"),
             "multi-file detached open reports first selected path");
          Files_Suite.Support.Assert_Equal
-           (To_String (Detached_Result.Action_Executable),
+           (To_String (Detached_Result.Action.Executable),
             No_Op_Executable,
             "multi-file detached open exposes first action executable");
          Assert
-           (Detached_Result.Execution_Attempted,
+           (Detached_Result.Execution.Attempted,
             "multi-file detached open records process attempt");
          Assert
-           (Detached_Result.Executable_Found,
+           (Detached_Result.Execution.Executable_Found,
             "multi-file detached open records executable discovery");
          --  There is no exit status to record. The launch does not wait, so what
          --  used to be asserted here was the wrapper shell's zero -- a number that
          --  said nothing whatever about the application.
          Assert
-           (not Detached_Result.Exit_Status_Known,
+           (not Detached_Result.Execution.Exit_Status_Known,
             "a detached open has no exit status to report");
          Files_Suite.Support.Assert_Equal
            (Files.Model.Last_Error_Key (Detached_Model),

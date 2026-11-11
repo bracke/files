@@ -28,8 +28,8 @@ separate (Files_Suite.Model)
          Files.Model.Open_Quick_Look (Model, Content);
          Snapshot := Files.Rendering.Build_Snapshot (Model);
          Assert
-           (Snapshot.Quick_Look_Image_Width = 0
-              and then Snapshot.Quick_Look_Image_Height = 0,
+           (Snapshot.Quick_Look.Image_Width = 0
+              and then Snapshot.Quick_Look.Image_Height = 0,
             "impossible quick-look dimensions are rejected without arithmetic overflow");
       end;
 

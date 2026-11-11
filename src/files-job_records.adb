@@ -12,7 +12,6 @@ with Files.Exclusive_Streams;
 with Files.Process_Jobs;
 with Hostkit.Fs;
 with Files.Shared_Bytes;
-with Files.Types;
 with Files.Path_Checks;
 
 package body Files.Job_Records is
@@ -193,6 +192,66 @@ package body Files.Job_Records is
       end if;
       return Result;
    end Read_Signature;
+
+   --  A move names where it came from, and where it went exactly when it
+   --  was not a removal.
+   function Path_Move_Is_Consistent (Move : Files.Types.Path_Move) return Boolean is
+     (Length (Move.From) > 0
+      and then (case Move.Kind is
+                   when Files.Types.Moved   => Length (Move.To) > 0,
+                   when Files.Types.Removed => Length (Move.To) = 0));
+
+   procedure Write_Path_Moves
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Value  : Files.Types.Path_Move_Vectors.Vector)
+   is
+      Count : constant Natural := Natural'Min (Natural (Value.Length), Max_Path_Moves);
+   begin
+      Natural'Output (Stream, Count);
+      for Index in 1 .. Count loop
+         declare
+            Move : constant Files.Types.Path_Move := Value (Index);
+         begin
+            if not Path_Move_Is_Consistent (Move) then
+               raise Ada.Directories.Use_Error;
+            end if;
+            --  The kind goes as its position, which the reader range-checks.
+            Natural'Output (Stream, Files.Types.Path_Move_Kind'Pos (Move.Kind));
+            Write_String (Stream, To_String (Move.From), Max_Path_Length);
+            Write_String (Stream, To_String (Move.To), Max_Path_Length);
+         end;
+      end loop;
+   end Write_Path_Moves;
+
+   function Read_Path_Moves
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
+      return Files.Types.Path_Move_Vectors.Vector
+   is
+      Count : constant Natural := Natural'Input (Stream);
+      Moves : Files.Types.Path_Move_Vectors.Vector;
+   begin
+      if Count > Max_Path_Moves then
+         raise Ada.IO_Exceptions.Data_Error;
+      end if;
+      for Index in 1 .. Count loop
+         declare
+            Kind_Position : constant Natural := Natural'Input (Stream);
+            Move          : Files.Types.Path_Move;
+         begin
+            if Kind_Position > Files.Types.Path_Move_Kind'Pos (Files.Types.Path_Move_Kind'Last) then
+               raise Ada.IO_Exceptions.Data_Error;
+            end if;
+            Move.Kind := Files.Types.Path_Move_Kind'Val (Kind_Position);
+            Move.From := To_Unbounded_String (Read_String (Stream, Max_Path_Length));
+            Move.To := To_Unbounded_String (Read_String (Stream, Max_Path_Length));
+            if not Path_Move_Is_Consistent (Move) then
+               raise Ada.IO_Exceptions.Data_Error;
+            end if;
+            Moves.Append (Move);
+         end;
+      end loop;
+      return Moves;
+   end Read_Path_Moves;
 
    --  Thumbnail bytes move through the stream this many at a time.
    Byte_Chunk : constant := 4096;
@@ -420,36 +479,21 @@ package body Files.Job_Records is
       return Result;
    end Read_Strings;
 
-   function Action_Metadata_Is_Consistent
-     (Value : Files.Operations.Operation_Result) return Boolean
-   is
-     (Value.Action.Arguments.Length <=
-        Ada.Containers.Count_Type (Max_Argument_Count)
-      and then Value.Action_Executable = Value.Action.Executable
-      and then Value.Action_Arguments = Natural (Value.Action.Arguments.Length)
-      and then Value.Action_Uses_Shell = Value.Action.Use_Shell);
-
    procedure Write_Operation_Result
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Value : Files.Operations.Operation_Result)
    is
    begin
-      if not Action_Metadata_Is_Consistent (Value) then
-         raise Ada.Directories.Use_Error;
-      end if;
       Files.Operations.Operation_Status'Output (Stream, Value.Status);
       Write_String (Stream, To_String (Value.Error_Key), Max_Error_Length);
       Write_String (Stream, To_String (Value.Path), Max_Path_Length);
       Write_String (Stream, To_String (Value.Action.Executable), Max_Path_Length);
       Write_Strings (Stream, Value.Action.Arguments);
       Boolean'Output (Stream, Value.Action.Use_Shell);
-      Write_String (Stream, To_String (Value.Action_Executable), Max_Path_Length);
-      Natural'Output (Stream, Value.Action_Arguments);
-      Boolean'Output (Stream, Value.Action_Uses_Shell);
-      Boolean'Output (Stream, Value.Execution_Attempted);
-      Boolean'Output (Stream, Value.Executable_Found);
-      Boolean'Output (Stream, Value.Exit_Status_Known);
-      Integer'Output (Stream, Value.Exit_Status);
+      Boolean'Output (Stream, Value.Execution.Attempted);
+      Boolean'Output (Stream, Value.Execution.Executable_Found);
+      Boolean'Output (Stream, Value.Execution.Exit_Status_Known);
+      Integer'Output (Stream, Value.Execution.Exit_Status);
    end Write_Operation_Result;
 
    function Read_Operation_Result
@@ -464,18 +508,13 @@ package body Files.Job_Records is
       Result.Action.Executable := To_Unbounded_String (Read_String (Stream, Max_Path_Length));
       Result.Action.Arguments := Read_Strings (Stream);
       Result.Action.Use_Shell := Boolean'Input (Stream);
-      Result.Action_Executable := To_Unbounded_String (Read_String (Stream, Max_Path_Length));
-      Result.Action_Arguments := Natural'Input (Stream);
-      Result.Action_Uses_Shell := Boolean'Input (Stream);
-      Result.Execution_Attempted := Boolean'Input (Stream);
-      Result.Executable_Found := Boolean'Input (Stream);
-      Result.Exit_Status_Known := Boolean'Input (Stream);
-      Result.Exit_Status := Integer'Input (Stream);
-      if not Action_Metadata_Is_Consistent (Result) then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
+      Result.Execution.Attempted := Boolean'Input (Stream);
+      Result.Execution.Executable_Found := Boolean'Input (Stream);
+      Result.Execution.Exit_Status_Known := Boolean'Input (Stream);
+      Result.Execution.Exit_Status := Integer'Input (Stream);
       return Result;
    end Read_Operation_Result;
+
    procedure Fit_Thumbnails (Items : in out Files.Items.Item_Vectors.Vector) is
       Carried : Natural := 0;
    begin

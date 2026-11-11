@@ -60,7 +60,7 @@ begin
    while Ada.Directories.More_Entries (Search) loop
       Ada.Directories.Get_Next_Entry (Search, Item);
 
-      if not Is_Thumbnail_Name (Ada.Directories.Simple_Name (Item)) then
+      if not Is_Thumbnail_Name (Ada.Directories.Simple_Name (Directory_Entry => Item)) then
          goto Continue;
       elsif Count = Max_Cache_Prune_Entries then
          Ada.Directories.End_Search (Search);

@@ -974,7 +974,7 @@ package body Files.Desktop_Applications is
          Ada.Directories.Get_Next_Entry (Search, Element);
          Scanned := Scanned + 1;
          declare
-            Simple : constant String := Ada.Directories.Simple_Name (Element);
+            Simple : constant String := Ada.Directories.Simple_Name (Directory_Entry => Element);
             Full   : constant String := Ada.Directories.Full_Name (Element);
             Relative : constant String :=
               (if Relative_Path = "" then Simple

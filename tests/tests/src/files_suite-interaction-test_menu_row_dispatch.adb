@@ -40,7 +40,7 @@ separate (Files_Suite.Interaction)
          Row_Y      : Natural;
       begin
          for Row in 1 .. Menu.Row_Count loop
-            if Menu.Commands (Row) = Files.Commands.Copy_Selected_Items_Command then
+            if Menu.Rows (Row).Command = Files.Commands.Copy_Selected_Items_Command then
                Target_Row := Row;
             end if;
          end loop;
@@ -58,7 +58,7 @@ separate (Files_Suite.Interaction)
            (Model             => Model,
             Settings          => Settings,
             Settings_Path     => "",
-            Command           => Menu.Commands (Target_Row),
+            Command           => Menu.Rows (Target_Row).Command,
             Current_Font_Size => Base_Font,
             Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Result);

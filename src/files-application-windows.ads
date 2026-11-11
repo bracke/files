@@ -1,7 +1,7 @@
 with Glfw.Windows.Drop.Paths;
 with Files.Model;
 with Files.Refresh_Jobs;
-with Files.UI;
+with Guikit.Layout;
 with Guikit.Vulkan;
 with Glfw;
 with Glfw.Input.Mouse;
@@ -284,7 +284,7 @@ private
    type Frame_Inputs is record
       Width          : Natural := 0;
       Height         : Natural := 0;
-      Line_Height    : Positive := Files.UI.Base_Line_Height;
+      Line_Height    : Positive := Guikit.Layout.Reference_Line_Height;
       Hover_X        : Natural := 0;
       Hover_Y        : Natural := 0;
       Has_Hover      : Boolean := False;

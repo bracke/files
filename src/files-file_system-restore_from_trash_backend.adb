@@ -14,9 +14,9 @@ begin
    end if;
 
    declare
-      Simple    : constant String := Ada.Directories.Simple_Name (Trashed_Path);
+      Simple    : constant String := Files.Fs_Primitives.Leaf_Text (Trashed_Path);
       Info_Path : constant String :=
-        Join_Path (Join_Path (Base, "info"), Simple & ".trashinfo");
+        Hostkit.Fs.Join (Hostkit.Fs.Join (Base, "info"), Simple & ".trashinfo");
       Original  : Unbounded_String;
       Parent    : Unbounded_String;
    begin
@@ -34,7 +34,7 @@ begin
             Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
       end if;
 
-      Parent := To_Unbounded_String (Ada.Directories.Containing_Directory (To_String (Original)));
+      Parent := To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (To_String (Original)));
       if To_String (Parent) = ""
         or else not Ada.Directories.Exists (To_String (Parent))
         or else Ada.Directories.Kind (To_String (Parent)) /= Ada.Directories.Directory

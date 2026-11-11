@@ -27,7 +27,12 @@ package body Files.Operation_Jobs is
    use type Files.Model.Undo_Action_Kind;
 
    Request_Header : constant String := "files-operation-request-3";
-   Result_Header : constant String := "files-operation-result-1";
+   --  Version 2 dropped the operation result's copies of its action's
+   --  executable, argument count and shell flag. The header changes with the
+   --  layout so a helper from another build is refused, not misread.
+   --  Version 3 carries the path moves as one list of (kind, from, to)
+   --  records instead of two parallel path lists.
+   Result_Header : constant String := "files-operation-result-3";
 
    type Request is record
       Kind     : Operation_Kind;
@@ -50,30 +55,14 @@ package body Files.Operation_Jobs is
       Signature : Files.File_System.Directory_Signature;
       --  The renames, moves and removals the helper made (Note_Path_Move),
       --  for the window's labels and favorites to follow.
-      Moved_From : Files.Types.String_Vectors.Vector;
-      Moved_To   : Files.Types.String_Vectors.Vector;
+      Moves     : Files.Types.Path_Move_Vectors.Vector;
    end record;
-
-   Max_Moves : constant := 100_000;
 
    package Index_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
       Element_Type    => Positive,
       Hash            => Ada.Strings.Hash,
       Equivalent_Keys => "=");
-
-   --  At most Max_Moves, as Read_Paths accepts: past that the labels of the
-   --  rest do not follow, but the operation's outcome still reads back.
-   procedure Write_Paths
-     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Paths  : Files.Types.String_Vectors.Vector) is
-      Count : constant Natural := Natural'Min (Natural (Paths.Length), Max_Moves);
-   begin
-      Natural'Output (Stream, Count);
-      for Index in 1 .. Count loop
-         Files.Job_Records.Write_String (Stream, To_String (Paths (Index)), Files.Job_Records.Max_Path_Length);
-      end loop;
-   end Write_Paths;
 
    --  The message for a job of Kind that failed without saying why.
    function Failure_Key (Kind : Operation_Kind) return String is
@@ -88,23 +77,6 @@ package body Files.Operation_Jobs is
          when Empty_Trash                        => "error.trash.empty_failed",
          when Undo                               => "error.undo.failed",
          when Redo                               => "error.redo.failed");
-
-   function Read_Paths
-     (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
-      return Files.Types.String_Vectors.Vector
-   is
-      Count : constant Natural := Natural'Input (Stream);
-      Paths : Files.Types.String_Vectors.Vector;
-   begin
-      if Count > Max_Moves then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      for Index in 1 .. Count loop
-         Paths.Append
-           (To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Path_Length)));
-      end loop;
-      return Paths;
-   end Read_Paths;
 
    function Valid_Absolute_Path (Path : String) return Boolean is
      (Files.Path_Checks.Valid_Absolute_Path (Path));
@@ -176,8 +148,7 @@ package body Files.Operation_Jobs is
         (Stream, To_String (Done.Visible_Error),
          Files.Job_Records.Max_Error_Length);
       Files.Job_Records.Write_Signature (Stream, Done.Signature);
-      Write_Paths (Stream, Done.Moved_From);
-      Write_Paths (Stream, Done.Moved_To);
+      Files.Job_Records.Write_Path_Moves (Stream, Done.Moves);
    end Write_Outcome;
 
    procedure Read_Outcome_Body
@@ -192,12 +163,12 @@ package body Files.Operation_Jobs is
       Done.Visible_Error :=
         To_Unbounded_String (Files.Job_Records.Read_String (Stream, Files.Job_Records.Max_Error_Length));
       Done.Signature := Files.Job_Records.Read_Signature (Stream);
-      Done.Moved_From := Read_Paths (Stream);
-      Done.Moved_To := Read_Paths (Stream);
+      Done.Moves := Files.Job_Records.Read_Path_Moves (Stream);
    end Read_Outcome_Body;
 
+   --  Read_Path_Moves has checked every move against its kind already.
    function Outcome_Is_Consistent (Done : Outcome) return Boolean is
-     (Natural (Done.Moved_From.Length) = Natural (Done.Moved_To.Length));
+     (Natural (Done.Moves.Length) <= Files.Job_Records.Max_Path_Moves);
 
    function Read_Outcome_Record is new Files.Lease_Streams.Read_Record
      (Outcome, Read_Outcome_Body, Outcome_Is_Consistent);
@@ -436,13 +407,13 @@ package body Files.Operation_Jobs is
       end if;
       --  What the helper renamed, moved or removed did happen, whatever the
       --  window shows now: labels and favorites follow it.
-      for Index in Done.Moved_From.First_Index .. Done.Moved_From.Last_Index loop
-         if Length (Done.Moved_To (Index)) = 0 then
-            Files.Model.Note_Path_Removed (Model, To_String (Done.Moved_From (Index)));
-         else
-            Files.Model.Note_Path_Move
-              (Model, To_String (Done.Moved_From (Index)), To_String (Done.Moved_To (Index)));
-         end if;
+      for Move of Done.Moves loop
+         case Move.Kind is
+            when Files.Types.Removed =>
+               Files.Model.Note_Path_Removed (Model, To_String (Move.From));
+            when Files.Types.Moved =>
+               Files.Model.Note_Path_Move (Model, To_String (Move.From), To_String (Move.To));
+         end case;
       end loop;
       if not Files.History_Journal.Restore
         (Files.Process_Jobs.Path (Job, ""), Model)
@@ -618,7 +589,7 @@ package body Files.Operation_Jobs is
          Done.Items.Append (Row.Item);
       end loop;
       Done.Signature := Files.Model.Directory_Signature_Of (Model);
-      Files.Model.Take_Path_Moves (Model, Done.Moved_From, Done.Moved_To);
+      Done.Moves := Files.Model.Take_Path_Moves (Model);
       Files.Job_Records.Publish_Result (Directory, Write'Access);
    end Run_Helper;
 end Files.Operation_Jobs;

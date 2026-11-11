@@ -101,7 +101,7 @@ separate (Files.Application.Windows)
                Modifiers : constant Guikit.Input.Modifier_Set :=
                  To_Modifiers (As_Window (Runtime.Handle));
                Command  : constant Files.Commands.Command_Id :=
-                 (if Row > 0 and then Row <= Menu.Row_Count then Menu.Commands (Row)
+                 (if Row > 0 and then Row <= Menu.Row_Count then Menu.Rows (Row).Command
                   else Files.Commands.No_Command);
                Result   : Files.Interaction.Interaction_Result;
             begin

@@ -1,3 +1,5 @@
+with Ada.Strings.Unbounded;
+
 --  UTF-8 byte-string helpers used by UI measurement and rendering.
 package Files.UTF8 is
 
@@ -167,5 +169,27 @@ package Files.UTF8 is
       First   : Natural;
       Last    : Natural)
       return String;
+
+   --  Delete from a text field at its caret: the character (or, By_Word, the
+   --  word) before the caret when Backward, else the one after it. The one
+   --  deletion rule every text field shares -- the focused input and each
+   --  rename caret alike.
+   --
+   --  At the near edge (Backward at 0, forward at or past the end) nothing is
+   --  deleted: New_Text is Text and New_Cursor is Cursor.
+   --
+   --  @param Text UTF-8 encoded field text.
+   --  @param Cursor Zero-based byte offset of the caret.
+   --  @param Backward Whether to delete before the caret rather than after it.
+   --  @param By_Word Whether to delete to a word boundary, not a character's.
+   --  @param New_Text The text after the deletion.
+   --  @param New_Cursor The caret after the deletion.
+   procedure Delete_At
+     (Text       : String;
+      Cursor     : Natural;
+      Backward   : Boolean;
+      By_Word    : Boolean;
+      New_Text   : out Ada.Strings.Unbounded.Unbounded_String;
+      New_Cursor : out Natural);
 
 end Files.UTF8;

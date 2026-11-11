@@ -1,10 +1,10 @@
+with Hostkit.Path_Text;
+
 separate (Files.File_System)
 function Delete_Permanently
   (Path : String)
    return Mutation_Result
 is
-   Windows : constant Boolean := Hostkit.Host.Current = Hostkit.Host.Windows;
-
    function Has_Navigation_Component return Boolean is
       First : Positive := Path'First;
    begin
@@ -22,28 +22,27 @@ is
         and then Path (First .. Path'Last) in "." | "..";
    end Has_Navigation_Component;
 
+   --  A root of any spelling -- "/", "C:\", "\\server\share", "\\?\C:\" --
+   --  has no leaf (Hostkit.Path_Text), and is never deleted whole.
    function Unsafe_Target return Boolean is
    begin
       if Path = ""
-        or else Path = "/"
-        or else
-          (Windows and then Path'Length = 3 and then Hostkit.Fs.Drive_Root_Length (Path) = 3)
+        or else Hostkit.Path_Text.Leaf (Path) = ""
         or else Has_Navigation_Component
       then
          return True;
       end if;
 
-      if Hostkit.Fs.Is_Link (Path) then
+      --  Absolute, with a leaf and no "." or "..": not a root. Asked no
+      --  further, so a path past GNAT's Windows limits is not refused.
+      if Hostkit.Fs.Is_Link (Path) or else Hostkit.Path_Text.Root_Length (Path) > 0 then
          return False;
       end if;
 
       declare
-         Full   : constant String := Ada.Directories.Full_Name (Path);
-         Parent : constant String := Ada.Directories.Containing_Directory (Full);
+         Full : constant String := Ada.Directories.Full_Name (Path);
       begin
-         return Full = ""
-           or else Full = Parent
-           or else (Full'Length = 1 and then Full (Full'First) = '/');
+         return Full = "" or else Files.Fs_Primitives.Parent_Text (Full) = "";
       end;
    exception
       when Swallowed : others =>

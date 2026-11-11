@@ -1,4 +1,5 @@
 with Files.Command_Palette;
+with Guikit.Layout;
 separate (Files.Model)
 procedure Open_Command_Palette
   (Model : in out Window_Model) is
@@ -9,10 +10,10 @@ begin
    Model.Open_With_Targets_Value.Clear;
    Model.Open_With_Applications_Value.Clear;
    Claim_Overlay_Input (Model);
-   --  At the base line height (Files.UI.Base_Line_Height, which the model
-   --  may not name); Visit_Command_Palette sets the window's real one.
+   --  At the reference line height; Visit_Command_Palette sets the window's
+   --  real one.
    Guikit.Command_Palette.Set_Configuration
-     (Model.Command_Palette_View, Palette_Config (20));
+     (Model.Command_Palette_View, Palette_Config (Guikit.Layout.Reference_Line_Height));
    Guikit.Command_Palette.Reset (Model.Command_Palette_View);
    Guikit.Command_Palette.Set_Commands
      (Model.Command_Palette_View, Files.Command_Palette.Commands (Model));

@@ -12,12 +12,17 @@ separate (Files_Suite.Rendering)
             Assert (not Frame.Rectangles.Is_Empty, "the frame draws its icons as vectors");
             for Icon of Frame.Icons loop
                declare
-                  Id : constant String := To_String (Icon.Icon_Id);
+                  Id      : constant String := To_String (Icon.Icon_Id);
+                  Toolbar : constant Boolean := Id'Length > 8 and then Id (Id'First .. Id'First + 7) = "toolbar-";
                begin
+                  --  The backend learns that from the command, not from the id.
+                  Assert
+                    (Toolbar = (Icon.Class = Placed_Icon),
+                     "a toolbar icon, and only that, is placed (drawn here, skipped by the backend): " & Id);
                   Assert
                     (Icon.Overlay
                      or else not Icon.Thumbnail_Pixels.Is_Empty
-                     or else (Id'Length > 8 and then Id (Id'First .. Id'First + 7) = "toolbar-"),
+                     or else Icon.Class = Placed_Icon,
                      "an atlas tile only for what vectors cannot draw, not " & Id);
                end;
             end loop;

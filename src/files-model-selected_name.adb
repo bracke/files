@@ -8,7 +8,7 @@ begin
    if Selected_Count (Model) = 0 then
       return "";
    elsif Item_Index = Temporary_Item_Index then
-      return To_String (Model.Temporary_Name_Value);
+      return To_String (Model.Temporary.Name);
    end if;
 
    return To_String (Model.Items.Element (Positive (Item_Index)).Name);

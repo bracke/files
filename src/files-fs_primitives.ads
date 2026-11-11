@@ -1,3 +1,4 @@
+with Ada.Directories;
 with GNAT.OS_Lib;
 
 --  Low-level filesystem primitives shared across the application: existence
@@ -20,7 +21,9 @@ package Files.Fs_Primitives is
    --    for an empty or unreadable path.
    function Entry_Exists (Path : String) return Boolean;
 
-   --  Return the parent directory of Path.
+   --  Return the parent directory of Path, read from its text (Parent_Text)
+   --  as Ada.Directories.Containing_Directory would give it, without its
+   --  limits: a name alone lies in ".".
    --
    --  @param Path Path whose parent is requested.
    --  @return Parent directory path, or an empty string when Path is a
@@ -42,21 +45,41 @@ package Files.Fs_Primitives is
      (Path  : String;
       Visit : not null access procedure (Name : String; Stop : in out Boolean));
 
-   --  Path's last component read from its text alone, for a name
-   --  Ada.Directories refuses: GNAT's Windows runtime rejects a component
-   --  longer than 256 characters, which the filesystem then refuses with a
-   --  cause of its own ("too long"), not as an invalid name.
+   --  Path's last component read from its text alone (Hostkit.Path_Text.Leaf),
+   --  where Ada.Directories.Simple_Name is not to be used on a path: GNAT's
+   --  Windows runtime rejects a component longer than 256 characters, which
+   --  the filesystem then refuses with a cause of its own ("too long"), not as
+   --  an invalid name, and reads "\\server\share" as a folder.
    --
    --  @param Path A path.
-   --  @return Its last component without trailing separators, or "" for a
-   --    root or an empty path.
+   --  @return Its last component without trailing separators, indexed from 1,
+   --    or "" for a root or an empty path.
    function Leaf_Text (Path : String) return String;
 
-   --  Path less its last component, read from its text alone (Leaf_Text).
+   --  Path less its last component, read from its text alone
+   --  (Hostkit.Path_Text.Parent): a root keeps its separator ("/", "C:\"), a
+   --  share is "\\server\share", and a root has no parent.
    --
    --  @param Path A path.
-   --  @return The parent, keeping a root's separator, or "" when there is none.
+   --  @return The parent, indexed from 1, or "" when there is none.
    function Parent_Text (Path : String) return String;
+
+   --  Directory joined with a leaf made of Stem and Extension, what
+   --  Ada.Directories.Compose makes, from text alone (Leaf_Text).
+   --
+   --  @param Directory The folder the leaf goes in.
+   --  @param Stem The leaf's name before its extension.
+   --  @param Extension The extension without its dot, or "" for none.
+   --  @return The joined path.
+   function Compose_Text (Directory : String; Stem : String; Extension : String := "") return String;
+
+   --  What Path names, as Ada.Directories.Kind says, asked through
+   --  Hostkit.Fs.Kind_Of: on Windows a path past 260 characters still answers.
+   --
+   --  @param Path Filesystem path to look at.
+   --  @return Its kind.
+   --  @raise Ada.Directories.Name_Error when Path names nothing.
+   function Kind (Path : String) return Ada.Directories.File_Kind;
 
    --  @param Path Filesystem path to test.
    --  @return True when Path names an ordinary file.

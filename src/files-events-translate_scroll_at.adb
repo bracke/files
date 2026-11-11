@@ -6,7 +6,7 @@ separate (Files.Events)
       Width       : Natural;
       Height      : Natural;
       Y_Offset    : Integer;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Input_Action
    is
       Action  : Input_Action := Translate_Scroll (Y_Offset);
@@ -99,8 +99,8 @@ separate (Files.Events)
          or else Snapshot.Context_Menu_Open
          or else Snapshot.Tree_Pick_Active
          or else Snapshot.Paste_Conflict_Open
-         or else Snapshot.Paste_Progress_Open
-         or else Snapshot.Quick_Look_Open
+         or else Snapshot.Paste_Progress.Open
+         or else Snapshot.Quick_Look.Open
          or else Snapshot.Label_Picker_Open);
    begin
       if Action.Kind /= Scroll_Input_Action then

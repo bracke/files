@@ -52,7 +52,7 @@ begin
          --  A rename keeps each item in its own folder: a search or Recent
          --  lists items from other folders, and the listing a search left
          --  behind can outlive its flag until the reload lands.
-         Parent   : constant String := Ada.Directories.Containing_Directory (Old_Full);
+         Parent   : constant String := Files.Fs_Primitives.Parent_Directory (Old_Full);
       begin
          --  An unchanged name stays as it is, whatever it holds; a new one
          --  is a name the user typed.
@@ -72,7 +72,7 @@ begin
             end if;
          else
             declare
-               New_Path : constant String := Files.File_System.Join_Path (Parent, New_Name);
+               New_Path : constant String := Hostkit.Fs.Join (Parent, New_Name);
                Left_At  : Unbounded_String;
                Mutation : constant Files.File_System.Mutation_Result :=
                  Files.File_System.Rename_Item (Old_Full, New_Path, Left_At);
@@ -169,12 +169,12 @@ begin
         Make_Result
           (Operation_Success,
            "error.rename.partial",
-           Files.File_System.Join_Path (Current_Dir, To_String (Focus_Name)));
+           Hostkit.Fs.Join (Current_Dir, To_String (Focus_Name)));
    end if;
 
    Files.Model.Set_Error (Model, "");
    return
      Make_Result
        (Operation_Success,
-        Path => Files.File_System.Join_Path (Current_Dir, To_String (Focus_Name)));
+        Path => Hostkit.Fs.Join (Current_Dir, To_String (Focus_Name)));
 end Commit_Rename;

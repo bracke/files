@@ -10,6 +10,7 @@ with Ada.Strings.Unbounded;
 with GNAT.OS_Lib;
 
 with Files.Folder_Size;
+with Files.Fs_Primitives;
 with Files.Undo_Payloads;
 with Files.Shared_Bytes;
 with Files.Transfer_Jobs;

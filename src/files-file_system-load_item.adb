@@ -18,10 +18,17 @@ begin
         (if Hostkit.Fs.Is_Link (Full_Path) then
            GNAT.OS_Lib.Normalize_Pathname (Full_Path, Resolve_Links => False)
          else Ada.Directories.Full_Name (Full_Path));
-      Name   : constant String := Ada.Directories.Simple_Name (Full);
-      Parent : constant String := Ada.Directories.Containing_Directory (Full);
+      Name   : constant String := Files.Fs_Primitives.Leaf_Text (Full);
+      Parent : constant String := Files.Fs_Primitives.Parent_Directory (Full);
       Kind   : constant Files.Types.Item_Kind := Kind_From_Path (Full);
    begin
+      --  A root is no folder's item: it has neither a name nor a parent.
+      if Name = "" or else Parent = "" then
+         return
+           (Success   => False,
+            Item      => Empty,
+            Error_Key => To_Unbounded_String ("error.path.inaccessible"));
+      end if;
 
       return
         (Success   => True,

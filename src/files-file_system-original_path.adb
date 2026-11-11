@@ -132,7 +132,7 @@ function Original_Path (Trashed_Path : String) return String is
    --  must be Top itself or below it.
    function Stays_On_Volume (Candidate, Top : String) return Boolean is
       Real_Top : constant String := Hostkit.Fs.Real_Path (Top);
-      Current  : Unbounded_String := To_Unbounded_String (Ada.Directories.Containing_Directory (Candidate));
+      Current  : Unbounded_String := To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (Candidate));
    begin
       if Real_Top = "" then
          return False;
@@ -146,7 +146,7 @@ function Original_Path (Trashed_Path : String) return String is
             end;
          end if;
          declare
-            Up : constant String := Ada.Directories.Containing_Directory (To_String (Current));
+            Up : constant String := Files.Fs_Primitives.Parent_Directory (To_String (Current));
          begin
             exit when Up = To_String (Current);
             Current := To_Unbounded_String (Up);
@@ -167,7 +167,7 @@ begin
    end if;
    declare
       Recorded : constant String := Read_Original_Path
-        (Join_Path (Join_Path (Base, "info"), Ada.Directories.Simple_Name (Trashed_Path) & ".trashinfo"));
+        (Hostkit.Fs.Join (Hostkit.Fs.Join (Base, "info"), Files.Fs_Primitives.Leaf_Text (Trashed_Path) & ".trashinfo"));
    begin
       if Recorded = "" then
          return "";
@@ -185,7 +185,7 @@ begin
            (if Climbs (Recorded) then ""
             elsif GNAT.OS_Lib.Is_Absolute_Path (Recorded)
             then (if Relative_To_Top (Recorded, Top) /= "" then Recorded else "")
-            else Join_Path (Top, Recorded));
+            else Hostkit.Fs.Join (Top, Recorded));
       begin
          if Candidate = "" or else not Stays_On_Volume (Candidate, Top) then
             return "";

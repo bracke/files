@@ -3,7 +3,7 @@ function Thumbnail_Extension
   (Source_Path : String)
    return String
 is
-   Name : constant String := Ada.Directories.Simple_Name (Source_Path);
+   Name : constant String := Files.Fs_Primitives.Leaf_Text (Source_Path);
 begin
    for Index in reverse Name'Range loop
       if Name (Index) = '.' and then Index < Name'Last then

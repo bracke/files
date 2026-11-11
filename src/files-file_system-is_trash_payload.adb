@@ -10,7 +10,7 @@ begin
       return False;
    end if;
    Actual_Parent := To_Unbounded_String
-     (Hostkit.Fs.Real_Path (Ada.Directories.Containing_Directory (Path)));
+     (Hostkit.Fs.Real_Path (Files.Fs_Primitives.Parent_Directory (Path)));
    Expected_Parent := To_Unbounded_String
      (Hostkit.Fs.Real_Path (Payload_Directory));
    return Length (Actual_Parent) > 0

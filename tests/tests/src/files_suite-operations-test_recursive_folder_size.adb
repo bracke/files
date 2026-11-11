@@ -154,7 +154,7 @@ separate (Files_Suite.Operations)
          Snapshot : constant Files.Rendering.View_Snapshot :=
            Files.Rendering.Build_Snapshot (Model, Settings);
          Frame    : constant Files.Rendering.Frame_Commands :=
-           Files.Rendering.Build_Frame_Commands (Snapshot, 1400, 1000);
+           Files.Rendering.Build_Frame_Commands (Snapshot, 1400, 1000, 20);
          Label    : constant String := Files.Localization.Text ("info.folder_size");
          Found    : Boolean := False;
       begin

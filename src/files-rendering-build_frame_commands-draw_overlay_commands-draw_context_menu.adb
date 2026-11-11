@@ -1,6 +1,7 @@
 separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
    --  The context menu.
    procedure Draw_Context_Menu is
+      use type Files.Commands.Context_Menu_Row_Kind;
    begin
       declare
          Menu : constant Context_Menu_Layout :=
@@ -40,7 +41,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                      Row_Y : constant Natural := Context_Menu_Row_Top (Menu, Row);
                      Row_W : constant Natural := Context_Menu_Row_Width (Menu, Row);
                   begin
-                     if Menu.Row_Kinds (Row) = Separator_Row then
+                     if Menu.Rows (Row).Kind = Files.Commands.Menu_Separator then
                         --  Draw a thin divider centered in the separator row so
                         --  the command groups above and below read as distinct.
                         declare
@@ -79,7 +80,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                      else
                         declare
                            Command : constant Files.Commands.Command_Id :=
-                             Menu.Commands (Row);
+                             Menu.Rows (Row).Command;
                            Enabled : constant Boolean :=
                              Command /= Files.Commands.No_Command
                              and then Snapshot.Command_Enabled (Command);

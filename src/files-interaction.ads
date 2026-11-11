@@ -5,7 +5,6 @@ with Files.Model;
 with Files.Rendering;
 with Files.Settings;
 with Guikit.Input;
-with Guikit.Layout;
 with Files.Types;
 
 --  GLFW-free interaction reducer. Peer to Files.Events (which translates raw
@@ -183,7 +182,7 @@ package Files.Interaction is
       Origin_Width : Natural;
       Current_X    : Integer;
       Result       : out Interaction_Result;
-      Line_Height  : Positive := Guikit.Layout.Reference_Line_Height);
+      Line_Height  : Positive);
 
    --  End a details-header column-resize drag: when any of its steps changed a
    --  width, write the settings once. A failed write is reported in the

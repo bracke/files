@@ -1,17 +1,12 @@
+with Hostkit.Path_Text;
+
 separate (Files.File_System)
 function Mutation_Leaf_Name (Path : String) return String is
 begin
-   if Path = "" then
+   --  A path that ends in a separator names no leaf to create or rename to.
+   if Path = "" or else Hostkit.Path_Text.Is_Separator_In (Path, Path (Path'Last)) then
       return "";
    end if;
 
-   return Ada.Directories.Simple_Name (Path);
-exception
-   when Refused : Ada.Directories.Name_Error =>
-      --  A name GNAT will not parse; the filesystem gives the real cause.
-      Files.Diagnostics.Note (Refused, "Files.File_System");
-      return Files.Fs_Primitives.Leaf_Text (Path);
-   when Swallowed : others =>
-      Files.Diagnostics.Note (Swallowed, "Files.File_System");
-      return "";
+   return Files.Fs_Primitives.Leaf_Text (Path);
 end Mutation_Leaf_Name;

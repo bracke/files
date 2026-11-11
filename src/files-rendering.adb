@@ -10,13 +10,13 @@ with Ada.Strings.Hash;
 with Ada.Strings.Unbounded;
 with Ada.Strings.Unbounded.Hash;
 
-with Files.File_Types;
 with Files.Fonts;
 with Guikit.Segmented;
 with Guikit.Text;
 with Guikit.Widgets;
 with Files.Display_Text;
 with Files.Localization;
+with Files.UI;
 with Files.UTF8;
 
 package body Files.Rendering is
@@ -170,15 +170,19 @@ package body Files.Rendering is
    --  Visible glyph content sits low in its Line_Height cell, so text placed at
    --  a geometric inset reads a little low. Every single-line field (toolbar
    --  inputs, bottom bar, details header) lifts its text origin by this many
-   --  pixels so the glyphs read as centred and the fields agree.
+   --  pixels (at the reference line height, scaled with the text) so the
+   --  glyphs read as centred and the fields agree.
    Glyph_Optical_Bias : constant Natural := 2;
 
    --  Return a text offset lifted by the optical bias, stopping at zero.
    --
    --  @param Offset Geometric text offset (an inset or a centred Y).
-   --  @return Offset minus Glyph_Optical_Bias, or zero when smaller.
-   function Optically_Raised (Offset : Natural) return Natural is
-     (if Offset >= Glyph_Optical_Bias then Offset - Glyph_Optical_Bias else 0);
+   --  @param Line_Height Text line height in pixels.
+   --  @return Offset minus the scaled Glyph_Optical_Bias, or zero when smaller.
+   function Optically_Raised (Offset : Natural; Line_Height : Positive) return Natural is
+     (if Offset >= Guikit.Layout.Scaled (Glyph_Optical_Bias, Line_Height)
+      then Offset - Guikit.Layout.Scaled (Glyph_Optical_Bias, Line_Height)
+      else 0);
 
    --  Proportional default width for a toggleable column, scaled to the line
    --  height so the layout tracks the font size. Applied whenever the settings
@@ -464,7 +468,7 @@ package body Files.Rendering is
    begin
       return
         Natural'Min
-          (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding, 2)), Content_H);
+          (Saturating_Add (Line_Height, Saturating_Multiply (Details_Row_Padding (Line_Height), 2)), Content_H);
    end Details_Header_Height;
 
    function Details_Header_Geometry
@@ -475,7 +479,7 @@ package body Files.Rendering is
    is
       Content  : constant Content_Rectangle := Main_Content_Rect (Layout);
       Header_H : constant Natural := Details_Header_Height (Content.Height, Line_Height);
-      Pad      : constant Natural := Natural'Min (Details_Row_Padding, Header_H);
+      Pad      : constant Natural := Natural'Min (Details_Row_Padding (Line_Height), Header_H);
    begin
       return
         (Content => Content,
@@ -553,14 +557,14 @@ package body Files.Rendering is
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Layout_Metrics
  is separate;
 
    function Calculate_Item_Layout
      (Snapshot      : View_Snapshot;
       Layout        : Layout_Metrics;
-      Line_Height   : Positive := Files.UI.Base_Line_Height;
+      Line_Height   : Positive;
       Whole_Content : Boolean := False;
       Window_Top    : Natural := 0;
       Window_Height : Natural := 0)
@@ -570,7 +574,7 @@ package body Files.Rendering is
    function Calculate_Main_View_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Main_View_Layout
  is separate;
 
@@ -591,13 +595,13 @@ package body Files.Rendering is
 
    function Calculate_Conflict_Dialog_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Conflict_Dialog_Layout
  is separate;
 
    function Calculate_Paste_Progress_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Paste_Progress_Layout
  is separate;
 
@@ -605,7 +609,7 @@ package body Files.Rendering is
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Context_Menu_Layout
  is separate;
 
@@ -691,14 +695,14 @@ package body Files.Rendering is
       Renaming    : Boolean;
       Field_X     : out Natural;
       Field_W     : out Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height) is
+      Line_Height : Positive) is
    begin
       Guikit.Item_Grid.Rename_Field_Extent (Item, Grid_View (View_Mode), Renaming, Field_X, Field_W, Line_Height);
    end Rename_Field_Extent;
 
    function Calculate_Command_Palette_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Command_Palette_Layout is
    begin
       --  The palette always carries a title, so reserve the same title band the
@@ -715,7 +719,7 @@ package body Files.Rendering is
 
    function Calculate_Quick_Look_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Quick_Look_Layout
    is
       Padding   : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
@@ -754,82 +758,14 @@ package body Files.Rendering is
 
    function Calculate_Label_Picker_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Label_Picker_Layout
-   is
-      Count           : constant Positive := Label_Picker_Swatch_Count;
-      Padding         : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
-      Desired_Gap     : constant Natural := Natural'Max (4, Line_Height / 4);
-      --  A compact centered panel: a single row of square swatches under a
-      --  one-line title band. The preferred swatch edge tracks the line height;
-      --  narrow/short windows shrink the row below that preference.
-      Desired_Swatch : constant Natural := Saturating_Multiply (Line_Height, 2);
-      Desired_Title_H : constant Natural := Saturating_Add (Line_Height, Padding);
-      Desired_Row_W : constant Natural :=
-        Saturating_Add
-          (Saturating_Multiply (Desired_Swatch, Count),
-           Saturating_Multiply (Desired_Gap, Count - 1));
-      Panel_W  : constant Natural :=
-        Natural'Min
-          (Layout.Width,
-           Saturating_Add (Desired_Row_W, Saturating_Multiply (Padding, 2)));
-      Panel_H  : constant Natural :=
-        Natural'Min
-          (Layout.Height,
-           Saturating_Add
-             (Desired_Title_H,
-              Saturating_Add (Desired_Swatch, Saturating_Multiply (Padding, 2))));
-      Panel_X  : constant Natural :=
-        Centered (Layout.Width, Panel_W);
-      Panel_Y  : constant Natural :=
-        Centered (Layout.Height, Panel_H);
-      Horizontal_Padding : constant Natural := Natural'Min (Padding, Panel_W / 2);
-      Inner_W            : constant Natural :=
-        Panel_W - Saturating_Multiply (Horizontal_Padding, 2);
-      --  Keep at least one pixel per swatch before assigning inter-swatch gaps.
-      --  On extremely narrow panels the gaps collapse completely.
-      Gap : constant Natural :=
-        (if Count > 1 and then Inner_W > Count
-         then Natural'Min (Desired_Gap, (Inner_W - Count) / (Count - 1))
-         else 0);
-      Gaps_W : constant Natural := Saturating_Multiply (Gap, Count - 1);
-      Horizontal_Swatch : constant Natural :=
-        (if Inner_W > Gaps_W
-         then Natural'Min (Desired_Swatch, (Inner_W - Gaps_W) / Count)
-         else 0);
-      Title_H     : constant Natural := Natural'Min (Desired_Title_H, Panel_H);
-      Remaining_H : constant Natural := Panel_H - Title_H;
-      Swatch      : constant Natural := Natural'Min (Horizontal_Swatch, Remaining_H);
-      Row_W            : constant Natural :=
-        Saturating_Add
-          (Saturating_Multiply (Swatch, Count), Gaps_W);
-      Row_X            : constant Natural :=
-        Saturating_Add (Panel_X, (Panel_W - Row_W) / 2);
-      Row_Y            : constant Natural := Saturating_Add (Panel_Y, Title_H);
-      Result   : Label_Picker_Layout;
-   begin
-      Result.X           := Panel_X;
-      Result.Y           := Panel_Y;
-      Result.Width       := Panel_W;
-      Result.Height      := Panel_H;
-      Result.Swatch_Size := Swatch;
-      Result.Visible     := Panel_W > 0 and then Panel_H > 0;
-      for Index in Result.Swatches'Range loop
-         Result.Swatches (Index) :=
-           (X      => Saturating_Add
-                        (Row_X,
-                         Saturating_Multiply (Index - 1, Saturating_Add (Swatch, Gap))),
-            Y      => Row_Y,
-            Width  => Swatch,
-            Height => Swatch);
-      end loop;
-      return Result;
-   end Calculate_Label_Picker_Layout;
+   is separate;
 
    function Calculate_Root_Selector_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Root_Selector_Layout
    is
       Preferred_Width : constant Natural := Natural'Max (Layout.Width / 3, Saturating_Multiply (Line_Height, 18));
@@ -840,7 +776,7 @@ package body Files.Rendering is
            Saturating_Multiply (Root_Selector_Padding (Line_Height), 2));
       Wanted_Height   : constant Natural :=
         Saturating_Add
-          (Saturating_Multiply (Natural (Snapshot.Root_Paths.Length), Row_Height),
+          (Saturating_Multiply (Natural (Snapshot.Roots.Length), Row_Height),
            Saturating_Multiply (Root_Selector_Padding (Line_Height), 2));
       Dropdown_Height : constant Natural := Natural'Min (Layout.Main_Height, Wanted_Height);
    begin
@@ -865,7 +801,7 @@ package body Files.Rendering is
 
    function Path_Favorite_Star_Region
      (Width       : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Path_Favorite_Star_Bounds
    is
       Toolbar      : constant Guikit.Layout.Toolbar_Layout :=
@@ -891,7 +827,7 @@ package body Files.Rendering is
 
    function Path_Bar_Content_Offset
      (Width       : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Natural
    is
       Star : constant Path_Favorite_Star_Bounds :=
@@ -908,7 +844,7 @@ package body Files.Rendering is
    function Calculate_Breadcrumb_Layout
      (Snapshot    : View_Snapshot;
       Width       : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Breadcrumb_Segment_Layout_Vectors.Vector
  is separate;
 
@@ -940,7 +876,7 @@ package body Files.Rendering is
    function Calculate_Tree_Panel_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Tree_Panel_Layout
  is separate;
 
@@ -975,13 +911,13 @@ package body Files.Rendering is
    function Calculate_Tree_Row_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Tree_Panel_Layout;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Tree_Row_Layout_Vectors.Vector
  is separate;
 
    function Tree_Pick_Buttons
      (Panel       : Tree_Panel_Layout;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Tree_Pick_Button_Layout
    is
       pragma Unreferenced (Line_Height);
@@ -1342,7 +1278,7 @@ package body Files.Rendering is
    function Calculate_Info_Pane_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Info_Pane_Layout
  is separate;
 
@@ -1351,10 +1287,10 @@ package body Files.Rendering is
       Panel_Y      : Natural;
       Panel_Width  : Natural;
       Panel_Height : Natural;
-      Line_Height  : Positive := Files.UI.Base_Line_Height)
+      Line_Height  : Positive)
       return Close_Button_Layout
    is
-      Inset   : constant Natural := Natural'Max (4, Line_Height / 4);
+      Inset   : constant Natural := Natural'Max (Guikit.Layout.Scaled (4, Line_Height), Line_Height / 4);
       Reserve : constant Natural := Saturating_Add (Saturating_Multiply (Inset, 2), Line_Height);
    begin
       --  Need room for the inset on both sides plus the square itself.
@@ -1374,7 +1310,7 @@ package body Files.Rendering is
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height;
+      Line_Height : Positive;
       Pointer     : Pointer_State := No_Pointer)
       return Frame_Commands
    is separate;
@@ -1389,7 +1325,7 @@ package body Files.Rendering is
       Font_Path    : String;
       Pixel_Size   : Positive := 16;
       Cell_Width   : Positive := 10;
-      Cell_Height  : Positive := Files.UI.Base_Line_Height;
+      Cell_Height  : Positive;
       Atlas_Width  : Positive := 1024;
       Atlas_Height : Positive := 1024)
       return Text_Render_Status

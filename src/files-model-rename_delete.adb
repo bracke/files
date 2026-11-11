@@ -10,36 +10,18 @@ is
 begin
    for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
       declare
-         Field : Rename_Field := Model.Rename_Fields.Element (Index);
-         Text  : constant String := To_String (Field.Value);
+         Field      : Rename_Field := Model.Rename_Fields.Element (Index);
+         Text       : constant String := To_String (Field.Value);
+         New_Text   : Unbounded_String;
+         New_Cursor : Natural;
       begin
-         if Backward and then Field.Cursor > 0 and then Text'Length > 0 then
-            declare
-               Boundary : constant Natural :=
-                 (if By_Word then Files.UTF8.Previous_Word_Boundary (Text, Field.Cursor)
-                  else Files.UTF8.Previous_Boundary (Text, Field.Cursor));
-            begin
-               if Boundary < Field.Cursor then
-                  Field.Value := To_Unbounded_String (Files.UTF8.Remove_Range (Text, Boundary, Field.Cursor));
-                  Field.Cursor := Boundary;
-                  Model.Rename_Fields.Replace_Element (Index, Field);
-                  Sync_Temporary_From_Field (Model, Field);
-                  Changed := True;
-               end if;
-            end;
-         elsif not Backward and then Field.Cursor < Text'Length then
-            declare
-               Boundary : constant Natural :=
-                 (if By_Word then Files.UTF8.Next_Word_Boundary (Text, Field.Cursor)
-                  else Files.UTF8.Next_Boundary (Text, Field.Cursor));
-            begin
-               if Boundary > Field.Cursor then
-                  Field.Value := To_Unbounded_String (Files.UTF8.Remove_Range (Text, Field.Cursor, Boundary));
-                  Model.Rename_Fields.Replace_Element (Index, Field);
-                  Sync_Temporary_From_Field (Model, Field);
-                  Changed := True;
-               end if;
-            end;
+         Files.UTF8.Delete_At (Text, Field.Cursor, Backward, By_Word, New_Text, New_Cursor);
+         if Length (New_Text) /= Text'Length then
+            Field.Value := New_Text;
+            Field.Cursor := New_Cursor;
+            Model.Rename_Fields.Replace_Element (Index, Field);
+            Sync_Temporary_From_Field (Model, Field);
+            Changed := True;
          end if;
       end;
    end loop;

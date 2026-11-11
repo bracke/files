@@ -761,7 +761,7 @@ package body Files_Suite.Interaction is
    begin
       Found := False;
       for Row in 1 .. Menu.Row_Count loop
-         if Menu.Commands (Row) = Command then
+         if Menu.Rows (Row).Command = Command then
             Target_Row := Row;
          end if;
       end loop;
@@ -781,7 +781,7 @@ package body Files_Suite.Interaction is
         (Model             => Model,
          Settings          => Settings,
          Settings_Path     => Settings_Path,
-         Command           => Menu.Commands (Target_Row),
+         Command           => Menu.Rows (Target_Row).Command,
          Current_Font_Size => Base_Font,
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
@@ -802,7 +802,7 @@ package body Files_Suite.Interaction is
         Files.Rendering.Calculate_Context_Menu_Layout (Snapshot, Window_W, Window_H, Line);
    begin
       for Row in 1 .. Menu.Row_Count loop
-         if Menu.Commands (Row) = Command then
+         if Menu.Rows (Row).Command = Command then
             return True;
          end if;
       end loop;

@@ -109,7 +109,7 @@ package body Files.Fonts is
       --  FILES_FONT_PATH under such a directory) is not wrongly blocked.
       function Simple_Name return String is
       begin
-         return Ada.Directories.Simple_Name (Path);
+         return Files.Fs_Primitives.Leaf_Text (Path);
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Fonts");
@@ -206,7 +206,7 @@ package body Files.Fonts is
          Ada.Directories.Get_Next_Entry (Search, Font_Entry);
          Scanned := Scanned + 1;
          declare
-            Name : constant String := Ada.Directories.Simple_Name (Font_Entry);
+            Name : constant String := Ada.Directories.Simple_Name (Directory_Entry => Font_Entry);
             Full : constant String := Ada.Directories.Full_Name (Font_Entry);
          begin
             if Name /= "." and then Name /= ".." then

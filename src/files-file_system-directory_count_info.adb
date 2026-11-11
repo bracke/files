@@ -14,7 +14,7 @@ is
 
    function Is_Hidden (Name : String) return Boolean is
    begin
-      return Name (Name'First) = '.' or else Hostkit.Fs.Is_Hidden (Join_Path (Path, Name));
+      return Name (Name'First) = '.' or else Hostkit.Fs.Is_Hidden (Hostkit.Fs.Join (Path, Name));
    exception
       when Failure : others =>
          --  As the listing: an entry whose flag cannot be read is hidden

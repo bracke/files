@@ -47,32 +47,50 @@ separate (Files_Suite.Interaction)
             "the leaf segment navigates to the full path");
       end;
 
-      if Running_On_Windows then
-         declare
-            Drive_Path : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
-              Files.Breadcrumbs.Segments ("C:\Users\Alice");
-            UNC_Path : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
-              Files.Breadcrumbs.Segments ("\\server\share\folder");
-         begin
-            Assert
-              (Natural (Drive_Path.Length) = 3
-               and then To_String (Drive_Path.Last_Element.Ancestor_Path) =
-                 "C:\Users\Alice",
-               "Windows drive breadcrumbs retain native separators");
-            Files_Suite.Support.Assert_Equal
-              (Natural (UNC_Path.Length), 2,
-               "a UNC path's share is its root crumb, as a drive is (segment count)");
-            Files_Suite.Support.Assert_Equal
-              (To_String (UNC_Path.First_Element.Label), "\\server\share",
-               "a UNC path's share is its root crumb, as a drive is (label)");
-            Files_Suite.Support.Assert_Equal
-              (To_String (UNC_Path.First_Element.Ancestor_Path), "\\server\share\",
-               "a UNC path's share is its root crumb, as a drive is (first target)");
-            Files_Suite.Support.Assert_Equal
-              (To_String (UNC_Path.Last_Element.Ancestor_Path), "\\server\share\folder",
-               "UNC breadcrumb click targets retain their two-separator root (last target)");
-         end;
-      else
+      --  A Windows path reads the same on every host: a drive or a share is
+      --  its root crumb, and "\\server" alone is no folder of the share.
+      declare
+         Drive_Path : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
+           Files.Breadcrumbs.Segments ("C:\Users\Alice");
+         UNC_Path : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
+           Files.Breadcrumbs.Segments ("\\server\share\folder");
+         Share_Root : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
+           Files.Breadcrumbs.Segments ("\\server\share");
+         Long_Form : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
+           Files.Breadcrumbs.Segments ("\\?\UNC\server\share\folder");
+      begin
+         Assert
+           (Natural (Drive_Path.Length) = 3
+            and then To_String (Drive_Path.First_Element.Label) = "C:"
+            and then To_String (Drive_Path.First_Element.Ancestor_Path) = "C:\"
+            and then To_String (Drive_Path.Last_Element.Ancestor_Path) =
+              "C:\Users\Alice",
+            "Windows drive breadcrumbs retain native separators");
+         Files_Suite.Support.Assert_Equal
+           (Natural (UNC_Path.Length), 2,
+            "a UNC path's share is its root crumb, as a drive is (segment count)");
+         Files_Suite.Support.Assert_Equal
+           (To_String (UNC_Path.First_Element.Label), "\\server\share",
+            "a UNC path's share is its root crumb, as a drive is (label)");
+         Files_Suite.Support.Assert_Equal
+           (To_String (UNC_Path.First_Element.Ancestor_Path), "\\server\share\",
+            "a UNC path's share is its root crumb, as a drive is (first target)");
+         Files_Suite.Support.Assert_Equal
+           (To_String (UNC_Path.Last_Element.Ancestor_Path), "\\server\share\folder",
+            "UNC breadcrumb click targets retain their two-separator root (last target)");
+         Files_Suite.Support.Assert_Equal
+           (Natural (Share_Root.Length), 1, "a share's root is one crumb, not a server and a folder");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Share_Root.First_Element.Ancestor_Path), "\\server\share\",
+            "and it goes to the share");
+         Files_Suite.Support.Assert_Equal
+           (Natural (Long_Form.Length), 2, "the long form of a share is its root crumb too (segment count)");
+         Files_Suite.Support.Assert_Equal
+           (To_String (Long_Form.Last_Element.Ancestor_Path), "\\?\UNC\server\share\folder",
+            "the long form of a share is its root crumb too (last target)");
+      end;
+
+      if not Running_On_Windows then
          declare
             Backslash_Name : constant Files.Breadcrumbs.Segment_Vectors.Vector :=
               Files.Breadcrumbs.Segments ("/tmp/a\b");

@@ -25,6 +25,7 @@ with Files.Localization;
 with Files.Operations;
 with Files.Rendering;
 with Guikit.Frame_Analysis;
+with Guikit.Layout;
 with Guikit.Vulkan;
 
 package body Files.Application is
@@ -186,9 +187,9 @@ package body Files.Application is
       return String is
    begin
       return
-        Files.File_System.Join_Path
-          (Files.File_System.Join_Path
-             (Files.File_System.Join_Path (Home_Path, ".config"), "files"),
+        Hostkit.Fs.Join
+          (Hostkit.Fs.Join
+             (Hostkit.Fs.Join (Home_Path, ".config"), "files"),
            "settings.conf");
    end Legacy_Settings_Path;
 
@@ -222,8 +223,8 @@ package body Files.Application is
          else "");
 
       function In_Config_Root (Root : String) return String is
-        (Files.File_System.Join_Path
-           (Files.File_System.Join_Path (Root, "files"), "settings.conf"));
+        (Hostkit.Fs.Join
+           (Hostkit.Fs.Join (Root, "files"), "settings.conf"));
    begin
       if Xdg_Config /= "" then
          return In_Config_Root (Xdg_Config);
@@ -661,7 +662,7 @@ package body Files.Application is
                 (Snapshot    => Snapshot,
                  Width       => Width,
                  Height      => Height,
-                 Line_Height => Files.UI.Base_Line_Height,
+                 Line_Height => Guikit.Layout.Reference_Line_Height,
                  Pointer => (Hover_X => 5, Hover_Y => 5, Has_Hover => Width > 0 and then Height > 0, others => <>));
             Text_Renderer : Files.Rendering.Text_Renderer;
             Frame_Font_Path : constant String := Files.Rendering.Default_Font_Path;

@@ -3,9 +3,7 @@ procedure Cancel_Create_File
   (Model : in out Window_Model) is
 begin
    Touch (Model);
-   Model.Temporary_Active := False;
-   Model.Temporary_Is_Directory := False;
-   Model.Temporary_Name_Value := Null_Unbounded_String;
+   Model.Temporary := (others => <>);
    if Model.Selected_Item_Index = Temporary_Item_Index then
       Model.Selected_Item_Index := 0;
    end if;

@@ -4,6 +4,8 @@ separate (Files.Rendering)
       Row  : Positive)
       return Natural
    is
+      use type Files.Commands.Context_Menu_Row_Kind;
+
       Top : Natural := Saturating_Add (Menu.Y, Menu.Padding);
       First_Row : constant Positive :=
         (if Menu.Column_Count > 1 and then Row > Menu.Column_Break_Row
@@ -14,7 +16,7 @@ separate (Files.Rendering)
          Top :=
            Saturating_Add
              (Top,
-              (if Menu.Row_Kinds (Preceding) = Separator_Row
+              (if Menu.Rows (Preceding).Kind = Files.Commands.Menu_Separator
                then Menu.Separator_Height
                else Menu.Row_Height));
       end loop;

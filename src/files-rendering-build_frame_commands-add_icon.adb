@@ -7,9 +7,14 @@ separate (Files.Rendering.Build_Frame_Commands)
       Use_Thumbnail : Boolean := False;
       Overlay       : Boolean := False)
    is
+      use type Files.File_Types.Icon_Kind;
+
       Base_Color : constant Render_Color := Icon_Color (Item.Kind);
-      Type_Name  : constant String := To_String (Item.Filetype);
-      Icon_Name  : constant String := To_String (Item.Icon_Id);
+      --  The icon was resolved when the snapshot was built: this draws it.
+      Icon       : constant Files.File_Types.Icon_Kind := Item.Icon;
+      Icon_Name  : constant String := Files.File_Types.Icon_Name (Icon);
+      Thumbnail  : constant Boolean :=
+        Use_Thumbnail and then Item.Thumbnail_Available and then Length (Item.Thumbnail_Path) > 0;
       Draw_Size  : constant Natural :=
         Natural'Min
           (Size,
@@ -17,7 +22,7 @@ separate (Files.Rendering.Build_Frame_Commands)
              (Clipped_Size (X, Size, Layout.Width),
               Clipped_Size (Y, Size, Layout.Height)));
       Accent     : constant Render_Color :=
-        (if Item.Kind = Files.Types.Executable_Item or else Icon_Name = "ada"
+        (if Item.Kind = Files.Types.Executable_Item or else Icon = Files.File_Types.Ada_Icon
          then Icon_Program_Color
          else Selection_Color);
       Fold       : constant Natural := Natural'Max (1, Draw_Size / 4);
@@ -107,44 +112,6 @@ separate (Files.Rendering.Build_Frame_Commands)
          return True;
       end Add_Named_Asset;
 
-      function Starts_With (Text : String; Prefix : String) return Boolean renames Files.Types.Starts_With;
-
-      function Resolved_Icon_Name return String is
-      begin
-         if Use_Thumbnail
-           and then Item.Thumbnail_Available
-           and then Length (Item.Thumbnail_Path) > 0
-         then
-            return "thumbnail";
-         elsif Is_Bundled_Icon (Icon_Name) then
-            return Icon_Name;
-         elsif Item.Kind = Files.Types.Directory_Item then
-            return "folder";
-         elsif Item.Kind = Files.Types.Executable_Item then
-            return "executable";
-         elsif Item.Kind = Files.Types.Symlink_Item then
-            return "link";
-         elsif Icon_Name = "image" or else Starts_With (Type_Name, "image/") then
-            return "image";
-         elsif Type_Name = "text/markdown" then
-            return "markdown";
-         elsif Type_Name = "application/octet-stream" then
-            return "unknown";
-         elsif Starts_With (Type_Name, "text/") then
-            return "text";
-         else
-            return "unknown";
-         end if;
-      end Resolved_Icon_Name;
-
-      Resolved_Name : constant String := Resolved_Icon_Name;
-      Resolved_Asset_Path : constant UString :=
-        (if Use_Thumbnail
-           and then Item.Thumbnail_Available
-           and then Length (Item.Thumbnail_Path) > 0
-         then Item.Thumbnail_Path
-         else To_Unbounded_String (Icon_Asset_Directory & "/" & Resolved_Name & ".icon"));
-
       --  In large-icon view, draw the file extension as a small index tab in the
       --  icon's bottom-right corner (a prerendered bitmap on the overlay layer).
       --  Only in large-icon view (where Use_Thumbnail is set); skipped for folders
@@ -213,7 +180,6 @@ separate (Files.Rendering.Build_Frame_Commands)
                         Size             => Lbl.Width,
                         Icon_Id          => To_Unbounded_String ("extlabel:" & Shown),
                         Theme_Name       => To_Unbounded_String (Icon_Theme_Name),
-                        Asset_Path       => Null_Unbounded_String,
                         Thumbnail_Width  => Lbl.Width,
                         Thumbnail_Height => Lbl.Height,
                         Thumbnail_Pixels => Lbl.Pixels,
@@ -241,9 +207,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       --  pixels, and an overlay icon (a drag preview), which must sit above
       --  the base layer. Both at once painted every icon twice, the atlas's
       --  fixed colours over the theme's.
-      if Overlay
-        or else (Use_Thumbnail and then Item.Thumbnail_Available and then Length (Item.Thumbnail_Path) > 0)
-      then
+      if Overlay or else Thumbnail then
          declare
             --  A thumbnail keeps its proportions: fitted into the icon's
             --  square and centred in it, rather than stretched to fill it.
@@ -262,9 +226,9 @@ separate (Files.Rendering.Build_Frame_Commands)
                  (X          => (if Fit_W > 0 then X + (Draw_Size - Fit_W) / 2 else X),
                   Y          => (if Fit_H > 0 then Y + (Draw_Size - Fit_H) / 2 else Y),
                   Size       => Draw_Size,
-                  Icon_Id    => To_Unbounded_String (Resolved_Name),
+                  Icon_Id    =>
+                    To_Unbounded_String (if Thumbnail then Files.File_Types.Thumbnail_Icon_Name else Icon_Name),
                   Theme_Name => To_Unbounded_String (Icon_Theme_Name),
-                  Asset_Path => Resolved_Asset_Path,
                   Thumbnail_Width  => (if Use_Thumbnail then Item.Thumbnail_Width else 0),
                   Thumbnail_Height => (if Use_Thumbnail then Item.Thumbnail_Height else 0),
                   Thumbnail_Pixels =>
@@ -272,51 +236,29 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Overlay          => Overlay,
                   Draw_Width       => Fit_W,
                   Draw_Height      => Fit_H,
+                  Base_Color       =>
+                    Atlas_Base_Color (if Thumbnail then Files.File_Types.Thumbnail_Icon_Name else Icon_Name),
                   others           => <>));
          end;
       end if;
 
-      --  Overlay icons are rasterized from the same asset path, but must not
+      --  Overlay icons are rasterized from the same asset, but must not
       --  also emit their vectors into the base rectangle/triangle layer or
       --  background content would paint over the drag preview.
       if Overlay then
          return;
       end if;
 
-      if Use_Thumbnail
-        and then Item.Thumbnail_Available
-        and then Length (Item.Thumbnail_Path) > 0
-        and then Add_Named_Asset ("thumbnail")
-      then
+      if Thumbnail and then Add_Named_Asset (Files.File_Types.Thumbnail_Icon_Name) then
          return;
       elsif Add_Named_Asset (Icon_Name) then
          return;
-      elsif Item.Kind = Files.Types.Directory_Item and then Add_Named_Asset ("folder") then
-         return;
-      elsif Item.Kind = Files.Types.Executable_Item and then Add_Named_Asset ("executable") then
-         return;
-      elsif Item.Kind = Files.Types.Symlink_Item and then Add_Named_Asset ("link") then
-         return;
-      elsif Icon_Name = "image" or else Starts_With (Type_Name, "image/") then
-         if Add_Named_Asset ("image") then
-            return;
-         end if;
-      elsif Type_Name = "text/markdown" then
-         if Add_Named_Asset ("markdown") then
-            return;
-         end if;
-      elsif Type_Name = "application/octet-stream" then
-         if Add_Named_Asset ("unknown") then
-            return;
-         end if;
-      elsif Starts_With (Type_Name, "text/") then
-         if Add_Named_Asset ("text") then
-            return;
-         end if;
       end if;
 
-      case Item.Kind is
-         when Files.Types.Directory_Item =>
+      --  No definition could be drawn (a broken .icon file): a plain shape
+      --  for the same icon, so the item is never left without one.
+      case Icon is
+         when Files.File_Types.Folder_Icon =>
             Add_Rect
               (X,
                Y_Offset (Scale (1, 6)),
@@ -328,7 +270,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                Add_Rect (X_Offset (1), Saturating_Add (Body_Y, 1), Draw_Size - 2, 1, Border_Color);
             end if;
 
-         when Files.Types.Executable_Item =>
+         when Files.File_Types.Executable_Icon =>
             Add_Rect (X, Y, Draw_Size, Draw_Size, Icon_Document_Color);
             Add_Rect (X_Offset (Draw_Size - Fold), Y, Fold, Fold, Muted_Text_Color);
             Add_Rect (X, Y, Stripe_W, Draw_Size, Accent);
@@ -347,7 +289,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Accent);
             end if;
 
-         when Files.Types.Symlink_Item =>
+         when Files.File_Types.Link_Icon =>
             Add_Rect (X, Y, Draw_Size, Draw_Size, Icon_Document_Color);
             Add_Rect (X_Offset (Draw_Size - Fold), Y, Fold, Fold, Muted_Text_Color);
             if Draw_Size > 5 then
@@ -371,13 +313,13 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Selection_Color);
             end if;
 
-         when Files.Types.Regular_File_Item | Files.Types.Other_Item =>
+         when Files.File_Types.Text_Icon | Files.File_Types.Markdown_Icon | Files.File_Types.Ada_Icon
+            | Files.File_Types.Image_Icon | Files.File_Types.Unknown_Icon
+         =>
             Add_Rect (X, Y, Draw_Size, Draw_Size, Base_Color);
             Add_Rect (X_Offset (Draw_Size - Fold), Y, Fold, Fold, Muted_Text_Color);
             if Draw_Size > 7 then
-               if Icon_Name = "image"
-                 or else Starts_With (Type_Name, "image/")
-               then
+               if Icon = Files.File_Types.Image_Icon then
                   Add_Rect
                     (X_Offset (Scale (1, 5)),
                      Y_Offset (Scale (1, 3)),
@@ -396,7 +338,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                      Scale (1, 4),
                      Scale (1, 6),
                      Border_Color);
-               elsif Icon_Name = "ada" or else Type_Name = "text/x-ada" then
+               elsif Icon = Files.File_Types.Ada_Icon then
                   Add_Rect
                     (X_Offset (Scale (1, 5)),
                      Y_Offset (Scale (1, 3)),
@@ -415,7 +357,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                      Scale (1, 2),
                      Natural'Max (1, Scale (1, 6)),
                      Selection_Color);
-               elsif Icon_Name = "markdown" or else Type_Name = "text/markdown" then
+               elsif Icon = Files.File_Types.Markdown_Icon then
                   Add_Rect
                     (X_Offset (Scale (1, 5)),
                      Y_Offset (Scale (1, 3)),
@@ -434,7 +376,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                      Scale (1, 5),
                      Scale (1, 2),
                      Border_Color);
-               elsif Icon_Name = "unknown" or else Type_Name = "application/octet-stream" then
+               elsif Icon = Files.File_Types.Unknown_Icon then
                   Add_Rect
                     (X_Offset (Scale (1, 3)),
                      Y_Offset (Scale (1, 4)),
@@ -470,11 +412,5 @@ separate (Files.Rendering.Build_Frame_Commands)
                end if;
             end if;
 
-         when Files.Types.Unknown_Item =>
-            Add_Rect (X_Offset (Scale (1, 4)), Y, Scale (1, 2), Draw_Size, Base_Color);
-            Add_Rect (X, Y_Offset (Scale (1, 4)), Draw_Size, Scale (1, 2), Base_Color);
-            if Draw_Size > 5 then
-               Add_Rect (X_Offset (Scale (1, 2)), Y_Offset (Scale (1, 4)), 1, Scale (1, 2), Border_Color);
-            end if;
       end case;
    end Add_Icon;

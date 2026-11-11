@@ -5,6 +5,6 @@ function Tree_Has_Keyboard
 begin
    return Model.Tree_Keyboard_Value
      and then Model.Tree_Panel_Open
-     and then Model.Tree_Pick_Mode_Value = Pick_None
+     and then Model.Tree_Pick.Mode = Pick_None
      and then Model.Focus_Value = Files.Types.Focus_None;
 end Tree_Has_Keyboard;

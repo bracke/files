@@ -12,10 +12,6 @@ with Guikit.Segmented;
 --  Files.Localization; the geometry it composes from does not.
 package Files.UI is
 
-   --  The text line height every layout is measured at before the font
-   --  size scales it, and the one a caller that names none gets.
-   Base_Line_Height : constant := 20;
-
    --  An input field's inner padding at a line height: Guikit's, scaled with
    --  the text past Guikit.Layout.Reference_Line_Height.
    --
@@ -25,11 +21,21 @@ package Files.UI is
      (Guikit.Layout.Scaled (Guikit.Layout.Input_Field_Padding, Line_Height));
 
    --  The inset of the bottom bar's status fields (the counts and the free
-   --  space) from their edges, which the splitter and the renderer share.
-   Status_Field_Padding : constant := 4;
+   --  space) from their edges, which the splitter and the renderer share:
+   --  4 px at Guikit.Layout.Reference_Line_Height, scaled with the text.
+   --
+   --  @param Line_Height The line height in use.
+   --  @return The inset in pixels.
+   function Status_Field_Padding (Line_Height : Positive) return Natural is
+     (Guikit.Layout.Scaled (4, Line_Height));
 
-   --  The inset of a modal dialog's content from its frame.
-   Dialog_Padding : constant := 12;
+   --  The inset of a modal dialog's content from its frame: 12 px at
+   --  Guikit.Layout.Reference_Line_Height, scaled with the text.
+   --
+   --  @param Line_Height The line height in use.
+   --  @return The inset in pixels.
+   function Dialog_Padding (Line_Height : Positive) return Natural is
+     (Guikit.Layout.Scaled (12, Line_Height));
 
    --  A window's size when the settings name none, and the size the smoke
    --  runs render at.
@@ -47,7 +53,7 @@ package Files.UI is
    function Calculate_Bottom_Bar_Layout
      (Width       : Natural;
       Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := Base_Line_Height)
+      Line_Height : Positive)
       return Guikit.Layout.Bottom_Bar_Layout;
 
    --  Width of the sort dropdown menu: sized to the widest sort-field label (plus
@@ -57,7 +63,7 @@ package Files.UI is
    --  @param Line_Height Text line height in pixels.
    --  @return Sort-menu width in pixels.
    function Sort_Menu_Width
-     (Line_Height : Positive := Base_Line_Height)
+     (Line_Height : Positive)
       return Natural;
 
    --  Height of the toolbar at Line_Height, as the layout and every hit-test
@@ -99,7 +105,7 @@ package Files.UI is
      (Width       : Natural;
       Height      : Natural;
       Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := Base_Line_Height)
+      Line_Height : Positive)
       return Sort_Menu_Layout;
 
    --  The sort field a dropdown row shows: rows follow Sort_Field's
@@ -128,7 +134,7 @@ package Files.UI is
    --  @param Line_Height Text line height in pixels.
    --  @return Scope chip width in pixels that fits the longest scope label.
    function Filter_Scope_Chip_Width
-     (Line_Height : Positive := Base_Line_Height)
+     (Line_Height : Positive)
       return Natural;
 
    --  Partition the bottom-bar status region into the interactive hidden-files
@@ -158,6 +164,6 @@ package Files.UI is
       Free_Field_X     : out Natural;
       Free_Field_Width : out Natural;
       Free_Region_Width : out Natural;
-      Line_Height      : Positive := Base_Line_Height);
+      Line_Height      : Positive);
 
 end Files.UI;

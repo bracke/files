@@ -9,7 +9,7 @@ separate (Files.Events)
       Height      : Natural;
       Activate    : Boolean := False;
       Modifiers   : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Input_Action
    is
       Layout         : constant Files.Rendering.Layout_Metrics :=

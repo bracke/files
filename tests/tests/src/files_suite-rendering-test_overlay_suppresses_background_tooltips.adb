@@ -14,8 +14,9 @@ separate (Files_Suite.Rendering)
    begin
       Snap.Root_Selector_Open := True;
       Snap.Root_Selected_Index := 1;
-      Snap.Root_Paths.Append (To_Unbounded_String ("/"));
-      Snap.Root_Labels.Append (To_Unbounded_String ("Filesystem"));
+      Snap.Roots.Append
+        (Root_Row'(Path  => To_Unbounded_String ("/"),
+          Label => To_Unbounded_String ("Filesystem")));
       Layout  := Calculate_Layout (Snap, 480, 360, 20);
       Root    := Calculate_Root_Selector_Layout (Snap, Layout, 20);
       Toolbar := Guikit.Layout.Calculate_Toolbar_Layout (480);
@@ -57,10 +58,10 @@ separate (Files_Suite.Rendering)
                when Files.Model.Sort_Menu_Overlay       => One.Sort_Menu_Open := True;
                when Files.Model.Context_Menu_Overlay    => One.Context_Menu_Open := True;
                when Files.Model.Label_Picker_Overlay    => One.Label_Picker_Open := True;
-               when Files.Model.Quick_Look_Overlay      => One.Quick_Look_Open := True;
+               when Files.Model.Quick_Look_Overlay      => One.Quick_Look.Open := True;
                when Files.Model.Tree_Pick_Overlay       => One.Tree_Pick_Active := True;
                when Files.Model.Paste_Conflict_Overlay  => One.Paste_Conflict_Open := True;
-               when Files.Model.Paste_Execution_Overlay => One.Paste_Progress_Open := True;
+               when Files.Model.Paste_Execution_Overlay => One.Paste_Progress.Open := True;
             end case;
             Assert
               (Files.Rendering.Testing.Any_Overlay_Open (One),

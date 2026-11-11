@@ -407,7 +407,7 @@ package body Files_Suite.Support is
 
    function Join (Parent : String; Name : String) return String is
    begin
-      return Files.File_System.Join_Path (Parent, Name);
+      return Hostkit.Fs.Join (Parent, Name);
    end Join;
 
    function Compute_Root return String is
@@ -440,7 +440,7 @@ package body Files_Suite.Support is
       then
          return Ada.Environment_Variables.Value ("FILES_TEST_ROOT");
       end if;
-      return Files.File_System.Join_Path (Resolved, "files_aunit");
+      return Hostkit.Fs.Join (Resolved, "files_aunit");
 
    exception
       when others =>

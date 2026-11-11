@@ -445,16 +445,6 @@ package Files.File_System is
       Settings    : Files.Settings.Settings_Model)
       return Directory_Item;
 
-   --  Join a parent directory path and a simple child name.
-   --
-   --  @param Parent_Path Parent directory path.
-   --  @param Name Child name.
-   --  @return Joined path using the host directory separator.
-   function Join_Path
-     (Parent_Path : String;
-      Name        : String)
-      return String;
-
    --  Which host's filesystem naming rules Valid_Leaf_Name enforces. Host_Rules
    --  follows the operating system this build runs on: a POSIX host allows any
    --  visible character except '/', while Windows additionally forbids

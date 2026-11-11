@@ -3,5 +3,5 @@ function Path_Input_Error_Key
   (Model : Window_Model)
    return String is
 begin
-   return To_String (Model.Path_Input_Error);
+   return To_String (Model.Path_Input.Error);
 end Path_Input_Error_Key;

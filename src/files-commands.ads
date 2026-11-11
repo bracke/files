@@ -359,6 +359,8 @@ package Files.Commands is
    --  command rows interleaved with separator dividers. Shared by the renderer
    --  (which lays them out and hit-tests them) and the controller (which
    --  navigates and activates them by keyboard) so both agree on the set.
+   --  The item menu carries 19 commands split into 6 groups by 5 separators
+   --  (24 rows); the bound keeps headroom so the fixed arrays never overflow.
    Max_Context_Menu_Rows : constant := 26;
 
    type Context_Menu_Row_Kind is (Menu_Command, Menu_Separator);

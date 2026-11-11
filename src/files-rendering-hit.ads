@@ -117,7 +117,7 @@ package Files.Rendering.Hit is
       Layout      : Layout_Metrics;
       X           : Natural;
       Y           : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Detail_Header_Cell;
 
    --  Return the target order slot for a column-reorder drop at (X, Y): the
@@ -138,7 +138,7 @@ package Files.Rendering.Hit is
       Layout      : Layout_Metrics;
       X           : Natural;
       Y           : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Natural;
 
    --  Hit-test a details-header coordinate against the draggable column
@@ -161,7 +161,7 @@ package Files.Rendering.Hit is
       Layout      : Layout_Metrics;
       X           : Natural;
       Y           : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Detail_Column_Separator;
 
    --  Return the root path index at a position.
@@ -223,7 +223,7 @@ package Files.Rendering.Hit is
      (X           : Natural;
       Y           : Natural;
       Width       : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Files.Commands.Command_Id;
 
    --  Return the bottom-bar command at a window position.
@@ -245,7 +245,7 @@ package Files.Rendering.Hit is
       Height           : Natural;
       Sort_Field       : Files.Types.Sort_Field;
       Free_Label_Width : Natural := 0;
-      Line_Height      : Positive := Files.UI.Base_Line_Height)
+      Line_Height      : Positive)
       return Files.Commands.Command_Id;
 
    --  Return the command for a bottom-bar sort menu row.
@@ -263,7 +263,7 @@ package Files.Rendering.Hit is
       Width       : Natural;
       Height      : Natural;
       Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Files.Commands.Command_Id;
 
    --  Return whether a point lies within the open sort-menu's full rectangle
@@ -282,7 +282,7 @@ package Files.Rendering.Hit is
       Width       : Natural;
       Height      : Natural;
       Sort_Field  : Files.Types.Sort_Field;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Boolean;
 
 end Files.Rendering.Hit;

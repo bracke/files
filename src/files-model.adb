@@ -1,6 +1,5 @@
 with Files.Diagnostics;
 with Ada.Containers.Ordered_Sets;
-with Ada.Directories;
 
 with Files.Command_Palette;
 with Files.Type_Ahead;
@@ -327,7 +326,7 @@ package body Files.Model is
    begin
       Model.Paste_Exec.Current :=
         To_Unbounded_String
-          (Ada.Directories.Simple_Name
+          (Files.Types.Leaf_Of
              (To_String (Model.Paste_Exec.Actions.Element (Model.Paste_Exec.Cursor + 1).Source_Path)));
       Support.Touch_Header (Model);
    end Note_Paste_Action_Started;
@@ -370,48 +369,45 @@ package body Files.Model is
    procedure Note_Owed_Refresh
      (Model       : in out Window_Model;
       Force       : Boolean;
-      Select_Name : String) is
+      Select_Name : String)
+   is
+      --  A debt for an earlier view is moot: this one starts afresh.
+      Earlier : constant Owed_Refresh_State :=
+        (if Refresh_Is_Owed (Model) then Model.Owed_Refresh else (others => <>));
    begin
-      if not Refresh_Is_Owed (Model) then
-         Model.Owed_Refresh_Forced := False;
-         Model.Owed_Refresh_Select := Null_Unbounded_String;
-      end if;
-      Model.Owed_Refresh := True;
-      Model.Owed_Refresh_Incarnation := Model.View_Incarnation_Value;
-      Model.Owed_Refresh_Forced := Model.Owed_Refresh_Forced or else Force;
-      if Select_Name /= "" then
-         Model.Owed_Refresh_Select := To_Unbounded_String (Select_Name);
-      end if;
+      Model.Owed_Refresh :=
+        (Owed        => True,
+         Incarnation => Model.View_Incarnation_Value,
+         Forced      => Earlier.Forced or else Force,
+         Selection   => (if Select_Name /= "" then To_Unbounded_String (Select_Name) else Earlier.Selection));
    end Note_Owed_Refresh;
 
    function Refresh_Is_Owed
      (Model : Window_Model)
       return Boolean is
    begin
-      return Model.Owed_Refresh
-        and then Model.Owed_Refresh_Incarnation = Model.View_Incarnation_Value;
+      return Model.Owed_Refresh.Owed
+        and then Model.Owed_Refresh.Incarnation = Model.View_Incarnation_Value;
    end Refresh_Is_Owed;
 
    function Owed_Refresh_Force
      (Model : Window_Model)
       return Boolean is
    begin
-      return Refresh_Is_Owed (Model) and then Model.Owed_Refresh_Forced;
+      return Refresh_Is_Owed (Model) and then Model.Owed_Refresh.Forced;
    end Owed_Refresh_Force;
 
    function Owed_Refresh_Selection
      (Model : Window_Model)
       return String is
    begin
-      return (if Refresh_Is_Owed (Model) then To_String (Model.Owed_Refresh_Select) else "");
+      return (if Refresh_Is_Owed (Model) then To_String (Model.Owed_Refresh.Selection) else "");
    end Owed_Refresh_Selection;
 
    procedure Clear_Owed_Refresh
      (Model : in out Window_Model) is
    begin
-      Model.Owed_Refresh := False;
-      Model.Owed_Refresh_Forced := False;
-      Model.Owed_Refresh_Select := Null_Unbounded_String;
+      Model.Owed_Refresh := (others => <>);
    end Clear_Owed_Refresh;
 
    function Input_Owning_Overlay_Is_Open
@@ -439,7 +435,7 @@ package body Files.Model is
          when Context_Menu_Overlay    => return Model.Context_Menu.Open;
          when Label_Picker_Overlay    => return Model.Label_Picker_Active;
          when Quick_Look_Overlay      => return Model.Quick_Look_Active;
-         when Tree_Pick_Overlay       => return Model.Tree_Pick_Mode_Value /= Pick_None;
+         when Tree_Pick_Overlay       => return Model.Tree_Pick.Mode /= Pick_None;
          when Paste_Conflict_Overlay  => return Model.Paste_Conflict.Active;
          when Paste_Execution_Overlay => return Model.Paste_Exec.Active;
       end case;
@@ -589,10 +585,7 @@ package body Files.Model is
       Support.Invalidate_Visible (Model);
       Model.Recent_Open_Queue.Clear;
       Model.Focus_Value := Files.Types.Focus_None;
-      Model.Path_Input_Value := To_Unbounded_String (Directory_Path);
-      Model.Path_Input_Cursor := Directory_Path'Length;
-      Model.Path_Input_Valid := True;
-      Model.Path_Input_Error := Null_Unbounded_String;
+      Model.Path_Input := (Text => To_Unbounded_String (Directory_Path), Cursor => Directory_Path'Length, others => <>);
       Model.Info_Pane_Open := False;
       Model.Main_View_Scroll := 0;
       Clear_Root_Selector_State (Model);
@@ -600,9 +593,7 @@ package body Files.Model is
       Model.Command_Palette_Open := False;
       Guikit.Command_Palette.Reset (Model.Command_Palette_View);
       Reset_Rename_State (Model);
-      Model.Temporary_Active := False;
-      Model.Temporary_Is_Directory := False;
-      Model.Temporary_Name_Value := Null_Unbounded_String;
+      Model.Temporary := (others => <>);
       Model.Last_Error := Null_Unbounded_String;
       Model.Last_Error_Path_Value := Null_Unbounded_String;
    end Initialize;
@@ -703,8 +694,9 @@ package body Files.Model is
       To    : String) is
    begin
       if From /= "" and then To /= "" and then From /= To then
-         Model.Moved_From_Queue.Append (To_Unbounded_String (From));
-         Model.Moved_To_Queue.Append (To_Unbounded_String (To));
+         Model.Path_Move_Queue.Append
+           (Files.Types.Path_Move'
+              (From => To_Unbounded_String (From), To => To_Unbounded_String (To), Kind => Files.Types.Moved));
       end if;
    end Note_Path_Move;
 
@@ -713,20 +705,19 @@ package body Files.Model is
       Path  : String) is
    begin
       if Path /= "" then
-         Model.Moved_From_Queue.Append (To_Unbounded_String (Path));
-         Model.Moved_To_Queue.Append (Null_Unbounded_String);
+         Model.Path_Move_Queue.Append
+           (Files.Types.Path_Move'
+              (From => To_Unbounded_String (Path), To => Null_Unbounded_String, Kind => Files.Types.Removed));
       end if;
    end Note_Path_Removed;
 
-   procedure Take_Path_Moves
-     (Model : in out Window_Model;
-      From  : out Files.Types.String_Vectors.Vector;
-      To    : out Files.Types.String_Vectors.Vector) is
+   function Take_Path_Moves
+     (Model : in out Window_Model)
+      return Files.Types.Path_Move_Vectors.Vector is
    begin
-      From := Model.Moved_From_Queue;
-      To := Model.Moved_To_Queue;
-      Model.Moved_From_Queue.Clear;
-      Model.Moved_To_Queue.Clear;
+      return Moves : constant Files.Types.Path_Move_Vectors.Vector := Model.Path_Move_Queue do
+         Model.Path_Move_Queue.Clear;
+      end return;
    end Take_Path_Moves;
 
    function View_Mode_Of
@@ -997,16 +988,11 @@ package body Files.Model is
       Model.Search_Results_Active := False;
       Support.Invalidate_Visible (Model);
       Set_Current_Path (Model, New_Path);
-      Model.Path_Input_Value := New_Path;
-      Model.Path_Input_Cursor := Length (New_Path);
-      Model.Path_Input_Valid := True;
-      Model.Path_Input_Error := Null_Unbounded_String;
+      Model.Path_Input := (Text => New_Path, Cursor => Length (New_Path), others => <>);
       Model.Selected_Item_Index := 0;
       Model.Selected_Item_Indexes.Clear;
       Reset_Rename_State (Model);
-      Model.Temporary_Active := False;
-      Model.Temporary_Is_Directory := False;
-      Model.Temporary_Name_Value := Null_Unbounded_String;
+      Model.Temporary := (others => <>);
       Clear_Root_Selector_State (Model);
       Model.Info_Pane_Scroll := 0;
       Model.Main_View_Scroll := 0;
@@ -1447,7 +1433,7 @@ package body Files.Model is
    begin
       case Model.Focus_Value is
          when Files.Types.Focus_Path_Input =>
-            return Text_Boundary_At_Or_Before (To_String (Model.Path_Input_Value), Model.Path_Input_Cursor);
+            return Text_Boundary_At_Or_Before (To_String (Model.Path_Input.Text), Model.Path_Input.Cursor);
          when Files.Types.Focus_Filter_Input =>
             return Text_Boundary_At_Or_Before (To_String (Model.Filter_Value), Model.Filter_Cursor);
          when Files.Types.Focus_Rename_Input =>
@@ -1476,7 +1462,7 @@ package body Files.Model is
       Support.Touch (Model);
       case Model.Focus_Value is
          when Files.Types.Focus_Path_Input =>
-            Model.Path_Input_Cursor := Clamped;
+            Model.Path_Input.Cursor := Clamped;
          when Files.Types.Focus_Filter_Input =>
             Model.Filter_Cursor := Clamped;
          when Files.Types.Focus_Rename_Input =>
@@ -1524,10 +1510,8 @@ package body Files.Model is
       Clear_Root_Selector_State (Model);
 
       if Model.Focus_Value = Files.Types.Focus_Path_Input then
-         Model.Path_Input_Value := Model.Current_Path_Value;
-         Model.Path_Input_Cursor := Length (Model.Path_Input_Value);
-         Model.Path_Input_Valid := True;
-         Model.Path_Input_Error := Null_Unbounded_String;
+         Model.Path_Input :=
+           (Text => Model.Current_Path_Value, Cursor => Length (Model.Current_Path_Value), others => <>);
       end if;
 
       if Is_Temporary_Rename (Model) then
@@ -1656,11 +1640,6 @@ package body Files.Model is
       Index : Positive)
       return String is separate;
 
-   function Tree_Node_Is_Loaded
-     (Model : Window_Model;
-      Index : Positive)
-      return Boolean is separate;
-
    function Tree_Node_Is_Expanded
      (Model : Window_Model;
       Index : Positive)
@@ -1686,12 +1665,12 @@ package body Files.Model is
 
    procedure End_Tree_Pick (Model : in out Window_Model) is
    begin
-      if Model.Tree_Pick_Opened_Panel then
+      if Model.Tree_Pick.Opened_Panel then
          Close_Tree_Panel (Model);
       else
          Clear_Tree_Pick (Model);
       end if;
-      Model.Tree_Pick_Opened_Panel := False;
+      Model.Tree_Pick.Opened_Panel := False;
    end End_Tree_Pick;
 
    procedure Toggle_Info_Pane
@@ -1938,7 +1917,7 @@ package body Files.Model is
       end if;
       Support.Touch (Model);
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
-      if Model.Temporary_Active then
+      if Model.Temporary.Active then
          Cancel_Create_File (Model);
       elsif Model.Rename_Active then
          Reset_Rename_State (Model);

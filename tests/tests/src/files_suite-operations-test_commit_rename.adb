@@ -103,7 +103,7 @@ separate (Files_Suite.Operations)
       Mutation :=
         Files.File_System.Rename_Item
           (Direct_Target,
-           Files.File_System.Join_Path (Files.File_System.Join_Path (Root, "."), "direct-target.txt"));
+           Hostkit.Fs.Join (Hostkit.Fs.Join (Root, "."), "direct-target.txt"));
       Assert (Mutation.Success, "direct normalized same-path rename is a successful no-op");
       Files_Suite.Support.Assert_Equal
         (To_String (Mutation.Error_Key),

@@ -507,7 +507,7 @@ package body Files.Job_Scavenger is
       Prefix : constant String := "files-job-";
 
       function Is_Current_Name (Directory : String) return Boolean is
-         Name : constant String := Ada.Directories.Simple_Name (Directory);
+         Name : constant String := Files.Fs_Primitives.Leaf_Text (Directory);
          First_Hex : constant Positive := Name'First + Prefix'Length;
       begin
          return Name'Length = Prefix'Length + 32

@@ -17,8 +17,8 @@ begin
    elsif Files.Fs_Primitives.Entry_Exists (Path) then
       return (Success => False, Error_Key => To_Unbounded_String ("error.file.exists"));
    elsif Parent = ""
-     or else not Ada.Directories.Exists (Parent)
-     or else Ada.Directories.Kind (Parent) /= Ada.Directories.Directory
+     or else not Files.Fs_Primitives.Exists (Parent)
+     or else Files.Fs_Primitives.Kind (Parent) /= Ada.Directories.Directory
    then
       return (Success => False, Error_Key => To_Unbounded_String ("error.file.parent_missing"));
    end if;

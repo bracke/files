@@ -68,7 +68,13 @@ separate (Files_Suite.Operations)
             then
                Icon_Index := Icon_Index + 1;
             end if;
-            if To_String (Command.Asset_Path) = To_String (Routed.Operation.Path) then
+            --  The item's icon command carries the generated thumbnail's
+            --  pixels (the extension badge carries its own label's).
+            if not Command.Thumbnail_Pixels.Is_Empty
+              and then Command.Thumbnail_Width = Files.Model.Selected_Item (Model).Thumbnail_Width
+              and then Command.Thumbnail_Height = Files.Model.Selected_Item (Model).Thumbnail_Height
+              and then Ada.Strings.Fixed.Index (To_String (Command.Icon_Id), "extlabel:") /= 1
+            then
                Found_Thumbnail_Command := True;
                Thumbnail_Tile := Icon_Index - 1;
                if To_String (Command.Icon_Id) = "thumbnail" then
@@ -79,7 +85,7 @@ separate (Files_Suite.Operations)
 
          Assert
            (Found_Thumbnail_Command,
-            "large-icons item icon command points at the generated thumbnail artifact");
+            "large-icons item icon command carries the generated thumbnail's pixels");
          Assert
            (Found_Thumbnail_Icon,
             "large-icons item icon command uses a thumbnail-specific icon asset");

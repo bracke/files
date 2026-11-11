@@ -64,7 +64,7 @@ begin
          Full_Path : constant String := To_String (Item.Full_Path);
          --  Beside the archive, wherever the listing came from (a search
          --  or Recent lists items from other folders).
-         Destination : constant String := Ada.Directories.Containing_Directory (Full_Path);
+         Destination : constant String := Files.Fs_Primitives.Parent_Directory (Full_Path);
       begin
          if Destination = "" then
             return Failed;
@@ -83,7 +83,7 @@ begin
                  (First_Free_Name (Destination, Base, "", Marker'Access, First => 0));
 
                Dest_Name : constant String := Unique_Name;
-               Dest_Dir  : constant String := Ada.Directories.Compose (Destination, Dest_Name);
+               Dest_Dir  : constant String := Hostkit.Fs.Join (Destination, Dest_Name);
                Status    : Zlib.Status_Code;
                Stage     : constant String := Files.Job_Context.Create_Stage (Destination);
                Payload   : constant String := Hostkit.Fs.Join (Stage, "payload");

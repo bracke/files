@@ -2,6 +2,8 @@ with Files.Rendering.Testing;
 separate (Files_Suite.Rendering)
    procedure Test_Context_Menu_Separators (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
+      use type Files.Commands.Context_Menu_Row_Kind;
+
       Snapshot : View_Snapshot := Sample_Snapshot (6, Files.Types.Small_Icons);
 
       --  The full set of real commands the item menu must still offer, in any
@@ -39,7 +41,7 @@ separate (Files_Suite.Rendering)
          Command_Count   : Natural := 0;
       begin
          Assert (Menu.Visible, "the item context menu is visible");
-         Assert (Menu.Row_Count <= Max_Context_Menu_Rows, "the menu fits its fixed row array");
+         Assert (Menu.Row_Count <= Files.Commands.Max_Context_Menu_Rows, "the menu fits its fixed row array");
          Assert
            (Menu.Separator_Height > 0 and then Menu.Separator_Height < Menu.Row_Height,
             "separator rows are shorter than command rows");
@@ -50,8 +52,8 @@ separate (Files_Suite.Rendering)
                Seen : Natural := 0;
             begin
                for Row in 1 .. Menu.Row_Count loop
-                  if Menu.Row_Kinds (Row) = Command_Row
-                    and then Menu.Commands (Row) = Command
+                  if Menu.Rows (Row).Kind = Files.Commands.Menu_Command
+                    and then Menu.Rows (Row).Command = Command
                   then
                      Seen := Seen + 1;
                   end if;
@@ -61,11 +63,11 @@ separate (Files_Suite.Rendering)
          end loop;
 
          for Row in 1 .. Menu.Row_Count loop
-            if Menu.Row_Kinds (Row) = Separator_Row then
+            if Menu.Rows (Row).Kind = Files.Commands.Menu_Separator then
                Separator_Count := Separator_Count + 1;
                --  A separator carries no command and is not selectable.
                Files_Suite.Support.Assert_Equal
-                 (Menu.Commands (Row),
+                 (Menu.Rows (Row).Command,
                   Files.Commands.No_Command,
                   "a separator row carries no command");
                declare
@@ -132,7 +134,7 @@ separate (Files_Suite.Rendering)
             "the compact item menu splits between two non-empty columns");
 
          for Row in 1 .. Menu.Row_Count loop
-            if Menu.Row_Kinds (Row) = Command_Row then
+            if Menu.Rows (Row).Kind = Files.Commands.Menu_Command then
                declare
                   Probe_X : constant Natural :=
                     Files.Rendering.Testing.Context_Menu_Row_Left (Menu, Row)

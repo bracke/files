@@ -5,6 +5,7 @@ with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Wide_Wide_Characters.Handling;
 with I18N.Normalization;
 with Files.UTF8;
+with Hostkit.Path_Text;
 
 package body Files.Types is
 
@@ -63,6 +64,8 @@ package body Files.Types is
    begin
       return (if Dot = 0 then "" else Name (Dot + 1 .. Name'Last));
    end Extension_Of;
+
+   function Leaf_Of (Path : String) return String renames Hostkit.Path_Text.Leaf;
 
    function Natural_Text (Value : Natural) return String is
       Image : constant String := Natural'Image (Value);

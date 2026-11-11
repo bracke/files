@@ -18,14 +18,14 @@ separate (Files_Suite.Rendering)
                   Snap.Paste_Conflict_Open := True;
                   Snap.Paste_Conflict_Name := To_Unbounded_String ("conflict.txt");
                when 2 =>
-                  Snap.Paste_Progress_Open := True;
-                  Snap.Paste_Progress_Done := 1;
-                  Snap.Paste_Progress_Total := 2;
-                  Snap.Paste_Progress_Name := To_Unbounded_String ("copy.txt");
+                  Snap.Paste_Progress.Open := True;
+                  Snap.Paste_Progress.Done := 1;
+                  Snap.Paste_Progress.Total := 2;
+                  Snap.Paste_Progress.Name := To_Unbounded_String ("copy.txt");
                when 3 =>
-                  Snap.Quick_Look_Open := True;
-                  Snap.Quick_Look_Kind := Files.Quick_Look.Info_Content;
-                  Snap.Quick_Look_Name := To_Unbounded_String ("preview.txt");
+                  Snap.Quick_Look.Open := True;
+                  Snap.Quick_Look.Kind := Files.Quick_Look.Info_Content;
+                  Snap.Quick_Look.Name := To_Unbounded_String ("preview.txt");
                when 4 =>
                   Snap.Label_Picker_Open := True;
                when 5 =>
@@ -42,8 +42,9 @@ separate (Files_Suite.Rendering)
                when 9 =>
                   Snap.Root_Selector_Open := True;
                   Snap.Root_Selected_Index := 1;
-                  Snap.Root_Paths.Append (To_Unbounded_String ("/"));
-                  Snap.Root_Labels.Append (To_Unbounded_String ("Filesystem"));
+                  Snap.Roots.Append
+                    (Root_Row'(Path  => To_Unbounded_String ("/"),
+                      Label => To_Unbounded_String ("Filesystem")));
                when others =>
                   Snap.Tree_Panel_Open := True;
             end case;

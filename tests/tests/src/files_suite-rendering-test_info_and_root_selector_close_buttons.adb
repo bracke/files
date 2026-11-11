@@ -39,8 +39,9 @@ separate (Files_Suite.Rendering)
       begin
          Snap.Root_Selector_Open := True;
          for Index in 1 .. 3 loop
-            Snap.Root_Paths.Append (To_Unbounded_String ("/root" & Integer'Image (Index)));
-            Snap.Root_Labels.Append (To_Unbounded_String ("Root" & Integer'Image (Index)));
+            Snap.Roots.Append
+              (Root_Row'(Path  => To_Unbounded_String ("/root" & Integer'Image (Index)),
+                Label => To_Unbounded_String ("Root" & Integer'Image (Index))));
          end loop;
          Layout := Calculate_Layout (Snap, Width, Height, LH);
          Root   := Calculate_Root_Selector_Layout (Snap, Layout, LH);

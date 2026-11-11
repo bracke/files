@@ -3,7 +3,7 @@ separate (Files.Rendering)
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Context_Menu_Layout
    is
       Result : Context_Menu_Layout;
@@ -25,20 +25,16 @@ separate (Files.Rendering)
            Files.Commands.Context_Menu_Rows_For (Snapshot.Context_Menu_Target);
       begin
          Result.Row_Count := Rows.Count;
-         for Row in 1 .. Rows.Count loop
-            Result.Commands (Row) := Rows.Rows (Row).Command;
-            Result.Row_Kinds (Row) :=
-              (if Rows.Rows (Row).Kind = Files.Commands.Menu_Command
-               then Command_Row
-               else Separator_Row);
-         end loop;
+         Result.Rows := Rows.Rows;
       end;
 
       if Result.Row_Count = 0 then
          return Result;
       end if;
 
-      Result.Padding := 4;
+      --  Chrome scales with the text past the reference line height; drawing
+      --  and hit-testing both read these fields, so they stay in agreement.
+      Result.Padding := Guikit.Layout.Scaled (4, Line_Height);
       Result.Row_Height :=
         Saturating_Add (Line_Height, Saturating_Multiply (Result.Padding, 2));
       --  A separator is just a 1px divider line surrounded by the row padding,
@@ -56,11 +52,11 @@ separate (Files.Rendering)
          Max_Label : Natural := 0;
       begin
          for Row in 1 .. Result.Row_Count loop
-            if Result.Row_Kinds (Row) = Command_Row then
+            if Result.Rows (Row).Kind = Files.Commands.Menu_Command then
                declare
                   Label : constant String :=
                     Files.Localization.Text
-                      (Files.Commands.Name_Key (Result.Commands (Row)));
+                      (Files.Commands.Name_Key (Result.Rows (Row).Command));
                   Label_W : constant Natural :=
                     Saturating_Multiply (Files.UTF8.Display_Units (Label), Cell_W);
                begin
@@ -69,9 +65,11 @@ separate (Files.Rendering)
             end if;
          end loop;
 
+         --  At least nine reference cells wide (180 px at the reference line
+         --  height), more when a label needs it.
          Result.Width :=
            Natural'Max
-             (Natural'Max (Saturating_Multiply (Line_Height, 9), 180),
+             (Guikit.Layout.Scaled (180, Line_Height),
               Saturating_Add (Max_Label, Edge_Pad));
       end;
 
@@ -86,7 +84,7 @@ separate (Files.Rendering)
                Value :=
                  Saturating_Add
                    (Value,
-                    (if Result.Row_Kinds (Row) = Separator_Row
+                    (if Result.Rows (Row).Kind = Files.Commands.Menu_Separator
                      then Result.Separator_Height
                      else Result.Row_Height));
             end loop;
@@ -110,7 +108,7 @@ separate (Files.Rendering)
            and then Width >= Saturating_Multiply (Line_Height, 8)
          then
             for Row in 1 .. Result.Row_Count - 1 loop
-               if Result.Row_Kinds (Row) = Separator_Row then
+               if Result.Rows (Row).Kind = Files.Commands.Menu_Separator then
                   declare
                      Left_H  : constant Natural := Rows_Height (1, Row);
                      Right_H : constant Natural :=

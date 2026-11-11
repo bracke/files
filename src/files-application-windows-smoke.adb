@@ -40,7 +40,7 @@ package body Files.Application.Windows.Smoke is
                 (Snapshot    => Snapshot,
                  Width       => 320,
                  Height      => 240,
-                 Line_Height => Files.UI.Base_Line_Height);
+                 Line_Height => Guikit.Layout.Reference_Line_Height);
             Text     : Files.Rendering.Text_Renderer;
             Text_Status : constant Files.Rendering.Text_Render_Status :=
               Files.Rendering.Initialize_Text

@@ -29,10 +29,10 @@ is
 
    function Available_Destination (Leaf : String) return String is
       function Taken (Name : String) return Boolean is
-        (Files.Fs_Primitives.Entry_Exists (Join_Path (Destination_Directory, Name))
-         or else Claimed.Contains (Key (Join_Path (Destination_Directory, Name))));
+        (Files.Fs_Primitives.Entry_Exists (Hostkit.Fs.Join (Destination_Directory, Name))
+         or else Claimed.Contains (Key (Hostkit.Fs.Join (Destination_Directory, Name))));
    begin
-      return Join_Path
+      return Hostkit.Fs.Join
         (Destination_Directory,
          Files.Paste.First_Free_Name
            (Leaf, Taken'Access, Hostkit.Fs.Uses_Dos_Filename_Rules (Destination_Directory)));
@@ -96,7 +96,7 @@ is
                return True;
             end if;
             declare
-               Parent : constant String := Ada.Directories.Containing_Directory (To_String (Ancestor));
+               Parent : constant String := Files.Fs_Primitives.Parent_Directory (To_String (Ancestor));
             begin
                exit when Parent = To_String (Ancestor);
                Ancestor := To_Unbounded_String (Parent);
@@ -130,7 +130,7 @@ begin
             Result.Plans.Append (Plan);
             Result.Error_Key := Plan.Error_Key;
          else
-            Leaf := To_Unbounded_String (Ada.Directories.Simple_Name (Source_Text));
+            Leaf := To_Unbounded_String (Files.Fs_Primitives.Leaf_Text (Source_Text));
             if not Storable_Leaf_Name_At (To_String (Leaf), Destination_Directory) then
                Plan.Valid := False;
                Plan.Error_Key := To_Unbounded_String ("error.name.invalid");
@@ -146,7 +146,7 @@ begin
                Plan.Valid := True;
                if Mode = Drop_Move
                  and then Same_Directory
-                   (Ada.Directories.Containing_Directory (Source_Text),
+                   (Files.Fs_Primitives.Parent_Directory (Source_Text),
                     Destination_Directory)
                then
                   --  Moving an item into the directory it already lives in is

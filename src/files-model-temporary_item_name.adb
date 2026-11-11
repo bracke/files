@@ -3,5 +3,5 @@ function Temporary_Item_Name
   (Model : Window_Model)
    return String is
 begin
-   return To_String (Model.Temporary_Name_Value);
+   return To_String (Model.Temporary.Name);
 end Temporary_Item_Name;

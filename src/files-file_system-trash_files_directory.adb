@@ -11,7 +11,7 @@ begin
       when Trash_Macos_Home =>
          return Base;
       when Trash_Xdg_Data_Home | Trash_Home_Data =>
-         return Join_Path (Base, "files");
+         return Hostkit.Fs.Join (Base, "files");
       when others =>
          return "";
    end case;

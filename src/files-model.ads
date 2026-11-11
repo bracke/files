@@ -919,7 +919,7 @@ package Files.Model is
 
    --  Record that the item at Path is gone for good (deleted, or purged from
    --  the trash), so labels and favorites naming it are forgotten. Queued
-   --  with Note_Path_Move as a move to the empty path.
+   --  with Note_Path_Move as a Removed move.
    --
    --  @param Model Model to update.
    --  @param Path Full path of the removed item.
@@ -927,15 +927,14 @@ package Files.Model is
      (Model : in out Window_Model;
       Path  : String);
 
-   --  Return and clear the moves queued by Note_Path_Move, in order.
+   --  Return and clear the moves and removals queued by Note_Path_Move and
+   --  Note_Path_Removed, in order.
    --
    --  @param Model Model to update.
-   --  @param From Old paths.
-   --  @param To New paths, parallel to From; empty for a removed item.
-   procedure Take_Path_Moves
-     (Model : in out Window_Model;
-      From  : out Files.Types.String_Vectors.Vector;
-      To    : out Files.Types.String_Vectors.Vector);
+   --  @return The queued moves; a removal is Kind Removed with an empty To.
+   function Take_Path_Moves
+     (Model : in out Window_Model)
+      return Files.Types.Path_Move_Vectors.Vector;
 
    --  Return whether back navigation is available.
    --
@@ -1260,16 +1259,6 @@ package Files.Model is
       Index : Positive)
       return String;
 
-   --  Return whether a tree node's children have been loaded.
-   --
-   --  @param Model Model to inspect.
-   --  @param Index One-based node index.
-   --  @return True when the node's children are attached.
-   function Tree_Node_Is_Loaded
-     (Model : Window_Model;
-      Index : Positive)
-      return Boolean;
-
    --  Return whether a tree node is currently expanded.
    --
    --  @param Model Model to inspect.
@@ -1280,7 +1269,9 @@ package Files.Model is
       Index : Positive)
       return Boolean;
 
-   --  Attach a tree node's child subdirectories and mark it loaded.
+   --  Attach a tree node's child subdirectories in place of those it had
+   --  (Files.Folder_Tree.Replace_Children): children still there keep their
+   --  nodes and expanded subtrees, and the tree pick target follows them.
    --
    --  @param Model Model to update.
    --  @param Index One-based parent node index.
@@ -1997,8 +1988,9 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
-   --  Move the keyboard highlight across the label picker's swatches (1 .. 7 are
-   --  the colors, 8 is the clear/None swatch), clamped to that range.
+   --  Move the keyboard highlight across the label picker's swatches (one per
+   --  real color, then Files.Types.Clear_Swatch), clamped to
+   --  1 .. Files.Types.Swatch_Count.
    --
    --  @param Model Model to update.
    --  @param Delta_Value Signed number of swatches to move.
@@ -2009,7 +2001,7 @@ package Files.Model is
    --  The one-based index of the highlighted label-picker swatch, for rendering.
    --
    --  @param Model Model to inspect.
-   --  @return Highlighted swatch index in 1 .. 8.
+   --  @return Highlighted swatch index in 1 .. Files.Types.Swatch_Count.
    function Label_Picker_Highlight
      (Model : Window_Model)
       return Positive;
@@ -3219,6 +3211,45 @@ private
       Highlight  : Natural := 0;
    end record;
 
+   --  The path bar's text field: what is typed, where the caret is (a byte
+   --  offset), and whether the last commit failed and why. Every default is
+   --  a fresh, valid field.
+   type Path_Input_State is record
+      Text   : UString;
+      Cursor : Natural := 0;
+      Valid  : Boolean := True;
+      Error  : UString;
+   end record;
+
+   --  The Copy to.../Move to... destination picker over the folder tree: its
+   --  mode, the paths it copies or moves, the highlighted destination, and
+   --  whether the picker opened the folder tree, which it then closes. Every
+   --  default is the idle state.
+   type Tree_Pick_State is record
+      Mode         : Tree_Pick_Mode := Pick_None;
+      Sources      : Files.Types.String_Vectors.Vector;
+      Target       : UString;
+      Opened_Panel : Boolean := False;
+   end record;
+
+   --  The not-yet-created item New File or New Folder shows while its name
+   --  is edited. Every default is the state with no such item.
+   type Temporary_Item_State is record
+      Active       : Boolean := False;
+      Is_Directory : Boolean := False;
+      Name         : UString;
+   end record;
+
+   --  A discarded background read whose reload is still owed, the view
+   --  incarnation it is owed to, whether it must be forced, and the item it
+   --  should select. Every default is the settled state.
+   type Owed_Refresh_State is record
+      Owed        : Boolean := False;
+      Incarnation : Natural := 0;
+      Forced      : Boolean := False;
+      Selection   : UString;
+   end record;
+
    type Navigation_Mark is record
       Path            : UString;
       Recent          : Boolean := False;
@@ -3242,8 +3273,7 @@ private
       Recent_Open_Queue    : Files.Types.String_Vectors.Vector;
       --  Renames and moves since the last drain, awaiting the interaction
       --  layer so labels, favorites and recent paths follow (Note_Path_Move).
-      Moved_From_Queue     : Files.Types.String_Vectors.Vector;
-      Moved_To_Queue       : Files.Types.String_Vectors.Vector;
+      Path_Move_Queue      : Files.Types.Path_Move_Vectors.Vector;
       Items                : Files.Items.Item_Vectors.Vector;
       Directory_Signature  : Files.File_System.Directory_Signature;
       Filter_Value         : UString;
@@ -3272,10 +3302,7 @@ private
       Back_History         : Files.Types.String_Vectors.Vector;
       Forward_History      : Files.Types.String_Vectors.Vector;
       Focus_Value          : Files.Types.Focus_Target := Files.Types.Focus_None;
-      Path_Input_Value     : UString;
-      Path_Input_Cursor    : Natural := 0;
-      Path_Input_Valid     : Boolean := True;
-      Path_Input_Error     : UString;
+      Path_Input           : Path_Input_State;
       Info_Pane_Open       : Boolean := False;
       Settings_Pane_Open   : Boolean := False;
       Settings_Draft_Value : Files.Settings.Settings_Draft;
@@ -3291,11 +3318,7 @@ private
       Tree_Panel_Open      : Boolean := False;
       Tree_Panel_Scroll    : Natural := 0;
       Folder_Tree_Value    : Files.Folder_Tree.Tree;
-      Tree_Pick_Mode_Value    : Tree_Pick_Mode := Pick_None;
-      Tree_Pick_Sources_Value : Files.Types.String_Vectors.Vector;
-      Tree_Pick_Target_Value  : UString;
-      --  Whether the picker opened the folder tree, which it then closes.
-      Tree_Pick_Opened_Panel  : Boolean := False;
+      Tree_Pick               : Tree_Pick_State;
       Tree_Keyboard_Value     : Boolean := False;
       Tree_Cursor_Value       : UString;
       Command_Palette_Open     : Boolean := False;
@@ -3305,7 +3328,7 @@ private
       Quick_Look_Path_Value    : UString;
       Quick_Look_Content_Value : Files.Quick_Look.Quick_Look_Content;
       Label_Picker_Active      : Boolean := False;
-      Label_Picker_Swatch_Value : Positive := 8;
+      Label_Picker_Swatch_Value : Positive := Files.Types.Clear_Swatch;
       Open_With_Targets_Value  : Files.Types.String_Vectors.Vector;
       Open_With_Applications_Value : Files.Desktop_Applications.Application_Vectors.Vector;
       --  The model revision the palette's command list was built at, so a
@@ -3313,9 +3336,7 @@ private
       Palette_Listed_Revision  : Natural := Natural'Last;
       Rename_Active            : Boolean := False;
       Rename_Fields            : Rename_Field_Vectors.Vector;
-      Temporary_Active     : Boolean := False;
-      Temporary_Is_Directory : Boolean := False;
-      Temporary_Name_Value : UString;
+      Temporary            : Temporary_Item_State;
       Filter_Cursor        : Natural := 0;
       Last_Error           : UString;
       Last_Error_Path_Value : UString;
@@ -3374,11 +3395,7 @@ private
       --  Generation of the displayed view; advanced only by navigation.
       View_Incarnation_Value : Natural := 0;
       Current_Is_Trash_Value : Boolean := False;
-      --  A discarded background read whose reload is still owed, and the view
-      --  incarnation it is owed to.
-      Owed_Refresh            : Boolean := False;
-      Owed_Refresh_Incarnation : Natural := 0;
-      Owed_Refresh_Forced     : Boolean := False;
-      Owed_Refresh_Select     : UString;
+      --  A reload still owed (Note_Owed_Refresh).
+      Owed_Refresh            : Owed_Refresh_State;
    end record;
 end Files.Model;

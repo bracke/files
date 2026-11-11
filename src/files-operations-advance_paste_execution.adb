@@ -90,7 +90,7 @@ begin
                end if;
                Record_Paste_Write
                  (Model, Action.Dest_Path, Action.Source_Path,
-                  Ada.Directories.Simple_Name (To_String (Action.Dest_Path)),
+                  Files.Fs_Primitives.Leaf_Text (To_String (Action.Dest_Path)),
                   To_String (Result.Created_Identity), To_String (Result.Created_Tree_Revision),
                   Retain_Verified_Snapshot => Result.Recovered);
                if Result.Recovered then
@@ -176,7 +176,7 @@ begin
                  (Model,
                   Action.Dest_Path,
                   Action.Source_Path,
-                  Ada.Directories.Simple_Name (To_String (Action.Dest_Path)),
+                  Files.Fs_Primitives.Leaf_Text (To_String (Action.Dest_Path)),
                   To_String (Created_Identities.First_Element),
                   To_String (Created_Tree_Revisions.First_Element));
             end;

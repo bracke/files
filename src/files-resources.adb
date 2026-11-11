@@ -1,4 +1,5 @@
 with Files.Diagnostics;
+with Files.Fs_Primitives;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
 
@@ -13,7 +14,7 @@ package body Files.Resources is
         Hostkit.Fs.Own_Executable_Directory;
 
       function Parent (Path : String) return String is
-        (Ada.Directories.Containing_Directory (Path));
+        (Files.Fs_Primitives.Parent_Directory (Path));
 
       function Share_At (Levels : Natural) return String is
          Base : Unbounded_String :=
@@ -22,6 +23,10 @@ package body Files.Resources is
          for Level in 1 .. Levels loop
             Base := To_Unbounded_String (Parent (To_String (Base)));
          end loop;
+         --  Climbed past the root, which has no parent.
+         if Levels > 0 and then Length (Base) = 0 then
+            return "";
+         end if;
          return Ada.Directories.Full_Name
            (Hostkit.Fs.Join (To_String (Base), "share"));
       exception

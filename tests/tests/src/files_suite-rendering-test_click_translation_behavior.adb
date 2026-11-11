@@ -13,16 +13,16 @@ separate (Files_Suite.Rendering)
            X      => First.X + First.Width / 2,
            Y      => First.Y + First.Height / 2,
            Width  => 1000,
-           Height => 800);
+           Height => 800, Line_Height => 20);
       Last     : constant Item_Layout := Items.Element (Items.Last_Index);
       Empty_Y  : constant Natural := Last.Y + Last.Height + 20;
       Off_Item : constant Files.Events.Input_Action :=
         Files.Events.Translate_Click
           (Snapshot, Frame,
-           X => Layout.Main_X + 20, Y => Empty_Y, Width => 1000, Height => 800);
+           X => Layout.Main_X + 20, Y => Empty_Y, Width => 1000, Height => 800, Line_Height => 20);
       Outside  : constant Files.Events.Input_Action :=
         Files.Events.Translate_Click
-          (Snapshot, Frame, X => 999, Y => 799, Width => 1000, Height => 800);
+          (Snapshot, Frame, X => 999, Y => 799, Width => 1000, Height => 800, Line_Height => 20);
    begin
       Assert
         (On_Item.Kind /= Files.Events.No_Input_Action,
@@ -47,11 +47,11 @@ separate (Files_Suite.Rendering)
             Right_Edge : constant Files.Events.Input_Action :=
               Files.Events.Translate_Click
                 (Edge_Snapshot, Edge_Frame,
-                 X => 1000, Y => 400, Width => 1000, Height => 800);
+                 X => 1000, Y => 400, Width => 1000, Height => 800, Line_Height => 20);
             Bottom_Edge : constant Files.Events.Input_Action :=
               Files.Events.Translate_Click
                 (Edge_Snapshot, Edge_Frame,
-                 X => 500, Y => 800, Width => 1000, Height => 800);
+                 X => 500, Y => 800, Width => 1000, Height => 800, Line_Height => 20);
          begin
             Files_Suite.Support.Assert_Equal
               (Right_Edge.Kind,

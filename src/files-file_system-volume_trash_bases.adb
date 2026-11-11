@@ -10,7 +10,7 @@ function Volume_Trash_Bases return Files.Types.String_Vectors.Vector is
       --  A valid base's files/ is never a link; it may not have been made yet.
       if not Result.Contains (To_Unbounded_String (Base))
         and then Valid_Volume_Trash_Base (Base)
-        and then Files.Fs_Primitives.Directory_Exists (Join_Path (Base, "files"))
+        and then Files.Fs_Primitives.Directory_Exists (Hostkit.Fs.Join (Base, "files"))
       then
          Result.Append (To_Unbounded_String (Base));
       end if;
@@ -34,8 +34,8 @@ begin
                Top : constant String := To_String (Root.Path);
                Id  : constant String := Files.Types.Account_Image (Uid);
             begin
-               Consider (Join_Path (Join_Path (Top, ".Trash"), Id));
-               Consider (Join_Path (Top, ".Trash-" & Id));
+               Consider (Hostkit.Fs.Join (Hostkit.Fs.Join (Top, ".Trash"), Id));
+               Consider (Hostkit.Fs.Join (Top, ".Trash-" & Id));
             end;
          end if;
       end loop;

@@ -13,7 +13,12 @@ separate (Files_Suite.Operations)
       Found    : Boolean := False;
    begin
       Reset_Root;
-      Write_Binary_File (Join (Root, Name), "bytes");
+      --  Written short, then renamed through hostkit, whose paths take the
+      --  long form on Windows: Ada's own file I/O cannot open a 255-byte name
+      --  under the test root there.
+      Write_Binary_File (Join (Root, "short.txt"), "bytes");
+      Assert (Hostkit.Fs.Move_No_Replace (Join (Root, "short.txt"), Join (Root, Name)),
+              "the fixture takes its 255-byte name");
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Operations.Clear_Undo (Model);

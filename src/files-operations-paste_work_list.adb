@@ -20,7 +20,7 @@ begin
                Dest_Dir    => To_Unbounded_String (Directory),
                Dest_Name   =>
                  To_Unbounded_String
-                   (Ada.Directories.Simple_Name (To_String (Plan.Source_Path)))));
+                   (Files.Fs_Primitives.Leaf_Text (To_String (Plan.Source_Path)))));
       end if;
    end loop;
    return Work;

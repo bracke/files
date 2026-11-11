@@ -32,7 +32,7 @@ separate (Files_Suite.Interaction)
             Snapshot : constant Files.Rendering.View_Snapshot :=
               Files.Rendering.Build_Snapshot (Model, Settings);
          begin
-            Assert (Snapshot.Quick_Look_Open, "the snapshot carries the open Quick Look overlay");
+            Assert (Snapshot.Quick_Look.Open, "the snapshot carries the open Quick Look overlay");
          end;
 
          --  (2) Space again closes it.

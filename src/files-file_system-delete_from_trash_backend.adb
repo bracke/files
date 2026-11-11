@@ -26,9 +26,9 @@ begin
    --  metadata. Sidecar removal is best-effort and never fails the purge.
    if Base /= "" then
       declare
-         Simple    : constant String := Ada.Directories.Simple_Name (Trashed_Path);
+         Simple    : constant String := Files.Fs_Primitives.Leaf_Text (Trashed_Path);
          Info_Path : constant String :=
-           Join_Path (Join_Path (Base, "info"), Simple & ".trashinfo");
+           Hostkit.Fs.Join (Hostkit.Fs.Join (Base, "info"), Simple & ".trashinfo");
       begin
          if Ada.Directories.Exists (Info_Path) then
             Ada.Directories.Delete_File (Info_Path);

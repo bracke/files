@@ -19,7 +19,7 @@ is
      Index_Thumbnail_Cache (Default_Thumbnail_Cache_Directory (Path));
 
    procedure Add_Entry (Name : String) is
-      Full : constant String := Join_Path (To_String (Normalized_Path), Name);
+      Full : constant String := Hostkit.Fs.Join (To_String (Normalized_Path), Name);
       --  Whether the entry passed the hidden and Include filters before
       --  anything failed; the handler lists only an entry the caller wants.
       Admitted : Boolean := False;
@@ -103,7 +103,7 @@ begin
    if Is_Trash_Files_Directory (Path) then
       for Base of Volume_Trash_Bases loop
          declare
-            Volume_Files : constant String := Join_Path (To_String (Base), "files");
+            Volume_Files : constant String := Hostkit.Fs.Join (To_String (Base), "files");
          begin
             Normalized_Path := To_Unbounded_String (Ada.Directories.Full_Name (Volume_Files));
             Support.For_Each_Entry (Volume_Files, Add_Entry'Access);

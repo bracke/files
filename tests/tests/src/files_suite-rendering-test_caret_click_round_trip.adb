@@ -33,7 +33,7 @@ separate (Files_Suite.Rendering)
                  X      => CX,
                  Y      => CY + CH / 2,
                  Width  => 1000,
-                 Height => 800);
+                 Height => 800, Line_Height => 20);
          begin
             Files_Suite.Support.Assert_Equal
               (Action.Kind,

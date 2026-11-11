@@ -1,13 +1,13 @@
 separate (Files.Rendering)
    function Calculate_Paste_Progress_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Paste_Progress_Layout
    is
-      Pad       : constant Natural := Files.UI.Dialog_Padding;
+      Pad       : constant Natural := Files.UI.Dialog_Padding (Line_Height);
       Width      : constant Natural := Dialog_Box_Width (Layout, Line_Height);
       Desired_Message_H : constant Natural := Saturating_Multiply (Line_Height, 2);
-      Desired_Bar_H     : constant Natural := Natural'Max (6, Line_Height / 2);
+      Desired_Bar_H     : constant Natural := Natural'Max (Guikit.Layout.Scaled (6, Line_Height), Line_Height / 2);
       Desired_Button_H  : constant Natural := Saturating_Add (Line_Height, Pad);
       Desired_Height    : constant Natural :=
         Saturating_Add

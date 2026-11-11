@@ -59,7 +59,7 @@ package Files.Rendering.Testing is
    --  @return Panel, progress-bar, and Cancel-button rectangles for the overlay.
    function Calculate_Paste_Progress_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Paste_Progress_Layout;
 
 end Files.Rendering.Testing;

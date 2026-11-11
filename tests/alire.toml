@@ -74,3 +74,8 @@ command = ["bin/tests"]
 # profile lets them share object files.
 [build-profiles]
 "*" = "development"
+
+# Contracts (Pre, Post, Assert) are checked in development builds -- the
+# test suite's -- and left to the release profile's defaults otherwise.
+[build-switches]
+development.contracts = "Yes"

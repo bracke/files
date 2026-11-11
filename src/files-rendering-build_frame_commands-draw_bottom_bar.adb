@@ -89,7 +89,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       --  separate, non-interactive field, so the toggle's hover/press/tooltip
       --  affordances stop at the divider rather than spanning the whole region.
       declare
-         Pad       : constant Natural := Files.UI.Status_Field_Padding;
+         Pad       : constant Natural := Files.UI.Status_Field_Padding (Line_Height);
          Cell_W    : constant Natural := Guikit.Layout.Caret_Advance_Width (Line_Height);
          Free_Text : constant String := Free_Space_Label (Snapshot);
          Free_W    : constant Natural := Free_Space_Label_Width (Snapshot, Line_Height);
@@ -196,7 +196,9 @@ separate (Files.Rendering.Build_Frame_Commands)
                      --  Bar mode: a scrollbar-like track whose blue core width is
                      --  the fraction of disk space used.
                      declare
-                        Bar_H  : constant Natural := Natural'Max (8, Saturating_Multiply (Line_Height, 2) / 3);
+                        Bar_H  : constant Natural :=
+                          Natural'Max
+                            (Guikit.Layout.Scaled (8, Line_Height), Saturating_Multiply (Line_Height, 2) / 3);
                         --  Centre the bar in the field's full height (the hover
                         --  rect band), not the smaller inset content band.
                         Bar_Y  : constant Natural :=
@@ -307,14 +309,19 @@ separate (Files.Rendering.Build_Frame_Commands)
              then Hover_Color
              else Bottom_Bar_Color));
       end;
-      Add_Text
-        (Saturating_Add (Bottom.Info_Pane_X, 4),
-         Bottom_Content_Y,
-         (if Bottom.Info_Pane_Width > 8 then Bottom.Info_Pane_Width - 8 else 0),
-         Bottom_Content_H,
-         Bottom_Command_Label (Files.Commands.Toggle_Info_Pane_Command),
-         Command_Color (Files.Commands.Toggle_Info_Pane_Command),
-         Fit => True);
+      declare
+         --  The label's inset inside the toggle, scaled with the text.
+         Inset : constant Natural := Guikit.Layout.Scaled (4, Line_Height);
+      begin
+         Add_Text
+           (Saturating_Add (Bottom.Info_Pane_X, Inset),
+            Bottom_Content_Y,
+            (if Bottom.Info_Pane_Width > 2 * Inset then Bottom.Info_Pane_Width - 2 * Inset else 0),
+            Bottom_Content_H,
+            Bottom_Command_Label (Files.Commands.Toggle_Info_Pane_Command),
+            Command_Color (Files.Commands.Toggle_Info_Pane_Command),
+            Fit => True);
+      end;
       Add_Command_Tooltip
         (Bottom.Info_Pane_X,
          Bottom_Content_Y,

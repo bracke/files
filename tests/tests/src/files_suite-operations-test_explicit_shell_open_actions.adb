@@ -39,7 +39,6 @@ separate (Files_Suite.Operations)
          Files.Operations.Operation_Success,
          "unmodified action fallback can be prepared");
       Assert (Result.Action.Use_Shell, "prepared fallback action preserves explicit shell execution");
-      Assert (Result.Action_Uses_Shell, "prepared result exposes explicit shell flag");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Action.Arguments.Element (1)),
          To_String (Injected_Argument),
@@ -50,9 +49,8 @@ separate (Files_Suite.Operations)
          Files.Operations.Operation_Action_Executed,
          "file open quotes explicit shell arguments before execution");
       Assert (Result.Action.Use_Shell, "explicit shell action remains explicit after execution");
-      Assert (Result.Action_Uses_Shell, "executed shell result exposes explicit shell flag");
-      Assert (Result.Execution_Attempted, "executed shell action records process attempt");
-      Assert (not Result.Exit_Status_Known, "a detached shell action reports no exit status");
+      Assert (Result.Execution.Attempted, "executed shell action records process attempt");
+      Assert (not Result.Execution.Exit_Status_Known, "a detached shell action reports no exit status");
 
       --  The quoting is the point of this action. An exit code is the only way to
       --  see it hold, and a detached launch has none, so ask for the same action
@@ -80,9 +78,9 @@ separate (Files_Suite.Operations)
          Files.Operations.Operation_Action_Executed,
          "explicit shell action can execute shell builtins");
       Assert (Result.Action.Use_Shell, "shell builtin action preserves explicit shell execution");
-      Assert (Result.Execution_Attempted, "shell builtin action records shell execution attempt");
-      Assert (Result.Executable_Found, "shell builtin action records shell discovery");
-      Assert (not Result.Exit_Status_Known, "a detached shell builtin reports no exit status");
+      Assert (Result.Execution.Attempted, "shell builtin action records shell execution attempt");
+      Assert (Result.Execution.Executable_Found, "shell builtin action records shell discovery");
+      Assert (not Result.Execution.Exit_Status_Known, "a detached shell builtin reports no exit status");
 
       declare
          Exit_Arguments : Files.Settings.String_Vectors.Vector;
@@ -102,13 +100,13 @@ separate (Files_Suite.Operations)
          Files.Operations.Operation_Action_Executed,
          "detached explicit shell builtin launches fire-and-forget");
       Assert
-        (Result.Execution_Attempted,
+        (Result.Execution.Attempted,
          "detached explicit shell builtin records a launch");
       Assert
-        (Result.Executable_Found,
+        (Result.Execution.Executable_Found,
          "detached explicit shell builtin records successful shell lookup");
       Assert
-        (not Result.Exit_Status_Known,
+        (not Result.Execution.Exit_Status_Known,
          "a detached launch does not surface the command's own exit code");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),

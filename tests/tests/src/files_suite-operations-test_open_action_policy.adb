@@ -9,13 +9,8 @@ separate (Files_Suite.Operations)
             Path                => To_Unbounded_String (Root),
             Action              =>
               Files.Settings.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
-            Action_Executable   => Null_Unbounded_String,
-            Action_Arguments    => 0,
-            Action_Uses_Shell   => False,
-            Execution_Attempted => False,
-            Executable_Found    => False,
-            Exit_Status_Known   => False,
-            Exit_Status         => 0);
+            Execution           =>
+              (Attempted => False, Executable_Found => False, Exit_Status_Known => False, Exit_Status => 0));
       begin
          Assert
            (Files.Operations.Testing.Open_Action_Lifecycle_Of (Generic_Failure).State =

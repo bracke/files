@@ -36,9 +36,9 @@ separate (Files_Suite.Rendering)
       end;
 
       Snap.Paste_Conflict_Open := False;
-      Snap.Paste_Progress_Open := True;
-      Snap.Paste_Progress_Total := 2;
-      Snap.Paste_Progress_Done := 1;
+      Snap.Paste_Progress.Open := True;
+      Snap.Paste_Progress.Total := 2;
+      Snap.Paste_Progress.Done := 1;
       Layout := Calculate_Layout (Snap, Compact_W, Compact_H, LH);
       declare
          Panel : constant Paste_Progress_Layout :=

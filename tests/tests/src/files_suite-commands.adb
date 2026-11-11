@@ -64,6 +64,7 @@ package body Files_Suite.Commands is
    procedure Test_Filter_Input_Editing (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filter_Input_Utf8_Cursor (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filter_Word_Editing (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Utf8_Delete_At (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filter_Word_Control_Separators (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filter_Word_Unicode_Separators (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Filter_Return_And_Clear (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -140,6 +141,9 @@ package body Files_Suite.Commands is
          "the filter cursor moves and deletes whole UTF-8 characters and combining sequences");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Filter_Word_Editing'Access, "Control word movement and deletion in the filter input");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Utf8_Delete_At'Access,
+         "text deletion at the caret handles edges, multibyte characters and words");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Filter_Word_Control_Separators'Access,
          "ASCII and C1 control characters separate words in the filter input");
@@ -238,6 +242,8 @@ package body Files_Suite.Commands is
    procedure Test_Filter_Input_Utf8_Cursor (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Filter_Word_Editing (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Utf8_Delete_At (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Filter_Word_Control_Separators (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

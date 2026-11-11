@@ -1,0 +1,9 @@
+files-icon-v1
+name=thumbnail
+grid=16
+rect=1,1,14,14,border
+rect=2,2,12,12,base
+rect=3,3,10,7,accent
+rect=4,8,4,2,border
+rect=8,7,4,3,border
+rect=3,12,10,1,muted

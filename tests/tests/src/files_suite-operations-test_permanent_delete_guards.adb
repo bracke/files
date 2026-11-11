@@ -27,6 +27,26 @@ separate (Files_Suite.Operations)
          "error.permanent_delete.refused",
          "permanent delete reports unsafe target diagnostic");
 
+      --  A drive's or a share's root is a root as "/" is, however it is
+      --  spelled and on any host: refused from its text, before any disk is
+      --  asked. "\\server\share" read as a folder of "\\server" was not.
+      declare
+         procedure Check_Root (Attempt : String) is
+         begin
+            Mutation := Files.File_System.Delete_Permanently (Attempt);
+            Assert (not Mutation.Success
+                      and then To_String (Mutation.Error_Key) = "error.permanent_delete.refused",
+                    "permanent delete refuses the root " & Attempt);
+         end Check_Root;
+      begin
+         Check_Root ("\\server\share");
+         Check_Root ("\\server\share\");
+         Check_Root ("\\server");
+         Check_Root ("\\?\UNC\server\share");
+         Check_Root ("C:\");
+         Check_Root ("\\?\C:\");
+      end;
+
       --  A child/.. spelling names the parent directory. Recursive deletion
       --  through that spelling could erase its contents before rmdir fails.
       declare

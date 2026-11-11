@@ -65,7 +65,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                begin
                   List_Rows.Append
                     (Guikit.List_Panel.List_Panel_Row'
-                       (Label            => Snapshot.Root_Labels.Element (Positive (Row.Root_Index)),
+                       (Label            => Snapshot.Roots (Positive (Row.Root_Index)).Label,
                         Selected         => Row.Selected,
                         Has_Background   => not Row.Selected,
                         Background_Color =>
@@ -137,8 +137,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
                      Row.Y,
                      Row.Width,
                      Row.Height,
-                     Snapshot.Root_Labels.Element (Positive (Row.Root_Index)),
-                     Snapshot.Root_Paths.Element (Positive (Row.Root_Index)),
+                     Snapshot.Roots (Positive (Row.Root_Index)).Label,
+                     Snapshot.Roots (Positive (Row.Root_Index)).Path,
                      Enabled  => True,
                      Selected => Row.Selected,
                      Focused  => Row.Selected);

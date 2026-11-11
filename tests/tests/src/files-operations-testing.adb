@@ -15,27 +15,27 @@ package body Files.Operations.Testing is
          --  it. A detached launch is started and let go, so the honest state is
          --  Spawned: the process is running, and its outcome is not ours to know.
          State :=
-           (if Result.Exit_Status_Known
+           (if Result.Execution.Exit_Status_Known
             then Open_Action_Completed
             else Open_Action_Spawned);
-      elsif Result.Status = Operation_Failed and then Result.Execution_Attempted then
+      elsif Result.Status = Operation_Failed and then Result.Execution.Attempted then
          State := Open_Action_Failed;
       elsif Result.Status = Operation_Failed
-        and then not Result.Executable_Found
-        and then To_String (Result.Action_Executable) /= ""
+        and then not Result.Execution.Executable_Found
+        and then To_String (Result.Action.Executable) /= ""
       then
          State := Open_Action_Preflight_Failed;
-      elsif Result.Execution_Attempted then
+      elsif Result.Execution.Attempted then
          State := Open_Action_Spawned;
       end if;
 
       return
         (State             => State,
-         Executable        => Result.Action_Executable,
-         Argument_Count    => Result.Action_Arguments,
-         Uses_Shell        => Result.Action_Uses_Shell,
-         Exit_Status_Known => Result.Exit_Status_Known,
-         Exit_Status       => Result.Exit_Status,
+         Executable        => Result.Action.Executable,
+         Argument_Count    => Natural (Result.Action.Arguments.Length),
+         Uses_Shell        => Result.Action.Use_Shell,
+         Exit_Status_Known => Result.Execution.Exit_Status_Known,
+         Exit_Status       => Result.Execution.Exit_Status,
          Cancellation_Available => False);
    end Open_Action_Lifecycle_Of;
 

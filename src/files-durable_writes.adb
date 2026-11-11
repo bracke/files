@@ -4,6 +4,7 @@ with GNAT.OS_Lib;
 with Files.Descriptor_Streams;
 with Files.Diagnostics;
 with Files.File_Identities;
+with Files.Fs_Primitives;
 with Files.Io_Errors;
 with Files.Private_Directories;
 with Hostkit.Fs;
@@ -56,7 +57,7 @@ package body Files.Durable_Writes is
         (File_Sync,
          Replaced       => True,
          Directory_Sync => Hostkit.Durability.Sync_Directory
-           (Ada.Directories.Containing_Directory (Target)));
+           (Files.Fs_Primitives.Parent_Directory (Target)));
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Durable_Writes");

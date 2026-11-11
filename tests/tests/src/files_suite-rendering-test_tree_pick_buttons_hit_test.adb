@@ -44,21 +44,21 @@ separate (Files_Suite.Rendering)
            X      => Buttons.Choose_X + Buttons.Button_Width / 2,
            Y      => Buttons.Y + Buttons.Height / 2,
            Width  => Width,
-           Height => Height);
+           Height => Height, Line_Height => 20);
       Cancel_Hit :=
         Files.Events.Translate_Click
           (Snap, Frame,
            X      => Buttons.Cancel_X + Buttons.Button_Width / 2,
            Y      => Buttons.Y + Buttons.Height / 2,
            Width  => Width,
-           Height => Height);
+           Height => Height, Line_Height => 20);
       Outside_Hit :=
         Files.Events.Translate_Click
           (Snap, Frame,
            X      => Panel.X + Panel.Width + 20,
            Y      => Panel.Y + 20,
            Width  => Width,
-           Height => Height);
+           Height => Height, Line_Height => 20);
       Files_Suite.Support.Assert_Equal
         (Choose_Hit.Kind,
          Files.Events.Tree_Pick_Confirm_Input_Action,

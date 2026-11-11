@@ -19,4 +19,15 @@ separate (Files_Suite.Operations)
       Files_Suite.Support.Assert_Equal (P.Parent_Text ("/x"), "/", "the POSIX root keeps its separator");
       Files_Suite.Support.Assert_Equal (P.Leaf_Text ("/"), "", "the POSIX root has no leaf");
       Files_Suite.Support.Assert_Equal (P.Parent_Text ("\\server\share\" & Long), "\\server\share", "a share");
+      Files_Suite.Support.Assert_Equal (P.Parent_Text ("\\server\share"), "", "a share's root has no parent");
+      Files_Suite.Support.Assert_Equal (P.Leaf_Text ("\\server\share\"), "", "nor a leaf");
+      Files_Suite.Support.Assert_Equal (P.Parent_Directory ("\\server\share"), "", "nor a parent directory");
+      Files_Suite.Support.Assert_Equal (P.Parent_Directory ("name"), ".", "a name alone lies in the current directory");
+      Files_Suite.Support.Assert_Equal (P.Parent_Directory ("/"), "", "the POSIX root has no parent directory");
+      Files_Suite.Support.Assert_Equal (P.Parent_Directory ("/a/b"), "/a", "a parent is the text before the leaf");
+      Files_Suite.Support.Assert_Equal
+        (P.Compose_Text ("C:\dir", Long, "txt"), "C:\dir" & Hostkit.Fs.Separator & Long & ".txt",
+         "a long leaf composes with its extension");
+      Files_Suite.Support.Assert_Equal
+        (P.Compose_Text ("/d", "stem"), "/d" & Hostkit.Fs.Separator & "stem", "and without one");
    end Test_Path_Text_Leaf_And_Parent;

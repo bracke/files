@@ -1,67 +1,54 @@
 with Ada.Strings.Unbounded;
 with Hostkit.Fs;
-with Hostkit.Host;
 with Hostkit.Path_Text;
 
 package body Files.Breadcrumbs is
    use Ada.Strings.Unbounded;
-   use type Hostkit.Host.Kind;
 
    function Segments
      (Path : String)
       return Segment_Vectors.Vector
    is
-      Windows : constant Boolean := Hostkit.Host.Current = Hostkit.Host.Windows;
-
       --  Paths are not always spelled with '/'. A Windows path begins with a
-      --  drive -- "C:\Users\..." -- and is separated by '\', so a splitter that
-      --  knows only forward slashes finds no components at all and the breadcrumb
-      --  bar comes out empty.  On POSIX, however, '\' is an ordinary filename
-      --  byte and must not split a real name.
-      function Is_Separator (Value : Character) return Boolean renames Hostkit.Fs.Is_Separator;
+      --  drive -- "C:\Users\..." -- or a share -- "\\server\share\..." -- and
+      --  is separated by '\', so a splitter that knows only forward slashes
+      --  finds no components at all and the breadcrumb bar comes out empty.
+      --  On POSIX, however, '\' is an ordinary filename byte and must not
+      --  split a real name. Read as Hostkit.Path_Text reads a path, the same
+      --  on every host.
+      function Is_Separator (Value : Character) return Boolean is
+        (Hostkit.Path_Text.Is_Separator_In (Path, Value));
 
-      function Drive_Prefix return Natural is
+      --  "/", "C:\", "\\server\share": where the path starts.
+      Root_Length : constant Natural := Hostkit.Path_Text.Root_Length (Path);
+
+      --  The root without the separators that close it: "C:" or
+      --  "\\server\share", which keep their names -- unlike a POSIX root, a
+      --  bare separator with nothing to show ("").
+      function Root_Name return String is
+         Last : Natural := Path'First + Root_Length - 1;
       begin
-         --  "C:\" or "C:/": the root is the drive, and it keeps its name --
-         --  unlike a POSIX root, which is a bare separator with nothing to show.
-         return (if Windows then Hostkit.Fs.Drive_Root_Length (Path) else 0);
-      end Drive_Prefix;
+         while Last >= Path'First and then Is_Separator (Path (Last)) loop
+            Last := Last - 1;
+         end loop;
+         return Path (Path'First .. Last);
+      end Root_Name;
 
       Result   : Segment_Vectors.Vector;
       Ancestor : Unbounded_String := Null_Unbounded_String;
-      Drive    : constant Natural := Drive_Prefix;
-      --  "\\server\share" is a share's root, as "C:" is a drive's: "\\server"
-      --  alone names no folder to go to.
-      Share_Last : constant Natural := (if Windows then Hostkit.Path_Text.Share_Root_Last (Path) else 0);
-      Root_Length : constant Natural :=
-        (if Drive > 0 then 0
-         elsif Path'Length >= 2
-           and then Windows
-           and then Is_Separator (Path (Path'First))
-           and then Is_Separator (Path (Path'First + 1))
-         then 2
-         elsif Path'Length > 0 and then Is_Separator (Path (Path'First))
-         then 1
-         else 0);
       Index    : Integer := Path'First;
 
+      --  The path's own spelling: Windows accepts both separators, and a
+      --  forward-slash path must not turn into a different-looking
+      --  breadcrumb target.
       function Separator_Character return Character is
       begin
-         if not Windows then
-            return '/';
-         elsif Drive > 0 then
-            return Path (Path'First + 2);
-         end if;
-
-         --  Windows accepts both spellings. Preserve the spelling supplied by
-         --  the path so a forward-slash absolute path does not unexpectedly
-         --  turn into a different-looking breadcrumb target.
          for Value of Path loop
-            if Value = '/' or else Value = '\' then
+            if Is_Separator (Value) then
                return Value;
             end if;
          end loop;
-         return '\';
+         return Hostkit.Fs.Separator;
       end Separator_Character;
 
       Separator : constant String := [1 => Separator_Character];
@@ -70,38 +57,23 @@ package body Files.Breadcrumbs is
          return Result;
       end if;
 
-      if Drive > 0 then
-         --  The drive itself is the first breadcrumb: "C:" is where the tree
-         --  starts, and it is a place the user can click back to.
+      if Root_Length > 0 then
          declare
-            Root : constant String := Path (Path'First .. Path'First + 1);
+            Name : constant String := Root_Name;
          begin
-            Ancestor := To_Unbounded_String (Root & Separator);
-            Result.Append
-              (Segment'
-                 (Label         => To_Unbounded_String (Root),
-                  Ancestor_Path => Ancestor));
+            if Name = "" then
+               --  The filesystem root is not shown as its own breadcrumb (a
+               --  bare '/' next to the '>' separators reads as a stray mark).
+               --  Keep its spelling in Ancestor so click targets remain
+               --  absolute.
+               Ancestor := To_Unbounded_String (Path (Path'First .. Path'First + Root_Length - 1));
+            else
+               --  A drive or a share is the first breadcrumb: it is where the
+               --  tree starts, and a place the user can click back to.
+               Ancestor := To_Unbounded_String (Name & Separator);
+               Result.Append (Segment'(Label => To_Unbounded_String (Name), Ancestor_Path => Ancestor));
+            end if;
          end;
-         Index := Path'First + Drive;
-
-      elsif Share_Last > 0 then
-         declare
-            --  Without the separator that may close it.
-            Share : constant String :=
-              Path (Path'First .. (if Is_Separator (Path (Share_Last)) then Share_Last - 1 else Share_Last));
-         begin
-            Ancestor := To_Unbounded_String (Share & Separator);
-            Result.Append (Segment'(Label => To_Unbounded_String (Share), Ancestor_Path => Ancestor));
-         end;
-         Index := Share_Last + 1;
-
-      elsif Root_Length > 0 then
-         --  The filesystem root is not shown as its own breadcrumb (a bare '/'
-         --  next to the '>' separators reads as a stray mark). Keep its spelling
-         --  in Ancestor so click targets remain absolute. UNC roots retain both
-         --  leading separators rather than degrading to a drive-relative path.
-         Ancestor := To_Unbounded_String
-           (if Root_Length = 2 then Separator & Separator else Separator);
          Index := Path'First + Root_Length;
       end if;
 

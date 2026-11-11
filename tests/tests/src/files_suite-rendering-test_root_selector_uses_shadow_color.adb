@@ -11,8 +11,9 @@ separate (Files_Suite.Rendering)
    begin
       Snap.Root_Selector_Open := True;
       Snap.Root_Selected_Index := 1;
-      Snap.Root_Paths.Append (To_Unbounded_String ("/"));
-      Snap.Root_Labels.Append (To_Unbounded_String ("Filesystem"));
+      Snap.Roots.Append
+        (Root_Row'(Path  => To_Unbounded_String ("/"),
+          Label => To_Unbounded_String ("Filesystem")));
 
       declare
          Layout : constant Guikit.Draw.Layout_Metrics := Calculate_Layout (Snap, 480, 360, 20);

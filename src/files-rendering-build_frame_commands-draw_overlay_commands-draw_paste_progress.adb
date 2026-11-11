@@ -1,23 +1,23 @@
 separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
    --  The paste-progress panel.
-   procedure Draw_Paste_Progress is
+   procedure Draw_Paste_Progress (Progress : Paste_Progress_Snapshot) is
    begin
       declare
          Panel  : constant Paste_Progress_Layout :=
            Calculate_Paste_Progress_Layout (Layout, Line_Height);
          Verb_Key : constant String :=
-           (if Length (Snapshot.Paste_Progress_Operation_Label) > 0
-            then To_String (Snapshot.Paste_Progress_Operation_Label)
-            elsif Snapshot.Paste_Progress_Moving then "dialog.paste_progress.moving"
+           (if Length (Progress.Operation_Label) > 0
+            then To_String (Progress.Operation_Label)
+            elsif Progress.Moving then "dialog.paste_progress.moving"
             else "dialog.paste_progress.copying");
          Count_Line : constant UString :=
            (Localized (Verb_Key)
            & To_Unbounded_String (" ")
-           & To_Unbounded_String (Grouped_Integer_Text (Long_Long_Integer (Snapshot.Paste_Progress_Done)))
+           & To_Unbounded_String (Grouped_Integer_Text (Long_Long_Integer (Progress.Done)))
            & To_Unbounded_String (" ")
            & Localized ("dialog.paste_progress.of")
            & To_Unbounded_String (" ")
-           & To_Unbounded_String (Grouped_Integer_Text (Long_Long_Integer (Snapshot.Paste_Progress_Total))));
+           & To_Unbounded_String (Grouped_Integer_Text (Long_Long_Integer (Progress.Total))));
          Cancel_Hovered : constant Boolean :=
            Has_Hover
            and then Contains_Point
@@ -39,7 +39,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
          Add_Overlay_Border (Panel.X, Panel.Y, Panel.Width, Panel.Height, Border_Color);
          Add_Accessibility_Node
            (Role_Dialog, Panel.X, Panel.Y, Panel.Width, Panel.Height,
-            (if Length (Snapshot.Paste_Progress_Operation_Label) > 0 then Localized (Verb_Key)
+            (if Length (Progress.Operation_Label) > 0 then Localized (Verb_Key)
              else Localized ("dialog.paste_progress.title")));
 
          --  "Copying/Moving N of M" plus the current item name.
@@ -54,15 +54,15 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Overlay_Commands)
               (Panel.Message_X, Saturating_Add (Panel.Message_Y, Line_Height),
                Panel.Message_Width,
                Natural'Min (Line_Height, Panel.Message_Height - Line_Height),
-               Snapshot.Paste_Progress_Name, Muted_Text_Color, Fit => True);
+               Progress.Name, Muted_Text_Color, Fit => True);
          end if;
 
          --  Progress bar: track + fill proportional to Done/Total, top border.
          Guikit.Widgets.Draw_Meter
            (Result.Overlay_Rectangles, Layout.Width, Layout.Height,
             Panel.Bar_X, Panel.Bar_Y, Panel.Bar_Width, Panel.Bar_Height,
-            Long_Long_Integer (Snapshot.Paste_Progress_Done),
-            Long_Long_Integer (Snapshot.Paste_Progress_Total),
+            Long_Long_Integer (Progress.Done),
+            Long_Long_Integer (Progress.Total),
             Hover_Color, Selection_Color);
          Add_Overlay_Rect (Panel.Bar_X, Panel.Bar_Y, Panel.Bar_Width, 1, Border_Color);
 

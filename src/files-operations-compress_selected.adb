@@ -9,7 +9,7 @@ is
      Files.Model.Selected_Items (Model);
    Directory : constant String :=
      (if Files.Model.In_Recent_View (Model) and then not Items.Is_Empty
-      then Ada.Directories.Containing_Directory (To_String (Items.First_Element.Full_Path))
+      then Files.Fs_Primitives.Parent_Directory (To_String (Items.First_Element.Full_Path))
       else Files.Model.Current_Path (Model));
 
    Input_Paths : Files.Types.String_Vectors.Vector;
@@ -69,7 +69,7 @@ is
          --  writers cannot store a link, so say it was left out.
          Links_Skipped := Links_Skipped + 1;
          return;
-      elsif Ada.Directories.Kind (Full) = Ada.Directories.Directory then
+      elsif Files.Fs_Primitives.Kind (Full) = Ada.Directories.Directory then
          if not Record_Entry (Full, Entry_Name) then
             Collection_Failed := True;
             return;
@@ -89,7 +89,7 @@ is
          loop
             Ada.Directories.Get_Next_Entry (Search, Dir_Entry);
             declare
-               Name : constant String := Ada.Directories.Simple_Name (Dir_Entry);
+               Name : constant String := Ada.Directories.Simple_Name (Directory_Entry => Dir_Entry);
             begin
                if Name /= "." and then Name /= ".." then
                   Collect
@@ -100,7 +100,7 @@ is
             end;
          end loop;
          Ada.Directories.End_Search (Search);
-      elsif Ada.Directories.Kind (Full) = Ada.Directories.Ordinary_File then
+      elsif Files.Fs_Primitives.Kind (Full) = Ada.Directories.Ordinary_File then
          if not Record_Entry (Full, Entry_Name) then
             Collection_Failed := True;
          end if;
@@ -203,13 +203,13 @@ begin
         (First_Free_Name (Directory, Base, Extension, Marker'Access, First => 0) & "." & Extension);
 
       Archive_Name : constant String := Unique_Name;
-      Output_Path  : constant String := Ada.Directories.Compose (Directory, Archive_Name);
+      Output_Path  : constant String := Hostkit.Fs.Join (Directory, Archive_Name);
       Count        : constant Natural := Natural (Input_Paths.Length);
       Inputs       : Text_Array_Access := null;
       Names        : Text_Array_Access := null;
       Status       : Zlib.Status_Code;
       Stage        : constant String := Files.Job_Context.Create_Stage (Directory);
-      Staged       : constant String := Ada.Directories.Compose (Stage, Archive_Name);
+      Staged       : constant String := Hostkit.Fs.Join (Stage, Archive_Name);
       Created      : Files.Types.String_Vectors.Vector;
       Identities   : Files.Types.String_Vectors.Vector;
       Tree_Revisions : Files.Types.String_Vectors.Vector;

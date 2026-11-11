@@ -2,7 +2,7 @@ separate (Files.Rendering)
    function Calculate_Tree_Row_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Tree_Panel_Layout;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Tree_Row_Layout_Vectors.Vector
    is
       Result      : Tree_Row_Layout_Vectors.Vector;

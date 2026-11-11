@@ -22,18 +22,22 @@ package Files.Operations is
       Operation_Navigated,
       Operation_Missing_Open_Action);
 
+   --  What running an open action did: whether a process start was tried,
+   --  whether its executable was found, and its exit status when one was
+   --  awaited (a detached launch has none).
+   type Execution_Outcome is record
+      Attempted         : Boolean := False;
+      Executable_Found  : Boolean := False;
+      Exit_Status_Known : Boolean := False;
+      Exit_Status       : Integer := 0;
+   end record;
+
    type Operation_Result is record
       Status    : Operation_Status := Operation_Disabled;
       Error_Key : UString;
       Path      : UString;
       Action    : Files.Settings.Open_Action;
-      Action_Executable : UString;
-      Action_Arguments  : Natural := 0;
-      Action_Uses_Shell : Boolean := False;
-      Execution_Attempted : Boolean := False;
-      Executable_Found    : Boolean := False;
-      Exit_Status_Known   : Boolean := False;
-      Exit_Status         : Integer := 0;
+      Execution : Execution_Outcome;
    end record;
 
    --  Check an open action's effective executable using the same host-aware

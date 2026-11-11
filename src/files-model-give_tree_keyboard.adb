@@ -6,7 +6,7 @@ is
      Files.Folder_Tree.Visible_Rows (Model.Folder_Tree_Value);
 begin
    if not Model.Tree_Panel_Open
-     or else Model.Tree_Pick_Mode_Value /= Pick_None
+     or else Model.Tree_Pick.Mode /= Pick_None
      or else Rows.Is_Empty
    then
       return;

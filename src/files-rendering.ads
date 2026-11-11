@@ -3,6 +3,7 @@ with Ada.Containers.Vectors;
 
 with Files.Breadcrumbs;
 with Files.Commands;
+with Files.File_Types;
 with Files.Folder_Tree;
 with Files.Icon_Themes;
 with Files.Shared_Bytes;
@@ -13,7 +14,6 @@ with Files.Model;
 with Files.Quick_Look;
 with Files.Settings;
 with Files.Types;
-with Files.UI;
 use Guikit.Draw;
 
 --  Immutable render snapshots and layout calculations.
@@ -38,7 +38,9 @@ package Files.Rendering is
       Full_Path          : UString;
       Filetype           : UString;
       Filetype_Detail    : UString;
-      Icon_Id            : UString;
+      --  The icon, resolved once when the snapshot is built; drawing does not
+      --  decide it again.
+      Icon               : Files.File_Types.Icon_Kind := Files.File_Types.Unknown_Icon;
       Kind               : Files.Types.Item_Kind := Files.Types.Unknown_Item;
       Size_Available     : Boolean := False;
       Size               : Long_Long_Integer := 0;
@@ -129,6 +131,51 @@ package Files.Rendering is
 
    type Command_Enablement_Array is array (Files.Commands.Registered_Command_Id) of Boolean;
 
+   --  One volume root the root selector lists: its full path and the label
+   --  the selector shows for it.
+   type Root_Row is record
+      Path  : UString;
+      Label : UString;
+   end record;
+
+   package Root_Row_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Root_Row);
+
+   --  Resumable paste progress: open while a long copy/move is in flight,
+   --  showing Done/Total, the current item name, and a Cancel button. A
+   --  background operation names itself with Operation_Label instead of the
+   --  copy or move verb. Every default is the closed state.
+   type Paste_Progress_Snapshot is record
+      Open            : Boolean := False;
+      Done            : Natural := 0;
+      Total           : Natural := 0;
+      Name            : UString;
+      Moving          : Boolean := False;
+      Operation_Label : UString;
+   end record;
+
+   --  Quick Look preview overlay: open when previewing a single selected item.
+   --  Kind selects the body (scaled image, capped text lines, or the metadata
+   --  info card). Image_* carry the decoded preview pixels (or the item's
+   --  thumbnail) the renderer scales to fit; when they are empty the image
+   --  body shows a localized empty-preview message. Every default is the
+   --  closed state.
+   type Quick_Look_Snapshot is record
+      Open           : Boolean := False;
+      Kind           : Files.Quick_Look.Content_Kind := Files.Quick_Look.Info_Content;
+      Name           : UString;
+      Filetype       : UString;
+      Icon           : Files.File_Types.Icon_Kind := Files.File_Types.Unknown_Icon;
+      Size_Available : Boolean := False;
+      Size           : Long_Long_Integer := 0;
+      Text_Lines     : Files.Types.String_Vectors.Vector;
+      Text_Truncated : Boolean := False;
+      Image_Width    : Natural := 0;
+      Image_Height   : Natural := 0;
+      Image_Pixels   : Files.Shared_Bytes.Bytes;
+   end record;
+
    type View_Snapshot is record
       Current_Path         : UString;
       --  True when Current_Path is a stored favorite. Drives the filled versus
@@ -195,8 +242,7 @@ package Files.Rendering is
       Main_View_Scroll_Lines : Natural := 0;
       Root_Selector_Open    : Boolean := False;
       Root_Selected_Index   : Natural := 0;
-      Root_Paths                     : Files.Types.String_Vectors.Vector;
-      Root_Labels                    : Files.Types.String_Vectors.Vector;
+      Roots                          : Root_Row_Vectors.Vector;
       Tree_Panel_Open       : Boolean := False;
       Tree_Panel_Scroll_Rows : Natural := 0;
       Tree_Rows             : Files.Folder_Tree.Visible_Row_Vectors.Vector;
@@ -246,51 +292,17 @@ package Files.Rendering is
       Paste_Conflict_Open            : Boolean := False;
       Paste_Conflict_Name           : UString;
       Paste_Conflict_Apply_All      : Boolean := False;
-      --  Resumable paste progress: open while a long copy/move is in flight,
-      --  showing Done/Total, the current item name, and a Cancel button.
-      Paste_Progress_Open            : Boolean := False;
-      Paste_Progress_Done            : Natural := 0;
-      Paste_Progress_Total           : Natural := 0;
-      Paste_Progress_Name            : UString;
-      Paste_Progress_Moving          : Boolean := False;
-      Paste_Progress_Operation_Label : UString;
-      --  Quick Look preview overlay: open when previewing a single selected item.
-      --  Quick_Look_Kind selects the body (scaled image, capped text lines, or the
-      --  metadata info card). Quick_Look_Image_* carry the decoded thumbnail pixels
-      --  (reused from the item's thumbnail) the renderer scales to fit; when they
-      --  are empty the image body shows a localized empty-preview message.
-      Quick_Look_Open                : Boolean := False;
-      Quick_Look_Kind                : Files.Quick_Look.Content_Kind :=
-        Files.Quick_Look.Info_Content;
-      Quick_Look_Name                : UString;
-      Quick_Look_Type                : UString;
-      Quick_Look_Icon_Id             : UString;
-      Quick_Look_Size_Available      : Boolean := False;
-      Quick_Look_Size                : Long_Long_Integer := 0;
-      Quick_Look_Text_Lines          : Files.Types.String_Vectors.Vector;
-      Quick_Look_Text_Truncated      : Boolean := False;
-      Quick_Look_Image_Width         : Natural := 0;
-      Quick_Look_Image_Height        : Natural := 0;
-      Quick_Look_Image_Pixels        : Files.Shared_Bytes.Bytes;
+      Paste_Progress                 : Paste_Progress_Snapshot;
+      Quick_Look                     : Quick_Look_Snapshot;
       --  Color-label swatch picker overlay: open when the user is choosing a
       --  label for the current selection.
       Label_Picker_Open              : Boolean := False;
-      Label_Picker_Highlight         : Positive := 8;
+      Label_Picker_Highlight         : Positive := Files.Types.Clear_Swatch;
    end record;
 
-   --  A context-menu row is either a selectable command or a non-selectable
-   --  divider that visually groups the commands above and below it.
-   type Context_Menu_Row_Kind is (Command_Row, Separator_Row);
-
-   --  Real commands plus the separators that group them. The item menu carries
-   --  19 commands split into 6 groups by 5 separators (24 rows); the constant
-   --  keeps headroom so the fixed arrays never overflow.
-   Max_Context_Menu_Rows : constant := 26;
-   type Context_Menu_Command_Array is
-     array (1 .. Max_Context_Menu_Rows) of Files.Commands.Command_Id;
-   type Context_Menu_Row_Kind_Array is
-     array (1 .. Max_Context_Menu_Rows) of Context_Menu_Row_Kind;
-
+   --  The laid-out context menu. Its rows are Files.Commands' own (selectable
+   --  commands and the non-selectable dividers that group them), so the
+   --  renderer, the hit-test and the keyboard navigation share one row set.
    type Context_Menu_Layout is record
       Visible          : Boolean := False;
       X                : Natural := 0;
@@ -304,10 +316,7 @@ package Files.Rendering is
       Column_Width     : Natural := 0;
       Column_Break_Row : Natural := 0;
       Row_Count        : Natural := 0;
-      Commands         : Context_Menu_Command_Array :=
-        [others => Files.Commands.No_Command];
-      Row_Kinds        : Context_Menu_Row_Kind_Array :=
-        [others => Command_Row];
+      Rows             : Files.Commands.Context_Menu_Row_Array;
    end record;
 
    --  Calculate the context-menu popup rectangle and per-row geometry.
@@ -321,7 +330,7 @@ package Files.Rendering is
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Context_Menu_Layout;
 
    --  Window layout geometry. Re-exported from Guikit.Draw so backends can
@@ -378,10 +387,6 @@ package Files.Rendering is
       Content_Height : Natural := 0;
    end record;
 
-   --  Number of swatches in the color-label picker: the seven assignable colors
-   --  plus a trailing "None" swatch that clears the selection's labels.
-   Label_Picker_Swatch_Count : constant := 8;
-
    type Label_Swatch_Bounds is record
       X      : Natural := 0;
       Y      : Natural := 0;
@@ -390,12 +395,12 @@ package Files.Rendering is
    end record;
 
    type Label_Swatch_Array is
-     array (1 .. Label_Picker_Swatch_Count) of Label_Swatch_Bounds;
+     array (1 .. Files.Types.Swatch_Count) of Label_Swatch_Bounds;
 
    --  Geometry of the centered color-label picker overlay: the outer panel and
    --  its row of clickable swatches. Swatches 1 .. 7 correspond to the colors
-   --  Red .. Gray (Files.Types.Real_Color_Label in order); swatch 8 is the
-   --  "None" clear swatch.
+   --  Red .. Gray (Files.Types.Real_Color_Label in order); the last,
+   --  Files.Types.Clear_Swatch, is the "None" clear swatch.
    type Label_Picker_Layout is record
       X           : Natural := 0;
       Y           : Natural := 0;
@@ -648,7 +653,7 @@ package Files.Rendering is
    --  @return Panel, button, and toggle rectangles for the dialog.
    function Calculate_Conflict_Dialog_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Conflict_Dialog_Layout;
 
    type Text_Renderer is private;
@@ -735,7 +740,7 @@ package Files.Rendering is
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Layout_Metrics;
 
    --  Calculate item rectangles for the active view mode.
@@ -756,7 +761,7 @@ package Files.Rendering is
    function Calculate_Item_Layout
      (Snapshot      : View_Snapshot;
       Layout        : Layout_Metrics;
-      Line_Height   : Positive := Files.UI.Base_Line_Height;
+      Line_Height   : Positive;
       Whole_Content : Boolean := False;
       Window_Top    : Natural := 0;
       Window_Height : Natural := 0)
@@ -771,7 +776,7 @@ package Files.Rendering is
    function Calculate_Main_View_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Main_View_Layout;
 
    --  The main-view scroll, in lines, that shows the item with Visible_Index
@@ -873,7 +878,7 @@ package Files.Rendering is
       Renaming    : Boolean;
       Field_X     : out Natural;
       Field_W     : out Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height);
+      Line_Height : Positive);
 
    --  A details-header cell under a coordinate. Present is False when the
    --  coordinate misses the header band. Column is the column whose cell body
@@ -907,7 +912,7 @@ package Files.Rendering is
    --  @return Command-palette layout rectangles.
    function Calculate_Command_Palette_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Command_Palette_Layout;
 
    --  Calculate the centered Quick Look overlay panel rectangle and its inner
@@ -918,7 +923,7 @@ package Files.Rendering is
    --  @return Quick Look panel and content-region geometry.
    function Calculate_Quick_Look_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Quick_Look_Layout;
 
    --  Calculate the centered color-label picker overlay panel rectangle and its
@@ -929,7 +934,7 @@ package Files.Rendering is
    --  @return Label-picker panel and swatch geometry.
    function Calculate_Label_Picker_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Label_Picker_Layout;
 
    --  Calculate root-selector dropdown rectangle.
@@ -941,7 +946,7 @@ package Files.Rendering is
    function Calculate_Root_Selector_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Root_Selector_Layout;
 
    --  Calculate root-selector row rectangles.
@@ -968,7 +973,7 @@ package Files.Rendering is
    function Calculate_Breadcrumb_Layout
      (Snapshot    : View_Snapshot;
       Width       : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Breadcrumb_Segment_Layout_Vectors.Vector;
 
    --  Rectangle of the clickable favorite-star toggle at the left of the path
@@ -980,7 +985,7 @@ package Files.Rendering is
    --  @return Star bounds; Visible is False when the path bar is too narrow.
    function Path_Favorite_Star_Region
      (Width       : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Path_Favorite_Star_Bounds;
 
    --  Inset of the path and filter input boxes inside their toolbar sections.
@@ -1014,7 +1019,7 @@ package Files.Rendering is
    --  @return Reserved width in pixels, or zero when the star is not shown.
    function Path_Bar_Content_Offset
      (Width       : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Natural;
 
    --  Calculate the folder-tree sidebar panel rectangle.
@@ -1026,7 +1031,7 @@ package Files.Rendering is
    function Calculate_Tree_Panel_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Tree_Panel_Layout;
 
    --  Return the number of tree rows that fit below the title and above any
@@ -1066,7 +1071,7 @@ package Files.Rendering is
    function Calculate_Tree_Row_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Tree_Panel_Layout;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Tree_Row_Layout_Vectors.Vector;
 
    --  Calculate the destination picker's Choose/Cancel button bar geometry from
@@ -1078,7 +1083,7 @@ package Files.Rendering is
    --  @return Button-bar rectangles; Visible is False when they do not fit.
    function Tree_Pick_Buttons
      (Panel       : Tree_Panel_Layout;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Tree_Pick_Button_Layout;
 
    --  Calculate info-pane content and scrollbar geometry.
@@ -1090,7 +1095,7 @@ package Files.Rendering is
    function Calculate_Info_Pane_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Info_Pane_Layout;
 
    type Close_Button_Layout is record
@@ -1120,7 +1125,7 @@ package Files.Rendering is
       Panel_Y      : Natural;
       Panel_Width  : Natural;
       Panel_Height : Natural;
-      Line_Height  : Positive := Files.UI.Base_Line_Height)
+      Line_Height  : Positive)
       return Close_Button_Layout;
 
    --  Where the pointer is and what it is doing, as a frame draws it: the
@@ -1165,7 +1170,7 @@ package Files.Rendering is
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height;
+      Line_Height : Positive;
       Pointer     : Pointer_State := No_Pointer)
       return Frame_Commands;
 
@@ -1189,7 +1194,7 @@ package Files.Rendering is
       Font_Path    : String;
       Pixel_Size   : Positive := 16;
       Cell_Width   : Positive := 10;
-      Cell_Height  : Positive := Files.UI.Base_Line_Height;
+      Cell_Height  : Positive;
       Atlas_Width  : Positive := 1024;
       Atlas_Height : Positive := 1024)
       return Text_Render_Status;
@@ -1262,8 +1267,8 @@ private
      (Snapshot.Root_Selector_Open
       or else Snapshot.Context_Menu_Open
       or else Snapshot.Paste_Conflict_Open
-      or else Snapshot.Paste_Progress_Open
-      or else Snapshot.Quick_Look_Open
+      or else Snapshot.Paste_Progress.Open
+      or else Snapshot.Quick_Look.Open
       or else Snapshot.Label_Picker_Open
       or else Snapshot.Sort_Menu_Open
       or else Snapshot.Tree_Pick_Active
@@ -1311,15 +1316,19 @@ private
    --  @return Panel, progress-bar, and Cancel-button rectangles for the overlay.
    function Calculate_Paste_Progress_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Paste_Progress_Layout;
 
    --  Layout seams shared by the body and the Files.Rendering.Hit child, so
    --  the renderer and the click hit-tests compute the same geometry.
 
    --  Vertical padding above and below a details-view row (and the header):
-   --  the grid's own.
-   Details_Row_Padding : constant Natural := Guikit.Item_Grid.Details_Row_Padding;
+   --  the grid's own, scaled with the text.
+   --
+   --  @param Line_Height Text line height in pixels.
+   --  @return The padding in pixels.
+   function Details_Row_Padding (Line_Height : Positive) return Natural
+     renames Guikit.Item_Grid.Row_Padding;
 
    --  The main content rectangle: the main-view region inset on all sides by the
    --  content padding, dropping the inset when the region is too small to hold
@@ -1473,7 +1482,7 @@ private
       Pixel_Size   : Positive := 16;
       Font_Path    : UString;
       Cell_Width   : Positive := 10;
-      Cell_Height  : Positive := Files.UI.Base_Line_Height;
+      Cell_Height  : Positive := Guikit.Layout.Reference_Line_Height;
       Atlas_Width  : Positive := 1024;
       Atlas_Height : Positive := 1024;
    end record;

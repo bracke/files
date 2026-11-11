@@ -95,7 +95,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
       if Files.Fs_Primitives.Directory_Exists (Path)
       then
          Full := To_Unbounded_String (Ada.Directories.Full_Name (Path));
-         Name := To_Unbounded_String (Ada.Directories.Simple_Name (To_String (Full)));
+         Name := To_Unbounded_String (Files.Fs_Primitives.Leaf_Text (To_String (Full)));
          if Length (Name) = 0 then
             Name := Full;
          end if;
@@ -169,7 +169,7 @@ function Available_Root_Entries return Root_Entry_Vectors.Vector is
          Ada.Directories.Get_Next_Entry (Search, Child);
          Root_Entries_Scanned := Root_Entries_Scanned + 1;
          declare
-            Name : constant String := Ada.Directories.Simple_Name (Child);
+            Name : constant String := Ada.Directories.Simple_Name (Directory_Entry => Child);
             Full : constant String := Ada.Directories.Full_Name (Child);
          begin
             if Name /= "." and then Name /= ".." then
@@ -265,7 +265,7 @@ begin
                Name  => Null_Unbounded_String,
                Detail => Null_Unbounded_String,
                Kind  => Root_Current,
-               Volume_Name => To_Unbounded_String (Ada.Directories.Simple_Name (Full)),
+               Volume_Name => To_Unbounded_String (Files.Fs_Primitives.Leaf_Text (Full)),
                Ready => Root_Ready,
                Removable => False));
       end;

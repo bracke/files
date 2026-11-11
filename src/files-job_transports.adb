@@ -152,14 +152,14 @@ package body Files.Job_Transports is
    end Random_Name;
 
    function Is_Transport_Path (Directory : String) return Boolean is
-      Name : constant String := Ada.Directories.Simple_Name (Directory);
+      Name : constant String := Files.Fs_Primitives.Leaf_Text (Directory);
       Suffix_First : constant Positive := Name'First + Transport_Prefix'Length;
    begin
       return Name'Length = Transport_Prefix'Length + 32
         and then Name (Name'First .. Name'First + Transport_Prefix'Length - 1) = Transport_Prefix
         and then (for all Position in Suffix_First .. Name'Last =>
           Name (Position) in '0' .. '9' | 'a' .. 'f')
-        and then Ada.Directories.Full_Name (Ada.Directories.Containing_Directory (Directory)) =
+        and then Ada.Directories.Full_Name (Files.Fs_Primitives.Parent_Directory (Directory)) =
           Ada.Directories.Full_Name (Hostkit.Fs.Temp_Directory);
    exception
       when Swallowed : others =>
@@ -168,7 +168,7 @@ package body Files.Job_Transports is
    end Is_Transport_Path;
 
    function Witness_Path (Directory : String) return String is
-      Name : constant String := Ada.Directories.Simple_Name (Directory);
+      Name : constant String := Files.Fs_Primitives.Leaf_Text (Directory);
    begin
       return Hostkit.Fs.Join
         (Hostkit.Fs.Temp_Directory,
@@ -655,7 +655,7 @@ package body Files.Job_Transports is
          while Ada.Directories.More_Entries (Search) loop
             Ada.Directories.Get_Next_Entry (Search, Item);
             declare
-               Name : constant String := Ada.Directories.Simple_Name (Item);
+               Name : constant String := Ada.Directories.Simple_Name (Directory_Entry => Item);
             begin
                if Name not in "." | ".." | Lease_Name | Marker_Name & ".tmp" then
                   Ada.Directories.End_Search (Search);
@@ -781,7 +781,7 @@ package body Files.Job_Transports is
       while Ada.Directories.More_Entries (Search) loop
          Ada.Directories.Get_Next_Entry (Search, Item);
          declare
-            Name : constant String := Ada.Directories.Simple_Name (Item);
+            Name : constant String := Ada.Directories.Simple_Name (Directory_Entry => Item);
          begin
             if Name'Length = Witness_Prefix'Length + 32
               and then Name (Name'First .. Name'First + Witness_Prefix'Length - 1) = Witness_Prefix

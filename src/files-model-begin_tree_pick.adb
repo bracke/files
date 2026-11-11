@@ -6,13 +6,14 @@ procedure Begin_Tree_Pick
    Initial_Target : String) is
 begin
    Touch (Model);
-   Model.Tree_Pick_Mode_Value := Mode;
-   Model.Tree_Pick_Opened_Panel := Mode /= Pick_None and then not Model.Tree_Panel_Open;
+   Model.Tree_Pick :=
+     (Mode         => Mode,
+      Sources      => Sources,
+      Target       => To_Unbounded_String (Initial_Target),
+      Opened_Panel => Mode /= Pick_None and then not Model.Tree_Panel_Open);
    if Mode /= Pick_None then
       Claim_Overlay_Input (Model);
       --  The picker has its own highlight; the tree's keyboard turn ends.
       Model.Tree_Keyboard_Value := False;
    end if;
-   Model.Tree_Pick_Sources_Value := Sources;
-   Model.Tree_Pick_Target_Value := To_Unbounded_String (Initial_Target);
 end Begin_Tree_Pick;

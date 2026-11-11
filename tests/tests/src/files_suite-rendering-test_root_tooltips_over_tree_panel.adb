@@ -13,8 +13,9 @@ separate (Files_Suite.Rendering)
       Snap.Tree_Panel_Open := True;
       Snap.Root_Selector_Open := True;
       Snap.Root_Selected_Index := 1;
-      Snap.Root_Paths.Append (To_Unbounded_String ("/"));
-      Snap.Root_Labels.Append (To_Unbounded_String ("Filesystem"));
+      Snap.Roots.Append
+        (Root_Row'(Path  => To_Unbounded_String ("/"),
+          Label => To_Unbounded_String ("Filesystem")));
       Layout := Calculate_Layout (Snap, 640, 480, 20);
       Root := Calculate_Root_Selector_Layout (Snap, Layout, 20);
       Rows := Calculate_Root_Path_Layout (Snap, Root);

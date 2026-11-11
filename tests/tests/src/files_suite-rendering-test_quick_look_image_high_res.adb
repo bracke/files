@@ -1,4 +1,5 @@
 with Ada.Containers;
+with Files.File_Types;
 with Files.Shared_Bytes;
 separate (Files_Suite.Rendering)
    procedure Test_Quick_Look_Image_High_Res (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -12,13 +13,13 @@ separate (Files_Suite.Rendering)
       Frame  : Frame_Commands;
       Found  : Boolean := False;
    begin
-      Snap.Quick_Look_Open := True;
-      Snap.Quick_Look_Kind := Files.Quick_Look.Image_Content;
-      Snap.Quick_Look_Name := To_Unbounded_String ("photo.png");
-      Snap.Quick_Look_Icon_Id := To_Unbounded_String ("image");
-      Snap.Quick_Look_Image_Width := IW;
-      Snap.Quick_Look_Image_Height := IH;
-      Snap.Quick_Look_Image_Pixels :=
+      Snap.Quick_Look.Open := True;
+      Snap.Quick_Look.Kind := Files.Quick_Look.Image_Content;
+      Snap.Quick_Look.Name := To_Unbounded_String ("photo.png");
+      Snap.Quick_Look.Icon := Files.File_Types.Image_Icon;
+      Snap.Quick_Look.Image_Width := IW;
+      Snap.Quick_Look.Image_Height := IH;
+      Snap.Quick_Look.Image_Pixels :=
         Files.Shared_Bytes.To_Shared (Files.Types.Byte_Vectors.To_Vector (0, Ada.Containers.Count_Type (IW * IH * 4)));
 
       Frame := Build_Frame_Commands (Snap, Width, Height, LH);

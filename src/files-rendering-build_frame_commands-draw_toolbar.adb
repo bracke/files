@@ -71,9 +71,9 @@ separate (Files.Rendering.Build_Frame_Commands)
             --  Slim vertical inset so the icon can occupy more of the button
             --  height (a modestly larger glyph) while staying inside the rect.
             Pad_V        : constant Natural :=
-              Natural'Min (2, Button_H / 8);
-            Inner_Pad    : constant Natural := Natural'Min (3, Button_W / 6);
-            Group_Pad    : constant Natural := Natural'Min (8, Button_W / 4);
+              Natural'Min (Guikit.Layout.Scaled (2, Line_Height), Button_H / 8);
+            Inner_Pad    : constant Natural := Natural'Min (Guikit.Layout.Scaled (3, Line_Height), Button_W / 6);
+            Group_Pad    : constant Natural := Natural'Min (Guikit.Layout.Scaled (8, Line_Height), Button_W / 4);
             Button_Pad_L : constant Natural :=
               (if Button_Index = First_File_Action_Button then Group_Pad else Inner_Pad);
             Button_Pad_R : constant Natural :=
@@ -88,9 +88,10 @@ separate (Files.Rendering.Build_Frame_Commands)
               (if Button_H > Saturating_Multiply (Pad_V, 2)
                then Button_H - Saturating_Multiply (Pad_V, 2)
                else 0);
+            --  The icon's margins inside a full-width button scale with it.
             Icon_Size : constant Natural :=
-              (if Visible_W >= Toolbar.Button_Width - 4
-               then Natural'Min (Visible_H, Toolbar.Button_Width - 8)
+              (if Visible_W >= Toolbar.Button_Width - Guikit.Layout.Scaled (4, Line_Height)
+               then Natural'Min (Visible_H, Toolbar.Button_Width - Guikit.Layout.Scaled (8, Line_Height))
                else Natural'Min (Visible_W, Visible_H));
             Icon_X   : constant Natural :=
               (if Visible_W > Icon_Size then Visible_X + (Visible_W - Icon_Size) / 2 else Visible_X);

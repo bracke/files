@@ -353,6 +353,7 @@ package body Files_Suite.Operations is
    procedure Test_Info_Pane_Metadata_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Type_Metadata (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Localized_Extras (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Filetype_Facts_Characterized (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Pdf_Page_Markers_Any_Spacing (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Extra_Counts_Mark_Capped (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Zip_Entries_From_End_Record (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -375,6 +376,7 @@ package body Files_Suite.Operations is
    procedure Test_Free_Space_Display_Cycle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Apply_Ui_State_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Icon_Assets_Load_From_Disk (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Builtin_Icons_Match_Share (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Coalesced_Multi (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Filesize_Files_Only (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Pane_Total_In_Contents (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -477,6 +479,7 @@ package body Files_Suite.Operations is
    procedure Test_Job_Item_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Job_Item_Large_Account_Ids (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Operation_Result_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Path_Move_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transfer_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Replacement_Checkpoint_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Truncated_Persisted_Records (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -610,7 +613,11 @@ package body Files_Suite.Operations is
         (T, Test_Job_Item_Large_Account_Ids'Access,
          "job items carry user and group ids from 2**31 up, in the format Natural ids had");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Operation_Result_Record_Validation'Access, "operation results reject inconsistent action metadata");
+        (T, Test_Operation_Result_Record_Validation'Access,
+         "operation results round-trip and reject oversized actions");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Path_Move_Record_Validation'Access,
+         "path moves round-trip with their kind and reject a kind that does not match the new path");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Transfer_Record_Validation'Access,
          "transfer results and requests reject inconsistent or multiply-linked records");
@@ -863,11 +870,17 @@ package body Files_Suite.Operations is
         (T, Test_Icon_Assets_Load_From_Disk'Access,
          "filetype icon definitions load from the bundled .icon files at runtime");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Builtin_Icons_Match_Share'Access,
+         "the compiled-in icon definitions equal the bundled icon files and guikit holds none");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Metadata_Snapshot'Access, "info pane snapshot includes metadata");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Type_Metadata'Access, "item snapshots localize per-filetype metadata");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Pane_Localized_Extras'Access, "info pane localizes every kind of extra info");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Filetype_Facts_Characterized'Access,
+         "every filetype keeps its kind label, extra-info fallback and icon from the one mime table");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Pdf_Page_Markers_Any_Spacing'Access,
          "pdf page markers allow any white-space between the type and page names");
@@ -1506,6 +1519,8 @@ package body Files_Suite.Operations is
 
    procedure Test_Info_Pane_Localized_Extras (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Filetype_Facts_Characterized (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Pdf_Page_Markers_Any_Spacing (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Extra_Counts_Mark_Capped (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -1537,6 +1552,8 @@ package body Files_Suite.Operations is
    procedure Test_Apply_Ui_State_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Icon_Assets_Load_From_Disk (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Builtin_Icons_Match_Share (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    --  With several items selected the info pane is coalesced field-major: each
    --  section label is drawn once (not repeated per item) and each selected
@@ -2053,6 +2070,8 @@ package body Files_Suite.Operations is
    procedure Test_Job_Item_Large_Account_Ids (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Operation_Result_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Path_Move_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Transfer_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

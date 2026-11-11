@@ -19,7 +19,7 @@ is
    Present : constant Boolean :=
      (if Cached.Listed
       then Thumbnail_Path /= ""
-           and then Cache_Holds (Cached, Ada.Directories.Simple_Name (Thumbnail_Path))
+           and then Cache_Holds (Cached, Files.Fs_Primitives.Leaf_Text (Thumbnail_Path))
       else True);
 
    Loaded : Cached_Thumbnail :=

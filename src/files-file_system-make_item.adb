@@ -12,7 +12,7 @@ is
 begin
    return
      (Name        => To_Unbounded_String (Name),
-      Full_Path   => To_Unbounded_String (Join_Path (Parent_Path, Name)),
+      Full_Path   => To_Unbounded_String (Hostkit.Fs.Join (Parent_Path, Name)),
       Parent_Path => To_Unbounded_String (Parent_Path),
       Hidden      => Name'Length > 0 and then Name (Name'First) = '.',
       Kind        => Kind,

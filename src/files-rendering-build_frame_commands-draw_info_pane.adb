@@ -6,7 +6,7 @@ separate (Files.Rendering.Build_Frame_Commands)
            (Info_Pane.X,
             Info_Pane.Y,
             Info_Pane.Width,
-            Natural'Min (2, Info_Pane.Height),
+            Natural'Min (Guikit.Layout.Scaled (2, Line_Height), Info_Pane.Height),
             Border_Color);
          Add_Accessibility_Node
            (Role_Pane,
@@ -287,8 +287,10 @@ separate (Files.Rendering.Build_Frame_Commands)
                      --  editable -- one click hit region per cell. Cell index Bit
                      --  maps to POSIX mode bit 2 ** (8 - Bit); a filled cell is set.
                      procedure Add_Permission_Grid is
-                        Cell : constant Natural := Natural'Max (6, Line_Height - 6);
-                        Gap  : constant Natural := Natural'Max (2, Line_Height / 6);
+                        Cell_Inset : constant Natural := Guikit.Layout.Scaled (6, Line_Height);
+                        Cell : constant Natural :=
+                          Natural'Max (Cell_Inset, (if Line_Height > Cell_Inset then Line_Height - Cell_Inset else 0));
+                        Gap  : constant Natural := Natural'Max (Guikit.Layout.Scaled (2, Line_Height), Line_Height / 6);
                         --  Approximate glyph advance, used to horizontally centre a
                         --  header letter over its column.
                         Char_W : constant Positive := Guikit.Layout.Caret_Advance_Width (Line_Height);
@@ -444,11 +446,15 @@ separate (Files.Rendering.Build_Frame_Commands)
                                            (Raw, Snapshot.Text_Cursor_Position),
                                          Char_W));
                               begin
+                                 --  A 2 px stroke, inset from the row by a
+                                 --  scaled margin above and below.
                                  Add_Rect
                                    (Caret_X,
-                                    Saturating_Add (Natural (Cell_Y), 2),
+                                    Saturating_Add (Natural (Cell_Y), Guikit.Layout.Scaled (2, Line_Height)),
                                     2,
-                                    (if Line_Height > 4 then Line_Height - 4 else Line_Height),
+                                    (if Line_Height > Guikit.Layout.Scaled (4, Line_Height)
+                                     then Line_Height - Guikit.Layout.Scaled (4, Line_Height)
+                                     else Line_Height),
                                     Text_Color);
                               end;
                            end if;

@@ -15,10 +15,10 @@ separate (Files_Suite.Startup)
       pragma Unreferenced (T);
       Scratch_Home : constant String := Join (Root, "migration-home");
       Legacy_Dir   : constant String :=
-        Files.File_System.Join_Path
-          (Files.File_System.Join_Path (Scratch_Home, ".config"), "files");
+        Hostkit.Fs.Join
+          (Hostkit.Fs.Join (Scratch_Home, ".config"), "files");
       Legacy_File  : constant String :=
-        Files.File_System.Join_Path (Legacy_Dir, "settings.conf");
+        Hostkit.Fs.Join (Legacy_Dir, "settings.conf");
 
       --  Default_Settings_Path only uses the host's configuration directory when
       --  the home it is asked about is the one Hostkit resolves. Making that true
@@ -54,7 +54,7 @@ separate (Files_Suite.Startup)
          if Host /= "" then
             Files_Suite.Support.Assert_Equal
               (Fresh,
-               Files.File_System.Join_Path (Files.File_System.Join_Path (Host, "files"), "settings.conf"),
+               Hostkit.Fs.Join (Hostkit.Fs.Join (Host, "files"), "settings.conf"),
                "a fresh install puts settings where the host keeps configuration, got " & Fresh);
          end if;
       end;
@@ -82,8 +82,8 @@ separate (Files_Suite.Startup)
          Host_Path : constant String := Hostkit.Fs.Config_Directory;
          Coincide  : constant Boolean :=
            Host_Path /= ""
-             and then Files.File_System.Join_Path
-                        (Files.File_System.Join_Path (Host_Path, "files"), "settings.conf")
+             and then Hostkit.Fs.Join
+                        (Hostkit.Fs.Join (Host_Path, "files"), "settings.conf")
                       = Legacy_File;
       begin
          if Hostkit.Host.Current = Hostkit.Host.Linux then

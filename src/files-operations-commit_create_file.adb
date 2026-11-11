@@ -21,7 +21,7 @@ begin
    end if;
 
    declare
-      Path     : constant String := Files.File_System.Join_Path (Files.Model.Current_Path (Model), Name);
+      Path     : constant String := Hostkit.Fs.Join (Files.Model.Current_Path (Model), Name);
       Mutation : constant Files.File_System.Mutation_Result :=
         (if Files.Model.Temporary_Item_Is_Directory (Model)
          then Files.File_System.Create_Directory (Path)
@@ -49,5 +49,5 @@ begin
    return
      Make_Result
        (Operation_Success,
-        Path => Files.File_System.Join_Path (Files.Model.Current_Path (Model), Name));
+        Path => Hostkit.Fs.Join (Files.Model.Current_Path (Model), Name));
 end Commit_Create_File;

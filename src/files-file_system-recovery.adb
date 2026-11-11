@@ -63,8 +63,8 @@ package body Files.File_System.Recovery is
    is
    begin
       return not Hostkit.Fs.Is_Link (Path)
-        and then Ada.Directories.Exists (Path)
-        and then Ada.Directories.Kind (Path) = Ada.Directories.Ordinary_File
+        and then Files.Fs_Primitives.Exists (Path)
+        and then Files.Fs_Primitives.Kind (Path) = Ada.Directories.Ordinary_File
         and then Ada.Directories.Size (Path) <= Ada.Directories.File_Size (Maximum);
    exception
       when Swallowed : others =>
@@ -84,15 +84,15 @@ package body Files.File_System.Recovery is
 
    function Registry_Root (Create : Boolean) return String is
       Data : constant String := Registry_Data_Directory;
-      App  : constant String := (if Data = "" then "" else Join_Path (Data, "files"));
-      Root : constant String := (if App = "" then "" else Join_Path (App, "recovery-index"));
+      App  : constant String := (if Data = "" then "" else Hostkit.Fs.Join (Data, "files"));
+      Root : constant String := (if App = "" then "" else Hostkit.Fs.Join (App, "recovery-index"));
 
       procedure Ensure_Directory (Path : String; Parents : Boolean := False) is
       begin
          if Hostkit.Fs.Is_Link (Path) then
             raise Ada.Directories.Use_Error;
-         elsif Ada.Directories.Exists (Path) then
-            if Ada.Directories.Kind (Path) /= Ada.Directories.Directory then
+         elsif Files.Fs_Primitives.Exists (Path) then
+            if Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Directory then
                raise Ada.Directories.Use_Error;
             end if;
          elsif Parents then
@@ -109,9 +109,9 @@ package body Files.File_System.Recovery is
          Ensure_Directory (Data, Parents => True);
          Ensure_Directory (App);
          Ensure_Directory (Root);
-      elsif not Ada.Directories.Exists (Root)
+      elsif not Files.Fs_Primitives.Exists (Root)
         or else Hostkit.Fs.Is_Link (Root)
-        or else Ada.Directories.Kind (Root) /= Ada.Directories.Directory
+        or else Files.Fs_Primitives.Kind (Root) /= Ada.Directories.Directory
       then
          return "";
       end if;
@@ -127,7 +127,7 @@ package body Files.File_System.Recovery is
    is
       Input : aliased Files.Lease_Streams.Input_Stream;
       Magic : UString;
-      Record_Path : constant String := Join_Path (Stage, Owner_Name);
+      Record_Path : constant String := Hostkit.Fs.Join (Stage, Owner_Name);
    begin
       Original := Null_Unbounded_String;
       Identity := Null_Unbounded_String;
@@ -174,7 +174,7 @@ package body Files.File_System.Recovery is
       if not Valid_Absolute_Path (Original) then
          raise Ada.Directories.Use_Error;
       end if;
-      Files.Exclusive_Streams.Create (File, Join_Path (Stage, Owner_Name));
+      Files.Exclusive_Streams.Create (File, Hostkit.Fs.Join (Stage, Owner_Name));
       Write_Bounded
         (File'Access, Owner_Magic, Max_Header_Length);
       Write_Bounded
@@ -182,7 +182,7 @@ package body Files.File_System.Recovery is
       Write_Bounded
         (File'Access, Files.File_Identities.Token (Stage), Max_Identity_Length);
       Files.Exclusive_Streams.Close (File);
-      if Hostkit.Durability.Sync_File (Join_Path (Stage, Owner_Name)) /=
+      if Hostkit.Durability.Sync_File (Hostkit.Fs.Join (Stage, Owner_Name)) /=
         Hostkit.Durability.Synced
       then
          raise Ada.Directories.Use_Error;
@@ -201,7 +201,7 @@ package body Files.File_System.Recovery is
       while Ada.Directories.More_Entries (Search) loop
          Ada.Directories.Get_Next_Entry (Search, Item);
          declare
-            Name : constant String := Ada.Directories.Simple_Name (Item);
+            Name : constant String := Ada.Directories.Simple_Name (Directory_Entry => Item);
          begin
             if Name not in "." | ".." | "payload" | "original" | "mode" | Owner_Name then
                Ada.Directories.End_Search (Search);
@@ -230,13 +230,13 @@ package body Files.File_System.Recovery is
    is
       Input : aliased Files.Lease_Streams.Input_Stream;
       Magic : UString;
-      Record_Path : constant String := Join_Path (Directory, "record");
+      Record_Path : constant String := Hostkit.Fs.Join (Directory, "record");
    begin
       Payload := Null_Unbounded_String;
       Identity := Null_Unbounded_String;
       if Hostkit.Fs.Is_Link (Directory)
-        or else not Ada.Directories.Exists (Directory)
-        or else Ada.Directories.Kind (Directory) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Exists (Directory)
+        or else Files.Fs_Primitives.Kind (Directory) /= Ada.Directories.Directory
         or else not Record_Is_Regular (Record_Path)
       then
          return False;
@@ -280,8 +280,8 @@ package body Files.File_System.Recovery is
       Count : Natural := 0;
    begin
       if Root = ""
-        or else Ada.Directories.Containing_Directory (Directory) /= Root
-        or else not Starts_With (Ada.Directories.Simple_Name (Directory), Files.Protocol_Names.Recovery_Stage_Prefix)
+        or else Files.Fs_Primitives.Parent_Directory (Directory) /= Root
+        or else not Starts_With (Files.Fs_Primitives.Leaf_Text (Directory), Files.Protocol_Names.Recovery_Stage_Prefix)
         or else Hostkit.Fs.Is_Link (Directory)
       then
          return;
@@ -290,9 +290,9 @@ package body Files.File_System.Recovery is
       Open := True;
       while Ada.Directories.More_Entries (Search) loop
          Ada.Directories.Get_Next_Entry (Search, Item);
-         if Ada.Directories.Simple_Name (Item) = "record" then
+         if Ada.Directories.Simple_Name (Directory_Entry => Item) = "record" then
             Count := Count + 1;
-         elsif Ada.Directories.Simple_Name (Item) not in "." | ".." then
+         elsif Ada.Directories.Simple_Name (Directory_Entry => Item) not in "." | ".." then
             Ada.Directories.End_Search (Search);
             return;
          end if;
@@ -326,9 +326,9 @@ package body Files.File_System.Recovery is
       end if;
       declare
          Stage : constant String :=
-           Ada.Directories.Containing_Directory (To_String (Payload));
+           Files.Fs_Primitives.Parent_Directory (To_String (Payload));
       begin
-         return not Ada.Directories.Exists (Stage) and then not Hostkit.Fs.Is_Link (Stage);
+         return not Files.Fs_Primitives.Exists (Stage) and then not Hostkit.Fs.Is_Link (Stage);
       end;
    exception
       when Swallowed : others =>
@@ -351,7 +351,7 @@ package body Files.File_System.Recovery is
       for N in 1 .. 9_999 loop
          declare
             Candidate : constant String :=
-              Join_Path (Root, Files.Protocol_Names.Recovery_Stage_Prefix & Natural_Text (N));
+              Hostkit.Fs.Join (Root, Files.Protocol_Names.Recovery_Stage_Prefix & Natural_Text (N));
          begin
             if Files.Private_Directories.Try_Create (Candidate) =
               Files.Private_Directories.Collision
@@ -377,17 +377,17 @@ package body Files.File_System.Recovery is
          raise Ada.Directories.Use_Error;
       end if;
       Files.Exclusive_Streams.Create
-        (File, Join_Path (To_String (Directory), "record"));
+        (File, Hostkit.Fs.Join (To_String (Directory), "record"));
       Write_Bounded
         (File'Access, Registry_Magic, Max_Header_Length);
       Write_Bounded
         (File'Access, Payload, Max_Path_Length);
       Write_Bounded
         (File'Access,
-         Files.File_Identities.Token (Ada.Directories.Containing_Directory (Payload)),
+         Files.File_Identities.Token (Files.Fs_Primitives.Parent_Directory (Payload)),
          Max_Identity_Length);
       Files.Exclusive_Streams.Close (File);
-      if Hostkit.Durability.Sync_File (Join_Path (To_String (Directory), "record")) /=
+      if Hostkit.Durability.Sync_File (Hostkit.Fs.Join (To_String (Directory), "record")) /=
           Hostkit.Durability.Synced
         or else Hostkit.Durability.Sync_Directory (To_String (Directory)) =
           Hostkit.Durability.Failed
@@ -449,7 +449,7 @@ package body Files.File_System.Recovery is
    --  move back failed too), the stage holds no payload, which nothing would
    --  recognize again: move the held entry back so the stage is whole.
    procedure Resume_Interrupted_Release (Path : String) is
-      Holder : constant String := Join_Path (Ada.Directories.Containing_Directory (Path), "release");
+      Holder : constant String := Hostkit.Fs.Join (Files.Fs_Primitives.Parent_Directory (Path), "release");
       Search : Ada.Directories.Search_Type;
       Item   : Ada.Directories.Directory_Entry_Type;
       Held   : UString;
@@ -457,15 +457,15 @@ package body Files.File_System.Recovery is
    begin
       if Files.Fs_Primitives.Entry_Exists (Path)
         or else Hostkit.Fs.Is_Link (Holder)
-        or else not Ada.Directories.Exists (Holder)
-        or else Ada.Directories.Kind (Holder) /= Ada.Directories.Directory
+        or else not Files.Fs_Primitives.Exists (Holder)
+        or else Files.Fs_Primitives.Kind (Holder) /= Ada.Directories.Directory
       then
          return;
       end if;
       Ada.Directories.Start_Search (Search, Holder, "");
       while Ada.Directories.More_Entries (Search) loop
          Ada.Directories.Get_Next_Entry (Search, Item);
-         if Ada.Directories.Simple_Name (Item) not in "." | ".." then
+         if Ada.Directories.Simple_Name (Directory_Entry => Item) not in "." | ".." then
             Count := Count + 1;
             Held := To_Unbounded_String (Ada.Directories.Full_Name (Item));
          end if;
@@ -476,12 +476,12 @@ package body Files.File_System.Recovery is
          --  (a stage a nested move left there) is not this payload.
          Original : constant String := Original_Path (Path);
          Leaf     : constant String :=
-           (if Valid_Absolute_Path (Original) then Ada.Directories.Simple_Name (Original) else "recovered");
+           (if Valid_Absolute_Path (Original) then Files.Fs_Primitives.Leaf_Text (Original) else "recovered");
       begin
          if Count = 0 then
             Ada.Directories.Delete_Directory (Holder);
          elsif Count = 1
-           and then Ada.Directories.Simple_Name (To_String (Held)) = Leaf
+           and then Files.Fs_Primitives.Leaf_Text (To_String (Held)) = Leaf
            and then Support.Move_No_Replace (To_String (Held), Path)
          then
             Ada.Directories.Delete_Directory (Holder);
@@ -497,8 +497,8 @@ package body Files.File_System.Recovery is
       To_Trash : not null access function (Path, Original : String) return Mutation_Result)
       return Mutation_Result
    is
-      Stage  : constant String := Ada.Directories.Containing_Directory (Path);
-      Holder : constant String := Join_Path (Stage, "release");
+      Stage  : constant String := Files.Fs_Primitives.Parent_Directory (Path);
+      Holder : constant String := Hostkit.Fs.Join (Stage, "release");
       Failed : constant Mutation_Result :=
         (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
    begin
@@ -512,7 +512,7 @@ package body Files.File_System.Recovery is
       begin
          if not Files.Fs_Primitives.Entry_Exists (Path)
            and then not Files.Fs_Primitives.Entry_Exists (Holder)
-           and then Ada.Directories.Simple_Name (Path) = "payload"
+           and then Files.Fs_Primitives.Leaf_Text (Path) = "payload"
            and then Read_Owner (Stage, Original, Identity)
            and then Contains_Only_Owned_Entries (Stage)
          then
@@ -527,10 +527,10 @@ package body Files.File_System.Recovery is
       declare
          Original : constant String := Original_Path (Path);
          Leaf     : constant String :=
-           (if Valid_Absolute_Path (Original) then Ada.Directories.Simple_Name (Original) else "recovered");
+           (if Valid_Absolute_Path (Original) then Files.Fs_Primitives.Leaf_Text (Original) else "recovered");
          --  A folder of its own, so the original's name cannot meet the
          --  stage's own files.
-         Named    : constant String := Join_Path (Holder, Leaf);
+         Named    : constant String := Hostkit.Fs.Join (Holder, Leaf);
       begin
          Ada.Directories.Create_Directory (Holder);
          if not Support.Move_No_Replace (Path, Named) then
@@ -709,14 +709,14 @@ package body Files.File_System.Recovery is
    end Move_By_Copy;
 
    function Recognizes (Path : String) return Boolean is
-      Parent : constant String := Ada.Directories.Containing_Directory (Path);
+      Parent : constant String := Files.Fs_Primitives.Parent_Directory (Path);
       Original, Identity : UString;
    begin
-      return Ada.Directories.Simple_Name (Path) = "payload"
-        and then Starts_With (Ada.Directories.Simple_Name (Parent), Files.Protocol_Names.Recovery_Stage_Prefix)
+      return Files.Fs_Primitives.Leaf_Text (Path) = "payload"
+        and then Starts_With (Files.Fs_Primitives.Leaf_Text (Parent), Files.Protocol_Names.Recovery_Stage_Prefix)
         and then not Hostkit.Fs.Is_Link (Parent)
-        and then Ada.Directories.Exists (Parent)
-        and then Ada.Directories.Kind (Parent) = Ada.Directories.Directory
+        and then Files.Fs_Primitives.Exists (Parent)
+        and then Files.Fs_Primitives.Kind (Parent) = Ada.Directories.Directory
         and then Files.Fs_Primitives.Entry_Exists (Path)
         and then Read_Owner (Parent, Original, Identity);
    exception
@@ -726,7 +726,7 @@ package body Files.File_System.Recovery is
    end Recognizes;
 
    function Discard (Path : String) return Mutation_Result is
-      Parent : constant String := Ada.Directories.Containing_Directory (Path);
+      Parent : constant String := Files.Fs_Primitives.Parent_Directory (Path);
    begin
       Resume_Interrupted_Release (Path);
       if not Recognizes (Path) then
@@ -749,7 +749,7 @@ package body Files.File_System.Recovery is
 
    function Preserve (Path : String; Backup : out Files.Types.UString) return Mutation_Result is
       Original : constant String := GNAT.OS_Lib.Normalize_Pathname (Path, Resolve_Links => False);
-      Parent   : constant String := Ada.Directories.Containing_Directory (Original);
+      Parent   : constant String := Files.Fs_Primitives.Parent_Directory (Original);
       Stage    : UString;
       Registry_Entry : UString;
       File     : aliased Files.Exclusive_Streams.Output_Stream;
@@ -779,7 +779,7 @@ package body Files.File_System.Recovery is
       for N in 1 .. 9_999 loop
          declare
             Candidate : constant String :=
-              Join_Path (Parent, Files.Protocol_Names.Recovery_Stage_Prefix & Natural_Text (N));
+              Hostkit.Fs.Join (Parent, Files.Protocol_Names.Recovery_Stage_Prefix & Natural_Text (N));
          begin
             if Files.Private_Directories.Try_Create (Candidate) =
               Files.Private_Directories.Collision
@@ -795,32 +795,32 @@ package body Files.File_System.Recovery is
          raise Ada.Directories.Use_Error;
       end if;
       Files.Exclusive_Streams.Create
-        (File, Join_Path (To_String (Stage), "original"));
+        (File, Hostkit.Fs.Join (To_String (Stage), "original"));
       Write_Bounded
         (File'Access, Original, Max_Path_Length);
       Files.Exclusive_Streams.Close (File);
-      if Hostkit.Durability.Sync_File (Join_Path (To_String (Stage), "original")) /=
+      if Hostkit.Durability.Sync_File (Hostkit.Fs.Join (To_String (Stage), "original")) /=
         Hostkit.Durability.Synced
       then
          raise Ada.Directories.Use_Error;
       end if;
       Write_Owner (To_String (Stage), Original);
       Registry_Entry := To_Unbounded_String
-        (Register (Join_Path (To_String (Stage), "payload")));
-      if not Hostkit.Fs.Is_Link (Path) and then Ada.Directories.Kind (Path) = Ada.Directories.Directory then
+        (Register (Hostkit.Fs.Join (To_String (Stage), "payload")));
+      if not Hostkit.Fs.Is_Link (Path) and then Files.Fs_Primitives.Kind (Path) = Ada.Directories.Directory then
          declare
             Available : Boolean;
             Mode : constant Natural := Permission_Bits_Of (Path, Available);
          begin
             if Available and then (Mode / 8#200#) mod 2 = 0 then
                Files.Exclusive_Streams.Create
-                 (File, Join_Path (To_String (Stage), "mode"));
+                 (File, Hostkit.Fs.Join (To_String (Stage), "mode"));
                Natural'Output (File'Access, Mode);
                Write_Bounded
                  (File'Access,
                   Files.File_Identities.Token (Path), Max_Identity_Length);
                Files.Exclusive_Streams.Close (File);
-               if Hostkit.Durability.Sync_File (Join_Path (To_String (Stage), "mode")) /=
+               if Hostkit.Durability.Sync_File (Hostkit.Fs.Join (To_String (Stage), "mode")) /=
                  Hostkit.Durability.Synced
                then
                   raise Ada.Directories.Use_Error;
@@ -833,12 +833,12 @@ package body Files.File_System.Recovery is
       then
          raise Ada.Directories.Use_Error;
       end if;
-      if not Support.Move_No_Replace (Path, Join_Path (To_String (Stage), "payload")) then
+      if not Support.Move_No_Replace (Path, Hostkit.Fs.Join (To_String (Stage), "payload")) then
          --  The backup is beside the original, so a refused rename must leave
          --  the original in place rather than starting a destructive fallback.
          raise Ada.Directories.Use_Error;
       end if;
-      Backup := To_Unbounded_String (Join_Path (To_String (Stage), "payload"));
+      Backup := To_Unbounded_String (Hostkit.Fs.Join (To_String (Stage), "payload"));
       if Hostkit.Durability.Sync_Directory (To_String (Stage)) = Hostkit.Durability.Failed
         or else Hostkit.Durability.Sync_Directory (Parent) = Hostkit.Durability.Failed
       then
@@ -855,9 +855,9 @@ package body Files.File_System.Recovery is
          begin
             Files.Exclusive_Streams.Close_Safely (File);
             if Length (Stage) > 0 and then Length (Backup) = 0 then
-               if Files.Fs_Primitives.Entry_Exists (Join_Path (To_String (Stage), "payload"))
+               if Files.Fs_Primitives.Entry_Exists (Hostkit.Fs.Join (To_String (Stage), "payload"))
                then
-                  Backup := To_Unbounded_String (Join_Path (To_String (Stage), "payload"));
+                  Backup := To_Unbounded_String (Hostkit.Fs.Join (To_String (Stage), "payload"));
                   return Put_Back;
                end if;
                begin
@@ -879,9 +879,9 @@ package body Files.File_System.Recovery is
       Target : UString;
       Identity : UString;
       Record_Path : constant String :=
-        Join_Path (Ada.Directories.Containing_Directory (Path), "original");
+        Hostkit.Fs.Join (Files.Fs_Primitives.Parent_Directory (Path), "original");
    begin
-      if Read_Owner (Ada.Directories.Containing_Directory (Path), Target, Identity) then
+      if Read_Owner (Files.Fs_Primitives.Parent_Directory (Path), Target, Identity) then
          return To_String (Target);
       end if;
       if not Record_Is_Regular
@@ -948,7 +948,7 @@ package body Files.File_System.Recovery is
                     and then
                       (Length (Expected) = 0
                        or else Files.File_Identities.Token
-                         (Ada.Directories.Containing_Directory (To_String (Payload))) =
+                         (Files.Fs_Primitives.Parent_Directory (To_String (Payload))) =
                            To_String (Expected))
                   then
                      Result.Append (Payload);
@@ -975,7 +975,7 @@ package body Files.File_System.Recovery is
 
    function Restore
      (Path : String; Expected_Identity : String := ""; Expected_Original : String := "") return Mutation_Result is
-      Parent : constant String := Ada.Directories.Containing_Directory (Path);
+      Parent : constant String := Files.Fs_Primitives.Parent_Directory (Path);
       Target : UString;
    begin
       Resume_Interrupted_Release (Path);
@@ -994,10 +994,10 @@ package body Files.File_System.Recovery is
       end if;
       --  A failed post-rename permission restoration can leave the private
       --  payload writable. Restore its recorded mode before retrying the move.
-      if Ada.Directories.Exists (Join_Path (Parent, "mode")) then
+      if Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Parent, "mode")) then
          declare
             Input : aliased Files.Lease_Streams.Input_Stream;
-            Record_Path : constant String := Join_Path (Parent, "mode");
+            Record_Path : constant String := Hostkit.Fs.Join (Parent, "mode");
             Mode, Previous : Natural;
             Expected, Identity : UString;
             Result : Mutation_Result;

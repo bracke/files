@@ -13,9 +13,9 @@ separate (Files_Suite.Rendering)
          Close  : Close_Button_Layout;
          Frame  : Frame_Commands;
       begin
-         Snap.Quick_Look_Open := True;
-         Snap.Quick_Look_Kind := Files.Quick_Look.Info_Content;
-         Snap.Quick_Look_Name := To_Unbounded_String ("notes.txt");
+         Snap.Quick_Look.Open := True;
+         Snap.Quick_Look.Kind := Files.Quick_Look.Info_Content;
+         Snap.Quick_Look.Name := To_Unbounded_String ("notes.txt");
          Layout := Calculate_Layout (Snap, Width, Height, LH);
          QL     := Calculate_Quick_Look_Layout (Layout, LH);
          Close  := Panel_Close_Button (QL.X, QL.Y, QL.Width, QL.Height, LH);

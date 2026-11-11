@@ -30,7 +30,7 @@ is
    end Is_Subdirectory;
 
    procedure Add_Entry (Name : String) is
-      Full : constant String := Join_Path (To_String (Normalized), Name);
+      Full : constant String := Hostkit.Fs.Join (To_String (Normalized), Name);
    begin
       if (Options.Show_Hidden or else Name (Name'First) /= '.')
         and then Is_Subdirectory (Full)

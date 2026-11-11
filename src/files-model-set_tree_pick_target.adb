@@ -4,5 +4,5 @@ procedure Set_Tree_Pick_Target
    Target : String) is
 begin
    Touch (Model);
-   Model.Tree_Pick_Target_Value := To_Unbounded_String (Target);
+   Model.Tree_Pick.Target := To_Unbounded_String (Target);
 end Set_Tree_Pick_Target;

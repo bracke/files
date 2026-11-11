@@ -108,13 +108,15 @@ separate (Files.Rendering.Build_Frame_Commands)
             Size       => Draw_Size,
             Icon_Id    => To_Unbounded_String (Icon_Name),
             Theme_Name => To_Unbounded_String (Icon_Theme_Name),
-            Asset_Path => To_Unbounded_String ("share/files/icons/" & Icon_Name & ".icon"),
             Thumbnail_Width  => 0,
             Thumbnail_Height => 0,
             Thumbnail_Pixels => Files.Shared_Bytes.Empty,
             Overlay          => False,
             Draw_Width       => 0,
             Draw_Height      => 0,
+            --  Drawn just below as triangles and rectangles: the command only
+            --  records where the icon is, so the backend does not draw it again.
+            Class            => Placed_Icon,
             others           => <>));
 
       if Id = Files.Commands.Navigate_Home_Command then

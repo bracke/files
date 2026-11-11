@@ -21,7 +21,7 @@ begin
          return
            (Status         => Path_Valid,
             Directory_Path =>
-              To_Unbounded_String (Ada.Directories.Containing_Directory (Ada.Directories.Full_Name (Path))),
+              To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (Ada.Directories.Full_Name (Path))),
             Error_Key      => Null_Unbounded_String);
       when Ada.Directories.Special_File =>
          return

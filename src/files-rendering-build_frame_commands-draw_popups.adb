@@ -1,171 +1,180 @@
 separate (Files.Rendering.Build_Frame_Commands)
    procedure Draw_Popups is
-   begin
-      if Snapshot.Quick_Look_Open then
-         declare
-            QL      : constant Quick_Look_Layout := Calculate_Quick_Look_Layout (Layout, Line_Height);
-            Margin  : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
-            Title_X : constant Natural := Saturating_Add (QL.X, Margin);
-            Title_Y : constant Natural := Saturating_Add (QL.Y, Natural'Max (4, Line_Height / 4));
-            Title_W : constant Natural :=
-              (if QL.Width > Saturating_Multiply (Margin, 2)
-               then QL.Width - Saturating_Multiply (Margin, 2) else QL.Width);
-         begin
-            --  Quick Look owns pointer and keyboard input while open.  Keep
-            --  inactive file-view controls out of the accessibility frame;
-            --  the dialog description identifies the item being previewed and
-            --  updates as keyboard navigation changes the selection.
-            Result.Accessibility.Clear;
-            Add_Overlay_Drop_Shadow (QL.X, QL.Y, QL.Width, QL.Height);
-            Add_Overlay_Rect (QL.X, QL.Y, QL.Width, QL.Height, Pane_Color);
-            Add_Overlay_Border (QL.X, QL.Y, QL.Width, QL.Height, Border_Color);
-            Add_Overlay_Rect (QL.X, QL.Y, QL.Width, Natural'Min (3, QL.Height), Selection_Color);
-            Add_Accessibility_Node
-              (Role_Dialog, QL.X, QL.Y, QL.Width, QL.Height,
-               Localized ("accessibility.quick_look"), Snapshot.Quick_Look_Name);
-            --  Panel title: the previewed item's name, which also serves as the
-            --  content marker tests assert on for every kind.
-            Add_Overlay_Text (Title_X, Title_Y, Title_W, Line_Height, Snapshot.Quick_Look_Name, Fit => True);
+      --  The Quick Look panel, drawn from its own part of the snapshot.
+      procedure Draw_Quick_Look (Look : Quick_Look_Snapshot) is
+         QL      : constant Quick_Look_Layout := Calculate_Quick_Look_Layout (Layout, Line_Height);
+         Margin  : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
+         Title_X : constant Natural := Saturating_Add (QL.X, Margin);
+         Title_Y : constant Natural :=
+           Saturating_Add (QL.Y, Natural'Max (Guikit.Layout.Scaled (4, Line_Height), Line_Height / 4));
+         --  The accent band along the panel's top edge.
+         Accent_H : constant Natural := Natural'Min (Guikit.Layout.Scaled (3, Line_Height), QL.Height);
+         Title_W : constant Natural :=
+           (if QL.Width > Saturating_Multiply (Margin, 2)
+            then QL.Width - Saturating_Multiply (Margin, 2) else QL.Width);
+      begin
+         --  Quick Look owns pointer and keyboard input while open.  Keep
+         --  inactive file-view controls out of the accessibility frame;
+         --  the dialog description identifies the item being previewed and
+         --  updates as keyboard navigation changes the selection.
+         Result.Accessibility.Clear;
+         Add_Overlay_Drop_Shadow (QL.X, QL.Y, QL.Width, QL.Height);
+         Add_Overlay_Rect (QL.X, QL.Y, QL.Width, QL.Height, Pane_Color);
+         Add_Overlay_Border (QL.X, QL.Y, QL.Width, QL.Height, Border_Color);
+         Add_Overlay_Rect (QL.X, QL.Y, QL.Width, Accent_H, Selection_Color);
+         Add_Accessibility_Node
+           (Role_Dialog, QL.X, QL.Y, QL.Width, QL.Height,
+            Localized ("accessibility.quick_look"), Look.Name);
+         --  Panel title: the previewed item's name, which also serves as the
+         --  content marker tests assert on for every kind.
+         Add_Overlay_Text (Title_X, Title_Y, Title_W, Line_Height, Look.Name, Fit => True);
 
-            case Snapshot.Quick_Look_Kind is
-               when Files.Quick_Look.Image_Content =>
-                  if not Files.Shared_Bytes.Is_Empty (Snapshot.Quick_Look_Image_Pixels)
-                    and then Snapshot.Quick_Look_Image_Width > 0
-                    and then Snapshot.Quick_Look_Image_Height > 0
-                  then
-                     declare
-                        IW : constant Natural := Snapshot.Quick_Look_Image_Width;
-                        IH : constant Natural := Snapshot.Quick_Look_Image_Height;
-                        CW : constant Natural := QL.Content_Width;
-                        CH : constant Natural := QL.Content_Height;
-                        --  Fit the image inside the content box preserving aspect.
-                        Height_Bound : constant Boolean :=
-                          Saturating_Multiply (IW, CH) <= Saturating_Multiply (IH, CW);
-                        Draw_W : constant Natural :=
-                          (if Height_Bound then Saturating_Multiply (IW, CH) / IH else CW);
-                        Draw_H : constant Natural :=
-                          (if Height_Bound then CH else Saturating_Multiply (IH, CW) / IW);
-                        Img_X  : constant Natural :=
-                          Saturating_Add (QL.Content_X, Centered (CW, Draw_W));
-                        Img_Y  : constant Natural :=
-                          Saturating_Add (QL.Content_Y, Centered (CH, Draw_H));
-                     begin
-                        if Draw_W > 0 and then Draw_H > 0 then
-                           --  One icon command carrying the decoded pixels; the
-                           --  atlas gives it a high-resolution tile and it draws
-                           --  at its aspect-correct size.
-                           Result.Icons.Append
-                             (Icon_Command'
-                                (X                => Img_X,
-                                 Y                => Img_Y,
-                                 Size             => Draw_W,
-                                 Icon_Id          => Snapshot.Quick_Look_Icon_Id,
-                                 Theme_Name       => To_Unbounded_String (Icon_Theme_Name),
-                                 Asset_Path       => Null_Unbounded_String,
-                                 Thumbnail_Width  => IW,
-                                 Thumbnail_Height => IH,
-                                 Thumbnail_Pixels => Snapshot.Quick_Look_Image_Pixels,
-                                 Overlay          => True,
-                                 Draw_Width       => Draw_W,
-                                 Draw_Height      => Draw_H,
-                                 others           => <>));
-                        end if;
-                     end;
-                  else
-                     Add_Overlay_Text
-                       (QL.Content_X, QL.Content_Y, QL.Content_Width, Line_Height,
-                        Localized ("quick_look.empty"), Muted_Text_Color);
-                  end if;
-               when Files.Quick_Look.Text_Content =>
+         case Look.Kind is
+            when Files.Quick_Look.Image_Content =>
+               if not Files.Shared_Bytes.Is_Empty (Look.Image_Pixels)
+                 and then Look.Image_Width > 0
+                 and then Look.Image_Height > 0
+               then
                   declare
-                     Max_Lines : constant Natural :=
-                       (if QL.Content_Height >= Line_Height then QL.Content_Height / Line_Height else 0);
-                     Source_Lines : constant Natural :=
-                       Natural (Snapshot.Quick_Look_Text_Lines.Length);
-                     Content_Omitted : constant Boolean :=
-                       Snapshot.Quick_Look_Text_Truncated or else Source_Lines > Max_Lines;
-                     Preview_Lines : constant Natural :=
-                       (if Content_Omitted and then Max_Lines > 0
-                        then Max_Lines - 1
-                        else Max_Lines);
-                     Row       : Natural := 0;
+                     IW : constant Natural := Look.Image_Width;
+                     IH : constant Natural := Look.Image_Height;
+                     CW : constant Natural := QL.Content_Width;
+                     CH : constant Natural := QL.Content_Height;
+                     --  Fit the image inside the content box preserving aspect.
+                     Height_Bound : constant Boolean :=
+                       Saturating_Multiply (IW, CH) <= Saturating_Multiply (IH, CW);
+                     Draw_W : constant Natural :=
+                       (if Height_Bound then Saturating_Multiply (IW, CH) / IH else CW);
+                     Draw_H : constant Natural :=
+                       (if Height_Bound then CH else Saturating_Multiply (IH, CW) / IW);
+                     Img_X  : constant Natural :=
+                       Saturating_Add (QL.Content_X, Centered (CW, Draw_W));
+                     Img_Y  : constant Natural :=
+                       Saturating_Add (QL.Content_Y, Centered (CH, Draw_H));
                   begin
-                     for Line of Snapshot.Quick_Look_Text_Lines loop
-                        exit when Row >= Preview_Lines;
-                        Add_Overlay_Text
-                          (QL.Content_X,
-                           Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
-                           QL.Content_Width, Line_Height, Line, Fit => True);
-                        Row := Row + 1;
-                     end loop;
-                     if Content_Omitted and then Max_Lines > 0 then
-                        Add_Overlay_Text
-                          (QL.Content_X,
-                           Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
-                           QL.Content_Width, Line_Height,
-                           Localized ("quick_look.truncated"), Muted_Text_Color, Italic => True);
-                     end if;
-                  end;
-               when Files.Quick_Look.Info_Content =>
-                  declare
-                     Text_Height : constant Natural := Saturating_Multiply (Line_Height, 2);
-                     Reserved_H  : constant Natural :=
-                       Saturating_Add (Margin, Text_Height);
-                     Icon_Height_Available : constant Natural :=
-                       (if QL.Content_Height > Reserved_H
-                        then QL.Content_Height - Reserved_H
-                        else 0);
-                     Icon_Size : constant Natural :=
-                       Natural'Min
-                         (Saturating_Multiply (Line_Height, 3),
-                          Natural'Min (QL.Content_Width, Icon_Height_Available));
-                     Content_End_Y : constant Natural :=
-                       Saturating_Add (QL.Content_Y, QL.Content_Height);
-                     Row_Y     : Natural :=
-                       Saturating_Add
-                         (QL.Content_Y,
-                          Saturating_Add
-                            (Icon_Size, (if Icon_Size > 0 then Margin else 0)));
-                     Size_Value : constant UString :=
-                       (if Snapshot.Quick_Look_Size_Available
-                        then To_Unbounded_String (Size_Text (Snapshot.Quick_Look_Size))
-                        else Localized ("status.missing_metadata"));
-                  begin
-                     if Icon_Size > 0 then
+                     if Draw_W > 0 and then Draw_H > 0 then
+                        --  One icon command carrying the decoded pixels; the
+                        --  atlas gives it a high-resolution tile and it draws
+                        --  at its aspect-correct size.
                         Result.Icons.Append
                           (Icon_Command'
-                             (X                => QL.Content_X,
-                              Y                => QL.Content_Y,
-                              Size             => Icon_Size,
-                              Icon_Id          => Snapshot.Quick_Look_Icon_Id,
+                             (X                => Img_X,
+                              Y                => Img_Y,
+                              Size             => Draw_W,
+                              Icon_Id          =>
+                                To_Unbounded_String (Files.File_Types.Icon_Name (Look.Icon)),
                               Theme_Name       => To_Unbounded_String (Icon_Theme_Name),
-                              Asset_Path       => Null_Unbounded_String,
-                              Thumbnail_Width  => 0,
-                              Thumbnail_Height => 0,
-                              Thumbnail_Pixels => Files.Shared_Bytes.Empty,
+                              Thumbnail_Width  => IW,
+                              Thumbnail_Height => IH,
+                              Thumbnail_Pixels => Look.Image_Pixels,
                               Overlay          => True,
-                              Draw_Width       => 0,
-                              Draw_Height      => 0,
+                              Draw_Width       => Draw_W,
+                              Draw_Height      => Draw_H,
+                              Base_Color       =>
+                                Atlas_Base_Color (Files.File_Types.Icon_Name (Look.Icon)),
                               others           => <>));
                      end if;
-                     if Row_Y < Content_End_Y then
-                        Add_Overlay_Text
-                          (QL.Content_X, Row_Y, QL.Content_Width,
-                           Natural'Min (Line_Height, Content_End_Y - Row_Y),
-                           Snapshot.Quick_Look_Type, Muted_Text_Color, Fit => True);
-                        Row_Y := Saturating_Add (Row_Y, Line_Height);
-                     end if;
-                     if Row_Y < Content_End_Y then
-                        Add_Overlay_Text
-                          (QL.Content_X, Row_Y, QL.Content_Width,
-                           Natural'Min (Line_Height, Content_End_Y - Row_Y),
-                           Size_Value, Muted_Text_Color, Fit => True);
-                     end if;
                   end;
-            end case;
+               else
+                  Add_Overlay_Text
+                    (QL.Content_X, QL.Content_Y, QL.Content_Width, Line_Height,
+                     Localized ("quick_look.empty"), Muted_Text_Color);
+               end if;
+            when Files.Quick_Look.Text_Content =>
+               declare
+                  Max_Lines : constant Natural :=
+                    (if QL.Content_Height >= Line_Height then QL.Content_Height / Line_Height else 0);
+                  Source_Lines : constant Natural :=
+                    Natural (Look.Text_Lines.Length);
+                  Content_Omitted : constant Boolean :=
+                    Look.Text_Truncated or else Source_Lines > Max_Lines;
+                  Preview_Lines : constant Natural :=
+                    (if Content_Omitted and then Max_Lines > 0
+                     then Max_Lines - 1
+                     else Max_Lines);
+                  Row       : Natural := 0;
+               begin
+                  for Line of Look.Text_Lines loop
+                     exit when Row >= Preview_Lines;
+                     Add_Overlay_Text
+                       (QL.Content_X,
+                        Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
+                        QL.Content_Width, Line_Height, Line, Fit => True);
+                     Row := Row + 1;
+                  end loop;
+                  if Content_Omitted and then Max_Lines > 0 then
+                     Add_Overlay_Text
+                       (QL.Content_X,
+                        Saturating_Add (QL.Content_Y, Saturating_Multiply (Row, Line_Height)),
+                        QL.Content_Width, Line_Height,
+                        Localized ("quick_look.truncated"), Muted_Text_Color, Italic => True);
+                  end if;
+               end;
+            when Files.Quick_Look.Info_Content =>
+               declare
+                  Text_Height : constant Natural := Saturating_Multiply (Line_Height, 2);
+                  Reserved_H  : constant Natural :=
+                    Saturating_Add (Margin, Text_Height);
+                  Icon_Height_Available : constant Natural :=
+                    (if QL.Content_Height > Reserved_H
+                     then QL.Content_Height - Reserved_H
+                     else 0);
+                  Icon_Size : constant Natural :=
+                    Natural'Min
+                      (Saturating_Multiply (Line_Height, 3),
+                       Natural'Min (QL.Content_Width, Icon_Height_Available));
+                  Content_End_Y : constant Natural :=
+                    Saturating_Add (QL.Content_Y, QL.Content_Height);
+                  Row_Y     : Natural :=
+                    Saturating_Add
+                      (QL.Content_Y,
+                       Saturating_Add
+                         (Icon_Size, (if Icon_Size > 0 then Margin else 0)));
+                  Size_Value : constant UString :=
+                    (if Look.Size_Available
+                     then To_Unbounded_String (Size_Text (Look.Size))
+                     else Localized ("status.missing_metadata"));
+               begin
+                  if Icon_Size > 0 then
+                     Result.Icons.Append
+                       (Icon_Command'
+                          (X                => QL.Content_X,
+                           Y                => QL.Content_Y,
+                           Size             => Icon_Size,
+                           Icon_Id          =>
+                             To_Unbounded_String (Files.File_Types.Icon_Name (Look.Icon)),
+                           Theme_Name       => To_Unbounded_String (Icon_Theme_Name),
+                           Thumbnail_Width  => 0,
+                           Thumbnail_Height => 0,
+                           Thumbnail_Pixels => Files.Shared_Bytes.Empty,
+                           Overlay          => True,
+                           Draw_Width       => 0,
+                           Draw_Height      => 0,
+                           Base_Color       =>
+                             Atlas_Base_Color (Files.File_Types.Icon_Name (Look.Icon)),
+                           others           => <>));
+                  end if;
+                  if Row_Y < Content_End_Y then
+                     Add_Overlay_Text
+                       (QL.Content_X, Row_Y, QL.Content_Width,
+                        Natural'Min (Line_Height, Content_End_Y - Row_Y),
+                        Look.Filetype, Muted_Text_Color, Fit => True);
+                     Row_Y := Saturating_Add (Row_Y, Line_Height);
+                  end if;
+                  if Row_Y < Content_End_Y then
+                     Add_Overlay_Text
+                       (QL.Content_X, Row_Y, QL.Content_Width,
+                        Natural'Min (Line_Height, Content_End_Y - Row_Y),
+                        Size_Value, Muted_Text_Color, Fit => True);
+                  end if;
+               end;
+         end case;
 
-            Draw_Close_Button (QL.X, QL.Y, QL.Width, QL.Height, Overlay => True);
-         end;
+         Draw_Close_Button (QL.X, QL.Y, QL.Width, QL.Height, Overlay => True);
+      end Draw_Quick_Look;
+   begin
+      if Snapshot.Quick_Look.Open then
+         Draw_Quick_Look (Snapshot.Quick_Look);
       end if;
 
       if Snapshot.Label_Picker_Open then
@@ -174,7 +183,12 @@ separate (Files.Rendering.Build_Frame_Commands)
               Calculate_Label_Picker_Layout (Layout, Line_Height);
             Margin  : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
             Title_X : constant Natural := Saturating_Add (Picker.X, Margin);
-            Title_Y : constant Natural := Saturating_Add (Picker.Y, Natural'Max (4, Line_Height / 4));
+            Title_Y : constant Natural :=
+              Saturating_Add (Picker.Y, Natural'Max (Guikit.Layout.Scaled (4, Line_Height), Line_Height / 4));
+            --  The accent band along the panel's top edge.
+            Accent_H : constant Natural := Natural'Min (Guikit.Layout.Scaled (3, Line_Height), Picker.Height);
+            --  The keyboard highlight's second ring sits this far inside a swatch.
+            Ring_Inset : constant Natural := Guikit.Layout.Scaled (2, Line_Height);
             Title_W : constant Natural :=
               (if Picker.Width > Saturating_Multiply (Margin, 2)
                then Picker.Width - Saturating_Multiply (Margin, 2) else Picker.Width);
@@ -186,8 +200,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             Add_Overlay_Drop_Shadow (Picker.X, Picker.Y, Picker.Width, Picker.Height);
             Add_Overlay_Rect (Picker.X, Picker.Y, Picker.Width, Picker.Height, Pane_Color);
             Add_Overlay_Border (Picker.X, Picker.Y, Picker.Width, Picker.Height, Border_Color);
-            Add_Overlay_Rect
-              (Picker.X, Picker.Y, Picker.Width, Natural'Min (3, Picker.Height), Selection_Color);
+            Add_Overlay_Rect (Picker.X, Picker.Y, Picker.Width, Accent_H, Selection_Color);
             Add_Accessibility_Node
               (Role_Dialog, Picker.X, Picker.Y, Picker.Width, Picker.Height,
                Localized ("accessibility.label_picker"));
@@ -228,11 +241,15 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Add_Overlay_Border
                     (Swatch.X, Swatch.Y, Swatch.Width, Swatch.Height,
                      (if Hovered or else Highlighted then Selection_Color else Border_Color));
-                  if Highlighted and then Swatch.Width > 4 and then Swatch.Height > 4 then
+                  if Highlighted
+                    and then Swatch.Width > 2 * Ring_Inset
+                    and then Swatch.Height > 2 * Ring_Inset
+                  then
                      --  A second inset ring so the keyboard highlight reads
                      --  distinctly from a plain mouse hover.
                      Add_Overlay_Border
-                       (Swatch.X + 2, Swatch.Y + 2, Swatch.Width - 4, Swatch.Height - 4,
+                       (Swatch.X + Ring_Inset, Swatch.Y + Ring_Inset,
+                        Swatch.Width - 2 * Ring_Inset, Swatch.Height - 2 * Ring_Inset,
                         Selection_Color);
                   end if;
                   Add_Accessibility_Node

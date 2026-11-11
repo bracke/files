@@ -142,17 +142,16 @@ separate (Files.Rendering)
       Snapshot.Paste_Conflict_Open := Files.Model.Paste_Conflict_Is_Active (Model);
       Snapshot.Paste_Conflict_Name := To_Unbounded_String (Files.Model.Paste_Conflict_Name (Model));
       Snapshot.Paste_Conflict_Apply_All := Files.Model.Paste_Conflict_Apply_All (Model);
-      Snapshot.Paste_Progress_Open := Files.Model.Paste_Execution_Is_Active (Model);
-      Snapshot.Paste_Progress_Operation_Label := To_Unbounded_String (Files.Model.Background_Operation_Label (Model));
-      Snapshot.Paste_Progress_Done := Files.Model.Paste_Execution_Done (Model);
-      Snapshot.Paste_Progress_Total := Files.Model.Paste_Execution_Total (Model);
-      Snapshot.Paste_Progress_Name :=
-        To_Unbounded_String (Files.Model.Paste_Execution_Current_Name (Model));
       declare
          use type Files.File_System.Drop_Import_Mode;
       begin
-         Snapshot.Paste_Progress_Moving :=
-           Files.Model.Paste_Execution_Mode (Model) = Files.File_System.Drop_Move;
+         Snapshot.Paste_Progress :=
+           (Open            => Files.Model.Paste_Execution_Is_Active (Model),
+            Done            => Files.Model.Paste_Execution_Done (Model),
+            Total           => Files.Model.Paste_Execution_Total (Model),
+            Name            => To_Unbounded_String (Files.Model.Paste_Execution_Current_Name (Model)),
+            Moving          => Files.Model.Paste_Execution_Mode (Model) = Files.File_System.Drop_Move,
+            Operation_Label => To_Unbounded_String (Files.Model.Background_Operation_Label (Model)));
       end;
       Snapshot.Theme_Palette :=
         (case Settings.Theme is
@@ -180,22 +179,26 @@ separate (Files.Rendering)
 
       Snapshot.Label_Picker_Open := Files.Model.Label_Picker_Is_Open (Model);
       Snapshot.Label_Picker_Highlight := Files.Model.Label_Picker_Highlight (Model);
-      Snapshot.Quick_Look_Open := Files.Model.Quick_Look_Is_Open (Model);
-      if Snapshot.Quick_Look_Open then
+      if Files.Model.Quick_Look_Is_Open (Model) then
          declare
             Content : constant Files.Quick_Look.Quick_Look_Content :=
               Files.Model.Quick_Look_Content_Of (Model);
             Item    : constant Files.Items.Directory_Item :=
               Files.Model.Selected_Item (Model);
          begin
-            Snapshot.Quick_Look_Kind           := Content.Kind;
-            Snapshot.Quick_Look_Name           := Content.Name;
-            Snapshot.Quick_Look_Type           := Content.Filetype;
-            Snapshot.Quick_Look_Icon_Id        := Content.Icon_Id;
-            Snapshot.Quick_Look_Size_Available := Content.Size_Available;
-            Snapshot.Quick_Look_Size           := Content.Size;
-            Snapshot.Quick_Look_Text_Lines     := Content.Text_Lines;
-            Snapshot.Quick_Look_Text_Truncated := Content.Text_Truncated;
+            Snapshot.Quick_Look :=
+              (Open           => True,
+               Kind           => Content.Kind,
+               Name           => Content.Name,
+               Filetype       => Content.Filetype,
+               Icon           =>
+                 Files.File_Types.Resolve_Icon
+                   (Item.Kind, To_String (Content.Filetype), To_String (Content.Icon_Id)),
+               Size_Available => Content.Size_Available,
+               Size           => Content.Size,
+               Text_Lines     => Content.Text_Lines,
+               Text_Truncated => Content.Text_Truncated,
+               others         => <>);
             --  Prefer the original image decoded at preview resolution; fall
             --  back to the item's small thumbnail when decoding was unavailable.
             if Content.Kind = Files.Quick_Look.Image_Content
@@ -203,15 +206,15 @@ separate (Files.Rendering)
                 (Content.Image_Width, Content.Image_Height,
                  Ada.Containers.Count_Type (Files.Shared_Bytes.Length (Content.Image_Pixels)))
             then
-               Snapshot.Quick_Look_Image_Width  := Content.Image_Width;
-               Snapshot.Quick_Look_Image_Height := Content.Image_Height;
-               Snapshot.Quick_Look_Image_Pixels := Content.Image_Pixels;
+               Snapshot.Quick_Look.Image_Width  := Content.Image_Width;
+               Snapshot.Quick_Look.Image_Height := Content.Image_Height;
+               Snapshot.Quick_Look.Image_Pixels := Content.Image_Pixels;
             elsif Content.Kind = Files.Quick_Look.Image_Content
               and then Item.Thumbnail_Available
             then
-               Snapshot.Quick_Look_Image_Width  := Item.Thumbnail_Width;
-               Snapshot.Quick_Look_Image_Height := Item.Thumbnail_Height;
-               Snapshot.Quick_Look_Image_Pixels := Item.Thumbnail_Pixels;
+               Snapshot.Quick_Look.Image_Width  := Item.Thumbnail_Width;
+               Snapshot.Quick_Look.Image_Height := Item.Thumbnail_Height;
+               Snapshot.Quick_Look.Image_Pixels := Item.Thumbnail_Pixels;
             end if;
          end;
       end if;
@@ -221,13 +224,11 @@ separate (Files.Rendering)
       end loop;
 
       for Index in 1 .. Files.Model.Root_Count (Model) loop
-         declare
-            Root_Path  : constant String := Files.Model.Root_Path (Model, Index);
-         begin
-            Snapshot.Root_Paths.Append (To_Unbounded_String (Root_Path));
-            Snapshot.Root_Labels.Append
-              (To_Unbounded_String (Files.Root_Labels.Display_Label (Files.Model.Root_Entry_At (Model, Index))));
-         end;
+         Snapshot.Roots.Append
+           (Root_Row'
+              (Path  => To_Unbounded_String (Files.Model.Root_Path (Model, Index)),
+               Label =>
+                 To_Unbounded_String (Files.Root_Labels.Display_Label (Files.Model.Root_Entry_At (Model, Index)))));
       end loop;
 
       Snapshot.Tree_Panel_Open := Files.Model.Tree_Panel_Is_Open (Model);
@@ -325,7 +326,8 @@ separate (Files.Rendering)
                   Full_Path          => Item.Full_Path,
                   Filetype           => Item.Filetype,
                   Filetype_Detail    => Filetype_Detail (Item),
-                  Icon_Id            => Item.Icon_Id,
+                  Icon               =>
+                    Files.File_Types.Resolve_Icon (Item.Kind, To_String (Item.Filetype), To_String (Item.Icon_Id)),
                   Kind               => Item.Kind,
                   Size_Available     => Item.Size_Available,
                   Size               => Item.Size,

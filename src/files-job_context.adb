@@ -176,7 +176,7 @@ package body Files.Job_Context is
       if Hostkit.Durability.Sync_File (Path) = Hostkit.Durability.Synced then
          declare
             Outcome : constant Hostkit.Durability.Outcome :=
-              Hostkit.Durability.Sync_Directory (Ada.Directories.Containing_Directory (Path));
+              Hostkit.Durability.Sync_Directory (Files.Fs_Primitives.Parent_Directory (Path));
             pragma Unreferenced (Outcome);
          begin
             null;
@@ -792,7 +792,7 @@ package body Files.Job_Context is
             end if;
          end if;
          declare
-            Name : constant String := Ada.Directories.Simple_Name (To_String (Path));
+            Name : constant String := Files.Fs_Primitives.Leaf_Text (To_String (Path));
             Valid : constant Boolean :=
               Name'Length > 12
               and then Name (Name'First .. Name'First + 11) = ".files-work-"

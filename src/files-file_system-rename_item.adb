@@ -39,8 +39,8 @@ is
       From_Identity : constant String := Files.File_Identities.Token (From_Path);
    begin
       return Exists_Safely (To_Path)
-        and then Ada.Directories.Containing_Directory (From_Path)
-                 = Ada.Directories.Containing_Directory (To_Path)
+        and then Files.Fs_Primitives.Parent_Directory (From_Path)
+                 = Files.Fs_Primitives.Parent_Directory (To_Path)
         and then
           (if From_Identity /= "" then
              Files.File_Identities.Token (To_Path) = From_Identity
@@ -63,7 +63,7 @@ is
    --  it remains free, otherwise it retains the owned entry at the scratch name
    --  and says where (Rename_Stranded_Key, Left_At).
    function Rename_Case_Only return Mutation_Result is
-      Directory : constant String := Ada.Directories.Containing_Directory (From_Path);
+      Directory : constant String := Files.Fs_Primitives.Parent_Directory (From_Path);
 
       --  Beside the original and visible, named after it ("notes
       --  (renaming).txt"), so an entry left there is found by the name the
@@ -74,7 +74,7 @@ is
       Word  : constant String := "renaming";
       Close : constant String := ")";
       function Temp_Candidate (Index : Positive) return String is
-        (Join_Path
+        (Hostkit.Fs.Join
            (Directory,
             Files.Leaf_Names.Fit
               (Mutation_Leaf_Name (From_Path),
@@ -215,11 +215,11 @@ is
       end;
       Committed := True;
       declare
-         Stage : constant String := Ada.Directories.Containing_Directory (To_String (Backup));
+         Stage : constant String := Files.Fs_Primitives.Parent_Directory (To_String (Backup));
          Removed : constant Mutation_Result := Delete_Permanently (Stage);
          pragma Unreferenced (Removed);
       begin
-         if not Ada.Directories.Exists (Stage) and then not Hostkit.Fs.Is_Link (Stage) then
+         if not Files.Fs_Primitives.Exists (Stage) and then not Hostkit.Fs.Is_Link (Stage) then
             Recovery.Unregister (To_String (Backup));
          end if;
       end;
@@ -266,8 +266,8 @@ begin
          Error_Key => To_Unbounded_String ("error.name.invalid"));
    elsif (Exists_Safely (To_Path) and then not Is_Case_Only_Rename)
      or else Parent = ""
-     or else not Ada.Directories.Exists (Parent)
-     or else Ada.Directories.Kind (Parent) /= Ada.Directories.Directory
+     or else not Files.Fs_Primitives.Exists (Parent)
+     or else Files.Fs_Primitives.Kind (Parent) /= Ada.Directories.Directory
    then
       --  The destination exists as a genuinely distinct file (a case-only
       --  rename of the source onto itself is excluded), or its parent is

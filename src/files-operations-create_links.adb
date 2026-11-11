@@ -84,7 +84,7 @@ begin
          Ext    : constant String := Files.Types.Extension_Of (Name);
          Base   : constant String := Files.Types.Stem_Of (Name);
          --  A link belongs beside its source, wherever the listing came from.
-         Link_Directory : constant String := Ada.Directories.Containing_Directory (Source);
+         Link_Directory : constant String := Files.Fs_Primitives.Parent_Directory (Source);
 
          --  A directory-unique link stem (without extension), e.g. "report
          --  (link)" or "report (link 2)" when earlier choices already exist.
@@ -92,8 +92,8 @@ begin
          function Unique_Stem return String is (First_Free_Name (Link_Directory, Base, Ext, Marker'Access));
 
          Dest_Path : constant String :=
-           Ada.Directories.Compose (Link_Directory, Unique_Stem, Ext);
-         Dest_Name : constant String := Ada.Directories.Simple_Name (Dest_Path);
+           Files.Fs_Primitives.Compose_Text (Link_Directory, Unique_Stem, Ext);
+         Dest_Name : constant String := Files.Fs_Primitives.Leaf_Text (Dest_Path);
          Mutation  : constant Files.File_System.Mutation_Result :=
            (if Hard
             then Files.File_System.Create_Hard_Link (Source, Dest_Path)

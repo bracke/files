@@ -25,14 +25,14 @@ separate (Files_Suite.Operations)
         (Result.Status,
          Files.Operations.Operation_Action_Executed,
          "detached open action launches without surfacing app exit codes");
-      Assert (Result.Execution_Attempted, "detached process result records execution attempt");
-      Assert (Result.Executable_Found, "detached process result records executable discovery");
+      Assert (Result.Execution.Attempted, "detached process result records execution attempt");
+      Assert (Result.Execution.Executable_Found, "detached process result records executable discovery");
       --  This action's executable fails, and that is the point: a detached launch is
       --  reported as launched, and the application's own exit code is never seen.
       --  What used to be asserted here -- a known, zero exit status -- was the
       --  wrapper shell's, which succeeded in backgrounding a program that then went
       --  on to fail. Nothing waits for it now, so there is no status at all.
-      Assert (not Result.Exit_Status_Known, "a detached process reports no exit status");
+      Assert (not Result.Execution.Exit_Status_Known, "a detached process reports no exit status");
       Assert
         (Files.Operations.Testing.Open_Action_Lifecycle_Of (Result).State =
          Files.Operations.Testing.Open_Action_Spawned,
@@ -54,8 +54,8 @@ separate (Files_Suite.Operations)
         (Result.Status,
          Files.Operations.Operation_Failed,
          "missing open executable is represented");
-      Assert (not Result.Execution_Attempted, "missing executable result does not attempt execution");
-      Assert (not Result.Executable_Found, "missing executable result records failed lookup");
+      Assert (not Result.Execution.Attempted, "missing executable result does not attempt execution");
+      Assert (not Result.Execution.Executable_Found, "missing executable result records failed lookup");
       Assert
         (Files.Operations.Testing.Open_Action_Lifecycle_Of (Result).State =
          Files.Operations.Testing.Open_Action_Preflight_Failed,
@@ -78,8 +78,8 @@ separate (Files_Suite.Operations)
         (Result.Status,
          Files.Operations.Operation_Failed,
          "directory open executable is represented");
-      Assert (not Result.Execution_Attempted, "directory executable result does not attempt execution");
-      Assert (not Result.Executable_Found, "directory executable result records failed lookup");
+      Assert (not Result.Execution.Attempted, "directory executable result does not attempt execution");
+      Assert (not Result.Execution.Executable_Found, "directory executable result records failed lookup");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Error_Key),
          "error.open_action.executable_missing",

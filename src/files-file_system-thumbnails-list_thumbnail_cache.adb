@@ -25,7 +25,7 @@ begin
          return Result;
       end if;
       Ada.Directories.Get_Next_Entry (Search, Item);
-      Result.Names.Include (Ada.Directories.Simple_Name (Item));
+      Result.Names.Include (Ada.Directories.Simple_Name (Directory_Entry => Item));
       Count := Count + 1;
    end loop;
 

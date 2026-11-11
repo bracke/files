@@ -15,13 +15,13 @@ begin
      and then Control_Only
      and then Files.Model.Focus (Model) /= Files.Types.Focus_None
    then
-      Result := Delete_Focused_Text_Word_Backward (Model);
+      Result := Delete_Focused_Text (Model, Delete_Backward, By_Word => True);
       return;
    elsif Key = Guikit.Input.Key_Delete
      and then Control_Only
      and then Files.Model.Focus (Model) /= Files.Types.Focus_None
    then
-      Result := Delete_Focused_Text_Word_Forward (Model);
+      Result := Delete_Focused_Text (Model, Delete_Forward, By_Word => True);
       return;
    elsif Key = Guikit.Input.Key_Left
      and then Control_Only
@@ -39,7 +39,7 @@ begin
             return;
          end if;
          Files.Model.Set_Text_Cursor_Position
-           (Model, Previous_Word_Boundary (Focused_Text (Model), Old_Position));
+           (Model, Files.UTF8.Previous_Word_Boundary (Focused_Text (Model), Old_Position));
          Result :=
            Make_Result
              (if Files.Model.Text_Cursor_Position (Model) = Old_Position
@@ -63,7 +63,7 @@ begin
             return;
          end if;
          Files.Model.Set_Text_Cursor_Position
-           (Model, Next_Word_Boundary (Focused_Text (Model), Old_Position));
+           (Model, Files.UTF8.Next_Word_Boundary (Focused_Text (Model), Old_Position));
          Result :=
            Make_Result
              (if Files.Model.Text_Cursor_Position (Model) = Old_Position
@@ -75,13 +75,13 @@ begin
      and then Modifiers = Guikit.Input.No_Modifiers
      and then Files.Model.Focus (Model) /= Files.Types.Focus_None
    then
-      Result := Delete_Focused_Text_Backward (Model);
+      Result := Delete_Focused_Text (Model, Delete_Backward, By_Word => False);
       return;
    elsif Key = Guikit.Input.Key_Delete
      and then Modifiers = Guikit.Input.No_Modifiers
      and then Files.Model.Focus (Model) /= Files.Types.Focus_None
    then
-      Result := Delete_Focused_Text_Forward (Model);
+      Result := Delete_Focused_Text (Model, Delete_Forward, By_Word => False);
       return;
    elsif Key = Guikit.Input.Key_Left
      and then Modifiers = Guikit.Input.No_Modifiers

@@ -1,4 +1,3 @@
-with Ada.Directories;
 with Files.Diagnostics;
 with Hostkit.Process;
 with Ada.Strings.Unbounded;
@@ -31,7 +30,7 @@ package body Files.Operations.Support is
             Dos_Rules));
    begin
       for Attempt in First .. Max_Name_Attempts loop
-         if not Exists_Safely (Ada.Directories.Compose (Directory, Name (Attempt), Extension)) then
+         if not Exists_Safely (Files.Fs_Primitives.Compose_Text (Directory, Name (Attempt), Extension)) then
             return Name (Attempt);
          end if;
       end loop;
@@ -61,13 +60,11 @@ package body Files.Operations.Support is
          Error_Key => To_Unbounded_String (Error_Key),
          Path      => To_Unbounded_String (Path),
          Action    => Action,
-         Action_Executable => Action.Executable,
-         Action_Arguments  => Natural (Action.Arguments.Length),
-         Action_Uses_Shell => Action.Use_Shell,
-         Execution_Attempted => Attempted,
-         Executable_Found    => Found,
-         Exit_Status_Known   => Exit_Known,
-         Exit_Status         => Exit_Status);
+         Execution =>
+           (Attempted         => Attempted,
+            Executable_Found  => Found,
+            Exit_Status_Known => Exit_Known,
+            Exit_Status       => Exit_Status));
    end Make_Result;
 
    function Disabled

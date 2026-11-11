@@ -9,7 +9,7 @@ is
       else "");
 
    function In_Cache_Root (Root : String) return String is
-     (Join_Path (Join_Path (Root, "files"), "thumbnails"));
+     (Hostkit.Fs.Join (Hostkit.Fs.Join (Root, "files"), "thumbnails"));
 
    --  Where this host keeps a per-user cache is Hostkit's question --
    --  LOCALAPPDATA rather than the roaming APPDATA, ~/Library/Caches rather
@@ -45,5 +45,5 @@ begin
    --  it is where the images are -- but it leaves a hidden folder behind in
    --  the user's own data, so it is reached only when the host will not say
    --  where its cache belongs.
-   return Join_Path (Fallback_Directory, ".files-thumbnails");
+   return Hostkit.Fs.Join (Fallback_Directory, ".files-thumbnails");
 end Default_Thumbnail_Cache_Directory;

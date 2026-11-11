@@ -28,7 +28,7 @@ package body Files.Rendering.Testing is
 
    function Calculate_Paste_Progress_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Paste_Progress_Layout
      renames Files.Rendering.Calculate_Paste_Progress_Layout;
 

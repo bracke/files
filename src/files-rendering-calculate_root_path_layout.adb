@@ -5,7 +5,7 @@ separate (Files.Rendering)
       return Root_Path_Layout_Vectors.Vector
    is
       Result       : Root_Path_Layout_Vectors.Vector;
-      Root_Count   : constant Natural := Natural (Snapshot.Root_Paths.Length);
+      Root_Count   : constant Natural := Natural (Snapshot.Roots.Length);
       Content_H    : constant Natural :=
         (if Layout.Height > Saturating_Multiply (Layout.Padding, 2)
          then Layout.Height - Saturating_Multiply (Layout.Padding, 2)

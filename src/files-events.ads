@@ -2,7 +2,6 @@ with Files.Commands;
 with Files.Rendering;
 with Guikit.Input;
 with Files.Types;
-with Files.UI;
 
 --  GLFW-style input translation into internal command and selection events.
 package Files.Events is
@@ -151,7 +150,7 @@ package Files.Events is
       Height      : Natural;
       Activate    : Boolean := False;
       Modifiers   : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Input_Action;
 
    --  Translate a vertical scroll-wheel offset at a window coordinate.
@@ -171,7 +170,7 @@ package Files.Events is
       Width       : Natural;
       Height      : Natural;
       Y_Offset    : Integer;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Input_Action;
 
 end Files.Events;

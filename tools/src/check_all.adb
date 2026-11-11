@@ -2670,6 +2670,57 @@ procedure Check_All is
       Ada.Directories.End_Search (Search);
    end Check_Environment_Access;
 
+   --  GNAT's Ada.Directories reads a path's text with a 256-character
+   --  component limit on Windows (Name_Error past it): leaves, parents and
+   --  joins go through Files.Fs_Primitives (Hostkit.Path_Text) or
+   --  Hostkit.Fs.Join. Simple_Name of a search entry is fine, written with
+   --  its Directory_Entry name.
+   procedure Check_Path_Text_Calls is
+      Search : Ada.Directories.Search_Type;
+      Item   : Ada.Directories.Directory_Entry_Type;
+   begin
+      Ada.Directories.Start_Search
+        (Search, Root & "/src", "*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);
+      while Ada.Directories.More_Entries (Search) loop
+         Ada.Directories.Get_Next_Entry (Search, Item);
+         declare
+            Path  : constant String := Ada.Directories.Full_Name (Item);
+            Lower : constant String :=
+              Ada.Characters.Handling.To_Lower
+                (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)), Blank_Strings => True));
+            Simple : constant String := "ada.directories.simple_name (";
+            From   : Positive := Lower'First;
+            At_Simple : Natural;
+            Bad    : Boolean :=
+              Ada.Strings.Fixed.Index (Lower, "ada.directories.containing_directory (") > 0
+              or else Ada.Strings.Fixed.Index (Lower, "ada.directories.compose (") > 0;
+         begin
+            loop
+               At_Simple := Ada.Strings.Fixed.Index (Lower (From .. Lower'Last), Simple);
+               exit when At_Simple = 0;
+               if Ada.Strings.Fixed.Index
+                    (Lower (At_Simple + Simple'Length .. Natural'Min (Lower'Last, At_Simple + Simple'Length + 40)),
+                     "directory_entry =>") /= At_Simple + Simple'Length
+               then
+                  Bad := True;
+               end if;
+               exit when At_Simple + Simple'Length > Lower'Last;
+               From := At_Simple + Simple'Length;
+            end loop;
+            if Bad then
+               Ada.Directories.End_Search (Search);
+               Put_Line
+                 (Standard_Error,
+                  Path & ": reads a path with Ada.Directories (Simple_Name, Containing_Directory, Compose);"
+                  & " use Files.Fs_Primitives or Hostkit.Fs.Join");
+               Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+               raise Program_Error;
+            end if;
+         end;
+      end loop;
+      Ada.Directories.End_Search (Search);
+   end Check_Path_Text_Calls;
+
    --  The model caches its visible rows (Support.Ensure_Visible_Map); a
    --  subprogram that writes the items, their order, the filter or the
    --  search flag must drop the cache (Invalidate_Visible) or every lookup
@@ -4058,13 +4109,13 @@ procedure Check_All is
          [To_Unbounded_String ("Files.Breadcrumbs"),
           To_Unbounded_String ("Files.Commands"),
           To_Unbounded_String ("Files.Folder_Tree"),
+          To_Unbounded_String ("Files.File_Types"),
           To_Unbounded_String ("Files.Icon_Themes"),
           To_Unbounded_String ("Files.Model"),
           To_Unbounded_String ("Files.Quick_Look"),
           To_Unbounded_String ("Files.Settings"),
           To_Unbounded_String ("Files.Shared_Bytes"),
-          To_Unbounded_String ("Files.Types"),
-          To_Unbounded_String ("Files.UI")]);
+          To_Unbounded_String ("Files.Types")]);
       Require_Only_Allowed_With_Clauses
         (Rendering_Body,
          "Files.",
@@ -4075,6 +4126,7 @@ procedure Check_All is
           To_Unbounded_String ("Files.File_Types"),
           To_Unbounded_String ("Files.Fonts"),
           To_Unbounded_String ("Files.Localization"),
+          To_Unbounded_String ("Files.UI"),
           To_Unbounded_String ("Files.UTF8")]);
       --  Hit-testing stays pure geometry: it may import only the domain UI
       --  layout it maps pixels through (the body is also covered above as a
@@ -4228,9 +4280,9 @@ procedure Check_All is
             end if;
          end Require_At_Most;
       begin
-         Require_At_Most ("files-rendering.adb", 1_516);
-         Require_At_Most ("files-rendering-build_frame_commands.adb", 930);
-         Require_At_Most ("files-application-windows.adb", 1_673);
+         Require_At_Most ("files-rendering.adb", 1_452);
+         Require_At_Most ("files-rendering-build_frame_commands.adb", 920);
+         Require_At_Most ("files-application-windows.adb", 1_635);
       end;
    end Check_Rendering_Architecture;
 
@@ -5224,11 +5276,11 @@ procedure Check_All is
       --  lost test fails here; raise a floor when a suite grows.
       Require_Tests ("settings", 35);
       Require_Tests ("startup", 30);
-      Require_Tests ("commands", 38);
+      Require_Tests ("commands", 39);
       Require_Tests ("model", 54);
       Require_Tests ("interaction", 84);
       Require_Tests ("rendering", 100);
-      Require_Tests ("operations", 296);
+      Require_Tests ("operations", 299);
    end Check_Test_Subsystem_Coverage;
 
 begin
@@ -5254,6 +5306,7 @@ begin
    Check_Localization_Usage;
    Check_Clock_Arithmetic;
    Check_Environment_Access;
+   Check_Path_Text_Calls;
    Check_Visible_Cache_Invalidation;
    Check_Swallowing_Handlers;
    Check_Shared_Package_State;

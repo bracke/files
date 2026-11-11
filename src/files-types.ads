@@ -18,6 +18,22 @@ package Files.Types is
       Element_Type => UString,
       "="          => Ada.Strings.Unbounded."=");
 
+   --  What became of an item whose labels, favorites and recent entries
+   --  should follow it: it now lives elsewhere, or it is gone for good.
+   type Path_Move_Kind is (Moved, Removed);
+
+   --  One rename, move or removal. To is the new full path of a Moved item
+   --  and empty for a Removed one.
+   type Path_Move is record
+      From : UString;
+      To   : UString;
+      Kind : Path_Move_Kind := Moved;
+   end record;
+
+   package Path_Move_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Path_Move);
+
    --  Byte buffer type shared with the renderer-agnostic draw model. Re-exported
    --  from Guikit.Draw so the draw model stays domain-free while application
    --  code keeps using Files.Types.Byte_Vectors unchanged.
@@ -59,6 +75,14 @@ package Files.Types is
    --  @param Name A leaf name.
    --  @return The extension, or "".
    function Extension_Of (Name : String) return String;
+
+   --  A path's last component read from its text alone
+   --  (Hostkit.Path_Text.Leaf), for a unit that reads no disk: GNAT's Windows
+   --  Ada.Directories.Simple_Name refuses a component past 256 characters.
+   --
+   --  @param Path A path.
+   --  @return Its last component, indexed from 1, or "" for a root.
+   function Leaf_Of (Path : String) return String;
 
    --  A count in decimal, without the leading blank Natural'Image gives it.
    --
@@ -210,6 +234,14 @@ package Files.Types is
       Context_Menu_Item,
       Context_Menu_Empty,
       Context_Menu_Header);
+
+   --  The label picker's swatch count: one per real color, then the clear
+   --  swatch.
+   Swatch_Count : constant :=
+     Real_Color_Label'Pos (Real_Color_Label'Last) - Real_Color_Label'Pos (Real_Color_Label'First) + 2;
+
+   --  The label picker's clear (No_Label) swatch: the last one.
+   Clear_Swatch : constant := Swatch_Count;
 
    --  The label picker's swatches in order: one per real color, then the
    --  clear swatch (No_Label). The one mapping the renderer, the hit-test

@@ -2,7 +2,7 @@ separate (Files.Rendering)
    function Calculate_Info_Pane_Layout
      (Snapshot    : View_Snapshot;
       Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Info_Pane_Layout
    is
       function Total_Info_Rows return Natural is

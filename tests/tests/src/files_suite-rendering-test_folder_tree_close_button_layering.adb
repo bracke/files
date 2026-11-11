@@ -58,8 +58,8 @@ separate (Files_Suite.Rendering)
       --  clears the tree from the active accessibility surface after the
       --  tree has been drawn underneath it.
       Snap.Settings_Pane_Open := False;
-      Snap.Quick_Look_Open := True;
-      Snap.Quick_Look_Name := To_Unbounded_String ("preview.txt");
+      Snap.Quick_Look.Open := True;
+      Snap.Quick_Look.Name := To_Unbounded_String ("preview.txt");
       Frame := Build_Frame_Commands (Snap, Width, Height, LH);
       declare
          Tree_Accessible : Boolean := False;

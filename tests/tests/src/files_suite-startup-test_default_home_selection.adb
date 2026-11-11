@@ -8,11 +8,11 @@ separate (Files_Suite.Startup)
       Xdg_Path          : constant String := Join (Root, "xdg-config");
       Override_Path     : constant String := Join (Root, "override.conf");
       Expected_Default  : constant String :=
-        Files.File_System.Join_Path
-          (Files.File_System.Join_Path (Files.File_System.Join_Path (Home_Path, ".config"), "files"),
+        Hostkit.Fs.Join
+          (Hostkit.Fs.Join (Hostkit.Fs.Join (Home_Path, ".config"), "files"),
            "settings.conf");
       Expected_Xdg      : constant String :=
-        Files.File_System.Join_Path (Files.File_System.Join_Path (Xdg_Path, "files"), "settings.conf");
+        Hostkit.Fs.Join (Hostkit.Fs.Join (Xdg_Path, "files"), "settings.conf");
       --  Restores every variable the test changes, on failure too.
       Environment       : Files_Suite.Support.Environment_Guard;
    begin

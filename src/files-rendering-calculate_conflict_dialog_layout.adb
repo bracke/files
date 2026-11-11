@@ -1,10 +1,10 @@
 separate (Files.Rendering)
    function Calculate_Conflict_Dialog_Layout
      (Layout      : Layout_Metrics;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Conflict_Dialog_Layout
    is
-      Pad        : constant Natural := Files.UI.Dialog_Padding;
+      Pad        : constant Natural := Files.UI.Dialog_Padding (Line_Height);
       Width      : constant Natural := Dialog_Box_Width (Layout, Line_Height);
       Desired_Message_H : constant Natural := Saturating_Multiply (Line_Height, 2);
       Desired_Apply_H   : constant Natural := Line_Height;

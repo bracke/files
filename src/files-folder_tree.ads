@@ -7,11 +7,12 @@ with Files.Types;
 --  The tree is a flat list of directory nodes, each remembering its parent, so
 --  the structure can be built incrementally and flattened to an ordered list of
 --  visible rows without any recursive container types. Nodes are seeded from
---  root locations, then children (subdirectories only) are attached lazily the
---  first time a node is expanded. This package performs no filesystem access:
---  the controller loads a directory, filters it to subdirectories, and hands
---  the children in through Set_Children, keeping the logic here headless and
---  unit-testable.
+--  root locations, then children (subdirectories only) are attached each time
+--  a node is expanded, through Replace_Children, which keeps the nodes of
+--  children it already holds (matched by path) so a re-read neither grows the
+--  tree nor loses an expanded subtree. This package performs no filesystem
+--  access: the controller loads a directory, filters it to subdirectories, and
+--  hands the children in, keeping the logic here headless and unit-testable.
 package Files.Folder_Tree is
    subtype UString is Files.Types.UString;
 
@@ -76,16 +77,6 @@ package Files.Folder_Tree is
       Index : Positive)
       return String;
 
-   --  Return whether a node's children have been loaded.
-   --
-   --  @param T Tree to inspect.
-   --  @param Index One-based node index.
-   --  @return True when Set_Children has run for the node.
-   function Node_Is_Loaded
-     (T     : Tree;
-      Index : Positive)
-      return Boolean;
-
    --  Return whether a node is currently expanded.
    --
    --  @param T Tree to inspect.
@@ -120,20 +111,6 @@ package Files.Folder_Tree is
      (T     : Tree;
       Roots : Entry_Seed_Vectors.Vector)
       return Boolean;
-
-   --  Attach a node's child subdirectories and mark it loaded.
-   --
-   --  Children are appended once; the node's expandability is derived from the
-   --  number of children so a node with no subdirectories loses its expander.
-   --  Re-attaching children to an already loaded node is ignored.
-   --
-   --  @param T Tree to update.
-   --  @param Index One-based parent node index.
-   --  @param Children Child subdirectories in display order.
-   procedure Set_Children
-     (T        : in out Tree;
-      Index    : Positive;
-      Children : Entry_Seed_Vectors.Vector);
 
    --  Set a node's expanded flag.
    --

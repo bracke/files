@@ -5,7 +5,7 @@ begin
       when Root_Filesystem | Root_Home | Root_Current =>
          return "";
       when Root_Mount | Root_User_Mount | Root_Network_Mount | Root_Favorite =>
-         return Ada.Directories.Simple_Name (Path);
+         return Files.Fs_Primitives.Leaf_Text (Path);
       when Root_Windows_Drive =>
          return Path;
    end case;

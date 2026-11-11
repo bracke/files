@@ -3,7 +3,7 @@ separate (Files.Rendering)
      (Snapshot    : View_Snapshot;
       Width       : Natural;
       Height      : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Layout_Metrics
    is
       Toolbar    : constant Natural := Files.UI.Toolbar_Height (Line_Height);

@@ -57,7 +57,7 @@ is
    end Revision_Checksum;
 
    Revision : constant Hostkit.Metadata.Entry_Revision :=
-     Hostkit.Metadata.Entry_Revision_Of (Join_Path (To_String (Result.Path), Name));
+     Hostkit.Metadata.Entry_Revision_Of (Hostkit.Fs.Join (To_String (Result.Path), Name));
 begin
    Result.Entry_Count := Result.Entry_Count + 1;
    if Revision.Available then
@@ -66,7 +66,7 @@ begin
       return;
    end if;
    declare
-      Full     : constant String := Join_Path (To_String (Result.Path), Name);
+      Full     : constant String := Hostkit.Fs.Join (To_String (Result.Path), Name);
       Kind     : Ada.Directories.File_Kind := Ada.Directories.Special_File;
       Size     : Long_Long_Integer := 0;
       Modified : Ada.Calendar.Time := Files.Types.Unknown_Time;

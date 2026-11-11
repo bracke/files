@@ -2,7 +2,7 @@ separate (Files.Rendering)
    function Calculate_Item_Layout
      (Snapshot      : View_Snapshot;
       Layout        : Layout_Metrics;
-      Line_Height   : Positive := Files.UI.Base_Line_Height;
+      Line_Height   : Positive;
       Whole_Content : Boolean := False;
       Window_Top    : Natural := 0;
       Window_Height : Natural := 0)
@@ -26,7 +26,7 @@ separate (Files.Rendering)
            Content_X,
            Content_W,
            Line_Height,
-           Details_Row_Padding);
+           Details_Row_Padding (Line_Height));
       View : constant Guikit.Item_Grid.View_Kind := Grid_View (Snapshot.View_Mode);
       Columns : Guikit.Item_Grid.Detail_Column_Bounds;
 

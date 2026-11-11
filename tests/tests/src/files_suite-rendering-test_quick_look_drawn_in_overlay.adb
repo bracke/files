@@ -1,3 +1,4 @@
+with Files.File_Types;
 separate (Files_Suite.Rendering)
    --  Quick Look composites in the overlay layer (on top of the grid), so its
    --  panel background is an overlay rectangle and its preview icon is flagged
@@ -28,10 +29,10 @@ separate (Files_Suite.Rendering)
       A11y_Count       : Natural := 0;
       Dialog_Described : Boolean := False;
    begin
-      Snap.Quick_Look_Open := True;
-      Snap.Quick_Look_Kind := Files.Quick_Look.Info_Content;
-      Snap.Quick_Look_Name := To_Unbounded_String ("notes.txt");
-      Snap.Quick_Look_Icon_Id := To_Unbounded_String ("document");
+      Snap.Quick_Look.Open := True;
+      Snap.Quick_Look.Kind := Files.Quick_Look.Info_Content;
+      Snap.Quick_Look.Name := To_Unbounded_String ("notes.txt");
+      Snap.Quick_Look.Icon := Files.File_Types.Text_Icon;
       Layout := Calculate_Layout (Snap, Width, Height, LH);
       QL     := Calculate_Quick_Look_Layout (Layout, LH);
       Frame  := Build_Frame_Commands (Snap, Width, Height, LH);
@@ -54,7 +55,7 @@ separate (Files_Suite.Rendering)
            (Node.X, Node.Y, Node.Width, Node.Height, QL.X, QL.Y, QL.Width, QL.Height,
             "Quick Look exposes no background accessibility nodes");
          if Node.Role = Role_Dialog
-           and then Node.Description = Snap.Quick_Look_Name
+           and then Node.Description = Snap.Quick_Look.Name
          then
             Dialog_Described := True;
          end if;

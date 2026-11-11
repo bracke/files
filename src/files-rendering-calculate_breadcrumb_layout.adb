@@ -2,7 +2,7 @@ separate (Files.Rendering)
    function Calculate_Breadcrumb_Layout
      (Snapshot    : View_Snapshot;
       Width       : Natural;
-      Line_Height : Positive := Files.UI.Base_Line_Height)
+      Line_Height : Positive)
       return Breadcrumb_Segment_Layout_Vectors.Vector
    is
       Result       : Breadcrumb_Segment_Layout_Vectors.Vector;

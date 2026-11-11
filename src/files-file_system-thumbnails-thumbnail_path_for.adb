@@ -6,7 +6,7 @@ function Thumbnail_Path_For
    return String is
 begin
    return
-     Join_Path
+     Hostkit.Fs.Join
        (Cache_Directory,
         "thumb_"
         & Sanitized_Thumbnail_Extension (Source_Path)

@@ -8,10 +8,9 @@ function Volume_Trash_For (Path : String) return String is
 
    --  Path's parent; "/" (or a drive root) is its own.
    function Parent_Of (Path : String) return String is
+      Parent : constant String := Files.Fs_Primitives.Parent_Directory (Path);
    begin
-      return Ada.Directories.Containing_Directory (Path);
-   exception
-      when Ada.Directories.Use_Error => return Path;
+      return (if Parent = "" then Path else Parent);
    end Parent_Of;
 
    --  The device of Path, or of its nearest existing ancestor.
@@ -42,8 +41,8 @@ function Volume_Trash_For (Path : String) return String is
    function Prepared (Base : String) return String is
    begin
       Files.Private_Directories.Ensure (Base);
-      Files.Private_Directories.Ensure (Join_Path (Base, "files"));
-      Files.Private_Directories.Ensure (Join_Path (Base, "info"));
+      Files.Private_Directories.Ensure (Hostkit.Fs.Join (Base, "files"));
+      Files.Private_Directories.Ensure (Hostkit.Fs.Join (Base, "info"));
       return (if Valid_Volume_Trash_Base (Base) then Base else "");
    exception
       when Swallowed : others =>
@@ -56,8 +55,8 @@ function Volume_Trash_For (Path : String) return String is
    --  list is only missing from the view, still restorable from its volume.
    procedure Remember (Base : String) is
       Data : constant String := Support.Application_Data_Directory;
-      App  : constant String := (if Data = "" then "" else Join_Path (Data, "files"));
-      List : constant String := (if App = "" then "" else Join_Path (App, "volume-trashes"));
+      App  : constant String := (if Data = "" then "" else Hostkit.Fs.Join (Data, "files"));
+      List : constant String := (if App = "" then "" else Hostkit.Fs.Join (App, "volume-trashes"));
       --  This process's own temporary file: background jobs trash too.
       Partial : constant String :=
         List & ".partial-" & Natural_Text (Natural (abs Hostkit.Host.Own_Process_Id));
@@ -124,7 +123,7 @@ function Volume_Trash_For (Path : String) return String is
 begin
    if not Volume_Trash_Supported
      or else not Hostkit.Process.Current_User_Account (Uid)
-     or else not Device_Of (Ada.Directories.Containing_Directory (Path), Item_Device)
+     or else not Device_Of (Files.Fs_Primitives.Parent_Directory (Path), Item_Device)
      or else not Device_Of (Trash_Base_Path, Home_Device)
      or else Item_Device = Home_Device
    then
@@ -133,7 +132,7 @@ begin
 
    declare
       --  The top of the item's filesystem: the highest ancestor on its device.
-      Top : Unbounded_String := To_Unbounded_String (Ada.Directories.Containing_Directory (Path));
+      Top : Unbounded_String := To_Unbounded_String (Files.Fs_Primitives.Parent_Directory (Path));
       Id  : constant String := Files.Types.Account_Image (Uid);
    begin
       loop
@@ -153,7 +152,7 @@ begin
       --  the whole item across the network (a rename on the share is what
       --  the user expects), and the trash view lists it with the others.
       declare
-         Shared : constant String := Join_Path (To_String (Top), ".Trash");
+         Shared : constant String := Hostkit.Fs.Join (To_String (Top), ".Trash");
          Chosen : Unbounded_String;
       begin
          --  Checked before anything is made in it: an untrusted .Trash is
@@ -161,10 +160,10 @@ begin
          if Safe_Trash_Parent (Shared, Shared => True)
            and then Safe_Trash_Parent (To_String (Top), Shared => False)
          then
-            Chosen := To_Unbounded_String (Prepared (Join_Path (Shared, Id)));
+            Chosen := To_Unbounded_String (Prepared (Hostkit.Fs.Join (Shared, Id)));
          end if;
          if Length (Chosen) = 0 and then Safe_Trash_Parent (To_String (Top), Shared => False) then
-            Chosen := To_Unbounded_String (Prepared (Join_Path (To_String (Top), ".Trash-" & Id)));
+            Chosen := To_Unbounded_String (Prepared (Hostkit.Fs.Join (To_String (Top), ".Trash-" & Id)));
          end if;
          if Length (Chosen) > 0 then
             Remember (To_String (Chosen));

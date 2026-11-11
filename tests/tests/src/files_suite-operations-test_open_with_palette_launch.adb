@@ -30,32 +30,32 @@ separate (Files_Suite.Operations)
                Files.Operations.Operation_Action_Executed,
                "Open With launches a single-target application for multiple selections: "
                & "status=" & Files.Operations.Operation_Status'Image (Routed.Operation.Status)
-               & " attempted=" & Boolean'Image (Routed.Operation.Execution_Attempted)
-               & " found=" & Boolean'Image (Routed.Operation.Executable_Found)
-               & " exit=" & Integer'Image (Routed.Operation.Exit_Status)
-               & " executable=" & To_String (Routed.Operation.Action_Executable) & ": status");
+               & " attempted=" & Boolean'Image (Routed.Operation.Execution.Attempted)
+               & " found=" & Boolean'Image (Routed.Operation.Execution.Executable_Found)
+               & " exit=" & Integer'Image (Routed.Operation.Execution.Exit_Status)
+               & " executable=" & To_String (Routed.Operation.Action.Executable) & ": status");
             Assert
-              (Routed.Operation.Execution_Attempted,
+              (Routed.Operation.Execution.Attempted,
                "Open With launches a single-target application for multiple selections: "
                & "status=" & Files.Operations.Operation_Status'Image (Routed.Operation.Status)
-               & " attempted=" & Boolean'Image (Routed.Operation.Execution_Attempted)
-               & " found=" & Boolean'Image (Routed.Operation.Executable_Found)
-               & " exit=" & Integer'Image (Routed.Operation.Exit_Status)
-               & " executable=" & To_String (Routed.Operation.Action_Executable) & ": attempted");
+               & " attempted=" & Boolean'Image (Routed.Operation.Execution.Attempted)
+               & " found=" & Boolean'Image (Routed.Operation.Execution.Executable_Found)
+               & " exit=" & Integer'Image (Routed.Operation.Execution.Exit_Status)
+               & " executable=" & To_String (Routed.Operation.Action.Executable) & ": attempted");
             Assert
-              (Routed.Operation.Executable_Found,
+              (Routed.Operation.Execution.Executable_Found,
                "Open With launches a single-target application for multiple selections: "
                & "status=" & Files.Operations.Operation_Status'Image (Routed.Operation.Status)
-               & " attempted=" & Boolean'Image (Routed.Operation.Execution_Attempted)
-               & " found=" & Boolean'Image (Routed.Operation.Executable_Found)
-               & " exit=" & Integer'Image (Routed.Operation.Exit_Status)
-               & " executable=" & To_String (Routed.Operation.Action_Executable) & ": executable found");
+               & " attempted=" & Boolean'Image (Routed.Operation.Execution.Attempted)
+               & " found=" & Boolean'Image (Routed.Operation.Execution.Executable_Found)
+               & " exit=" & Integer'Image (Routed.Operation.Execution.Exit_Status)
+               & " executable=" & To_String (Routed.Operation.Action.Executable) & ": executable found");
             Files_Suite.Support.Assert_Equal
               (To_String (Routed.Operation.Path),
                Marker_One,
                "a multi-launch result retains the first target's action metadata: path");
             Files_Suite.Support.Assert_Equal
-              (Routed.Operation.Action_Arguments,
+              (Natural (Routed.Operation.Action.Arguments.Length),
                1,
                "a multi-launch result retains the first target's action metadata: argument count");
             Files_Suite.Support.Assert_Equal
@@ -100,12 +100,12 @@ separate (Files_Suite.Operations)
                  "error.open_action.executable_missing",
                "Open With reports a missing application executable as failure");
             Assert
-              (not Routed.Operation.Execution_Attempted
-               and then not Routed.Operation.Executable_Found,
+              (not Routed.Operation.Execution.Attempted
+               and then not Routed.Operation.Execution.Executable_Found,
                "Open With rejects the application before attempting a process");
             Assert
               (To_String (Routed.Operation.Path) = "/tmp/a file.txt"
-               and then Routed.Operation.Action_Arguments = 1,
+               and then Natural (Routed.Operation.Action.Arguments.Length) = 1,
                "the failed Open With result retains its target and action metadata");
             Assert
               (Files.Model.Last_Error_Key (Model) =

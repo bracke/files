@@ -2,6 +2,7 @@ with Files.Items;
 with Files.Commands.Status;
 with Ada.Strings.Unbounded;
 
+with Guikit.Layout;
 with Guikit.Settings_Panel;
 
 with Files.Command_Palette;
@@ -140,22 +141,22 @@ package body Files.Interaction is
       Settings_Path : String)
       return Boolean
    is
-      From, To : Files.Types.String_Vectors.Vector;
-      Changed  : Boolean := False;
-      Updated  : Files.Settings.Settings_Model := Settings;
+      Moves   : constant Files.Types.Path_Move_Vectors.Vector := Files.Model.Take_Path_Moves (Model);
+      Changed : Boolean := False;
+      Updated : Files.Settings.Settings_Model := Settings;
    begin
-      Files.Model.Take_Path_Moves (Model, From, To);
-      for Index in From.First_Index .. From.Last_Index loop
+      for Move of Moves loop
          declare
-            Moved : Boolean;
+            Followed : Boolean;
          begin
-            if Length (To (Index)) = 0 then
-               Files.Settings.Forget_Path_References (Updated, To_String (From (Index)), Moved);
-            else
-               Files.Settings.Move_Path_References
-                 (Updated, To_String (From (Index)), To_String (To (Index)), Moved);
-            end if;
-            Changed := Changed or else Moved;
+            case Move.Kind is
+               when Files.Types.Removed =>
+                  Files.Settings.Forget_Path_References (Updated, To_String (Move.From), Followed);
+               when Files.Types.Moved =>
+                  Files.Settings.Move_Path_References
+                    (Updated, To_String (Move.From), To_String (Move.To), Followed);
+            end case;
+            Changed := Changed or else Followed;
          end;
       end loop;
       --  Longer paths can make the file too big to load again: then the
@@ -869,7 +870,7 @@ package body Files.Interaction is
       Origin_Width : Natural;
       Current_X    : Integer;
       Result       : out Interaction_Result;
-      Line_Height  : Positive := Guikit.Layout.Reference_Line_Height)
+      Line_Height  : Positive)
    is
       --  The name column is the flexible remainder on the left, so a wider fixed
       --  column pushes its own left edge left: dragging the separator left grows

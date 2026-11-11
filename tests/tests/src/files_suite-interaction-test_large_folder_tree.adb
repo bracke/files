@@ -20,7 +20,7 @@ separate (Files_Suite.Interaction)
               (Path => Ada.Strings.Unbounded.To_Unbounded_String ("/root/" & Index'Image),
                Name => Ada.Strings.Unbounded.To_Unbounded_String (Index'Image)));
       end loop;
-      Files.Folder_Tree.Set_Children (Tree, 1, Children);
+      Files.Folder_Tree.Replace_Children (Tree, 1, Children);
       Files.Folder_Tree.Set_Expanded (Tree, 1, True);
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Folder_Tree.Visible_Rows (Tree).Length),

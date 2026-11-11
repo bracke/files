@@ -12,7 +12,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             --  Optically centre the label in the header field: lift it above the
             --  geometric inset, matching the bottom bar's text baseline
             --  (Bottom_Content_Y), so the glyphs read as centred rather than low.
-            Text_Y    : constant Natural := Saturating_Add (Header_Y, Optically_Raised (Header.Pad));
+            Text_Y    : constant Natural := Saturating_Add (Header_Y, Optically_Raised (Header.Pad, Line_Height));
             Columns   : Detail_Column_Geometry_Array renames Header.Columns;
 
             function Cell_X (Column_X : Natural) return Natural is
@@ -107,19 +107,26 @@ separate (Files.Rendering.Build_Frame_Commands)
             end loop;
 
             if Header_H > 0 then
-               for Column in Files.Types.Optional_Detail_Column loop
-                  if Columns (Column).Visible then
-                     Add_Rect
-                       ((if Columns (Column).X > 2 then Columns (Column).X - 2 else 0),
-                        Header_Y, 1, Header_H, Border_Color);
-                  end if;
-               end loop;
-               Add_Rect
-                 (Content_X,
-                  Saturating_Add (Header_Y, Header_H - Natural'Min (2, Header_H)),
-                  Header_W,
-                  Natural'Min (2, Header_H),
-                  Selection_Color);
+               declare
+                  --  The separator sits this far left of its column, in the
+                  --  (scaled) column padding; the accent rule is this tall.
+                  Offset : constant Natural := Guikit.Layout.Scaled (2, Line_Height);
+                  Rule_H : constant Natural := Natural'Min (Guikit.Layout.Scaled (2, Line_Height), Header_H);
+               begin
+                  for Column in Files.Types.Optional_Detail_Column loop
+                     if Columns (Column).Visible then
+                        Add_Rect
+                          ((if Columns (Column).X > Offset then Columns (Column).X - Offset else 0),
+                           Header_Y, 1, Header_H, Border_Color);
+                     end if;
+                  end loop;
+                  Add_Rect
+                    (Content_X,
+                     Saturating_Add (Header_Y, Header_H - Rule_H),
+                     Header_W,
+                     Rule_H,
+                     Selection_Color);
+               end;
             end if;
          end;
       end if;
@@ -203,7 +210,8 @@ separate (Files.Rendering.Build_Frame_Commands)
                   Selection_Color => Selection_Color,
                   Hover_Color     => Hover_Color,
                   Border_Color    => Border_Color,
-                  Alternate_Color => Alternate_Row_Color);
+                  Alternate_Color => Alternate_Row_Color,
+                  Line_Height     => Line_Height);
             end;
 
             if Snapshot.View_Mode = Files.Types.Details then
@@ -362,11 +370,15 @@ separate (Files.Rendering.Build_Frame_Commands)
                  Content_X,
                  Content_W,
                  Line_Height,
-                 Natural'Min (Details_Row_Padding, Line_Height));
+                 Natural'Min (Details_Row_Padding (Line_Height), Line_Height));
 
             procedure Add_Column_Separator (Column_X : Natural) is
             begin
-               Add_Rect ((if Column_X > 2 then Column_X - 2 else 0), Separator_Y, 1, Separator_H, Border_Color);
+               Add_Rect
+                 ((if Column_X > Guikit.Layout.Scaled (2, Line_Height)
+                   then Column_X - Guikit.Layout.Scaled (2, Line_Height)
+                   else 0),
+                  Separator_Y, 1, Separator_H, Border_Color);
             end Add_Column_Separator;
          begin
             for Column in Files.Types.Optional_Detail_Column loop
@@ -411,20 +423,26 @@ separate (Files.Rendering.Build_Frame_Commands)
             begin
                if Item.Visible_Index = Drag_Item_Index then
                   declare
+                     --  The preview's chrome at the reference line height,
+                     --  scaled with the text it is drawn beside.
+                     Small_Pad    : constant Natural := Guikit.Layout.Scaled (8, Line_Height);
+                     Large_Pad    : constant Natural := Guikit.Layout.Scaled (16, Line_Height);
                      Desired_Icon : constant Natural :=
-                       Natural'Min (Natural'Max (Line_Height, 28), 48);
+                       Natural'Min
+                         (Natural'Max (Line_Height, Guikit.Layout.Scaled (28, Line_Height)),
+                          Guikit.Layout.Scaled (48, Line_Height));
                      Desired_H : constant Natural :=
-                       Saturating_Add (Desired_Icon, 16);
+                       Saturating_Add (Desired_Icon, Large_Pad);
                      Panel_H   : constant Natural := Natural'Min (Desired_H, Height);
                      Panel_W   : constant Natural :=
                        Natural'Min
                          (Natural'Max
                             (Saturating_Add
-                               (Saturating_Add (Desired_Icon, 8),
+                               (Saturating_Add (Desired_Icon, Small_Pad),
                                 Saturating_Multiply (Line_Height, 8)),
-                             Saturating_Add (Desired_Icon, 16)),
+                             Saturating_Add (Desired_Icon, Large_Pad)),
                           Natural'Max (1, Width));
-                     Offset    : constant Natural := 14;
+                     Offset    : constant Natural := Guikit.Layout.Scaled (14, Line_Height);
                      Panel_X   : constant Natural :=
                        (if Drag_X <= Natural'Last - Offset
                           and then Drag_X + Offset <= Width
@@ -442,7 +460,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                         then Height - Panel_H
                         else 0);
                      Pad       : constant Natural :=
-                       Natural'Min (8, Natural'Min (Panel_W / 4, Panel_H / 4));
+                       Natural'Min (Small_Pad, Natural'Min (Panel_W / 4, Panel_H / 4));
                      Inner_W   : constant Natural :=
                        (if Panel_W > Saturating_Multiply (Pad, 2)
                         then Panel_W - Saturating_Multiply (Pad, 2)
@@ -457,7 +475,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                         then Fitted_Icon
                         else 0);
                      Gap       : constant Natural :=
-                       (if Icon_Size > 0 then Natural'Min (8, Inner_W - Icon_Size) else 0);
+                       (if Icon_Size > 0 then Natural'Min (Small_Pad, Inner_W - Icon_Size) else 0);
                      Icon_X    : constant Natural := Saturating_Add (Panel_X, Pad);
                      Icon_Y    : constant Natural :=
                        Saturating_Add
@@ -492,7 +510,8 @@ separate (Files.Rendering.Build_Frame_Commands)
       if Empty_State_Key /= "" and then Layout.Main_Width > 0 and then Layout.Main_Height > 0 then
          declare
             Panel_W : constant Natural :=
-              Natural'Min (Natural'Max (240, Layout.Main_Width / 2), Layout.Main_Width);
+              Natural'Min
+                (Natural'Max (Guikit.Layout.Scaled (240, Line_Height), Layout.Main_Width / 2), Layout.Main_Width);
             Panel_H : constant Natural := Natural'Min (Saturating_Multiply (Line_Height, 3), Layout.Main_Height);
             Panel_X : constant Natural :=
               Saturating_Add
@@ -505,7 +524,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             Text_H : constant Natural := Natural'Min (Line_Height, Panel_H);
             Text_Y : constant Natural :=
               Saturating_Add (Panel_Y, Centered (Panel_H, Text_H));
-            Side_Pad : constant Natural := Natural'Min (8, Panel_W / 4);
+            Side_Pad : constant Natural := Natural'Min (Guikit.Layout.Scaled (8, Line_Height), Panel_W / 4);
             Inner_X  : constant Natural := Saturating_Add (Panel_X, Side_Pad);
             Inner_W  : constant Natural :=
               (if Panel_W > Saturating_Multiply (Side_Pad, 2)
@@ -519,7 +538,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                then Desired_Icon
                else 0);
             Icon_Gap : constant Natural :=
-              (if Icon_Size > 0 then Natural'Min (8, Inner_W - Icon_Size) else 0);
+              (if Icon_Size > 0 then Natural'Min (Guikit.Layout.Scaled (8, Line_Height), Inner_W - Icon_Size) else 0);
             Icon_X : constant Natural := Inner_X;
             Text_X : constant Natural :=
               Saturating_Add (Inner_X, Saturating_Add (Icon_Size, Icon_Gap));

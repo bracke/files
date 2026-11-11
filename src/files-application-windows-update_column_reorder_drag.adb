@@ -23,7 +23,9 @@ begin
    X_Frame := Scale_Coordinate (Cursor_X, Window_W, Frame_W);
 
    if Mouse_Down then
-      if abs (X_Frame - Runtime.Column_Reorder.Origin_X) > Column_Reorder_Threshold then
+      if abs (X_Frame - Runtime.Column_Reorder.Origin_X)
+        > Guikit.Layout.Scaled (Column_Reorder_Threshold, Cell_Height_For (Runtime.Font_Pixel_Size))
+      then
          Runtime.Column_Reorder.Started := True;
       end if;
       return;
