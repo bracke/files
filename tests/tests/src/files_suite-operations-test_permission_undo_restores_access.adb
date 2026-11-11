@@ -2,9 +2,11 @@ separate (Files_Suite.Operations)
    --  A permission edit through the editor's path changes only what its bits
    --  concern, and its undo and redo put back the entry's whole access, not
    --  just a mode re-derived from it. On Windows that access is a DACL: the
-   --  edit keeps every ACE the entry inherits and its protection, and the
-   --  undo restores the DACL it replaced, SDDL for SDDL. On POSIX the mode is
-   --  the whole of it, and no record is kept beside it.
+   --  edit reads back as the mode asked for, keeping every ACE the entry
+   --  inherits and its protection where they do not contradict it, and
+   --  converting them to explicit ACEs where they do; the undo restores the
+   --  DACL it replaced, SDDL for SDDL. On POSIX the mode is the whole of it,
+   --  and no record is kept beside it.
    procedure Test_Permission_Undo_Restores_Access (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -30,6 +32,10 @@ separate (Files_Suite.Operations)
 
       --  How many ACEs an SDDL DACL says were inherited.
       function Inherited (Text : String) return Natural is (Ada.Strings.Fixed.Count (Text, ";ID;"));
+
+      --  Whether an SDDL DACL is protected from inheritance: "D:P...".
+      function Is_Protected (Text : String) return Boolean is
+        (Text'Length >= 3 and then Text (Text'First .. Text'First + 2) = "D:P");
    begin
       if not Files.File_System.Supports_Permissions then
          Files_Suite.Support.Skip ("Test_Permission_Undo_Restores_Access", "this host has no POSIX permissions to set");
@@ -62,13 +68,16 @@ separate (Files_Suite.Operations)
             Changed : constant String := Access_Of (Target);
          begin
             if Windows then
+               --  Everyone's read bit turned on gives the group read as well
+               --  (it is in Everyone) unless the group is denied it, and
+               --  turned off leaves what the folder hands Everyone: either
+               --  way what the entry inherits may contradict the edit, and
+               --  then the DACL becomes explicit ACEs that do not.
                Assert
-                 (Inherited (Changed) = Inherited (Original),
-                  "every inherited ACE survives the edit: " & Original & " became " & Changed);
-               Assert
-                 ((Changed'Length >= 3 and then Changed (Changed'First .. Changed'First + 2) = "D:P")
-                  = (Original'Length >= 3 and then Original (Original'First .. Original'First + 2) = "D:P"),
-                  "and the DACL inherits as it did: " & Changed);
+                 ((Inherited (Changed) = Inherited (Original) and then Is_Protected (Changed) = Is_Protected (Original))
+                  or else (Is_Protected (Changed) and then Inherited (Changed) = 0),
+                  "the edit keeps every inherited ACE and the DACL's inheritance, or makes them all explicit: "
+                  & Original & " became " & Changed);
             end if;
 
             Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));

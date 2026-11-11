@@ -424,6 +424,13 @@ package Files_Suite.Support is
    --  @param Path An existing file or folder.
    procedure Forbid_Deletion (Path : String);
 
+   --  Path's access as the host reports it, for a failure message: icacls'
+   --  listing on Windows, "" elsewhere.
+   --
+   --  @param Path An existing file or folder.
+   --  @return The listing.
+   function Access_Report (Path : String) return String;
+
    --  Give Path's owner write and delete access back after Forbid_Deletion
    --  (644, 755 for a folder). Nothing on POSIX, nor when nothing is there.
    --

@@ -24,6 +24,7 @@ with GNAT.CRC32;
 with Hostkit.Fs;
 with Hostkit.Host;
 with Hostkit.Metadata;
+with Hostkit.Process;
 
 package body Files_Suite.Support is
 
@@ -169,6 +170,31 @@ package body Files_Suite.Support is
       end if;
       Ada.Directories.Create_Path (Root);
    end Reset_Root;
+
+   function Access_Report (Path : String) return String is
+      Program   : constant String := Hostkit.Process.Locate ("icacls");
+      Report    : constant String := Path & ".access-report";
+      Arguments : Hostkit.String_Vectors.Vector;
+      Result    : Hostkit.Process.Process_Outcome;
+   begin
+      if Hostkit.Host."/=" (Hostkit.Host.Current, Hostkit.Host.Windows) or else Program = "" then
+         return "";
+      end if;
+      Arguments.Append (Ada.Strings.Unbounded.To_Unbounded_String (Path));
+      Result := Hostkit.Process.Run_Captured (Program, Arguments, Stdout_Path => Report, Timeout_Ms => 10_000);
+      if not Result.Started or else not Ada.Directories.Exists (Report) then
+         return " (icacls did not run)";
+      end if;
+      declare
+         Text : constant String := Project_Tools.Files.Read_Raw_File (Report);
+      begin
+         Ada.Directories.Delete_File (Report);
+         return " -- " & Text;
+      end;
+   exception
+      when Failure : others =>
+         return " (icacls failed: " & Ada.Exceptions.Exception_Message (Failure) & ")";
+   end Access_Report;
 
    procedure Forbid_Deletion (Path : String) is
       use type Hostkit.Fs.Entry_Kind;
