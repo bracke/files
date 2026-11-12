@@ -312,6 +312,12 @@ package body Files.Controller is
       return Controller_Result
  is separate;
 
+   function Refused_Command_Result
+     (Id    : Files.Commands.Command_Id;
+      Model : in out Files.Model.Window_Model)
+      return Controller_Result
+ is separate;
+
    procedure Scroll_Palette_Selection
      (Model : in out Files.Model.Window_Model;
       Lines : Integer) is

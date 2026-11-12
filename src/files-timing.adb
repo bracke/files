@@ -18,6 +18,36 @@ package body Files.Timing is
       end if;
    end Elapsed;
 
+   function Until_Due
+     (Now   : Ada.Real_Time.Time;
+      Due   : Ada.Real_Time.Time;
+      Limit : Duration)
+      return Duration
+   is
+      use type Ada.Real_Time.Time;
+      use type Ada.Real_Time.Time_Span;
+      use type Ada.Real_Time.Seconds_Count;
+      Longest : constant Duration := Duration'Max (Limit, 0.0);
+      Now_Seconds, Due_Seconds   : Ada.Real_Time.Seconds_Count;
+      Now_Fraction, Due_Fraction : Ada.Real_Time.Time_Span;
+   begin
+      if Due <= Now then
+         return 0.0;
+      end if;
+      --  Whole seconds and the fractions apart: neither difference can
+      --  overflow, wherever in the clock's range the two times lie.
+      Ada.Real_Time.Split (Now, Now_Seconds, Now_Fraction);
+      Ada.Real_Time.Split (Due, Due_Seconds, Due_Fraction);
+      if Due_Seconds - Now_Seconds > Ada.Real_Time.Seconds_Count (Longest) + 1 then
+         return Longest;
+      end if;
+      return Duration'Max
+        (0.0,
+         Duration'Min
+           (Longest,
+            Duration (Due_Seconds - Now_Seconds) + Ada.Real_Time.To_Duration (Due_Fraction - Now_Fraction)));
+   end Until_Due;
+
    function Elapsed
      (Now      : Ada.Calendar.Time;
       Since    : Ada.Calendar.Time;

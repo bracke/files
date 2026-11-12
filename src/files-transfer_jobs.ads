@@ -1,3 +1,4 @@
+with Ada.Streams;
 with Files.Copy_Context;
 with Files.Process_Jobs;
 
@@ -84,6 +85,12 @@ private
    procedure Read_Replacement_Checkpoint
      (Path : String;
       Backup, Backup_Identity : out Files.Types.UString);
+
+   --  Encode the authority record Read_Replacement_Checkpoint decodes: the
+   --  path the replaced original is held at, then its identity.
+   procedure Write_Replacement_Checkpoint
+     (Stream                  : not null access Ada.Streams.Root_Stream_Type'Class;
+      Backup, Backup_Identity : String);
 
    --  Adopt the replacement checkpoint at Path into Result.  Trashed and
    --  Trashed_Identity change together and only when the checkpoint decodes;

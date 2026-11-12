@@ -7,6 +7,7 @@ separate (Files_Suite.Interaction)
       Result   : Files.Interaction.Interaction_Result;
       Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
+      Revision_Before : Natural := 0;
    begin
       for Index in 1 .. 8 loop
          Items.Append
@@ -76,14 +77,17 @@ separate (Files_Suite.Interaction)
             "pressing a separator does not change the sort field");
 
          --  Dragging the separator left by 40 px widens the size column by ~40.
+         Revision_Before := Files.Model.Settings_Revision (Model);
          Files.Interaction.Apply_Column_Resize
-           (Settings, Files.Types.Size_Column,
+           (Model, Settings, Files.Types.Size_Column,
             Origin_X     => Action.Origin_X,
             Origin_Width => Action.Column_Width,
             Current_X    => Sep_X - 40,
             Result       => Result,
             Line_Height  => Line);
          Assert (Result.Settings_Changed, "the resize step reports a width change");
+         Assert (Files.Model.Settings_Revision (Model) /= Revision_Before,
+                 "the resize step notes the settings change on the window's model itself");
          Files_Suite.Support.Assert_Equal
            (Settings.Column_Widths (Files.Types.Size_Column),
             Base_W + 40,
@@ -111,7 +115,7 @@ separate (Files_Suite.Interaction)
 
          --  A far rightward drag (raw width below the minimum) clamps up to it.
          Files.Interaction.Apply_Column_Resize
-           (Settings, Files.Types.Size_Column,
+           (Model, Settings, Files.Types.Size_Column,
             Origin_X     => Action.Origin_X,
             Origin_Width => Action.Column_Width,
             Current_X    => Sep_X + (Base_W - 10),
@@ -125,7 +129,7 @@ separate (Files_Suite.Interaction)
          --  The public reducer must clamp extreme synthetic coordinates rather
          --  than overflowing before the ordinary width rules can run.
          Files.Interaction.Apply_Column_Resize
-           (Settings, Files.Types.Size_Column,
+           (Model, Settings, Files.Types.Size_Column,
             Origin_X     => Integer'Last,
             Origin_Width => Natural'Last,
             Current_X    => Integer'First,
@@ -136,7 +140,7 @@ separate (Files_Suite.Interaction)
             Natural'Last,
             "an overflowing positive resize delta saturates at Natural'Last");
          Files.Interaction.Apply_Column_Resize
-           (Settings, Files.Types.Size_Column,
+           (Model, Settings, Files.Types.Size_Column,
             Origin_X     => Integer'First,
             Origin_Width => 0,
             Current_X    => Integer'Last,

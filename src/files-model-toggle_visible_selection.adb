@@ -16,7 +16,10 @@ begin
 
    if Item_Index = 0 then
       return;
-   elsif Selection_Contains (Model, Item_Index) then
+   end if;
+   --  The next shift-click ranges from here, whether this selected or not.
+   Note_Range_Anchor (Model, Visible_Index);
+   if Selection_Contains (Model, Item_Index) then
       Remove_Selected_Index (Model, Item_Index);
       if Model.Selected_Item_Index = Item_Index then
          Model.Selected_Item_Index :=

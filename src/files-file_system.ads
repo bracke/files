@@ -547,9 +547,17 @@ package Files.File_System is
    function Release_Recovery_Payload (Path : String) return Mutation_Result;
 
    --  Return recoverable replacement payloads recorded across directories.
-   --  Stale or damaged registry entries are omitted.
+   --  Stale or damaged registry entries are omitted. A pure query: it
+   --  changes nothing on disk (see Sweep_Recovery_Registry).
    --  @return Valid registered replacement-recovery payload paths.
    function Registered_Recovery_Payloads return Files.Types.String_Vectors.Vector;
+
+   --  Finish interrupted recovery work the registry records: drop stale and
+   --  duplicate records, resume a stopped release, and remove a stage whose
+   --  payload a restore or release moved out on purpose. A stage another
+   --  operation is still filling is left alone, so this is safe to run while
+   --  other processes preserve, restore or release.
+   procedure Sweep_Recovery_Registry;
 
    --  Restore a trashed payload to its recorded original location.
    --
@@ -946,6 +954,9 @@ package Files.File_System is
       return Mutation_Result;
 
    --  Execute while returning publication-time snapshots for each completed plan.
+   --  A cross-device move whose copy had to stay at its destination (its
+   --  source was set aside in recovery, or the copy could not be removed)
+   --  fails, yet its copy is appended too: it is the plan's result for undo.
    --  @param Plans Validated copy or move plans.
    --  @param Created_Identities Entry identities parallel to completed plans.
    --  @param Created_Tree_Revisions Recursive directory revisions parallel to completed plans.
@@ -982,7 +993,11 @@ package Files.File_System is
    --  @param Cancel Optional cooperative cancellation callback.
    --  @param Batch Shared hard-link journal.
    --  @return Success when Destination holds the imported entry; otherwise
-   --    the preserving, import, or restoring failure.
+   --    the preserving, import, or restoring failure. A cross-device move
+   --    that failed yet had to keep its copy at Destination (see
+   --    Execute_Drop_Import) also fails, with Created_Identity set to that
+   --    copy and the original left held at Replaced: Destination is taken,
+   --    so the original is not put back, and the caller records both.
    function Import_Replacing
      (Source, Destination   : String;
       Mode                  : Drop_Import_Mode;
@@ -995,6 +1010,19 @@ package Files.File_System is
       Cancel                : Cancellation_Check := null;
       Batch                 : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result;
+
+   --  Put an original that a failed replace preserved back at Destination:
+   --  the one rollback behind Import_Replacing and the transfer helper. With
+   --  nothing held (Replaced empty) it does nothing.
+   --  @param Replaced Where the original is held; emptied once it is back.
+   --  @param Replaced_Identity Identity of Replaced; emptied with it.
+   --  @param Destination Where the original came from.
+   --  @param Result The action's result, replaced by the restore's failure
+   --    when the original cannot be put back.
+   procedure Put_Back_Replaced
+     (Replaced, Replaced_Identity : in out Files.Types.UString;
+      Destination                 : String;
+      Result                      : in out Mutation_Result);
 
    --  Read up to Max_Bytes leading bytes of a file as a raw String, for a
    --  bounded text preview. Returns an empty string when the file cannot be

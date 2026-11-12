@@ -28,6 +28,9 @@ package Files.Mouse_Buttons is
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       --  A release only: whether the press it ends had become a drag.
       Dragged   : Boolean := False;
+      --  When the button changed, not when the queue drains: a double click
+      --  is timed by when the presses happened, however slow the frame.
+      At_Time   : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
    end record;
 
    --  A queue of button changes, oldest first.
@@ -46,20 +49,41 @@ package Files.Mouse_Buttons is
    --  presses a failing switch produces.
    Left_Press_Debounce : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (40);
 
-   --  Queue one button change. A left press within Left_Press_Debounce of the
-   --  last accepted one is a bounce: it is dropped, and so is the bounce's own
-   --  release still waiting in Queue -- left in place it would end a drag that
-   --  is still being held.
+   --  Queue one button change, made at Event.At_Time. A left press within
+   --  Left_Press_Debounce of the last accepted one is a bounce: it is dropped,
+   --  and so is the bounce's own release waiting in Queue -- left in place it
+   --  would end a drag that is still being held. Next_Ready holds such a
+   --  release back until it is older than the debounce window, so it is still
+   --  waiting whenever a bounce press can arrive.
    --  @param Queue Changes waiting for the window, oldest first.
    --  @param Last_Left_Press When the last accepted left press happened.
    --  @param Event The change.
-   --  @param Now When it happened.
    --  @param Bounced True when Event was a left press dropped as a bounce.
    procedure Queue_Event
      (Queue           : in out Button_Event_Vectors.Vector;
       Last_Left_Press : in out Ada.Real_Time.Time;
       Event           : Button_Event;
-      Now             : Ada.Real_Time.Time;
       Bounced         : out Boolean);
+
+   --  Take the oldest change from Queue when it may be handled at Now. A left
+   --  release younger than Left_Press_Debounce is held back, and every change
+   --  after it with it, so a bounce press arriving within the window can still
+   --  withdraw it; the next pass after Ready_At takes it.
+   --  @param Queue Changes waiting for the window, oldest first.
+   --  @param Now When the window drains the queue.
+   --  @param Event The change taken, when Taken.
+   --  @param Taken True when a change was taken off Queue.
+   procedure Next_Ready
+     (Queue : in out Button_Event_Vectors.Vector;
+      Now   : Ada.Real_Time.Time;
+      Event : out Button_Event;
+      Taken : out Boolean);
+
+   --  When the oldest change in Queue may be handled: Time_Last for an empty
+   --  queue, the end of its debounce window for a held-back left release, and
+   --  its own time otherwise. The event loop wakes by then.
+   --  @param Queue Changes waiting for the window, oldest first.
+   --  @return When Next_Ready will take the oldest change.
+   function Ready_At (Queue : Button_Event_Vectors.Vector) return Ada.Real_Time.Time;
 
 end Files.Mouse_Buttons;

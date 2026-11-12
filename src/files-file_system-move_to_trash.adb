@@ -85,9 +85,12 @@ is
    Backend    : constant Trash_Backend := Trash_Backend_Of_Current_Environment;
    Macos_Home : constant Boolean := Backend = Trash_Macos_Home;
    --  Move_To_Trash_Preflight, with a failure inside it a refusal as one
-   --  in the body would be.
+   --  in the body would be. It runs during elaboration, before the body's
+   --  own Reset, so it clears the I/O error first: the key its handler
+   --  reads is then this preflight's, not an earlier operation's.
    function Checked_Preflight return Mutation_Result is
    begin
+      Files.Io_Errors.Reset;
       return Move_To_Trash_Preflight (Path);
    exception
       when Swallowed : others =>

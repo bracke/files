@@ -15,6 +15,8 @@ separate (Files.Rendering)
       Used         : constant Natural := Saturating_Add (Saturating_Multiply (Padding, 2), Star_Reserve);
    begin
       return
-        (X     => Saturating_Add (Saturating_Add (Field_X, Padding), Star_Reserve),
-         Width => (if Field_W > Used then Field_W - Used else 0));
+        (X           => Saturating_Add (Saturating_Add (Field_X, Padding), Star_Reserve),
+         Width       => (if Field_W > Used then Field_W - Used else 0),
+         Field_X     => Field_X,
+         Field_Width => Field_W);
    end Path_Field_Text_Region;

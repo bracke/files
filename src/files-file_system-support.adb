@@ -703,11 +703,15 @@ package body Files.File_System.Support is
    end Copy_To_New_Path;
 
    --  Give a copy just published from its private stage the access its new
-   --  folder hands down, and its revision afresh where that changed it.
+   --  folder hands down, and its revision afresh where that changed it. The
+   --  copy is already published, so nothing here may raise: a caller must
+   --  still record it. Cancellation is no longer heeded (the copy is done),
+   --  and a failure keeps the revision the copy was published with.
    procedure Inherit_Destination_Access
-     (Path                   : String;
-      Revision               : in out Files.Types.UString;
-      Check_Job_Cancellation : Boolean) is
+     (Path     : String;
+      Revision : in out Files.Types.UString)
+   is
+      Published : constant Files.Types.UString := Revision;
    begin
       --  The stage handed the payload its owner-only access, and a rename
       --  into place keeps that on Windows. What the destination hands down
@@ -725,8 +729,20 @@ package body Files.File_System.Support is
         and then not Hostkit.Fs.Is_Link (Path)
         and then Files.Fs_Primitives.Kind (Path) = Ada.Directories.Directory
       then
-         Revision := To_Unbounded_String (Tree_Revision_Of (Path, Check_Job_Cancellation));
+         declare
+            Fresh : constant String := Tree_Revision_Of (Path, Check_Job_Cancellation => False);
+         begin
+            if Fresh /= "" then
+               Revision := To_Unbounded_String (Fresh);
+            end if;
+         end;
       end if;
+   exception
+      when Failure : others =>
+         --  A concurrent change (or anything else) while re-reading: the
+         --  copy stays published and recorded with its pre-inherit revision.
+         Files.Diagnostics.Note (Failure, "Files.File_System.Support");
+         Revision := Published;
    end Inherit_Destination_Access;
 
    procedure Copy_To_New_Path
@@ -795,7 +811,7 @@ package body Files.File_System.Support is
       if not Move_No_Replace (Hostkit.Fs.Join (To_String (Stage), "payload"), Destination_Path) then
          raise Ada.Directories.Use_Error;
       end if;
-      Inherit_Destination_Access (Destination_Path, Tree_Revision_Value, Check_Job_Cancellation);
+      Inherit_Destination_Access (Destination_Path, Tree_Revision_Value);
       Files.Job_Context.Record_Created
         (Destination_Path, Source_Path, To_String (Identity), To_String (Tree_Revision_Value));
       --  Publication is complete; leftover staging must not falsify its result.

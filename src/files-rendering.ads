@@ -1035,34 +1035,40 @@ package Files.Rendering is
       Line_Height : Positive)
       return Natural;
 
-   --  Horizontal extent of the text inside a toolbar input field: where the
-   --  first character is drawn and how wide the text may run.
+   --  Horizontal extent of a toolbar input field: the box drawn for it, which
+   --  is also where a click focuses it, and inside it where the first
+   --  character is drawn and how wide the text may run.
    type Field_Text_Region is record
-      X     : Natural := 0;
-      Width : Natural := 0;
+      X           : Natural := 0;
+      Width       : Natural := 0;
+      --  The field's box, margins excluded.
+      Field_X     : Natural := 0;
+      Field_Width : Natural := 0;
    end record;
 
-   --  Text extent of the path field, after its margin, padding and the
-   --  favorite star's reserve. Drawing and click-to-caret mapping both use it
-   --  so a click lands the caret on the character drawn under it.
+   --  Box and text extent of the path field: the box inside the toolbar's
+   --  middle section's margins, the text after its padding and the favorite
+   --  star's reserve. Drawing, the field's click zone and click-to-caret
+   --  mapping all use it, so a click lands the caret on the character drawn
+   --  under it and only a click on the drawn box focuses the field.
    --
    --  @param Toolbar Toolbar section layout.
    --  @param Width Window width in pixels.
    --  @param Line_Height Text line height in pixels.
-   --  @return Path text start and width in pixels.
+   --  @return Path field box and text start and width in pixels.
    function Path_Field_Text_Region
      (Toolbar     : Guikit.Layout.Toolbar_Layout;
       Width       : Natural;
       Line_Height : Positive)
       return Field_Text_Region;
 
-   --  Text extent of the filter field, after its margin and padding and
-   --  ending before the search-scope chip. Drawing and click-to-caret mapping
-   --  both use it.
+   --  Box and text extent of the filter field: the box after its margin,
+   --  ending before the search-scope chip, the text after its padding.
+   --  Drawing, the field's click zone and click-to-caret mapping all use it.
    --
    --  @param Toolbar Toolbar section layout.
    --  @param Line_Height Text line height in pixels.
-   --  @return Filter text start and width in pixels.
+   --  @return Filter field box and text start and width in pixels.
    function Filter_Field_Text_Region
      (Toolbar     : Guikit.Layout.Toolbar_Layout;
       Line_Height : Positive)

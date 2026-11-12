@@ -31,7 +31,7 @@ begin
    elsif Breadcrumb_Index /= 0 then
       Result := Breadcrumb_Action (Breadcrumb_Index);
       return;
-   elsif Within (X, Toolbar.Middle_X, Toolbar.Middle_Width)
+   elsif Within (X, Path_Text.Field_X, Path_Text.Field_Width)
      and then Within (Y, Toolbar_Input_Y, Toolbar_Input_H)
    then
       Result :=
@@ -53,7 +53,7 @@ begin
       --  rather than focusing the filter field.
       Result := (Kind => Search_Scope_Toggle_Input_Action);
       return;
-   elsif Within (X, Toolbar.Right_X, Toolbar.Right_Width)
+   elsif Within (X, Filter_Text.Field_X, Filter_Text.Field_Width)
      and then Within (Y, Toolbar_Input_Y, Toolbar_Input_H)
    then
       Result :=

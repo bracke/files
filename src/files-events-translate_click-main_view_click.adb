@@ -1,8 +1,6 @@
 separate (Files.Events.Translate_Click)
 --  The main view: details header, items, and the empty-space marquee.
 procedure Main_View_Click (Handled : out Boolean; Result : out Input_Action) is
-   Item_Layout : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-     Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
    Row         : Natural := 0;
 begin
    Handled := True;
@@ -40,56 +38,62 @@ begin
       end if;
    end;
 
-   Item_Index := Files.Rendering.Hit.Item_At (Item_Layout, X, Y);
-   if Item_Index /= 0 then
-      --  Item_At answers the item's visible index; the rows (and their
-      --  rectangles) also hold group headers, so look up its row position.
-      Row := Files.Rendering.Row_Position_Of (Snapshot, Item_Index);
-      if Snapshot.Rename_Active
-        and then Row /= 0
-        and then Row <= Natural (Item_Layout.Length)
-        and then Snapshot.Items.Element (Positive (Row)).Renaming
-      then
-         declare
-            Item_Rect : constant Files.Rendering.Item_Layout :=
-              Item_Layout.Element (Positive (Row));
-            Snapshot_Item : constant Files.Rendering.Item_Snapshot :=
-              Snapshot.Items.Element (Positive (Row));
-            Field_X : Natural;
-            Field_W : Natural;
-         begin
-            Files.Rendering.Rename_Field_Extent
-              (Item      => Item_Rect,
-               View_Mode => Snapshot.View_Mode,
-               Renaming  => True,
-               Field_X   => Field_X,
-               Field_W   => Field_W,
-               Line_Height => Line_Height);
-            if Within (X, Field_X, Field_W) then
-               Result :=
-                 Text_Click
-                   (Files.Types.Focus_Rename_Input,
-                    Cursor_At
-                      (Text        => Snapshot_Item.Rename_Value,
-                       Text_X      => Field_X,
-                       Click_X     => X,
-                       Text_Width  => Field_W,
-                       Focused     => Snapshot.Focus = Files.Types.Focus_Rename_Input,
-                       Caret       => Snapshot_Item.Rename_Cursor),
-                    Item_Index);
-               return;
-            end if;
-         end;
-      end if;
+   --  The item rectangles, only once the header has not taken the press.
+   declare
+      Item_Layout : constant Files.Rendering.Item_Layout_Vectors.Vector :=
+        Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
+   begin
+      Item_Index := Files.Rendering.Hit.Item_At (Item_Layout, X, Y);
+      if Item_Index /= 0 then
+         --  Item_At answers the item's visible index; the rows (and their
+         --  rectangles) also hold group headers, so look up its row position.
+         Row := Files.Rendering.Row_Position_Of (Snapshot, Item_Index);
+         if Snapshot.Rename_Active
+           and then Row /= 0
+           and then Row <= Natural (Item_Layout.Length)
+           and then Snapshot.Items.Element (Positive (Row)).Renaming
+         then
+            declare
+               Item_Rect : constant Files.Rendering.Item_Layout :=
+                 Item_Layout.Element (Positive (Row));
+               Snapshot_Item : constant Files.Rendering.Item_Snapshot :=
+                 Snapshot.Items.Element (Positive (Row));
+               Field_X : Natural;
+               Field_W : Natural;
+            begin
+               Files.Rendering.Rename_Field_Extent
+                 (Item      => Item_Rect,
+                  View_Mode => Snapshot.View_Mode,
+                  Renaming  => True,
+                  Field_X   => Field_X,
+                  Field_W   => Field_W,
+                  Line_Height => Line_Height);
+               if Within (X, Field_X, Field_W) then
+                  Result :=
+                    Text_Click
+                      (Files.Types.Focus_Rename_Input,
+                       Cursor_At
+                         (Text        => Snapshot_Item.Rename_Value,
+                          Text_X      => Field_X,
+                          Click_X     => X,
+                          Text_Width  => Field_W,
+                          Focused     => Snapshot.Focus = Files.Types.Focus_Rename_Input,
+                          Caret       => Snapshot_Item.Rename_Cursor),
+                       Item_Index);
+                  return;
+               end if;
+            end;
+         end if;
 
-      Result :=
-        (Kind             => Item_Click_Input_Action,
-         Item_Index       => Item_Index,
-         Activate         => Activate,
-         Toggle_Item      => Modifiers (Guikit.Input.Control_Key) and then not Modifiers (Guikit.Input.Shift_Key),
-         Range_Selection  => Modifiers (Guikit.Input.Shift_Key));
-      return;
-   end if;
+         Result :=
+           (Kind             => Item_Click_Input_Action,
+            Item_Index       => Item_Index,
+            Activate         => Activate,
+            Toggle_Item      => Modifiers (Guikit.Input.Control_Key) and then not Modifiers (Guikit.Input.Shift_Key),
+            Range_Selection  => Modifiers (Guikit.Input.Shift_Key));
+         return;
+      end if;
+   end;
 
    --  A press that reached here landed on empty main-grid space: every
    --  overlay, panel, toolbar/bottom-bar command, scrollbar, details header

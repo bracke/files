@@ -3903,7 +3903,76 @@ procedure Check_All is
       --  search above cannot see: the prefix is never split, anywhere.
       Split : constant String :=
         Project_Tools.Ada_Source.First_Source_File_Containing (Root & "/src", "FILES_"" &", Hooks);
+
+      --  The first unlisted source whose text, with every literal join
+      --  ("FILES_TE" & "ST_X") closed up, names a FILES_TEST_ variable: a
+      --  split anywhere inside the name, not only after FILES_.
+      function First_Joined_Hook return String is
+         Search : Ada.Directories.Search_Type;
+         Item   : Ada.Directories.Directory_Entry_Type;
+
+         function Listed (Path : String) return Boolean is
+           (for some Hook of Hooks => To_String (Hook) = Path);
+
+         --  Text with each closing quote, blanks, '&', blanks and opening
+         --  quote removed, so joined literals read as one.
+         function Joined (Text : String) return String is
+            Result : Unbounded_String;
+            Index  : Natural := Text'First;
+         begin
+            while Index <= Text'Last loop
+               if Text (Index) = '"' then
+                  declare
+                     Next : Natural := Index + 1;
+                  begin
+                     while Next <= Text'Last and then Text (Next) in ' ' | ASCII.LF | ASCII.CR | ASCII.HT loop
+                        Next := Next + 1;
+                     end loop;
+                     if Next <= Text'Last and then Text (Next) = '&' then
+                        Next := Next + 1;
+                        while Next <= Text'Last and then Text (Next) in ' ' | ASCII.LF | ASCII.CR | ASCII.HT loop
+                           Next := Next + 1;
+                        end loop;
+                        if Next <= Text'Last and then Text (Next) = '"' then
+                           Index := Next + 1;
+                           goto Continue;
+                        end if;
+                     end if;
+                  end;
+               end if;
+               Append (Result, Text (Index));
+               Index := Index + 1;
+               <<Continue>>
+            end loop;
+            return To_String (Result);
+         end Joined;
+      begin
+         Ada.Directories.Start_Search
+           (Search, Root & "/src", "*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);
+         while Ada.Directories.More_Entries (Search) loop
+            Ada.Directories.Get_Next_Entry (Search, Item);
+            declare
+               Path : constant String := Ada.Directories.Full_Name (Item);
+            begin
+               if not Listed (Path)
+                 and then Ada.Strings.Fixed.Index (Joined (Project_Tools.Files.Read_Raw_File (Path)), "FILES_TEST_") > 0
+               then
+                  Ada.Directories.End_Search (Search);
+                  return Path;
+               end if;
+            end;
+         end loop;
+         Ada.Directories.End_Search (Search);
+         return "";
+      end First_Joined_Hook;
+
+      Joined_Hook : constant String := First_Joined_Hook;
    begin
+      if Joined_Hook /= "" and then Unexpected = "" then
+         Put_Line (Standard_Error, Joined_Hook & ": builds a FILES_TEST_ variable name from joined literals");
+         Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+         raise Program_Error;
+      end if;
       if Split /= "" then
          Put_Line (Standard_Error, Split & ": builds a FILES_ variable name in pieces; spell it whole");
          Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
@@ -5591,15 +5660,15 @@ procedure Check_All is
          end if;
       end Require_Tests;
    begin
-      --  The floors are the counts as of the last change to a suite, so a
-      --  lost test fails here; raise a floor when a suite grows.
+      --  The exact counts as of the last change to a suite: a lost test, or
+      --  one added without its count moving here, fails.
       Require_Tests ("settings", 35);
       Require_Tests ("startup", 30);
       Require_Tests ("commands", 39);
       Require_Tests ("model", 54);
-      Require_Tests ("interaction", 85);
+      Require_Tests ("interaction", 88);
       Require_Tests ("rendering", 101);
-      Require_Tests ("operations", 310);
+      Require_Tests ("operations", 312);
    end Check_Test_Subsystem_Coverage;
 
 begin

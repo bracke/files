@@ -12,6 +12,7 @@ with Ada.Strings.Unbounded;
 with Files.Durability;
 with Hostkit.Durability;
 with Hostkit.Fs;
+with Hostkit.Host;
 with Hostkit.Lease_Files;
 with Hostkit.Metadata;
 with Files.Bounded_Streams;
@@ -51,6 +52,15 @@ package body Files.File_System.Recovery is
       Equivalent_Elements => "=");
 
    Owner_Name : constant String := Files.Protocol_Names.Recovery_Owner;
+   --  Written, synced, in the stage before Restore moves the payload out:
+   --  only a stage carrying it and no payload is a restore that stopped.
+   Vacated_Marker : constant String := Files.Protocol_Names.Recovery_Vacated;
+   --  Written, synced, in the stage before Release moves the payload into
+   --  release/: only a stage carrying it is a release that may have stopped.
+   Releasing_Marker : constant String := Files.Protocol_Names.Recovery_Releasing;
+   --  What a marker lease holds: written once, durably, so the name is a
+   --  file with content rather than an empty create a crash could lose.
+   Marker_Content : constant Ada.Streams.Stream_Element_Array (1 .. 8) := [others => 16#4D#];
    Owner_Magic : constant String := "files-recovery-v1";
    Registry_Magic : constant String := "files-recovery-registry-v1";
    Max_Header_Length : constant := Files.Bounded_Streams.Max_Header_Length;
@@ -192,12 +202,131 @@ package body Files.File_System.Recovery is
       when others => Files.Exclusive_Streams.Close_Safely (File); raise;
    end Write_Owner;
 
+   --  Whether Stage carries the marker Name (Vacated_Marker or
+   --  Releasing_Marker) as a plain file of its own.
+   function Has_Marker (Stage, Name : String) return Boolean is
+     (Record_Is_Regular (Hostkit.Fs.Join (Stage, Name)));
+
+   --  A restore or release marks its stage before the payload leaves it
+   --  and holds the marker as a lease for as long as it works there, so a
+   --  sweep (in this or another process) can tell a stage whose payload
+   --  left on purpose from one Preserve is still filling -- and a stopped
+   --  operation, whose lease went with its process, from a live one.
+   --
+   --  Take the marker Name in Stage for this operation: create it, durable,
+   --  or claim one a stopped operation left behind. False when another
+   --  holder has it: a live operation owns the stage. Raises when the
+   --  marker can be neither made nor claimed.
+   function Hold_Marker
+     (Stage, Name : String;
+      Item        : in out Hostkit.Lease_Files.Lease)
+      return Boolean
+   is
+      Path : constant String := Hostkit.Fs.Join (Stage, Name);
+   begin
+      case Hostkit.Lease_Files.Create (Path, Item) is
+         when Hostkit.Lease_Files.Opened =>
+            if not Hostkit.Lease_Files.Write_At (Item, Marker_Content) then
+               raise Ada.Directories.Use_Error;
+            end if;
+            --  Making the marker's name durable is best effort. A refused
+            --  stage sync must not stop the payload leaving: Preserve's
+            --  put-back runs exactly when its stage would not sync, and
+            --  must still move the original back. A marker lost to a crash
+            --  only leaves an emptied stage the sweep will not touch -- a
+            --  leftover folder, never a lost payload.
+            declare
+               Synced : constant Hostkit.Durability.Outcome := Files.Durability.Sync_Directory (Stage);
+               pragma Unreferenced (Synced);
+            begin
+               null;
+            end;
+            return True;
+         when Hostkit.Lease_Files.Busy =>
+            return False;
+         when others =>
+            --  It exists already (POSIX refuses the create, Windows reports
+            --  an error): left by a stopped operation, or held by a live one.
+            if not Files.Fs_Primitives.Entry_Exists (Path) then
+               raise Ada.Directories.Use_Error;
+            end if;
+            case Hostkit.Lease_Files.Open (Path, Hostkit.Lease_Files.Exclusive, True, Item) is
+               when Hostkit.Lease_Files.Opened =>
+                  return True;
+               when Hostkit.Lease_Files.Busy =>
+                  return False;
+               when others =>
+                  raise Ada.Directories.Use_Error;
+            end case;
+      end case;
+   exception
+      when others => Hostkit.Lease_Files.Release (Item); raise;
+   end Hold_Marker;
+
+   --  Claim a present marker for a sweep: True when it is held now, by
+   --  this caller alone, so no live operation owns it. A missing marker or
+   --  one another holder has is not claimed.
+   function Claim_Marker
+     (Stage, Name : String;
+      Item        : in out Hostkit.Lease_Files.Lease)
+      return Boolean
+   is
+   begin
+      return Has_Marker (Stage, Name)
+        and then Hostkit.Lease_Files.Open
+          (Hostkit.Fs.Join (Stage, Name), Hostkit.Lease_Files.Exclusive, True, Item) =
+            Hostkit.Lease_Files.Opened;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+         Hostkit.Lease_Files.Release (Item);
+         return False;
+   end Claim_Marker;
+
+   --  Let go of a held marker. With Remove, the payload is back in Stage
+   --  (the stage is whole again) and the marker goes too; otherwise it stays
+   --  for the stage's cleanup. Best effort: a marker left beside a present
+   --  payload does nothing, as every sweep first requires the payload gone.
+   --  The lease goes first: Windows refuses to delete a file held open.
+   procedure Let_Go_Marker
+     (Stage, Name : String;
+      Item        : in out Hostkit.Lease_Files.Lease;
+      Remove      : Boolean)
+   is
+   begin
+      Hostkit.Lease_Files.Release (Item);
+      if Remove and then Has_Marker (Stage, Name) then
+         Files.Fs_Primitives.Delete_File (Hostkit.Fs.Join (Stage, Name));
+      end if;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+   end Let_Go_Marker;
+
+   --  Remove Stage, whose payload is gone, while Item holds one of its
+   --  markers. POSIX removes a held file, so the lease is kept until the
+   --  stage is gone; Windows refuses that, so the lease goes first. Another
+   --  claimer that slips into that gap can only remove the same stage.
+   procedure Remove_Stage_Holding
+     (Stage : String;
+      Item  : in out Hostkit.Lease_Files.Lease)
+   is
+   begin
+      if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows) then
+         Hostkit.Lease_Files.Release (Item);
+      end if;
+      Delete_Owned_Tree (Stage);
+      Hostkit.Lease_Files.Release (Item);
+   exception
+      when others => Hostkit.Lease_Files.Release (Item); raise;
+   end Remove_Stage_Holding;
+
    function Contains_Only_Owned_Entries (Stage : String) return Boolean is
       Only_Owned : Boolean := True;
 
       procedure Check (Name : String; Stop : in out Boolean) is
       begin
-         if Name not in "payload" | "original" | "mode" | Owner_Name then
+         if Name not in "payload" | "original" | "mode" | Vacated_Marker | Releasing_Marker | Owner_Name then
             Only_Owned := False;
             Stop := True;
          end if;
@@ -408,9 +537,12 @@ package body Files.File_System.Recovery is
    --  Release moves the payload into release/<its original name> before
    --  trashing it. Stopped between the two (a crash, or a failed trash whose
    --  move back failed too), the stage holds no payload, which nothing would
-   --  recognize again: move the held entry back so the stage is whole.
-   procedure Resume_Interrupted_Release (Path : String) is
-      Holder : constant String := Hostkit.Fs.Join (Files.Fs_Primitives.Parent_Directory (Path), "release");
+   --  recognize again: move the held entry back so the stage is whole. The
+   --  caller holds the stage's release marker.
+   --  @return True when the payload is back in its stage.
+   function Resume_Held_Release (Path : String) return Boolean is
+      Stage  : constant String := Files.Fs_Primitives.Parent_Directory (Path);
+      Holder : constant String := Hostkit.Fs.Join (Stage, "release");
       Held   : UString;
       Count  : Natural := 0;
 
@@ -426,7 +558,7 @@ package body Files.File_System.Recovery is
         or else not Files.Fs_Primitives.Exists (Holder)
         or else Files.Fs_Primitives.Kind (Holder) /= Ada.Directories.Directory
       then
-         return;
+         return Files.Fs_Primitives.Entry_Exists (Path);
       end if;
       Files.Fs_Primitives.For_Each_Name (Holder, Count_One'Access);
       declare
@@ -445,16 +577,41 @@ package body Files.File_System.Recovery is
             Files.Fs_Primitives.Delete_Directory (Holder);
          end if;
       end;
+      return Files.Fs_Primitives.Entry_Exists (Path);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+         return False;
+   end Resume_Held_Release;
+
+   --  Resume a stopped release (see Resume_Held_Release) found by anyone
+   --  but the release itself. Only a stage whose release marker this can
+   --  claim is touched: without the marker the holder is nothing Release
+   --  made, and a marker another holder has is a release still running.
+   procedure Resume_Interrupted_Release (Path : String) is
+      Stage  : constant String := Files.Fs_Primitives.Parent_Directory (Path);
+      Marker : Hostkit.Lease_Files.Lease;
+   begin
+      if Files.Fs_Primitives.Entry_Exists (Path)
+        or else not Claim_Marker (Stage, Releasing_Marker, Marker)
+      then
+         return;
+      end if;
+      Let_Go_Marker (Stage, Releasing_Marker, Marker, Remove => Resume_Held_Release (Path));
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+         Hostkit.Lease_Files.Release (Marker);
    end Resume_Interrupted_Release;
 
    --  A release or restore that moved the payload out (to the trash, back
    --  to its original, or beside it) and stopped before it removed the
    --  stage: only the stage is left, and finishing means removing it.
    --  Retrying on the missing payload would fail for good and keep the stage
-   --  forever.
+   --  forever. The marker the operation wrote before the payload left is
+   --  what tells it apart from a stage Preserve has registered but not yet
+   --  filled, which must be left alone. A caller acting on this holds the
+   --  marker (see Hold_Marker, Claim_Marker), so the operation is not live.
    function Only_Stage_Left (Path : String) return Boolean is
       Stage    : constant String := Files.Fs_Primitives.Parent_Directory (Path);
       Holder   : constant String := Hostkit.Fs.Join (Stage, "release");
@@ -464,9 +621,42 @@ package body Files.File_System.Recovery is
       return not Files.Fs_Primitives.Entry_Exists (Path)
         and then not Files.Fs_Primitives.Entry_Exists (Holder)
         and then Files.Fs_Primitives.Leaf_Text (Path) = "payload"
+        and then (Has_Marker (Stage, Vacated_Marker) or else Has_Marker (Stage, Releasing_Marker))
         and then Read_Owner (Stage, Original, Identity)
         and then Contains_Only_Owned_Entries (Stage);
    end Only_Stage_Left;
+
+   --  Remove the stage of Payload, which a restore or release emptied and
+   --  stopped in, once every marker on it is claimed: one another holder
+   --  has belongs to an operation still running, which finishes itself.
+   --  @return True when the markers were claimed (the stage may still have
+   --    refused to go).
+   function Finish_Stopped_Stage (Payload : String) return Boolean is
+      Stage     : constant String := Files.Fs_Primitives.Parent_Directory (Payload);
+      Vacated   : Hostkit.Lease_Files.Lease;
+      Releasing : Hostkit.Lease_Files.Lease;
+      Claimed   : Boolean;
+   begin
+      Claimed :=
+        (not Has_Marker (Stage, Vacated_Marker) or else Claim_Marker (Stage, Vacated_Marker, Vacated))
+        and then (not Has_Marker (Stage, Releasing_Marker)
+                  or else Claim_Marker (Stage, Releasing_Marker, Releasing));
+      if Claimed and then Only_Stage_Left (Payload) then
+         --  Remove_Stage_Holding manages one lease; the other can go now:
+         --  no new restore or release starts on a stage without its payload.
+         Hostkit.Lease_Files.Release (Vacated);
+         Remove_Stage_Holding (Stage, Releasing);
+      end if;
+      Hostkit.Lease_Files.Release (Vacated);
+      Hostkit.Lease_Files.Release (Releasing);
+      return Claimed;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+         Hostkit.Lease_Files.Release (Vacated);
+         Hostkit.Lease_Files.Release (Releasing);
+         return False;
+   end Finish_Stopped_Stage;
 
    function Release
      (Path     : String;
@@ -477,15 +667,40 @@ package body Files.File_System.Recovery is
       Holder : constant String := Hostkit.Fs.Join (Stage, "release");
       Failed : constant Mutation_Result :=
         (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
-   begin
-      Resume_Interrupted_Release (Path);
-      if Only_Stage_Left (Path) then
-         Delete_Owned_Tree (Stage);
-         Unregister (Path);
-         return (Success => True, Error_Key => Null_Unbounded_String);
-      end if;
-      if not Recognizes (Path) or else not Contains_Only_Owned_Entries (Stage) then
+      --  Held from before the payload leaves until the release is over.
+      Marker : Hostkit.Lease_Files.Lease;
+
+      --  Stop short: the marker goes only with the payload back in place.
+      function Give_Up return Mutation_Result is
+      begin
+         Let_Go_Marker (Stage, Releasing_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
          return Failed;
+      end Give_Up;
+   begin
+      --  A release or restore stopped earlier: put its payload back, or
+      --  finish it -- only through the markers it left, which also tells it
+      --  from a stage Preserve is still filling (no payload, no marker).
+      Resume_Interrupted_Release (Path);
+      if not Files.Fs_Primitives.Entry_Exists (Path) then
+         if Only_Stage_Left (Path)
+           and then Finish_Stopped_Stage (Path)
+           and then not Files.Fs_Primitives.Entry_Exists (Stage)
+         then
+            Unregister (Path);
+            return (Success => True, Error_Key => Null_Unbounded_String);
+         end if;
+         return Failed;
+      end if;
+      if not Recognizes (Path)
+        or else not Contains_Only_Owned_Entries (Stage)
+        or else not Hold_Marker (Stage, Releasing_Marker, Marker)
+      then
+         --  Not a payload of ours, or another release is running on it.
+         return Failed;
+      end if;
+      if not Recognizes (Path) then
+         --  Another release finished between the check and the marker.
+         return Give_Up;
       end if;
       declare
          Original : constant String := Original_Path (Path);
@@ -498,21 +713,24 @@ package body Files.File_System.Recovery is
          Files.Fs_Primitives.Create_Directory (Holder);
          if not Support.Move_No_Replace (Path, Named) then
             Files.Fs_Primitives.Delete_Directory (Holder);
-            return Failed;
+            return Give_Up;
          end if;
          if not To_Trash (Named, (if Valid_Absolute_Path (Original) then Original else "")).Success then
             if Support.Move_No_Replace (Named, Path) then
                Files.Fs_Primitives.Delete_Directory (Holder);
             end if;
-            return Failed;
+            return Give_Up;
          end if;
       end;
-      Delete_Owned_Tree (Stage);
+      Remove_Stage_Holding (Stage, Marker);
       Unregister (Path);
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+         if Hostkit.Lease_Files.Is_Held (Marker) then
+            Let_Go_Marker (Stage, Releasing_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
+         end if;
          return Failed;
    end Release;
 
@@ -885,10 +1103,14 @@ package body Files.File_System.Recovery is
          return "";
    end Original_Path;
 
-   function Registered_Payloads return Files.Types.String_Vectors.Vector is
+   --  Whether the stage holding Payload is still the one its record named.
+   function Stage_Matches (Payload, Expected : String) return Boolean is
+     (Expected = ""
+      or else Files.File_Identities.Token (Files.Fs_Primitives.Parent_Directory (Payload)) = Expected);
+
+   procedure Sweep_Registry is
       Root : constant String := Registry_Root (Create => False);
-      Result : Files.Types.String_Vectors.Vector;
-      Seen   : Path_Sets.Set;
+      Seen : Path_Sets.Set;
 
       procedure Check (Name : String; Stop : in out Boolean) is
          pragma Unreferenced (Stop);
@@ -904,22 +1126,13 @@ package body Files.File_System.Recovery is
          elsif Read_Registry_Record (Directory, Payload, Expected) then
             Resume_Interrupted_Release (To_String (Payload));
             if Only_Stage_Left (To_String (Payload))
-              and then
-                (Length (Expected) = 0
-                 or else Files.File_Identities.Token
-                   (Files.Fs_Primitives.Parent_Directory (To_String (Payload))) =
-                     To_String (Expected))
+              and then Stage_Matches (To_String (Payload), To_String (Expected))
             then
                --  A restore or release that stopped after the payload left:
                --  finish it, and drop the record once the stage is gone.
-               begin
-                  Delete_Owned_Tree (Files.Fs_Primitives.Parent_Directory (To_String (Payload)));
-               exception
-                  when Swallowed : others =>
-                     Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
-               end;
-               if not Files.Fs_Primitives.Entry_Exists
-                 (Files.Fs_Primitives.Parent_Directory (To_String (Payload)))
+               if Finish_Stopped_Stage (To_String (Payload))
+                 and then not Files.Fs_Primitives.Entry_Exists
+                   (Files.Fs_Primitives.Parent_Directory (To_String (Payload)))
                then
                   Delete_Registry_Record (Directory);
                end if;
@@ -929,16 +1142,38 @@ package body Files.File_System.Recovery is
                Delete_Registry_Record (Directory);
             else
                Seen.Include (To_String (Payload));
-               if Recognizes (To_String (Payload))
-                 and then
-                   (Length (Expected) = 0
-                    or else Files.File_Identities.Token
-                      (Files.Fs_Primitives.Parent_Directory (To_String (Payload))) =
-                        To_String (Expected))
-               then
-                  Result.Append (Payload);
-               end if;
             end if;
+         end if;
+      end Check;
+   begin
+      if Root = "" then
+         return;
+      end if;
+      Files.Fs_Primitives.For_Each_Name (Root, Check'Access);
+   exception
+      when Failure : others =>
+         Files.Diagnostics.Note (Failure, "Files.File_System.Recovery");
+   end Sweep_Registry;
+
+   function Registered_Payloads return Files.Types.String_Vectors.Vector is
+      Root : constant String := Registry_Root (Create => False);
+      Result : Files.Types.String_Vectors.Vector;
+      Seen   : Path_Sets.Set;
+
+      procedure Check (Name : String; Stop : in out Boolean) is
+         pragma Unreferenced (Stop);
+         Payload, Expected : UString;
+         Directory : constant String := Hostkit.Fs.Join (Root, Name);
+      begin
+         if Starts_With (Name, Files.Protocol_Names.Recovery_Stage_Prefix)
+           and then Files.Fs_Primitives.Directory_Exists (Directory)
+           and then Read_Registry_Record (Directory, Payload, Expected)
+           and then not Seen.Contains (To_String (Payload))
+           and then Recognizes (To_String (Payload))
+           and then Stage_Matches (To_String (Payload), To_String (Expected))
+         then
+            Seen.Include (To_String (Payload));
+            Result.Append (Payload);
          end if;
       end Check;
    begin
@@ -957,6 +1192,8 @@ package body Files.File_System.Recovery is
      (Path : String; Expected_Identity : String := ""; Expected_Original : String := "") return Mutation_Result is
       Parent : constant String := Files.Fs_Primitives.Parent_Directory (Path);
       Target : UString;
+      --  The stage's restore marker, held while the payload leaves.
+      Marker : Hostkit.Lease_Files.Lease;
    begin
       Resume_Interrupted_Release (Path);
       if not Recognizes (Path) or else not Contains_Only_Owned_Entries (Parent) then
@@ -1018,16 +1255,25 @@ package body Files.File_System.Recovery is
             when others => Files.Lease_Streams.Release (Input); raise;
          end;
       end if;
+      --  Durable, and held, before the payload leaves, so a sweep finishing
+      --  this stage knows the payload went on purpose (see Only_Stage_Left)
+      --  and leaves it to this restore while it runs. Held elsewhere: another
+      --  restore of this payload is running.
+      if not Hold_Marker (Parent, Vacated_Marker, Marker) then
+         return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
+      end if;
       if (Expected_Identity /= "" and then not Rename_Item (Path, To_String (Target), Expected_Identity).Success)
         or else (Expected_Identity = "" and then not Support.Move_No_Replace (Path, To_String (Target)))
       then
+         Let_Go_Marker (Parent, Vacated_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
       end if;
       --  The original is back: the restore has succeeded. Its record goes
-      --  only with its stage; a stage that will not go yet keeps the record,
-      --  so Registered_Payloads finds the emptied stage and finishes it.
+      --  only with its stage; a stage that will not go yet keeps the record
+      --  and its marker, so Sweep_Registry finds the emptied, marked stage
+      --  and finishes it.
       begin
-         Delete_Owned_Tree (Parent);
+         Remove_Stage_Holding (Parent, Marker);
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
@@ -1039,6 +1285,9 @@ package body Files.File_System.Recovery is
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+         if Hostkit.Lease_Files.Is_Held (Marker) then
+            Let_Go_Marker (Parent, Vacated_Marker, Marker, Remove => Files.Fs_Primitives.Entry_Exists (Path));
+         end if;
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
    end Restore;
 end Files.File_System.Recovery;

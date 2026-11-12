@@ -101,8 +101,11 @@ package body Files_Suite.Interaction is
 
    procedure Test_Left_Click_Selects (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Mouse_Button_Queue_Order (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Mouse_Release_Held_For_Bounce (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Shared_Settings_Reach_Other_Window (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Ctrl_Click_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shift_Click_Range_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Shift_Click_Anchors_At_Ctrl_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Entry_Updates_Focused_Input (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Entry_Contained_By_Overlays (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Drop_Contained_By_Overlays (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -203,9 +206,18 @@ package body Files_Suite.Interaction is
         (T, Test_Mouse_Button_Queue_Order'Access,
          "mouse button changes queue in order with their position and modifiers; a bounce drops with its release");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Mouse_Release_Held_For_Bounce'Access,
+         "a left release waits out its debounce window, so a later bounce press still withdraws it");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Shared_Settings_Reach_Other_Window'Access,
+         "settings shared from another window refresh an open pane's draft and reload a listing they change");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Ctrl_Click_Multi_Selection'Access, "ctrl-click builds and toggles a multi-selection");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Shift_Click_Range_Selection'Access, "shift-click selects the inclusive range from the anchor");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Shift_Click_Anchors_At_Ctrl_Click'Access,
+         "a shift-click ranges from the item the last ctrl-click chose, and a further shift-click keeps that anchor");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Text_Entry_Updates_Focused_Input'Access,
          "typed text routes to the focused filter and command-palette inputs");
@@ -523,9 +535,15 @@ package body Files_Suite.Interaction is
 
    procedure Test_Mouse_Button_Queue_Order (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Mouse_Release_Held_For_Bounce (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Shared_Settings_Reach_Other_Window (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Ctrl_Click_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Shift_Click_Range_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Shift_Click_Anchors_At_Ctrl_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Text_Entry_Updates_Focused_Input (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

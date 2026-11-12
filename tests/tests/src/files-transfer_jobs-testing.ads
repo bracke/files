@@ -26,6 +26,14 @@ package Files.Transfer_Jobs.Testing is
      (Path : String;
       Result : Job_Result);
 
+   --  Write a replacement checkpoint using the production encoder.
+   --  @param Path Checkpoint file to create.
+   --  @param Backup Where the replaced original is held.
+   --  @param Backup_Identity Identity of Backup.
+   procedure Write_Checkpoint
+     (Path : String;
+      Backup, Backup_Identity : String);
+
    --  Read a complete production transfer result.
    --  @param Path Result file to inspect.
    --  @return Decoded transfer result.

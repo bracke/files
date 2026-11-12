@@ -18,8 +18,8 @@ begin
       --  be an image before a caller allocates four bytes per pixel for it.
       if W = 0
         or else H = 0
-        or else W > 16_384
-        or else H > 16_384
+        or else W > Max_Memory_Source_Side
+        or else H > Max_Memory_Source_Side
         or else W > Max_Source_Pixels / H
       then
          return False;

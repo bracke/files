@@ -9,7 +9,7 @@ function List_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is
    begin
       if Kind /= Hostkit.Fs.Ordinary_File_Entry then
          return;
-      elsif Count = Max_Thumbnail_Cache_Entries then
+      elsif Count = Max_Cache_Prune_Entries then
          Capped := True;
          Stop := True;
          return;

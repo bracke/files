@@ -23,12 +23,11 @@ separate (Files.Controller)
 
       if Modifiers (Guikit.Input.Shift_Key) and then not Activate then
          declare
-            --  Keep the anchor at the fixed opposite end of the current
-            --  selection, so successive shift-clicks grow the range from where
-            --  it began rather than from the moving cursor (which
-            --  Select_Visible_Range left on the last click's target). Without
-            --  this a second shift-click shrinks the range. Shared with the
-            --  keyboard shift+arrow path in Handle_Key.
+            --  The range grows from the item the last plain or Ctrl click
+            --  (or cursor move) chose, which the model keeps, not from the
+            --  moving cursor (which Select_Visible_Range leaves on the last
+            --  click's target): successive shift-clicks grow the range from
+            --  where it began. Shared with the shift+arrow path in Handle_Key.
             Anchor : constant Natural := Files.Model.Range_Anchor (Model);
          begin
             Files.Model.Select_Visible_Range

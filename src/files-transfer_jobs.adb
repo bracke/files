@@ -4,7 +4,6 @@ with Files.Helper_Modes;
 with Files.Diagnostics;
 with Ada.Directories;
 with Ada.IO_Exceptions;
-with Ada.Streams;
 with Ada.Strings.Unbounded;
 
 with Files.Fs_Primitives;
@@ -59,8 +58,10 @@ package body Files.Transfer_Jobs is
              and then not Result.Cancelled
              and then Has_Created_Identity
            else
-             not Has_Created_Identity
-             and then not Has_Created_Revision
+             --  A failed move may still have kept its copy (see
+             --  Files.File_System.Import_Replacing); a revision never comes
+             --  without the identity it belongs to.
+             (Has_Created_Identity or else not Has_Created_Revision)
              and then (not Result.Cancelled or else not Has_Trash));
    end Result_Is_Consistent;
 
@@ -202,6 +203,15 @@ package body Files.Transfer_Jobs is
 
    function Read_Transport_Result (Path : String) return Job_Result is
      (Read_Result_Record (Path, Result_Header));
+
+   procedure Write_Replacement_Checkpoint
+     (Stream                  : not null access Ada.Streams.Root_Stream_Type'Class;
+      Backup, Backup_Identity : String)
+   is
+   begin
+      String'Output (Stream, Backup);
+      String'Output (Stream, Backup_Identity);
+   end Write_Replacement_Checkpoint;
 
    procedure Read_Replacement_Checkpoint
      (Path : String;
@@ -406,8 +416,7 @@ package body Files.Transfer_Jobs is
          end if;
          Files.Exclusive_Streams.Create
            (File, Hostkit.Fs.Join (Directory, Files.Protocol_Names.Staged_Replaced_File));
-         String'Output (File'Access, Backup);
-         String'Output (File'Access, Backup_Identity);
+         Write_Replacement_Checkpoint (File'Access, Backup, Backup_Identity);
          Files.Exclusive_Streams.Close (File);
          if not Files.Durable_Writes.Published
            (Files.Durable_Writes.Publish
@@ -423,23 +432,6 @@ package body Files.Transfer_Jobs is
             raise;
       end Checkpoint;
 
-      procedure Roll_Back is
-      begin
-         if not Result.Mutation.Success and then Length (Result.Trashed) > 0 then
-            declare
-               Restored : constant Files.File_System.Mutation_Result :=
-                 Files.File_System.Restore_From_Trash
-                   (To_String (Result.Trashed), To_String (Result.Trashed_Identity), To_String (Action.Dest_Path));
-            begin
-               if Restored.Success then
-                  Result.Trashed := Null_Unbounded_String;
-                  Result.Trashed_Identity := Null_Unbounded_String;
-               else
-                  Result.Mutation := Restored;
-               end if;
-            end;
-         end if;
-      end Roll_Back;
    begin
       Read_Transport_Request
         (Hostkit.Fs.Join (Directory, Files.Process_Jobs.Request_File),
@@ -483,7 +475,13 @@ package body Files.Transfer_Jobs is
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
             Result.Mutation := (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
-            Roll_Back;
+            --  Import_Replacing rolls back its own failures; this covers only
+            --  a raise around it, with the same routine. A kept copy holds
+            --  the destination, so the original stays held.
+            if Length (Result.Created_Identity) = 0 then
+               Files.File_System.Put_Back_Replaced
+                 (Result.Trashed, Result.Trashed_Identity, To_String (Action.Dest_Path), Result.Mutation);
+            end if;
       end;
       Result.Cancelled := Cancelled and then Is_Cancellation_Failure (Result);
       if Result.Mutation.Success then

@@ -59,9 +59,11 @@ package body Files.Recovery_CLI is
    end List;
 
    procedure List_Registered is
-      Payloads : constant Files.Types.String_Vectors.Vector :=
-        Files.File_System.Registered_Recovery_Payloads;
+      Payloads : Files.Types.String_Vectors.Vector;
    begin
+      --  Finish interrupted work first, so the list shows what is left.
+      Files.File_System.Sweep_Recovery_Registry;
+      Payloads := Files.File_System.Registered_Recovery_Payloads;
       for Payload of Payloads loop
          declare
             Path : constant String := To_String (Payload);

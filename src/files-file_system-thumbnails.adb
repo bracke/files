@@ -227,8 +227,6 @@ package body Files.File_System.Thumbnails is
 
    Max_Cached_Thumbnail_Pixels : constant Natural := 2_048 * 2_048;
 
-   Max_Thumbnail_Cache_Entries : constant Natural := 100_000;
-
    function Load_Cached_Thumbnail
      (Path : String)
       return Cached_Thumbnail;

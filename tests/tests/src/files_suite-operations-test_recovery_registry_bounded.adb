@@ -68,7 +68,7 @@ separate (Files_Suite.Operations)
       end;
 
       --  A record whose stage is gone (as leaked by older builds) is reclaimed
-      --  by the payload scan rather than accumulating forever.
+      --  by the registry sweep rather than accumulating forever.
       if not Ada.Directories.Exists (Stale) then
          Ada.Directories.Create_Path (Stale);
          declare
@@ -82,17 +82,11 @@ separate (Files_Suite.Operations)
             Ada.Streams.Stream_IO.Close (File);
          end;
       end if;
-      declare
-         Payloads : constant Files.Types.String_Vectors.Vector :=
-           Files.File_System.Registered_Recovery_Payloads;
-         pragma Unreferenced (Payloads);
-      begin
-         null;
-      end;
+      Files.File_System.Sweep_Recovery_Registry;
       Assert (not Ada.Directories.Exists (Stale),
               "a registry record whose stage no longer exists is reclaimed");
 
-      --  Reused stage names left many records for one payload; the scan keeps one.
+      --  Reused stage names left many records for one payload; the sweep keeps one.
       declare
          Stage  : constant String := Join (Root, ".files-recovery-77");
          Shared : constant String := Join (Stage, "payload");
@@ -113,13 +107,7 @@ separate (Files_Suite.Operations)
                Ada.Streams.Stream_IO.Close (File);
             end;
          end loop;
-         declare
-            Payloads : constant Files.Types.String_Vectors.Vector :=
-              Files.File_System.Registered_Recovery_Payloads;
-            pragma Unreferenced (Payloads);
-         begin
-            null;
-         end;
+         Files.File_System.Sweep_Recovery_Registry;
          for Copy of Copies loop
             if Ada.Directories.Exists (Join (Registry, ".files-recovery-" & Copy)) then
                Left := Left + 1;

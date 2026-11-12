@@ -32,4 +32,18 @@ separate (Files_Suite.Startup)
       Assert
         (not Files.Timing.Elapsed (Today, Today, 2.0) and then Files.Timing.Elapsed (Today + 2.0, Today, 2.0),
          "a calendar interval elapses at its end");
+      Assert
+        (Files.Timing.Until_Due (Now, Now, 1.0) = 0.0
+         and then Files.Timing.Until_Due (Now + Second, Now, 1.0) = 0.0,
+         "a time already due is due now");
+      Assert
+        (abs (Files.Timing.Until_Due (Now, Now + Ada.Real_Time.Milliseconds (250), 1.0) - 0.25) < 0.001,
+         "a time due within the limit is that far off");
+      Assert
+        (Files.Timing.Until_Due (Now, Now + Second, 0.5) = 0.5
+         and then Files.Timing.Until_Due (Ada.Real_Time.Time_First, Ada.Real_Time.Time_Last, 2.0) = 2.0,
+         "a time due past the limit answers the limit, at the clock's ends too");
+      Assert
+        (Files.Timing.Until_Due (Ada.Real_Time.Time_Last, Ada.Real_Time.Time_First, 2.0) = 0.0,
+         "the clock's ends the other way round answer at once, without overflow");
    end Test_Timing_At_Clock_Ends;

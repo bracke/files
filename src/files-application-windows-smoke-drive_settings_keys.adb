@@ -232,7 +232,8 @@ separate (Files.Application.Windows.Smoke)
                            X         => Runtime.Handle.Drag_Start_X,
                            Y         => Runtime.Handle.Drag_Start_Y,
                            Modifiers => Guikit.Input.No_Modifiers,
-                           Dragged   => False));
+                           Dragged   => False,
+                           At_Time   => Ada.Real_Time.Clock));
                      Runtime.Handle.Drag_Moved := False;
                      Handle_Mouse (Runtime);
                      exit;
@@ -251,7 +252,9 @@ separate (Files.Application.Windows.Smoke)
                   X         => Runtime.Handle.Drag_Start_X,
                   Y         => Runtime.Handle.Drag_Start_Y,
                   Modifiers => Guikit.Input.No_Modifiers,
-                  Dragged   => False));
+                  Dragged   => False,
+                  --  Long past its debounce window, so the next drain takes it.
+                  At_Time   => Ada.Real_Time.Time_First));
          end Release_Left;
       begin
          Files.Model.Replace_Items (Runtime.Model, Scenario_Overflow_Items (Runtime.Model));

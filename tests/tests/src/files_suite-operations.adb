@@ -478,6 +478,8 @@ package body Files_Suite.Operations is
    procedure Test_Released_Recovery_Goes_To_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Interrupted_Release_Resumes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Emptied_Stage_Swept (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Unmarked_Stage_Survives_Sweep (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Held_Release_Marker_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Command_Line (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Preserve_Puts_Original_Back (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Background_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -598,6 +600,12 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Emptied_Stage_Swept'Access,
          "the registry sweep removes a recovery stage whose payload is already gone");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Unmarked_Stage_Survives_Sweep'Access,
+         "the registry sweep leaves a stage with no payload and no restore or release marker");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Held_Release_Marker_Skipped'Access,
+         "the registry sweep leaves a release whose marker lease is held, and resumes it once released");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Recovery_Command_Line'Access,
          "--recover restores a payload, and --discard-recovery deletes only a recovery payload");
@@ -2085,6 +2093,10 @@ package body Files_Suite.Operations is
    procedure Test_Interrupted_Release_Resumes (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Emptied_Stage_Swept (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Unmarked_Stage_Survives_Sweep (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Held_Release_Marker_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Native_Replace_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

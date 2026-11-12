@@ -19,6 +19,18 @@ package Files.Timing is
       Interval : Ada.Real_Time.Time_Span)
       return Boolean;
 
+   --  How long until Due, at most Limit.
+   --
+   --  @param Now The current time.
+   --  @param Due When something becomes due.
+   --  @param Limit The longest answer.
+   --  @return Due - Now clamped to 0.0 .. Limit. Never raises.
+   function Until_Due
+     (Now   : Ada.Real_Time.Time;
+      Due   : Ada.Real_Time.Time;
+      Limit : Duration)
+      return Duration;
+
    --  Elapsed for calendar times, such as file modification times, which
    --  may be anywhere in the calendar's range.
    --

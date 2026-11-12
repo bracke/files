@@ -645,6 +645,8 @@ package body Files.File_System is
    function Registered_Recovery_Payloads return Files.Types.String_Vectors.Vector
      renames Recovery.Registered_Payloads;
 
+   procedure Sweep_Recovery_Registry renames Recovery.Sweep_Registry;
+
    function Restore_From_Trash
      (Trashed_Path : String; Expected_Identity : String := ""; Expected_Original : String := "")
       return Mutation_Result
@@ -1150,6 +1152,12 @@ package body Files.File_System is
       Cancel                : Cancellation_Check := null;
       Batch                 : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result
+   is separate;
+
+   procedure Put_Back_Replaced
+     (Replaced, Replaced_Identity : in out Files.Types.UString;
+      Destination                 : String;
+      Result                      : in out Mutation_Result)
    is separate;
 
    function Delete_Verified_Entry

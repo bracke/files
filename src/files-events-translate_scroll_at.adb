@@ -10,16 +10,12 @@ separate (Files.Events)
       return Input_Action
    is
       Action  : Input_Action := Translate_Scroll (Y_Offset);
+      Over_Tree   : Boolean;
+      Tree_Action : Input_Action;
+      --  Only the frame: each region's own layout is worked out in the branch
+      --  that asks whether the wheel is over it, and only there.
       Layout  : constant Files.Rendering.Layout_Metrics :=
         Files.Rendering.Calculate_Layout (Snapshot, Width, Height, Line_Height);
-      Palette : constant Files.Rendering.Command_Palette_Layout :=
-        Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height);
-      Info    : constant Files.Rendering.Info_Pane_Layout :=
-        Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
-      Main    : constant Files.Rendering.Main_View_Layout :=
-        Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
-      Tree    : constant Files.Rendering.Tree_Panel_Layout :=
-        Files.Rendering.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line_Height);
 
       function Within
         (Value  : Natural;
@@ -50,22 +46,23 @@ separate (Files.Events)
          return Scroll_Action (Target, Adjustment);
       end Bounded_Scroll_Action;
 
-      function Tree_Scroll_Action return Input_Action
-      is
+      --  The wheel over the open folder tree: Over is False, with no action,
+      --  when it is elsewhere.
+      procedure Tree_Scroll (Over : out Boolean; Result : out Input_Action) is
+         Tree     : constant Files.Rendering.Tree_Panel_Layout :=
+           Files.Rendering.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line_Height);
          Count    : constant Natural := Natural (Snapshot.Tree_Rows.Length);
          Capacity : constant Natural :=
            Files.Rendering.Tree_Row_Capacity (Snapshot, Tree);
       begin
-         if Count = 0 or else Capacity = 0 then
-            return No_Action;
-         end if;
-
-         return
-           Bounded_Scroll_Action
-             (Scroll_Tree_Panel,
-              Snapshot.Tree_Panel_Scroll_Rows,
-              Files.Rendering.Tree_Max_Scroll (Snapshot, Tree));
-      end Tree_Scroll_Action;
+         Over := Within (X, Tree.X, Tree.Width) and then Within (Y, Tree.Y, Tree.Height);
+         Result :=
+           (if not Over or else Count = 0 or else Capacity = 0 then No_Action
+            else Bounded_Scroll_Action
+                   (Scroll_Tree_Panel,
+                    Snapshot.Tree_Panel_Scroll_Rows,
+                    Files.Rendering.Tree_Max_Scroll (Snapshot, Tree)));
+      end Tree_Scroll;
 
       --  These overlays own pointer input but do not currently expose a
       --  scrollable region.  Swallow the wheel event while one is open so it
@@ -84,12 +81,17 @@ separate (Files.Events)
       end if;
 
       if Snapshot.Command_Palette_Open then
-         if Within (X, Palette.Results_X, Palette.Results_Width)
-           and then Within (Y, Palette.Results_Y, Palette.Results_Height)
-         then
-            Action.Scroll_Area := Scroll_Command_Palette;
-            return Action;
-         end if;
+         declare
+            Palette : constant Files.Rendering.Command_Palette_Layout :=
+              Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height);
+         begin
+            if Within (X, Palette.Results_X, Palette.Results_Width)
+              and then Within (Y, Palette.Results_Y, Palette.Results_Height)
+            then
+               Action.Scroll_Area := Scroll_Command_Palette;
+               return Action;
+            end if;
+         end;
 
          return No_Action;
       end if;
@@ -114,44 +116,54 @@ separate (Files.Events)
          return No_Action;
       end if;
 
-      if Snapshot.Tree_Pick_Active
-        and then Snapshot.Tree_Panel_Open
-        and then Within (X, Tree.X, Tree.Width)
-        and then Within (Y, Tree.Y, Tree.Height)
-      then
-         return Tree_Scroll_Action;
+      --  Picking a folder in the tree: only the tree scrolls (the pick is
+      --  among the overlays below that swallow the wheel elsewhere).
+      if Snapshot.Tree_Pick_Active and then Snapshot.Tree_Panel_Open then
+         Tree_Scroll (Over_Tree, Tree_Action);
+         if Over_Tree then
+            return Tree_Action;
+         end if;
       end if;
 
       if Non_Scrolling_Overlay_Is_Open then
          return No_Action;
       end if;
 
-      if Snapshot.Tree_Panel_Open
-        and then Within (X, Tree.X, Tree.Width)
-        and then Within (Y, Tree.Y, Tree.Height)
-      then
-         return Tree_Scroll_Action;
+      if Snapshot.Tree_Panel_Open then
+         Tree_Scroll (Over_Tree, Tree_Action);
+         if Over_Tree then
+            return Tree_Action;
+         end if;
       end if;
 
-      if Snapshot.Info_Pane_Open
-        and then Within (X, Info.X, Info.Width)
-        and then Within (Y, Info.Y, Info.Height)
-      then
-         return
-           Bounded_Scroll_Action
-             (Scroll_Info_Pane,
-              Snapshot.Info_Pane_Scroll_Lines,
-              Files.Rendering.Info_Pane_Max_Scroll (Info, Line_Height));
+      if Snapshot.Info_Pane_Open then
+         declare
+            Info : constant Files.Rendering.Info_Pane_Layout :=
+              Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
+         begin
+            if Within (X, Info.X, Info.Width) and then Within (Y, Info.Y, Info.Height) then
+               return
+                 Bounded_Scroll_Action
+                   (Scroll_Info_Pane,
+                    Snapshot.Info_Pane_Scroll_Lines,
+                    Files.Rendering.Info_Pane_Max_Scroll (Info, Line_Height));
+            end if;
+         end;
       end if;
 
       if Within (X, Layout.Main_X, Layout.Main_Width)
         and then Within (Y, Layout.Main_Y, Layout.Main_Height)
       then
-         return
-           Bounded_Scroll_Action
-             (Scroll_Main_View,
-              Snapshot.Main_View_Scroll_Lines,
-              Files.Rendering.Main_View_Max_Scroll (Main, Line_Height));
+         declare
+            Main : constant Files.Rendering.Main_View_Layout :=
+              Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
+         begin
+            return
+              Bounded_Scroll_Action
+                (Scroll_Main_View,
+                 Snapshot.Main_View_Scroll_Lines,
+                 Files.Rendering.Main_View_Max_Scroll (Main, Line_Height));
+         end;
       end if;
 
       return No_Action;

@@ -20,16 +20,13 @@ separate (Files.Controller)
          return Paths;
       end Selected_Paths;
    begin
-      if Files.Model.Root_Selector_Is_Open (Model)
-        and then not Files.Commands.Allowed_With_Root_Selector (Id)
+      if (Files.Model.Root_Selector_Is_Open (Model)
+          and then not Files.Commands.Allowed_With_Root_Selector (Id))
+        or else (Files.Model.Settings_Pane_Is_Open (Model)
+                 and then not Files.Commands.Allowed_With_Settings_Pane (Id))
+        or else not Files.Commands.Status.Is_Enabled (Id, Model)
       then
-         return Make_Result (Controller_Ignored, Id);
-      elsif Files.Model.Settings_Pane_Is_Open (Model)
-        and then not Files.Commands.Allowed_With_Settings_Pane (Id)
-      then
-         return Make_Result (Controller_Ignored, Id);
-      elsif not Files.Commands.Status.Is_Enabled (Id, Model) then
-         return Disabled_Command_Result (Id, Model);
+         return Refused_Command_Result (Id, Model);
       end if;
 
       case Id is

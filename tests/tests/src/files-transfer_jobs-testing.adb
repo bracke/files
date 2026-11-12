@@ -96,6 +96,19 @@ package body Files.Transfer_Jobs.Testing is
       when others => Close (File); raise;
    end Write_Result;
 
+   procedure Write_Checkpoint
+     (Path : String;
+      Backup, Backup_Identity : String)
+   is
+      File : Ada.Streams.Stream_IO.File_Type;
+   begin
+      Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
+      Write_Replacement_Checkpoint (Ada.Streams.Stream_IO.Stream (File), Backup, Backup_Identity);
+      Ada.Streams.Stream_IO.Close (File);
+   exception
+      when others => Close (File); raise;
+   end Write_Checkpoint;
+
    function Read_Result (Path : String) return Job_Result is
      (Read_Transport_Result (Path));
 

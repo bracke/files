@@ -22,7 +22,9 @@ package Files.File_System.Thumbnails is
       Error_Key      : UString;
    end record;
 
-   --  How many thumbnails one prune collects (sizes, times, identities).
+   --  The most thumbnails the cache is meant to hold: how many one prune
+   --  collects (sizes, times, identities), and how many a cache listing
+   --  takes before it gives up and treats the cache as unlisted.
    Max_Cache_Prune_Entries : constant := 100_000;
 
    --  Bring the thumbnail cache under Budget_Bytes, deleting the least recently
@@ -39,9 +41,11 @@ package Files.File_System.Thumbnails is
    --
    --  @param Cache_Directory Directory holding the cached thumbnails.
    --  @param Budget_Bytes Total size to come under.
-   --  @param Max_Entries How many thumbnails one pass collects; a directory
-   --  holding more is pruned from what was collected, by enough that the
-   --  next pass comes in under it.
+   --  @param Max_Entries How many thumbnails one pass collects: the oldest
+   --  that many by modification time, whatever the listing order. A
+   --  directory holding more loses the oldest it needs to -- the overflow
+   --  and a tenth of the cap more, as far as the collected reach -- so
+   --  repeated passes bring it under the cap, oldest first throughout.
    procedure Prune_Thumbnail_Cache
      (Cache_Directory : String;
       Budget_Bytes    : Long_Long_Integer;

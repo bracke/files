@@ -82,9 +82,24 @@ begin
                              Copied_Identity, Copied_Tree_Revision, Copy_Kept, Cancel, Context);
                      begin
                         if not Moved.Success then
-                           --  The source stays canonical (unless set aside),
-                           --  so paste-replace can restore its original
-                           --  destination.
+                           if Copy_Kept then
+                              --  The copy had to stay: the source was set
+                              --  aside in recovery (the move is in effect
+                              --  done), or the copy could not be removed.
+                              --  It is the plan's result either way; return
+                              --  it so undo covers it. Copy_To_New_Path
+                              --  recorded it as created; a vacated source
+                              --  makes it a move.
+                              if not Files.Fs_Primitives.Entry_Exists (Source_Path) then
+                                 Files.Job_Context.Record_Moved
+                                   (Destination_Path, Source_Path, To_String (Copied_Identity));
+                              end if;
+                              Created_Identities.Append (Copied_Identity);
+                              Created_Tree_Revisions.Append (Copied_Tree_Revision);
+                           end if;
+                           --  Otherwise nothing is at the destination and the
+                           --  source stays canonical, so paste-replace can
+                           --  restore its original destination.
                            return Moved;
                         end if;
                         Files.Job_Context.Record_Moved
@@ -108,10 +123,12 @@ begin
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.File_System");
-            --  A copy raised partway (e.g. out of space); remove the partial
-            --  destination before reporting failure. The source is untouched.
-            --  Copy_Tree cleans up only destinations it created. A cancelled
-            --  copy keeps the generic key: the helper reads it as cancelled.
+            --  A copy raised partway (e.g. out of space). Copy_To_New_Path
+            --  removes its own private stage when it raises, and nothing it
+            --  does after publishing raises, so no partial destination is
+            --  left and nothing is cleaned up here; the source is untouched.
+            --  A cancelled copy keeps the generic key: the helper reads it as
+            --  cancelled.
             return
               (Success   => False,
                Error_Key =>

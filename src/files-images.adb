@@ -148,6 +148,68 @@ package body Files.Images is
    procedure Safe_Free
      (Pointer : in out Interfaces.C.Strings.chars_ptr) is separate;
 
+   --  Whether a declared extent is one a file decode accepts.
+   function Within_Source_Bounds (Width, Height : Natural) return Boolean is
+     (Width > 0 and then Height > 0
+      and then Width <= Max_File_Source_Side and then Height <= Max_File_Source_Side
+      and then Width <= Max_File_Source_Pixels / Height);
+
+   --  gdk-pixbuf allocates the full source while consuming the stream, before
+   --  the post-decode checks run: refuse a file whose header declares more
+   --  than the file bounds. Head is the file's first bytes; a PNG is measured
+   --  from its raw IHDR (not Image_Bytes_Extent, whose bounds are the
+   --  in-memory ones). A format no loader recognizes is left to the loader.
+   function Declared_Extent_Allowed
+     (Path : String;
+      Head : Ada.Streams.Stream_Element_Array)
+      return Boolean
+   is
+      Width, Height : Natural;
+   begin
+      if PNG_Header (Head, Width, Height) then
+         return Within_Source_Bounds (Width, Height);
+      end if;
+      declare
+         Name        : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Path);
+         Info_Width  : aliased C_Int := 0;
+         Info_Height : aliased C_Int := 0;
+         Format      : constant System.Address :=
+           Gdk_Pixbuf_Get_File_Info (Name, Info_Width'Access, Info_Height'Access);
+      begin
+         Safe_Free (Name);
+         if Format = System.Null_Address or else Info_Width <= 0 or else Info_Height <= 0 then
+            return True;
+         end if;
+         return Within_Source_Bounds (Natural (Info_Width), Natural (Info_Height));
+      end;
+   end Declared_Extent_Allowed;
+
+   function File_Extent_Allowed (Path : String) return Boolean is
+      use type GNAT.OS_Lib.File_Descriptor;
+      Descriptor : GNAT.OS_Lib.File_Descriptor := Files.Fs_Primitives.Open_Regular_Read (Path);
+      Head       : Ada.Streams.Stream_Element_Array (1 .. 64);
+      Bytes_Read : Integer;
+   begin
+      if Descriptor = GNAT.OS_Lib.Invalid_FD then
+         return False;
+      end if;
+      Bytes_Read := GNAT.OS_Lib.Read (Descriptor, Head'Address, Integer (Head'Length));
+      GNAT.OS_Lib.Close (Descriptor);
+      Descriptor := GNAT.OS_Lib.Invalid_FD;
+      if Bytes_Read < 0 then
+         return False;
+      end if;
+      return Declared_Extent_Allowed
+        (Path, Head (Head'First .. Head'First + Ada.Streams.Stream_Element_Offset (Bytes_Read) - 1));
+   exception
+      when Error : others =>
+         Files.Diagnostics.Note (Error, "Files.Images");
+         if Descriptor /= GNAT.OS_Lib.Invalid_FD then
+            GNAT.OS_Lib.Close (Descriptor);
+         end if;
+         return False;
+   end File_Extent_Allowed;
+
    function Image_Bytes_Extent
      (Data   : Ada.Streams.Stream_Element_Array;
       Width  : out Natural;

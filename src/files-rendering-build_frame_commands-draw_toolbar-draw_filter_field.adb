@@ -3,17 +3,15 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
    procedure Draw_Filter_Field is
    begin
       declare
-         Field_Margin : constant Natural := Toolbar_Field_Margin;
-         Filter_X : constant Natural :=
-           Saturating_Add (Toolbar.Right_X, Field_Margin);
          --  The chip is sized to its localized label so it never abbreviates;
          --  the filter field is narrowed to end before it (when it fits).
          Scope_Chip_W : constant Natural := Files.UI.Filter_Scope_Chip_Width (Line_Height);
-         Filter_W : constant Natural :=
-           Guikit.Layout.Filter_Input_Field_Width (Toolbar, Scope_Chip_W, Line_Height);
          Scope_Chip : constant Guikit.Layout.Scope_Chip_Region :=
            Guikit.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Scope_Chip_W, Line_Height);
          Text_Region   : constant Field_Text_Region := Filter_Field_Text_Region (Toolbar, Line_Height);
+         --  The box, as the click zone hit-tests it.
+         Filter_X      : constant Natural := Text_Region.Field_X;
+         Filter_W      : constant Natural := Text_Region.Field_Width;
          Filter_Text_W : constant Natural := Text_Region.Width;
          Filter_Raw    : constant String := To_String (Snapshot.Filter_Text);
          Filter_Skip   : constant Natural :=

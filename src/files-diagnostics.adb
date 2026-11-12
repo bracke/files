@@ -51,8 +51,8 @@ package body Files.Diagnostics is
    begin
       if Files.Environment.Is_Set ("FILES_DIAGNOSTICS") then
          Ada.Text_IO.Put_Line
-           --  Its own marker: a trace is no failure, and CI fails on the
-           --  exception marker (files-diagnostics:) alone.
+           --  Its own marker: a trace is no failure. CI fails on noted
+           --  window-loop exceptions (files-diagnostics: Files.Application.Windows).
            (Ada.Text_IO.Standard_Error, "files-trace" & ':' & ' ' & Where & ':' & ' ' & Message);
       end if;
    exception

@@ -541,10 +541,13 @@ package Files.Model is
       First : out Natural;
       Last  : out Natural);
 
-   --  The fixed end a shift-extended selection grows from: the opposite end
-   --  of the current multi-item selection from the cursor, so successive
-   --  shift-clicks or shift-arrows grow the range from where it began rather
-   --  than from the moving cursor; otherwise the cursor itself.
+   --  The fixed end a shift-extended selection grows from: the item last
+   --  selected by a plain click, a Ctrl click or a cursor move
+   --  (Select_Visible, Toggle_Visible_Selection), which a range
+   --  (Select_Visible_Range) keeps. Successive shift-clicks or shift-arrows
+   --  so grow the range from where it began, not from the moving cursor; a
+   --  Ctrl click starts the next range at the item it clicked. When that item
+   --  is no longer shown, the cursor itself.
    --
    --  @param Model Model to inspect.
    --  @return Anchor visible index, or zero when nothing is selected.
@@ -629,7 +632,8 @@ package Files.Model is
    procedure Clear_Search_Results
      (Model : in out Window_Model);
 
-   --  Select a visible item by one-based visible index.
+   --  Select a visible item by one-based visible index; it becomes the
+   --  Range_Anchor a later shift-extended range grows from.
    --
    --  @param Model Model to update.
    --  @param Visible_Index One-based visible item index.
@@ -653,7 +657,8 @@ package Files.Model is
      (Model   : in out Window_Model;
       Indexes : Visible_Index_List);
 
-   --  Toggle a visible item in the deterministic multi-selection set.
+   --  Toggle a visible item in the deterministic multi-selection set; it
+   --  becomes the Range_Anchor, selected or not, as in other file managers.
    --
    --  @param Model Model to update.
    --  @param Visible_Index One-based visible item index.
@@ -661,7 +666,9 @@ package Files.Model is
      (Model         : in out Window_Model;
       Visible_Index : Positive);
 
-   --  Select a deterministic inclusive visible range.
+   --  Select a deterministic inclusive visible range. The range keeps its
+   --  anchor: Range_Anchor stays at Anchor_Index (normally Range_Anchor
+   --  already), however the cursor moved to Target_Index.
    --
    --  @param Model Model to update.
    --  @param Anchor_Index One-based range anchor in the visible projection.
@@ -3309,6 +3316,10 @@ private
       Type_Ahead_Buffer_Value : UString;
       Selected_Item_Index  : Natural := 0;
       Selected_Item_Indexes : Natural_Vectors.Vector;
+      --  The item a shift-extended range grows from (Range_Anchor): set by a
+      --  plain or Ctrl selection and by a cursor move, kept by a range. A
+      --  path, so a reload or a resort cannot turn it into another item.
+      Range_Anchor_Path    : UString;
       --  The visible rows, worked out once per listing, filter and search
       --  (Support.Invalidate_Visible at every write of those): which item each
       --  visible row is, and each item's row (0: hidden). A visible-index

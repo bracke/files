@@ -37,12 +37,60 @@ is
    package Sorting is new Cached_File_Vectors.Generic_Sorting ("<" => Older);
 
    Cap         : constant Natural := Max_Entries;
+   --  The oldest Cap thumbnails seen so far, as a binary max-heap on
+   --  modification time: the newest of them at the root, the first to go
+   --  when an older one is found. Sorted oldest first once the scan ends.
    Files_Found : Cached_File_Vectors.Vector;
+   --  Every thumbnail's bytes, collected or not.
    Total       : Long_Long_Integer := 0;
-   Count       : Natural := 0;
-   --  Thumbnails past the cap: counted by name only, never collected.
+   --  Thumbnails seen but not (or no longer) collected: newer than all kept.
    Uncollected : Natural := 0;
    Overflowed  : Boolean := False;
+
+   procedure Swap (Left, Right : Positive) is
+      Held : constant Cached_File := Files_Found (Left);
+   begin
+      Files_Found.Replace_Element (Left, Files_Found (Right));
+      Files_Found.Replace_Element (Right, Held);
+   end Swap;
+
+   procedure Sift_Up (Start : Positive) is
+      Index : Positive := Start;
+   begin
+      while Index > 1 and then Older (Files_Found (Index / 2), Files_Found (Index)) loop
+         Swap (Index, Index / 2);
+         Index := Index / 2;
+      end loop;
+   end Sift_Up;
+
+   procedure Sift_Down is
+      Last  : constant Natural := Natural (Files_Found.Length);
+      Index : Positive := 1;
+   begin
+      loop
+         declare
+            Left    : constant Natural := 2 * Index;
+            Largest : Positive := Index;
+         begin
+            if Left <= Last and then Older (Files_Found (Largest), Files_Found (Left)) then
+               Largest := Left;
+            end if;
+            if Left + 1 <= Last and then Older (Files_Found (Largest), Files_Found (Left + 1)) then
+               Largest := Left + 1;
+            end if;
+            exit when Largest = Index;
+            Swap (Index, Largest);
+            Index := Largest;
+         end;
+      end loop;
+   end Sift_Down;
+
+   procedure Note_Uncollected is
+   begin
+      if Uncollected < Natural'Last then
+         Uncollected := Uncollected + 1;
+      end if;
+   end Note_Uncollected;
 
    procedure Collect (Name : String; Kind : Hostkit.Fs.Entry_Kind; Stop : in out Boolean) is
       pragma Unreferenced (Stop);
@@ -50,29 +98,40 @@ is
    begin
       if Kind /= Hostkit.Fs.Ordinary_File_Entry or else not Is_Thumbnail_Name (Name) then
          return;
-      elsif Count >= Cap then
-         if Uncollected < Natural'Last then
-            Uncollected := Uncollected + 1;
-         end if;
-         return;
       end if;
-      Count := Count + 1;
 
       declare
-         Full : constant String := Hostkit.Fs.Join (Cache_Directory, Name);
-         Size : constant Long_Long_Integer := Long_Long_Integer (Files.Fs_Primitives.Size (Full));
+         Full     : constant String := Hostkit.Fs.Join (Cache_Directory, Name);
+         Size     : constant Long_Long_Integer := Long_Long_Integer (Files.Fs_Primitives.Size (Full));
+         Modified : constant Ada.Calendar.Time := Files.Fs_Primitives.Modification_Time (Full);
       begin
          if Size < 0 or else Total > Long_Long_Integer'Last - Size then
             Overflowed := True;
-         else
+            return;
+         end if;
+         Total := Total + Size;
+         if Natural (Files_Found.Length) < Cap then
             Files_Found.Append
               (Cached_File'
                  (Path     => To_Unbounded_String (Full),
-                  Identity => To_Unbounded_String
-                    (Files.File_Identities.Token (Full)),
+                  Identity => To_Unbounded_String (Files.File_Identities.Token (Full)),
                   Size     => Size,
-                  Modified => Files.Fs_Primitives.Modification_Time (Full)));
-            Total := Total + Size;
+                  Modified => Modified));
+            Sift_Up (Natural (Files_Found.Length));
+         elsif Modified < Files_Found (1).Modified then
+            --  Older than the newest kept: it takes that one's place, which
+            --  joins the uncollected.
+            Files_Found.Replace_Element
+              (1,
+               Cached_File'
+                 (Path     => To_Unbounded_String (Full),
+                  Identity => To_Unbounded_String (Files.File_Identities.Token (Full)),
+                  Size     => Size,
+                  Modified => Modified));
+            Sift_Down;
+            Note_Uncollected;
+         else
+            Note_Uncollected;
          end if;
       end;
    exception
@@ -100,15 +159,17 @@ begin
    Sorting.Sort (Files_Found);
 
    declare
-      --  Past the cap, the uncollected thumbnails' sizes are unknown, so the
-      --  budget cannot be judged: evict the oldest collected until what was
-      --  collected is within it and enough are gone (the overflow and a
-      --  tenth of the cap more) that the next pass collects them all.
+      --  Past the cap the cache is too large to list (see
+      --  List_Thumbnail_Cache): evict the overflow and a tenth of the cap
+      --  more, oldest first, so a later listing takes all of it. The
+      --  collected are the oldest, so none newer goes before them; when the
+      --  overflow outnumbers them, the next pass continues from the next
+      --  oldest. The byte budget counts every thumbnail, collected or not.
+      Margin      : constant Natural := Natural'Max (1, Cap / 10);
       Must_Remove : constant Natural :=
         (if Uncollected = 0 then 0
          else Natural'Min (Natural (Files_Found.Length),
-                           Natural'Min (Natural'Last - Natural'Max (1, Cap / 10), Uncollected)
-                           + Natural'Max (1, Cap / 10)));
+                           Natural'Min (Natural'Last - Margin, Uncollected) + Margin));
       Removed     : Natural := 0;
    begin
       for Candidate of Files_Found loop

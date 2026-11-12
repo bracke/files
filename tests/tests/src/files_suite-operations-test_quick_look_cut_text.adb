@@ -1,3 +1,4 @@
+with Files.UTF8;
 separate (Files_Suite.Operations)
    --  A text file longer than the preview's byte cap shows as truncated even
    --  with few lines, and the text shown never ends inside a cut-off line or
@@ -17,34 +18,6 @@ separate (Files_Suite.Operations)
          end loop;
          return To_String (Line);
       end Euros;
-
-      --  Whether Text is whole UTF-8: every lead byte has all its continuations.
-      function Whole_Utf8 (Text : String) return Boolean is
-         Index : Natural := Text'First;
-      begin
-         while Index <= Text'Last loop
-            declare
-               Code   : constant Natural := Character'Pos (Text (Index));
-               Length : constant Natural :=
-                 (if Code < 16#80# then 1
-                  elsif Code in 16#C0# .. 16#DF# then 2
-                  elsif Code in 16#E0# .. 16#EF# then 3
-                  elsif Code in 16#F0# .. 16#F7# then 4
-                  else 0);
-            begin
-               if Length = 0 or else Index + Length - 1 > Text'Last then
-                  return False;
-               end if;
-               for Next in Index + 1 .. Index + Length - 1 loop
-                  if Character'Pos (Text (Next)) not in 16#80# .. 16#BF# then
-                     return False;
-                  end if;
-               end loop;
-               Index := Index + Length;
-            end;
-         end loop;
-         return True;
-      end Whole_Utf8;
 
       function Preview (Name : String) return Files.Quick_Look.Quick_Look_Content is
          Load : constant Files.File_System.Directory_Load_Result := Files.File_System.Load_Directory (Root, Settings);
@@ -72,7 +45,8 @@ separate (Files_Suite.Operations)
          Assert (Content.Text_Truncated, "a file cut at the byte cap is truncated, with only three lines");
          Files_Suite.Support.Assert_Equal
            (Natural (Content.Text_Lines.Length), 1, "the line the cap cut off is not shown");
-         Assert (Whole_Utf8 (To_String (Content.Text_Lines.Last_Element)), "the last shown text is whole UTF-8");
+         Assert (Files.UTF8.Is_Valid (To_String (Content.Text_Lines.Last_Element)),
+                 "the last shown text is whole UTF-8");
       end;
 
       --  One line longer than the cap: it is the only line, so it is kept, cut
@@ -87,7 +61,7 @@ separate (Files_Suite.Operations)
            (Natural (Content.Text_Lines.Length), 1, "the only line is kept");
          Assert (Length (Content.Text_Lines.Last_Element) > 0
                  and then Length (Content.Text_Lines.Last_Element) mod 3 = 0
-                 and then Whole_Utf8 (To_String (Content.Text_Lines.Last_Element)),
+                 and then Files.UTF8.Is_Valid (To_String (Content.Text_Lines.Last_Element)),
                  "the only line ends on a whole character");
       end;
 
@@ -96,6 +70,7 @@ separate (Files_Suite.Operations)
       declare
          Content : constant Files.Quick_Look.Quick_Look_Content := Preview ("short.txt");
       begin
+         Assert (Content.Kind = Files.Quick_Look.Text_Content, "the short file previews as text");
          Assert (not Content.Text_Truncated, "a file within the cap is not truncated");
          Files_Suite.Support.Assert_Equal
            (Natural (Content.Text_Lines.Length), 2, "a short file keeps its unterminated last line");

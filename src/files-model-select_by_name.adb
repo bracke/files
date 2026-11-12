@@ -7,6 +7,7 @@ begin
    Touch_Selection (Model);
    Model.Selected_Item_Index := 0;
    Model.Selected_Item_Indexes.Clear;
+   Model.Range_Anchor_Path := Null_Unbounded_String;
    Reset_Quick_Look (Model);
    if not Model.Items.Is_Empty then
       for Index in Model.Items.First_Index .. Model.Items.Last_Index loop
@@ -17,6 +18,7 @@ begin
          then
             Model.Selected_Item_Index := Natural (Index);
             Add_Selected_Index (Model, Model.Selected_Item_Index);
+            Model.Range_Anchor_Path := Model.Items (Index).Full_Path;
             Reconcile_Rename_With_Selection (Model);
             return True;
          end if;

@@ -17,6 +17,11 @@ package Files.Images is
    Max_File_Source_Side   : constant := 32_768;
    Max_File_Source_Pixels : constant := 67_108_864;
 
+   --  The longest side an image held in memory (a colour emoji inside a
+   --  font) may declare. Image_Bytes_Extent refuses a longer side together
+   --  with a count past Max_Source_Pixels; a file decode does not use it.
+   Max_Memory_Source_Side : constant := 16_384;
+
    --  The longest side a decode is scaled to.
    Max_Decoded_Side : constant Positive := 2_048;
 
@@ -90,6 +95,18 @@ package Files.Images is
    function Decode_Image_Bytes
      (Data : Ada.Streams.Stream_Element_Array)
       return Decoded_Image;
+
+   --  Whether the image file at Path declares an extent a file decode
+   --  accepts: at most Max_File_Source_Side on a side and
+   --  Max_File_Source_Pixels in all. A PNG is measured from its IHDR; any
+   --  other format through the loader's header probe, and one no loader
+   --  recognizes is allowed (the loader refuses it). Decode_Image_To_Pixels
+   --  checks this before it feeds the loader, which allocates the full
+   --  source size while it reads.
+   --
+   --  @param Path Image file to measure.
+   --  @return False when the declared extent is too large or Path cannot be read.
+   function File_Extent_Allowed (Path : String) return Boolean;
 
    --  Decode an image file directly to RGBA pixels, scaled to fit within
    --  Max_Size x Max_Size while preserving aspect ratio. Used for the Quick Look

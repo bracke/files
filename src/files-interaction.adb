@@ -66,32 +66,26 @@ package body Files.Interaction is
    end Observe_Controller_Outcome;
 
    --  Record the UI follow-ups of a settings command the controller applied:
-   --  the change itself, a live font-size change, a reloaded listing.
+   --  whether it changed the settings (by what they hold now, not by which
+   --  command ran: a save of an unchanged draft or a favourite toggle with
+   --  nothing to toggle changes nothing) and a live font-size change.
    procedure Observe_Settings_Command
      (Command  : Files.Commands.Command_Id;
       Before   : Files.Settings.Settings_Model;
       Settings : Files.Settings.Settings_Model;
       Result   : in out Interaction_Result) is
    begin
-      case Command is
-         when Files.Commands.Save_Settings_Command | Files.Commands.Reset_Settings_Command =>
-            Result.Settings_Changed := True;
-            --  Apply a font-size change made in the settings pane live, the same
-            --  way Ctrl+scroll / Ctrl+= zoom does: signal the shell to sync the
-            --  runtime size and invalidate the glyph cache so text re-rasterizes
-            --  now rather than only on the next launch.
-            if Settings.Font_Pixel_Size /= Before.Font_Pixel_Size then
-               Result.Font_Size_Changed := True;
-               Result.Needs_Glyph_Rebuild := True;
-            end if;
-         when Files.Commands.Toggle_Hidden_Files_Command =>
-            Result.Settings_Changed := True;
-         when Files.Commands.Toggle_Favorite_Command =>
-            --  A favorite toggle with nothing to toggle changes nothing.
-            Result.Settings_Changed := Files.Settings."/=" (Settings, Before);
-         when others =>
-            Result.Settings_Changed := Files.Commands.Requires_Settings_Path (Command);
-      end case;
+      Result.Settings_Changed := not Files.Settings.Same_Content (Before, Settings);
+      --  Apply a font-size change made in the settings pane live, the same
+      --  way Ctrl+scroll / Ctrl+= zoom does: signal the shell to sync the
+      --  runtime size and invalidate the glyph cache so text re-rasterizes
+      --  now rather than only on the next launch.
+      if Command in Files.Commands.Save_Settings_Command | Files.Commands.Reset_Settings_Command
+        and then Settings.Font_Pixel_Size /= Before.Font_Pixel_Size
+      then
+         Result.Font_Size_Changed := True;
+         Result.Needs_Glyph_Rebuild := True;
+      end if;
    end Observe_Settings_Command;
 
    procedure Apply_Zoom
@@ -268,6 +262,33 @@ package body Files.Interaction is
       end if;
    end Refresh_Open_Pane;
 
+   procedure Adopt_Shared_Settings
+     (Model    : in out Files.Model.Window_Model;
+      Settings : in out Files.Settings.Settings_Model;
+      Shared   : Files.Settings.Settings_Model)
+   is
+      use type Files.Types.Listing_Options;
+      use type Files.Settings.String_Maps.Map;
+      Before : constant Files.Settings.Settings_Model := Settings;
+   begin
+      Settings := Shared;
+      Refresh_Open_Pane (Model, Before, Settings);
+      --  Items carry the hidden filter, the order and the type and icon they
+      --  were classified with when the folder was read.
+      if Files.Settings.Listing_Options_Of (Before) /= Files.Settings.Listing_Options_Of (Settings)
+        or else Before.Extension_Filetypes /= Settings.Extension_Filetypes
+        or else Before.Icon_Mappings /= Settings.Icon_Mappings
+      then
+         declare
+            --  A reload that fails says so in the window's error line.
+            Reloaded : constant Files.Operations.Operation_Result := Files.Operations.Refresh (Model, Settings);
+            pragma Unreferenced (Reloaded);
+         begin
+            null;
+         end;
+      end if;
+   end Adopt_Shared_Settings;
+
    --  Whether a settings command ran, judged by what it did, not by whether
    --  it is enabled now: Clear Recent, say, disables itself by running. A
    --  disabled or ignored one reported no change and gets no follow-ups.
@@ -319,8 +340,10 @@ package body Files.Interaction is
       Result := (others => <>);
       Result.Command := Command;
 
+      --  A disabled command never enters the execute path: it only reports
+      --  why it cannot run.
       if not Files.Commands.Status.Is_Enabled (Command, Model) then
-         Outcome := Files.Controller.Execute_Non_Settings_Command (Command, Model, Settings, Modifiers);
+         Outcome := Files.Controller.Refused_Command_Result (Command, Model);
          Result.Status := Outcome.Status;
          return;
       end if;
@@ -866,7 +889,8 @@ package body Files.Interaction is
    end Apply_Right_Click;
 
    procedure Apply_Column_Resize
-     (Settings     : in out Files.Settings.Settings_Model;
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : in out Files.Settings.Settings_Model;
       Column       : Files.Types.Detail_Column;
       Origin_X     : Integer;
       Origin_Width : Natural;
@@ -903,6 +927,9 @@ package body Files.Interaction is
       if Updated.Column_Widths (Column) /= Settings.Column_Widths (Column) then
          Settings := Updated;
          Result.Settings_Changed := True;
+         --  In memory only (End_Column_Resize writes the file once), but the
+         --  window's settings moved: other windows take them from here.
+         Files.Model.Note_Settings_Changed (Model);
       end if;
    end Apply_Column_Resize;
 

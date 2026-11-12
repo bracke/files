@@ -83,6 +83,14 @@ begin
                   Record_Paste_Replaced_Trash
                     (Model, Result.Trashed, To_String (Result.Trashed_Identity), To_String (Action.Dest_Path));
                end if;
+               --  A move that failed yet kept its copy at the destination:
+               --  the copy is recorded so the paste's undo covers it.
+               if not Result.Mutation.Success and then Length (Result.Created_Identity) > 0 then
+                  Record_Paste_Write
+                    (Model, Action.Dest_Path, Action.Source_Path,
+                     Files.Fs_Primitives.Leaf_Text (To_String (Action.Dest_Path)),
+                     To_String (Result.Created_Identity), To_String (Result.Created_Tree_Revision));
+               end if;
                if Result.Cancelled then
                   return Finalize_Paste_Execution (Model, Settings, "");
                elsif not Result.Mutation.Success then
@@ -124,6 +132,14 @@ begin
                     (Model, Replaced_Trash, To_String (Replaced_Identity), To_String (Action.Dest_Path));
                end if;
                if not Mutation.Success then
+                  --  A move that failed yet kept its copy at the destination:
+                  --  the copy is recorded so the paste's undo covers it.
+                  if Length (Created_Identity) > 0 then
+                     Record_Paste_Write
+                       (Model, Action.Dest_Path, Action.Source_Path,
+                        Files.Fs_Primitives.Leaf_Text (To_String (Action.Dest_Path)),
+                        To_String (Created_Identity), To_String (Created_Tree_Revision));
+                  end if;
                   return Finalize_Paste_Execution (Model, Settings, To_String (Mutation.Error_Key));
                end if;
                Record_Paste_Write

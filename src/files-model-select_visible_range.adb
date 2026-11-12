@@ -19,6 +19,9 @@ begin
       return;
    end if;
 
+   --  The range's fixed end stays its anchor, though a cursor move on the
+   --  way here (Move_Selection) noted the target as the anchor.
+   Note_Range_Anchor (Model, Anchor_Index);
    First := Natural'Min (Natural (Anchor_Index), Natural (Target_Index));
    Last := Natural'Max (Natural (Anchor_Index), Natural (Target_Index));
 

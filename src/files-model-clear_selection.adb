@@ -6,6 +6,7 @@ begin
    Reset_Type_Ahead (Model);
    Model.Selected_Item_Index := 0;
    Model.Selected_Item_Indexes.Clear;
+   Model.Range_Anchor_Path := Null_Unbounded_String;
    Model.Info_Pane_Scroll := 0;
    Reconcile_Rename_With_Selection (Model);
 end Clear_Selection;

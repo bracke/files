@@ -21,19 +21,7 @@ is
    --  restore is the action's failure, and Replaced still names the original.
    procedure Roll_Back is
    begin
-      if Length (Replaced) > 0 then
-         declare
-            Restored : constant Mutation_Result :=
-              Restore_From_Trash (To_String (Replaced), To_String (Replaced_Identity), Destination);
-         begin
-            if Restored.Success then
-               Replaced := Null_Unbounded_String;
-               Replaced_Identity := Null_Unbounded_String;
-            else
-               Result := Restored;
-            end if;
-         end;
-      end if;
+      Put_Back_Replaced (Replaced, Replaced_Identity, Destination, Result);
    end Roll_Back;
 begin
    Replaced := Null_Unbounded_String;
@@ -64,12 +52,14 @@ begin
          Valid            => True,
          Error_Key        => Null_Unbounded_String));
    Result := Execute_Drop_Import (Plans, Identities, Tree_Revisions, Cancel, Batch);
-   if Result.Success then
-      if not Identities.Is_Empty then
-         Created_Identity := Identities.First_Element;
-         Created_Tree_Revision := Tree_Revisions.First_Element;
-      end if;
-   else
+   if not Identities.Is_Empty then
+      Created_Identity := Identities.First_Element;
+      Created_Tree_Revision := Tree_Revisions.First_Element;
+   end if;
+   --  A failure that still published a copy (a cross-device move that had
+   --  to keep it) holds Destination: the original cannot go back there, and
+   --  stays held at Replaced for the caller to record beside the copy.
+   if not Result.Success and then Identities.Is_Empty then
       Roll_Back;
    end if;
    return Result;

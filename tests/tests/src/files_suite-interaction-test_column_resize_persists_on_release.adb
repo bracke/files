@@ -19,7 +19,7 @@ separate (Files_Suite.Interaction)
       --  Several pointer moves of one drag change the width in memory only.
       for Step in 1 .. 5 loop
          Files.Interaction.Apply_Column_Resize
-           (Settings, Files.Types.Size_Column,
+           (Model, Settings, Files.Types.Size_Column,
             Origin_X     => Origin_X,
             Origin_Width => Origin_W,
             Current_X    => Origin_X - 10 * Step,

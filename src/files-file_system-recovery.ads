@@ -26,9 +26,19 @@ private package Files.File_System.Recovery is
    --  @return Original path from the recovery sidecar, or empty on failure.
    function Original_Path (Path : String) return String;
 
-   --  Return every still-valid recovery payload recorded for this user.
+   --  Return every still-valid recovery payload recorded for this user. A
+   --  pure query: nothing is removed, resumed or finished (Sweep_Registry
+   --  does that).
    --  @return Valid registered payload paths; stale records are omitted.
    function Registered_Payloads return Files.Types.String_Vectors.Vector;
+
+   --  Finish what the registry shows was interrupted: drop records whose
+   --  stage is gone and duplicate records, move a stopped release's payload
+   --  back, and remove a stage whose payload a restore or release moved out
+   --  (it carries their marker). A registered stage with no payload and no
+   --  marker is left alone: Preserve may still be filling it, perhaps in
+   --  another process.
+   procedure Sweep_Registry;
 
    --  @param Path Payload returned by Preserve.
    --  @param Expected_Identity Optional history snapshot verified before restoration.

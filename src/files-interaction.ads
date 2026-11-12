@@ -29,7 +29,10 @@ package Files.Interaction is
         Files.Controller.Controller_Ignored;
       --  Status reported by the underlying controller leaf operation.
       Settings_Changed     : Boolean := False;
-      --  True when the persisted settings model changed and was written to disk.
+      --  True when the action changed what the settings hold
+      --  (Files.Settings.Same_Content), not merely ran a settings command:
+      --  written now, or, for a column-resize or wheel-zoom step, held in
+      --  memory for one write when the gesture ends.
       Font_Size_Changed    : Boolean := False;
       --  True when a saved settings change altered the live font pixel size.
       Needs_Glyph_Rebuild  : Boolean := False;
@@ -55,6 +58,21 @@ package Files.Interaction is
       Command           : Files.Commands.Command_Id;
       Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result            : out Interaction_Result);
+
+   --  Take settings another window changed (Shared) as this window's own.
+   --  An open settings pane is refreshed as after a command run here
+   --  (Files.Settings.Refresh_Draft), so its draft shows the change and its
+   --  next save cannot write the old values back; the listing is reloaded
+   --  when what it lists or how it names entries' types changed (the listing
+   --  options, the filetype or icon mappings).
+   --
+   --  @param Model This window's model.
+   --  @param Settings This window's live settings, replaced by Shared.
+   --  @param Shared The settings the other window changed.
+   procedure Adopt_Shared_Settings
+     (Model    : in out Files.Model.Window_Model;
+      Settings : in out Files.Settings.Settings_Model;
+      Shared   : Files.Settings.Settings_Model);
 
    --  Dispatch one keyboard press through the focus-aware controller. A key
    --  that ran a settings command gets the same follow-ups as Execute_Command
@@ -153,13 +171,15 @@ package Files.Interaction is
    --  a separator left widens its column and dragging right narrows it, so the
    --  applied delta is Origin_X minus Current_X. The details layout reflows the
    --  name column to honour its minimum on the next frame.
-   --  Result.Settings_Changed is set when the width actually changed.
-   --  The pointer works in framebuffer pixels, but the width is stored in
+   --  Result.Settings_Changed is set, and the window's settings revision
+   --  bumped (Files.Model.Note_Settings_Changed), when the width actually
+   --  changed. The pointer works in framebuffer pixels, but the width is stored in
    --  reference units (pixels at Guikit.Layout.Reference_Line_Height, rounded),
    --  which Compute_Detail_Columns scales back up: a width set on a 1x display
    --  shows the same characters on a 2x one, and at the reference line height
    --  the two units coincide, so existing settings files keep their meaning.
    --
+   --  @param Model Window whose settings revision notes a width change.
    --  @param Settings Live settings model, updated in place when the width changes.
    --  @param Column Optional detail column being resized.
    --  @param Origin_X Separator x edge captured when the drag began.
@@ -168,7 +188,8 @@ package Files.Interaction is
    --  @param Result Follow-up flags; Settings_Changed reports a width change.
    --  @param Line_Height Text line height the columns are drawn at.
    procedure Apply_Column_Resize
-     (Settings     : in out Files.Settings.Settings_Model;
+     (Model        : in out Files.Model.Window_Model;
+      Settings     : in out Files.Settings.Settings_Model;
       Column       : Files.Types.Detail_Column;
       Origin_X     : Integer;
       Origin_Width : Natural;

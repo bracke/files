@@ -50,6 +50,20 @@ package Files.Controller is
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result;
 
+   --  What a command reports when it may not run now, without running it:
+   --  ignored while the root selector or the settings pane is open and the
+   --  command is not allowed over it; otherwise, for a command
+   --  Files.Commands.Status does not enable, ignored with the reason in
+   --  Model's error line. Execute_Non_Settings_Command refuses through it.
+   --
+   --  @param Id Command identifier, one that may not run now.
+   --  @param Model Window model whose error line takes the reason.
+   --  @return Controller result describing the refusal.
+   function Refused_Command_Result
+     (Id    : Files.Commands.Command_Id;
+      Model : in out Files.Model.Window_Model)
+      return Controller_Result;
+
    --  Execute a command, applying and persisting the ones that change settings
    --  (Files.Commands.Requires_Settings_Path) instead of only reporting them.
    --

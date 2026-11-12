@@ -19,6 +19,14 @@ package Files.Protocol_Names is
    --  The file in a recovery stage that names whose it is.
    Recovery_Owner : constant String := ".files-recovery-owner";
 
+   --  A recovery stage's marker that a restore is moving its payload out;
+   --  a stage with it and no payload is finished by removing it.
+   Recovery_Vacated : constant String := "vacated";
+
+   --  A recovery stage's marker that a release is moving its payload into
+   --  the stage's release folder on the way to the trash.
+   Recovery_Releasing : constant String := "releasing";
+
    --  The files of a helper job's private directory, besides its request and
    --  result (Files.Process_Jobs.Request_File, Result_File). A ".tmp" name is
    --  the staged copy, published whole by renaming it to the plain one.

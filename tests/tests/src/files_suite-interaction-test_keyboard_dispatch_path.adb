@@ -39,7 +39,7 @@ separate (Files_Suite.Interaction)
       --  (2) Settings-path shortcut: Save_Settings_Command is key-bound to Ctrl+S
       --  (Shortcut_For). With the settings pane open the command is enabled, so
       --  the key seam must re-route it through Execute_Command -- proven by the
-      --  settings-path-only follow-ups (Settings_Changed, Clear_Pending_Text) and
+      --  settings-path-only follow-up (Clear_Pending_Text) and
       --  the persisted file -- which the plain controller branch never produces.
       declare
          Model    : Files.Model.Window_Model := Files_Suite.Support.Sample_Model;
@@ -70,9 +70,12 @@ separate (Files_Suite.Interaction)
            (Result.Command,
             Files.Commands.Save_Settings_Command,
             "Ctrl+S dispatched through Handle_Key reports the save-settings command");
+         --  Settings_Changed reports a change of content, which saving an
+         --  untouched draft is not: the save is proven by its status, the
+         --  pending-text follow-up and the file it wrote.
          Assert
-           (Result.Settings_Changed,
-            "the key seam re-routes the save through Execute_Command and reports a settings change");
+           (Result.Status = Files.Controller.Controller_Command_Executed,
+            "the key seam re-routes the save through Execute_Command, which runs it");
          Assert
            (Result.Clear_Pending_Text,
             "the settings-path re-route asks the shell to drop pending character input");

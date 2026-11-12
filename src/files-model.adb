@@ -841,6 +841,17 @@ package body Files.Model is
    procedure Focus_Filter_Input
      (Model : in out Window_Model) is separate;
 
+   --  Make the item at Visible_Index the Range_Anchor (none past the end).
+   procedure Note_Range_Anchor
+     (Model         : in out Window_Model;
+      Visible_Index : Positive) is
+   begin
+      Model.Range_Anchor_Path :=
+        (if Natural (Visible_Index) <= Visible_Count (Model)
+         then Visible_Item (Model, Visible_Index).Full_Path
+         else Null_Unbounded_String);
+   end Note_Range_Anchor;
+
    procedure Select_Visible
      (Model         : in out Window_Model;
       Visible_Index : Positive) is separate;
@@ -2409,21 +2420,14 @@ package body Files.Model is
      (Model : Window_Model)
       return Natural
    is
-      Cursor         : constant Natural := Selected_Index (Model);
-      First_Selected : Natural;
-      Last_Selected  : Natural;
+      Anchor : constant Natural :=
+        (if Length (Model.Range_Anchor_Path) = 0 then 0
+         else Visible_Index_Of (Model, To_String (Model.Range_Anchor_Path)));
    begin
-      if Selected_Count (Model) <= 1 then
-         return Cursor;
+      if Anchor > 0 and then Selected_Count (Model) > 0 then
+         return Anchor;
       end if;
-
-      Selected_Visible_Bounds (Model, First_Selected, Last_Selected);
-      if Cursor = Last_Selected then
-         return First_Selected;
-      elsif Cursor = First_Selected then
-         return Last_Selected;
-      end if;
-      return Cursor;
+      return Selected_Index (Model);
    end Range_Anchor;
 
    function Selection_Move_Would_Wrap

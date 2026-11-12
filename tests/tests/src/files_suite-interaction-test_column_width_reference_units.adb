@@ -34,7 +34,7 @@ separate (Files_Suite.Interaction)
          Result : Files.Interaction.Interaction_Result;
       begin
          Files.Interaction.Apply_Column_Resize
-           (Settings, Files.Types.Size_Column,
+           (Model, Settings, Files.Types.Size_Column,
             Origin_X     => 500,
             Origin_Width => Origin_Width,
             Current_X    => 500 - Delta_X,

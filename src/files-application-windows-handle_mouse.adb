@@ -109,7 +109,9 @@ separate (Files.Application.Windows)
          end if;
 
          declare
-            Now       : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
+            --  When the button went down, not when this pass got to it: a
+            --  slow frame between two clicks does not split a double click.
+            Now       : constant Ada.Real_Time.Time := Event.At_Time;
             Modifiers : constant Guikit.Input.Modifier_Set := Event.Modifiers;
             --  Hit-test where the button went down, not where the cursor is
             --  (or where a later press was) by the time a slow frame gets to it.
@@ -219,12 +221,17 @@ separate (Files.Application.Windows)
       Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
 
       --  In arrival order: a right click between two left clicks, or a
-      --  release between two presses, is handled where it happened.
-      while Runtime.Handle /= null and then not Runtime.Handle.Pending_Mouse.Is_Empty loop
+      --  release between two presses, is handled where it happened. A left
+      --  release still inside its debounce window stays queued, with all
+      --  after it, so a bounce press can withdraw it; a later pass, woken
+      --  by Mouse_Buttons.Ready_At, takes it.
+      while Runtime.Handle /= null loop
          declare
-            Event : constant Files.Mouse_Buttons.Button_Event := Runtime.Handle.Pending_Mouse.First_Element;
+            Event : Files.Mouse_Buttons.Button_Event;
+            Taken : Boolean;
          begin
-            Runtime.Handle.Pending_Mouse.Delete_First;
+            Files.Mouse_Buttons.Next_Ready (Runtime.Handle.Pending_Mouse, Ada.Real_Time.Clock, Event, Taken);
+            exit when not Taken;
             case Event.Button is
                when Files.Mouse_Buttons.Right_Mouse_Button =>
                   Right_Press (Event);

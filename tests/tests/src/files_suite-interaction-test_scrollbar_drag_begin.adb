@@ -45,9 +45,28 @@ separate (Files_Suite.Interaction)
            (Action.Scroll_Area = Files.Events.Scroll_Main_View,
             "the drag-begin action targets the main view");
 
+         --  A track click pages by what the view shows, from the top a whole
+         --  viewport of lines.
+         declare
+            Page : constant Natural := Natural'Max (1, Main.Viewport_Height / Line);
+            Maximum : constant Natural := Files.Rendering.Main_View_Max_Scroll (Main, Line);
+            Page_Action : constant Files.Events.Input_Action :=
+              Files.Events.Translate_Click
+                (Snapshot, Frame,
+                 Main.Scrollbar_X + Main.Scrollbar_Width / 2,
+                 Main.Scrollbar_Y + Main.Scrollbar_Track_Height - 1,
+                 Window_W, Window_H, Line_Height => Line);
+         begin
+            Assert (Page_Action.Kind = Files.Events.Scroll_Input_Action,
+                    "a click on the track below the thumb pages the main view");
+            Files_Suite.Support.Assert_Equal
+              (Page_Action.Scroll_Lines, Natural'Min (Page, Maximum),
+               "a track click pages by the viewport's height in lines");
+         end;
+
          --  A track click pages only as far as the real end.  In particular,
-         --  the fixed ten-line page size must not leave an oversized model
-         --  offset that later consumes wheel input invisibly.
+         --  a page must not leave an oversized model offset that later
+         --  consumes wheel input invisibly.
          declare
             Maximum : constant Natural :=
               1

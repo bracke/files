@@ -3,17 +3,13 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
    procedure Draw_Path_Bar is
    begin
       declare
-         Field_Margin : constant Natural := Toolbar_Field_Margin;
-         Path_X : constant Natural :=
-           Saturating_Add (Toolbar.Middle_X, Field_Margin);
-         Path_W : constant Natural :=
-           (if Toolbar.Middle_Width > Saturating_Multiply (Field_Margin, 2)
-            then Toolbar.Middle_Width - Saturating_Multiply (Field_Margin, 2)
-            else 0);
          Star         : constant Path_Favorite_Star_Bounds :=
            Path_Favorite_Star_Region (Width, Line_Height);
          Star_Reserve : constant Natural := Path_Bar_Content_Offset (Width, Line_Height);
          Text_Region  : constant Field_Text_Region := Path_Field_Text_Region (Toolbar, Width, Line_Height);
+         --  The box, as the click zone hit-tests it.
+         Path_X       : constant Natural := Text_Region.Field_X;
+         Path_W       : constant Natural := Text_Region.Field_Width;
          Text_Start   : constant Natural := Text_Region.X;
          Path_Text_W  : constant Natural := Text_Region.Width;
          Path_Raw     : constant String := To_String (Snapshot.Path_Input_Text);

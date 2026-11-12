@@ -69,7 +69,7 @@ package body Files.Application.Windows is
    --  second, so it was dropped.)
    Event_Wait_Timeout : constant Duration := 0.016;
 
-   --  The wait while a background paste runs (see Any_Background_Paste).
+   --  The wait while a background paste runs (see Event_Loop_Wait).
    Paste_Wait_Timeout : constant Duration := 0.001;
 
    --  How many frames to keep presenting after the last visible change before
@@ -270,7 +270,8 @@ package body Files.Application.Windows is
          X         => Object.Last_Mouse_X,
          Y         => Object.Last_Mouse_Y,
          Modifiers => Glfw.Input.Keys.Codes.To_Modifiers (Mods),
-         Dragged   => False);
+         Dragged   => False,
+         At_Time   => Ada.Real_Time.Clock);
       Bounced : Boolean;
    begin
       if Button = Glfw.Input.Mouse.Right_Button then
@@ -286,7 +287,7 @@ package body Files.Application.Windows is
       end if;
 
       Files.Mouse_Buttons.Queue_Event
-        (Object.Pending_Mouse, Object.Last_Left_Press_Time, Event, Ada.Real_Time.Clock, Bounced);
+        (Object.Pending_Mouse, Object.Last_Left_Press_Time, Event, Bounced);
       if Event.Button /= Files.Mouse_Buttons.Left_Mouse_Button then
          return;
       elsif not Event.Pressed then
@@ -502,26 +503,13 @@ package body Files.Application.Windows is
    --  catches up its mark. For_Each_Window shares after every window's step,
    --  so two windows can never both have unshared changes (which would leave
    --  only one of them to win).
+   --  Each other window adopts them (Interaction.Adopt_Shared_Settings): an
+   --  open settings pane there is refreshed, a listing whose options or type
+   --  mappings changed is reloaded.
    procedure Share_Settings_From
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector;
-      Index           : Positive) is
-   begin
-      if Files.Model.Settings_Revision (Runtime_Windows (Index).Model)
-        = Runtime_Windows (Index).Synced_Settings_Revision
-      then
-         return;
-      end if;
-
-      for Other in Runtime_Windows.First_Index .. Runtime_Windows.Last_Index loop
-         if Other /= Index then
-            Runtime_Windows (Other).Settings := Runtime_Windows (Index).Settings;
-            Runtime_Windows (Other).Frame_Cache_Valid := False;
-            Runtime_Windows (Other).View.Snapshot_Valid := False;
-         end if;
-         Runtime_Windows (Other).Synced_Settings_Revision :=
-           Files.Model.Settings_Revision (Runtime_Windows (Other).Model);
-      end loop;
-   end Share_Settings_From;
+      Index           : Positive)
+   is separate;
 
    procedure Sync_Settings_Across_Windows
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector) is
@@ -697,19 +685,11 @@ package body Files.Application.Windows is
       For_Each_Window (Runtime_Windows, Handle_File_Watch_Poll'Access);
    end Handle_All_File_Watch_Poll;
 
-   --  Whether any window is carrying out a paste through a helper process.
-   function Any_Background_Paste (Runtime_Windows : Runtime_Window_Vectors.Vector) return Boolean is
-   begin
-      for Runtime of Runtime_Windows loop
-         if Runtime.Handle /= null
-           and then Files.Model.Paste_Execution_Is_Active (Runtime.Model)
-           and then Files.Model.Background_Transfers (Runtime.Model)
-         then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Any_Background_Paste;
+   --  How long the event loop may wait for input: Paste_Wait_Timeout while
+   --  any window carries out a paste through a helper process, else
+   --  Event_Wait_Timeout, cut short to when a held-back mouse release
+   --  (Files.Mouse_Buttons.Ready_At) may be handled.
+   function Event_Loop_Wait (Runtime_Windows : Runtime_Window_Vectors.Vector) return Duration is separate;
 
    --  Each window polls its own background work -- folder measurements and
    --  the Quick Look decode -- and publishes only its own results.
@@ -1192,7 +1172,8 @@ package body Files.Application.Windows is
       end if;
 
       Files.Interaction.Apply_Column_Resize
-        (Settings     => Runtime.Settings,
+        (Model        => Runtime.Model,
+         Settings     => Runtime.Settings,
          Column       => Runtime.Column_Resize.Target,
          Origin_X     => Runtime.Column_Resize.Origin_X,
          Origin_Width => Runtime.Column_Resize.Origin_W,
@@ -1200,9 +1181,6 @@ package body Files.Application.Windows is
          Result       => Result,
          Line_Height  => Cell_Height_For (Runtime.Font_Pixel_Size));
       if Result.Settings_Changed then
-         --  Apply_Column_Resize changes the settings in memory only (they are
-         --  persisted on release), so note the change for the window here.
-         Files.Model.Note_Settings_Changed (Runtime.Model);
          Runtime.Column_Resize.Changed := True;
       end if;
    end Update_Column_Resize_Drag;
@@ -1596,8 +1574,7 @@ package body Files.Application.Windows is
          --  A background paste starts its next item only on a loop pass:
          --  waiting out the full timeout after each made a paste of many
          --  small files take minutes. While one runs, look again at once.
-         Guikit.Vulkan.Wait_For_Events
-           (if Any_Background_Paste (Runtime_Windows) then Paste_Wait_Timeout else Event_Wait_Timeout);
+         Guikit.Vulkan.Wait_For_Events (Event_Loop_Wait (Runtime_Windows));
          Release_Closed_Windows (Runtime_Windows);
          exit when not Any_Window_Open (Runtime_Windows);
          Event_Loop_Pass (Runtime_Windows, State);
