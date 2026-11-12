@@ -35,8 +35,12 @@ separate (Files_Suite.Operations)
          Ada.Directories.Create_Directory (Parent);
          Hostkit.Metadata.File_Ownership (Parent, User_Id, Group_Id, Available);
          --  POSIX root ignores a read-only folder; on Windows the mode is a
-         --  protected DACL, which binds an elevated process too.
-         if not Hostkit.Metadata.Mode_Bits_Are_Native or else (Available and then User_Id /= 0) then
+         --  protected DACL, which binds an elevated process too. A POSIX
+         --  folder's owner is always readable: not reading it is a failure.
+         if Hostkit.Metadata.Mode_Bits_Are_Native then
+            Assert (Available, "the new folder's owner is readable on a POSIX host");
+         end if;
+         if not Hostkit.Metadata.Mode_Bits_Are_Native or else User_Id /= 0 then
             Assert (Files.File_System.Set_Permissions (Parent, 8#555#).Success, "prepare a read-only parent");
             Mutation := Files.File_System.Create_Empty_File (Join (Parent, "child"));
             Assert (not Mutation.Success,

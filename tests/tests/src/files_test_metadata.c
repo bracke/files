@@ -16,13 +16,36 @@
 
 /* With FILES_TEST_XATTR_UNSUPPORTED set, setting any extended attribute
    fails as on a volume that holds none (vfat, exFAT): a copy must still
-   succeed, without them. */
+   succeed, without them. All three setters are interposed -- hostkit's
+   Linux metadata copy calls lsetxattr -- and each refusal is counted, so a
+   test can tell that the fault was reached rather than bypassed. */
+static long xattr_refusals;
+
+static int refuse_xattr(void) {
+    if (!getenv("FILES_TEST_XATTR_UNSUPPORTED")) return 0;
+    __atomic_add_fetch(&xattr_refusals, 1, __ATOMIC_SEQ_CST);
+    errno = EOPNOTSUPP;
+    return 1;
+}
+
 int lsetxattr(const char *path, const char *name, const void *value, size_t size, int flags) {
-    if (getenv("FILES_TEST_XATTR_UNSUPPORTED")) {
-        errno = EOPNOTSUPP;
-        return -1;
-    }
+    if (refuse_xattr()) return -1;
     return (int)syscall(SYS_lsetxattr, path, name, value, size, flags);
+}
+
+int setxattr(const char *path, const char *name, const void *value, size_t size, int flags) {
+    if (refuse_xattr()) return -1;
+    return (int)syscall(SYS_setxattr, path, name, value, size, flags);
+}
+
+int fsetxattr(int fd, const char *name, const void *value, size_t size, int flags) {
+    if (refuse_xattr()) return -1;
+    return (int)syscall(SYS_fsetxattr, fd, name, value, size, flags);
+}
+
+/* How many extended-attribute writes the fault above has refused so far. */
+long long files_test_xattr_refusal_count(void) {
+    return __atomic_load_n(&xattr_refusals, __ATOMIC_SEQ_CST);
 }
 
 static const unsigned char access_acl[] = {
@@ -264,6 +287,9 @@ long long files_test_entry_group(const char *path) { (void)path; return -1; }
 int files_test_default_acl(const char *path, int owner) { (void)path; (void)owner; return 0; }
 int files_test_sparse_prepare(const char *path, int mixed) { (void)path; (void)mixed; return 0; }
 int files_test_sparse_check(const char *path, int mixed) { (void)path; (void)mixed; return 0; }
+#endif
+#ifndef __linux__
+long long files_test_xattr_refusal_count(void) { return -1; }
 #endif
 
 /* Windows-only fixtures: streams, EFS and inherited ACEs. Elsewhere they

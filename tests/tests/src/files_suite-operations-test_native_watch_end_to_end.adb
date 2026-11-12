@@ -17,7 +17,7 @@ separate (Files_Suite.Operations)
       Ada.Directories.Create_Path (Folder);
       Files.Refresh_Jobs.Watch_Path (Watch, Folder);
       --  The helper registers its watch once it is running.
-      for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Launch_Limit)) loop
+      for Attempt in Files_Suite.Support.Polling loop
          Native := Files.Refresh_Jobs.Watch_Is_Native (Watch);
          exit when Native;
       end loop;

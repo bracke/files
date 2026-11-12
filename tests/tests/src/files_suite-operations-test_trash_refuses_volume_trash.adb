@@ -12,10 +12,13 @@ separate (Files_Suite.Operations)
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
       Files_Suite.Support.Save (Environment, "FILES_TEST_VOLUME_TRASH");
       Ada.Environment_Variables.Set ("FILES_TEST_VOLUME_TRASH", "on");
-      if Hostkit.Host.Current = Hostkit.Host.Windows or else not Hostkit.Process.Current_User_Id (Uid) then
+      if Hostkit.Host.Current = Hostkit.Host.Windows then
          Files_Suite.Support.Skip ("Test_Trash_Refuses_Volume_Trash", "Windows has no freedesktop volume trash");
          return;
       end if;
+      --  A POSIX host always knows its user: not knowing it is a failure,
+      --  not a reason to skip (the volume trash's name is built from it).
+      Assert (Hostkit.Process.Current_User_Id (Uid), "the current user id is known on a POSIX host");
       Reset_Root;
       declare
          Image : constant String := Natural'Image (Uid);

@@ -358,10 +358,20 @@ jobs:
           fi
           smoke_settings="$RUNNER_TEMP/files-installed-smoke.conf"
           printf '[settings]\n' > "$smoke_settings"
-          out="$("$installed" --runtime-smoke --settings="$smoke_settings" .)"
+          set +e
+          out="$("$installed" --runtime-smoke --settings="$smoke_settings" . 2>&1)"
+          code=$?
+          set -e
           printf '%s\n' "$out"
+          if [ "$code" -ne 0 ]; then
+            echo "::error::the installed files' runtime smoke exited with $code on ${{ matrix.os }}"
+            exit "$code"
+          fi
           pass_count="$(printf '%s\n' "$out" | awk '$0 == "runtime-smoke: PASS" { n++ } END { print n + 0 }')"
-          [ "$pass_count" -eq 1 ]
+          if [ "$pass_count" -ne 1 ]; then
+            echo "::error::the installed files' runtime smoke did not report exactly one PASS on ${{ matrix.os }}"
+            exit 1
+          fi
 
       # The cross-device move tests need a writable directory on a different
       # device than the suite's scratch root, and read its path from
@@ -436,7 +446,11 @@ jobs:
           'FILES_TEST_STREAMLESS_VOLUME=V:\' | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       # The same test on Linux copies onto a real vfat volume, mounted as
-      # udisks mounts a USB stick, before its fault-hook half.
+      # udisks mounts a USB stick, before its fault-hook half. Not fatal
+      # either: without the volume that half calls Skip ("no volume without
+      # named streams"), which expected-skips-linux.txt does not list, so the
+      # test steps below fail with an unlisted skip. A local run without the
+      # mount reports the same skip and still runs the fault-hook half.
       - name: Mount a FAT volume (Linux)
         if: runner.os == 'Linux'
         continue-on-error: true
@@ -544,8 +558,10 @@ jobs:
           # and so does a listed one that ran. The tests that need a second
           # volume skip without one; the mount steps above provide it on macOS
           # and Windows and /dev/shm does on Linux, so none of those is listed
-          # -- a failed mount turns red here. Change a list only together with
-          # the Skip that needs it.
+          # -- a failed mount turns red here. So does a failed FAT/exFAT mount
+          # on Linux or Windows: Test_Copy_Without_Xattr_Support then skips its
+          # volume half, and no list names that skip. Change a list only
+          # together with the Skip that needs it.
           FILES_TEST_EXPECTED_SKIPS: expected-skips-${{ runner.os == 'Linux' && 'linux' || runner.os == 'macOS' && 'macos' || 'windows' }}.txt
         run: |
           alr --non-interactive build

@@ -3092,7 +3092,10 @@ procedure Check_All is
    --  caught (Files.Diagnostics.Note), or a failure vanishes without a trace
    --  even with FILES_DIAGNOSTICS set: a "when others" exception handler in
    --  src/ either raises or names its occurrence and notes it. Files.Diagnostics
-   --  and Files.Environment (which Note is built on) are exempt.
+   --  and Files.Environment (which Note is built on) are exempt. The note (or
+   --  other hand-on) must be a top-level statement of the handler, run on every
+   --  path: one inside an if, case, loop or block leaves the other paths silent,
+   --  and only a call of Diagnostics.Note itself counts (not Footnote (E, ...)).
    procedure Check_Swallowing_Handlers is
       Search : Ada.Directories.Search_Type;
       Item   : Ada.Directories.Directory_Entry_Type;
@@ -3115,6 +3118,48 @@ procedure Check_All is
          function Blank (Line : String) return Boolean is (Indent (Line) = Line'Length);
 
          function Trimmed (Line : String) return String is (Ada.Strings.Fixed.Trim (Line, Ada.Strings.Both));
+
+         --  Whether Text (lower case, trimmed) starts with the reserved word Word.
+         function Starts_With_Word (Text : String; Word : String) return Boolean is
+           (Text'Length >= Word'Length
+            and then Text (Text'First .. Text'First + Word'Length - 1) = Word
+            and then (Text'Length = Word'Length
+                      or else Text (Text'First + Word'Length) not in 'a' .. 'z' | '0' .. '9' | '_'));
+
+         --  Whether a statement line opens, continues or closes a compound
+         --  statement (if, case, a loop, a block, select), whose contents run
+         --  on some paths only, or not at the handler's top level.
+         function Opens_Nested (Line : String) return Boolean is
+            Text  : constant String := Ada.Characters.Handling.To_Lower (Trimmed (Line));
+            Colon : constant Natural := Ada.Strings.Fixed.Index (Text, ":");
+            function Opens (Words : String) return Boolean is
+              (Starts_With_Word (Words, "if") or else Starts_With_Word (Words, "elsif")
+               or else Starts_With_Word (Words, "else") or else Starts_With_Word (Words, "then")
+               or else Starts_With_Word (Words, "case") or else Starts_With_Word (Words, "when")
+               or else Starts_With_Word (Words, "loop") or else Starts_With_Word (Words, "for")
+               or else Starts_With_Word (Words, "while") or else Starts_With_Word (Words, "declare")
+               or else Starts_With_Word (Words, "begin") or else Starts_With_Word (Words, "exception")
+               or else Starts_With_Word (Words, "select") or else Starts_With_Word (Words, "or")
+               or else Starts_With_Word (Words, "end"));
+            --  Whether the text before the colon is a statement label.
+            function Labelled return Boolean is
+            begin
+               for C of Trimmed (Text (Text'First .. Colon - 1)) loop
+                  if C not in 'a' .. 'z' | '0' .. '9' | '_' then
+                     return False;
+                  end if;
+               end loop;
+               return True;
+            end Labelled;
+         begin
+            --  A named loop or block: "Search : loop".
+            return Opens (Text)
+              or else (Colon > Text'First
+                       and then Colon < Text'Last
+                       and then Text (Colon + 1) /= '='
+                       and then Labelled
+                       and then Opens (Trimmed (Text (Colon + 1 .. Text'Last))));
+         end Opens_Nested;
 
          procedure Refuse (At_Line : Positive; Why : String) is
          begin
@@ -3154,8 +3199,11 @@ procedure Check_All is
                      Others_Of : constant Boolean :=
                        Ada.Strings.Fixed.Index
                          (Ada.Characters.Handling.To_Lower (Text (Text'First .. Arrow)), "others") > 0;
-                     Body_Of : Unbounded_String :=
-                       To_Unbounded_String (Text (Arrow + 2 .. Text'Last));
+                     --  The handler's top-level statements: what it does on
+                     --  every path, outside any if, case, loop or block.
+                     Nested : Boolean := Opens_Nested (Text (Arrow + 2 .. Text'Last));
+                     Top_Of : Unbounded_String :=
+                       (if Nested then Null_Unbounded_String else To_Unbounded_String (Text (Arrow + 2 .. Text'Last)));
                      Last_Statement : Unbounded_String :=
                        To_Unbounded_String (Trimmed (Text (Arrow + 2 .. Text'Last)));
                   begin
@@ -3170,9 +3218,17 @@ procedure Check_All is
                      if Handler then
                         for Below in Number + 1 .. Lines.Last_Index loop
                            exit when not Blank (Lines (Below)) and then Indent (Lines (Below)) <= Margin;
-                           Append (Body_Of, ASCII.LF & Lines (Below));
                            if not Blank (Lines (Below)) then
                               Last_Statement := To_Unbounded_String (Trimmed (Lines (Below)));
+                              --  A line at the statements' own indent starts a
+                              --  statement; a deeper one continues it, or sits
+                              --  inside the compound statement it opened.
+                              if Indent (Lines (Below)) <= Margin + 3 then
+                                 Nested := Opens_Nested (Lines (Below));
+                              end if;
+                              if not Nested then
+                                 Append (Top_Of, ASCII.LF & Lines (Below));
+                              end if;
                            end if;
                         end loop;
                         declare
@@ -3194,21 +3250,42 @@ procedure Check_All is
                                 & Without_Unreferenced (Text (Stop + 1 .. Text'Last));
                            end Without_Unreferenced;
                            Statements : constant String :=
-                             Without_Unreferenced
-                               (Ada.Characters.Handling.To_Lower (Code_Of (To_String (Body_Of))));
+                             Without_Unreferenced (Ada.Characters.Handling.To_Lower (To_String (Top_Of)));
 
-                           --  What a handler that carries on does with what it
-                           --  caught: notes it (Files.Diagnostics), or keeps it
-                           --  for a caller (Save_Occurrence). Naming it in some
-                           --  other way -- a comparison, an assignment -- is not
-                           --  noting it.
+                           --  What a handler that carries on does, on every
+                           --  path, with what it caught: notes it
+                           --  (Files.Diagnostics.Note), or keeps it for a caller
+                           --  (Save_Occurrence). Naming it in some other way --
+                           --  a comparison, an assignment, Footnote (E, ...) --
+                           --  is not noting it.
                            function Hands_On (Occurrence : String) return Boolean is
                               --  The statements without blanks or line breaks,
                               --  so a call reads the same however it is laid out.
                               Squeezed : String (1 .. Statements'Length);
                               Last     : Natural := 0;
                               function Has (Text : String) return Boolean is
-                                (Ada.Strings.Fixed.Index (Squeezed (1 .. Last), Text) > 0);
+                                (Last > 0 and then Ada.Strings.Fixed.Index (Squeezed (1 .. Last), Text) > 0);
+
+                              --  A call of Diagnostics.Note (qualified, as
+                              --  Files.Diagnostics.Note or Diagnostics.Note)
+                              --  with the occurrence: not a Note of some other
+                              --  name that merely ends in "note".
+                              function Notes return Boolean is
+                                 Call    : constant String := "diagnostics.note(" & Occurrence & ",";
+                                 From    : Positive := 1;
+                                 At_Call : Natural;
+                              begin
+                                 while From <= Last loop
+                                    At_Call := Ada.Strings.Fixed.Index (Squeezed (1 .. Last), Call, From);
+                                    exit when At_Call = 0;
+                                    if At_Call = 1 or else Squeezed (At_Call - 1) not in 'a' .. 'z' | '0' .. '9' | '_'
+                                    then
+                                       return True;
+                                    end if;
+                                    From := At_Call + 1;
+                                 end loop;
+                                 return False;
+                              end Notes;
                            begin
                               for C of Statements loop
                                  if C not in ' ' | ASCII.LF | ASCII.CR | ASCII.HT then
@@ -3216,7 +3293,7 @@ procedure Check_All is
                                     Squeezed (Last) := C;
                                  end if;
                               end loop;
-                              return Has ("note(" & Occurrence & ",")
+                              return Notes
                                 or else Has ("note_event_loop(" & Occurrence & ")")
                                 --  Reported to the user, as a startup error is.
                                 or else Has ("exception_message(" & Occurrence & ")")
@@ -5413,10 +5490,12 @@ procedure Check_All is
          Count : Natural := 0;
          From  : Natural := Text'First;
 
-         --  Whether Code calls a check: a name starting Assert, Skip, Expect
-         --  or Require (qualified or not) followed by its arguments or ";",
-         --  and not the name being declared. A message or an identifier
-         --  such as Required_Size does not count.
+         --  Whether Code calls a check: a name starting Assert, Expect or
+         --  Require (qualified or not: Assert_Equal, Assert_Within and the
+         --  suite's other assertion helpers among them) followed by its
+         --  arguments or ";", and not the name being declared. A message or
+         --  an identifier such as Required_Size does not count, nor does Skip:
+         --  a body that only skips checks nothing on any host.
          function Calls_A_Check (Code : String) return Boolean is
             function Identifier_Char (C : Character) return Boolean is
               (C in 'A' .. 'Z' | 'a' .. 'z' | '0' .. '9' | '_');
@@ -5424,10 +5503,9 @@ procedure Check_All is
               (At_Name - Code'First >= 10
                and then (Ada.Strings.Fixed.Tail (Code (Code'First .. At_Name - 1), 10) = "procedure "
                          or else Ada.Strings.Fixed.Tail (Code (Code'First .. At_Name - 1), 9) = "function "));
-            type Check_Names is array (1 .. 4) of Unbounded_String;
+            type Check_Names is array (1 .. 3) of Unbounded_String;
             Names : constant Check_Names :=
-              [To_Unbounded_String ("Assert"), To_Unbounded_String ("Skip"),
-               To_Unbounded_String ("Expect"), To_Unbounded_String ("Require")];
+              [To_Unbounded_String ("Assert"), To_Unbounded_String ("Expect"), To_Unbounded_String ("Require")];
          begin
             for Name of Names loop
                declare
@@ -5460,7 +5538,8 @@ procedure Check_All is
          end Calls_A_Check;
 
          --  A registered test must check something: a body with no Assert
-         --  (or Skip, or a helper named for its Expect/Require) passes always.
+         --  (or a helper named for its Expect/Require) passes always, and so
+         --  does one whose only call is a Skip.
          procedure Require_Checks (Routine : String) is
             Unit : constant String :=
               Root & "/tests/tests/src/files_suite-" & Suite & "-"

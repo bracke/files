@@ -24,7 +24,7 @@ separate (Files_Suite.Operations)
          procedure Await (Owner : Files.Preview_Decoder.Requester; Path : String) is
          begin
             Ready := False;
-            for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Launch_Limit)) loop
+            for Attempt in Files_Suite.Support.Polling loop
                Files.Preview_Decoder.Take (Owner, Path, Image, Ready, Asked);
                exit when Ready;
             end loop;
@@ -53,7 +53,7 @@ separate (Files_Suite.Operations)
          Files.Preview_Decoder.Request (A, Second, 8);
          Files.Preview_Decoder.Take (A, First, Image, Ready, Asked);
          Assert (not Ready and then not Asked, "the one left behind is no longer asked for");
-         for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Launch_Limit)) loop
+         for Attempt in Files_Suite.Support.Polling loop
             Files.Preview_Decoder.Take (A, First, Image, Ready, Asked);
             Assert (not Ready, "the one left behind is never handed out");
             Files.Preview_Decoder.Take (A, Second, Image, Ready, Asked);
@@ -109,7 +109,7 @@ separate (Files_Suite.Operations)
       Assert
         (Files.Shared_Bytes.Is_Empty (Files.Model.Quick_Look_Content_Of (Model).Image_Pixels),
          "without its decoded image: the decode is not done on the UI thread");
-      for Attempt in Files_Suite.Support.Polling (Limit => Seconds (Launch_Limit)) loop
+      for Attempt in Files_Suite.Support.Polling loop
          Files.Operations.Poll_Quick_Look (Model, 103);
          exit when not Files.Shared_Bytes.Is_Empty (Files.Model.Quick_Look_Content_Of (Model).Image_Pixels);
       end loop;

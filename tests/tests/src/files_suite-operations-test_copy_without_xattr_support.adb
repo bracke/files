@@ -10,6 +10,8 @@ separate (Files_Suite.Operations)
         with Import, Convention => C, External_Name => "files_test_metadata_prepare";
       function Stream_Count (Path : System.Address) return Interfaces.C.int
         with Import, Convention => C, External_Name => "files_test_named_stream_count";
+      function Xattr_Refusals return Interfaces.C.long_long
+        with Import, Convention => C, External_Name => "files_test_xattr_refusal_count";
       Source      : constant String := Join (Root, "tagged.txt");
       Copy        : constant String := Join (Root, "tagged-copy.txt");
       Mutation    : Files.File_System.Mutation_Result;
@@ -67,10 +69,9 @@ separate (Files_Suite.Operations)
            ("Test_Copy_Without_Xattr_Support", "the xattr fault hooks lsetxattr in Linux-only C");
          return;
       end if;
-      --  A real vfat volume where CI mounts one, then the fault hook.
-      if Ada.Environment_Variables.Value ("FILES_TEST_STREAMLESS_VOLUME", "") /= "" then
-         Check_Streamless_Volume;
-      end if;
+      --  A real vfat volume where CI mounts one (without it this half skips,
+      --  which the CI's expected-skips list turns red), then the fault hook.
+      Check_Streamless_Volume;
       Reset_Root;
       Write_Binary_File (Source, "downloaded");
       declare
@@ -79,9 +80,21 @@ separate (Files_Suite.Operations)
          Assert (Prepare_Native (Name'Address, 0) = 1, "the source carries extended attributes and an ACL");
       end;
       Files_Suite.Support.Save (Environment, "FILES_TEST_XATTR_UNSUPPORTED");
-      Ada.Environment_Variables.Set ("FILES_TEST_XATTR_UNSUPPORTED", "1");
-      Mutation := Files.File_System.Copy_Tree (Source, Copy);
-      Ada.Environment_Variables.Clear ("FILES_TEST_XATTR_UNSUPPORTED");
-      Assert (Mutation.Success, "the copy succeeds: " & To_String (Mutation.Error_Key));
-      Assert (File_Has_Bytes (Copy, "downloaded"), "and holds the file's bytes");
+      declare
+         Refused_Before : constant Interfaces.C.long_long := Xattr_Refusals;
+      begin
+         Ada.Environment_Variables.Set ("FILES_TEST_XATTR_UNSUPPORTED", "1");
+         Mutation := Files.File_System.Copy_Tree (Source, Copy);
+         Ada.Environment_Variables.Clear ("FILES_TEST_XATTR_UNSUPPORTED");
+         Assert (Mutation.Success, "the copy succeeds: " & To_String (Mutation.Error_Key));
+         Assert (File_Has_Bytes (Copy, "downloaded"), "and holds the file's bytes");
+         Assert
+           (Xattr_Refusals > Refused_Before,
+            "the copy tried to set the attributes and the fault refused them (the hook was reached)");
+      end;
+      declare
+         Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Copy);
+      begin
+         Assert (Stream_Count (Name'Address) = 0, "and arrives without the user attributes the fault refused");
+      end;
    end Test_Copy_Without_Xattr_Support;
