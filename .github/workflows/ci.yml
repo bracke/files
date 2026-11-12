@@ -184,13 +184,13 @@ jobs:
             git -C "$name" checkout --detach FETCH_HEAD
           }
           clone_at project_tools 5ed5f4dcfa10301345933d45e5f78ac0573d8cff
-          clone_at i18n 33d2dc7775f97adf4c227643b7d2b81850cc76da
+          clone_at i18n 21d4d191f1d90a16248b71dfc54b4384502cf658
           clone_at messages a6fb47b2a1d520d2e202dd9d7ac318375116615a
           clone_at humanize 60c99ebd3d4080e92b8455fba47adc9c50f19fc3
           clone_at textrender 0a6721cb4239e581518c0d312bb7085e5b1ff402
           clone_at zlib 3a2ba8c62419b26e6ceb629e9b1702c5e1cdb6ed
           clone_at guikit 6602565e1591a65687d91d84f54353b3849b77c7
-          clone_at hostkit 0640e205f9248b23216da4bc639ffde2f789d911
+          clone_at hostkit 38f245a3817a98f7d29e725f0b8e10ed36b5a95d
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
           # providing the native accessibility framework and compatibility API.
@@ -434,6 +434,23 @@ jobs:
           if (-not (Test-Path 'V:\')) { throw 'the VHD did not mount as V:' }
           (Get-Volume -DriveLetter V).FileSystem
           'FILES_TEST_STREAMLESS_VOLUME=V:\' | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      # The same test on Linux copies onto a real vfat volume, mounted as
+      # udisks mounts a USB stick, before its fault-hook half.
+      - name: Mount a FAT volume (Linux)
+        if: runner.os == 'Linux'
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v mkfs.vfat >/dev/null || sudo apt-get install -y dosfstools
+          image="$RUNNER_TEMP/files-test-vfat.img"
+          mount_point="$RUNNER_TEMP/files-test-vfat"
+          truncate -s 64M "$image"
+          mkfs.vfat -n FILESVFAT "$image"
+          mkdir -p "$mount_point"
+          sudo mount -o "loop,uid=$(id -u),gid=$(id -g),fmask=0022,dmask=0022,utf8" "$image" "$mount_point"
+          echo "FILES_TEST_STREAMLESS_VOLUME=$mount_point" >> "$GITHUB_ENV"
 
       # Test_Decode_Emoji_Png_From_Font and Test_Emoji_Draws_As_Colour_Icons
       # need Noto Color Emoji, a bitmap (CBDT) colour font that Windows and

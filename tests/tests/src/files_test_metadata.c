@@ -384,7 +384,20 @@ int files_test_drop_backup_privileges(void) {
 }
 #else
 int files_test_drop_backup_privileges(void) { return 1; }
+#ifdef __linux__
+/* Linux's counterpart of named streams: the entry's user.* attributes. */
+int files_test_named_stream_count(const char *path) {
+    char names[4096];
+    ssize_t length = llistxattr(path, names, sizeof(names));
+    int count = 0;
+    if (length < 0) return errno == ENOTSUP ? 0 : -1;
+    for (ssize_t at = 0; at < length; at += (ssize_t)strlen(names + at) + 1)
+        if (!strncmp(names + at, "user.", 5)) ++count;
+    return count;
+}
+#else
 int files_test_named_stream_count(const char *path) { (void)path; return -1; }
+#endif
 int files_test_encrypt(const char *path) { (void)path; return 0; }
 int files_test_is_encrypted(const char *path) { (void)path; return 0; }
 int files_test_add_inherited_ace(const char *path) { (void)path; return 0; }

@@ -15,8 +15,8 @@ separate (Files_Suite.Operations)
       Mutation    : Files.File_System.Mutation_Result;
       Environment : Files_Suite.Support.Environment_Guard;
 
-      --  A copy of a file with named streams onto the exFAT volume named by
-      --  FILES_TEST_STREAMLESS_VOLUME.
+      --  A copy of a file with named streams (on Linux, user.* attributes)
+      --  onto the FAT or exFAT volume named by FILES_TEST_STREAMLESS_VOLUME.
       procedure Check_Streamless_Volume is
          Volume : constant String := Ada.Environment_Variables.Value ("FILES_TEST_STREAMLESS_VOLUME", "");
          Target : constant String := (if Volume = "" then "" else Join (Volume, "files-test-streamless"));
@@ -41,7 +41,7 @@ separate (Files_Suite.Operations)
             Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Source);
          begin
             Assert (Prepare_Native (Name'Address, 0) = 1, "the source carries a Zone.Identifier and a custom stream");
-            Assert (Stream_Count (Name'Address) = 2, "the source lists its two named streams");
+            Assert (Stream_Count (Name'Address) = 2, "the source lists its two named streams or user attributes");
          end;
          Remove_Target;
          Ada.Directories.Create_Directory (Target);
@@ -66,6 +66,10 @@ separate (Files_Suite.Operations)
          Files_Suite.Support.Skip
            ("Test_Copy_Without_Xattr_Support", "the xattr fault hooks lsetxattr in Linux-only C");
          return;
+      end if;
+      --  A real vfat volume where CI mounts one, then the fault hook.
+      if Ada.Environment_Variables.Value ("FILES_TEST_STREAMLESS_VOLUME", "") /= "" then
+         Check_Streamless_Volume;
       end if;
       Reset_Root;
       Write_Binary_File (Source, "downloaded");
