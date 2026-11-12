@@ -240,6 +240,20 @@ package body Files.Transfer_Jobs is
          raise;
    end Read_Replacement_Checkpoint;
 
+   procedure Apply_Replacement_Checkpoint
+     (Path : String;
+      Result : in out Job_Result)
+   is
+      Backup, Backup_Identity : Files.Types.UString;
+   begin
+      Read_Replacement_Checkpoint (Path, Backup, Backup_Identity);
+      Result.Trashed := Backup;
+      Result.Trashed_Identity := Backup_Identity;
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
+   end Apply_Replacement_Checkpoint;
+
    function Is_Cancellation_Failure (Result : Job_Result) return Boolean is
      (not Result.Mutation.Success and then Length (Result.Trashed) = 0
       and then To_String (Result.Mutation.Error_Key) in "" | "error.drop.failed");
@@ -273,7 +287,6 @@ package body Files.Transfer_Jobs is
          Action : Files.Paste.Resolved_Action;
          Mode : Files.File_System.Drop_Import_Mode;
          Destinations, Sources, Identities, Tree_Revisions : Files.Types.String_Vectors.Vector;
-         Backup_Identity : Files.Types.UString;
          Batch_Directory : Files.Types.UString;
          use type Files.File_System.Drop_Import_Mode;
       begin
@@ -290,15 +303,8 @@ package body Files.Transfer_Jobs is
          Read_Transport_Request
            (Files.Process_Jobs.Path (Job.Process, Files.Process_Jobs.Request_File),
             Action, Mode, Batch_Directory);
-         begin
-            Read_Replacement_Checkpoint
-              (Files.Process_Jobs.Path (Job.Process, "replaced"),
-               Result.Trashed, Backup_Identity);
-            Result.Trashed_Identity := Backup_Identity;
-         exception
-            when Swallowed : others =>
-               Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
-         end;
+         Apply_Replacement_Checkpoint
+           (Files.Process_Jobs.Path (Job.Process, "replaced"), Result);
          if Mode = Files.File_System.Drop_Move then
             Files.Job_Context.Read_Moved
               (Files.Process_Jobs.Path (Job.Process, ""), Destinations, Sources, Identities);
@@ -369,9 +375,6 @@ package body Files.Transfer_Jobs is
       Action : Files.Paste.Resolved_Action;
       Mode   : Files.File_System.Drop_Import_Mode;
       Result : Job_Result;
-      Plans  : Files.File_System.Drop_Import_Plan_Vectors.Vector;
-      Identities, Tree_Revisions : Files.Types.String_Vectors.Vector;
-      Preserved : Boolean := False;
       Batch : Files.Copy_Context.Session;
       Batch_Directory : Files.Types.UString;
 
@@ -385,6 +388,39 @@ package body Files.Transfer_Jobs is
       begin
          Files.Job_Records.Publish_Result (Directory, Write'Access);
       end Save;
+
+      --  The replaced original is held at Backup: retain it independently of
+      --  result checkpoints before the import starts, so recovery finds it
+      --  even if this helper dies mid-write.
+      procedure Checkpoint (Backup, Backup_Identity : String) is
+      begin
+         Result.Trashed := To_Unbounded_String (Backup);
+         Result.Trashed_Identity := To_Unbounded_String (Backup_Identity);
+         if Hostkit.Fs.Is_Link (Hostkit.Fs.Join (Directory, "replaced.tmp"))
+           or else Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Directory, "replaced.tmp"))
+           or else Hostkit.Fs.Is_Link (Hostkit.Fs.Join (Directory, "replaced"))
+           or else Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Directory, "replaced"))
+         then
+            raise Ada.Directories.Use_Error;
+         end if;
+         Files.Exclusive_Streams.Create
+           (File, Hostkit.Fs.Join (Directory, "replaced.tmp"));
+         String'Output (File'Access, Backup);
+         String'Output (File'Access, Backup_Identity);
+         Files.Exclusive_Streams.Close (File);
+         if not Files.Durable_Writes.Published
+           (Files.Durable_Writes.Publish
+              (Hostkit.Fs.Join (Directory, "replaced.tmp"),
+               Hostkit.Fs.Join (Directory, "replaced")))
+         then
+            raise Ada.Directories.Use_Error;
+         end if;
+         Save;
+      exception
+         when others =>
+            Files.Exclusive_Streams.Close_Safely (File);
+            raise;
+      end Checkpoint;
 
       procedure Roll_Back is
       begin
@@ -415,61 +451,32 @@ package body Files.Transfer_Jobs is
       begin
          if Cancelled then
             Result.Cancelled := True;
-         elsif Action.Source_Path = Action.Dest_Path then
-            Result.Mutation := (Success => False, Error_Key => To_Unbounded_String ("error.drop.into_self"));
          else
-            if Action.Replaced then
-               Result.Mutation := Files.File_System.Preserve_For_Replace (To_String (Action.Dest_Path), Result.Trashed);
-               Preserved := Result.Mutation.Success;
-               if Length (Result.Trashed) > 0 then
-                  Result.Trashed_Identity := To_Unbounded_String
-                    (Files.File_Identities.Token (To_String (Result.Trashed)));
-                  --  Retain the replacement original independently of result checkpoints.
-                  if Hostkit.Fs.Is_Link (Hostkit.Fs.Join (Directory, "replaced.tmp"))
-                    or else Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Directory, "replaced.tmp"))
-                    or else Hostkit.Fs.Is_Link (Hostkit.Fs.Join (Directory, "replaced"))
-                    or else Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Directory, "replaced"))
-                  then
-                     raise Ada.Directories.Use_Error;
-                  end if;
-                  Files.Exclusive_Streams.Create
-                    (File, Hostkit.Fs.Join (Directory, "replaced.tmp"));
-                  String'Output (File'Access, To_String (Result.Trashed));
-                  String'Output
-                    (File'Access, To_String (Result.Trashed_Identity));
-                  Files.Exclusive_Streams.Close (File);
-                  if not Files.Durable_Writes.Published
-                    (Files.Durable_Writes.Publish
-                       (Hostkit.Fs.Join (Directory, "replaced.tmp"),
-                        Hostkit.Fs.Join (Directory, "replaced")))
-                  then
-                     raise Ada.Directories.Use_Error;
-                  end if;
-               end if;
-               if Preserved then
-                  Result.Mutation := (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
-               end if;
-               Save;
-            end if;
-            if not Action.Replaced or else Preserved then
-               --  A checkpoint represents unfinished work until the write completes.
-               Result.Mutation := (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
-               Save;
-               Plans.Append
-                 (Files.File_System.Drop_Import_Plan'
-                    (Source_Path      => Action.Source_Path,
-                     Destination_Path => Action.Dest_Path,
-                     Mode             => Mode,
-                     Valid            => True,
-                     Error_Key        => Null_Unbounded_String));
-               Result.Mutation := Files.File_System.Execute_Drop_Import
-                 (Plans, Identities, Tree_Revisions, Cancelled'Unrestricted_Access, Batch);
-               if Result.Mutation.Success and then not Identities.Is_Empty then
-                  Result.Created_Identity := Identities.First_Element;
-                  Result.Created_Tree_Revision := Tree_Revisions.First_Element;
-               end if;
-               Roll_Back;
-            end if;
+            --  A checkpoint represents unfinished work until the write completes.
+            Result.Mutation := (Success => False, Error_Key => To_Unbounded_String ("error.drop.failed"));
+            Save;
+            declare
+               Replaced, Replaced_Identity, Created_Identity, Created_Tree_Revision : Files.Types.UString;
+               Mutation : constant Files.File_System.Mutation_Result :=
+                 Files.File_System.Import_Replacing
+                   (Source                => To_String (Action.Source_Path),
+                    Destination           => To_String (Action.Dest_Path),
+                    Mode                  => Mode,
+                    Replace               => Action.Replaced,
+                    Replaced              => Replaced,
+                    Replaced_Identity     => Replaced_Identity,
+                    Created_Identity      => Created_Identity,
+                    Created_Tree_Revision => Created_Tree_Revision,
+                    Preserved             => Checkpoint'Access,
+                    Cancel                => Cancelled'Unrestricted_Access,
+                    Batch                 => Batch);
+            begin
+               Result.Mutation := Mutation;
+               Result.Trashed := Replaced;
+               Result.Trashed_Identity := Replaced_Identity;
+               Result.Created_Identity := Created_Identity;
+               Result.Created_Tree_Revision := Created_Tree_Revision;
+            end;
          end if;
       exception
          when Swallowed : others =>

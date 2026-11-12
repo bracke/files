@@ -38,11 +38,44 @@ package body Files.Quick_Look is
       return Control_Count > Raw_Bytes'Length / 10;
    end Looks_Binary;
 
+   --  Raw cut back to its last whole UTF-8 character: a multibyte sequence
+   --  the read cut short is dropped. Anything else is left as it is.
+   function Trim_To_Character (Raw : String) return String is
+      Lead : Natural := Raw'Last;
+   begin
+      --  Step back over at most three continuation bytes (10xxxxxx).
+      while Lead >= Raw'First
+        and then Raw'Last - Lead < 3
+        and then Character'Pos (Raw (Lead)) in 16#80# .. 16#BF#
+      loop
+         Lead := Lead - 1;
+      end loop;
+      if Lead < Raw'First then
+         return Raw;
+      end if;
+      declare
+         Code   : constant Natural := Character'Pos (Raw (Lead));
+         Needed : constant Natural :=
+           (if Code in 16#C0# .. 16#DF# then 2
+            elsif Code in 16#E0# .. 16#EF# then 3
+            elsif Code in 16#F0# .. 16#F7# then 4
+            else 1);
+      begin
+         if Raw'Last - Lead + 1 < Needed then
+            return Raw (Raw'First .. Lead - 1);
+         end if;
+         return Raw;
+      end;
+   end Trim_To_Character;
+
    --  Split Raw_Bytes into at most Max_Preview_Lines lines on LF boundaries,
    --  stripping a trailing CR from each line. Truncated is set when the input
-   --  holds more lines than the cap.
+   --  holds more lines than the cap, or when Complete is False: the bytes are
+   --  then a prefix of the file, so their last line was cut off -- it is
+   --  dropped, or, when it is the only line, cut back to a whole character.
    procedure Split_Lines
      (Raw_Bytes : String;
+      Complete  : Boolean;
       Lines     : out Files.Types.String_Vectors.Vector;
       Truncated : out Boolean)
    is
@@ -61,7 +94,7 @@ package body Files.Quick_Look is
       end Flush;
    begin
       Lines.Clear;
-      Truncated := False;
+      Truncated := not Complete;
 
       for Char of Raw_Bytes loop
          Started := True;
@@ -80,7 +113,10 @@ package body Files.Quick_Look is
       if Started and then Length (Current) > 0 then
          if Natural (Lines.Length) >= Max_Preview_Lines then
             Truncated := True;
-         else
+         elsif Complete then
+            Flush;
+         elsif Lines.Is_Empty then
+            Current := To_Unbounded_String (Trim_To_Character (To_String (Current)));
             Flush;
          end if;
       end if;
@@ -95,7 +131,8 @@ package body Files.Quick_Look is
       Size           : Long_Long_Integer;
       Is_Image       : Boolean;
       Image_Path     : String;
-      Raw_Bytes      : String)
+      Raw_Bytes      : String;
+      Bytes_Complete : Boolean := True)
       return Quick_Look_Content
    is
       use type Files.Types.Item_Kind;
@@ -123,7 +160,7 @@ package body Files.Quick_Look is
         and then not Looks_Binary (Raw_Bytes)
       then
          Content.Kind := Text_Content;
-         Split_Lines (Raw_Bytes, Content.Text_Lines, Content.Text_Truncated);
+         Split_Lines (Raw_Bytes, Bytes_Complete, Content.Text_Lines, Content.Text_Truncated);
       else
          Content.Kind := Info_Content;
       end if;

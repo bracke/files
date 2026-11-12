@@ -10,6 +10,13 @@ package Files.Images is
    Max_Source_Side   : constant := 4096;
    Max_Source_Pixels : constant := 4_194_304;
 
+   --  The largest source a file decode accepts. A file is decoded scaled
+   --  to Max_Decoded_Side, so camera photos far past Max_Source_Side must
+   --  still pass; the bound only refuses a header that would make the
+   --  loader allocate an absurd full-size buffer (about 256 MiB at most).
+   Max_File_Source_Side   : constant := 32_768;
+   Max_File_Source_Pixels : constant := 67_108_864;
+
    --  The longest side a decode is scaled to.
    Max_Decoded_Side : constant Positive := 2_048;
 

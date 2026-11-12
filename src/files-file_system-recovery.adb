@@ -450,6 +450,24 @@ package body Files.File_System.Recovery is
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
    end Resume_Interrupted_Release;
 
+   --  A release or restore that moved the payload out (to the trash, back
+   --  to its original, or beside it) and stopped before it removed the
+   --  stage: only the stage is left, and finishing means removing it.
+   --  Retrying on the missing payload would fail for good and keep the stage
+   --  forever.
+   function Only_Stage_Left (Path : String) return Boolean is
+      Stage    : constant String := Files.Fs_Primitives.Parent_Directory (Path);
+      Holder   : constant String := Hostkit.Fs.Join (Stage, "release");
+      Original : UString;
+      Identity : UString;
+   begin
+      return not Files.Fs_Primitives.Entry_Exists (Path)
+        and then not Files.Fs_Primitives.Entry_Exists (Holder)
+        and then Files.Fs_Primitives.Leaf_Text (Path) = "payload"
+        and then Read_Owner (Stage, Original, Identity)
+        and then Contains_Only_Owned_Entries (Stage);
+   end Only_Stage_Left;
+
    function Release
      (Path     : String;
       To_Trash : not null access function (Path, Original : String) return Mutation_Result)
@@ -461,24 +479,11 @@ package body Files.File_System.Recovery is
         (Success => False, Error_Key => To_Unbounded_String ("error.trash.failed"));
    begin
       Resume_Interrupted_Release (Path);
-      --  A release that moved the payload out (to the trash, or beside its
-      --  original) and stopped before it removed the stage: only the stage
-      --  is left, and finishing means removing it. Retrying on the missing
-      --  payload would fail for good and keep the stage forever.
-      declare
-         Original, Identity : UString;
-      begin
-         if not Files.Fs_Primitives.Entry_Exists (Path)
-           and then not Files.Fs_Primitives.Entry_Exists (Holder)
-           and then Files.Fs_Primitives.Leaf_Text (Path) = "payload"
-           and then Read_Owner (Stage, Original, Identity)
-           and then Contains_Only_Owned_Entries (Stage)
-         then
-            Delete_Owned_Tree (Stage);
-            Unregister (Path);
-            return (Success => True, Error_Key => Null_Unbounded_String);
-         end if;
-      end;
+      if Only_Stage_Left (Path) then
+         Delete_Owned_Tree (Stage);
+         Unregister (Path);
+         return (Success => True, Error_Key => Null_Unbounded_String);
+      end if;
       if not Recognizes (Path) or else not Contains_Only_Owned_Entries (Stage) then
          return Failed;
       end if;
@@ -898,7 +903,27 @@ package body Files.File_System.Recovery is
             Delete_Registry_Record (Directory);
          elsif Read_Registry_Record (Directory, Payload, Expected) then
             Resume_Interrupted_Release (To_String (Payload));
-            if Seen.Contains (To_String (Payload)) then
+            if Only_Stage_Left (To_String (Payload))
+              and then
+                (Length (Expected) = 0
+                 or else Files.File_Identities.Token
+                   (Files.Fs_Primitives.Parent_Directory (To_String (Payload))) =
+                     To_String (Expected))
+            then
+               --  A restore or release that stopped after the payload left:
+               --  finish it, and drop the record once the stage is gone.
+               begin
+                  Delete_Owned_Tree (Files.Fs_Primitives.Parent_Directory (To_String (Payload)));
+               exception
+                  when Swallowed : others =>
+                     Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
+               end;
+               if not Files.Fs_Primitives.Entry_Exists
+                 (Files.Fs_Primitives.Parent_Directory (To_String (Payload)))
+               then
+                  Delete_Registry_Record (Directory);
+               end if;
+            elsif Seen.Contains (To_String (Payload)) then
                --  A duplicate left by a reused stage name (see Register);
                --  one record per payload is all Unregister and recovery need.
                Delete_Registry_Record (Directory);
@@ -998,13 +1023,18 @@ package body Files.File_System.Recovery is
       then
          return (Success => False, Error_Key => To_Unbounded_String ("error.trash.restore_failed"));
       end if;
+      --  The original is back: the restore has succeeded. Its record goes
+      --  only with its stage; a stage that will not go yet keeps the record,
+      --  so Registered_Payloads finds the emptied stage and finishes it.
       begin
-         Delete_Tree (Parent);
+         Delete_Owned_Tree (Parent);
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");
       end;
-      Unregister (Path);
+      if not Files.Fs_Primitives.Entry_Exists (Parent) then
+         Unregister (Path);
+      end if;
       return (Success => True, Error_Key => Null_Unbounded_String);
    exception
       when Swallowed : others =>

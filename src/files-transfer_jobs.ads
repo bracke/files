@@ -85,6 +85,13 @@ private
      (Path : String;
       Backup, Backup_Identity : out Files.Types.UString);
 
+   --  Adopt the replacement checkpoint at Path into Result.  Trashed and
+   --  Trashed_Identity change together and only when the checkpoint decodes;
+   --  otherwise Result keeps the pair the result file reported.
+   procedure Apply_Replacement_Checkpoint
+     (Path : String;
+      Result : in out Job_Result);
+
    type Session is record
       Process : Files.Process_Jobs.Session;
    end record;

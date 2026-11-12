@@ -11,7 +11,7 @@ separate (Files_Suite.Operations)
       Files_Suite.Support.Save (Environment, "FILES_TRASH_BACKEND");
       Reset_Root;
       Project_Tools.Files.Delete_Tree (Trash_Home);
-      --  Sandbox the trash so Clear_Replaced_Destination can trash the overwritten
+      --  Sandbox the trash so Import_Replacing can trash the overwritten
       --  original into a scratch location and the undo can restore it from there.
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
       Ada.Environment_Variables.Set ("HOME", Trash_Home);

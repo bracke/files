@@ -83,12 +83,6 @@ package body Files.Application.Windows is
    --  where the idle-CPU saving actually matters.
    Present_Grace_Frames : constant := 24;
 
-   --  A left press landing within this window of the previous accepted press is
-   --  treated as a hardware/compositor bounce and dropped. It is far shorter than
-   --  any deliberate click or double-click (the double-click threshold is 0.5s),
-   --  so it never rejects a real one, but it absorbs the microsecond-apart phantom
-   --  presses a failing switch produces.
-   Left_Press_Debounce : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (40);
    --  Two clicks on the same item at most this far apart activate it.
    Double_Click_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (500);
 
@@ -269,47 +263,42 @@ package body Files.Application.Windows is
       State  : Glfw.Input.Button_State;
       Mods   : Glfw.Input.Keys.Modifiers)
    is
-      pragma Unreferenced (Mods);
+      use type Files.Mouse_Buttons.Button_Kind;
+      Event   : Files.Mouse_Buttons.Button_Event :=
+        (Button    => Files.Mouse_Buttons.Left_Mouse_Button,
+         Pressed   => State = Glfw.Input.Pressed,
+         X         => Object.Last_Mouse_X,
+         Y         => Object.Last_Mouse_Y,
+         Modifiers => Glfw.Input.Keys.Codes.To_Modifiers (Mods),
+         Dragged   => False);
+      Bounced : Boolean;
    begin
       if Button = Glfw.Input.Mouse.Right_Button then
-         if State = Glfw.Input.Pressed then
-            Object.Pending_Right_Clicks :=
-              Natural'Min (Object.Pending_Right_Clicks + 1, 8);
-            Object.Right_Press_X := Object.Last_Mouse_X;
-            Object.Right_Press_Y := Object.Last_Mouse_Y;
+         --  A right-click acts on the press, where it went down.
+         if State /= Glfw.Input.Pressed then
+            return;
          end if;
-         return;
+         Event.Button := Files.Mouse_Buttons.Right_Mouse_Button;
       elsif Button /= Glfw.Input.Mouse.Left_Button then
          return;
+      elsif not Event.Pressed then
+         Event.Dragged := Object.Drag_Moved;
       end if;
 
-      if State = Glfw.Input.Pressed then
-         declare
-            Now : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
-         begin
-            --  Drop a press that follows the previous accepted one too closely to
-            --  be a real click -- a switch bounce that would otherwise double-fire.
-            if Now < Object.Last_Left_Press_Time + Left_Press_Debounce then
-               --  The bounce's release came first and was counted. The button
-               --  is physically down again, so withdraw that phantom release:
-               --  left in place it ends a drag that is still being held.
-               if Object.Pending_Left_Releases > 0 then
-                  Object.Pending_Left_Releases := Object.Pending_Left_Releases - 1;
-               end if;
-               Object.Left_Mouse_Down := True;
-               return;
-            end if;
-            Object.Last_Left_Press_Time := Now;
-         end;
-
-         Object.Pending_Left_Clicks := Natural'Min (Object.Pending_Left_Clicks + 1, 8);
-         Object.Left_Mouse_Down := True;
-         Object.Drag_Start_X := Object.Last_Mouse_X;
-         Object.Drag_Start_Y := Object.Last_Mouse_Y;
-         Object.Drag_Moved := False;
-      else
-         Object.Pending_Left_Releases := Natural'Min (Object.Pending_Left_Releases + 1, 8);
+      Files.Mouse_Buttons.Queue_Event
+        (Object.Pending_Mouse, Object.Last_Left_Press_Time, Event, Ada.Real_Time.Clock, Bounced);
+      if Event.Button /= Files.Mouse_Buttons.Left_Mouse_Button then
+         return;
+      elsif not Event.Pressed then
          Object.Left_Mouse_Down := False;
+      elsif Bounced then
+         --  The button is physically down again after the bounce's release.
+         Object.Left_Mouse_Down := True;
+      else
+         Object.Left_Mouse_Down := True;
+         Object.Drag_Start_X := Event.X;
+         Object.Drag_Start_Y := Event.Y;
+         Object.Drag_Moved := False;
       end if;
    end Mouse_Button_Changed;
 

@@ -84,8 +84,6 @@ package body Files.File_System.Thumbnails is
 
    Cache_Byte_Budget : constant Long_Long_Integer := 64 * 1024 * 1024;
 
-   Max_Cache_Prune_Entries : constant Natural := 100_000;
-
    package Cache_Path_Sets is new Ada.Containers.Ordered_Sets
      (Element_Type => Unbounded_String);
 
@@ -116,7 +114,8 @@ package body Files.File_System.Thumbnails is
 
    procedure Prune_Thumbnail_Cache
      (Cache_Directory : String;
-      Budget_Bytes    : Long_Long_Integer)
+      Budget_Bytes    : Long_Long_Integer;
+      Max_Entries     : Positive := Max_Cache_Prune_Entries)
    is separate;
 
    procedure Prune_Cache_Once (Cache_Directory : String) is separate;

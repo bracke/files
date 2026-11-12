@@ -6,27 +6,13 @@ separate (Files.Application.Windows)
       Window_H : Glfw.Size := 0;
       Frame_W  : Glfw.Size := 0;
       Frame_H  : Glfw.Size := 0;
-      Cursor_X : Glfw.Input.Mouse.Coordinate := 0.0;
-      Cursor_Y : Glfw.Input.Mouse.Coordinate := 0.0;
-   begin
-      if Runtime.Handle = null
-        or else
-          (Runtime.Handle.Pending_Left_Clicks = 0
-           and then Runtime.Handle.Pending_Left_Releases = 0
-           and then Runtime.Handle.Pending_Right_Clicks = 0)
-      then
-         return;
-      end if;
 
-      Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
-      Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
-      Glfw.Windows.Get_Cursor_Pos (As_Window (Runtime.Handle), Cursor_X, Cursor_Y);
-
-      while Runtime.Handle.Pending_Right_Clicks > 0 loop
-         Runtime.Handle.Pending_Right_Clicks := Runtime.Handle.Pending_Right_Clicks - 1;
+      --  A right press: the context menu for what lies where it went down.
+      procedure Right_Press (Event : Files.Mouse_Buttons.Button_Event) is
+      begin
          declare
-            Press_X  : constant Glfw.Input.Mouse.Coordinate := Runtime.Handle.Right_Press_X;
-            Press_Y  : constant Glfw.Input.Mouse.Coordinate := Runtime.Handle.Right_Press_Y;
+            Press_X  : constant Glfw.Input.Mouse.Coordinate := Event.X;
+            Press_Y  : constant Glfw.Input.Mouse.Coordinate := Event.Y;
             X        : constant Natural := Scale_Coordinate (Press_X, Window_W, Frame_W);
             Y        : constant Natural := Scale_Coordinate (Press_Y, Window_H, Frame_H);
             Slot     : constant Snapshot_Slot := Hit_Slot (Runtime);
@@ -80,16 +66,17 @@ separate (Files.Application.Windows)
                Apply_Interaction_Result (Runtime, Result);
             end if;
          end;
-      end loop;
+      end Right_Press;
 
-      while Runtime.Handle.Pending_Left_Clicks > 0 loop
-         Runtime.Handle.Pending_Left_Clicks := Runtime.Handle.Pending_Left_Clicks - 1;
-
+      --  A left press: a click where the button went down, with the
+      --  modifiers held then.
+      procedure Left_Press (Event : Files.Mouse_Buttons.Button_Event) is
+      begin
          if Files.Model.Context_Menu_Is_Open (Runtime.Model) then
             declare
                --  Where the button went down, as for any other click.
-               Press_X  : constant Glfw.Input.Mouse.Coordinate := Runtime.Handle.Drag_Start_X;
-               Press_Y  : constant Glfw.Input.Mouse.Coordinate := Runtime.Handle.Drag_Start_Y;
+               Press_X  : constant Glfw.Input.Mouse.Coordinate := Event.X;
+               Press_Y  : constant Glfw.Input.Mouse.Coordinate := Event.Y;
                X        : constant Natural := Scale_Coordinate (Press_X, Window_W, Frame_W);
                Y        : constant Natural := Scale_Coordinate (Press_Y, Window_H, Frame_H);
                Snapshot : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Hit_Slot (Runtime));
@@ -98,8 +85,7 @@ separate (Files.Application.Windows)
                    (Snapshot, Natural (Frame_W), Natural (Frame_H),
                     Cell_Height_For (Runtime.Font_Pixel_Size));
                Row      : constant Natural := Files.Rendering.Hit.Context_Menu_Row_At (Menu, X, Y);
-               Modifiers : constant Guikit.Input.Modifier_Set :=
-                 To_Modifiers (As_Window (Runtime.Handle));
+               Modifiers : constant Guikit.Input.Modifier_Set := Event.Modifiers;
                Command  : constant Files.Commands.Command_Id :=
                  (if Row > 0 and then Row <= Menu.Row_Count then Menu.Rows (Row).Command
                   else Files.Commands.No_Command);
@@ -120,18 +106,18 @@ separate (Files.Application.Windows)
                   Apply_Interaction_Result (Runtime, Result);
                end if;
             end;
-            goto Continue_Left_Click_Loop;
+            return;
          end if;
 
          declare
             Now       : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
-            Modifiers : constant Guikit.Input.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
+            Modifiers : constant Guikit.Input.Modifier_Set := Event.Modifiers;
             --  Hit-test where the button went down, not where the cursor is
-            --  by the time a slow frame gets to the press.
+            --  (or where a later press was) by the time a slow frame gets to it.
             Action    : constant Files.Events.Input_Action :=
               Current_Click_Action
                 (Runtime, Window_W, Window_H, Frame_W, Frame_H,
-                 Runtime.Handle.Drag_Start_X, Runtime.Handle.Drag_Start_Y, Modifiers);
+                 Event.X, Event.Y, Modifiers);
             Is_Item   : constant Boolean :=
               Action.Kind = Files.Events.Item_Click_Input_Action
               and then Action.Item_Index in 1 .. Files.Model.Visible_Count (Runtime.Model);
@@ -184,20 +170,17 @@ separate (Files.Application.Windows)
                Dispatch_Click_Action (Runtime, Action, Modifiers);
             end if;
          end;
+      end Left_Press;
 
-         <<Continue_Left_Click_Loop>>
-         null;
-      end loop;
-
-      while Runtime.Handle.Pending_Left_Releases > 0 loop
-         Runtime.Handle.Pending_Left_Releases := Runtime.Handle.Pending_Left_Releases - 1;
-
-         if Runtime.Handle.Drag_Moved and then Runtime.Drag_Source_Index /= 0 then
+      --  A left release: the end of a drag (a drop) or of a deferred click.
+      procedure Left_Release (Event : Files.Mouse_Buttons.Button_Event) is
+      begin
+         if Event.Dragged and then Runtime.Drag_Source_Index /= 0 then
             declare
-               Modifiers : constant Guikit.Input.Modifier_Set := To_Modifiers (As_Window (Runtime.Handle));
+               Modifiers : constant Guikit.Input.Modifier_Set := Event.Modifiers;
                Action    : constant Files.Events.Input_Action :=
                  Current_Click_Action
-                   (Runtime, Window_W, Window_H, Frame_W, Frame_H, Cursor_X, Cursor_Y, Modifiers);
+                   (Runtime, Window_W, Window_H, Frame_W, Frame_H, Event.X, Event.Y, Modifiers);
             begin
                if Action.Kind = Files.Events.Item_Click_Input_Action
                  and then Action.Item_Index /= Runtime.Drag_Source_Index
@@ -207,7 +190,7 @@ separate (Files.Application.Windows)
             end;
          end if;
 
-         if Runtime.Deferred_Click_Pending and then not Runtime.Handle.Drag_Moved then
+         if Runtime.Deferred_Click_Pending and then not Event.Dragged then
             declare
                Index : constant Natural :=
                  Files.Model.Visible_Index_Of (Runtime.Model, To_String (Runtime.Deferred_Click_Path));
@@ -222,6 +205,37 @@ separate (Files.Application.Windows)
          end if;
          Runtime.Deferred_Click_Pending := False;
          Runtime.Drag_Source_Index := 0;
-         Runtime.Handle.Drag_Moved := False;
+         --  The drag this release ended is over, unless the button is down
+         --  again already: a later press reset the flag for its own drag.
+         if not Runtime.Handle.Left_Mouse_Down then
+            Runtime.Handle.Drag_Moved := False;
+         end if;
+      end Left_Release;
+   begin
+      if Runtime.Handle = null or else Runtime.Handle.Pending_Mouse.Is_Empty then
+         return;
+      end if;
+
+      Glfw.Windows.Get_Size (As_Window (Runtime.Handle), Window_W, Window_H);
+      Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
+
+      --  In arrival order: a right click between two left clicks, or a
+      --  release between two presses, is handled where it happened.
+      while Runtime.Handle /= null and then not Runtime.Handle.Pending_Mouse.Is_Empty loop
+         declare
+            Event : constant Files.Mouse_Buttons.Button_Event := Runtime.Handle.Pending_Mouse.First_Element;
+         begin
+            Runtime.Handle.Pending_Mouse.Delete_First;
+            case Event.Button is
+               when Files.Mouse_Buttons.Right_Mouse_Button =>
+                  Right_Press (Event);
+               when Files.Mouse_Buttons.Left_Mouse_Button =>
+                  if Event.Pressed then
+                     Left_Press (Event);
+                  else
+                     Left_Release (Event);
+                  end if;
+            end case;
+         end;
       end loop;
    end Handle_Mouse;

@@ -307,12 +307,6 @@ package body Files.Operations is
       return Files.Paste.Work_Item_Vectors.Vector
    is separate;
 
-   function Clear_Replaced_Destination
-     (Path    : String;
-      Source  : String;
-      Trashed : out Files.Types.UString)
-      return Boolean is separate;
-
    Paste_Execution_First_Batch : constant := 32;
 
    function Finalize_Paste_Execution
@@ -846,13 +840,15 @@ package body Files.Operations is
       Path     : constant String := To_String (Item.Full_Path);
       Is_Image : constant Boolean :=
         Files.File_System.Thumbnails.Is_Image_Item (Item.Kind, Filetype, Name, Icon_Id);
+      Text_File : constant Boolean :=
+        not Is_Image
+        and then (Item.Kind = Files.Types.Regular_File_Item or else Item.Kind = Files.Types.Executable_Item);
+      Read_Ok  : Boolean := False;
+      Complete : Boolean := True;
       Raw      : constant String :=
-        (if Is_Image
-           or else (Item.Kind /= Files.Types.Regular_File_Item
-                    and then Item.Kind /= Files.Types.Executable_Item)
-         then ""
-         else Files.File_System.Read_Preview_Text
-                (Path, Files.Quick_Look.Max_Preview_Bytes));
+        (if Text_File
+         then Files.File_System.Read_Preview_Text (Path, Files.Quick_Look.Max_Preview_Bytes, Read_Ok, Complete)
+         else "");
       Content : Files.Quick_Look.Quick_Look_Content :=
         Files.Quick_Look.Prepare_Content
           (Name           => Name,
@@ -863,7 +859,8 @@ package body Files.Operations is
            Size           => Item.Size,
            Is_Image       => Is_Image,
            Image_Path     => Path,
-           Raw_Bytes      => Raw);
+           Raw_Bytes      => Raw,
+           Bytes_Complete => Complete or else not Read_Ok);
    begin
       --  The original image, so the preview scales the source rather than the
       --  small thumbnail, is decoded off the UI thread: Poll_Quick_Look asks

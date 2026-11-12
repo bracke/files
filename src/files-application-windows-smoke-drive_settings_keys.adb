@@ -225,7 +225,14 @@ separate (Files.Application.Windows.Smoke)
                      Runtime.Handle.Drag_Start_Y :=
                        Glfw.Input.Mouse.Coordinate
                          (Float (Cell.Y + Cell.Height / 2) * Float (Window_H) / Float (Frame_H));
-                     Runtime.Handle.Pending_Left_Clicks := 1;
+                     Runtime.Handle.Pending_Mouse.Append
+                       (Files.Mouse_Buttons.Button_Event'
+                          (Button    => Files.Mouse_Buttons.Left_Mouse_Button,
+                           Pressed   => True,
+                           X         => Runtime.Handle.Drag_Start_X,
+                           Y         => Runtime.Handle.Drag_Start_Y,
+                           Modifiers => Guikit.Input.No_Modifiers,
+                           Dragged   => False));
                      Runtime.Handle.Drag_Moved := False;
                      Handle_Mouse (Runtime);
                      exit;
@@ -233,6 +240,19 @@ separate (Files.Application.Windows.Smoke)
                end loop;
             end;
          end Press_Item;
+
+         --  Release the left button where it went down, without a drag.
+         procedure Release_Left is
+         begin
+            Runtime.Handle.Pending_Mouse.Append
+              (Files.Mouse_Buttons.Button_Event'
+                 (Button    => Files.Mouse_Buttons.Left_Mouse_Button,
+                  Pressed   => False,
+                  X         => Runtime.Handle.Drag_Start_X,
+                  Y         => Runtime.Handle.Drag_Start_Y,
+                  Modifiers => Guikit.Input.No_Modifiers,
+                  Dragged   => False));
+         end Release_Left;
       begin
          Files.Model.Replace_Items (Runtime.Model, Scenario_Overflow_Items (Runtime.Model));
          Files.Model.Set_View_Mode (Runtime.Model, Files.Types.Details);
@@ -249,7 +269,7 @@ separate (Files.Application.Windows.Smoke)
          Files.Model.Select_All_Visible (Runtime.Model);
          Press_Item (2);
          Expect (Files.Model.Selected_Count (Runtime.Model) = Files.Model.Visible_Count (Runtime.Model));
-         Runtime.Handle.Pending_Left_Releases := 1;
+         Release_Left;
          Handle_Mouse (Runtime);
          Expect (Files.Model.Selected_Count (Runtime.Model) = 1
                  and then Files.Model.Selected_Index (Runtime.Model) = 2);
@@ -274,7 +294,7 @@ separate (Files.Application.Windows.Smoke)
             procedure Click (Visible_Index : Positive) is
             begin
                Press_Item (Visible_Index);
-               Runtime.Handle.Pending_Left_Releases := 1;
+               Release_Left;
                Handle_Mouse (Runtime);
                Render_Window (Runtime);
             end Click;

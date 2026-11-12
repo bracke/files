@@ -779,6 +779,19 @@ package Files.Rendering is
       Line_Height : Positive)
       return Main_View_Layout;
 
+   --  Where the item with Visible_Index sits among the snapshot's rows (and
+   --  so in Calculate_Item_Layout's result). Visible indices count items
+   --  only, while the rows also hold group-header rows when grouping is on,
+   --  so the two differ after the first header.
+   --
+   --  @param Snapshot View snapshot holding the rows.
+   --  @param Visible_Index Visible index of the item, as Hit.Item_At answers.
+   --  @return One-based row position, or 0 when no row has Visible_Index.
+   function Row_Position_Of
+     (Snapshot      : View_Snapshot;
+      Visible_Index : Natural)
+      return Natural;
+
    --  The main-view scroll, in lines, that shows the item with Visible_Index
    --  whole: unchanged when it already is, otherwise just far enough that it
    --  becomes the first or the last row in view.

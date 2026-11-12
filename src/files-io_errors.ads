@@ -10,10 +10,13 @@ with Hostkit.Errors;
 --  right after the call; the handler that picks the message asks for the key
 --  of that cause, and keeps its own generic key when there is none.
 --
---  One code is kept for the whole process: the last one recorded since the
---  operation began. An operation calls Reset when it starts, records with
---  Capture straight after each call it guards, and reads Error_Key before any
---  cleanup of its own can record something else.
+--  One code is kept per task: the last one recorded since the operation
+--  began. An operation calls Reset when it starts, records with Capture
+--  straight after each call it guards, and reads Error_Key before any cleanup
+--  of its own can record something else. Background tasks (the orphan reaper,
+--  the scavenger's monitor) record into their own code and never disturb the
+--  foreground's; work moved onto a helper task for its stack hands its code
+--  to the caller with Last_Code and Adopt_Code when the helper finishes.
 package Files.Io_Errors is
 
    No_Space_Key      : constant String := "error.io.no_space";
@@ -68,8 +71,14 @@ package Files.Io_Errors is
    --  @param Code An errno value; zero records nothing.
    procedure Record_Code (Code : Integer);
 
-   --  @return The code recorded last since Reset, or zero.
+   --  @return The code the calling task recorded last since Reset, or zero.
    function Last_Code return Integer;
+
+   --  Make Code the calling task's recorded code, zero included: how a task
+   --  that ran part of an operation for another hands its code back, and how
+   --  it starts from the code its caller had.
+   --  @param Code The code to keep; zero forgets any recorded code.
+   procedure Adopt_Code (Code : Integer);
 
    --  @param Fallback Key to answer when nothing specific was recorded.
    --  @return Key_For_Errno (Last_Code, Fallback).

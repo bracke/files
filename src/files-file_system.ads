@@ -959,6 +959,43 @@ package Files.File_System is
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result;
 
+   --  Import one paste action, preserving the destination it replaces first
+   --  and putting that original back when the import fails. The one routine
+   --  behind both the in-process paste and the transfer helper: a replace
+   --  target that vanished after planning has nothing to preserve and the
+   --  import proceeds; a destination that is the source itself is never
+   --  preserved, so a same-path move is a no-op success (and a same-path
+   --  copy fails as Execute_Drop_Import fails it).
+   --  @param Source Entry to copy or move.
+   --  @param Destination New pathname.
+   --  @param Mode Copy or move.
+   --  @param Replace Whether an existing Destination is to be replaced.
+   --  @param Replaced Where the replaced original is held, or empty: empty
+   --    when nothing was preserved or the original was put back.
+   --  @param Replaced_Identity Identity of Replaced, or empty.
+   --  @param Created_Identity Identity of the published destination.
+   --  @param Created_Tree_Revision Tree revision of the published destination.
+   --  @param Preserved Called once the original is held at Backup (with its
+   --    identity), before the import starts -- also when preserving failed
+   --    yet left the original there; an exception from it fails the action
+   --    and the original is put back.
+   --  @param Cancel Optional cooperative cancellation callback.
+   --  @param Batch Shared hard-link journal.
+   --  @return Success when Destination holds the imported entry; otherwise
+   --    the preserving, import, or restoring failure.
+   function Import_Replacing
+     (Source, Destination   : String;
+      Mode                  : Drop_Import_Mode;
+      Replace               : Boolean;
+      Replaced              : out Files.Types.UString;
+      Replaced_Identity     : out Files.Types.UString;
+      Created_Identity      : out Files.Types.UString;
+      Created_Tree_Revision : out Files.Types.UString;
+      Preserved             : access procedure (Backup, Backup_Identity : String) := null;
+      Cancel                : Cancellation_Check := null;
+      Batch                 : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      return Mutation_Result;
+
    --  Read up to Max_Bytes leading bytes of a file as a raw String, for a
    --  bounded text preview. Returns an empty string when the file cannot be
    --  opened or read. Never blocks beyond the capped read.
@@ -977,6 +1014,14 @@ package Files.File_System is
    --  @return Leading bytes; ignore them when Success is False.
    function Read_Preview_Text
      (Path : String; Max_Bytes : Natural; Success : out Boolean) return String;
+
+   --  @param Path File to read.
+   --  @param Max_Bytes Maximum number of leading bytes to return.
+   --  @param Success False on an open or read failure, True for valid empty files.
+   --  @param Complete False when the file is longer than the bytes returned.
+   --  @return Leading bytes; ignore them when Success is False.
+   function Read_Preview_Text
+     (Path : String; Max_Bytes : Natural; Success, Complete : out Boolean) return String;
 private
 
    --  Whether a mount point is one a user put there (a stick, a share), as

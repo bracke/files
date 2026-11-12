@@ -578,6 +578,12 @@ package body Files.Rendering is
       return Main_View_Layout
  is separate;
 
+   function Row_Position_Of
+     (Snapshot      : View_Snapshot;
+      Visible_Index : Natural)
+      return Natural
+ is separate;
+
    function Scroll_Lines_Revealing
      (Snapshot      : View_Snapshot;
       Layout        : Layout_Metrics;

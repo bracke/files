@@ -1,6 +1,7 @@
 separate (Files.Events.Translate_Click)
 --  The main view: details header, items, and the empty-space marquee.
 procedure Main_View_Click (Handled : out Boolean; Result : out Input_Action) is
+   Row : Natural := 0;
 begin
    Handled := True;
    --  A press on a header separator begins a column resize and takes
@@ -39,15 +40,19 @@ begin
 
    Item_Index := Files.Rendering.Hit.Item_At (Item_Layout, X, Y);
    if Item_Index /= 0 then
+      --  Item_At answers the item's visible index; the rows (and their
+      --  rectangles) also hold group headers, so look up its row position.
+      Row := Files.Rendering.Row_Position_Of (Snapshot, Item_Index);
       if Snapshot.Rename_Active
-        and then Item_Index <= Natural (Snapshot.Items.Length)
-        and then Snapshot.Items.Element (Positive (Item_Index)).Renaming
+        and then Row /= 0
+        and then Row <= Natural (Item_Layout.Length)
+        and then Snapshot.Items.Element (Positive (Row)).Renaming
       then
          declare
             Item_Rect : constant Files.Rendering.Item_Layout :=
-              Item_Layout.Element (Positive (Item_Index));
+              Item_Layout.Element (Positive (Row));
             Snapshot_Item : constant Files.Rendering.Item_Snapshot :=
-              Snapshot.Items.Element (Positive (Item_Index));
+              Snapshot.Items.Element (Positive (Row));
             Field_X : Natural;
             Field_W : Natural;
          begin

@@ -117,6 +117,15 @@ package body Files.Images is
      (Object : System.Address)
    with Import, Convention => C, External_Name => "g_object_unref";
 
+   --  The format and declared size of the image file at Filename, read from
+   --  its header without decoding it; null when no loader knows the format.
+   function Gdk_Pixbuf_Get_File_Info
+     (Filename : Interfaces.C.Strings.chars_ptr;
+      Width    : access C_Int;
+      Height   : access C_Int)
+      return System.Address
+   with Import, Convention => C, External_Name => "gdk_pixbuf_get_file_info";
+
    package C_Int_Pointers is new System.Address_To_Access_Conversions (C_Int);
 
    use type C_Int_Pointers.Object_Pointer;

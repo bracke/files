@@ -1,7 +1,8 @@
 separate (Files.File_System.Thumbnails)
 procedure Prune_Thumbnail_Cache
   (Cache_Directory : String;
-   Budget_Bytes    : Long_Long_Integer)
+   Budget_Bytes    : Long_Long_Integer;
+   Max_Entries     : Positive := Max_Cache_Prune_Entries)
 is
    type Cached_File is record
       Path     : Unbounded_String;
@@ -35,20 +36,24 @@ is
 
    package Sorting is new Cached_File_Vectors.Generic_Sorting ("<" => Older);
 
+   Cap         : constant Natural := Max_Entries;
    Files_Found : Cached_File_Vectors.Vector;
    Total       : Long_Long_Integer := 0;
    Count       : Natural := 0;
+   --  Thumbnails past the cap: counted by name only, never collected.
+   Uncollected : Natural := 0;
    Overflowed  : Boolean := False;
-   Capped      : Boolean := False;
 
    procedure Collect (Name : String; Kind : Hostkit.Fs.Entry_Kind; Stop : in out Boolean) is
+      pragma Unreferenced (Stop);
       use type Hostkit.Fs.Entry_Kind;
    begin
       if Kind /= Hostkit.Fs.Ordinary_File_Entry or else not Is_Thumbnail_Name (Name) then
          return;
-      elsif Count = Max_Cache_Prune_Entries then
-         Capped := True;
-         Stop := True;
+      elsif Count >= Cap then
+         if Uncollected < Natural'Last then
+            Uncollected := Uncollected + 1;
+         end if;
          return;
       end if;
       Count := Count + 1;
@@ -88,37 +93,47 @@ begin
    end if;
 
    Files.Fs_Primitives.For_Each_Listed (Cache_Directory, Collect'Access);
-   if Capped then
-      return;
-   end if;
-
-   if Overflowed or else Total <= Budget_Bytes then
+   if Overflowed or else (Uncollected = 0 and then Total <= Budget_Bytes) then
       return;
    end if;
 
    Sorting.Sort (Files_Found);
 
-   for Candidate of Files_Found loop
-      exit when Total <= Budget_Bytes;
+   declare
+      --  Past the cap, the uncollected thumbnails' sizes are unknown, so the
+      --  budget cannot be judged: evict the oldest collected until what was
+      --  collected is within it and enough are gone (the overflow and a
+      --  tenth of the cap more) that the next pass collects them all.
+      Must_Remove : constant Natural :=
+        (if Uncollected = 0 then 0
+         else Natural'Min (Natural (Files_Found.Length),
+                           Natural'Min (Natural'Last - Natural'Max (1, Cap / 10), Uncollected)
+                           + Natural'Max (1, Cap / 10)));
+      Removed     : Natural := 0;
+   begin
+      for Candidate of Files_Found loop
+         exit when Total <= Budget_Bytes and then Removed >= Must_Remove;
 
-      begin
-         --  The cache directory is private and owned by this app, so an
-         --  identity-checked unlink is enough. The full recoverable-delete
-         --  protocol cost a stage directory, sidecars and about eight fsyncs
-         --  per evicted thumbnail, all on the directory-listing path.
-         if Length (Candidate.Identity) > 0
-           and then not Hostkit.Fs.Is_Link (To_String (Candidate.Path))
-           and then Files.File_Identities.Token (To_String (Candidate.Path)) =
-             To_String (Candidate.Identity)
-         then
-            Files.Fs_Primitives.Delete_File (To_String (Candidate.Path));
-            Total := Total - Candidate.Size;
-         end if;
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
-      end;
-   end loop;
+         begin
+            --  The cache directory is private and owned by this app, so an
+            --  identity-checked unlink is enough. The full recoverable-delete
+            --  protocol cost a stage directory, sidecars and about eight fsyncs
+            --  per evicted thumbnail, all on the directory-listing path.
+            if Length (Candidate.Identity) > 0
+              and then not Hostkit.Fs.Is_Link (To_String (Candidate.Path))
+              and then Files.File_Identities.Token (To_String (Candidate.Path)) =
+                To_String (Candidate.Identity)
+            then
+               Files.Fs_Primitives.Delete_File (To_String (Candidate.Path));
+               Total := Total - Candidate.Size;
+               Removed := Removed + 1;
+            end if;
+         exception
+            when Swallowed : others =>
+               Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
+         end;
+      end loop;
+   end;
 exception
    when Failure : others =>
       Files.Diagnostics.Note (Failure, "Files.File_System.Thumbnails");

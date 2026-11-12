@@ -28,6 +28,9 @@ with Files.Rendering;
 with Files.Rendering.Hit;
 with Files.Settings;
 with Guikit.Input;
+with Files.Mouse_Buttons;
+with Glfw.Input.Mouse;
+with Ada.Real_Time;
 with Files.Types;
 with Guikit.Layout;
 with Guikit.Settings_Panel;
@@ -98,6 +101,7 @@ package body Files_Suite.Interaction is
    overriding procedure Register_Tests (T : in out Interaction_Test_Case);
 
    procedure Test_Left_Click_Selects (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Mouse_Button_Queue_Order (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Ctrl_Click_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shift_Click_Range_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Entry_Updates_Focused_Input (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -196,6 +200,9 @@ package body Files_Suite.Interaction is
    begin
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Left_Click_Selects'Access, "left-click selects an item");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Mouse_Button_Queue_Order'Access,
+         "mouse button changes queue in order with their position and modifiers; a bounce drops with its release");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Ctrl_Click_Multi_Selection'Access, "ctrl-click builds and toggles a multi-selection");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -515,6 +522,8 @@ package body Files_Suite.Interaction is
    end Click;
 
    procedure Test_Left_Click_Selects (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Mouse_Button_Queue_Order (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Ctrl_Click_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

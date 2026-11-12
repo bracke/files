@@ -36,4 +36,9 @@ package Files.Transfer_Jobs.Testing is
    --  @param Path Checkpoint file to inspect.
    --  @return True only for a complete regular record whose identity matches.
    function Replacement_Checkpoint_Is_Valid (Path : String) return Boolean;
+
+   --  Apply a replacement checkpoint to a result as helper recovery does.
+   --  @param Path Checkpoint file to adopt.
+   --  @param Result Result whose replaced-destination pair may change.
+   procedure Apply_Checkpoint (Path : String; Result : in out Job_Result);
 end Files.Transfer_Jobs.Testing;

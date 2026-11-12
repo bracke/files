@@ -83,6 +83,7 @@ package body Files_Suite.Rendering is
    procedure Test_Show_Extensions_Toggle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Caret_Click_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Scrolled_Rename_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Grouped_Rename_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Caret_Scales_With_Line_Height (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Click_Translation_Behavior (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Text_Glyph_Rasterization (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -223,6 +224,9 @@ package body Files_Suite.Rendering is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Scrolled_Rename_Click'Access,
          "a click on a scrolled rename field maps onto the scrolled text, per field in a multi-rename");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Grouped_Rename_Click'Access,
+         "with grouping on, a click in a rename field below a group header hits that field");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Caret_Scales_With_Line_Height'Access, "the text-input caret height grows with the line height");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -641,6 +645,8 @@ package body Files_Suite.Rendering is
    procedure Test_Caret_Click_Round_Trip (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Scrolled_Rename_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Grouped_Rename_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Caret_Scales_With_Line_Height (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

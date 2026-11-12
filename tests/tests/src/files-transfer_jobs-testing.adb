@@ -107,4 +107,9 @@ package body Files.Transfer_Jobs.Testing is
    exception
       when others => return False;
    end Replacement_Checkpoint_Is_Valid;
+
+   procedure Apply_Checkpoint (Path : String; Result : in out Job_Result) is
+   begin
+      Apply_Replacement_Checkpoint (Path, Result);
+   end Apply_Checkpoint;
 end Files.Transfer_Jobs.Testing;

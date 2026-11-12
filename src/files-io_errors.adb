@@ -1,14 +1,16 @@
 with Ada.Strings.Unbounded;
+with Ada.Task_Attributes;
 with GNAT.OS_Lib;
 
 package body Files.Io_Errors is
 
    use Hostkit.Errors;
 
-   --  Written by the thread that made the failing call and read by the one
-   --  that chooses the message; a copy on a large-stack task hands it back
-   --  through task completion, which already orders the two.
-   Last : Integer := 0 with Atomic;
+   --  Each task's own code, like errno itself: a background task's Reset or
+   --  Capture must not clear or replace the code a foreground operation is
+   --  about to read. A copy on a large-stack task hands its code back with
+   --  Adopt_Code after the task completes, which already orders the two.
+   package Codes is new Ada.Task_Attributes (Attribute => Integer, Initial_Value => 0);
 
    function Key_Of (Item : Cause) return String is
    begin
@@ -42,7 +44,7 @@ package body Files.Io_Errors is
 
    procedure Reset is
    begin
-      Last := 0;
+      Codes.Set_Value (0);
       GNAT.OS_Lib.Set_Errno (0);
    end Reset;
 
@@ -59,14 +61,19 @@ package body Files.Io_Errors is
    procedure Record_Code (Code : Integer) is
    begin
       if Code /= 0 then
-         Last := Code;
+         Codes.Set_Value (Code);
       end if;
    end Record_Code;
 
-   function Last_Code return Integer is (Last);
+   function Last_Code return Integer is (Codes.Value);
+
+   procedure Adopt_Code (Code : Integer) is
+   begin
+      Codes.Set_Value (Code);
+   end Adopt_Code;
 
    function Key_For_Last (Fallback : String) return String is
-     (Key_For_Errno (Last, Fallback));
+     (Key_For_Errno (Codes.Value, Fallback));
 
    function Error_Key (Fallback : String) return Files.Types.UString is
      (Ada.Strings.Unbounded.To_Unbounded_String (Key_For_Last (Fallback)));

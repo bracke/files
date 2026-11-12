@@ -204,6 +204,7 @@ package body Files_Suite.Operations is
    end Lock_Directory;
 
    procedure Test_Io_Error_Classifier (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Io_Error_Code_Per_Task (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Create_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -339,8 +340,11 @@ package body Files_Suite.Operations is
    procedure Test_Thumbnail_Command_Rendering (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Thumbnail_Cache_Prune_Past_Cap (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Decode_Emoji_Png_From_Font (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Image_Header_Bytes (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Oversized_Image_File_Refused (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Quick_Look_Cut_Text (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Watch_Pacing (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Decodes_Off_Thread (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Transport_Budget (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -473,6 +477,7 @@ package body Files_Suite.Operations is
    procedure Test_Native_Replace_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Released_Recovery_Goes_To_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Interrupted_Release_Resumes (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Emptied_Stage_Swept (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Command_Line (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Preserve_Puts_Original_Back (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Background_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -490,6 +495,7 @@ package body Files_Suite.Operations is
    procedure Test_Path_Move_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transfer_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Replacement_Checkpoint_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Recovered_Checkpoint_Keeps_Result (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Truncated_Persisted_Records (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Autonomous_Cleanup_Worker (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Cleanup_Exit_Verification (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -522,6 +528,7 @@ package body Files_Suite.Operations is
    procedure Test_Native_Watch_End_To_End (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Helper_Mode_Flags (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Replace_Trash_Failure (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Paste_Replace_Paths_Agree (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Cross_Device_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Drop_Import_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Drop_Import_Progress (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -589,6 +596,9 @@ package body Files_Suite.Operations is
         (T, Test_Interrupted_Release_Resumes'Access,
          "an interrupted release is put back or finished, on every host");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Emptied_Stage_Swept'Access,
+         "the registry sweep removes a recovery stage whose payload is already gone");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Recovery_Command_Line'Access,
          "--recover restores a payload, and --discard-recovery deletes only a recovery payload");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -632,6 +642,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Replacement_Checkpoint_Validation'Access,
          "replacement checkpoints reject trailing fields and linked files");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Recovered_Checkpoint_Keeps_Result'Access,
+         "an unreadable replacement checkpoint keeps the backup the result reported");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Truncated_Persisted_Records'Access,
          "every strict prefix of persisted job and history records is rejected");
@@ -702,6 +715,9 @@ package body Files_Suite.Operations is
         (T, Test_Helper_Mode_Flags'Access, "every helper flag reads back as its mode, and only those do");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Replace_Trash_Failure'Access, "a failed trash operation during Replace preserves the original");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Paste_Replace_Paths_Agree'Access,
+         "foreground and helper pastes agree on a vanished replace target and a same-path move");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Cross_Device_Recovery'Access,
          "cross-device move, trash, and restore failures preserve recoverable data");
@@ -827,6 +843,9 @@ package body Files_Suite.Operations is
         (T, Test_Thumbnail_Cache_Is_Bounded'Access,
          "the thumbnail cache is pruned to its budget, oldest first");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Thumbnail_Cache_Prune_Past_Cap'Access,
+         "a thumbnail cache holding more than the prune cap is still pruned, back under the cap and the budget");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Quick_Look_Decodes_Off_Thread'Access,
          "Quick Look decodes its image off the UI thread and drops what is no longer previewed");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -836,6 +855,12 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Image_Header_Bytes'Access,
          "image headers: big-endian sizes clamp, and a PNG needs IHDR first");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Oversized_Image_File_Refused'Access,
+         "an image file whose header declares more than the source bounds is refused before decoding");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Quick_Look_Cut_Text'Access,
+         "a text preview cut at the byte cap is truncated and ends on whole UTF-8 text");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Decode_Emoji_Png_From_Font'Access,
          "a real colour emoji picture decodes out of a real font");
@@ -1329,6 +1354,9 @@ package body Files_Suite.Operations is
         (T, Test_Io_Error_Classifier'Access,
          "each errno a user can act on names its cause; others keep the generic key");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Io_Error_Code_Per_Task'Access,
+         "an error code recorded by one task is not cleared by another task's reset");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Create_Read_Only_Cause'Access, "creating in a read-only folder reports permission denied");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Copy_Read_Only_Cause'Access, "copying into a read-only folder reports permission denied");
@@ -1482,6 +1510,10 @@ package body Files_Suite.Operations is
 
    procedure Test_Image_Header_Bytes (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Oversized_Image_File_Refused (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Quick_Look_Cut_Text (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Watch_Pacing (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Quick_Look_Decodes_Off_Thread (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -1489,6 +1521,8 @@ package body Files_Suite.Operations is
    procedure Test_Thumbnail_Transport_Budget (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Thumbnail_Cache_Prune_Past_Cap (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -2022,6 +2056,8 @@ package body Files_Suite.Operations is
 
    procedure Test_Replace_Trash_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Paste_Replace_Paths_Agree (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Cross_Device_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Destination_Races (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -2048,6 +2084,8 @@ package body Files_Suite.Operations is
    procedure Test_Released_Recovery_Goes_To_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Interrupted_Release_Resumes (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Emptied_Stage_Swept (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Native_Replace_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -2102,6 +2140,8 @@ package body Files_Suite.Operations is
 
    procedure Test_Replacement_Checkpoint_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Recovered_Checkpoint_Keeps_Result (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Truncated_Persisted_Records (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Helper_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -2148,6 +2188,8 @@ package body Files_Suite.Operations is
    procedure Test_Failed_Replace_Rollback (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Io_Error_Classifier (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Io_Error_Code_Per_Task (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Create_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

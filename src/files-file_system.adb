@@ -65,6 +65,23 @@ package body Files.File_System is
 
    function Read_Preview_Text
      (Path : String; Max_Bytes : Natural; Success : out Boolean) return String
+   is
+      Complete : Boolean;
+      Result   : constant String := Read_Preview_Text (Path, Max_Bytes, Success, Complete);
+
+      procedure Ignore_Completion (Value : Boolean) is
+         pragma Unreferenced (Value);
+      begin
+         null;
+      end Ignore_Completion;
+   begin
+      --  These callers accept a leading prefix as it is.
+      Ignore_Completion (Complete);
+      return Result;
+   end Read_Preview_Text;
+
+   function Read_Preview_Text
+     (Path : String; Max_Bytes : Natural; Success, Complete : out Boolean) return String
    is separate;
 
    use type Ada.Streams.Stream_Element_Array;
@@ -1118,6 +1135,20 @@ package body Files.File_System is
       Created_Identities, Created_Tree_Revisions : out Files.Types.String_Vectors.Vector;
       Cancel : Cancellation_Check := null;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      return Mutation_Result
+   is separate;
+
+   function Import_Replacing
+     (Source, Destination   : String;
+      Mode                  : Drop_Import_Mode;
+      Replace               : Boolean;
+      Replaced              : out Files.Types.UString;
+      Replaced_Identity     : out Files.Types.UString;
+      Created_Identity      : out Files.Types.UString;
+      Created_Tree_Revision : out Files.Types.UString;
+      Preserved             : access procedure (Backup, Backup_Identity : String) := null;
+      Cancel                : Cancellation_Check := null;
+      Batch                 : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result
    is separate;
 

@@ -4520,7 +4520,7 @@ procedure Check_All is
             end if;
          end Require_At_Most;
       begin
-         Require_At_Most ("files-rendering.adb", 1_452);
+         Require_At_Most ("files-rendering.adb", 1_458);
          Require_At_Most ("files-rendering-build_frame_commands.adb", 920);
          Require_At_Most ("files-application-windows.adb", 1_635);
       end;
@@ -5518,9 +5518,9 @@ procedure Check_All is
       Require_Tests ("startup", 30);
       Require_Tests ("commands", 39);
       Require_Tests ("model", 54);
-      Require_Tests ("interaction", 84);
-      Require_Tests ("rendering", 100);
-      Require_Tests ("operations", 303);
+      Require_Tests ("interaction", 85);
+      Require_Tests ("rendering", 101);
+      Require_Tests ("operations", 310);
    end Check_Test_Subsystem_Coverage;
 
 begin

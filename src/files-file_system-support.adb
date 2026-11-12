@@ -153,19 +153,26 @@ package body Files.File_System.Support is
    --  Work on a task of its own whose stack holds a tree walk's 1024 levels
    --  (about 1-2 KB each): the caller's may hold far fewer -- Windows gives
    --  the main thread 1 MiB -- and the recursion would overflow it long before
-   --  the walk's depth cap refuses the tree. Work's failure is the caller's.
+   --  the walk's depth cap refuses the tree. Work's failure is the caller's,
+   --  and so is the I/O error code it records: the worker starts from the
+   --  caller's code and hands its own back once it has finished.
    procedure On_Large_Stack (Work : not null access procedure) is
-      Failure : Ada.Exceptions.Exception_Occurrence;
-      Failed  : Boolean := False;
+      Failure     : Ada.Exceptions.Exception_Occurrence;
+      Failed      : Boolean := False;
+      Caller_Code : constant Integer := Files.Io_Errors.Last_Code;
+      Worker_Code : Integer := Caller_Code;
    begin
       declare
          task Worker with Storage_Size => 32 * 1024 * 1024;
 
          task body Worker is
          begin
+            Files.Io_Errors.Adopt_Code (Caller_Code);
             Work.all;
+            Worker_Code := Files.Io_Errors.Last_Code;
          exception
             when Error : others =>
+               Worker_Code := Files.Io_Errors.Last_Code;
                Ada.Exceptions.Save_Occurrence (Failure, Error);
                Failed := True;
          end Worker;
@@ -173,6 +180,7 @@ package body Files.File_System.Support is
          null;
       end;
       --  The worker has terminated: what it left is the caller's to read.
+      Files.Io_Errors.Adopt_Code (Worker_Code);
       if Failed then
          Ada.Exceptions.Reraise_Occurrence (Failure);
       end if;

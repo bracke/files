@@ -20,6 +20,38 @@ is
    Total      : Natural := 0;
    Result     : Decoded_Image;
 
+   --  Whether a declared extent is one a file decode accepts.
+   function Within_Source_Bounds (Width, Height : Natural) return Boolean is
+     (Width > 0 and then Height > 0
+      and then Width <= Max_File_Source_Side and then Height <= Max_File_Source_Side
+      and then Width <= Max_File_Source_Pixels / Height);
+
+   --  gdk-pixbuf allocates the full source while consuming the stream, before
+   --  the post-decode checks run: refuse a file whose header declares more
+   --  than the bounds, as Decode_Image_Bytes does for bytes in memory. Head
+   --  is the file's first bytes. A format no loader recognizes is left to
+   --  the loader to refuse.
+   function Declared_Extent_Allowed (Head : Ada.Streams.Stream_Element_Array) return Boolean is
+      Width, Height : Natural;
+   begin
+      if PNG_Header (Head, Width, Height) then
+         return Image_Bytes_Extent (Head, Width, Height) and then Within_Source_Bounds (Width, Height);
+      end if;
+      declare
+         Name        : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (Path);
+         Info_Width  : aliased C_Int := 0;
+         Info_Height : aliased C_Int := 0;
+         Format      : constant System.Address :=
+           Gdk_Pixbuf_Get_File_Info (Name, Info_Width'Access, Info_Height'Access);
+      begin
+         Safe_Free (Name);
+         if Format = System.Null_Address or else Info_Width <= 0 or else Info_Height <= 0 then
+            return True;
+         end if;
+         return Within_Source_Bounds (Natural (Info_Width), Natural (Info_Height));
+      end;
+   end Declared_Extent_Allowed;
+
    procedure Clean is
       Ignored : Interfaces.C.int;
       pragma Unreferenced (Ignored);
@@ -46,6 +78,16 @@ begin
    if Descriptor = GNAT.OS_Lib.Invalid_FD then
       return Result;
    end if;
+   --  The first block is read before the loader exists, so its header can
+   --  refuse an oversized image; the loop below feeds it to the loader first.
+   Bytes_Read := GNAT.OS_Lib.Read (Descriptor, Buffer'Address, Integer (Buffer'Length));
+   if Bytes_Read < 0
+     or else not Declared_Extent_Allowed
+       (Buffer (Buffer'First .. Buffer'First + Ada.Streams.Stream_Element_Offset (Bytes_Read) - 1))
+   then
+      Clean;
+      return Result;
+   end if;
    Loader := Loader_New;
    if Loader = System.Null_Address then
       Clean;
@@ -62,8 +104,11 @@ begin
    Safe_Free (Signal_Name);
 
    loop
-      Bytes_Read := GNAT.OS_Lib.Read
-        (Descriptor, Buffer'Address, Integer (Buffer'Length));
+      --  Until something was fed, Buffer still holds the first block.
+      if Total > 0 then
+         Bytes_Read := GNAT.OS_Lib.Read
+           (Descriptor, Buffer'Address, Integer (Buffer'Length));
+      end if;
       if Bytes_Read < 0
         or else Bytes_Read > Integer (Max_Decode_Source_Bytes - Total)
       then

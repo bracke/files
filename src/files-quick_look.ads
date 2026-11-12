@@ -67,7 +67,7 @@ package Files.Quick_Look is
    --  Image items yield Image_Content (carrying Image_Path for the decoder).
    --  Regular, non-binary files with readable bytes yield Text_Content whose
    --  Text_Lines hold the first Max_Preview_Lines lines (Text_Truncated flags a
-   --  longer file). Directories, binaries, unreadable, and every other case fall
+   --  longer file, by lines or by bytes). Directories, binaries, unreadable, and every other case fall
    --  back to Info_Content. The bytes must already be capped by the caller; this
    --  routine additionally caps the line count and never blocks.
    --
@@ -80,6 +80,9 @@ package Files.Quick_Look is
    --  @param Is_Image True when the item is classified as a previewable image.
    --  @param Image_Path Full path the renderer decodes for an image preview.
    --  @param Raw_Bytes Bounded leading bytes for text detection and preview.
+   --  @param Bytes_Complete False when the file goes on past Raw_Bytes: the
+   --    text is then truncated, and its cut-off last line is dropped (or, as
+   --    the only line, cut back to a whole UTF-8 character).
    --  @return Prepared preview content.
    function Prepare_Content
      (Name           : String;
@@ -90,7 +93,8 @@ package Files.Quick_Look is
       Size           : Long_Long_Integer;
       Is_Image       : Boolean;
       Image_Path     : String;
-      Raw_Bytes      : String)
+      Raw_Bytes      : String;
+      Bytes_Complete : Boolean := True)
       return Quick_Look_Content;
 
 end Files.Quick_Look;

@@ -15,6 +15,11 @@ begin
    then
       return;
    end if;
+   --  Only ever scale down: an image already within the limit decodes at
+   --  its own size rather than being blown up to it.
+   if Width <= Limit_Pointer.all and then Height <= Limit_Pointer.all then
+      return;
+   end if;
 
    if Width >= Height then
       Target_Width := Limit_Pointer.all;

@@ -102,83 +102,37 @@ begin
             end;
          else
             declare
-               Replaced_Trash, Replaced_Identity : Files.Types.UString := Null_Unbounded_String;
-               Created_Identities, Created_Tree_Revisions : Files.Types.String_Vectors.Vector;
-               function Preserve_Replacement return Boolean is
-                  Cleared : constant Boolean := Clear_Replaced_Destination
-                    (To_String (Action.Dest_Path), To_String (Action.Source_Path), Replaced_Trash);
-               begin
-                  if Length (Replaced_Trash) > 0 then
-                     Replaced_Identity := To_Unbounded_String
-                       (Files.File_Identities.Token (To_String (Replaced_Trash)));
-                  end if;
-                  return Cleared;
-               end Preserve_Replacement;
+               Replaced_Trash, Replaced_Identity : Files.Types.UString;
+               Created_Identity, Created_Tree_Revision : Files.Types.UString;
+               Mutation : constant Files.File_System.Mutation_Result :=
+                 Files.File_System.Import_Replacing
+                   (Source                => To_String (Action.Source_Path),
+                    Destination           => To_String (Action.Dest_Path),
+                    Mode                  => Files.Model.Paste_Execution_Mode (Model),
+                    Replace               => Action.Replaced,
+                    Replaced              => Replaced_Trash,
+                    Replaced_Identity     => Replaced_Identity,
+                    Created_Identity      => Created_Identity,
+                    Created_Tree_Revision => Created_Tree_Revision,
+                    Batch                 => Files.Model.Paste_Execution_Copy_Context (Model));
             begin
-               if Action.Replaced and then not Preserve_Replacement
-               then
-                  if Length (Replaced_Trash) > 0 then
-                     Record_Paste_Replaced_Trash
-                       (Model, Replaced_Trash, To_String (Replaced_Identity), To_String (Action.Dest_Path));
-                  end if;
-                  return Finalize_Paste_Execution (Model, Settings, "error.drop.failed");
-               end if;
-
-               declare
-                  Plans : Files.File_System.Drop_Import_Plan_Vectors.Vector;
-               begin
-                  Plans.Append
-                    (Files.File_System.Drop_Import_Plan'
-                       (Source_Path      => Action.Source_Path,
-                        Destination_Path => Action.Dest_Path,
-                        Mode             => Files.Model.Paste_Execution_Mode (Model),
-                        Valid            => True,
-                        Error_Key        => Null_Unbounded_String));
-                  declare
-                     Mutation : constant Files.File_System.Mutation_Result :=
-                       Files.File_System.Execute_Drop_Import
-                         (Plans, Created_Identities, Created_Tree_Revisions,
-                          Batch => Files.Model.Paste_Execution_Copy_Context (Model));
-                  begin
-                     if not Mutation.Success then
-                        --  The destination was just cleared but the write
-                        --  failed: put the trashed original back so a mid-paste
-                        --  failure never loses the pre-existing file.
-                        if Length (Replaced_Trash) > 0 then
-                           declare
-                              Restored : constant Files.File_System.Mutation_Result :=
-                                Files.File_System.Restore_From_Trash
-                                  (To_String (Replaced_Trash), To_String (Replaced_Identity),
-                                   To_String (Action.Dest_Path));
-                           begin
-                              if not Restored.Success then
-                                 Record_Paste_Replaced_Trash
-                       (Model, Replaced_Trash, To_String (Replaced_Identity), To_String (Action.Dest_Path));
-                                 return Finalize_Paste_Execution
-                                   (Model, Settings, To_String (Restored.Error_Key));
-                              end if;
-                           end;
-                        end if;
-                        return Finalize_Paste_Execution
-                          (Model, Settings, To_String (Mutation.Error_Key));
-                     end if;
-                  end;
-               end;
-
-               --  Write succeeded: track the overwritten original's trash
-               --  location so the paste's undo entry can restore it.
+               --  An original still held after the action (the write
+               --  succeeded, or neither it nor putting it back did) is
+               --  tracked so the paste's undo entry can restore it.
                if Length (Replaced_Trash) > 0 then
                   Record_Paste_Replaced_Trash
-                       (Model, Replaced_Trash, To_String (Replaced_Identity), To_String (Action.Dest_Path));
+                    (Model, Replaced_Trash, To_String (Replaced_Identity), To_String (Action.Dest_Path));
                end if;
-
+               if not Mutation.Success then
+                  return Finalize_Paste_Execution (Model, Settings, To_String (Mutation.Error_Key));
+               end if;
                Record_Paste_Write
                  (Model,
                   Action.Dest_Path,
                   Action.Source_Path,
                   Files.Fs_Primitives.Leaf_Text (To_String (Action.Dest_Path)),
-                  To_String (Created_Identities.First_Element),
-                  To_String (Created_Tree_Revisions.First_Element));
+                  To_String (Created_Identity),
+                  To_String (Created_Tree_Revision));
             end;
          end if;
       end;

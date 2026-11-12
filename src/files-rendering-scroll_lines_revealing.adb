@@ -7,14 +7,8 @@ separate (Files.Rendering)
       return Natural
    is
       Main     : constant Main_View_Layout := Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
-      Position : Natural := 0;
+      Position : constant Natural := Row_Position_Of (Snapshot, Visible_Index);
    begin
-      for Index in Snapshot.Items.First_Index .. Snapshot.Items.Last_Index loop
-         if Snapshot.Items (Index).Visible_Index = Visible_Index then
-            Position := Index - Snapshot.Items.First_Index + 1;
-            exit;
-         end if;
-      end loop;
       if Position = 0 or else Main.Row_Stride = 0 then
          return Snapshot.Main_View_Scroll_Lines;
       end if;
