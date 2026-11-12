@@ -56,8 +56,10 @@ separate (Files_Suite.Operations)
          Assert (not Ada.Directories.Exists (To_String (Transport)), "the private transport is cleaned up");
          Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Parent));
          Assert (Is_Owner_Only (To_String (Stage)), "private staging is owner-only");
-         Mutation := Files.File_System.Delete_Permanently (To_String (Stage));
-         Assert (Mutation.Success, "remove the private staging probe");
+         --  Through Job_Context, which then lets its foreground job go: a
+         --  stage deleted behind its back leaves that job's lease held open in
+         --  the folder TMP names, and Windows cannot delete an open file.
+         Assert (Files.Job_Context.Discard_Stage (To_String (Stage)), "remove the private staging probe");
          Mutation := Files.File_System.Copy_Tree (Source, Dest);
          Assert
            (Mutation.Success and then File_Has_Bytes (Dest, "copied bytes") and then File_Is (Source, "copied bytes"),
@@ -187,8 +189,7 @@ separate (Files_Suite.Operations)
                  (Metadata_Mode_Of (To_String (Stage)),
                   8#700#,
                   "private staging restores owner access without granting peer access");
-               Mutation := Files.File_System.Delete_Permanently (To_String (Stage));
-               Assert (Mutation.Success, "remove the private staging probe");
+               Assert (Files.Job_Context.Discard_Stage (To_String (Stage)), "remove the private staging probe");
             end;
             if Background then
                Load := Files.File_System.Load_Directory (Parent, Settings);
