@@ -143,12 +143,14 @@ package body Files.Job_Scavenger is
    protected Scan_Requests is
       procedure Submit (Program : Files.Types.UString);
       procedure Take (Requested : out Boolean; Program : out Files.Types.UString);
-      procedure Settle (Still_Busy : Boolean);
+      procedure Settle (Still_Busy : Boolean; Why : String := "");
       function Quiet return Boolean;
+      function Reason return String;
    private
       Pending : Boolean := False;
       Pending_Program : Files.Types.UString;
       Busy : Boolean := False;
+      Busy_Why : Files.Types.UString;
    end Scan_Requests;
 
    protected Terminal_Reports is
@@ -244,15 +246,22 @@ package body Files.Job_Scavenger is
          Pending_Program := Null_Unbounded_String;
       end Take;
 
-      procedure Settle (Still_Busy : Boolean) is
+      procedure Settle (Still_Busy : Boolean; Why : String := "") is
       begin
          Busy := Still_Busy;
+         Busy_Why := To_Unbounded_String (Why);
       end Settle;
 
       function Quiet return Boolean is (not Pending and then not Busy);
+
+      function Reason return String is
+        ((if Pending then "scan-queued;" else "")
+         & (if Busy then To_String (Busy_Why) else ""));
    end Scan_Requests;
 
    function Idle return Boolean is (Scan_Requests.Quiet);
+
+   function Busy_Reason return String is (Scan_Requests.Reason);
 
    task Coordinator_Monitor is
       entry Stop;
@@ -269,6 +278,20 @@ package body Files.Job_Scavenger is
       Retry_Pending     : Boolean := False;
       Retry_At          : Ada.Real_Time.Time := Ada.Real_Time.Clock;
       Retry_Seconds     : Natural := 1;
+      --  How the last scan ended, for Busy_Reason.
+      Last_End          : Unbounded_String;
+
+      --  Busy_Reason's text for the state this loop leaves.
+      function Why return String is
+         Waiting : constant Duration :=
+           (if Retry_Pending then Ada.Real_Time.To_Duration (Retry_At - Ada.Real_Time.Clock) else 0.0);
+      begin
+         return
+           (if Active then "coordinator-running,attempt=" & Natural'Image (Attempts)
+            elsif Retry_Pending then "retry-due,seconds=" & Natural'Image (Natural (Duration'Max (Waiting, 0.0)))
+            else "")
+           & (if Length (Last_End) > 0 then ";" & To_String (Last_End) else "");
+      end Why;
 
       procedure Schedule_Retry (Program : Files.Types.UString) is
       begin
@@ -284,7 +307,9 @@ package body Files.Job_Scavenger is
          if Run (Wait_For_Grace => False, Interruptible => True) then
             Retry_Pending := False;
             Retry_Seconds := 1;
+            Last_End := To_Unbounded_String ("in-monitor-scan-finished");
          else
+            Last_End := To_Unbounded_String ("in-monitor-scan-unresolved");
             Schedule_Retry (Program);
          end if;
       end Scan_After_Launch_Failure;
@@ -369,6 +394,11 @@ package body Files.Job_Scavenger is
                        Status.State = Hostkit.Spawn.Wait_Exited
                        and then Status.Exit_Code = 0;
                   begin
+                     Last_End := To_Unbounded_String
+                       ((case Status.State is
+                           when Hostkit.Spawn.Wait_Exited => "last-coordinator-exit=" & Status.Exit_Code'Image,
+                           when Hostkit.Spawn.Wait_Signalled => "last-coordinator-signalled",
+                           when others => "last-coordinator-lost"));
                      Hostkit.Spawn.Release (Monitored_Child);
                      Active := False;
                      if not Success and then Attempts < 2 then
@@ -400,6 +430,7 @@ package body Files.Job_Scavenger is
                   --  accepting requests. Whether the scan finished is
                   --  unknown, so count it as failed: a scan is safe to
                   --  repeat, and the retry backs off.
+                  Last_End := To_Unbounded_String ("last-coordinator-unanswered");
                   Hostkit.Spawn.Release (Monitored_Child);
                   Active := False;
                   Schedule_Retry (Monitored_Program);
@@ -414,7 +445,7 @@ package body Files.Job_Scavenger is
                Start_Coordinator (Monitored_Program);
             end if;
          end if;
-         Scan_Requests.Settle (Active or else Retry_Pending);
+         Scan_Requests.Settle (Active or else Retry_Pending, Why);
       end loop Main_Loop;
       Scan_Requests.Settle (False);
       Monitor_Result.Mark_Complete;

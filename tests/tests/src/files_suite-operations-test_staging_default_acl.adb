@@ -105,7 +105,10 @@ separate (Files_Suite.Operations)
          end;
          Mutation := Files.File_System.Copy_Tree (Source, Dest);
          Assert (Mutation.Success and then File_Has_Bytes (Dest, "copied bytes"), "copy a file into that folder");
-         Assert (Inherits (Dest), "the published copy holds the folder's ACE and no OWNER RIGHTS ACE from its stage");
+         Assert
+           (Inherits (Dest),
+            "the published copy holds the folder's ACE and no OWNER RIGHTS ACE from its stage"
+            & (if Inherits (Dest) then "" else Files_Suite.Support.Access_Report (Dest)));
          Load := Files.File_System.Load_Directory (Root, Settings);
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);

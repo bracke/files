@@ -110,7 +110,9 @@ separate (Files_Suite.Operations)
       for Attempt in Files_Suite.Support.Polling loop
          exit when Files.Job_Scavenger.Idle;
       end loop;
-      Assert (Files.Job_Scavenger.Idle, "recovery is quiet again once its retries succeed");
+      Assert
+        (Files.Job_Scavenger.Idle,
+         "recovery is quiet again once its retries succeed: " & Files.Job_Scavenger.Busy_Reason);
       Files_Suite.Support.Finalize (Until_Environment);
       Restore;
    exception

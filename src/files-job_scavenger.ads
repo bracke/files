@@ -23,6 +23,11 @@ package Files.Job_Scavenger is
    --  @return Whether recovery is quiet.
    function Idle return Boolean;
 
+   --  Why recovery is not Idle -- a scan queued, a coordinator running, a
+   --  retry due -- with how the last coordinator ended, for a diagnostic.
+   --  @return The reason, or "" when Idle.
+   function Busy_Reason return String;
+
    --  Request coordinator shutdown and wait up to about two seconds for it
    --  to be reaped. An unfinished child remains owned by the monitor task.
    --  @param Reaped True when the monitor has terminated after reaping its child.

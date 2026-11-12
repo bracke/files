@@ -22,7 +22,8 @@ separate (Files_Suite.Operations)
       for Attempt in Files_Suite.Support.Polling loop
          exit when Files.Job_Scavenger.Idle;
       end loop;
-      Assert (Files.Job_Scavenger.Idle, "no earlier recovery scan is still running");
+      Assert
+        (Files.Job_Scavenger.Idle, "no earlier recovery scan is still running: " & Files.Job_Scavenger.Busy_Reason);
       Reset_Root;
       --  A live job keeps its transport present, as it is during startup recovery.
       Files.Process_Jobs.Reserve (Active);

@@ -12,8 +12,12 @@ separate (Files_Suite.Operations)
       Uid, Gid : Files.Types.Account_Id;
       Available : Boolean;
       procedure Replace_And_Refuse (Forward : Boolean) is
+         Retained : constant Boolean := Hostkit.Fs.Move_No_Replace (Source, Held);
       begin
-         Assert (Hostkit.Fs.Move_No_Replace (Source, Held), "retain the metadata history inode");
+         Assert
+           (Retained,
+            "retain the metadata history inode"
+            & (if Retained then "" else Files_Suite.Support.Access_Report (Source)));
          Write_Binary_File (Source, "unrelated replacement");
          Mutation := Files.File_System.Set_Permissions (Source, 8#640#);
          Assert (Mutation.Success, "give the replacement independent permissions");
@@ -65,7 +69,7 @@ separate (Files_Suite.Operations)
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
                   Files.Operations.Operation_Success,
-                  "the live metadata change succeeds");
+                  "the live metadata change succeeds: " & To_String (Step.Error_Key));
                Replace_And_Refuse (False);
                Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Await_View (Model, Settings);

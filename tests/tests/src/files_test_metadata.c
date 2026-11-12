@@ -382,8 +382,22 @@ int files_test_drop_backup_privileges(void) {
     CloseHandle(token);
     return ok;
 }
+
+/* Make the file read-only as Windows means it: the read-only attribute,
+   which a copy keeps. GNAT.OS_Lib.Set_Read_Only first denies its caller
+   FILE_WRITE_ATTRIBUTES and then sets the attribute, which only the
+   backup intent of SetFileAttributesW let through while the suite held
+   the backup privilege. Returns 1 when the attribute is set. */
+int files_test_set_read_only_attribute(const char *path) {
+    wchar_t name[2048];
+    if (!widen(path, NULL, name, 2048)) return 0;
+    DWORD attributes = GetFileAttributesW(name);
+    if (attributes == INVALID_FILE_ATTRIBUTES) return 0;
+    return SetFileAttributesW(name, attributes | FILE_ATTRIBUTE_READONLY) != 0;
+}
 #else
 int files_test_drop_backup_privileges(void) { return 1; }
+int files_test_set_read_only_attribute(const char *path) { (void)path; return 0; }
 #ifdef __linux__
 /* Linux's counterpart of named streams: the entry's user.* attributes. */
 int files_test_named_stream_count(const char *path) {

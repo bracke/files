@@ -10,6 +10,8 @@ separate (Files_Suite.Operations)
       Copy     : constant String := Join (Root, "read-only-copy.txt");
       Paths    : Files.File_System.Drop_Import_Plan_Vectors.Vector;
       Mutation : Files.File_System.Mutation_Result;
+      function Set_Read_Only_Attribute (Path : System.Address) return Interfaces.C.int
+        with Import, Convention => C, External_Name => "files_test_set_read_only_attribute";
 
       --  Whether the file can be opened for writing.
       function Writable (Path : String) return Boolean is
@@ -25,7 +27,17 @@ separate (Files_Suite.Operations)
    begin
       Reset_Root;
       Write_Binary_File (Source, "kept as is");
-      GNAT.OS_Lib.Set_Read_Only (Source);
+      if Hostkit.Host.Current = Hostkit.Host.Windows then
+         --  The attribute, which GNAT's Set_Read_Only cannot set there (see
+         --  files_test_metadata.c).
+         declare
+            Name : aliased Interfaces.C.char_array := Interfaces.C.To_C (Source);
+         begin
+            Assert (Set_Read_Only_Attribute (Name'Address) = 1, "the source is made read-only");
+         end;
+      else
+         GNAT.OS_Lib.Set_Read_Only (Source);
+      end if;
       if Writable (Source) then
          GNAT.OS_Lib.Set_Writable (Source);
          Files_Suite.Support.Skip
@@ -34,7 +46,11 @@ separate (Files_Suite.Operations)
       end if;
       Mutation := Files.File_System.Copy_Tree (Source, Copy);
       Assert (Mutation.Success, "a read-only file copies");
-      Assert (File_Has_Bytes (Copy, "kept as is") and then not Writable (Copy), "and its copy is read-only");
+      Assert (File_Has_Bytes (Copy, "kept as is"), "and its copy has its bytes");
+      Assert
+        (not Writable (Copy),
+         "and its copy is read-only"
+         & (if Writable (Copy) then Files_Suite.Support.Access_Report (Copy) else ""));
       GNAT.OS_Lib.Set_Writable (Copy);
 
       Remote.Create ("files-test-read-only-");

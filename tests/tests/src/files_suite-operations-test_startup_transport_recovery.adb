@@ -29,7 +29,8 @@ separate (Files_Suite.Operations)
       for Attempt in Files_Suite.Support.Polling loop
          exit when Files.Job_Scavenger.Idle;
       end loop;
-      Assert (Files.Job_Scavenger.Idle, "no earlier recovery scan is still running");
+      Assert
+        (Files.Job_Scavenger.Idle, "no earlier recovery scan is still running: " & Files.Job_Scavenger.Busy_Reason);
       Reset_Root;
       Files.Process_Jobs.Reserve (Active);
       Active_Path := To_Unbounded_String (Files.Process_Jobs.Path (Active, ""));
@@ -161,6 +162,10 @@ separate (Files_Suite.Operations)
            Ada.Directories.Exists (Scavenge_Control & ".second-returned");
          Same_Child := Project_Tools.Files.Read_Raw_File
            (Scavenge_Control & ".started") = First_Child;
+         --  The repeated scan starts its coordinator once this one ends; it
+         --  must not stall too, waiting on a release the next test's fixture
+         --  reset may already have removed. Nothing spawns until then.
+         Ada.Environment_Variables.Clear ("FILES_TEST_STALL_SCAVENGER");
          Write_Binary_File (Scavenge_Control & ".release", "release");
          Assert (Returned_Before_Release,
                  "a repeated scan returns promptly without starting another coordinator: returned before release");
@@ -186,6 +191,13 @@ separate (Files_Suite.Operations)
         (Ada.Directories.Exists (To_String (Active_Path)),
          "startup scavenging preserves a transport whose owner is still live");
       Restore;
+      --  The repeated scan runs once the first coordinator ends; it is this
+      --  test's to wait out, not the next one's.
+      for Attempt in Files_Suite.Support.Polling loop
+         exit when Files.Job_Scavenger.Idle;
+      end loop;
+      Assert
+        (Files.Job_Scavenger.Idle, "the repeated scan has finished: " & Files.Job_Scavenger.Busy_Reason);
    exception
       when others =>
          Restore;
