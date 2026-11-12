@@ -230,7 +230,9 @@ package body Files.File_System.Support is
          Result.Times.Insert (Full_Path, Saved_Times);
          declare
             Digest : constant String :=
-              (if Is_Regular_File then Regular_File_Digest (Full_Path) else "");
+              (if Is_Regular_File
+               then Regular_File_Digest (Full_Path, Check_Job_Cancellation => Check_Job_Cancellation)
+               else "");
          begin
             if Is_Regular_File
               and then (Files.File_Identities.Token (Full_Path) /= Identity
@@ -437,7 +439,8 @@ package body Files.File_System.Support is
                return "";
             end if;
             declare
-               Digest : constant String := Regular_File_Digest (Path);
+               Digest : constant String :=
+                 Regular_File_Digest (Path, Check_Job_Cancellation => Check_Job_Cancellation);
             begin
                if Files.File_Identities.Token (Path) /= Identity
                  or else Files.File_Identities.Revision (Path) /= Full_Revision
