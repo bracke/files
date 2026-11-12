@@ -352,6 +352,20 @@ package body Files.Model is
       return Model.Revision_Value;
    end Revision;
 
+   function Settings_Revision
+     (Model : Window_Model)
+      return Natural is
+   begin
+      return Model.Settings_Revision_Value;
+   end Settings_Revision;
+
+   procedure Note_Settings_Changed
+     (Model : in out Window_Model) is
+   begin
+      Model.Settings_Revision_Value :=
+        (if Model.Settings_Revision_Value = Natural'Last then 0 else Model.Settings_Revision_Value + 1);
+   end Note_Settings_Changed;
+
    function Listing_Revision
      (Model : Window_Model)
       return Natural is
@@ -2390,6 +2404,27 @@ package body Files.Model is
       Last := 0;
       For_Each_Visible_Row (Model, Note'Access);
    end Selected_Visible_Bounds;
+
+   function Range_Anchor
+     (Model : Window_Model)
+      return Natural
+   is
+      Cursor         : constant Natural := Selected_Index (Model);
+      First_Selected : Natural;
+      Last_Selected  : Natural;
+   begin
+      if Selected_Count (Model) <= 1 then
+         return Cursor;
+      end if;
+
+      Selected_Visible_Bounds (Model, First_Selected, Last_Selected);
+      if Cursor = Last_Selected then
+         return First_Selected;
+      elsif Cursor = First_Selected then
+         return Last_Selected;
+      end if;
+      return Cursor;
+   end Range_Anchor;
 
    function Selection_Move_Would_Wrap
      (Model     : Window_Model;

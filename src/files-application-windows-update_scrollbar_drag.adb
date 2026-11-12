@@ -73,12 +73,6 @@ separate (Files.Application.Windows)
                   Maximum      => Maximum));
          end Apply_Drag;
 
-         function Maximum_Line_Offset
-           (Content_Height  : Natural;
-            Viewport_Height : Natural)
-            return Natural is
-           (Files.Rendering.Max_Scroll_Lines (Content_Height, Viewport_Height, Line_Height));
-
          procedure Set_Main_Lines (Lines : Natural) is
          begin
             Files.Model.Set_Main_View_Scroll_Lines (Runtime.Model, Lines);
@@ -106,10 +100,7 @@ separate (Files.Application.Windows)
                        (Track_Y     => Main_View.Scrollbar_Y,
                         Track_H     => Main_View.Scrollbar_Track_Height,
                         Thumb_H     => Main_View.Scrollbar_Height,
-                        Maximum     =>
-                          Maximum_Line_Offset
-                            (Main_View.Content_Height,
-                             Main_View.Scrollbar_Track_Height),
+                        Maximum     => Files.Rendering.Main_View_Max_Scroll (Main_View, Line_Height),
                         Apply_Lines => Set_Main_Lines'Access);
                   else
                      Cancel_Drag;
@@ -126,9 +117,7 @@ separate (Files.Application.Windows)
                        (Track_Y     => Info_Pane.Scrollbar_Y,
                         Track_H     => Info_Pane.Scrollbar_Track_Height,
                         Thumb_H     => Info_Pane.Scrollbar_Height,
-                        Maximum     =>
-                          Maximum_Line_Offset
-                            (Info_Pane.Content_Height, Info_Pane.Height),
+                        Maximum     => Files.Rendering.Info_Pane_Max_Scroll (Info_Pane, Line_Height),
                         Apply_Lines => Set_Info_Lines'Access);
                   else
                      Cancel_Drag;
@@ -139,12 +128,7 @@ separate (Files.Application.Windows)
                   Tree_Panel : constant Files.Rendering.Tree_Panel_Layout :=
                     Files.Rendering.Calculate_Tree_Panel_Layout
                       (Snapshot, Layout, Line_Height);
-                  Tree_Count : constant Natural :=
-                    Natural (Snapshot.Tree_Rows.Length);
-                  Capacity : constant Natural :=
-                    Files.Rendering.Tree_Row_Capacity (Snapshot, Tree_Panel);
-                  Maximum : constant Natural :=
-                    (if Tree_Count > Capacity then Tree_Count - Capacity else 0);
+                  Maximum : constant Natural := Files.Rendering.Tree_Max_Scroll (Snapshot, Tree_Panel);
                begin
                   if Tree_Panel.Scrollbar_Visible
                     and then Tree_Panel.Row_Height > 0

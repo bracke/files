@@ -36,7 +36,7 @@ package body Files.Job_Transports is
    Pre_Lease_Marker_Header : constant String := "files-job-transport-1";
    Marker_Name   : constant String := Files.Protocol_Names.Transport_Marker;
    Lease_Name    : constant String := Files.Protocol_Names.Transport_Lease;
-   Transport_Prefix : constant String := "files-job-";
+   Transport_Prefix : constant String := Files.Protocol_Names.Transport_Prefix;
    Witness_Prefix : constant String := ".files-job-creation-";
    Hex_Digits : constant String := "0123456789abcdef";
    Max_Marker_Header_Length : constant := Files.Bounded_Streams.Max_Header_Length;
@@ -151,14 +151,15 @@ package body Files.Job_Transports is
       return Result;
    end Random_Name;
 
+   function Is_Transport_Name (Name : String) return Boolean is
+     (Name'Length = Transport_Prefix'Length + 32
+      and then Name (Name'First .. Name'First + Transport_Prefix'Length - 1) = Transport_Prefix
+      and then (for all Position in Name'First + Transport_Prefix'Length .. Name'Last =>
+        Name (Position) in '0' .. '9' | 'a' .. 'f'));
+
    function Is_Transport_Path (Directory : String) return Boolean is
-      Name : constant String := Files.Fs_Primitives.Leaf_Text (Directory);
-      Suffix_First : constant Positive := Name'First + Transport_Prefix'Length;
    begin
-      return Name'Length = Transport_Prefix'Length + 32
-        and then Name (Name'First .. Name'First + Transport_Prefix'Length - 1) = Transport_Prefix
-        and then (for all Position in Suffix_First .. Name'Last =>
-          Name (Position) in '0' .. '9' | 'a' .. 'f')
+      return Is_Transport_Name (Files.Fs_Primitives.Leaf_Text (Directory))
         and then Files.Fs_Primitives.Full_Name (Files.Fs_Primitives.Parent_Directory (Directory)) =
           Files.Fs_Primitives.Full_Name (Hostkit.Fs.Temp_Directory);
    exception

@@ -255,16 +255,6 @@ private package Files.File_System.Support is
       Preserve_Ownership : Boolean := False;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);
 
-   --  Recursively delete a file, directory, or symlink. A symlink -- even one
-   --  whose target is a directory -- is unlinked as a link and never followed,
-   --  so deleting a link (or a folder that merely contains one) can never
-   --  reach through into the link target's real contents. This is the safe
-   --  replacement for Ada.Directories.Delete_Tree, which follows links; it
-   --  mirrors Copy_Tree's link handling.
-   --
-   --  @param Path File, directory, or symlink to remove.
-   procedure Delete_Tree (Path : String);
-
    --  Remove a private or identity-verified owned copy, releasing directory
    --  write restrictions preserved from its source. Never follows symlinks.
    --  @param Path Private or identity-verified owned entry to remove.

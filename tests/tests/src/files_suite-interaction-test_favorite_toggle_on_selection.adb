@@ -20,7 +20,7 @@ separate (Files_Suite.Interaction)
          1,
          "the sample file is selected before favoriting");
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+        (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
       Assert (Has_Favorite (Settings, Item), "favoriting a selected file stores its path");
       Assert (Result.Settings_Changed, "favoriting reports a settings change");
 
@@ -29,7 +29,6 @@ separate (Files_Suite.Interaction)
          Settings,
          Path,
          (Kind => Files.Events.No_Input_Action),
-         Base_Font,
          Guikit.Input.No_Modifiers,
          Result);
       Files_Suite.Support.Assert_Equal
@@ -56,7 +55,7 @@ separate (Files_Suite.Interaction)
 
       --  Toggling the same selection again removes the favorite.
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+        (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
       Assert (not Has_Favorite (Settings, Item), "toggling the selected file again removes its favorite");
 
       --  No selection: the toggle falls back to the current directory.
@@ -66,7 +65,7 @@ separate (Files_Suite.Interaction)
          0,
          "the selection is cleared for the fallback path");
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+        (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
       Assert
         (Has_Favorite (Settings, Files.Model.Current_Path (Model)),
          "with no selection the toggle favorites the current folder");
@@ -75,7 +74,7 @@ separate (Files_Suite.Interaction)
       --  not be confused with the empty-selection fallback and toggle the
       --  current directory behind the active editor.
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+        (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
       Assert
         (not Has_Favorite (Settings, Files.Model.Current_Path (Model)),
          "the setup removes the current-folder favorite");
@@ -87,7 +86,7 @@ separate (Files_Suite.Interaction)
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Toggle_Favorite_Command, Model),
          "favorite is disabled for a temporary selection");
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+        (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
       Assert
         (not Has_Favorite (Settings, Files.Model.Current_Path (Model)),
          "favoriting a temporary row does not toggle the current folder");

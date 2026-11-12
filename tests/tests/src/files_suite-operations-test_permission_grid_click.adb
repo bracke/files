@@ -76,7 +76,6 @@ separate (Files_Suite.Operations)
             Settings          => Settings_Var,
             Settings_Path     => "",
             Action            => Action,
-            Current_Font_Size => 16,
             Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Result);
          Files_Suite.Support.Assert_Equal
@@ -91,7 +90,6 @@ separate (Files_Suite.Operations)
             Settings          => Settings_Var,
             Settings_Path     => "",
             Action            => Action,
-            Current_Font_Size => 16,
             Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Result);
 

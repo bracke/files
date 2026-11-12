@@ -496,31 +496,31 @@ package body Files.Application.Windows is
    --  each must see the others' changes: otherwise closing (or zooming) a
    --  window with a stale copy silently reverts a theme, favourite or label
    --  changed in another. A window whose settings moved since the last sync
-   --  hands them to every other window. For_Each_Window shares after every
-   --  window's step, so two windows can never both have unshared changes
-   --  (which would leave only one of them to win).
+   --  (its settings revision differs from the one synced) hands them to every
+   --  other window; the revision makes that check a number comparison, not a
+   --  walk over every map and list in the settings; a lone window only
+   --  catches up its mark. For_Each_Window shares after every window's step,
+   --  so two windows can never both have unshared changes (which would leave
+   --  only one of them to win).
    procedure Share_Settings_From
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector;
-      Index           : Positive)
-   is
-      use type Files.Settings.Settings_Model;
+      Index           : Positive) is
    begin
-      if Runtime_Windows (Index).Settings = Runtime_Windows (Index).Synced_Settings then
+      if Files.Model.Settings_Revision (Runtime_Windows (Index).Model)
+        = Runtime_Windows (Index).Synced_Settings_Revision
+      then
          return;
       end if;
 
-      declare
-         Shared : constant Files.Settings.Settings_Model := Runtime_Windows (Index).Settings;
-      begin
-         for Runtime of Runtime_Windows loop
-            if Runtime.Settings /= Shared then
-               Runtime.Settings := Shared;
-               Runtime.Frame_Cache_Valid := False;
-               Runtime.View.Snapshot_Valid := False;
-            end if;
-            Runtime.Synced_Settings := Shared;
-         end loop;
-      end;
+      for Other in Runtime_Windows.First_Index .. Runtime_Windows.Last_Index loop
+         if Other /= Index then
+            Runtime_Windows (Other).Settings := Runtime_Windows (Index).Settings;
+            Runtime_Windows (Other).Frame_Cache_Valid := False;
+            Runtime_Windows (Other).View.Snapshot_Valid := False;
+         end if;
+         Runtime_Windows (Other).Synced_Settings_Revision :=
+           Files.Model.Settings_Revision (Runtime_Windows (Other).Model);
+      end loop;
    end Share_Settings_From;
 
    procedure Sync_Settings_Across_Windows
@@ -886,7 +886,6 @@ package body Files.Application.Windows is
          Settings          => Runtime.Settings,
          Settings_Path     => To_String (Runtime.Settings_Path),
          Action            => Action,
-         Current_Font_Size => Runtime.Settings.Font_Pixel_Size,
          Modifiers         => Modifiers,
          Result            => Result);
       Apply_Interaction_Result (Runtime, Result);
@@ -1125,7 +1124,7 @@ package body Files.Application.Windows is
             A11y_Key        => Files.Accessibility.New_Window_Key,
             Model           => Startup_Window.Model,
             Settings        => Settings,
-            Synced_Settings => Settings,
+            Synced_Settings_Revision => Files.Model.Settings_Revision (Startup_Window.Model),
             Settings_Path   => Settings_Path,
             Font_Pixel_Size => Settings.Font_Pixel_Size,
             Shown           => True,
@@ -1201,6 +1200,9 @@ package body Files.Application.Windows is
          Result       => Result,
          Line_Height  => Cell_Height_For (Runtime.Font_Pixel_Size));
       if Result.Settings_Changed then
+         --  Apply_Column_Resize changes the settings in memory only (they are
+         --  persisted on release), so note the change for the window here.
+         Files.Model.Note_Settings_Changed (Runtime.Model);
          Runtime.Column_Resize.Changed := True;
       end if;
    end Update_Column_Resize_Drag;

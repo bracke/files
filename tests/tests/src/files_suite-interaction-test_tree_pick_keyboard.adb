@@ -110,7 +110,7 @@ separate (Files_Suite.Interaction)
       --  (alpha). The sidebar was open before the pick, so it stays open.
       Files.Model.Set_Tree_Pick_Target (Model, Alpha);
       Files.Interaction.Handle_Key
-        (Model, Settings, "", Guikit.Input.Key_Return, Guikit.Input.No_Modifiers, Base_Font, Result);
+        (Model, Settings, "", Guikit.Input.Key_Return, Guikit.Input.No_Modifiers, Result);
       Assert (not Files.Model.Tree_Pick_Is_Active (Model) and then Files.Model.Tree_Panel_Is_Open (Model),
               "Enter ends the pick and keeps the sidebar that was open before it");
       Assert

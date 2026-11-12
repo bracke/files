@@ -51,6 +51,24 @@ package Files.Model is
      (Model : Window_Model)
       return Natural;
 
+   --  Return the window's settings revision: a counter bumped by every change
+   --  to the window's live settings (Note_Settings_Changed), so the window
+   --  layer can tell a window changed its settings without comparing them.
+   --
+   --  @param Model Model to inspect.
+   --  @return Current settings revision.
+   function Settings_Revision
+     (Model : Window_Model)
+      return Natural;
+
+   --  Record that the window's live settings changed. Every path that writes
+   --  a window's settings calls it: the settings commit, and the in-memory
+   --  changes (a column resize drag) that are persisted later.
+   --
+   --  @param Model Window whose settings changed.
+   procedure Note_Settings_Changed
+     (Model : in out Window_Model);
+
    --  Like Revision, but not moved by a change of the selection alone: the
    --  rows a view shows (names, metadata, rename fields, cut marks, order)
    --  are as they were while it holds, though which are selected may not be.
@@ -522,6 +540,17 @@ package Files.Model is
      (Model : Window_Model;
       First : out Natural;
       Last  : out Natural);
+
+   --  The fixed end a shift-extended selection grows from: the opposite end
+   --  of the current multi-item selection from the cursor, so successive
+   --  shift-clicks or shift-arrows grow the range from where it began rather
+   --  than from the moving cursor; otherwise the cursor itself.
+   --
+   --  @param Model Model to inspect.
+   --  @return Anchor visible index, or zero when nothing is selected.
+   function Range_Anchor
+     (Model : Window_Model)
+      return Natural;
 
    --  Whether Move_Selection in Direction would wrap past an edge of the
    --  listing (to the other end, or to the next column). Extending a range
@@ -3367,6 +3396,10 @@ private
       --  differs, so snapshot invalidation follows the model automatically
       --  rather than relying on each call site to remember.
       Revision_Value : Natural := 0;
+      --  Bumped by every change to the window's live settings
+      --  (Note_Settings_Changed), apart from Revision_Value: settings live
+      --  outside the model, and the snapshot follows them on its own.
+      Settings_Revision_Value : Natural := 0;
       --  Bumped with Revision_Value by every mutator except those that move
       --  only the selection (Support.Touch_Selection): while it holds, a view
       --  snapshot's rows are still right but for their selected flags.

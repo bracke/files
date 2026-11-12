@@ -287,8 +287,9 @@ package body Files.Job_Scavenger is
            (if Retry_Pending then Ada.Real_Time.To_Duration (Retry_At - Ada.Real_Time.Clock) else 0.0);
       begin
          return
-           (if Active then "coordinator-running,attempt=" & Natural'Image (Attempts)
-            elsif Retry_Pending then "retry-due,seconds=" & Natural'Image (Natural (Duration'Max (Waiting, 0.0)))
+           (if Active then "coordinator-running,attempt=" & Files.Types.Natural_Text (Attempts)
+            elsif Retry_Pending
+            then "retry-due,seconds=" & Files.Types.Natural_Text (Natural (Duration'Max (Waiting, 0.0)))
             else "")
            & (if Length (Last_End) > 0 then ";" & To_String (Last_End) else "");
       end Why;
@@ -534,16 +535,10 @@ package body Files.Job_Scavenger is
       Wait_For_Grace       : Boolean := True;
       Interruptible        : Boolean := False) return Boolean
    is
-      Prefix : constant String := "files-job-";
-
+      --  Whether Directory's own name is a current transport's.
       function Is_Current_Name (Directory : String) return Boolean is
-         Name : constant String := Files.Fs_Primitives.Leaf_Text (Directory);
-         First_Hex : constant Positive := Name'First + Prefix'Length;
       begin
-         return Name'Length = Prefix'Length + 32
-           and then Name (Name'First .. First_Hex - 1) = Prefix
-           and then (for all Position in First_Hex .. Name'Last =>
-             Name (Position) in '0' .. '9' | 'a' .. 'f');
+         return Files.Job_Transports.Is_Transport_Name (Files.Fs_Primitives.Leaf_Text (Directory));
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.Job_Scavenger");
@@ -552,12 +547,12 @@ package body Files.Job_Scavenger is
 
       procedure Scan (Retry_Needed : out Boolean) is
          Temp        : constant String := Hostkit.Fs.Temp_Directory;
-         Prefix      : constant String := "files-job-";
          Directories : Files.Types.String_Vectors.Vector;
 
          --  The job folders, a link to one included, as the search listed them.
          procedure Collect (Name : String; Stop : in out Boolean) is
             pragma Unreferenced (Stop);
+            Prefix : String renames Files.Protocol_Names.Transport_Prefix;
          begin
             if Name'Length >= Prefix'Length
               and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix

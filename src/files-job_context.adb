@@ -1,3 +1,4 @@
+with Files.Protocol_Names;
 with Files.Diagnostics;
 with Ada.Directories;
 with Ada.IO_Exceptions;
@@ -197,7 +198,7 @@ package body Files.Job_Context is
         and then not Hostkit.Fs.Is_Link (Record_Directory)
         and then Files.Fs_Primitives.Exists (Record_Directory)
       then
-         Files.Fs_Primitives.Delete_Tree (Record_Directory);
+         Files.Fs_Primitives.Delete_Tree_If_Present (Record_Directory);
       end if;
    exception
       when Swallowed : others =>
@@ -258,7 +259,7 @@ package body Files.Job_Context is
 
    function Begin_Stage_Record (Path : String) return String is
       Owner_Directory : constant String := Stage_Owner_Directory;
-      Stages : constant String := Hostkit.Fs.Join (Owner_Directory, "stages");
+      Stages : constant String := Hostkit.Fs.Join (Owner_Directory, Files.Protocol_Names.Stages_Directory);
    begin
       if Files.Private_Directories.Try_Create (Stages) =
         Files.Private_Directories.Collision
@@ -689,7 +690,7 @@ package body Files.Job_Context is
       Owner              : Files.Job_Transports.Lease;
       Discard_Unreadable : Boolean := False)
    is
-      Stages : constant String := Hostkit.Fs.Join (Directory, "stages");
+      Stages : constant String := Hostkit.Fs.Join (Directory, Files.Protocol_Names.Stages_Directory);
       Records : Files.Types.String_Vectors.Vector;
 
       --  The stage folders, a link to one included, as the search listed them.

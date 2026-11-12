@@ -59,13 +59,17 @@ package body Files.Fs_Primitives is
 
    procedure Delete_Tree (Path : String) is
    begin
-      if not Exists (Path) and then not Hostkit.Fs.Is_Link (Path) then
-         return;
-      end if;
       if Hostkit.Fs.Delete_Tree_No_Follow (Path) /= Hostkit.Fs.Tree_Deleted then
          raise Ada.Directories.Use_Error;
       end if;
    end Delete_Tree;
+
+   procedure Delete_Tree_If_Present (Path : String) is
+   begin
+      if Exists (Path) or else Hostkit.Fs.Is_Link (Path) then
+         Delete_Tree (Path);
+      end if;
+   end Delete_Tree_If_Present;
 
    function Leaf_Text (Path : String) return String renames Hostkit.Path_Text.Leaf;
 

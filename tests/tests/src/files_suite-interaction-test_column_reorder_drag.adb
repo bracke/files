@@ -96,7 +96,7 @@ separate (Files_Suite.Interaction)
             Command => Files.Commands.Sort_By_Size_Command);
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Fresh, "", Sort_Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Fresh, "", Sort_Action, Guikit.Input.No_Modifiers, Result);
          Assert (Files.Model.Sort_Field_Of (Model) /= Sort_Before,
                  "a click without a drag applies the sort command");
          Assert (Fresh.Column_Order = Order_Before,

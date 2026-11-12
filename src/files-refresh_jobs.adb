@@ -1,3 +1,4 @@
+with Files.Protocol_Names;
 with Files.Quick_Look;
 with Files.Helper_Modes;
 with Files.Items;
@@ -599,7 +600,9 @@ package body Files.Refresh_Jobs is
    function Watch_Is_Native (Job : in out Watch_Session) return Boolean is
    begin
       if not Job.Native and then Files.Process_Jobs.Active (Job.Process) then
-         Job.Native := Files.Fs_Primitives.Exists (Files.Process_Jobs.Path (Job.Process, "native"));
+         Job.Native :=
+           Files.Fs_Primitives.Exists
+             (Files.Process_Jobs.Path (Job.Process, Files.Protocol_Names.Native_Watch_File));
       end if;
       return Job.Native and then Files.Process_Jobs.Active (Job.Process);
    exception
@@ -657,12 +660,12 @@ package body Files.Refresh_Jobs is
 
    function Claim_Watch_Notification (Directory : String) return Boolean is
      (Hostkit.Fs.Move_No_Replace
-        (Hostkit.Fs.Join (Directory, "changed"),
-         Hostkit.Fs.Join (Directory, "changed.claimed")));
+        (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Changed_File),
+         Hostkit.Fs.Join (Directory, Files.Protocol_Names.Claimed_Changed_File)));
 
    function Post_Watch_Notification (Directory : String) return Boolean is
       File   : Files.Exclusive_Streams.Output_Stream;
-      Target : constant String := Hostkit.Fs.Join (Directory, "changed");
+      Target : constant String := Hostkit.Fs.Join (Directory, Files.Protocol_Names.Changed_File);
 
       function Posted return Boolean is
         (not Hostkit.Fs.Is_Link (Target)
@@ -690,7 +693,7 @@ package body Files.Refresh_Jobs is
    function Poll_Watch (Job : in out Watch_Session) return Boolean is
       Finished, Cancelled : Boolean;
       Directory : constant String := Files.Process_Jobs.Path (Job.Process, "");
-      Claimed : constant String := Hostkit.Fs.Join (Directory, "changed.claimed");
+      Claimed : constant String := Hostkit.Fs.Join (Directory, Files.Protocol_Names.Claimed_Changed_File);
 
       procedure Remove_Claim is
       begin
@@ -792,7 +795,7 @@ package body Files.Refresh_Jobs is
       declare
          Marker : Files.Exclusive_Streams.Output_Stream;
       begin
-         Files.Exclusive_Streams.Create (Marker, Hostkit.Fs.Join (Directory, "native"));
+         Files.Exclusive_Streams.Create (Marker, Hostkit.Fs.Join (Directory, Files.Protocol_Names.Native_Watch_File));
          Files.Exclusive_Streams.Close (Marker);
       exception
          when Swallowed : others =>

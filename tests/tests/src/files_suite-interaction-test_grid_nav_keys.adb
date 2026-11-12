@@ -15,7 +15,6 @@ separate (Files_Suite.Interaction)
          Settings          => Settings,
          Settings_Path     => "",
          Key               => Guikit.Input.Key_End,
-         Current_Font_Size => Base_Font,
          Result            => Result);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -29,7 +28,6 @@ separate (Files_Suite.Interaction)
          Settings          => Settings,
          Settings_Path     => "",
          Key               => Guikit.Input.Key_Home,
-         Current_Font_Size => Base_Font,
          Result            => Result);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -46,7 +44,6 @@ separate (Files_Suite.Interaction)
          Settings          => Settings,
          Settings_Path     => "",
          Key               => Guikit.Input.Key_Page_Down,
-         Current_Font_Size => Base_Font,
          Result            => Result);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selected_Index (Model),
@@ -58,7 +55,6 @@ separate (Files_Suite.Interaction)
          Settings          => Settings,
          Settings_Path     => "",
          Key               => Guikit.Input.Key_Page_Up,
-         Current_Font_Size => Base_Font,
          Result            => Result);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selected_Index (Model),

@@ -279,4 +279,19 @@ package body Files.Paste is
       return Actions;
    end Resolve;
 
+   function Name_Rules_Of (Directory : String) return Name_Rules is
+     (if Directory = ""
+      then (others => <>)
+      else (Fold_Names => Hostkit.Fs.Folds_Name_Case (Directory),
+            Dos_Names  => Hostkit.Fs.Uses_Dos_Filename_Rules (Directory)));
+
+   function Resolve
+     (Items     : Work_Item_Vectors.Vector;
+      Policy    : Conflict_Policy;
+      Overrides : Item_Decision_Vectors.Vector;
+      Existing  : Files.Types.String_Vectors.Vector;
+      Rules     : Name_Rules)
+      return Resolved_Action_Vectors.Vector is
+     (Resolve (Items, Policy, Overrides, Existing, Fold_Names => Rules.Fold_Names, Dos_Names => Rules.Dos_Names));
+
 end Files.Paste;

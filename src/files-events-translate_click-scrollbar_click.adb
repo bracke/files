@@ -1,6 +1,8 @@
 separate (Files.Events.Translate_Click)
 --  The info-pane and main-view scrollbars.
 procedure Scrollbar_Click (Handled : out Boolean; Result : out Input_Action) is
+   Main_View : constant Files.Rendering.Main_View_Layout :=
+     Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
 begin
    Handled := True;
    if Info_Pane.Scrollbar_Visible
@@ -12,13 +14,9 @@ begin
           (Scroll_Info_Pane,
            Info_Pane.Scrollbar_Thumb_Y,
            Info_Pane.Scrollbar_Height,
-           Y,
            10,
            Snapshot.Info_Pane_Scroll_Lines,
-           Maximum_Line_Offset
-             (Info_Pane.Content_Height,
-              Info_Pane.Height,
-              Info_Pane.Scrollbar_Visible));
+           Files.Rendering.Info_Pane_Max_Scroll (Info_Pane, Line_Height));
       return;
    elsif Main_View.Scrollbar_Visible
      and then Within (X, Main_View.Scrollbar_X, Main_View.Scrollbar_Width)
@@ -29,13 +27,9 @@ begin
           (Scroll_Main_View,
            Main_View.Scrollbar_Thumb_Y,
            Main_View.Scrollbar_Height,
-           Y,
            10,
            Snapshot.Main_View_Scroll_Lines,
-           Maximum_Line_Offset
-             (Main_View.Content_Height,
-              Main_View.Scrollbar_Track_Height,
-              Main_View.Scrollbar_Visible));
+           Files.Rendering.Main_View_Max_Scroll (Main_View, Line_Height));
       return;
    end if;
    Handled := False;

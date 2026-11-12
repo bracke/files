@@ -15,6 +15,9 @@ is
    First_Error_Key  : Unbounded_String := Null_Unbounded_String;
    First_Error_Path : Unbounded_String := Null_Unbounded_String;
    Focus_Name       : Unbounded_String := Null_Unbounded_String;
+   --  The first renamed item's full path, in its own folder (a search lists
+   --  items from other folders than the current one).
+   Focus_Path       : Unbounded_String := Null_Unbounded_String;
    --  Where the first entry left at neither name (Rename_Stranded_Key) is:
    --  told over any other error, as the user has to go and find it.
    Stranded_Path    : Unbounded_String := Null_Unbounded_String;
@@ -64,6 +67,7 @@ begin
                Success := Success + 1;
                if Focus_Name = Null_Unbounded_String then
                   Focus_Name := Target.New_Name;
+                  Focus_Path := To_Unbounded_String (Hostkit.Fs.Join (Parent, New_Name));
                end if;
             else
                Failure := Failure + 1;
@@ -85,6 +89,7 @@ begin
                   Identities.Append (To_Unbounded_String (Files.File_Identities.Token (New_Path)));
                   if Focus_Name = Null_Unbounded_String then
                      Focus_Name := Target.New_Name;
+                     Focus_Path := To_Unbounded_String (New_Path);
                   end if;
                else
                   Failure := Failure + 1;
@@ -169,12 +174,12 @@ begin
         Make_Result
           (Operation_Success,
            "error.rename.partial",
-           Hostkit.Fs.Join (Current_Dir, To_String (Focus_Name)));
+           To_String (Focus_Path));
    end if;
 
    Files.Model.Set_Error (Model, "");
    return
      Make_Result
        (Operation_Success,
-        Path => Hostkit.Fs.Join (Current_Dir, To_String (Focus_Name)));
+        Path => To_String (Focus_Path));
 end Commit_Rename;

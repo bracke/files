@@ -55,7 +55,7 @@ separate (Files_Suite.Interaction)
             Files.Events.Breadcrumb_Click_Input_Action,
             "a breadcrumb coordinate translates to a breadcrumb click");
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       end;
 
       declare

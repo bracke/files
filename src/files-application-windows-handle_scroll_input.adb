@@ -89,7 +89,6 @@ separate (Files.Application.Windows)
             Settings          => Runtime.Settings,
             Settings_Path     => To_String (Runtime.Settings_Path),
             Action            => Action,
-            Current_Font_Size => Runtime.Settings.Font_Pixel_Size,
             Modifiers         => To_Modifiers (As_Window (Runtime.Handle)),
             Result            => Result);
          Apply_Interaction_Result (Runtime, Result);

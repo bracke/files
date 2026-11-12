@@ -59,7 +59,6 @@ separate (Files_Suite.Interaction)
             Settings          => Settings,
             Settings_Path     => "",
             Command           => Menu.Rows (Target_Row).Command,
-            Current_Font_Size => Base_Font,
             Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Result);
       end;
@@ -85,7 +84,6 @@ separate (Files_Suite.Interaction)
          Settings          => Settings,
          Settings_Path     => "",
          Command           => Files.Commands.Copy_Selected_Items_Command,
-         Current_Font_Size => Base_Font,
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
       Assert
@@ -106,7 +104,6 @@ separate (Files_Suite.Interaction)
          Settings          => Settings,
          Settings_Path     => "",
          Command           => Files.Commands.Copy_Selected_Items_Command,
-         Current_Font_Size => Base_Font,
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
       Assert
@@ -128,7 +125,6 @@ separate (Files_Suite.Interaction)
          Settings          => Settings,
          Settings_Path     => "",
          Command           => Files.Commands.No_Command,
-         Current_Font_Size => Base_Font,
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
       Assert (not Files.Model.Context_Menu_Is_Open (Model), "a missed menu row still closes the menu");
@@ -154,13 +150,13 @@ separate (Files_Suite.Interaction)
       --  Keyboard open/close routes mutate the same menu state through the
       --  controller.
       Files.Interaction.Handle_Key
-        (Model, Settings, "", Guikit.Input.Key_F10, Shift, Base_Font, Result);
+        (Model, Settings, "", Guikit.Input.Key_F10, Shift, Result);
       Assert
         (Files.Model.Context_Menu_Is_Open (Model),
          "Shift+F10 opens the context menu");
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_Escape,
-         Guikit.Input.No_Modifiers, Base_Font, Result);
+         Guikit.Input.No_Modifiers, Result);
       Assert
         (not Files.Model.Context_Menu_Is_Open (Model),
          "Escape closes the context menu");

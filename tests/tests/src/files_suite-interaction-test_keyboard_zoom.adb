@@ -15,7 +15,6 @@ separate (Files_Suite.Interaction)
             Settings_Path     => Path,
             Key               => Key,
             Modifiers         => Mods,
-            Current_Font_Size => Settings.Font_Pixel_Size,
             Result            => Result);
       end Zoom;
    begin

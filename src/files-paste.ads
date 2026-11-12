@@ -122,6 +122,38 @@ package Files.Paste is
       Dos_Names  : Boolean := False)
       return Resolved_Action_Vectors.Vector;
 
+   --  The naming rules of a directory a paste or drop writes into, as
+   --  Resolve takes them.
+   type Name_Rules is record
+      --  Whether the directory folds case (Hostkit.Fs.Folds_Name_Case).
+      Fold_Names : Boolean := False;
+      --  Whether it keeps names in UTF-16 (Hostkit.Fs.Uses_Dos_Filename_Rules).
+      Dos_Names  : Boolean := False;
+   end record;
+
+   --  The naming rules of Directory, both asked of its filesystem, so every
+   --  resolution into it applies the same pair.
+   --
+   --  @param Directory Destination directory; empty for none.
+   --  @return Its rules; neither for an empty Directory.
+   function Name_Rules_Of (Directory : String) return Name_Rules;
+
+   --  Resolve with a destination's Name_Rules_Of.
+   --
+   --  @param Items Work-list.
+   --  @param Policy Batch-wide policy.
+   --  @param Overrides Per-item overrides (may be empty; missing entries are Pending).
+   --  @param Existing Full destination paths known to exist.
+   --  @param Rules The destination's naming rules.
+   --  @return One resolved action per work item, in order.
+   function Resolve
+     (Items     : Work_Item_Vectors.Vector;
+      Policy    : Conflict_Policy;
+      Overrides : Item_Decision_Vectors.Vector;
+      Existing  : Files.Types.String_Vectors.Vector;
+      Rules     : Name_Rules)
+      return Resolved_Action_Vectors.Vector;
+
    --  Name, or the first of "stem 2.ext", "stem 3.ext" ... that Taken says
    --  is free: the one numbering a paste and a drop give a name in use. A
    --  numbered name the destination could not store is cut down to fit

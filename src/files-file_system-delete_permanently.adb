@@ -64,10 +64,10 @@ begin
    --  Symlink-aware recursive delete: a symlink -- even one whose target is
    --  a directory -- is unlinked as a link and never followed, so deleting a
    --  link (or a folder that merely contains one) can never reach through
-   --  into the link target's real contents. Ada.Directories.Delete_Tree,
-   --  used previously via Files.Fs_Primitives, follows links and would.
+   --  into the link target's real contents, as Ada.Directories.Delete_Tree,
+   --  which follows links, would.
    Files.Io_Errors.Clear_Os_Error;
-   Support.Delete_Tree (Path);
+   Files.Fs_Primitives.Delete_Tree (Path);
    return (Success => True, Error_Key => Null_Unbounded_String);
 exception
    when Swallowed : others =>

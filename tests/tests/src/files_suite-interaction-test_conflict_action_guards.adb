@@ -16,7 +16,7 @@ separate (Files_Suite.Interaction)
       procedure Apply (Button : Files.Events.Conflict_Button_Kind) is
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Click (Button), Base_Font,
+           (Model, Settings, "", Click (Button),
             Guikit.Input.No_Modifiers, Result);
       end Apply;
    begin
@@ -37,7 +37,7 @@ separate (Files_Suite.Interaction)
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "",
             (Kind => Files.Events.Paste_Cancel_Input_Action),
-            Base_Font, Guikit.Input.No_Modifiers, Result);
+            Guikit.Input.No_Modifiers, Result);
          Assert
            (Files.Model.Revision (Model) = Revision,
             "a stale paste-cancel action is inert when no paste is active");

@@ -138,7 +138,9 @@ package Files.Settings is
    --  @param Right Second settings.
    --  @return True when every persisted setting is equal.
    function Same_Content (Left, Right : Settings_Model) return Boolean is
-     ((Left with delta Persistence_Refused => False) = (Right with delta Persistence_Refused => False));
+     (if Left.Persistence_Refused = Right.Persistence_Refused
+      then Left = Right
+      else (Left with delta Persistence_Refused => Right.Persistence_Refused) = Right);
 
    --  The exact subset of the settings that Build_Snapshot reads. The render
    --  layer caches this and reuses the cached view snapshot while it still

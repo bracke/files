@@ -8,7 +8,7 @@ separate (Files_Suite.Interaction)
    begin
       Files.Interaction.Execute_Command
         (Model, Settings, "", Files.Commands.Toggle_Folder_Tree_Command,
-         Base_Font, Guikit.Input.No_Modifiers, Result);
+         Guikit.Input.No_Modifiers, Result);
       Assert (Files.Model.Tree_Panel_Is_Open (Model), "the toggle command opens the folder tree");
       Assert (Files.Model.Tree_Node_Count (Model) > 0, "opening the tree seeds it with root nodes");
 
@@ -54,7 +54,7 @@ separate (Files_Suite.Interaction)
             Revision    : constant Natural := Files.Model.Revision (Model);
          begin
             Files.Interaction.Apply_Input_Action
-              (Model, Settings, "", Action, Base_Font,
+              (Model, Settings, "", Action,
                Guikit.Input.No_Modifiers, Result);
             Files_Suite.Support.Assert_Equal
               (Files.Model.Current_Path (Model), Path_Before,
@@ -72,7 +72,7 @@ separate (Files_Suite.Interaction)
          Files.Model.Close_Context_Menu (Model);
 
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
          Assert
            (Expected.Status = Files.File_System.Path_Valid
               and then Files.Model.Current_Path (Model) = To_String (Expected.Directory_Path),
@@ -84,6 +84,6 @@ separate (Files_Suite.Interaction)
 
       Files.Interaction.Execute_Command
         (Model, Settings, "", Files.Commands.Toggle_Folder_Tree_Command,
-         Base_Font, Guikit.Input.No_Modifiers, Result);
+         Guikit.Input.No_Modifiers, Result);
       Assert (not Files.Model.Tree_Panel_Is_Open (Model), "toggling again closes the folder tree");
    end Test_Tree_Toggle_Command_And_Click;

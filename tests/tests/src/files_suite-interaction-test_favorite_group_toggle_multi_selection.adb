@@ -26,7 +26,7 @@ separate (Files_Suite.Interaction)
          3,
          "all three files are selected before the group toggle");
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+        (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       Assert (Has_Favorite (Settings, One), "the group toggle stars the first item");
       Assert (Has_Favorite (Settings, Two), "the group toggle stars the second item");
       Assert (Has_Favorite (Settings, Three), "the group toggle stars the third item");
@@ -34,7 +34,7 @@ separate (Files_Suite.Interaction)
 
       --  All three favorited: the next invocation un-stars the whole group.
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+        (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       Assert (not Has_Favorite (Settings, One), "a second group toggle un-stars the first item");
       Assert (not Has_Favorite (Settings, Two), "a second group toggle un-stars the second item");
       Assert (not Has_Favorite (Settings, Three), "a second group toggle un-stars the third item");
@@ -44,7 +44,7 @@ separate (Files_Suite.Interaction)
       Settings.Favorite_Paths.Append (Ada.Strings.Unbounded.To_Unbounded_String (Two));
       Assert (Has_Favorite (Settings, Two), "the second item is pre-favorited for the mixed case");
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+        (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       Assert (Has_Favorite (Settings, One), "a mixed group toggle stars the previously unstarred first item");
       Assert (Has_Favorite (Settings, Two), "a mixed group toggle leaves the already-starred second item starred");
       Assert (Has_Favorite (Settings, Three), "a mixed group toggle stars the previously unstarred third item");

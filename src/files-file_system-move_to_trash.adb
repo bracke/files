@@ -84,12 +84,26 @@ is
 
    Backend    : constant Trash_Backend := Trash_Backend_Of_Current_Environment;
    Macos_Home : constant Boolean := Backend = Trash_Macos_Home;
+   --  Move_To_Trash_Preflight, with a failure inside it a refusal as one
+   --  in the body would be.
+   function Checked_Preflight return Mutation_Result is
+   begin
+      return Move_To_Trash_Preflight (Path);
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
+         return (Success => False, Error_Key => Files.Io_Errors.Error_Key ("error.trash.failed"));
+   end Checked_Preflight;
+
+   --  Whether the request may go ahead at all, checked once: the body
+   --  returns this refusal before anything is moved.
+   Preflight  : constant Mutation_Result := Checked_Preflight;
    --  An item on another volume goes to that volume's own trash: a rename,
    --  not a copy of everything into home.
    Volume     : constant String :=
-     --  Only for an item the preflight below accepts: choosing a volume's
-     --  trash makes it there, which a refused request must not do.
-     (if Backend in Trash_Xdg_Data_Home | Trash_Home_Data and then Move_To_Trash_Preflight (Path).Success
+     --  Only for an item the preflight accepts: choosing a volume's trash
+     --  makes it there, which a refused request must not do.
+     (if Backend in Trash_Xdg_Data_Home | Trash_Home_Data and then Preflight.Success
       then Volume_Trash_For (Path)
       else "");
    Base       : constant String := (if Volume /= "" then Volume else Trash_Base_Path);
@@ -138,13 +152,9 @@ is
 begin
    Files.Io_Errors.Reset;
    Trashed_Path := Null_Unbounded_String;
-   declare
-      Preflight : constant Mutation_Result := Move_To_Trash_Preflight (Path);
-   begin
-      if not Preflight.Success then
-         return Preflight;
-      end if;
-   end;
+   if not Preflight.Success then
+      return Preflight;
+   end if;
 
    --  The Recycle Bin says where the item went -- its $R path, beside the $I
    --  record of where it came from -- so that is the trashed path, and Undo

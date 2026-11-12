@@ -14,7 +14,6 @@ separate (Files_Suite.Interaction)
             Settings_Path     => "",
             Key               => Guikit.Input.Key_Space,
             Modifiers         => No_Mod,
-            Current_Font_Size => Base_Font,
             Result            => Result);
       end Press_Space;
    begin
@@ -48,7 +47,6 @@ separate (Files_Suite.Interaction)
             Settings_Path     => "",
             Key               => Guikit.Input.Key_Escape,
             Modifiers         => No_Mod,
-            Current_Font_Size => Base_Font,
             Result            => Result);
          Assert (not Files.Model.Quick_Look_Is_Open (Model), "Escape closes Quick Look");
       end;

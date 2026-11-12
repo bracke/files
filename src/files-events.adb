@@ -79,6 +79,34 @@ package body Files.Events is
          others             => <>);
    end Scroll_Drag_Begin_Action;
 
+   --  The exact scroll adjustment for one paged step (a wheel notch or a
+   --  scrollbar track click) of a region whose offset is bounded by Maximum.
+   --  Raw can exceed Maximum after a resize; the adjustment folds that stale
+   --  excess in, so a step can neither preserve nor be consumed by an
+   --  invisible part of an old, smaller viewport.
+   --
+   --  @param Raw Region's stored scroll offset, possibly stale.
+   --  @param Maximum Largest offset the region can take now.
+   --  @param Step Offset units one step moves.
+   --  @param Up True to step towards the top, False towards the bottom.
+   --  @return Signed adjustment to apply to Raw; zero when nothing moves.
+   function Paged_Adjustment
+     (Raw     : Natural;
+      Maximum : Natural;
+      Step    : Natural;
+      Up      : Boolean)
+      return Integer
+   is
+      Current   : constant Natural := Natural'Min (Raw, Maximum);
+      Requested : constant Natural :=
+        (if Up
+         then (if Step >= Current then 0 else Current - Step)
+         elsif Step >= Maximum - Current then Maximum
+         else Current + Step);
+   begin
+      return Integer (Requested) - Integer (Raw);
+   end Paged_Adjustment;
+
    --  Build a details-header column-resize drag-begin action: the target
    --  column, the separator's x edge, and the column's width at drag start.
    --  The desktop shell owns the continuous drag, mirroring the scrollbar drag.

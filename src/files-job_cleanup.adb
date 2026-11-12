@@ -1,3 +1,4 @@
+with Files.Protocol_Names;
 with Files.Diagnostics;
 with Files.Fs_Primitives;
 
@@ -18,7 +19,7 @@ package body Files.Job_Cleanup is
       Discard_Unreadable_On_Last_Attempt : Boolean := True)
       return Cleanup_Outcome
    is
-      Stages      : constant String := Hostkit.Fs.Join (Directory, "stages");
+      Stages      : constant String := Hostkit.Fs.Join (Directory, Files.Protocol_Names.Stages_Directory);
       Retry_Delay : Duration := Duration'Max (0.0, Initial_Retry_Delay);
       Delay_Limit : constant Duration := Duration'Max (Retry_Delay, Maximum_Retry_Delay);
       Claim       : Files.Job_Transports.Lease;

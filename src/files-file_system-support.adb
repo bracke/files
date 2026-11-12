@@ -1337,16 +1337,6 @@ package body Files.File_System.Support is
       Save_Links (Batch, Walk.Copied_Files, Destination_Path, Destination_Path);
    end Copy_Tree;
 
-   procedure Delete_Tree (Path : String) is
-   begin
-      --  Descriptor-relative and never following a link, on every host built
-      --  for. A host without it (Tree_Delete_Unsupported) refuses rather than
-      --  fall back to a pathname walk that a swapped-in link could redirect.
-      if Hostkit.Fs."/=" (Hostkit.Fs.Delete_Tree_No_Follow (Path), Hostkit.Fs.Tree_Deleted) then
-         raise Ada.Directories.Use_Error;
-      end if;
-   end Delete_Tree;
-
    procedure Delete_Owned_Tree (Path : String) is
       procedure Delete_Owned_Level (Path : String);
 
@@ -1372,7 +1362,7 @@ package body Files.File_System.Support is
          end Delete_Entry;
       begin
          if Hostkit.Fs.Is_Link (Path) or else Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Directory then
-            Delete_Tree (Path);
+            Files.Fs_Primitives.Delete_Tree (Path);
             return;
          end if;
          if Hostkit.Metadata.Mode_Bits_Are_Native then

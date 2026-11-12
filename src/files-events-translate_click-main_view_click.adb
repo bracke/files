@@ -1,7 +1,9 @@
 separate (Files.Events.Translate_Click)
 --  The main view: details header, items, and the empty-space marquee.
 procedure Main_View_Click (Handled : out Boolean; Result : out Input_Action) is
-   Row : Natural := 0;
+   Item_Layout : constant Files.Rendering.Item_Layout_Vectors.Vector :=
+     Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
+   Row         : Natural := 0;
 begin
    Handled := True;
    --  A press on a header separator begins a column resize and takes

@@ -17,8 +17,7 @@ separate (Files.Rendering)
       Current     : constant String := To_String (Snapshot.Current_Path);
       Count       : constant Natural := Natural (Snapshot.Tree_Rows.Length);
       Capacity    : constant Natural := Tree_Row_Capacity (Snapshot, Layout);
-      Max_First   : constant Natural :=
-        (if Count > Capacity then Count - Capacity else 0);
+      Max_First   : constant Natural := Tree_Max_Scroll (Snapshot, Layout);
       First_Row   : constant Natural :=
         Natural'Min (Snapshot.Tree_Panel_Scroll_Rows, Max_First);
    begin

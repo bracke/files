@@ -83,11 +83,13 @@ separate (Files.Application.Windows.Smoke)
 
          when Scenario_Settings_Light =>
             Runtime.Settings.Theme := Files.Settings.Theme_Light;
+            Files.Model.Note_Settings_Changed (Runtime.Model);
             Files.Model.Begin_Settings_Edit
               (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
 
          when Scenario_Settings_Large_Font =>
             Runtime.Settings.Font_Pixel_Size := Large_Font;
+            Files.Model.Note_Settings_Changed (Runtime.Model);
             Runtime.Font_Pixel_Size := Scaled_Font_Size (Runtime);
             Files.Model.Begin_Settings_Edit
               (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
@@ -107,11 +109,13 @@ separate (Files.Application.Windows.Smoke)
             begin
                --  In framebuffer pixels, as everywhere: a 2x runner draws it twice as big.
                Runtime.Settings.Font_Pixel_Size := Target;
+               Files.Model.Note_Settings_Changed (Runtime.Model);
                Runtime.Font_Pixel_Size := Scaled_Font_Size (Runtime);
             end;
 
          when Scenario_Light_Theme =>
             Runtime.Settings.Theme := Files.Settings.Theme_Light;
+            Files.Model.Note_Settings_Changed (Runtime.Model);
 
          when Scenario_Details_View =>
             --  Render the details layout, unless the startup already uses it

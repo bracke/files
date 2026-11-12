@@ -832,7 +832,7 @@ package body Files.File_System.Recovery is
                   return Put_Back;
                end if;
                begin
-                  Delete_Tree (To_String (Stage));
+                  Files.Fs_Primitives.Delete_Tree (To_String (Stage));
                exception
                   when Swallowed : others =>
                      Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");

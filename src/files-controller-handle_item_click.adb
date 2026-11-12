@@ -23,31 +23,14 @@ separate (Files.Controller)
 
       if Modifiers (Guikit.Input.Shift_Key) and then not Activate then
          declare
-            Old_Index : constant Natural := Files.Model.Selected_Index (Model);
-            Old_Count : constant Natural := Files.Model.Selected_Count (Model);
-            Anchor    : Natural := Old_Index;
-         begin
             --  Keep the anchor at the fixed opposite end of the current
             --  selection, so successive shift-clicks grow the range from where
             --  it began rather than from the moving cursor (which
             --  Select_Visible_Range left on the last click's target). Without
-            --  this a second shift-click shrinks the range. Mirrors the keyboard
-            --  shift+arrow path in Handle_Key.
-            if Old_Count > 1 then
-               declare
-                  First_Selected : Natural := 0;
-                  Last_Selected  : Natural := 0;
-               begin
-                  Files.Model.Selected_Visible_Bounds (Model, First_Selected, Last_Selected);
-
-                  if Old_Index = Last_Selected then
-                     Anchor := First_Selected;
-                  elsif Old_Index = First_Selected then
-                     Anchor := Last_Selected;
-                  end if;
-               end;
-            end if;
-
+            --  this a second shift-click shrinks the range. Shared with the
+            --  keyboard shift+arrow path in Handle_Key.
+            Anchor : constant Natural := Files.Model.Range_Anchor (Model);
+         begin
             Files.Model.Select_Visible_Range
               (Model,
                Positive ((if Anchor = 0 then Visible_Index else Anchor)),

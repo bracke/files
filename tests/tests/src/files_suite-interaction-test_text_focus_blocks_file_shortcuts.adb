@@ -24,11 +24,11 @@ separate (Files_Suite.Interaction)
             Files.Model.Focus_Path_Input (Model);
          end if;
          Files.Interaction.Handle_Key
-           (Model, Settings, "", Guikit.Input.Key_Delete, Shift, Base_Font, Result);
+           (Model, Settings, "", Guikit.Input.Key_Delete, Shift, Result);
          Assert (Ada.Directories.Exists (Victim),
                  "Shift+Delete in a focused text field does not delete the selection");
          Files.Interaction.Handle_Key
-           (Model, Settings, "", Guikit.Input.Key_A, Ctrl, Base_Font, Result);
+           (Model, Settings, "", Guikit.Input.Key_A, Ctrl, Result);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Selected_Count (Model),
             1,
@@ -37,7 +37,7 @@ separate (Files_Suite.Interaction)
       end loop;
 
       Files.Interaction.Handle_Key
-        (Model, Settings, "", Guikit.Input.Key_A, Ctrl, Base_Font, Result);
+        (Model, Settings, "", Guikit.Input.Key_A, Ctrl, Result);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selected_Count (Model),
          2,
@@ -46,7 +46,7 @@ separate (Files_Suite.Interaction)
       --  A settings-writing shortcut (Ctrl+B) is applied, not reported and dropped.
       Files_Suite.Support.Select_Name (Model, "keep.txt");
       Files.Interaction.Handle_Key
-        (Model, Settings, "", Guikit.Input.Key_B, Ctrl, Base_Font, Result);
+        (Model, Settings, "", Guikit.Input.Key_B, Ctrl, Result);
       Assert (Files.Settings.Is_Favorite (Settings, Ada.Directories.Full_Name (Victim)),
               "Ctrl+B favourites the selection through the keyboard path");
       Assert (Result.Settings_Changed and then Result.Clear_Pending_Text,
@@ -82,7 +82,7 @@ separate (Files_Suite.Interaction)
          --  Toggle_Hidden_Files saves before it applies, so it needs a real file.
          Files.Interaction.Handle_Key
            (Model, Settings, Files_Suite.Support.Join (Files_Suite.Support.Root, "palette-settings.conf"),
-            Guikit.Input.Key_Return, Guikit.Input.No_Modifiers, Base_Font, Result);
+            Guikit.Input.Key_Return, Guikit.Input.No_Modifiers, Result);
          Assert (Settings.Show_Hidden_Files /= Hidden_Before,
                  "Enter in the palette applies a settings command");
          Assert (not Files.Model.Command_Palette_Is_Open (Model), "the applied command closes the palette");

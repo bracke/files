@@ -25,7 +25,7 @@ separate (Files_Suite.Interaction)
                  (Kind => Files.Events.Command_Result_Click_Input_Action, Click_X => X, Click_Y => Y));
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
       end Click;
    begin
       Files_Suite.Support.Reset_Root;
@@ -34,7 +34,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Handle_Key
         (Model => Model, Settings => Settings, Settings_Path => Path,
          Key => Guikit.Input.Key_Comma, Modifiers => Ctrl,
-         Current_Font_Size => Base_Font, Result => Result);
+         Result => Result);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "Ctrl+, opens the settings panel");
       Files.Overlays.Build_Settings_Frame
         (Model => Model, Region => (X => 0, Y => 0, Width => 600, Height => 500,

@@ -39,7 +39,7 @@ separate (Files_Suite.Interaction)
             Files.Events.Path_Favorite_Toggle_Input_Action,
             "a click on the empty path star translates to the favorite-toggle action");
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
       end;
       Assert (Has_Favorite (Settings, Current), "clicking the empty star favorites the current directory");
       Assert (Result.Settings_Changed, "toggling the path star reports a settings change");
@@ -62,7 +62,7 @@ separate (Files_Suite.Interaction)
             Files.Events.Path_Favorite_Toggle_Input_Action,
             "a second click on the now-filled path star is still the favorite-toggle action");
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, Path, Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Settings, Path, Action, Guikit.Input.No_Modifiers, Result);
       end;
       Assert (not Has_Favorite (Settings, Current), "clicking the filled star unfavorites the current directory");
    end Test_Path_Star_Click_Toggles_Current_Dir;

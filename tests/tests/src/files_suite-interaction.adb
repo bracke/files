@@ -81,7 +81,6 @@ package body Files_Suite.Interaction is
    Window_W   : constant Natural  := 1000;
    Window_H   : constant Natural  := 800;
    Line       : constant Positive := 20;
-   Base_Font  : constant Positive := 16;
 
    Ctrl : constant Guikit.Input.Modifier_Set :=
      [Guikit.Input.Control_Key => True, others => False];
@@ -516,7 +515,6 @@ package body Files_Suite.Interaction is
          Settings          => Settings,
          Settings_Path     => "",
          Action            => Action,
-         Current_Font_Size => Base_Font,
          Modifiers         => Modifiers,
          Result            => Result);
    end Click;
@@ -589,7 +587,6 @@ package body Files_Suite.Interaction is
          Settings          => Settings,
          Settings_Path     => "",
          Action            => Action,
-         Current_Font_Size => Base_Font,
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
    end Scroll_Down_At;
@@ -791,7 +788,6 @@ package body Files_Suite.Interaction is
          Settings          => Settings,
          Settings_Path     => Settings_Path,
          Command           => Menu.Rows (Target_Row).Command,
-         Current_Font_Size => Base_Font,
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
    end Dispatch_Menu_Command;
@@ -846,7 +842,7 @@ package body Files_Suite.Interaction is
          Command => Command);
    begin
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+        (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
    end Dispatch_Command;
 
    procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -971,7 +967,7 @@ package body Files_Suite.Interaction is
       Result : Files.Interaction.Interaction_Result;
    begin
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+        (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
    end Open_Favorites_Selector;
 
    --  Click the open selector's row whose root path equals Target_Path, deriving
@@ -1032,7 +1028,7 @@ package body Files_Suite.Interaction is
                 (Snapshot, Frame, X, Y, Window_W, Window_H, Line_Height => Line);
          begin
             Files.Interaction.Apply_Input_Action
-              (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+              (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
          end;
       end;
    end Click_Root_Row;

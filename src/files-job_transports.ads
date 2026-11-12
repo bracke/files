@@ -19,6 +19,13 @@ package Files.Job_Transports is
       Claim_Unrecoverable,
       Claim_Error);
 
+   --  Whether Name is a transport folder's own name: the transport prefix
+   --  (Files.Protocol_Names.Transport_Prefix) and then 32 lower-case hex
+   --  digits. Only the leaf name; where the folder lies is not checked.
+   --  @param Name Leaf name of a directory.
+   --  @return True when Name has the exact form Create gives a transport.
+   function Is_Transport_Name (Name : String) return Boolean;
+
    --  Create an owner-only transport directly under the host temporary
    --  directory. A pre-creation witness covers the interval before its
    --  identity-bound ownership marker is published.

@@ -17,7 +17,6 @@ separate (Files_Suite.Interaction)
          Settings          => Settings,
          Settings_Path     => "",
          Command           => Files.Commands.Toggle_Settings_Pane_Command,
-         Current_Font_Size => Base_Font,
          Result            => Result);
       Assert (Files.Model.Settings_Pane_Is_Open (Model), "the settings pane is open");
       Files.Interaction.Handle_Key
@@ -26,7 +25,6 @@ separate (Files_Suite.Interaction)
          Settings_Path     => "",
          Key               => Guikit.Input.Key_H,
          Modifiers         => Ctrl,
-         Current_Font_Size => Base_Font,
          Result            => Result);
       Assert (Settings.Show_Hidden_Files, "the shortcut turns hidden files on");
       Files_Suite.Support.Assert_Equal

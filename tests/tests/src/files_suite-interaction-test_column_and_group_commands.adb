@@ -15,7 +15,6 @@ separate (Files_Suite.Interaction)
          Settings          => Settings,
          Settings_Path     => "",
          Command           => Files.Commands.Toggle_Column_Permissions_Command,
-         Current_Font_Size => Base_Font,
          Result            => Result);
       Assert (Settings.Column_Visible (Files.Types.Permissions_Column) /= Before,
               "the permissions-column command flips its visibility");
@@ -47,7 +46,6 @@ separate (Files_Suite.Interaction)
          Settings          => Settings,
          Settings_Path     => "",
          Command           => Files.Commands.Cycle_Group_By_Command,
-         Current_Font_Size => Base_Font,
          Result            => Result);
       Files_Suite.Support.Assert_Equal
         (Settings.Group_By,

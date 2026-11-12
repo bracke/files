@@ -45,7 +45,6 @@ separate (Files_Suite.Interaction)
          Settings          => Settings,
          Settings_Path     => "",
          Action            => Action,
-         Current_Font_Size => Base_Font,
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
       Assert (Files.Model.In_Recent_View (Model), "the reducer enters the recent view");
@@ -87,7 +86,6 @@ separate (Files_Suite.Interaction)
             Settings          => Settings,
             Settings_Path     => "",
             Action            => Clear_Action,
-            Current_Font_Size => Base_Font,
             Modifiers         => Guikit.Input.No_Modifiers,
             Result            => Result);
          Assert

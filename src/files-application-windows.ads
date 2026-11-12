@@ -357,9 +357,10 @@ private
       --  The accessibility nodes of the frame last shown, overlays included.
       Model           : Files.Model.Window_Model;
       Settings        : Files.Settings.Settings_Model;
-      --  Settings as of the last cross-window sync; a difference means this
-      --  window changed them since (see Sync_Settings_Across_Windows).
-      Synced_Settings : Files.Settings.Settings_Model;
+      --  The model's settings revision (Files.Model.Settings_Revision) as of
+      --  the last cross-window sync; a difference means this window changed
+      --  its settings since (see Sync_Settings_Across_Windows).
+      Synced_Settings_Revision : Natural := 0;
       Settings_Path   : Ada.Strings.Unbounded.Unbounded_String;
       Left_Mouse_Down : Boolean := False;
       Drag_Source_Index : Natural := 0;

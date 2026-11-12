@@ -33,12 +33,12 @@ separate (Files_Suite.Interaction)
          3,
          "all three files are selected before labeling");
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Open_Cmd, Base_Font, Guikit.Input.No_Modifiers, Result);
+        (Model, Settings, "", Open_Cmd, Guikit.Input.No_Modifiers, Result);
       Assert (Files.Model.Label_Picker_Is_Open (Model), "the set-label command opens the picker");
 
       --  Choosing a color labels every selected item and closes the picker.
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Choose (Files.Types.Green), Base_Font, Guikit.Input.No_Modifiers, Result);
+        (Model, Settings, "", Choose (Files.Types.Green), Guikit.Input.No_Modifiers, Result);
       Assert (not Files.Model.Label_Picker_Is_Open (Model), "choosing a swatch closes the picker");
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Label_Of (Settings, One),
@@ -57,7 +57,7 @@ separate (Files_Suite.Interaction)
       --  A delayed choice from the closed picker is inert. In particular, it
       --  must not relabel the selection if another event was already queued.
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Choose (Files.Types.Red), Base_Font,
+        (Model, Settings, "", Choose (Files.Types.Red),
          Guikit.Input.No_Modifiers, Result);
       Assert (not Files.Model.Label_Picker_Is_Open (Model),
               "a stale choice does not reopen the picker");
@@ -69,7 +69,7 @@ separate (Files_Suite.Interaction)
       --  Choosing None clears every selected item's label.
       Files.Model.Open_Label_Picker (Model);
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Choose (Files.Types.No_Label), Base_Font, Guikit.Input.No_Modifiers, Result);
+        (Model, Settings, "", Choose (Files.Types.No_Label), Guikit.Input.No_Modifiers, Result);
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Label_Of (Settings, One),
          Files.Types.No_Label,
@@ -88,7 +88,7 @@ separate (Files_Suite.Interaction)
       Files.Settings.Set_Label (Settings, Two, Files.Types.Red);
       Files.Model.Open_Label_Picker (Model);
       Files.Interaction.Apply_Input_Action
-        (Model, Settings, "", Choose (Files.Types.Blue), Base_Font, Guikit.Input.No_Modifiers, Result);
+        (Model, Settings, "", Choose (Files.Types.Blue), Guikit.Input.No_Modifiers, Result);
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Label_Of (Settings, One),
          Files.Types.Blue,

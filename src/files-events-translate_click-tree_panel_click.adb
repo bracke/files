@@ -1,6 +1,21 @@
 separate (Files.Events.Translate_Click)
 --  The folder-tree panel: its close button, rows, scrollbar and pick bar.
 procedure Tree_Panel_Click (Handled : out Boolean; Result : out Input_Action) is
+   Tree_Panel_L : constant Files.Rendering.Tree_Panel_Layout :=
+     Files.Rendering.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line_Height);
+
+   --  A press on the tree scrollbar: on the thumb it begins a drag, on the
+   --  track it pages by one panel of rows towards the press. The bar shows
+   --  only while more rows than fit (and at least one fits), so a page is
+   --  never empty.
+   function Tree_Scroll_Click return Input_Action is
+     (Scroll_Click
+        (Target       => Scroll_Tree_Panel,
+         Thumb_Y      => Tree_Panel_L.Scrollbar_Thumb_Y,
+         Thumb_Height => Tree_Panel_L.Scrollbar_Height,
+         Step         => Files.Rendering.Tree_Row_Capacity (Snapshot, Tree_Panel_L),
+         Raw          => Snapshot.Tree_Panel_Scroll_Rows,
+         Maximum      => Files.Rendering.Tree_Max_Scroll (Snapshot, Tree_Panel_L)));
 begin
    Handled := True;
    if Snapshot.Tree_Panel_Open then
@@ -44,13 +59,21 @@ begin
             end if;
          end;
       end if;
-      if Tree_Triangle_Index /= 0 then
-         Result := Tree_Action (Tree_Triangle_Index, Toggle => True);
-         return;
-      elsif Tree_Node_Index /= 0 then
-         Result := Tree_Action (Tree_Node_Index, Toggle => False);
-         return;
-      elsif Within (X, Tree_Panel_L.X, Tree_Panel_L.Width)
+      declare
+         Tree_Rows_L         : constant Files.Rendering.Tree_Row_Layout_Vectors.Vector :=
+           Files.Rendering.Calculate_Tree_Row_Layout (Snapshot, Tree_Panel_L, Line_Height);
+         Tree_Triangle_Index : constant Natural := Files.Rendering.Hit.Tree_Triangle_At (Tree_Rows_L, X, Y);
+         Tree_Node_Index     : constant Natural := Files.Rendering.Hit.Tree_Row_At (Tree_Rows_L, X, Y);
+      begin
+         if Tree_Triangle_Index /= 0 then
+            Result := Tree_Action (Tree_Triangle_Index, Toggle => True);
+            return;
+         elsif Tree_Node_Index /= 0 then
+            Result := Tree_Action (Tree_Node_Index, Toggle => False);
+            return;
+         end if;
+      end;
+      if Within (X, Tree_Panel_L.X, Tree_Panel_L.Width)
         and then Within (Y, Tree_Panel_L.Y, Tree_Panel_L.Height)
       then
          --  Consume clicks on the tree panel chrome so they do not fall

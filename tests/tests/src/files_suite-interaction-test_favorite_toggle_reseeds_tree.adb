@@ -13,7 +13,7 @@ separate (Files_Suite.Interaction)
       begin
          Files.Interaction.Apply_Input_Action
            (Model, Settings, Path, (Kind => Files.Events.Command_Input_Action, Command => Command),
-            Base_Font, Guikit.Input.No_Modifiers, Result);
+            Guikit.Input.No_Modifiers, Result);
       end Run;
 
       function Tree_Has_Root (Root : String) return Boolean is

@@ -1,3 +1,4 @@
+with Files.Protocol_Names;
 with Files.Helper_Modes;
 with Files.Diagnostics;
 with Files.Timing;
@@ -254,7 +255,7 @@ package body Files.Process_Jobs is
 
    procedure Dispose (Item : in out State_Access) is
       Arguments : Hostkit.String_Vectors.Vector;
-      Stages : constant String := Hostkit.Fs.Join (To_String (Item.Directory), "stages");
+      Stages : constant String := Hostkit.Fs.Join (To_String (Item.Directory), Files.Protocol_Names.Stages_Directory);
 
       function Transport_Gone return Boolean is
       begin
@@ -613,7 +614,7 @@ package body Files.Process_Jobs is
 
    procedure Cancel (Job : Session) is
       Marker : Hostkit.Lease_Files.Lease;
-      Marker_Path : constant String := Path (Job, "cancel");
+      Marker_Path : constant String := Path (Job, Files.Protocol_Names.Cancel_File);
       Outcome : Hostkit.Lease_Files.Open_Outcome;
    begin
       if Job.Shared /= null and then not Job.Shared.Cancelled then
@@ -698,5 +699,5 @@ package body Files.Process_Jobs is
 
    function Cancellation_Requested (Directory : String) return Boolean is
      (Directory /= ""
-      and then Valid_Cancellation_Marker (Hostkit.Fs.Join (Directory, "cancel")));
+      and then Valid_Cancellation_Marker (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Cancel_File)));
 end Files.Process_Jobs;

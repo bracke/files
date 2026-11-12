@@ -649,51 +649,31 @@ package body Files.Localization is
    function Uncached_Text
      (Key              : String;
       Effective_Locale : String)
-      return String is
+      return String
+   is
+      Rendered : constant String := Render_Text (Key, Effective_Locale);
    begin
-      declare
-         Rendered : constant String := Render_Text (Key, Effective_Locale);
-      begin
-         for Index in Effective_Locale'Range loop
-            if Effective_Locale (Index) = '-' then
-               declare
-                  Language : constant String := Effective_Locale (Effective_Locale'First .. Index - 1);
-                  Default_Rendered : constant String := Render_Text (Key, "en");
-                  Language_Rendered : constant String := Render_Text (Key, Language);
-               begin
-                  if Language_Rendered /= Key
-                    and then Language_Rendered /= Default_Rendered
-                    and then (Rendered = Key or else Rendered = Default_Rendered)
-                  then
-                     return Language_Rendered;
-                  end if;
-               end;
-
-               exit;
-            end if;
-         end loop;
-
-         if Rendered /= Key then
-            return Rendered;
-         end if;
-      end;
-
       for Index in Effective_Locale'Range loop
          if Effective_Locale (Index) = '-' then
             declare
                Language_Rendered : constant String :=
                  Render_Text (Key, Effective_Locale (Effective_Locale'First .. Index - 1));
             begin
-               if Language_Rendered /= Key then
+               --  The language has no message: the regional one, or Key.
+               if Language_Rendered = Key then
+                  return Rendered;
+               --  No regional message, or the same as the language's.
+               elsif Rendered = Key or else Rendered = Language_Rendered then
                   return Language_Rendered;
                end if;
+               --  Both differ: the regional one, unless it is only the "en"
+               --  default standing in for a message the language has.
+               return (if Rendered = Render_Text (Key, "en") then Language_Rendered else Rendered);
             end;
-
-            exit;
          end if;
       end loop;
 
-      return Key;
+      return Rendered;
    end Uncached_Text;
 
    function Render_Text

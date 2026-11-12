@@ -108,7 +108,7 @@ separate (Files_Suite.Interaction)
          Files.Model.Set_Context_Menu_Highlight (Model, Copy_To_Row);
          Files.Interaction.Handle_Key
            (Model, Settings, "", Guikit.Input.Key_Return,
-            Guikit.Input.No_Modifiers, Base_Font, Result);
+            Guikit.Input.No_Modifiers, Result);
       end;
       Assert
         (not Files.Model.Context_Menu_Is_Open (Model),

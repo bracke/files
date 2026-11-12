@@ -315,7 +315,7 @@ separate (Files.Application.Windows.Smoke)
                Runtime.Last_Click_Item := 0;
                Runtime.Last_Click_Path := Null_Unbounded_String;
                Files.Model.Replace_Items (Runtime.Model, Scenario_Overflow_Items (Runtime.Model));
-               Files.Fs_Primitives.Delete_Tree (Base);
+               Files.Fs_Primitives.Delete_Tree_If_Present (Base);
             end if;
          end;
       end;

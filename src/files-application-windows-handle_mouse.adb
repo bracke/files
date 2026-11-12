@@ -100,7 +100,6 @@ separate (Files.Application.Windows)
                      Settings          => Runtime.Settings,
                      Settings_Path     => To_String (Runtime.Settings_Path),
                      Command           => Command,
-                     Current_Font_Size => Runtime.Settings.Font_Pixel_Size,
                      Modifiers         => Modifiers,
                      Result            => Result);
                   Apply_Interaction_Result (Runtime, Result);

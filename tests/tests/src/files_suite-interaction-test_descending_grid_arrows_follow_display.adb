@@ -28,7 +28,7 @@ separate (Files_Suite.Interaction)
             Command => Files.Commands.Sort_By_Name_Command);
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       end;
       Assert (not Files.Model.Sort_Is_Ascending (Model), "sort toggled to descending");
       --  Reload the directory while descending is active -- the common browsing
@@ -47,13 +47,13 @@ separate (Files_Suite.Interaction)
          Start_Pos : constant Natural := Display_Position_Of ("c.txt");
       begin
          Files.Interaction.Handle_Key
-           (Model, Settings, "", Guikit.Input.Key_Down, Guikit.Input.No_Modifiers, Base_Font, Result);
+           (Model, Settings, "", Guikit.Input.Key_Down, Guikit.Input.No_Modifiers, Result);
          Files_Suite.Support.Assert_Equal
            (Display_Position_Of (Files.Model.Selected_Name (Model)),
             Start_Pos + 2,
             "grid Down moves down a row (not up) under descending sort");
          Files.Interaction.Handle_Key
-           (Model, Settings, "", Guikit.Input.Key_Up, Guikit.Input.No_Modifiers, Base_Font, Result);
+           (Model, Settings, "", Guikit.Input.Key_Up, Guikit.Input.No_Modifiers, Result);
          Files_Suite.Support.Assert_Equal
            (Display_Position_Of (Files.Model.Selected_Name (Model)),
             Start_Pos,

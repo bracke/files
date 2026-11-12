@@ -255,7 +255,7 @@ package body Files.Application.Windows.Smoke is
    begin
       Runtime.Model := Base.Model;
       Runtime.Settings := Base.Settings;
-      Runtime.Synced_Settings := Base.Settings;
+      Runtime.Synced_Settings_Revision := Files.Model.Settings_Revision (Runtime.Model);
       Runtime.Font_Pixel_Size := Base.Font;
       Runtime.Text_Ready := False;
       Runtime.Glyph_Text_Valid := False;

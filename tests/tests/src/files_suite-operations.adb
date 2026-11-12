@@ -2007,7 +2007,6 @@ package body Files_Suite.Operations is
          Settings          => Settings,
          Settings_Path     => "",
          Action            => (Kind => Files.Events.Tree_Pick_Confirm_Input_Action),
-         Current_Font_Size => 16,
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => IR);
    end Confirm_Pick;

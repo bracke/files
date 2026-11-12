@@ -233,7 +233,7 @@ separate (Files_Suite.Operations)
                  "the deep tree is deleted permanently");
       exception
          when others =>
-            Files.Fs_Primitives.Delete_Tree (Top);
+            Files.Fs_Primitives.Delete_Tree_If_Present (Top);
             raise;
       end Check;
    begin

@@ -27,44 +27,22 @@ separate (Files.Events)
          Extent : Natural)
          return Boolean renames Guikit.Layout.Within;
 
-      function Maximum_Line_Offset
-        (Content_Height  : Natural;
-         Viewport_Height : Natural;
-         Scrollbar_Shown : Boolean)
-         return Natural is
-        (if Scrollbar_Shown
-         then Files.Rendering.Max_Scroll_Lines (Content_Height, Viewport_Height, Line_Height)
-         else 0);
-
+      --  One wheel step of a region bounded by Maximum, folding any stale
+      --  offset beyond Maximum (after the window grows) into the event so the
+      --  next step is never consumed by an invisible part of an old viewport.
       function Bounded_Scroll_Action
         (Target  : Scroll_Target;
          Raw     : Natural;
          Maximum : Natural)
          return Input_Action
       is
-         Current   : constant Natural := Natural'Min (Raw, Maximum);
-         Step      : Natural;
-         Requested : Natural;
-         Adjustment : Integer;
+         Up         : constant Boolean := Action.Scroll_Lines < 0;
+         Step       : constant Natural :=
+           (if not Up then Natural (Action.Scroll_Lines)
+            elsif Action.Scroll_Lines = Integer'First then Natural'Last
+            else Natural (-Action.Scroll_Lines));
+         Adjustment : constant Integer := Paged_Adjustment (Raw, Maximum, Step, Up);
       begin
-         if Action.Scroll_Lines < 0 then
-            Step :=
-              (if Action.Scroll_Lines = Integer'First
-               then Natural'Last
-               else Natural (-Action.Scroll_Lines));
-            Requested := (if Step >= Current then 0 else Current - Step);
-         else
-            Step := Natural (Action.Scroll_Lines);
-            Requested :=
-              (if Step >= Maximum - Current
-               then Maximum
-               else Current + Step);
-         end if;
-
-         --  Raw can exceed Maximum after the window grows. Fold that stale
-         --  offset into this event so the next wheel step is never consumed by
-         --  an invisible part of the old, smaller viewport.
-         Adjustment := Integer (Requested) - Integer (Raw);
          if Adjustment = 0 then
             return No_Action;
          end if;
@@ -77,8 +55,6 @@ separate (Files.Events)
          Count    : constant Natural := Natural (Snapshot.Tree_Rows.Length);
          Capacity : constant Natural :=
            Files.Rendering.Tree_Row_Capacity (Snapshot, Tree);
-         Maximum  : constant Natural :=
-           (if Count > Capacity then Count - Capacity else 0);
       begin
          if Count = 0 or else Capacity = 0 then
             return No_Action;
@@ -88,7 +64,7 @@ separate (Files.Events)
            Bounded_Scroll_Action
              (Scroll_Tree_Panel,
               Snapshot.Tree_Panel_Scroll_Rows,
-              Maximum);
+              Files.Rendering.Tree_Max_Scroll (Snapshot, Tree));
       end Tree_Scroll_Action;
 
       --  These overlays own pointer input but do not currently expose a
@@ -165,8 +141,7 @@ separate (Files.Events)
            Bounded_Scroll_Action
              (Scroll_Info_Pane,
               Snapshot.Info_Pane_Scroll_Lines,
-              Maximum_Line_Offset
-                (Info.Content_Height, Info.Height, Info.Scrollbar_Visible));
+              Files.Rendering.Info_Pane_Max_Scroll (Info, Line_Height));
       end if;
 
       if Within (X, Layout.Main_X, Layout.Main_Width)
@@ -176,10 +151,7 @@ separate (Files.Events)
            Bounded_Scroll_Action
              (Scroll_Main_View,
               Snapshot.Main_View_Scroll_Lines,
-              Maximum_Line_Offset
-                (Main.Content_Height,
-                 Main.Scrollbar_Track_Height,
-                 Main.Scrollbar_Visible));
+              Files.Rendering.Main_View_Max_Scroll (Main, Line_Height));
       end if;
 
       return No_Action;

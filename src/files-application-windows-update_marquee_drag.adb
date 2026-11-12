@@ -78,12 +78,7 @@ separate (Files.Application.Windows)
          --  as they move off screen. Nothing to do when it all fits (no bar).
          if Main_View.Scrollbar_Visible then
             declare
-               Viewport_H : constant Natural := Main_View.Scrollbar_Track_Height;
-               Content_H  : constant Natural := Main_View.Content_Height;
-               Max_Lines  : constant Natural :=
-                 (if Content_H > Viewport_H
-                  then (Content_H - Viewport_H + Line_Height - 1) / Line_Height
-                  else 0);
+               Max_Lines  : constant Natural := Files.Rendering.Main_View_Max_Scroll (Main_View, Line_Height);
                Current    : constant Natural := Files.Model.Main_View_Scroll_Lines (Runtime.Model);
                Old_Px     : constant Natural := Main_View.Scroll_Pixels;
                Step       : constant Integer :=

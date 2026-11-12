@@ -13,10 +13,8 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
            Guikit.Layout.Filter_Input_Field_Width (Toolbar, Scope_Chip_W, Line_Height);
          Scope_Chip : constant Guikit.Layout.Scope_Chip_Region :=
            Guikit.Layout.Filter_Scope_Chip_Region_Of (Toolbar, Scope_Chip_W, Line_Height);
-         Filter_Text_W : constant Natural :=
-           (if Filter_W > 2 * Files.UI.Field_Padding (Line_Height)
-            then Filter_W - 2 * Files.UI.Field_Padding (Line_Height)
-            else 0);
+         Text_Region   : constant Field_Text_Region := Filter_Field_Text_Region (Toolbar, Line_Height);
+         Filter_Text_W : constant Natural := Text_Region.Width;
          Filter_Raw    : constant String := To_String (Snapshot.Filter_Text);
          Filter_Skip   : constant Natural :=
            (if Snapshot.Focus = Files.Types.Focus_Filter_Input
@@ -42,7 +40,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
             Input_Color,
             Border_Color);
          Add_Text
-           (Saturating_Add (Filter_X, Files.UI.Field_Padding (Line_Height)),
+           (Text_Region.X,
             Toolbar_Input_Text_Y,
             Filter_Text_W,
             Toolbar_Input_Text_H,

@@ -46,7 +46,6 @@ package Files.Interaction is
    --  @param Settings Live settings model, updated in place when the command persists state.
    --  @param Settings_Path Central settings file path (empty disables persistence).
    --  @param Command Command identifier to execute.
-   --  @param Current_Font_Size Live font pixel size, used to detect a saved font-size change.
    --  @param Modifiers Active modifier keys.
    --  @param Result Follow-up flags describing what the command did.
    procedure Execute_Command
@@ -54,7 +53,6 @@ package Files.Interaction is
       Settings          : in out Files.Settings.Settings_Model;
       Settings_Path     : String;
       Command           : Files.Commands.Command_Id;
-      Current_Font_Size : Positive;
       Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result            : out Interaction_Result);
 
@@ -69,7 +67,6 @@ package Files.Interaction is
    --  @param Settings_Path Central settings file path (empty disables persistence).
    --  @param Key Key code that was pressed.
    --  @param Modifiers Active modifier keys.
-   --  @param Current_Font_Size Live font pixel size, used to detect a saved font-size change.
    --  @param Result Follow-up flags describing what the key dispatch did.
    --  @param Tree_Page_Rows Folder-tree rows visible in the live viewport, or
    --    zero when geometry is unavailable.
@@ -79,7 +76,6 @@ package Files.Interaction is
       Settings_Path     : String;
       Key               : Guikit.Input.Key_Code;
       Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Current_Font_Size : Positive;
       Result            : out Interaction_Result;
       Tree_Page_Rows    : Natural := 0);
 
@@ -93,7 +89,6 @@ package Files.Interaction is
    --  @param Settings Live settings model, updated in place when an action persists state.
    --  @param Settings_Path Central settings file path (empty disables persistence).
    --  @param Action Translated input action to apply.
-   --  @param Current_Font_Size Live font pixel size, used to detect a saved font-size change.
    --  @param Modifiers Active modifier keys.
    --  @param Result Follow-up flags describing what the action did.
    procedure Apply_Input_Action
@@ -101,7 +96,6 @@ package Files.Interaction is
       Settings          : in out Files.Settings.Settings_Model;
       Settings_Path     : String;
       Action            : Files.Events.Input_Action;
-      Current_Font_Size : Positive;
       Modifiers         : Guikit.Input.Modifier_Set;
       Result            : out Interaction_Result);
 
@@ -112,7 +106,6 @@ package Files.Interaction is
    --  @param Settings Live settings model, updated in place when the command persists state.
    --  @param Settings_Path Central settings file path (empty disables persistence).
    --  @param Command Resolved menu-row command, or No_Command when the click missed a row.
-   --  @param Current_Font_Size Live font pixel size, used to detect a saved font-size change.
    --  @param Modifiers Active modifier keys.
    --  @param Result Follow-up flags describing what the command did.
    procedure Apply_Context_Menu_Command
@@ -120,7 +113,6 @@ package Files.Interaction is
       Settings          : in out Files.Settings.Settings_Model;
       Settings_Path     : String;
       Command           : Files.Commands.Command_Id;
-      Current_Font_Size : Positive;
       Modifiers         : Guikit.Input.Modifier_Set;
       Result            : out Interaction_Result);
 

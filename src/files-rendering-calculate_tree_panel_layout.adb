@@ -26,8 +26,7 @@ separate (Files.Rendering)
          Track_H  : constant Natural := Tree_Content_Height (Snapshot, Base);
          Capacity : constant Natural := Tree_Row_Capacity (Snapshot, Base);
          Count    : constant Natural := Natural (Snapshot.Tree_Rows.Length);
-         Maximum  : constant Natural :=
-           (if Count > Capacity then Count - Capacity else 0);
+         Maximum  : constant Natural := Tree_Max_Scroll (Snapshot, Base);
          Scroll   : constant Natural :=
            Natural'Min (Snapshot.Tree_Panel_Scroll_Rows, Maximum);
          Bar_W    : constant Natural := Natural'Min (Scrollbar_Width (Layout), Base.Width);

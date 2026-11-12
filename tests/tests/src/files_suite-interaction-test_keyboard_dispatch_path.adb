@@ -25,7 +25,6 @@ separate (Files_Suite.Interaction)
             Settings_Path     => "",
             Key               => Guikit.Input.Key_3,
             Modifiers         => Ctrl,
-            Current_Font_Size => Base_Font,
             Result            => Result);
          Files_Suite.Support.Assert_Equal
            (Result.Command,
@@ -56,7 +55,6 @@ separate (Files_Suite.Interaction)
             Settings_Path     => Path,
             Key               => Guikit.Input.Key_Comma,
             Modifiers         => Ctrl,
-            Current_Font_Size => Base_Font,
             Result            => Result);
          Assert
            (Files.Model.Settings_Pane_Is_Open (Model),
@@ -67,7 +65,6 @@ separate (Files_Suite.Interaction)
             Settings_Path     => Path,
             Key               => Guikit.Input.Key_S,
             Modifiers         => Ctrl,
-            Current_Font_Size => Base_Font,
             Result            => Result);
          Files_Suite.Support.Assert_Equal
            (Result.Command,
@@ -102,7 +99,6 @@ separate (Files_Suite.Interaction)
             Settings_Path     => "",
             Key               => Guikit.Input.Key_4,
             Modifiers         => Ctrl,
-            Current_Font_Size => Base_Font,
             Result            => Result);
          Files_Suite.Support.Assert_Equal
            (Result.Command,
@@ -137,7 +133,6 @@ separate (Files_Suite.Interaction)
             Settings_Path     => "",
             Key               => Guikit.Input.Key_Up,
             Modifiers         => Alt,
-            Current_Font_Size => Base_Font,
             Result            => Result);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Current_Path (Model),

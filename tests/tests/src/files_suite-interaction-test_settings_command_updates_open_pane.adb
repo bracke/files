@@ -13,7 +13,6 @@ separate (Files_Suite.Interaction)
             Settings          => Settings,
             Settings_Path     => "",
             Command           => Command,
-            Current_Font_Size => Base_Font,
             Result            => Result);
       end Run;
 

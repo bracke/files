@@ -1035,6 +1035,39 @@ package Files.Rendering is
       Line_Height : Positive)
       return Natural;
 
+   --  Horizontal extent of the text inside a toolbar input field: where the
+   --  first character is drawn and how wide the text may run.
+   type Field_Text_Region is record
+      X     : Natural := 0;
+      Width : Natural := 0;
+   end record;
+
+   --  Text extent of the path field, after its margin, padding and the
+   --  favorite star's reserve. Drawing and click-to-caret mapping both use it
+   --  so a click lands the caret on the character drawn under it.
+   --
+   --  @param Toolbar Toolbar section layout.
+   --  @param Width Window width in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Path text start and width in pixels.
+   function Path_Field_Text_Region
+     (Toolbar     : Guikit.Layout.Toolbar_Layout;
+      Width       : Natural;
+      Line_Height : Positive)
+      return Field_Text_Region;
+
+   --  Text extent of the filter field, after its margin and padding and
+   --  ending before the search-scope chip. Drawing and click-to-caret mapping
+   --  both use it.
+   --
+   --  @param Toolbar Toolbar section layout.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Filter text start and width in pixels.
+   function Filter_Field_Text_Region
+     (Toolbar     : Guikit.Layout.Toolbar_Layout;
+      Line_Height : Positive)
+      return Field_Text_Region;
+
    --  Calculate the folder-tree sidebar panel rectangle.
    --
    --  @param Snapshot View snapshot containing tree state.
@@ -1074,6 +1107,40 @@ package Files.Rendering is
       return Natural is
      (if Content_Height <= Viewport_Height then 0
       else 1 + (Content_Height - Viewport_Height - 1) / Line_Height);
+
+   --  Largest line offset the main view can take, as wheel, track-click,
+   --  thumb-drag and marquee auto-scroll handling all bound it: its viewport
+   --  is the scrollbar track.
+   --
+   --  @param Main Main-view layout.
+   --  @param Line_Height Pixels scrolled per line.
+   --  @return Maximum scroll offset in lines; zero when no scrollbar shows.
+   function Main_View_Max_Scroll
+     (Main        : Main_View_Layout;
+      Line_Height : Positive)
+      return Natural;
+
+   --  Largest line offset the info pane can take, as wheel, track-click and
+   --  thumb-drag handling all bound it: its viewport is the whole pane.
+   --
+   --  @param Info Info-pane layout.
+   --  @param Line_Height Pixels scrolled per line.
+   --  @return Maximum scroll offset in lines; zero when no scrollbar shows.
+   function Info_Pane_Max_Scroll
+     (Info        : Info_Pane_Layout;
+      Line_Height : Positive)
+      return Natural;
+
+   --  Largest first-row offset the folder tree can take: enough rows to bring
+   --  the last row fully into the panel's row capacity.
+   --
+   --  @param Snapshot View snapshot containing the visible tree rows.
+   --  @param Layout Tree sidebar panel layout.
+   --  @return Maximum scroll offset in rows; zero when every row fits.
+   function Tree_Max_Scroll
+     (Snapshot : View_Snapshot;
+      Layout   : Tree_Panel_Layout)
+      return Natural;
 
    --  Calculate folder-tree row rectangles with per-depth indentation.
    --

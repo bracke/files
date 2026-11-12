@@ -161,37 +161,44 @@ begin
       end if;
    end;
 
-   if Snapshot.Root_Selector_Open
-     and then Close_Button_Hit
-       (Root_Layout.X, Root_Layout.Y, Root_Layout.Width, Root_Layout.Height)
-   then
-      Result := Command_Action (Files.Commands.Close_Command_Palette_Command);
-      return;
-   end if;
+   declare
+      Root_Layout : constant Files.Rendering.Root_Selector_Layout :=
+        Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height);
+      Root_Index  : constant Natural :=
+        Files.Rendering.Hit.Root_Path_At (Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Root_Layout), X, Y);
+   begin
+      if Snapshot.Root_Selector_Open
+        and then Close_Button_Hit
+          (Root_Layout.X, Root_Layout.Y, Root_Layout.Width, Root_Layout.Height)
+      then
+         Result := Command_Action (Files.Commands.Close_Command_Palette_Command);
+         return;
+      end if;
 
-   if Root_Index /= 0 then
-      Result :=
-        (Kind       => Root_Click_Input_Action,
-         Root_Index => Root_Index);
-      return;
-   elsif Snapshot.Root_Selector_Open then
-      declare
-         Root_Command : constant Files.Commands.Command_Id :=
-           Files.Rendering.Hit.Toolbar_Command_At (X, Y, Width, Line_Height);
-      begin
-         if Root_Command = Files.Commands.Select_Drive_Command then
-            Result := Command_Action (Root_Command);
-            return;
-         elsif Within (X, Root_Layout.X, Root_Layout.Width)
-           and then Within (Y, Root_Layout.Y, Root_Layout.Height)
-         then
-            Result := No_Action;
-            return;
-         end if;
-      end;
-      Result := Command_Action (Files.Commands.Close_Command_Palette_Command);
-      return;
-   end if;
+      if Root_Index /= 0 then
+         Result :=
+           (Kind       => Root_Click_Input_Action,
+            Root_Index => Root_Index);
+         return;
+      elsif Snapshot.Root_Selector_Open then
+         declare
+            Root_Command : constant Files.Commands.Command_Id :=
+              Files.Rendering.Hit.Toolbar_Command_At (X, Y, Width, Line_Height);
+         begin
+            if Root_Command = Files.Commands.Select_Drive_Command then
+               Result := Command_Action (Root_Command);
+               return;
+            elsif Within (X, Root_Layout.X, Root_Layout.Width)
+              and then Within (Y, Root_Layout.Y, Root_Layout.Height)
+            then
+               Result := No_Action;
+               return;
+            end if;
+         end;
+         Result := Command_Action (Files.Commands.Close_Command_Palette_Command);
+         return;
+      end if;
+   end;
    Handled := False;
    Result := No_Action;
 end Overlay_Click;

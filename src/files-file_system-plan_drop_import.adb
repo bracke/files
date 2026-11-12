@@ -20,12 +20,14 @@ is
    --  name (from different directories) would resolve to the same target and
    --  the second would silently overwrite the first.
    Claimed : Claimed_Sets.Set;
-   --  Whether the destination folds case: Report.txt and report.txt are then
-   --  one destination, and the second must be renamed, not written over it.
-   Folds   : Boolean := False;
+   --  The destination's naming rules: where it folds case, Report.txt and
+   --  report.txt are one destination, and the second must be renamed, not
+   --  written over it; where it keeps names in UTF-16, a numbered name is
+   --  cut to fit in UTF-16 units.
+   Rules   : Files.Paste.Name_Rules;
 
    function Key (Path : String) return String is
-     (if Folds then Files.Types.Fold_Case (Path) else Path);
+     (if Rules.Fold_Names then Files.Types.Fold_Case (Path) else Path);
 
    function Available_Destination (Leaf : String) return String is
       function Taken (Name : String) return Boolean is
@@ -35,7 +37,7 @@ is
       return Hostkit.Fs.Join
         (Destination_Directory,
          Files.Paste.First_Free_Name
-           (Leaf, Taken'Access, Hostkit.Fs.Uses_Dos_Filename_Rules (Destination_Directory)));
+           (Leaf, Taken'Access, Rules.Dos_Names));
    end Available_Destination;
 
    --  Path with its links resolved: Hostkit.Fs.Real_Path, which also follows
@@ -115,7 +117,7 @@ begin
       Result.Error_Key := To_Unbounded_String ("error.drop.invalid_destination");
       return Result;
    end if;
-   Folds := Hostkit.Fs.Folds_Name_Case (Destination_Directory);
+   Rules := Files.Paste.Name_Rules_Of (Destination_Directory);
 
    for Source of Source_Paths loop
       declare

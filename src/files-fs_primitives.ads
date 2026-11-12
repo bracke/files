@@ -128,10 +128,24 @@ package Files.Fs_Primitives is
    function Open_Regular_Read_Following_Links
      (Path : String) return GNAT.OS_Lib.File_Descriptor;
 
-   --  Recursively delete Path when it exists, without following symbolic links
-   --  or directory reparse points encountered anywhere in the tree.
-   --  @param Path File or directory tree to remove.
+   --  Recursively delete a file, directory, or symlink. A symlink -- even one
+   --  whose target is a directory -- or a directory reparse point is unlinked
+   --  as itself and never followed, anywhere in the tree, so deleting a link
+   --  (or a folder that merely contains one) can never reach through into the
+   --  link target's real contents: the safe replacement for
+   --  Ada.Directories.Delete_Tree, which follows links. Descriptor-relative on
+   --  every host built for; a host without that refuses rather than fall back
+   --  to a pathname walk that a swapped-in link could redirect.
+   --  @param Path File, directory, or symlink to remove; it must exist.
+   --  @raise Ada.Directories.Use_Error when Path is not wholly deleted (a
+   --    missing Path included).
    procedure Delete_Tree (Path : String);
+
+   --  Delete_Tree, when Path names anything (a dangling link included);
+   --  nothing when it does not.
+   --  @param Path File, directory, or symlink to remove when present.
+   --  @raise Ada.Directories.Use_Error when a present Path is not wholly deleted.
+   procedure Delete_Tree_If_Present (Path : String);
 
    --  Path made absolute from its text alone, against the process's current
    --  directory (Hostkit.Path_Text.Absolute with Hostkit.Fs.Current_Directory):

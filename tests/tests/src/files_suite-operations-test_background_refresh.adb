@@ -78,7 +78,7 @@ separate (Files_Suite.Operations)
         (Files.Model.Context_Menu_Is_Open (Model),
          "the refresh recovery path opens the empty-area context menu");
       Files.Interaction.Apply_Context_Menu_Command
-        (Model, Settings, "", Files.Commands.Refresh_Directory_Command, 16, Guikit.Input.No_Modifiers, Routed);
+        (Model, Settings, "", Files.Commands.Refresh_Directory_Command, Guikit.Input.No_Modifiers, Routed);
       Await_Refresh (True);
       Step := Files.Operations.Refresh_If_Changed (Model, Settings);
       Await_Refresh (False);
@@ -129,7 +129,7 @@ separate (Files_Suite.Operations)
       Files.Settings.Note_Recent (Settings, Join (Root, "alpha"));
       Files.Model.Navigate_Recent (Model, Files.Items.Item_Vectors.Empty_Vector);
       Files.Interaction.Handle_Key
-        (Model, Settings, "", Guikit.Input.Key_F5, Current_Font_Size => 16, Result => Routed);
+        (Model, Settings, "", Guikit.Input.Key_F5, Result => Routed);
       Await_Refresh (True);
       Assert (Files.Model.In_Recent_View (Model) and then Files.Model.Item_Count (Model) = 1,
               "explicit Recent refresh also loads its items in a helper");

@@ -27,7 +27,6 @@ separate (Files_Suite.Interaction)
          Settings          => Settings,
          Settings_Path     => Path,
          Action            => Action,
-         Current_Font_Size => Base_Font,
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
 

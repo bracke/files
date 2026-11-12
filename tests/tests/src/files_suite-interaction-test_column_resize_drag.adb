@@ -69,7 +69,7 @@ separate (Files_Suite.Interaction)
          --  separator suppresses the header cell's sort click behind it.
          Sort_Before := Files.Model.Sort_Field_Of (Model);
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Sort_Field_Of (Model),
             Sort_Before,

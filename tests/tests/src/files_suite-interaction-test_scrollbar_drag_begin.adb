@@ -93,7 +93,7 @@ separate (Files_Suite.Interaction)
          --  comment). Applying it must therefore leave the model untouched.
          Before := Files.Model.Main_View_Scroll_Lines (Model);
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
          Files_Suite.Support.Assert_Equal
            (Files.Model.Main_View_Scroll_Lines (Model),
             Before,

@@ -847,6 +847,12 @@ package body Files.Rendering is
       return Saturating_Add (Star.Width, Guikit.Layout.Caret_Advance_Width (Line_Height));
    end Path_Bar_Content_Offset;
 
+   function Path_Field_Text_Region
+     (Toolbar : Guikit.Layout.Toolbar_Layout; Width : Natural; Line_Height : Positive) return Field_Text_Region
+     is separate;
+   function Filter_Field_Text_Region
+     (Toolbar : Guikit.Layout.Toolbar_Layout; Line_Height : Positive) return Field_Text_Region is separate;
+
    function Calculate_Breadcrumb_Layout
      (Snapshot    : View_Snapshot;
       Width       : Natural;
@@ -896,23 +902,11 @@ package body Files.Rendering is
      (Guikit.Layout.Input_Scroll_Columns
         (Files.UTF8.Display_Units_Before (Text, Natural'Min (Cursor, Text'Length)), Text_Width, Line_Height));
 
-   function Tree_Row_Capacity
-     (Snapshot : View_Snapshot;
-      Layout   : Tree_Panel_Layout)
-      return Natural
-   is
-      Content_H : constant Natural := Tree_Content_Height (Snapshot, Layout);
-   begin
-      if Layout.Row_Height = 0 or else Content_H = 0 then
-         return 0;
-      end if;
+   function Tree_Row_Capacity (Snapshot : View_Snapshot; Layout : Tree_Panel_Layout) return Natural is separate;
 
-      --  Count only fully visible rows, so the furthest scroll position
-      --  shows the last folder whole rather than clipped by the panel edge
-      --  or the pick-mode footer. A panel shorter than one row still shows
-      --  that row, clipped.
-      return Natural'Max (1, Content_H / Layout.Row_Height);
-   end Tree_Row_Capacity;
+   function Main_View_Max_Scroll (Main : Main_View_Layout; Line_Height : Positive) return Natural is separate;
+   function Info_Pane_Max_Scroll (Info : Info_Pane_Layout; Line_Height : Positive) return Natural is separate;
+   function Tree_Max_Scroll (Snapshot : View_Snapshot; Layout : Tree_Panel_Layout) return Natural is separate;
 
    function Calculate_Tree_Row_Layout
      (Snapshot    : View_Snapshot;

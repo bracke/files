@@ -73,7 +73,7 @@ separate (Files_Suite.Interaction)
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "",
             (Kind => Files.Events.Path_Favorite_Toggle_Input_Action),
-            Base_Font, Guikit.Input.No_Modifiers, Reduced);
+            Guikit.Input.No_Modifiers, Reduced);
          Assert
            (Files.Settings.Is_Favorite (Settings, Path_Before) = Favorite_Before
             and then not Reduced.Settings_Changed,
@@ -82,7 +82,7 @@ separate (Files_Suite.Interaction)
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "",
             (Kind => Files.Events.Search_Scope_Toggle_Input_Action),
-            Base_Font, Guikit.Input.No_Modifiers, Reduced);
+            Guikit.Input.No_Modifiers, Reduced);
          Assert
            (Files.Model.Search_Scope_Of (Model) = Scope_Before,
             Name & " rejects a delayed search-scope click");

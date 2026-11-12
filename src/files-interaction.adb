@@ -68,11 +68,10 @@ package body Files.Interaction is
    --  Record the UI follow-ups of a settings command the controller applied:
    --  the change itself, a live font-size change, a reloaded listing.
    procedure Observe_Settings_Command
-     (Command           : Files.Commands.Command_Id;
-      Before            : Files.Settings.Settings_Model;
-      Settings          : Files.Settings.Settings_Model;
-      Current_Font_Size : Positive;
-      Result            : in out Interaction_Result) is
+     (Command  : Files.Commands.Command_Id;
+      Before   : Files.Settings.Settings_Model;
+      Settings : Files.Settings.Settings_Model;
+      Result   : in out Interaction_Result) is
    begin
       case Command is
          when Files.Commands.Save_Settings_Command | Files.Commands.Reset_Settings_Command =>
@@ -81,7 +80,7 @@ package body Files.Interaction is
             --  way Ctrl+scroll / Ctrl+= zoom does: signal the shell to sync the
             --  runtime size and invalidate the glyph cache so text re-rasterizes
             --  now rather than only on the next launch.
-            if Settings.Font_Pixel_Size /= Current_Font_Size then
+            if Settings.Font_Pixel_Size /= Before.Font_Pixel_Size then
                Result.Font_Size_Changed := True;
                Result.Needs_Glyph_Rebuild := True;
             end if;
@@ -269,6 +268,20 @@ package body Files.Interaction is
       end if;
    end Refresh_Open_Pane;
 
+   --  Whether a settings command ran, judged by what it did, not by whether
+   --  it is enabled now: Clear Recent, say, disables itself by running. A
+   --  disabled or ignored one reported no change and gets no follow-ups.
+   function Ran_Settings_Command
+     (Command  : Files.Commands.Command_Id;
+      Outcome  : Files.Controller.Controller_Result;
+      Before   : Files.Settings.Settings_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Boolean is
+     (Files.Commands.Requires_Settings_Path (Command)
+      and then Outcome.Status = Files.Controller.Controller_Command_Executed
+      and then (Outcome.Operation.Status /= Files.Operations.Operation_Disabled
+                or else not Files.Settings.Same_Content (Before, Settings)));
+
    --  What a command that may have changed the settings ends with: its own
    --  settings follow-ups (Observe, when it is a settings command that ran),
    --  the UI state it changed written back to the settings, and an open
@@ -279,12 +292,11 @@ package body Files.Interaction is
       Settings_Path     : String;
       Command           : Files.Commands.Command_Id;
       Before            : Files.Settings.Settings_Model;
-      Current_Font_Size : Positive;
       Observe           : Boolean;
       Result            : in out Interaction_Result) is
    begin
       if Observe then
-         Observe_Settings_Command (Command, Before, Settings, Current_Font_Size, Result);
+         Observe_Settings_Command (Command, Before, Settings, Result);
       end if;
       if Files.Commands.Persists_Global_Ui_State (Command)
         and then Sync_Global_UI_State (Model, Settings, Settings_Path)
@@ -299,7 +311,6 @@ package body Files.Interaction is
       Settings          : in out Files.Settings.Settings_Model;
       Settings_Path     : String;
       Command           : Files.Commands.Command_Id;
-      Current_Font_Size : Positive;
       Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result            : out Interaction_Result)
    is
@@ -319,8 +330,8 @@ package body Files.Interaction is
       begin
          Outcome := Files.Controller.Execute_Command (Command, Model, Settings, Settings_Path, Modifiers);
          Finish_Settings_Command
-           (Model, Settings, Settings_Path, Command, Before, Current_Font_Size,
-            Observe => Files.Commands.Requires_Settings_Path (Command),
+           (Model, Settings, Settings_Path, Command, Before,
+            Observe => Ran_Settings_Command (Command, Outcome, Before, Settings),
             Result  => Result);
       end;
 
@@ -389,7 +400,6 @@ package body Files.Interaction is
       Settings_Path     : String;
       Key               : Guikit.Input.Key_Code;
       Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
-      Current_Font_Size : Positive;
       Result            : out Interaction_Result;
       Tree_Page_Rows    : Natural := 0)
    is
@@ -456,23 +466,17 @@ package body Files.Interaction is
       begin
          Observe_Controller_Outcome (Outcome, Result);
          declare
-            --  Whether the command ran is what it did, not whether it is
-            --  enabled now: Clear Recent, say, disables itself by running.
-            Ran_Settings_Command : constant Boolean :=
-              Files.Commands.Requires_Settings_Path (Outcome.Command)
-              and then Outcome.Status = Files.Controller.Controller_Command_Executed
-              and then (Outcome.Operation.Status /= Files.Operations.Operation_Disabled
-                        or else not Files.Settings.Same_Content (Before, Settings));
+            Ran : constant Boolean := Ran_Settings_Command (Outcome.Command, Outcome, Before, Settings);
          begin
             --  A view / info-pane change from the keyboard (Ctrl+1..4) has
             --  already run inside Handle_Key; the tail writes it back.
             Finish_Settings_Command
-              (Model, Settings, Settings_Path, Outcome.Command, Before, Current_Font_Size,
-               Observe => Ran_Settings_Command,
+              (Model, Settings, Settings_Path, Outcome.Command, Before,
+               Observe => Ran,
                Result  => Result);
             --  The controller applied a settings shortcut (or Enter in the
             --  palette); the shell drops any parallel character event.
-            if Ran_Settings_Command then
+            if Ran then
                Result.Clear_Pending_Text := True;
             end if;
          end;
@@ -508,7 +512,7 @@ package body Files.Interaction is
             then
                Apply_Context_Menu_Command
                  (Model, Settings, Settings_Path, Rows.Rows (Highlight).Command,
-                  Current_Font_Size, Modifiers, Result);
+                  Modifiers, Result);
             else
                --  Nothing highlighted (a mouse-opened menu not yet arrowed): a
                --  bare Enter just dismisses it.
@@ -556,7 +560,6 @@ package body Files.Interaction is
       Settings          : in out Files.Settings.Settings_Model;
       Settings_Path     : String;
       Action            : Files.Events.Input_Action;
-      Current_Font_Size : Positive;
       Modifiers         : Guikit.Input.Modifier_Set;
       Result            : out Interaction_Result)
    is
@@ -577,7 +580,7 @@ package body Files.Interaction is
                --  for sort, the listing is re-loaded to match the new order.
                Execute_Command
                  (Model, Settings, Settings_Path, Action.Command,
-                  Current_Font_Size, Modifiers, Result);
+                  Modifiers, Result);
             else
                Outcome :=
                  Files.Controller.Handle_Command_Click
@@ -654,7 +657,7 @@ package body Files.Interaction is
                   then
                      Execute_Command
                        (Model, Settings, Settings_Path, Command,
-                        Current_Font_Size, Modifiers, Result);
+                        Modifiers, Result);
                      if Result.Status /= Files.Controller.Controller_Ignored then
                         Files.Model.Close_Command_Palette (Model);
                      end if;
@@ -685,7 +688,7 @@ package body Files.Interaction is
             if Outcome.Command = Files.Commands.Save_Settings_Command then
                Execute_Command
                  (Model, Settings, Settings_Path, Outcome.Command,
-                  Current_Font_Size, Guikit.Input.No_Modifiers, Result);
+                  Guikit.Input.No_Modifiers, Result);
                Result.Clear_Pending_Text := True;
             end if;
          when Files.Events.Permission_Toggle_Input_Action =>
@@ -750,7 +753,6 @@ package body Files.Interaction is
       Settings          : in out Files.Settings.Settings_Model;
       Settings_Path     : String;
       Command           : Files.Commands.Command_Id;
-      Current_Font_Size : Positive;
       Modifiers         : Guikit.Input.Modifier_Set;
       Result            : out Interaction_Result)
    is
@@ -789,7 +791,7 @@ package body Files.Interaction is
       if Command /= Files.Commands.No_Command then
          Execute_Command
            (Model, Settings, Settings_Path, Command,
-            Current_Font_Size, Modifiers, Result);
+            Modifiers, Result);
          --  Fold any item opened via the context menu's Open entry into the
          --  persisted recent list.
          Persist_Recent_Opens (Model, Settings, Settings_Path, Result);

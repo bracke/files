@@ -51,7 +51,6 @@ separate (Files_Suite.Interaction)
          Settings_Path     => "",
          Key               => Guikit.Input.Key_Z,
          Modifiers         => Ctrl,
-         Current_Font_Size => Base_Font,
          Result            => Result);
       Files_Suite.Support.Assert_Equal
         (Result.Command,

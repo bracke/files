@@ -22,7 +22,7 @@ separate (Files_Suite.Interaction)
          Files.Interaction.Handle_Key
            (Model => Model, Settings => Settings, Settings_Path => Path,
             Key => Guikit.Input.Key_Tab, Modifiers => Mods,
-            Current_Font_Size => Base_Font, Result => Result);
+            Result => Result);
       end Tab;
    begin
       Files_Suite.Support.Reset_Root;
@@ -31,7 +31,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Handle_Key
         (Model => Model, Settings => Settings, Settings_Path => Path,
          Key => Guikit.Input.Key_Comma, Modifiers => Ctrl,
-         Current_Font_Size => Base_Font, Result => Result);
+         Result => Result);
       Revision_Before := Files.Model.Revision (Model);
       Files.Overlays.Build_Settings_Frame
         (Model => Model, Region => (X => 0, Y => 0, Width => 600, Height => 500,
@@ -151,7 +151,7 @@ separate (Files_Suite.Interaction)
          Files.Interaction.Handle_Key
            (Model => Model, Settings => Settings, Settings_Path => Path,
             Key => Guikit.Input.Key_Space, Modifiers => Guikit.Input.No_Modifiers,
-            Current_Font_Size => Base_Font, Result => Result);
+            Result => Result);
          Assert (Files.Model.Settings_Focused_Value (Model) /= Before, "Space flips the focused toggle");
          Assert (Result.Clear_Pending_Text, "the flipping space is not also typed");
       end;

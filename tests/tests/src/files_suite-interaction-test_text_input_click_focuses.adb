@@ -30,7 +30,7 @@ separate (Files_Suite.Interaction)
             Files.Types.Focus_Path_Input,
             "the text click targets the path input");
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       end;
 
       Files_Suite.Support.Assert_Equal
@@ -55,7 +55,7 @@ separate (Files_Suite.Interaction)
              (Snapshot, Frame, Right_X, Center_Y, Window_W, Window_H, Line_Height => Line);
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       end;
 
       --  Focusing the path input loads the current directory path for editing,

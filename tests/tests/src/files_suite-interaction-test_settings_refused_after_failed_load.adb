@@ -19,7 +19,7 @@ separate (Files_Suite.Interaction)
       begin
          Plain_Settings.Persistence_Refused := False;
          Files.Interaction.Execute_Command
-           (Plain_Model, Plain_Settings, "", Files.Commands.Toggle_Show_Extensions_Command, Base_Font,
+           (Plain_Model, Plain_Settings, "", Files.Commands.Toggle_Show_Extensions_Command,
             Result => Result);
          Assert (Plain_Settings.Show_File_Extensions /= Before, "the control's toggle applies");
          Assert
@@ -29,7 +29,7 @@ separate (Files_Suite.Interaction)
 
       Settings.Persistence_Refused := True;
       Files.Interaction.Execute_Command
-        (Model, Settings, "", Files.Commands.Toggle_Show_Extensions_Command, Base_Font, Result => Result);
+        (Model, Settings, "", Files.Commands.Toggle_Show_Extensions_Command, Result => Result);
       Assert (Settings.Show_File_Extensions /= Before, "the toggle still applies for the session");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model), "error.settings.not_persisted",
@@ -37,7 +37,7 @@ separate (Files_Suite.Interaction)
 
       Files.Model.Set_Error (Model, "");
       Files.Interaction.Execute_Command
-        (Model, Settings, "", Files.Commands.Cycle_Group_By_Command, Base_Font, Result => Result);
+        (Model, Settings, "", Files.Commands.Cycle_Group_By_Command, Result => Result);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model), "error.settings.not_persisted",
          "every settings write reports it, not only the toggles");

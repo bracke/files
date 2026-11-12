@@ -1,3 +1,4 @@
+with Files.Protocol_Names;
 with Files.Job_Records;
 with Files.Helper_Modes;
 with Files.Diagnostics;
@@ -292,7 +293,7 @@ package body Files.Transfer_Jobs is
       begin
          begin
             Result := Read_Transport_Result
-              (Files.Process_Jobs.Path (Job.Process, "completed"));
+              (Files.Process_Jobs.Path (Job.Process, Files.Protocol_Names.Completed_File));
             Result.Recovered := True;
             Result.Cancelled := False;
             return;
@@ -304,7 +305,7 @@ package body Files.Transfer_Jobs is
            (Files.Process_Jobs.Path (Job.Process, Files.Process_Jobs.Request_File),
             Action, Mode, Batch_Directory);
          Apply_Replacement_Checkpoint
-           (Files.Process_Jobs.Path (Job.Process, "replaced"), Result);
+           (Files.Process_Jobs.Path (Job.Process, Files.Protocol_Names.Replaced_File), Result);
          if Mode = Files.File_System.Drop_Move then
             Files.Job_Context.Read_Moved
               (Files.Process_Jobs.Path (Job.Process, ""), Destinations, Sources, Identities);
@@ -396,22 +397,22 @@ package body Files.Transfer_Jobs is
       begin
          Result.Trashed := To_Unbounded_String (Backup);
          Result.Trashed_Identity := To_Unbounded_String (Backup_Identity);
-         if Hostkit.Fs.Is_Link (Hostkit.Fs.Join (Directory, "replaced.tmp"))
-           or else Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Directory, "replaced.tmp"))
-           or else Hostkit.Fs.Is_Link (Hostkit.Fs.Join (Directory, "replaced"))
-           or else Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Directory, "replaced"))
+         if Hostkit.Fs.Is_Link (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Staged_Replaced_File))
+           or else Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Staged_Replaced_File))
+           or else Hostkit.Fs.Is_Link (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Replaced_File))
+           or else Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Replaced_File))
          then
             raise Ada.Directories.Use_Error;
          end if;
          Files.Exclusive_Streams.Create
-           (File, Hostkit.Fs.Join (Directory, "replaced.tmp"));
+           (File, Hostkit.Fs.Join (Directory, Files.Protocol_Names.Staged_Replaced_File));
          String'Output (File'Access, Backup);
          String'Output (File'Access, Backup_Identity);
          Files.Exclusive_Streams.Close (File);
          if not Files.Durable_Writes.Published
            (Files.Durable_Writes.Publish
-              (Hostkit.Fs.Join (Directory, "replaced.tmp"),
-               Hostkit.Fs.Join (Directory, "replaced")))
+              (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Staged_Replaced_File),
+               Hostkit.Fs.Join (Directory, Files.Protocol_Names.Replaced_File)))
          then
             raise Ada.Directories.Use_Error;
          end if;
@@ -490,12 +491,13 @@ package body Files.Transfer_Jobs is
          --  the optional crash-recovery journal could not be extended.
          begin
             Files.Exclusive_Streams.Create
-              (File, Hostkit.Fs.Join (Directory, "completed.tmp"));
+              (File, Hostkit.Fs.Join (Directory, Files.Protocol_Names.Staged_Completed_File));
             Write_Result (File'Access, Result);
             Files.Exclusive_Streams.Close (File);
             declare
                Published : constant Files.Durable_Writes.Publication_Result := Files.Durable_Writes.Publish
-                 (Hostkit.Fs.Join (Directory, "completed.tmp"), Hostkit.Fs.Join (Directory, "completed"));
+                 (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Staged_Completed_File),
+                  Hostkit.Fs.Join (Directory, Files.Protocol_Names.Completed_File));
                pragma Unreferenced (Published);
             begin
                null;

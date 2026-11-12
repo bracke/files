@@ -69,7 +69,7 @@ separate (Files_Suite.Interaction)
             Files.Events.Search_Scope_Toggle_Input_Action,
             "clicking the chip yields the scope-toggle action, not a text click");
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       end;
       Assert
         (Files.Model.Search_Scope_Of (Model) = Files.Types.Search_Names,
@@ -87,7 +87,7 @@ separate (Files_Suite.Interaction)
          Action : constant Files.Events.Input_Action := Chip_Action (Model);
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       end;
       Assert
         (Files.Model.Search_Scope_Of (Model) = Files.Types.Search_Contents,
@@ -103,7 +103,7 @@ separate (Files_Suite.Interaction)
          Action : constant Files.Events.Input_Action := Chip_Action (Model);
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       end;
       Assert
         (Files.Model.Search_Scope_Of (Model) = Files.Types.Filter_Here,

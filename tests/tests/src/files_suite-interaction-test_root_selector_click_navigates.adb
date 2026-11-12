@@ -56,7 +56,7 @@ separate (Files_Suite.Interaction)
          begin
             Files.Model.Open_Command_Palette (Model);
             Files.Interaction.Apply_Input_Action
-              (Model, Settings, "", Action, Base_Font,
+              (Model, Settings, "", Action,
                Guikit.Input.No_Modifiers, Result);
             Files_Suite.Support.Assert_Equal
               (Files.Model.Current_Path (Model), Path_Before,
@@ -74,7 +74,7 @@ separate (Files_Suite.Interaction)
          end;
 
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
       end;
 
       Files_Suite.Support.Assert_Equal

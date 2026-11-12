@@ -74,7 +74,6 @@ separate (Files.Application.Windows)
             Settings_Path     => To_String (Runtime.Settings_Path),
             Key               => Key,
             Modifiers         => Modifiers,
-            Current_Font_Size => Runtime.Settings.Font_Pixel_Size,
             Result            => Result,
             Tree_Page_Rows    => Tree_Page_Rows);
          Apply_Interaction_Result (Runtime, Result);

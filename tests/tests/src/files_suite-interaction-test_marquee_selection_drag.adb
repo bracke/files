@@ -120,7 +120,7 @@ separate (Files_Suite.Interaction)
                  Line_Height => Line);
          begin
             Files.Interaction.Apply_Input_Action
-              (Model, Settings, "", Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+              (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
          end;
          Assert (Files.Model.Is_Selected (Model, 5),
                  "beginning a marquee leaves the prior selection to the shell (no clear)");

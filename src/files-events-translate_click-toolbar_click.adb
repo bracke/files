@@ -1,6 +1,22 @@
 separate (Files.Events.Translate_Click)
 --  The toolbar (path, breadcrumbs, filter, scope chip) and the bottom bar.
 procedure Toolbar_Click (Handled : out Boolean; Result : out Input_Action) is
+   Toolbar          : constant Guikit.Layout.Toolbar_Layout :=
+     Guikit.Layout.Calculate_Toolbar_Layout (Width, Line_Height);
+   Toolbar_Input_Y  : constant Natural := Guikit.Layout.Toolbar_Input_Y (Line_Height);
+   Toolbar_Input_H  : constant Natural := Guikit.Layout.Toolbar_Input_Height (Line_Height);
+   Scope_Chip       : constant Guikit.Layout.Scope_Chip_Region :=
+     Guikit.Layout.Filter_Scope_Chip_Region_Of
+       (Toolbar, Files.UI.Filter_Scope_Chip_Width (Line_Height), Line_Height);
+   Path_Star        : constant Files.Rendering.Path_Favorite_Star_Bounds :=
+     Files.Rendering.Path_Favorite_Star_Region (Width, Line_Height);
+   Breadcrumb_Index : constant Natural :=
+     Files.Rendering.Hit.Breadcrumb_At
+       (Files.Rendering.Calculate_Breadcrumb_Layout (Snapshot, Width, Line_Height), X, Y);
+   Path_Text        : constant Files.Rendering.Field_Text_Region :=
+     Files.Rendering.Path_Field_Text_Region (Toolbar, Width, Line_Height);
+   Filter_Text      : constant Files.Rendering.Field_Text_Region :=
+     Files.Rendering.Filter_Field_Text_Region (Toolbar, Line_Height);
 begin
    Handled := True;
    if Path_Star.Visible
@@ -22,23 +38,10 @@ begin
         Text_Click
           (Files.Types.Focus_Path_Input,
            Cursor_At
-              (Text        => Snapshot.Path_Input_Text,
-              Text_X      =>
-                 Saturating_Add
-                   (Saturating_Add
-                      (Saturating_Add (Toolbar.Middle_X, Files.Rendering.Toolbar_Field_Margin),
-                       Files.UI.Field_Padding (Line_Height)),
-                    Files.Rendering.Path_Bar_Content_Offset (Width, Line_Height)),
+             (Text        => Snapshot.Path_Input_Text,
+              Text_X      => Path_Text.X,
               Click_X     => X,
-              Text_Width  =>
-                (declare
-                   Path_W : constant Natural :=
-                     (if Toolbar.Middle_Width > 2 * Files.Rendering.Toolbar_Field_Margin
-                      then Toolbar.Middle_Width - 2 * Files.Rendering.Toolbar_Field_Margin else 0);
-                   Used   : constant Natural :=
-                     2 * Files.UI.Field_Padding (Line_Height)
-                     + Files.Rendering.Path_Bar_Content_Offset (Width, Line_Height);
-                 begin (if Path_W > Used then Path_W - Used else 0)),
+              Text_Width  => Path_Text.Width,
               Focused     => Snapshot.Focus = Files.Types.Focus_Path_Input));
       return;
    elsif Scope_Chip.Visible
@@ -57,21 +60,11 @@ begin
         Text_Click
           (Files.Types.Focus_Filter_Input,
            Cursor_At
-              (Text        => Snapshot.Filter_Text,
-               Text_X      =>
-                 Saturating_Add
-                   (Saturating_Add (Toolbar.Right_X, Files.Rendering.Toolbar_Field_Margin),
-                    Files.UI.Field_Padding (Line_Height)),
-               Click_X     => X,
-               Text_Width  =>
-                 (declare
-                    Filter_W : constant Natural :=
-                      Guikit.Layout.Filter_Input_Field_Width
-                        (Toolbar, Files.UI.Filter_Scope_Chip_Width (Line_Height), Line_Height);
-                  begin
-                    (if Filter_W > 2 * Files.UI.Field_Padding (Line_Height)
-                     then Filter_W - 2 * Files.UI.Field_Padding (Line_Height) else 0)),
-               Focused     => Snapshot.Focus = Files.Types.Focus_Filter_Input));
+             (Text        => Snapshot.Filter_Text,
+              Text_X      => Filter_Text.X,
+              Click_X     => X,
+              Text_Width  => Filter_Text.Width,
+              Focused     => Snapshot.Focus = Files.Types.Focus_Filter_Input));
       return;
    end if;
 

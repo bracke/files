@@ -10,7 +10,7 @@ separate (Files_Suite.Interaction)
       Files_Suite.Support.Reset_Root;
       --  No settings file (smoke runs, tests): the toggle applies in memory.
       Files.Interaction.Execute_Command
-        (Model, Settings, "", Files.Commands.Toggle_Show_Extensions_Command, Base_Font, Result => Result);
+        (Model, Settings, "", Files.Commands.Toggle_Show_Extensions_Command, Result => Result);
       Assert (Settings.Show_File_Extensions /= Before and then Files.Model.Last_Error_Key (Model) = "",
               "without a settings file the toggle applies and reports nothing");
 
@@ -18,6 +18,6 @@ separate (Files_Suite.Interaction)
       Files_Suite.Support.Write_File (Blocker, "a file where a folder should be");
       Files.Interaction.Execute_Command
         (Model, Settings, Files_Suite.Support.Join (Blocker, "settings.conf"),
-         Files.Commands.Cycle_Group_By_Command, Base_Font, Result => Result);
+         Files.Commands.Cycle_Group_By_Command, Result => Result);
       Assert (Files.Model.Last_Error_Key (Model) /= "", "a settings file that cannot be written is reported");
    end Test_Settings_Writes_Report_Failure;

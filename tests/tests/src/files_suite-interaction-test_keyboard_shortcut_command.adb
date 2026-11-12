@@ -22,7 +22,6 @@ separate (Files_Suite.Interaction)
          Settings          => Settings,
          Settings_Path     => "",
          Action            => Action,
-         Current_Font_Size => Base_Font,
          Modifiers         => Ctrl,
          Result            => Result);
 

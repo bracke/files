@@ -47,7 +47,6 @@ separate (Files_Suite.Interaction)
          Settings_Path     => "",
          Key               => Guikit.Input.Key_Z,
          Modifiers         => Ctrl,
-         Current_Font_Size => Base_Font,
          Result            => Result);
       Assert (Ada.Directories.Exists (Source), "Ctrl+Z undoes the rename");
       Assert (Files.Model.Redo_Available (Model), "redo becomes available after the undo");
@@ -59,7 +58,6 @@ separate (Files_Suite.Interaction)
          Settings_Path     => "",
          Key               => Guikit.Input.Key_Z,
          Modifiers         => Ctrl_Shift,
-         Current_Font_Size => Base_Font,
          Result            => Result);
       Files_Suite.Support.Assert_Equal
         (Result.Command,

@@ -29,7 +29,7 @@ separate (Files_Suite.Interaction)
          Files.Interaction.Handle_Key
            (Model => Model, Settings => Settings, Settings_Path => Path,
             Key => Guikit.Input.Key_Comma, Modifiers => Ctrl,
-            Current_Font_Size => Base_Font, Result => Result);
+            Result => Result);
          Files.Overlays.Build_Settings_Frame
            (Model => Model, Region => (X => 0, Y => 0, Width => 600, Height => 500,
                      Clip_Width => 600, Clip_Height => 500, Line_Height => 20), Focused => True,
@@ -48,7 +48,7 @@ separate (Files_Suite.Interaction)
       begin
          Files.Interaction.Handle_Key
            (Model => Model, Settings => Settings, Settings_Path => Path,
-            Key => Key, Modifiers => Mods, Current_Font_Size => Base_Font, Result => Result);
+            Key => Key, Modifiers => Mods, Result => Result);
       end Press;
    begin
       Files_Suite.Support.Reset_Root;

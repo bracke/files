@@ -12,43 +12,18 @@ separate (Files.Events)
       Line_Height : Positive)
       return Input_Action
    is
+      --  Only the cheap layouts every region shares are computed here; each
+      --  region computes its costlier ones (item rectangles, root and tree
+      --  rows, breadcrumbs) itself, so a click another region takes first
+      --  never pays for them.
       Layout         : constant Files.Rendering.Layout_Metrics :=
         Files.Rendering.Calculate_Layout (Snapshot, Width, Height, Line_Height);
-      Toolbar        : constant Guikit.Layout.Toolbar_Layout :=
-        Guikit.Layout.Calculate_Toolbar_Layout (Width, Line_Height);
-      Toolbar_Input_Y : constant Natural := Guikit.Layout.Toolbar_Input_Y (Line_Height);
-      Toolbar_Input_H : constant Natural := Guikit.Layout.Toolbar_Input_Height (Line_Height);
-      Scope_Chip     : constant Guikit.Layout.Scope_Chip_Region :=
-        Guikit.Layout.Filter_Scope_Chip_Region_Of
-          (Toolbar, Files.UI.Filter_Scope_Chip_Width (Line_Height), Line_Height);
       Palette_Layout : constant Files.Rendering.Command_Palette_Layout :=
         Files.Rendering.Calculate_Command_Palette_Layout (Layout, Line_Height);
-      Main_View      : constant Files.Rendering.Main_View_Layout :=
-        Files.Rendering.Calculate_Main_View_Layout (Snapshot, Layout, Line_Height);
       Info_Pane      : constant Files.Rendering.Info_Pane_Layout :=
         Files.Rendering.Calculate_Info_Pane_Layout (Snapshot, Layout, Line_Height);
-      Root_Layout    : constant Files.Rendering.Root_Selector_Layout :=
-        Files.Rendering.Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height);
-      Root_Rows      : constant Files.Rendering.Root_Path_Layout_Vectors.Vector :=
-        Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Root_Layout);
       Settings_Pane  : constant Guikit.Layout.Settings_Pane_Layout :=
         Guikit.Layout.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
-      Item_Layout    : constant Files.Rendering.Item_Layout_Vectors.Vector :=
-        Files.Rendering.Calculate_Item_Layout (Snapshot, Layout, Line_Height);
-      Breadcrumb_Rows : constant Files.Rendering.Breadcrumb_Segment_Layout_Vectors.Vector :=
-        Files.Rendering.Calculate_Breadcrumb_Layout (Snapshot, Width, Line_Height);
-      Path_Star      : constant Files.Rendering.Path_Favorite_Star_Bounds :=
-        Files.Rendering.Path_Favorite_Star_Region (Width, Line_Height);
-      Tree_Panel_L   : constant Files.Rendering.Tree_Panel_Layout :=
-        Files.Rendering.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line_Height);
-      Tree_Rows_L    : constant Files.Rendering.Tree_Row_Layout_Vectors.Vector :=
-        Files.Rendering.Calculate_Tree_Row_Layout (Snapshot, Tree_Panel_L, Line_Height);
-      Tree_Page_Rows : constant Natural :=
-        Files.Rendering.Tree_Row_Capacity (Snapshot, Tree_Panel_L);
-      Root_Index     : constant Natural := Files.Rendering.Hit.Root_Path_At (Root_Rows, X, Y);
-      Breadcrumb_Index    : constant Natural := Files.Rendering.Hit.Breadcrumb_At (Breadcrumb_Rows, X, Y);
-      Tree_Triangle_Index : constant Natural := Files.Rendering.Hit.Tree_Triangle_At (Tree_Rows_L, X, Y);
-      Tree_Node_Index     : constant Natural := Files.Rendering.Hit.Tree_Row_At (Tree_Rows_L, X, Y);
       Command        : Files.Commands.Command_Id := Files.Commands.No_Command;
       Item_Index     : Natural := 0;
 
@@ -107,41 +82,29 @@ separate (Files.Events)
             Cursor_Position => Cursor);
       end Text_Click;
 
+      --  A press on a scrollbar: on the thumb it begins a drag, on the track
+      --  above or below it it pages by Step towards the press.
       function Scroll_Click
         (Target       : Scroll_Target;
          Thumb_Y      : Natural;
          Thumb_Height : Natural;
-         Y_Pos        : Natural;
-         Step         : Positive;
+         Step         : Natural;
          Raw          : Natural;
          Maximum      : Natural)
          return Input_Action
       is
-         Current    : constant Natural := Natural'Min (Raw, Maximum);
-         Requested  : Natural;
          Adjustment : Integer;
       begin
          if Thumb_Height > 0
-           and then Y_Pos >= Thumb_Y
-           and then Y_Pos - Thumb_Y < Thumb_Height
+           and then Y >= Thumb_Y
+           and then Y - Thumb_Y < Thumb_Height
          then
             return
               Scroll_Drag_Begin_Action
-                (Target, Integer (Y_Pos) - Integer (Thumb_Y));
+                (Target, Integer (Y) - Integer (Thumb_Y));
          end if;
 
-         if Y_Pos < Thumb_Y then
-            Requested := (if Step >= Current then 0 else Current - Step);
-         else
-            Requested :=
-              (if Step >= Maximum - Current
-               then Maximum
-               else Current + Step);
-         end if;
-
-         --  Raw may exceed Maximum after a resize. Include that stale excess in
-         --  the exact adjustment so a page click cannot preserve hidden scroll.
-         Adjustment := Integer (Requested) - Integer (Raw);
+         Adjustment := Paged_Adjustment (Raw, Maximum, Step, Up => Y < Thumb_Y);
          if Adjustment = 0 then
             return No_Action;
          end if;
@@ -149,68 +112,14 @@ separate (Files.Events)
          return Scroll_Action (Target, Adjustment);
       end Scroll_Click;
 
-      function Maximum_Line_Offset
-        (Content_Height  : Natural;
-         Viewport_Height : Natural;
-         Scrollbar_Shown : Boolean)
-         return Natural is
-        (if Scrollbar_Shown
-         then Files.Rendering.Max_Scroll_Lines (Content_Height, Viewport_Height, Line_Height)
-         else 0);
-
-      function Tree_Scroll_Click return Input_Action
-      is
-         Count    : constant Natural := Natural (Snapshot.Tree_Rows.Length);
-         Maximum  : constant Natural :=
-           (if Count > Tree_Page_Rows then Count - Tree_Page_Rows else 0);
-         Raw      : constant Natural := Snapshot.Tree_Panel_Scroll_Rows;
-         Current  : constant Natural := Natural'Min (Raw, Maximum);
-         Requested : Natural;
-         Adjustment : Integer;
-      begin
-         if Tree_Panel_L.Scrollbar_Height > 0
-           and then Y >= Tree_Panel_L.Scrollbar_Thumb_Y
-           and then Y - Tree_Panel_L.Scrollbar_Thumb_Y
-             < Tree_Panel_L.Scrollbar_Height
-         then
-            return
-              Scroll_Drag_Begin_Action
-                (Scroll_Tree_Panel,
-                 Integer (Y) - Integer (Tree_Panel_L.Scrollbar_Thumb_Y));
-         elsif Tree_Page_Rows = 0 or else Count = 0 then
-            return No_Action;
-         elsif Y < Tree_Panel_L.Scrollbar_Thumb_Y then
-            Requested :=
-              (if Tree_Page_Rows >= Current
-               then 0
-               else Current - Tree_Page_Rows);
-         else
-            Requested :=
-              (if Tree_Page_Rows >= Maximum - Current
-               then Maximum
-               else Current + Tree_Page_Rows);
-         end if;
-
-         --  Raw may be stale after a resize. Include its excess in the exact
-         --  adjustment so a track click cannot leave an invisible offset.
-         Adjustment := Integer (Requested) - Integer (Raw);
-         if Adjustment = 0 then
-            return No_Action;
-         end if;
-
-         return Scroll_Action (Scroll_Tree_Panel, Adjustment);
-      end Tree_Scroll_Click;
-
       --  Any click inside the open settings pane becomes a settings click
       --  carrying the coordinates; Guikit.Settings_Panel hit-tests it (focusing /
       --  toggling / choosing / stepping / pressing a button).
       function Settings_Click_Hit return Input_Action is
-         Pane : constant Guikit.Layout.Settings_Pane_Layout :=
-           Guikit.Layout.Calculate_Settings_Pane_Layout (Width, Height, Layout.Toolbar_Height, Line_Height);
       begin
          if not Snapshot.Settings_Pane_Open
-           or else not Within (X, Pane.X, Pane.Width)
-           or else not Within (Y, Pane.Y, Pane.Height)
+           or else not Within (X, Settings_Pane.X, Settings_Pane.Width)
+           or else not Within (Y, Settings_Pane.Y, Settings_Pane.Height)
          then
             return No_Action;
          end if;

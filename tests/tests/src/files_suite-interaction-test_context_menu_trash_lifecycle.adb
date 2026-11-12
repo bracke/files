@@ -44,7 +44,7 @@ separate (Files_Suite.Interaction)
             Command => Files.Commands.Undo_Command);
       begin
          Files.Interaction.Apply_Input_Action
-           (Model, Settings, "", Undo_Action, Base_Font, Guikit.Input.No_Modifiers, Result);
+           (Model, Settings, "", Undo_Action, Guikit.Input.No_Modifiers, Result);
       end;
       Assert (Ada.Directories.Exists (Doomed), "undo restores the trashed item to its original path");
       Assert (not Files.Model.Undo_Available (Model), "undo consumes the undoable action");

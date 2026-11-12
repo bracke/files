@@ -170,6 +170,48 @@ package body Files.Controller is
       end;
    end Persisted;
 
+   --  What a settings commit did: the write's result, and whether Updated
+   --  said something new and is now the live settings.
+   type Commit_Outcome is record
+      Saved    : Files.Settings.Settings_Write_Result;
+      Accepted : Boolean := False;
+   end record;
+
+   --  The one settings commit, comparing Updated with Settings once: an
+   --  unchanged one counts as saved, one that would make loadable settings
+   --  unloadable is refused, and any other replaces Settings, is noted on
+   --  the window's settings revision, and is persisted.
+   function Commit
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Updated       : Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Commit_Outcome is
+   begin
+      if Files.Settings.Same_Content (Updated, Settings) then
+         return
+           (Saved    =>
+              (Success => True, Durable => True, Path => To_Unbounded_String (Settings_Path),
+               Error_Key => Null_Unbounded_String),
+            Accepted => False);
+      --  Refused when it is this change that makes them unloadable: if they
+      --  already were, refusing every later change (a zoom, a toggle) would
+      --  only lock the user out; Persisted then still writes nothing.
+      elsif not Files.Settings.Loadable (Updated) and then Files.Settings.Loadable (Settings) then
+         Files.Model.Set_Error (Model, "error.settings.full");
+         return
+           (Saved    =>
+              (Success   => False,
+               Durable   => False,
+               Path      => To_Unbounded_String (Settings_Path),
+               Error_Key => To_Unbounded_String ("error.settings.full")),
+            Accepted => False);
+      end if;
+      Settings := Updated;
+      Files.Model.Note_Settings_Changed (Model);
+      return (Saved => Persisted (Model, Settings, Settings_Path), Accepted => True);
+   end Commit;
+
    function Commit_Settings
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
@@ -177,22 +219,7 @@ package body Files.Controller is
       Settings_Path : String)
       return Files.Settings.Settings_Write_Result is
    begin
-      if Files.Settings.Same_Content (Updated, Settings) then
-         return (Success => True, Durable => True, Path => To_Unbounded_String (Settings_Path),
-                 Error_Key => Null_Unbounded_String);
-      --  Refused when it is this change that makes them unloadable: if they
-      --  already were, refusing every later change (a zoom, a toggle) would
-      --  only lock the user out; Persisted then still writes nothing.
-      elsif not Files.Settings.Loadable (Updated) and then Files.Settings.Loadable (Settings) then
-         Files.Model.Set_Error (Model, "error.settings.full");
-         return
-           (Success   => False,
-            Durable   => False,
-            Path      => To_Unbounded_String (Settings_Path),
-            Error_Key => To_Unbounded_String ("error.settings.full"));
-      end if;
-      Settings := Updated;
-      return Persisted (Model, Settings, Settings_Path);
+      return Commit (Model, Settings, Updated, Settings_Path).Saved;
    end Commit_Settings;
 
    procedure Commit_Settings
@@ -201,9 +228,8 @@ package body Files.Controller is
       Updated       : Files.Settings.Settings_Model;
       Settings_Path : String)
    is
-      Saved : constant Files.Settings.Settings_Write_Result :=
-        Commit_Settings (Model, Settings, Updated, Settings_Path);
-      pragma Unreferenced (Saved);
+      Outcome : constant Commit_Outcome := Commit (Model, Settings, Updated, Settings_Path);
+      pragma Unreferenced (Outcome);
    begin
       null;
    end Commit_Settings;
@@ -213,12 +239,9 @@ package body Files.Controller is
       Settings      : in out Files.Settings.Settings_Model;
       Updated       : Files.Settings.Settings_Model;
       Settings_Path : String;
-      Accepted      : out Boolean)
-   is
-      Changes : constant Boolean := not Files.Settings.Same_Content (Updated, Settings);
+      Accepted      : out Boolean) is
    begin
-      Commit_Settings (Model, Settings, Updated, Settings_Path);
-      Accepted := Changes and then Files.Settings.Same_Content (Settings, Updated);
+      Accepted := Commit (Model, Settings, Updated, Settings_Path).Accepted;
    end Commit_Settings;
 
    procedure Persist_Settings
@@ -428,13 +451,12 @@ package body Files.Controller is
       return Controller_Result
    is
       Operation : Files.Operations.Operation_Result := Empty_Operation;
-      Changes   : constant Boolean := not Files.Settings.Same_Content (Settings, Updated);
-      Saved     : constant Files.Settings.Settings_Write_Result :=
-        Commit_Settings (Model, Settings, Updated, Settings_Path);
+      Outcome   : constant Commit_Outcome := Commit (Model, Settings, Updated, Settings_Path);
+      Saved     : Files.Settings.Settings_Write_Result renames Outcome.Saved;
    begin
       --  List again only after a change that was taken (Settings now holds
       --  Updated); an unchanged or refused one leaves the listing as it is.
-      if Reload and then Changes and then Files.Settings.Same_Content (Settings, Updated) then
+      if Reload and then Outcome.Accepted then
          Operation := Files.Operations.Refresh (Model, Settings);
       end if;
       if Operation.Status = Files.Operations.Operation_Failed then
@@ -442,8 +464,9 @@ package body Files.Controller is
       end if;
 
       --  A write that went through clears what an earlier one reported; a
-      --  change that wrote nothing leaves the error line alone.
-      if Changes and then Saved.Success and then Saved.Durable then
+      --  change that wrote nothing (unchanged, or refused) leaves the error
+      --  line alone.
+      if Outcome.Accepted and then Saved.Success and then Saved.Durable then
          Files.Model.Set_Error (Model, "");
       end if;
       Operation.Status :=

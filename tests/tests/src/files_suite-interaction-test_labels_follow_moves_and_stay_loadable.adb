@@ -92,7 +92,7 @@ separate (Files_Suite.Interaction)
         (Model, Settings, "",
          (Kind => Files.Events.Label_Picker_Choice_Input_Action,
           Label      => Files.Types.Purple),
-         Base_Font, Guikit.Input.No_Modifiers, Result);
+         Guikit.Input.No_Modifiers, Result);
       Assert (Files.Settings.Label_Of (Settings, Files_Suite.Support.Join (Dir, "f" & Integer'(1)'Image))
                 = Files.Types.No_Label
               and then Files.Settings.Loadable (Settings),

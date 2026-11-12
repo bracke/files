@@ -159,23 +159,9 @@ separate (Files.Controller)
                declare
                   Old_Index : constant Natural := Files.Model.Selected_Index (Model);
                   Old_Count : constant Natural := Files.Model.Selected_Count (Model);
-                  Anchor    : Natural := Old_Index;
+                  Anchor    : constant Natural :=
+                    (if Action.Extend then Files.Model.Range_Anchor (Model) else Old_Index);
                begin
-                  if Action.Extend and then Old_Count > 1 then
-                     declare
-                        First_Selected : Natural := 0;
-                        Last_Selected  : Natural := 0;
-                     begin
-                        Files.Model.Selected_Visible_Bounds (Model, First_Selected, Last_Selected);
-
-                        if Old_Index = Last_Selected then
-                           Anchor := First_Selected;
-                        elsif Old_Index = First_Selected then
-                           Anchor := Last_Selected;
-                        end if;
-                     end;
-                  end if;
-
                   if Action.Extend
                     and then Files.Model.Selection_Move_Would_Wrap (Model, Action.Direction)
                   then
