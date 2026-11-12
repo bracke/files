@@ -359,7 +359,31 @@ int files_test_inherits_ace(const char *path) {
     LocalFree(descriptor);
     return inherited && !owner_only;
 }
+
+/* Switch off the backup and restore privileges in this process's token.
+   A shell such as MSYS2's bash turns them on for an administrator, and the
+   suite inherits them: CreateDirectoryW, MoveFileExW and DeleteFileW open
+   with backup intent, so with them on every DACL a permission test sets
+   is passed over (only the CRT's _wopen, which does not ask for backup
+   intent, was refused). A user starting the app never has them on.
+   Returns 1 when the token was adjusted (or had nothing to adjust). */
+int files_test_drop_backup_privileges(void) {
+    static const wchar_t *const names[] = { L"SeBackupPrivilege", L"SeRestorePrivilege" };
+    HANDLE token = NULL;
+    int ok = 1;
+    if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &token)) return 0;
+    for (size_t i = 0; i < sizeof names / sizeof names[0]; ++i) {
+        TOKEN_PRIVILEGES change;
+        change.PrivilegeCount = 1;
+        change.Privileges[0].Attributes = 0;
+        if (!LookupPrivilegeValueW(NULL, names[i], &change.Privileges[0].Luid)) continue;
+        if (!AdjustTokenPrivileges(token, FALSE, &change, 0, NULL, NULL)) ok = 0;
+    }
+    CloseHandle(token);
+    return ok;
+}
 #else
+int files_test_drop_backup_privileges(void) { return 1; }
 int files_test_named_stream_count(const char *path) { (void)path; return -1; }
 int files_test_encrypt(const char *path) { (void)path; return 0; }
 int files_test_is_encrypted(const char *path) { (void)path; return 0; }

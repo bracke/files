@@ -1,3 +1,4 @@
+with Interfaces.C;
 with Files.Helper_Modes;
 with Ada.Command_Line;
 with Ada.Directories;
@@ -82,7 +83,21 @@ procedure Tests is
       end if;
       Ada.Directories.Rename (Partial, Path);
    end Publish;
+
+   procedure Drop_Backup_Privileges is
+      function Drop return Interfaces.C.int
+        with Import, Convention => C, External_Name => "files_test_drop_backup_privileges";
+      Dropped : constant Interfaces.C.int := Drop;
+      pragma Unreferenced (Dropped);
+   begin
+      null;
+   end Drop_Backup_Privileges;
 begin
+   --  Before any test or helper runs: a Windows shell may have switched on
+   --  the backup and restore privileges, which pass over every DACL the
+   --  permission tests set (see files_test_metadata.c).
+   Drop_Backup_Privileges;
+
    --  Volume trashes are off (cross-device tests keep exercising the home
    --  trash), and even where a test turns them on the trash view never scans
    --  the mounts, so Empty Trash in a test never meets a real drive's trash.
