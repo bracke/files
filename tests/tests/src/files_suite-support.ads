@@ -428,8 +428,9 @@ package Files_Suite.Support is
    --  listing on Windows, "" elsewhere.
    --
    --  @param Path An existing file or folder.
+   --  @param Tree Whether to list everything under Path as well.
    --  @return The listing.
-   function Access_Report (Path : String) return String;
+   function Access_Report (Path : String; Tree : Boolean := False) return String;
 
    --  Give Path's owner write and delete access back after Forbid_Deletion
    --  (644, 755 for a folder). Nothing on POSIX, nor when nothing is there.

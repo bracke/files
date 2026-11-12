@@ -105,7 +105,9 @@ separate (Files_Suite.Operations)
       Assert (Files.Job_Context.Cancelled, "the restore retry runs after helper cancellation");
       Result := Files.File_System.Restore_From_Trash (To_String (Trashed));
       Files.Job_Context.Initialize ("");
-      Assert (Result.Success, "restoring can retry after a partial copy failure and cancellation");
+      Assert (Result.Success, "restoring can retry after a partial copy failure and cancellation: "
+              & To_String (Result.Error_Key)
+              & (if Result.Success then "" else Files_Suite.Support.Access_Report (To_String (Trashed), Tree => True)));
       Files_Suite.Support.Assert_Equal
         (Project_Tools.Files.Read_Raw_File (Join (Tree, "a.txt")),
          "complete",

@@ -148,6 +148,28 @@ package body Files_Suite.Support is
       null;
    end Run_Command;
 
+   --  On Windows, put back the inherited access of Path and everything
+   --  under it (icacls /reset), whatever DACLs a test left there.
+   procedure Reset_Access (Path : String) is
+      Program   : constant String := Hostkit.Process.Locate ("icacls");
+      Arguments : Hostkit.String_Vectors.Vector;
+   begin
+      if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows) and then Program /= "" then
+         Arguments.Append (Ada.Strings.Unbounded.To_Unbounded_String (Path));
+         Arguments.Append (Ada.Strings.Unbounded.To_Unbounded_String ("/reset"));
+         Arguments.Append (Ada.Strings.Unbounded.To_Unbounded_String ("/T"));
+         Arguments.Append (Ada.Strings.Unbounded.To_Unbounded_String ("/C"));
+         Arguments.Append (Ada.Strings.Unbounded.To_Unbounded_String ("/Q"));
+         declare
+            Result : constant Hostkit.Process.Process_Outcome :=
+              Hostkit.Process.Run_Captured (Program, Arguments, Timeout_Ms => 60_000);
+            pragma Unreferenced (Result);
+         begin
+            null;
+         end;
+      end if;
+   end Reset_Access;
+
    procedure Reset_Root is
       Removed : Files.File_System.Mutation_Result;
    begin
@@ -161,17 +183,28 @@ package body Files_Suite.Support is
             exit when Removed.Success
               or else not (Ada.Directories.Exists (Root) or else Hostkit.Fs.Is_Link (Root));
          end loop;
-         Assert
-           (Removed.Success
-              or else not (Ada.Directories.Exists (Root) or else Hostkit.Fs.Is_Link (Root)),
-            "test fixture cleanup removes links without following targets; cwd="
-            & Ada.Directories.Current_Directory & "; root=" & Root
-            & "; error=" & To_String (Removed.Error_Key));
+         if not Removed.Success and then (Ada.Directories.Exists (Root) or else Hostkit.Fs.Is_Link (Root)) then
+            declare
+               Message : constant String :=
+                 "test fixture cleanup removes links without following targets; cwd="
+                 & Ada.Directories.Current_Directory & "; root=" & Root
+                 & "; error=" & To_String (Removed.Error_Key) & Access_Report (Root, Tree => True);
+            begin
+               --  Fail this test, but leave the next one a clean root: what
+               --  an earlier test's DACLs refuse, their reset to the inherited
+               --  access lets go.
+               Reset_Access (Root);
+               Removed := Files.File_System.Delete_Permanently (Root);
+               Assert
+                 (False,
+                  Message & (if Removed.Success then "; gone after an access reset" else "; still there after one"));
+            end;
+         end if;
       end if;
       Ada.Directories.Create_Path (Root);
    end Reset_Root;
 
-   function Access_Report (Path : String) return String is
+   function Access_Report (Path : String; Tree : Boolean := False) return String is
       Program   : constant String := Hostkit.Process.Locate ("icacls");
       Report    : constant String := Path & ".access-report";
       Arguments : Hostkit.String_Vectors.Vector;
@@ -181,6 +214,10 @@ package body Files_Suite.Support is
          return "";
       end if;
       Arguments.Append (Ada.Strings.Unbounded.To_Unbounded_String (Path));
+      if Tree then
+         Arguments.Append (Ada.Strings.Unbounded.To_Unbounded_String ("/T"));
+         Arguments.Append (Ada.Strings.Unbounded.To_Unbounded_String ("/C"));
+      end if;
       Result := Hostkit.Process.Run_Captured (Program, Arguments, Stdout_Path => Report, Timeout_Ms => 10_000);
       if not Result.Started or else not Ada.Directories.Exists (Report) then
          return " (icacls did not run)";

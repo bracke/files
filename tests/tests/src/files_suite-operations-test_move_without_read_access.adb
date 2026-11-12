@@ -38,7 +38,10 @@ separate (Files_Suite.Operations)
          Files_Suite.Support.Assert_Equal
            (Step.Status,
             Files.Operations.Operation_Success,
-            "same-device paste moves an unreadable entry and retains Undo: status");
+            "same-device paste moves an unreadable entry and retains Undo: status, "
+            & To_String (Step.Error_Key)
+            & (if Step.Status = Files.Operations.Operation_Success then ""
+               else Files_Suite.Support.Access_Report (Source, Tree => True)));
          Assert (not Ada.Directories.Exists (Source),
                  "same-device paste moves an unreadable entry and retains Undo: source moved");
          Assert (Ada.Directories.Exists (Destination),

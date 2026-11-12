@@ -130,6 +130,9 @@ package body Files_Suite.Operations is
    overriding function Name (T : Operation_Test_Case) return AUnit.Message_String;
    overriding procedure Register_Tests (T : in out Operation_Test_Case);
 
+   --  Path's permission bits, asserting the host reports them.
+   function Mode_Of (Path : String) return Natural;
+
    function Complete_Operation
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;

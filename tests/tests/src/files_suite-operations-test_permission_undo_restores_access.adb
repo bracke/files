@@ -62,7 +62,12 @@ separate (Files_Suite.Operations)
          Select_Name (Model, "access-mode.txt");
 
          Result := Files.Operations.Testing.Set_Permissions_For (Model, Edited, Settings);
-         Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "the edit succeeds");
+         Files_Suite.Support.Assert_Equal
+           (Result.Status,
+            Files.Operations.Operation_Success,
+            "the edit succeeds, " & To_String (Result.Error_Key)
+            & (if Result.Status = Files.Operations.Operation_Success then ""
+               else Files_Suite.Support.Access_Report (Target)));
          Files_Suite.Support.Assert_Equal (Mode_Of (Target), Edited, "the edit changes the one bit");
          declare
             Changed : constant String := Access_Of (Target);

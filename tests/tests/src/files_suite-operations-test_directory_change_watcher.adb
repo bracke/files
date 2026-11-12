@@ -102,9 +102,13 @@ separate (Files_Suite.Operations)
             --  Windows stamps a change from a clock that ticks every 15.6 ms;
             --  a real change comes later than one tick after the last.
             delay 0.05;
-            Assert (Hostkit.Metadata.Set_Permissions (Target, 8#600#), "the test can change a mode");
+            --  A mode the file does not have already: on Windows a file in
+            --  the temporary folder can read as 600 from what it inherits.
+            Assert
+              (Hostkit.Metadata.Set_Permissions (Target, (if Mode_Of (Target) = 8#600# then 8#644# else 8#600#)),
+               "the test can change a mode");
             Change := Files.File_System.Detect_Directory_Change (Before, Join (Root, "search"));
-            Assert (Change.Changed, "a chmod alone is a change");
+            Assert (Change.Changed, "a chmod alone is a change, to mode " & Natural'Image (Mode_Of (Target)));
          end if;
          Before := Files.File_System.Directory_State (Join (Root, "search"));
          delay 0.05;
