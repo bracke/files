@@ -466,44 +466,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # TODO(coordinator): set the SHA-256 the first run prints below (and
-          # keep only the URL that served it); a mismatch then fails the job.
-          expected_sha256=''
-          # The commit textrender's CI pins for Noto-COLRv1.ttf, at both of the
-          # layouts the repository has used, then the v2.047 release tag.
-          base=https://raw.githubusercontent.com/googlefonts/noto-emoji
-          rev=1ffdd21391dd1f25c081fa93a9dea0c7c029442b
+          # The font's SHA-256 at that revision; a mismatch fails the job.
+          expected_sha256=15671215ab769fdc7162a045d56fd7d7e477c51b04e6b3c761d914d8fdd6cc44
+          # The commit textrender's CI pins for Noto-COLRv1.ttf; this font sits
+          # under 2D/fonts there.
+          url=https://raw.githubusercontent.com/googlefonts/noto-emoji/1ffdd21391dd1f25c081fa93a9dea0c7c029442b/2D/fonts/NotoColorEmoji.ttf
           font="$RUNNER_TEMP/NotoColorEmoji.ttf"
-          fetched=''
-          for url in "$base/$rev/fonts/NotoColorEmoji.ttf" \
-                     "$base/$rev/2D/fonts/NotoColorEmoji.ttf" \
-                     "$base/v2.047/fonts/NotoColorEmoji.ttf"; do
-            rm -f "$font"
-            if curl -fsSL --retry 3 -o "$font" "$url"; then
-              # sfnt version 0x00010000 (TrueType): anything else is an error
-              # page, not a font.
-              magic=$(head -c 4 "$font" | od -An -tx1 | tr -d ' \n')
-              if [ "$magic" = 00010000 ]; then
-                fetched="$url"
-                break
-              fi
-              echo "$url did not serve a font (starts $magic)"
-            else
-              echo "$url could not be fetched"
-            fi
-          done
-          if [ -z "$fetched" ]; then
-            echo "::error::no pinned NotoColorEmoji.ttf could be fetched"
+          if ! curl -fsSL --retry 3 -o "$font" "$url"; then
+            echo "::error::the pinned NotoColorEmoji.ttf could not be fetched"
             exit 1
           fi
+          # From stdin: given a Windows path, sha256sum escapes its output
+          # with a leading backslash.
           if command -v sha256sum >/dev/null 2>&1; then
-            actual=$(sha256sum "$font" | awk '{ print $1 }')
+            actual=$(sha256sum < "$font" | awk '{ print $1 }')
           else
-            actual=$(shasum -a 256 "$font" | awk '{ print $1 }')
+            actual=$(shasum -a 256 < "$font" | awk '{ print $1 }')
           fi
-          echo "NotoColorEmoji.ttf from $fetched"
           echo "NotoColorEmoji.ttf SHA-256: $actual"
-          if [ -n "$expected_sha256" ] && [ "$actual" != "$expected_sha256" ]; then
+          if [ "$actual" != "$expected_sha256" ]; then
             echo "::error::NotoColorEmoji.ttf SHA-256 $actual, expected $expected_sha256"
             exit 1
           fi
