@@ -16,8 +16,8 @@ package Files.Desktop_Applications is
       --  (Launch_Actions wraps it in one).
       Terminal     : Boolean := False;
       --  Path=: the folder the entry asks to run in, decoded; empty when it
-      --  names none. Kept for the launch, whose detached start
-      --  (Hostkit.Process.Launch) cannot yet be given a working directory.
+      --  names none. Launch_Actions hands it to the launch as its working
+      --  directory.
       Working_Directory : UString;
    end record;
 

@@ -54,8 +54,20 @@ separate (Files_Suite.Operations)
          Window : constant Files.Desktop_Applications.Application := Find_Application (Apps, "Window Program");
          Shell  : constant Files.Desktop_Applications.Application := Find_Application (Apps, "Terminal Program");
          Terminal : constant String := Hostkit.Process.Default_Terminal;
+         --  The entry's action as the scan builds it (on some hosts that is
+         --  not the plain program: a name the host cannot run as it stands),
+         --  which is what decides whether the entry is offered.
+         Built    : constant Files.Settings.Open_Action :=
+           Files.Desktop_Applications.Build_Open_Action
+             ((Name => To_Unbounded_String ("Terminal Program"), Exec => To_Unbounded_String ("top -d 1"),
+               Terminal => True, others => <>),
+              Files.Types.String_Vectors.Empty_Vector);
          Runs     : constant Boolean :=
-           To_String (Files.Desktop_Applications.In_Terminal (Program, Terminal).Executable) /= "";
+           To_String (Files.Desktop_Applications.In_Terminal (Built, Terminal).Executable) /= "";
+         --  What the scan saw, for a failure message.
+         Seen     : constant String :=
+           " (terminal " & Terminal & ", action " & To_String (Built.Executable)
+           & (if Built.Use_Shell then " through the shell" else "") & ")";
       begin
          Assert (To_String (Window.Exec) /= "" and then not Window.Terminal
                  and then To_String (Window.Working_Directory) = "",
@@ -63,10 +75,10 @@ separate (Files_Suite.Operations)
          Assert (To_String (Find_Application (Apps, "Unclear Program").Exec) = "",
                  "an invalid Terminal value rejects the entry");
          if not Runs then
-            Assert (To_String (Shell.Exec) = "", "with no usable terminal a terminal program is not offered");
+            Assert (To_String (Shell.Exec) = "", "with no usable terminal a terminal program is not offered" & Seen);
          else
             Assert (To_String (Shell.Exec) /= "" and then Shell.Terminal,
-                    "Terminal=true is read where a terminal (" & Terminal & ") can run it");
+                    "Terminal=true is read where a terminal can run it" & Seen);
             --  A backslash is a desktop-entry escape: a Windows root
             --  would read back decoded.
             if Ada.Strings.Fixed.Index (Root, "\") = 0 then
