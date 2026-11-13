@@ -4,6 +4,6 @@ procedure Move_Label_Picker_Highlight
    Delta_Value : Integer) is
 begin
    Touch (Model);
-   Model.Label_Picker_Swatch_Value :=
-     Integer'Max (1, Integer'Min (Files.Types.Swatch_Count, Model.Label_Picker_Swatch_Value + Delta_Value));
+   Model.Label_Picker.Swatch :=
+     Integer'Max (1, Integer'Min (Files.Types.Swatch_Count, Model.Label_Picker.Swatch + Delta_Value));
 end Move_Label_Picker_Highlight;

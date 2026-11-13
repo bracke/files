@@ -8,6 +8,6 @@ begin
    Model.Tree_Keyboard_Value := False;
    Model.Path_Input := (Text => Model.Current_Path_Value, Cursor => Length (Model.Current_Path_Value), others => <>);
    Clear_Root_Selector_State (Model);
-   Model.Command_Palette_Open := False;
-   Guikit.Command_Palette.Reset (Model.Command_Palette_View);
+   Model.Command_Palette.Open := False;
+   Guikit.Command_Palette.Reset (Model.Command_Palette.View);
 end Focus_Path_Input;

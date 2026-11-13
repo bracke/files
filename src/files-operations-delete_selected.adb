@@ -1,7 +1,4 @@
 with Files.Items;
-with Ada.Real_Time;
-
-with Files.Timing;
 
 separate (Files.Operations)
 function Delete_Selected
@@ -11,50 +8,12 @@ function Delete_Selected
 is
    Items      : constant Files.Items.Item_Vectors.Vector := Files.Model.Selected_Items (Model);
    First_Path : Unbounded_String;
-   Undo_From  : Files.Types.String_Vectors.Vector;
-   Undo_To    : Files.Types.String_Vectors.Vector;
-   Identities : Files.Types.String_Vectors.Vector;
-   Progress_Recorded : Boolean := False;
-   Verified_Count : Natural := 0;
-   --  How many trashed items the recorded Undo covers, and when it was
-   --  last saved.
-   Recorded_Count  : Natural := 0;
-   Last_Checkpoint : Ada.Real_Time.Time := Ada.Real_Time.Clock;
-   --  Each checkpoint rewrites the whole Undo entry and the journal durably,
-   --  so one per item made a large trash quadratic, with an fsync per item.
-   --  A checkpoint a second keeps a crash's loss to the last second's items,
-   --  which stay in the trash, restorable from there.
-   Checkpoint_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
-   procedure Record_Progress is
-      Previous : Files.Model.Undo_Entry;
-      Found : Boolean;
-   begin
-      if Progress_Recorded then
-         Files.Model.Take_Undo (Model, Previous, Found);
-      end if;
-      Progress_Recorded := Try_Record_Undo
-        (Model, Files.Model.Undo_Restore_Trash, Undo_From, Undo_To, Redoable => False,
-         Provenance => (Identities => Identities, Retain_Verified_Main => Verified_Count, others => <>));
-      if Progress_Recorded
-        and then Natural (Files.Model.Undo_From_Paths (Model).Length) =
-          Natural (Undo_From.Length)
-      then
-         Verified_Count := Natural (Undo_From.Length);
-      end if;
-      Files.History_Journal.Save (Model, Required => True);
-      Recorded_Count := Natural (Undo_From.Length);
-      Last_Checkpoint := Ada.Real_Time.Clock;
-   end Record_Progress;
-
-   --  The first item at once (an Undo exists from the start), then by time.
-   procedure Checkpoint is
-   begin
-      if not Progress_Recorded
-        or else Files.Timing.Elapsed (Ada.Real_Time.Clock, Last_Checkpoint, Checkpoint_Interval)
-      then
-         Record_Progress;
-      end if;
-   end Checkpoint;
+   --  The trashed items (From), where they were (To), and what identifies
+   --  them. A record a second keeps a crash's loss to the last second's
+   --  items, which stay in the trash, restorable from there; each record is
+   --  committed durably.
+   Progress   : Progressive_Undo :=
+     (Kind => Files.Model.Undo_Restore_Trash, Redoable => False, Durable => True, others => <>);
 begin
    if Is_Trash_Directory (Files.Model.Current_Path (Model)) then
       return Disabled (Model, "error.trash.failed");
@@ -111,29 +70,25 @@ begin
             --  mid-batch failure (a race can make a later item fail after
             --  earlier ones moved), so those items remain Ctrl-Z-restorable
             --  instead of being stranded in the trash.
-            if Natural (Undo_From.Length) /= Recorded_Count then
-               Record_Progress;
-            end if;
+            Finish_Failed_Undo (Model, Progress);
             Reload_With_Error (Model, Settings, To_String (Mutation.Error_Key));
             return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
          end if;
-         Undo_From.Append (Trashed);
-         Undo_To.Append (Item.Full_Path);
-         Identities.Append
+         Progress.From.Append (Trashed);
+         Progress.To.Append (Item.Full_Path);
+         Progress.Identities.Append
            (To_Unbounded_String (Files.File_Identities.Token (To_String (Trashed))));
          --  Labels go into the trash with the item and come back with it,
          --  so a new file at the old path inherits none. A native trash
          --  that does not say where the item went keeps them in place.
          Files.Model.Note_Path_Move (Model, To_String (Item.Full_Path), To_String (Trashed));
-         Checkpoint;
+         Checkpoint_Undo (Model, Progress);
       end;
    end loop;
 
    --  Restoring from trash reproduces the original path, but re-trashing
    --  allocates a fresh trash location, so this entry is undo-only.
-   if Natural (Undo_From.Length) /= Recorded_Count then
-      Record_Progress;
-   end if;
+   Finish_Undo (Model, Progress);
 
    declare
       Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
@@ -147,6 +102,8 @@ begin
 exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.Operations");
+      --  What was trashed before the failure stays restorable by Undo.
+      Finish_Failed_Undo (Model, Progress);
       Files.Model.Set_Error (Model, "error.trash.failed");
       return Make_Result (Operation_Failed, "error.trash.failed", Files.Model.Current_Path (Model));
 end Delete_Selected;

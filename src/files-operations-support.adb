@@ -3,6 +3,8 @@ with Hostkit.Process;
 with Ada.Strings.Unbounded;
 
 with Files.File_System;
+with Files.History_Journal;
+with Files.Timing;
 with Files.Refresh_Jobs;
 with Files.Fs_Primitives;
 with Files.Leaf_Names;
@@ -222,5 +224,74 @@ package body Files.Operations.Support is
          end;
       end if;
    end Generate_Missing_Thumbnails;
+
+   --  How long Checkpoint_Undo leaves between records.
+   Checkpoint_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Seconds (1);
+
+   --  Replace the batch's entry with one covering every item appended.
+   procedure Record_Progress
+     (Model    : in out Files.Model.Window_Model;
+      Progress : in out Progressive_Undo)
+   is
+      Previous : Files.Model.Undo_Entry;
+      Found    : Boolean;
+   begin
+      if Progress.Recorded then
+         Files.Model.Take_Undo (Model, Previous, Found);
+         --  Taken: should the record below raise, a later one must not
+         --  take the entry under it, which is not the batch's.
+         Progress.Recorded := False;
+      end if;
+      Progress.Recorded := Try_Record_Undo
+        (Model, Progress.Kind, Progress.From, Progress.To,
+         Forward     => Progress.Forward,
+         Create_Kind => Progress.Create_Kind,
+         Redoable    => Progress.Redoable,
+         Provenance  =>
+           (Identities           => Progress.Identities,
+            Tree_Revisions       => Progress.Tree_Revisions,
+            Retain_Verified_Main => Progress.Verified_Count,
+            others               => <>));
+      if Progress.Recorded
+        and then Natural (Files.Model.Undo_From_Paths (Model).Length) = Natural (Progress.From.Length)
+      then
+         Progress.Verified_Count := Natural (Progress.From.Length);
+      end if;
+      if Progress.Durable then
+         Files.History_Journal.Save (Model, Required => True);
+      end if;
+      Progress.Recorded_Count := Natural (Progress.From.Length);
+      Progress.Last_Checkpoint := Ada.Real_Time.Clock;
+   end Record_Progress;
+
+   procedure Checkpoint_Undo
+     (Model    : in out Files.Model.Window_Model;
+      Progress : in out Progressive_Undo) is
+   begin
+      if not Progress.Recorded
+        or else Files.Timing.Elapsed (Ada.Real_Time.Clock, Progress.Last_Checkpoint, Checkpoint_Interval)
+      then
+         Record_Progress (Model, Progress);
+      end if;
+   end Checkpoint_Undo;
+
+   procedure Finish_Undo
+     (Model    : in out Files.Model.Window_Model;
+      Progress : in out Progressive_Undo) is
+   begin
+      if Natural (Progress.From.Length) /= Progress.Recorded_Count then
+         Record_Progress (Model, Progress);
+      end if;
+   end Finish_Undo;
+
+   procedure Finish_Failed_Undo
+     (Model    : in out Files.Model.Window_Model;
+      Progress : in out Progressive_Undo) is
+   begin
+      Finish_Undo (Model, Progress);
+   exception
+      when Unrecorded : others =>
+         Files.Diagnostics.Note (Unrecorded, "Files.Operations.Support");
+   end Finish_Failed_Undo;
 
 end Files.Operations.Support;

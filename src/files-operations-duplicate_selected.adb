@@ -10,35 +10,10 @@ is
 
    First_Created : Unbounded_String;
    Created_Any   : Boolean := False;
-   Created       : Files.Types.String_Vectors.Vector;
-   Sources       : Files.Types.String_Vectors.Vector;
-   Identities    : Files.Types.String_Vectors.Vector;
-   Tree_Revisions : Files.Types.String_Vectors.Vector;
-   Progress_Recorded : Boolean := False;
-   Verified_Count : Natural := 0;
-
-   procedure Record_Progress is
-      Previous : Files.Model.Undo_Entry;
-      Found : Boolean;
-   begin
-      if Progress_Recorded then
-         Files.Model.Take_Undo (Model, Previous, Found);
-      end if;
-      Progress_Recorded := Try_Record_Undo
-        (Model, Files.Model.Undo_Delete_Created, Created,
-         Files.Types.String_Vectors.Empty_Vector, Forward => Sources, Create_Kind => Files.Model.Create_Copy,
-         Provenance =>
-           (Identities => Identities,
-            Tree_Revisions => Tree_Revisions,
-            Retain_Verified_Main => Verified_Count,
-            others => <>));
-      if Progress_Recorded
-        and then Natural (Files.Model.Undo_From_Paths (Model).Length) =
-          Natural (Created.Length)
-      then
-         Verified_Count := Natural (Created.Length);
-      end if;
-   end Record_Progress;
+   --  Created copies (From) and their sources (Forward).
+   Progress      : Progressive_Undo :=
+     (Kind => Files.Model.Undo_Delete_Created, Create_Kind => Files.Model.Create_Copy, Redoable => True,
+      others => <>);
 
    function Trimmed_Image (Value : Positive) return String is (Files.Types.Natural_Text (Value));
 
@@ -58,10 +33,15 @@ is
    end Copy_Marker;
 
    --  Copy_Tree commits one selection at a time. If a later source
-   --  fails, reload so the earlier copies are not hidden by a stale
-   --  model, and retain the failure after that reload clears errors.
+   --  fails, the earlier copies stay undoable; reload so they are not
+   --  hidden by a stale model, and retain the failure after that reload
+   --  clears errors.
    function Failed return Operation_Result is
-     (Batch_Failed (Model, Settings, "error.duplicate.failed", Directory, Wrote_Some => not Created.Is_Empty));
+   begin
+      Finish_Failed_Undo (Model, Progress);
+      return Batch_Failed
+        (Model, Settings, "error.duplicate.failed", Directory, Wrote_Some => not Progress.From.Is_Empty);
+   end Failed;
 begin
    if Files.Model.Selection_Includes_Temporary (Model) then
       return Disabled (Model, "error.create.pending");
@@ -107,11 +87,11 @@ begin
                return Failed;
             end if;
 
-            Created.Append (To_Unbounded_String (Dest_Path));
-            Sources.Append (To_Unbounded_String (Source));
-            Identities.Append (Identity);
-            Tree_Revisions.Append (Revision);
-            Record_Progress;
+            Progress.From.Append (To_Unbounded_String (Dest_Path));
+            Progress.Forward.Append (To_Unbounded_String (Source));
+            Progress.Identities.Append (Identity);
+            Progress.Tree_Revisions.Append (Revision);
+            Checkpoint_Undo (Model, Progress);
             if not Created_Any then
                First_Created := To_Unbounded_String (Dest_Name);
                Created_Any := True;
@@ -119,6 +99,7 @@ begin
          end;
       end loop;
    end;
+   Finish_Undo (Model, Progress);
 
    if not Created_Any then
       return Failed;

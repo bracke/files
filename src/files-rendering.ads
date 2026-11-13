@@ -14,7 +14,6 @@ with Files.Model;
 with Files.Quick_Look;
 with Files.Settings;
 with Files.Types;
-use Guikit.Draw;
 
 --  Immutable render snapshots and layout calculations.
 package Files.Rendering is
@@ -236,8 +235,8 @@ package Files.Rendering is
       Ownership_Editable    : Boolean := False;
       Settings_Pane_Open    : Boolean := False;
       Icon_Theme            : Files.Icon_Themes.Icon_Theme := Files.Icon_Themes.Basic;
-      Theme_Palette         : Theme_Kind := Theme_Dark;
-      Theme_Focus_Ring      : Render_Color := Border_Color;
+      Theme_Palette         : Guikit.Draw.Theme_Kind := Guikit.Draw.Theme_Dark;
+      Theme_Focus_Ring      : Guikit.Draw.Render_Color := Guikit.Draw.Border_Color;
       Info_Pane_Scroll_Lines : Natural := 0;
       Main_View_Scroll_Lines : Natural := 0;
       Root_Selector_Open    : Boolean := False;
@@ -274,7 +273,7 @@ package Files.Rendering is
       Context_Menu_Highlight         : Natural := 0;
       Context_Menu_X                 : Natural := 0;
       Context_Menu_Y                 : Natural := 0;
-      Context_Menu_Target            : Files.Model.Context_Menu_Target :=
+      Context_Menu_Target            : Files.Types.Context_Menu_Target :=
         Files.Types.Context_Menu_None;
       Context_Menu_Item_Index        : Natural := 0;
       --  Detail-view column customization mirrored from settings so the pure
@@ -632,15 +631,15 @@ package Files.Rendering is
 
    type Frame_Commands is record
       Layout        : Layout_Metrics;
-      Theme_Palette : Theme_Kind := Theme_Dark;
-      Rectangles    : Rectangle_Command_Vectors.Vector;
-      Triangles     : Triangle_Command_Vectors.Vector;
-      Text          : Text_Command_Vectors.Vector;
-      Icons         : Icon_Command_Vectors.Vector;
-      Overlay_Rectangles : Rectangle_Command_Vectors.Vector;
-      Overlay_Text       : Text_Command_Vectors.Vector;
-      Tooltips      : Tooltip_Command_Vectors.Vector;
-      Accessibility : Accessibility_Node_Vectors.Vector;
+      Theme_Palette : Guikit.Draw.Theme_Kind := Guikit.Draw.Theme_Dark;
+      Rectangles    : Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Triangles     : Guikit.Draw.Triangle_Command_Vectors.Vector;
+      Text          : Guikit.Draw.Text_Command_Vectors.Vector;
+      Icons         : Guikit.Draw.Icon_Command_Vectors.Vector;
+      Overlay_Rectangles : Guikit.Draw.Rectangle_Command_Vectors.Vector;
+      Overlay_Text       : Guikit.Draw.Text_Command_Vectors.Vector;
+      Tooltips      : Guikit.Draw.Tooltip_Command_Vectors.Vector;
+      Accessibility : Guikit.Draw.Accessibility_Node_Vectors.Vector;
       Permission_Hits : Permission_Hit_Region_Vectors.Vector;
       Ownership_Hits : Ownership_Hit_Region_Vectors.Vector;
       Conflict_Hits : Conflict_Hit_Region_Vectors.Vector;
@@ -1341,7 +1340,7 @@ private
    --  @return The palette role drawn in that label's color.
    function Label_Render_Color
      (Label : Files.Types.Color_Label)
-      return Render_Color;
+      return Guikit.Draw.Render_Color;
 
    --  Whether a popup or modal panel is open, owning the pointer: one per
    --  Files.Model.Input_Overlay. Tooltips of the controls it covers are not

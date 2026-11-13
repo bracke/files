@@ -10,6 +10,9 @@ separate (Files.Rendering)
       Pointer     : Pointer_State := No_Pointer)
       return Frame_Commands
    is
+      --  The draw model the frame is made of, for this body and its subunits.
+      use Guikit.Draw;
+
       --  The pointer's parts by their own names, as the drawing reads them.
       Hover_X         : Natural renames Pointer.Hover_X;
       Hover_Y         : Natural renames Pointer.Hover_Y;
@@ -632,25 +635,16 @@ separate (Files.Rendering)
          Cursor  : Natural)
  is separate;
 
-      function Icon_Color (Kind : Files.Types.Item_Kind) return Render_Color is
-      begin
-         case Kind is
-            when Files.Types.Directory_Item =>
-               return Icon_Folder_Color;
-            when Files.Types.Executable_Item =>
-               return Icon_Program_Color;
-            when Files.Types.Regular_File_Item | Files.Types.Symlink_Item | Files.Types.Other_Item =>
-               return Icon_Document_Color;
-            when Files.Types.Unknown_Item =>
-               return Icon_Generic_Color;
-         end case;
-      end Icon_Color;
+      function Icon_Color (Kind : Files.Types.Item_Kind) return Render_Color is separate;
 
       --  The colour the backend rasterizes an atlas icon's base-role shapes in:
-      --  a folder's blue, every other asset a neutral grey (the backend knows no
-      --  icon names, so files says which is which).
+      --  a folder in the theme's folder blue, as Icon_Color draws one without
+      --  an asset, every other asset a neutral grey (the backend knows no icon
+      --  names, so files says which is which). The tile is keyed by this
+      --  colour, so a theme change rasterizes fresh folder tiles.
       function Atlas_Base_Color (Icon_Name : String) return Guikit.Draw.Icon_Rgb is
-        (if Icon_Name = "folder" then (R => 82, G => 128, B => 209) else Guikit.Draw.Default_Icon_Base_Color);
+        (if Icon_Name = "folder" then Guikit.Draw.Icon_Rgb_For (Icon_Folder_Color, Snapshot.Theme_Palette)
+         else Guikit.Draw.Default_Icon_Base_Color);
 
       procedure Add_Icon
         (Item : Item_Snapshot;

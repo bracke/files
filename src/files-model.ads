@@ -531,16 +531,6 @@ package Files.Model is
       Visit : not null access procedure
         (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean));
 
-   --  The first and last visible indexes that are selected, in one pass.
-   --
-   --  @param Model Model to inspect.
-   --  @param First First selected visible index, or zero when none is.
-   --  @param Last Last selected visible index, or zero when none is.
-   procedure Selected_Visible_Bounds
-     (Model : Window_Model;
-      First : out Natural;
-      Last  : out Natural);
-
    --  The fixed end a shift-extended selection grows from: the item last
    --  selected by a plain click, a Ctrl click or a cursor move
    --  (Select_Visible, Toggle_Visible_Selection), which a range
@@ -3289,6 +3279,67 @@ private
       Selection   : UString;
    end record;
 
+   --  The info pane's owner or group field: what is typed, where the caret
+   --  is (a byte offset), and whether it edits the group rather than the
+   --  owner. Every default is the idle field.
+   type Ownership_Input_State is record
+      Text          : UString;
+      Cursor        : Natural := 0;
+      Editing_Group : Boolean := False;
+   end record;
+
+   --  The Quick Look overlay: whether it is shown, the path it previews and
+   --  the content prepared for it. Every default is the closed state.
+   type Quick_Look_State is record
+      Active  : Boolean := False;
+      Path    : UString;
+      Content : Files.Quick_Look.Quick_Look_Content;
+   end record;
+
+   --  The command palette overlay: whether it is shown, what it lists, and
+   --  the guikit component holding its query, scroll and selection. Every
+   --  default is the closed state.
+   type Command_Palette_State is record
+      Open : Boolean := False;
+      Mode : Palette_Mode := Palette_Commands;
+      View : Guikit.Command_Palette.Palette;
+   end record;
+
+   --  The root (volume) selector overlay: whether it is shown, the roots it
+   --  lists and the highlighted one (0 = none). Every default is the closed
+   --  state.
+   type Root_Selector_State is record
+      Open     : Boolean := False;
+      Entries  : Files.File_System.Root_Entry_Vectors.Vector;
+      Selected : Natural := 0;
+   end record;
+
+   --  The label picker overlay: whether it is shown and its keyboard
+   --  highlight. Every default is the closed state.
+   type Label_Picker_State is record
+      Active : Boolean := False;
+      Swatch : Positive := Files.Types.Clear_Swatch;
+   end record;
+
+   --  The volume-space sample and where and when it was taken; Sampled is
+   --  meaningful only once Path is set. Every default is the unsampled state.
+   type Volume_Sample_State is record
+      Space   : Volume_Space;
+      Path    : UString;
+      Sampled : Ada.Calendar.Time;
+   end record;
+
+   --  The grouping the items are ordered by: the effective mode, the labels
+   --  and day it was computed with, and the rows revision it was last
+   --  checked at (a selection or scroll moves no item). Every default is the
+   --  never-synced, ungrouped state.
+   type Grouping_State is record
+      Mode            : Files.Types.Group_Mode := Files.Types.No_Grouping;
+      Labels          : Files.Settings.Path_Label_Vectors.Vector;
+      Day             : Ada.Calendar.Time := Files.Types.Unknown_Time;
+      Synced_Revision : Natural := Natural'Last;
+   end record;
+
    type Navigation_Mark is record
       Path            : UString;
       Recent          : Boolean := False;
@@ -3350,28 +3401,19 @@ private
       Settings_Pane_Open   : Boolean := False;
       Settings_Draft_Value : Files.Settings.Settings_Draft;
       Settings_Panel_View  : Guikit.Settings_Panel.Panel;
-      Ownership_Input_Value   : UString;
-      Ownership_Input_Cursor  : Natural := 0;
-      Ownership_Editing_Group_Value : Boolean := False;
+      Ownership_Input      : Ownership_Input_State;
       Info_Pane_Scroll     : Natural := 0;
       Main_View_Scroll     : Natural := 0;
-      Root_Selector_Open   : Boolean := False;
-      Root_Entries         : Files.File_System.Root_Entry_Vectors.Vector;
-      Root_Selected        : Natural := 0;
+      Root_Selector        : Root_Selector_State;
       Tree_Panel_Open      : Boolean := False;
       Tree_Panel_Scroll    : Natural := 0;
       Folder_Tree_Value    : Files.Folder_Tree.Tree;
       Tree_Pick               : Tree_Pick_State;
       Tree_Keyboard_Value     : Boolean := False;
       Tree_Cursor_Value       : UString;
-      Command_Palette_Open     : Boolean := False;
-      Command_Palette_Mode     : Palette_Mode := Palette_Commands;
-      Command_Palette_View     : Guikit.Command_Palette.Palette;
-      Quick_Look_Active        : Boolean := False;
-      Quick_Look_Path_Value    : UString;
-      Quick_Look_Content_Value : Files.Quick_Look.Quick_Look_Content;
-      Label_Picker_Active      : Boolean := False;
-      Label_Picker_Swatch_Value : Positive := Files.Types.Clear_Swatch;
+      Command_Palette          : Command_Palette_State;
+      Quick_Look               : Quick_Look_State;
+      Label_Picker             : Label_Picker_State;
       Open_With_Targets_Value  : Files.Types.String_Vectors.Vector;
       Open_With_Applications_Value : Files.Desktop_Applications.Application_Vectors.Vector;
       --  The model revision the palette's command list was built at, so a
@@ -3420,22 +3462,14 @@ private
       Rows_Revision_Value : Natural := 0;
       --  Bumped with Revision_Value by every change of the selection.
       Selection_Revision_Value : Natural := 0;
-      --  The volume-space sample (Set_Volume_Space) and where and when it was
-      --  taken; Volume_Sampled is meaningful only once Volume_Path is set.
-      Volume_Space_Value : Volume_Space;
-      Volume_Path        : UString;
-      Volume_Sampled     : Ada.Calendar.Time;
+      --  The volume-space sample (Set_Volume_Space).
+      Volume_Sample : Volume_Sample_State;
       --  Owner and group names resolved by the window layer, and the revision
       --  they were last sampled at (Natural'Last: never).
       Account_Names         : Account_Name_Tables;
       Account_Names_Sampled : Natural := Natural'Last;
-      --  The grouping the items are ordered by (Sync_Grouping): the effective
-      --  mode, the labels and day it was computed with, and the rows
-      --  revision it was last checked at (a selection or scroll moves no item).
-      Group_Mode_Value      : Files.Types.Group_Mode := Files.Types.No_Grouping;
-      Group_Labels          : Files.Settings.Path_Label_Vectors.Vector;
-      Group_Day             : Ada.Calendar.Time := Files.Types.Unknown_Time;
-      Group_Synced_Revision : Natural := Natural'Last;
+      --  The grouping the items are ordered by (Sync_Grouping).
+      Grouping : Grouping_State;
       --  Narrower generation used to reject stale background directory reads
       --  without treating harmless interaction as a listing-context change.
       Listing_Revision_Value : Natural := 0;

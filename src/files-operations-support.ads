@@ -1,3 +1,5 @@
+with Ada.Real_Time;
+
 with Files.Items;
 with Files.Model;
 with Files.Settings;
@@ -143,5 +145,69 @@ private package Files.Operations.Support is
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
       Items    : Files.Items.Item_Vectors.Vector);
+
+   --  The Undo entry of a batch (duplicate, extract, trash) that grows with
+   --  it, so a batch stopped part way -- by a failure, a cancel, or a crash
+   --  of the helper running it -- still undoes what it did. The batch
+   --  appends each item it completes to the vectors and calls
+   --  Checkpoint_Undo; once it ends, however it ends, it calls Finish_Undo.
+   --
+   --  Each record rewrites the whole Undo entry and the history journal, so
+   --  one per item made a large batch quadratic, with a journal write per
+   --  item. Checkpoint_Undo records the first item at once (an Undo exists
+   --  from the start) and then at most once a second; a crash so loses only
+   --  the last second's items from Undo, which stay where the batch put them
+   --  (copies beside their sources, trashed items in the trash).
+   --  Finish_Undo records whatever Checkpoint_Undo left out, so the entry a
+   --  batch ends with covers all of it.
+   type Progressive_Undo is record
+      --  How the entry is recorded, as for Try_Record_Undo.
+      Kind        : Files.Model.Undo_Action_Kind := Files.Model.Undo_Delete_Created;
+      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
+      Redoable    : Boolean := False;
+      --  Whether each record also commits the history journal durably
+      --  (Files.History_Journal.Save, Required), stopping a helper that
+      --  cannot.
+      Durable : Boolean := False;
+      --  The batch appends to these, parallel to one another, as for
+      --  Try_Record_Undo and its Provenance.
+      From, To, Forward          : Files.Types.String_Vectors.Vector;
+      Identities, Tree_Revisions : Files.Types.String_Vectors.Vector;
+      --  Kept by Checkpoint_Undo and Finish_Undo: whether the top Undo entry
+      --  is this batch's, how many From members it covers, how many of those
+      --  were verified (Retain_Verified_Main), and when it was recorded.
+      Recorded        : Boolean := False;
+      Recorded_Count  : Natural := 0;
+      Verified_Count  : Natural := 0;
+      Last_Checkpoint : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+   end record;
+
+   --  Record Progress after an item was appended: at once for the first
+   --  record, then once a second has passed since the last.
+   --
+   --  @param Model Model whose history is updated.
+   --  @param Progress The batch's entry so far.
+   procedure Checkpoint_Undo
+     (Model    : in out Files.Model.Window_Model;
+      Progress : in out Progressive_Undo);
+
+   --  Record whatever Checkpoint_Undo left out, so the entry covers every
+   --  item appended. A record that fails raises, so a batch that otherwise
+   --  succeeded reports the failure rather than an Undo it does not have.
+   --
+   --  @param Model Model whose history is updated.
+   --  @param Progress The batch's entry.
+   procedure Finish_Undo
+     (Model    : in out Files.Model.Window_Model;
+      Progress : in out Progressive_Undo);
+
+   --  Finish_Undo for a batch that has already failed: a record that fails
+   --  too is noted, and the batch's own failure is what the caller reports.
+   --
+   --  @param Model Window whose Undo history holds the batch's entry.
+   --  @param Progress The batch's entry so far.
+   procedure Finish_Failed_Undo
+     (Model    : in out Files.Model.Window_Model;
+      Progress : in out Progressive_Undo);
 
 end Files.Operations.Support;

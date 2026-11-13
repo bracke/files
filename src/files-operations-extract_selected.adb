@@ -12,40 +12,18 @@ is
 
    First_Created : Unbounded_String;
    Extracted_Any : Boolean := False;
-   Created       : Files.Types.String_Vectors.Vector;
-   Identities    : Files.Types.String_Vectors.Vector;
-   Tree_Revisions : Files.Types.String_Vectors.Vector;
-   Progress_Recorded : Boolean := False;
-   Verified_Count : Natural := 0;
-
-   procedure Record_Progress is
-      Previous : Files.Model.Undo_Entry;
-      Found : Boolean;
-   begin
-      if Progress_Recorded then
-         Files.Model.Take_Undo (Model, Previous, Found);
-      end if;
-      Progress_Recorded := Try_Record_Undo
-        (Model, Files.Model.Undo_Delete_Created, Created,
-         Files.Types.String_Vectors.Empty_Vector, Redoable => False,
-         Provenance =>
-           (Identities => Identities,
-            Tree_Revisions => Tree_Revisions,
-            Retain_Verified_Main => Verified_Count,
-            others => <>));
-      if Progress_Recorded
-        and then Natural (Files.Model.Undo_From_Paths (Model).Length) =
-          Natural (Created.Length)
-      then
-         Verified_Count := Natural (Created.Length);
-      end if;
-   end Record_Progress;
+   --  The extracted folders (From).
+   Progress      : Progressive_Undo := (Kind => Files.Model.Undo_Delete_Created, Redoable => False, others => <>);
 
    --  An earlier archive in the same batch may already have committed.
    --  Keep that output visible as well as undoable, while preserving the
    --  diagnostic which explains why the remaining batch stopped.
    function Failed return Operation_Result is
-     (Batch_Failed (Model, Settings, "error.extract.failed", Directory, Wrote_Some => not Created.Is_Empty));
+   begin
+      Finish_Failed_Undo (Model, Progress);
+      return Batch_Failed
+        (Model, Settings, "error.extract.failed", Directory, Wrote_Some => not Progress.From.Is_Empty);
+   end Failed;
 begin
    if Files.Model.Selection_Includes_Temporary (Model) then
       return Disabled (Model, "error.create.pending");
@@ -88,6 +66,8 @@ begin
                Status    : Zlib.Status_Code;
                Stage     : constant String := Files.Job_Context.Create_Stage (Destination);
                Payload   : constant String := Hostkit.Fs.Join (Stage, "payload");
+               --  What identifies the published folder, for its Undo.
+               Made_Identity, Made_Revision : Unbounded_String;
 
                procedure Discard_Stage is
                   Removed : constant Boolean := Files.Job_Context.Discard_Stage (Stage);
@@ -148,13 +128,15 @@ begin
                         else Revision);
                   begin
                      Files.Job_Context.Record_Created (Dest_Dir, "", Identity, Published);
-                     Identities.Append (To_Unbounded_String (Identity));
-                     Tree_Revisions.Append (To_Unbounded_String (Published));
+                     Made_Identity := To_Unbounded_String (Identity);
+                     Made_Revision := To_Unbounded_String (Published);
                   end;
                end;
                Discard_Stage;
-               Created.Append (To_Unbounded_String (Dest_Dir));
-               Record_Progress;
+               Progress.From.Append (To_Unbounded_String (Dest_Dir));
+               Progress.Identities.Append (Made_Identity);
+               Progress.Tree_Revisions.Append (Made_Revision);
+               Checkpoint_Undo (Model, Progress);
                if not Extracted_Any then
                   First_Created := To_Unbounded_String (Dest_Name);
                   Extracted_Any := True;
@@ -167,6 +149,7 @@ begin
          end if;
       end;
    end loop;
+   Finish_Undo (Model, Progress);
 
    if not Extracted_Any then
       return Failed;

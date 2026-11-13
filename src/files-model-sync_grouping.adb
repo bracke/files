@@ -13,23 +13,23 @@ is
    Today : constant Ada.Calendar.Time :=
      (if Mode = Files.Types.Group_By_Modified
       then Files.Grouping.Day_Start (Ada.Calendar.Clock)
-      else Model.Group_Day);
-   Was_Grouped : constant Boolean := Model.Group_Mode_Value /= Files.Types.No_Grouping;
+      else Model.Grouping.Day);
+   Was_Grouped : constant Boolean := Model.Grouping.Mode /= Files.Types.No_Grouping;
    Inputs_Changed : constant Boolean :=
-     Mode /= Model.Group_Mode_Value
-     or else (Mode = Files.Types.Group_By_Label and then Settings.Labels /= Model.Group_Labels)
-     or else Today /= Model.Group_Day;
+     Mode /= Model.Grouping.Mode
+     or else (Mode = Files.Types.Group_By_Label and then Settings.Labels /= Model.Grouping.Labels)
+     or else Today /= Model.Grouping.Day;
 begin
-   if not Inputs_Changed and then Model.Rows_Revision_Value = Model.Group_Synced_Revision then
+   if not Inputs_Changed and then Model.Rows_Revision_Value = Model.Grouping.Synced_Revision then
       return;
    end if;
    if Inputs_Changed then
-      Model.Group_Mode_Value := Mode;
-      Model.Group_Day := Today;
+      Model.Grouping.Mode := Mode;
+      Model.Grouping.Day := Today;
       if Mode = Files.Types.Group_By_Label then
-         Model.Group_Labels := Settings.Labels;
+         Model.Grouping.Labels := Settings.Labels;
       else
-         Model.Group_Labels.Clear;
+         Model.Grouping.Labels.Clear;
       end if;
    end if;
    --  A changed grouping re-sorts, so each band holds the plain sort order
@@ -44,5 +44,5 @@ begin
    elsif not Items_In_Group_Order (Model) then
       Resort_Items (Model, Field_Sort => False);
    end if;
-   Model.Group_Synced_Revision := Model.Rows_Revision_Value;
+   Model.Grouping.Synced_Revision := Model.Rows_Revision_Value;
 end Sync_Grouping;

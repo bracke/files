@@ -189,7 +189,7 @@ jobs:
           clone_at humanize 60c99ebd3d4080e92b8455fba47adc9c50f19fc3
           clone_at textrender 0a6721cb4239e581518c0d312bb7085e5b1ff402
           clone_at zlib e0af484c597169c4fd1996af5b07c8b7a1ccdb1f
-          clone_at guikit 37f4198c81e684abdb3d4cc3d83474846c47a1b3
+          clone_at guikit 46698e3694a29ede44b13e0403f13f68623f3a7a
           clone_at hostkit 2837e4560d9305f38e6cdb1da4c1d1209591198b
           clone_at cryptolib 2e5c415f65fd49c2a496c97813740fa9b83e02fa
           # The a11y crate keeps the historical a11ykit repository name while
@@ -754,7 +754,8 @@ jobs:
           # key's frame on the screen. The loop carries on past an error in one
           # pass and says so only under FILES_DIAGNOSTICS; one that recurs
           # every pass leaves a window that never draws again. The traces
-          # (key=, presented=) show the key went through the loop to a frame.
+          # (key=, selected=, presented=) show the key went through the loop,
+          # moved the selection, and reached a frame.
           mkdir -p "$RUNNER_TEMP/loop-folder"
           touch "$RUNNER_TEMP/loop-folder/alpha.txt" "$RUNNER_TEMP/loop-folder/beta.txt"
           cat > "$RUNNER_TEMP/loop.sh" <<'LOOP'
@@ -792,14 +793,23 @@ jobs:
             grep -m 5 -A 4 "files-diagnostics: Files.Application.Windows" "$RUNNER_TEMP/loop.txt"
             exit 1
           fi
-          if ! awk '/files-trace: Files.Application.Windows: key=KEY_DOWN/ { key = 1 }
-                    key && /files-trace: Files.Application.Windows: presented=/ { drawn = 1 }
+          # The Down key must have moved the selection (its selected= trace,
+          # written right after the key's own, has two different ends), and a
+          # frame must have been presented after that move -- not merely any
+          # frame after the key.
+          if ! awk '/files-trace: Files.Application.Windows: key=KEY_DOWN/ { key = 1; next }
+                    key && !moved && /files-trace: Files.Application.Windows: selected=/ {
+                      split(substr($0, index($0, "selected=") + 9), ends, "->")
+                      if (ends[1] != ends[2]) moved = 1; else key = 0
+                      next
+                    }
+                    moved && /files-trace: Files.Application.Windows: presented=/ { drawn = 1 }
                     END { exit !drawn }' "$RUNNER_TEMP/loop.txt"; then
-            echo "::error::a key sent to files was not drawn by its event loop"
+            echo "::error::a Down key sent to files did not move the selection, or the move was not drawn"
             grep "files-trace\|no files window" "$RUNNER_TEMP/loop.txt" | tail -n 20
             exit 1
           fi
-          echo "the event loop drew a pressed key without raising"
+          echo "the event loop moved the selection on a pressed key and drew it without raising"
 
           # What a screen reader does, not only reads, as on Windows and macOS:
           # files on a folder in its own session bus, an item selected through

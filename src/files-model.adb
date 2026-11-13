@@ -443,12 +443,12 @@ package body Files.Model is
    begin
       case Overlay is
          when Settings_Pane_Overlay   => return Model.Settings_Pane_Open;
-         when Command_Palette_Overlay => return Model.Command_Palette_Open;
-         when Root_Selector_Overlay   => return Model.Root_Selector_Open;
+         when Command_Palette_Overlay => return Model.Command_Palette.Open;
+         when Root_Selector_Overlay   => return Model.Root_Selector.Open;
          when Sort_Menu_Overlay       => return Model.Sort_Menu_Open;
          when Context_Menu_Overlay    => return Model.Context_Menu.Open;
-         when Label_Picker_Overlay    => return Model.Label_Picker_Active;
-         when Quick_Look_Overlay      => return Model.Quick_Look_Active;
+         when Label_Picker_Overlay    => return Model.Label_Picker.Active;
+         when Quick_Look_Overlay      => return Model.Quick_Look.Active;
          when Tree_Pick_Overlay       => return Model.Tree_Pick.Mode /= Pick_None;
          when Paste_Conflict_Overlay  => return Model.Paste_Conflict.Active;
          when Paste_Execution_Overlay => return Model.Paste_Exec.Active;
@@ -487,7 +487,7 @@ package body Files.Model is
      (Overlay_Is_Open (Model, Overlay)
       and then not Model.Paste_Exec.Active
       and then not Model.Paste_Conflict.Active
-      and then (Overlay = Command_Palette_Overlay or else not Model.Command_Palette_Open));
+      and then (Overlay = Command_Palette_Overlay or else not Model.Command_Palette.Open));
 
    function Escape_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean is
      (Topmost_Overlay (Model, Overlay) and then Overlay in Escape_Closable_Overlay);
@@ -525,7 +525,7 @@ package body Files.Model is
       for Overlay in Input_Overlay loop
          if Overlay not in Text_Input_Overlay
            and then Overlay_Is_Open (Model, Overlay)
-           and then not (Overlay = Root_Selector_Overlay and then Model.Command_Palette_Open)
+           and then not (Overlay = Root_Selector_Overlay and then Model.Command_Palette.Open)
          then
             return True;
          end if;
@@ -604,8 +604,8 @@ package body Files.Model is
       Model.Main_View_Scroll := 0;
       Clear_Root_Selector_State (Model);
       Reset_Quick_Look (Model);
-      Model.Command_Palette_Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
+      Model.Command_Palette.Open := False;
+      Guikit.Command_Palette.Reset (Model.Command_Palette.View);
       Reset_Rename_State (Model);
       Model.Temporary := (others => <>);
       Model.Last_Error := Null_Unbounded_String;
@@ -764,7 +764,7 @@ package body Files.Model is
       Settings : Files.Settings.Settings_Model)
    is separate;
 
-   function Grouping_Day (Model : Window_Model) return Ada.Calendar.Time is (Model.Group_Day);
+   function Grouping_Day (Model : Window_Model) return Ada.Calendar.Time is (Model.Grouping.Day);
 
    procedure Toggle_Sort_Menu
      (Model : in out Window_Model) is separate;
@@ -1024,8 +1024,8 @@ package body Files.Model is
       Model.Filter_Value := Null_Unbounded_String;
       Support.Invalidate_Visible (Model);
       Model.Filter_Cursor := 0;
-      Model.Command_Palette_Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
+      Model.Command_Palette.Open := False;
+      Guikit.Command_Palette.Reset (Model.Command_Palette.View);
       Model.Focus_Value := Files.Types.Focus_None;
       Reset_Quick_Look (Model);
    end Leave_View;
@@ -1155,13 +1155,13 @@ package body Files.Model is
    begin
       --  The component keeps the query and selection across these.
       Guikit.Command_Palette.Set_Configuration
-        (Model.Command_Palette_View, Support.Palette_Config (Line_Height, Title, Empty_State, Close_Label));
+        (Model.Command_Palette.View, Support.Palette_Config (Line_Height, Title, Empty_State, Close_Label));
       if Model.Palette_Listed_Revision /= Model.Revision_Value then
          Guikit.Command_Palette.Set_Commands
-           (Model.Command_Palette_View, Files.Command_Palette.Commands (Model));
+           (Model.Command_Palette.View, Files.Command_Palette.Commands (Model));
          Model.Palette_Listed_Revision := Model.Revision_Value;
       end if;
-      Visit (Model.Command_Palette_View);
+      Visit (Model.Command_Palette.View);
    end Visit_Command_Palette;
 
    procedure Select_Visible_Set
@@ -1441,15 +1441,15 @@ package body Files.Model is
       Roots : Files.File_System.Root_Entry_Vectors.Vector) is
    begin
       Support.Touch (Model);
-      Model.Root_Entries := Roots;
-      Model.Root_Selector_Open := not Roots.Is_Empty;
-      if Model.Root_Selector_Open then
+      Model.Root_Selector.Entries := Roots;
+      Model.Root_Selector.Open := not Roots.Is_Empty;
+      if Model.Root_Selector.Open then
          Claim_Overlay_Input (Model);
       end if;
-      Model.Root_Selected := (if Model.Root_Selector_Open then 1 else 0);
+      Model.Root_Selector.Selected := (if Model.Root_Selector.Open then 1 else 0);
       Model.Settings_Pane_Open := False;
-      Model.Command_Palette_Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
+      Model.Command_Palette.Open := False;
+      Guikit.Command_Palette.Reset (Model.Command_Palette.View);
       Model.Focus_Value := Files.Types.Focus_None;
    end Open_Root_Selector;
 
@@ -1466,13 +1466,13 @@ package body Files.Model is
             return Text_Boundary_At_Or_Before (First_Rename_Value (Model), First_Rename_Cursor (Model));
          when Files.Types.Focus_Command_Palette =>
             --  The palette query has no separate caret; it sits at the end.
-            return Guikit.Command_Palette.Query (Model.Command_Palette_View)'Length;
+            return Guikit.Command_Palette.Query (Model.Command_Palette.View)'Length;
          when Files.Types.Focus_Settings_Input =>
             --  The panel edits whole values; the caret sits at the end.
             return Settings_Focused_Value (Model)'Length;
          when Files.Types.Focus_Ownership_Input =>
             return Text_Boundary_At_Or_Before
-                     (To_String (Model.Ownership_Input_Value), Model.Ownership_Input_Cursor);
+                     (To_String (Model.Ownership_Input.Text), Model.Ownership_Input.Cursor);
          when Files.Types.Focus_None =>
             return 0;
       end case;
@@ -1507,7 +1507,7 @@ package body Files.Model is
             --  The panel edits whole values; there is no movable caret.
             null;
          when Files.Types.Focus_Ownership_Input =>
-            Model.Ownership_Input_Cursor := Clamped;
+            Model.Ownership_Input.Cursor := Clamped;
          when Files.Types.Focus_None =>
             null;
       end case;
@@ -1847,13 +1847,13 @@ package body Files.Model is
       Width  : Natural;
       Height : Natural) is
    begin
-      if Model.Quick_Look_Active
-        and then To_String (Model.Quick_Look_Content_Value.Image_Path) = Path
+      if Model.Quick_Look.Active
+        and then To_String (Model.Quick_Look.Content.Image_Path) = Path
       then
          Support.Touch_Header (Model);
-         Model.Quick_Look_Content_Value.Image_Pixels := Pixels;
-         Model.Quick_Look_Content_Value.Image_Width := Width;
-         Model.Quick_Look_Content_Value.Image_Height := Height;
+         Model.Quick_Look.Content.Image_Pixels := Pixels;
+         Model.Quick_Look.Content.Image_Width := Width;
+         Model.Quick_Look.Content.Image_Height := Height;
       end if;
    end Set_Quick_Look_Image;
 
@@ -1951,8 +1951,8 @@ package body Files.Model is
       if Model.Focus_Value = Files.Types.Focus_Rename_Input then
          Model.Focus_Value := Files.Types.Focus_None;
       end if;
-      Model.Command_Palette_Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
+      Model.Command_Palette.Open := False;
+      Guikit.Command_Palette.Reset (Model.Command_Palette.View);
       if Model.Focus_Value = Files.Types.Focus_Command_Palette then
          Model.Focus_Value := Files.Types.Focus_None;
       end if;
@@ -2272,12 +2272,10 @@ package body Files.Model is
       Sampled : Ada.Calendar.Time) is
    begin
       --  The bar and the free-space text are header: no row changes.
-      if Model.Volume_Space_Value /= Space or else To_String (Model.Volume_Path) /= Path then
+      if Model.Volume_Sample.Space /= Space or else To_String (Model.Volume_Sample.Path) /= Path then
          Support.Touch_Header (Model);
       end if;
-      Model.Volume_Space_Value := Space;
-      Model.Volume_Path := To_Unbounded_String (Path);
-      Model.Volume_Sampled := Sampled;
+      Model.Volume_Sample := (Space => Space, Path => To_Unbounded_String (Path), Sampled => Sampled);
    end Set_Volume_Space;
 
    function Volume_Space_Is_Current
@@ -2285,17 +2283,18 @@ package body Files.Model is
       Now   : Ada.Calendar.Time)
       return Boolean is
    begin
-      return Length (Model.Volume_Path) > 0
-        and then To_String (Model.Volume_Path) = Current_Path (Model)
+      return Length (Model.Volume_Sample.Path) > 0
+        and then To_String (Model.Volume_Sample.Path) = Current_Path (Model)
         --  A clock set back since the sample is no reason to keep it.
-        and then Now >= Model.Volume_Sampled
-        and then Now <= Model.Volume_Sampled + Volume_Space_Refresh_Interval;
+        and then Now >= Model.Volume_Sample.Sampled
+        and then Now <= Model.Volume_Sample.Sampled + Volume_Space_Refresh_Interval;
    end Volume_Space_Is_Current;
 
    function Volume_Space_Of
      (Model : Window_Model)
       return Volume_Space is
-     (if To_String (Model.Volume_Path) = Current_Path (Model) then Model.Volume_Space_Value else (others => <>));
+     (if To_String (Model.Volume_Sample.Path) = Current_Path (Model) then Model.Volume_Sample.Space
+      else (others => <>));
 
    procedure Set_Account_Name
      (Model : in out Window_Model;
@@ -2392,30 +2391,6 @@ package body Files.Model is
    function Context_Menu_Item_Index
      (Model : Window_Model)
       return Natural is separate;
-
-   procedure Selected_Visible_Bounds
-     (Model : Window_Model;
-      First : out Natural;
-      Last  : out Natural)
-   is
-      Position : Natural := 0;
-
-      procedure Note (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean) is
-         pragma Unreferenced (Item, Item_Index);
-      begin
-         Position := Position + 1;
-         if Selected then
-            if First = 0 then
-               First := Position;
-            end if;
-            Last := Position;
-         end if;
-      end Note;
-   begin
-      First := 0;
-      Last := 0;
-      For_Each_Visible_Row (Model, Note'Access);
-   end Selected_Visible_Bounds;
 
    function Range_Anchor
      (Model : Window_Model)

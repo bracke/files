@@ -7,13 +7,13 @@ is
    Current : constant Natural := Root_Selected_Index (Model);
 begin
    Touch (Model);
-   if not Model.Root_Selector_Open or else Count = 0 then
-      Model.Root_Selected := 0;
+   if not Model.Root_Selector.Open or else Count = 0 then
+      Model.Root_Selector.Selected := 0;
    elsif Current = 0 then
-      Model.Root_Selected := 1;
+      Model.Root_Selector.Selected := 1;
    elsif Direction = Guikit.Input.Move_Up or else Direction = Guikit.Input.Move_Left then
-      Model.Root_Selected := (if Current = 1 then Count else Current - 1);
+      Model.Root_Selector.Selected := (if Current = 1 then Count else Current - 1);
    else
-      Model.Root_Selected := (if Current = Count then 1 else Current + 1);
+      Model.Root_Selector.Selected := (if Current = Count then 1 else Current + 1);
    end if;
 end Move_Root_Selection;

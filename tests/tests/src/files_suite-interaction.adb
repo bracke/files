@@ -27,6 +27,8 @@ with Guikit.Draw;
 with Files.Rendering;
 with Files.Rendering.Hit;
 with Files.Settings;
+with Files.Settings_Sharing;
+with Files.Event_Wait;
 with Guikit.Input;
 with Files.Mouse_Buttons;
 with Glfw.Input.Mouse;
@@ -103,6 +105,9 @@ package body Files_Suite.Interaction is
    procedure Test_Mouse_Button_Queue_Order (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Mouse_Release_Held_For_Bounce (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shared_Settings_Reach_Other_Window (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Shared_Once_Across_Windows (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Commands_Bump_Revision (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Event_Wait_Follows_Held_Release (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Ctrl_Click_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shift_Click_Range_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shift_Click_Anchors_At_Ctrl_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -211,6 +216,15 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Shared_Settings_Reach_Other_Window'Access,
          "settings shared from another window refresh an open pane's draft and reload a listing they change");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Shared_Once_Across_Windows'Access,
+         "a settings change in one window reaches every other window once, and the latest of two changes wins");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Commands_Bump_Revision'Access,
+         "every settings change -- hidden files, pane save, zoom, column resize, sort -- bumps the settings revision");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Event_Wait_Follows_Held_Release'Access,
+         "the event loop's wait is cut to a held mouse release's remaining debounce time, and no further");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Ctrl_Click_Multi_Selection'Access, "ctrl-click builds and toggles a multi-selection");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -538,6 +552,12 @@ package body Files_Suite.Interaction is
    procedure Test_Mouse_Release_Held_For_Bounce (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Shared_Settings_Reach_Other_Window (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Settings_Shared_Once_Across_Windows (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Settings_Commands_Bump_Revision (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Event_Wait_Follows_Held_Release (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Ctrl_Click_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

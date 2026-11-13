@@ -9,7 +9,7 @@ package Files.Rendering.Testing is
    --  @return The palette role drawn in that label's color.
    function Label_Render_Color
      (Label : Files.Types.Color_Label)
-      return Render_Color;
+      return Guikit.Draw.Render_Color;
 
    --  Whether any overlay covers the view (what hides background tooltips).
    --

@@ -17,19 +17,19 @@ begin
    Touch (Model);
    Reset_Type_Ahead (Model);
    Model.Focus_Value := Files.Types.Focus_Ownership_Input;
-   Model.Ownership_Editing_Group_Value := Editing_Group;
+   Model.Ownership_Input.Editing_Group := Editing_Group;
    declare
       Id : constant Files.Types.Account_Id := (if Editing_Group then Item.Group_Id else Item.Owner_Id);
    begin
       --  Seed with the resolved name so the field matches its display; the
       --  commit path accepts a name or a number. Fall back to the number.
-      Model.Ownership_Input_Value :=
+      Model.Ownership_Input.Text :=
         To_Unbounded_String
           (if Account_Name /= "" then Account_Name
            else Files.Types.Account_Image (Id));
    end;
-   Model.Ownership_Input_Cursor := Length (Model.Ownership_Input_Value);
+   Model.Ownership_Input.Cursor := Length (Model.Ownership_Input.Text);
    Clear_Root_Selector_State (Model);
-   Model.Command_Palette_Open := False;
-   Guikit.Command_Palette.Reset (Model.Command_Palette_View);
+   Model.Command_Palette.Open := False;
+   Guikit.Command_Palette.Reset (Model.Command_Palette.View);
 end Focus_Ownership_Input;

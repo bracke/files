@@ -269,6 +269,13 @@ separate (Files_Suite.Rendering)
          Assert
            (Single_Base = Folder_Blue and then Double_Base = Folder_Blue,
             "a dragged folder's atlas icon asks for the folder blue");
+         Snap.Theme_Palette := Guikit.Draw.Theme_Light;
+         Preview (Reference, Single_X, Single_Y, Single_Size, Single_Base);
+         Assert
+           (Single_Base = Guikit.Draw.Icon_Rgb_For (Guikit.Draw.Icon_Folder_Color, Guikit.Draw.Theme_Light)
+            and then Single_Base /= Folder_Blue,
+            "under the light theme a dragged folder asks for the light theme's folder blue");
+         Snap.Theme_Palette := Guikit.Draw.Theme_Dark;
          Snap.Items (1).Kind := Files.Types.Regular_File_Item;
          Snap.Items (1).Icon := Files.File_Types.Text_Icon;
          Preview (Reference, Single_X, Single_Y, Single_Size, Single_Base);

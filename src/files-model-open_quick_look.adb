@@ -5,7 +5,5 @@ procedure Open_Quick_Look
 begin
    Touch (Model);
    Claim_Overlay_Input (Model);
-   Model.Quick_Look_Active        := True;
-   Model.Quick_Look_Path_Value    := Selected_Item (Model).Full_Path;
-   Model.Quick_Look_Content_Value := Content;
+   Model.Quick_Look := (Active => True, Path => Selected_Item (Model).Full_Path, Content => Content);
 end Open_Quick_Look;

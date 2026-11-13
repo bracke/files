@@ -3,7 +3,7 @@ procedure Toggle_Quick_Look
   (Model : in out Window_Model) is
 begin
    Touch (Model);
-   if Model.Quick_Look_Active then
+   if Model.Quick_Look.Active then
       Reset_Quick_Look (Model);
    elsif Selected_Count (Model) = 1 then
       Claim_Overlay_Input (Model);
@@ -21,9 +21,7 @@ begin
               Image_Path     => To_String (Item.Full_Path),
               Raw_Bytes      => "");
       begin
-         Model.Quick_Look_Active        := True;
-         Model.Quick_Look_Path_Value    := Item.Full_Path;
-         Model.Quick_Look_Content_Value := Content;
+         Model.Quick_Look := (Active => True, Path => Item.Full_Path, Content => Content);
       end;
    end if;
 end Toggle_Quick_Look;

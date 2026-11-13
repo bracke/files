@@ -65,22 +65,23 @@ package body Files.Rendering is
    --  against an unbounded source.
    package Parsed_Asset_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
-      Element_Type    => Icon_Asset,
+      Element_Type    => Guikit.Draw.Icon_Asset,
       Hash            => Ada.Strings.Hash,
-      Equivalent_Keys => "=");
+      Equivalent_Keys => "=",
+      "="             => Guikit.Draw."=");
    Parsed_Assets     : Parsed_Asset_Maps.Map;
    Max_Parsed_Assets : constant := 512;
 
    --  The icon Name of Theme, parsed.
-   function Parsed_Icon_Asset (Name, Theme : String) return Icon_Asset is
-      Text     : constant String := Icon_Asset_Text (Name, Theme);
+   function Parsed_Icon_Asset (Name, Theme : String) return Guikit.Draw.Icon_Asset is
+      Text     : constant String := Guikit.Draw.Icon_Asset_Text (Name, Theme);
       Position : constant Parsed_Asset_Maps.Cursor := Parsed_Assets.Find (Text);
    begin
       if Parsed_Asset_Maps.Has_Element (Position) then
          return Parsed_Asset_Maps.Element (Position);
       end if;
       declare
-         Asset : constant Icon_Asset := Parse_Icon_Asset (Text);
+         Asset : constant Guikit.Draw.Icon_Asset := Guikit.Draw.Parse_Icon_Asset (Text);
       begin
          if Natural (Parsed_Assets.Length) >= Max_Parsed_Assets then
             Parsed_Assets.Clear;
@@ -98,6 +99,7 @@ package body Files.Rendering is
    use type Files.Model.Tree_Pick_Mode;
    use type Files.Quick_Look.Content_Kind;
    use type Files.Types.Color_Label;
+   use type Text_Render_Status;
    use type Files.Types.Focus_Target;
    use type Files.Types.Group_Mode;
    use type Files.Types.Item_Kind;
@@ -418,17 +420,17 @@ package body Files.Rendering is
 
    function Label_Render_Color
      (Label : Files.Types.Color_Label)
-      return Render_Color is
+      return Guikit.Draw.Render_Color is
    begin
       case Label is
-         when Files.Types.No_Label => return Muted_Text_Color;
-         when Files.Types.Red      => return Accent_Red_Color;
-         when Files.Types.Orange   => return Accent_Orange_Color;
-         when Files.Types.Yellow   => return Accent_Yellow_Color;
-         when Files.Types.Green    => return Accent_Green_Color;
-         when Files.Types.Blue     => return Accent_Blue_Color;
-         when Files.Types.Purple   => return Accent_Purple_Color;
-         when Files.Types.Gray     => return Accent_Gray_Color;
+         when Files.Types.No_Label => return Guikit.Draw.Muted_Text_Color;
+         when Files.Types.Red      => return Guikit.Draw.Accent_Red_Color;
+         when Files.Types.Orange   => return Guikit.Draw.Accent_Orange_Color;
+         when Files.Types.Yellow   => return Guikit.Draw.Accent_Yellow_Color;
+         when Files.Types.Green    => return Guikit.Draw.Accent_Green_Color;
+         when Files.Types.Blue     => return Guikit.Draw.Accent_Blue_Color;
+         when Files.Types.Purple   => return Guikit.Draw.Accent_Purple_Color;
+         when Files.Types.Gray     => return Guikit.Draw.Accent_Gray_Color;
       end case;
    end Label_Render_Color;
 

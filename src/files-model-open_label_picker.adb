@@ -4,8 +4,7 @@ procedure Open_Label_Picker
 begin
    Touch (Model);
    Claim_Overlay_Input (Model);
-   Model.Label_Picker_Active := True;
    --  Start the keyboard highlight on the clear swatch; the item's current
    --  label lives in the settings, which this model operation does not see.
-   Model.Label_Picker_Swatch_Value := Files.Types.Clear_Swatch;
+   Model.Label_Picker := (Active => True, Swatch => Files.Types.Clear_Swatch);
 end Open_Label_Picker;

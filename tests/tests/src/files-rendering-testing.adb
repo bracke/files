@@ -2,7 +2,7 @@ package body Files.Rendering.Testing is
 
    function Label_Render_Color
      (Label : Files.Types.Color_Label)
-      return Render_Color
+      return Guikit.Draw.Render_Color
      renames Files.Rendering.Label_Render_Color;
 
    function Any_Overlay_Open (Snapshot : View_Snapshot) return Boolean

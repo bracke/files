@@ -5,9 +5,9 @@ procedure Set_Command_Palette_Mode
    Mode  : Palette_Mode) is
 begin
    Touch (Model);
-   Model.Command_Palette_Mode := Mode;
+   Model.Command_Palette.Mode := Mode;
    --  The command list is mode-specific; reload it and reset the query.
-   Guikit.Command_Palette.Reset (Model.Command_Palette_View);
+   Guikit.Command_Palette.Reset (Model.Command_Palette.View);
    Guikit.Command_Palette.Set_Commands
-     (Model.Command_Palette_View, Files.Command_Palette.Commands (Model));
+     (Model.Command_Palette.View, Files.Command_Palette.Commands (Model));
 end Set_Command_Palette_Mode;

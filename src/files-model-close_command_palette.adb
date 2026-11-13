@@ -3,10 +3,10 @@ procedure Close_Command_Palette
   (Model : in out Window_Model) is
 begin
    Touch (Model);
-   Model.Command_Palette_Open := False;
-   Model.Command_Palette_Mode := Palette_Commands;
+   Model.Command_Palette.Open := False;
+   Model.Command_Palette.Mode := Palette_Commands;
    Model.Open_With_Targets_Value.Clear;
-   Guikit.Command_Palette.Reset (Model.Command_Palette_View);
+   Guikit.Command_Palette.Reset (Model.Command_Palette.View);
    if Model.Focus_Value = Files.Types.Focus_Command_Palette then
       --  Settings intentionally remains open beneath the palette.  Return
       --  keyboard focus to that revealed input surface when the palette

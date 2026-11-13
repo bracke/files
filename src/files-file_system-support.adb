@@ -129,8 +129,6 @@ package body Files.File_System.Support is
       return Files.Types.To_Lower (Files.Environment.Value (Name)) = Expected;
    end Environment_Equals;
 
-   function Natural_Text (Value : Natural) return String renames Files.Types.Natural_Text;
-
    function Create_Stage (Parent : String) return String renames Files.Job_Context.Create_Stage;
 
    overriding function "=" (Left, Right : Source_Snapshot) return Boolean is

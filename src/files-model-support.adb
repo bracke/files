@@ -94,9 +94,7 @@ package body Files.Model.Support is
      (Model : in out Window_Model) is
    begin
       Touch_Header (Model);
-      Model.Quick_Look_Active        := False;
-      Model.Quick_Look_Path_Value    := Null_Unbounded_String;
-      Model.Quick_Look_Content_Value := (others => <>);
+      Model.Quick_Look := (others => <>);
    end Reset_Quick_Look;
 
    function Saturating_Add
@@ -234,9 +232,7 @@ package body Files.Model.Support is
      (Model : in out Window_Model) is
    begin
       Touch (Model);
-      Model.Root_Selector_Open := False;
-      Model.Root_Entries.Clear;
-      Model.Root_Selected := 0;
+      Model.Root_Selector := (others => <>);
    end Clear_Root_Selector_State;
 
    function Pair_Count
@@ -584,8 +580,8 @@ package body Files.Model.Support is
    function Group_Labels_Map (Model : Window_Model) return Label_Maps.Map is
       Result : Label_Maps.Map;
    begin
-      if Model.Group_Mode_Value = Files.Types.Group_By_Label then
-         for Entry_Value of Model.Group_Labels loop
+      if Model.Grouping.Mode = Files.Types.Group_By_Label then
+         for Entry_Value of Model.Grouping.Labels loop
             Result.Include (To_String (Entry_Value.Path), Entry_Value.Label);
          end loop;
       end if;
@@ -601,17 +597,17 @@ package body Files.Model.Support is
       Found : constant Label_Maps.Cursor := Labels.Find (To_String (Item.Full_Path));
    begin
       return Files.Grouping.Band_Of
-        (Model.Group_Mode_Value, Item.Kind, To_String (Item.Filetype),
+        (Model.Grouping.Mode, Item.Kind, To_String (Item.Filetype),
          Item.Modified_Available, Item.Modified_Time, Item.Size_Available, Item.Size,
          (if Label_Maps.Has_Element (Found) then Label_Maps.Element (Found) else Files.Types.No_Label),
-         Model.Group_Day);
+         Model.Grouping.Day);
    end Group_Band;
 
    function Items_In_Group_Order (Model : Window_Model) return Boolean is
       Labels   : Label_Maps.Map;
       Previous : Positive := 1;
    begin
-      if Model.Group_Mode_Value = Files.Types.No_Grouping then
+      if Model.Grouping.Mode = Files.Types.No_Grouping then
          return True;
       end if;
       Labels := Group_Labels_Map (Model);
@@ -633,12 +629,12 @@ package body Files.Model.Support is
    procedure Group_Items (Model : in out Window_Model) is
       Labels : Label_Maps.Map;
    begin
-      if Model.Group_Mode_Value = Files.Types.No_Grouping then
+      if Model.Grouping.Mode = Files.Types.No_Grouping then
          return;
       end if;
       Labels := Group_Labels_Map (Model);
       declare
-         Count : constant Positive := Files.Grouping.Band_Count (Model.Group_Mode_Value);
+         Count : constant Positive := Files.Grouping.Band_Count (Model.Grouping.Mode);
          type Band_Array is array (1 .. Count) of Files.Items.Item_Vectors.Vector;
          Bands : Band_Array;
       begin
@@ -799,8 +795,8 @@ package body Files.Model.Support is
    begin
       Touch (Model);
       Clear_Root_Selector_State (Model);
-      Model.Command_Palette_Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette_View);
+      Model.Command_Palette.Open := False;
+      Guikit.Command_Palette.Reset (Model.Command_Palette.View);
    end Clear_Overlay_State_For_Edit;
 
    function Is_Printable_Run (Text : String) return Boolean is
@@ -871,11 +867,11 @@ package body Files.Model.Support is
          when Files.Types.Focus_Rename_Input =>
             return First_Rename_Value (Model)'Length;
          when Files.Types.Focus_Command_Palette =>
-            return Guikit.Command_Palette.Query (Model.Command_Palette_View)'Length;
+            return Guikit.Command_Palette.Query (Model.Command_Palette.View)'Length;
          when Files.Types.Focus_Settings_Input =>
             return Settings_Focused_Value (Model)'Length;
          when Files.Types.Focus_Ownership_Input =>
-            return Length (Model.Ownership_Input_Value);
+            return Length (Model.Ownership_Input.Text);
          when Files.Types.Focus_None =>
             return 0;
       end case;
@@ -893,11 +889,11 @@ package body Files.Model.Support is
          when Files.Types.Focus_Rename_Input =>
             return First_Rename_Value (Model);
          when Files.Types.Focus_Command_Palette =>
-            return Guikit.Command_Palette.Query (Model.Command_Palette_View);
+            return Guikit.Command_Palette.Query (Model.Command_Palette.View);
          when Files.Types.Focus_Settings_Input =>
             return Settings_Focused_Value (Model);
          when Files.Types.Focus_Ownership_Input =>
-            return To_String (Model.Ownership_Input_Value);
+            return To_String (Model.Ownership_Input.Text);
          when Files.Types.Focus_None =>
             return "";
       end case;

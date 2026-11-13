@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`files` is an Ada 2022 desktop file manager. Core logic (~38K LOC in `src/`) is platform-agnostic; rendering uses Vulkan + GLFW + `textrender`. Linux is the only production-validated platform.
+`files` is an Ada 2022 desktop file manager. Core logic (~82K lines in `src/`) is platform-agnostic; rendering uses Vulkan + GLFW + `textrender`. Linux is the only production-validated platform.
 
 ## Build, test, verify
 
@@ -26,8 +26,9 @@ Verify non-trivial changes with the full chain: `alr build` → `cd tests && alr
 ## Dependencies need sibling checkouts
 
 `alire.toml` pins the sibling runtime crates (`i18n`, `messages`, `hostkit`,
-`textrender`, `zlib`, `cryptolib`, `guikit`, and `a11y`) to relative
-paths (`../i18n`, etc.), not published crates. The tooling crate pins
+`humanize`, `textrender`, `zlib`, `cryptolib`, `guikit`, and `a11y`) to
+relative paths (`../i18n`, etc.; `a11y` lives in `../a11ykit`), not published
+crates. The tooling crate pins
 `project_tools` under `tools/alire.toml`; the runtime crate should not depend
 on it. Builds fail unless those sibling directories exist next to this repo.
 
@@ -50,10 +51,10 @@ as present-but-unverified.
 
 Two-phase render, each phase a subunit of `Files.Rendering`: `Files.Model` → `Build_Snapshot` (an immutable `View_Snapshot`, built in place by `Build_Snapshot_Into` in `files-rendering-build_snapshot_into.adb`) → `Build_Frame_Commands` (a `Frame_Commands` draw list, in `files-rendering-build_frame_commands.adb`) → Vulkan. Input flows back the other way: `Files.Events` (translate to an `Input_Action`) → `Files.Interaction` (dispatch) → `Files.Controller` (apply to the model). Keep `files-rendering.adb` itself from regrowing — move any new large subprogram body into its own subunit.
 
-Reusable UI pieces are black-box components in `../guikit` (`Guikit.Command_Palette`, `Settings_Panel`, `Segmented`, `Item_Grid`). files owns the domain (selection, rename, icon assets, localization) and maps it to each component's neutral inputs. **Whether a component is stateful fixes how it integrates — do not re-decide per component:**
+Reusable UI pieces are black-box components in `../guikit` (`Guikit.Command_Palette`, `Settings_Panel`, `Segmented`, `Item_Grid`, `List_Panel`, `Menu_Tree`, `Widgets`); files also delegates shared non-visual helpers there (`Guikit.Utf8.Editing`, `Guikit.Input.Mouse_Buttons`, `Guikit.Fonts`). files owns the domain (selection, rename, icon assets, localization) and maps it to each component's neutral inputs. **Whether a component is stateful fixes how it integrates — do not re-decide per component:**
 
-- **Stateless render helpers** (`Segmented`, `Item_Grid`) are called from inside `Build_Frame_Commands`, driven by the snapshot. Prefer this.
-- **Stateful overlays** (`Command_Palette`, `Settings_Panel` — they hold query/scroll/focus state across frames) cannot pass through the immutable snapshot: their instance lives in the `Window_Model`, and they render at the window layer (`files-application-windows.adb`), merged into the cached frame via `Append_Overlay`.
+- **Stateless render helpers** (`Segmented`, `Item_Grid`, `List_Panel`, `Menu_Tree`, `Widgets`) are called from inside `Build_Frame_Commands`, driven by the snapshot. Prefer this.
+- **Stateful overlays** (`Command_Palette`, `Settings_Panel` — they hold query/scroll/focus state across frames) cannot pass through the immutable snapshot: their instance lives in the `Window_Model`, `Files.Overlays` draws them from that state, and the window layer (`files-application-windows-render_window.adb`) merges the result into the cached frame via `Append_Overlay`.
 
 ## Localization
 

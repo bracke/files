@@ -468,10 +468,23 @@ package body Files.Application.Windows is
       for Event of Events loop
          case Event.Kind is
             when Key_Press_Event =>
-               --  With the trace below a presented frame, CI follows a key
-               --  it sends through the loop onto the screen.
+               --  With the traces below a presented frame, CI follows a key
+               --  it sends through the loop to what it did (the selection
+               --  it moved, selected=<before>-><after>) and onto the screen.
                Files.Diagnostics.Trace ("Files.Application.Windows", "key=" & Guikit.Input.Key_Code'Image (Event.Key));
-               Fire_Key (Runtime, Event.Key, Event.Modifiers, Consumed);
+               declare
+                  Key_Selected_Before : constant Natural := Files.Model.Selected_Index (Runtime.Model);
+
+                  --  Natural'Image without its leading blank.
+                  function Image_Of (Value : Natural) return String is
+                    (Natural'Image (Value) (2 .. Natural'Image (Value)'Last));
+               begin
+                  Fire_Key (Runtime, Event.Key, Event.Modifiers, Consumed);
+                  Files.Diagnostics.Trace
+                    ("Files.Application.Windows",
+                     "selected=" & Image_Of (Key_Selected_Before) & "->"
+                     & Image_Of (Files.Model.Selected_Index (Runtime.Model)));
+               end;
             when Text_Event =>
                if not (Event.Parallel and then Consumed) then
                   Dispatch_Text (Runtime, To_String (Event.Text));
@@ -506,7 +519,8 @@ package body Files.Application.Windows is
    --  only one of them to win).
    --  Each other window adopts them (Interaction.Adopt_Shared_Settings): an
    --  open settings pane there is refreshed, a listing whose options or type
-   --  mappings changed is reloaded.
+   --  mappings changed is reloaded. Files.Settings_Sharing.Share_From makes
+   --  the decisions.
    procedure Share_Settings_From
      (Runtime_Windows : in out Runtime_Window_Vectors.Vector;
       Index           : Positive)
@@ -689,7 +703,8 @@ package body Files.Application.Windows is
    --  How long the event loop may wait for input: Paste_Wait_Timeout while
    --  any window carries out a paste through a helper process, else
    --  Event_Wait_Timeout, cut short to when a held-back mouse release
-   --  (Files.Mouse_Buttons.Ready_At) may be handled.
+   --  (Files.Mouse_Buttons.Ready_At) may be handled. Files.Event_Wait
+   --  decides each window's part.
    function Event_Loop_Wait (Runtime_Windows : Runtime_Window_Vectors.Vector) return Duration is separate;
 
    --  Each window polls its own background work -- folder measurements and

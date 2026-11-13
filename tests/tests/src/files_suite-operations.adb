@@ -218,6 +218,7 @@ package body Files_Suite.Operations is
    procedure Test_Window_Folder_Measurements (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Destructive_Helper_Lifecycle (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Batch_Creation_History (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Batch_Undo_Covers_Every_Item (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Pending_Create_Mutation_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Drops_While_Busy (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -1211,6 +1212,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Batch_Creation_History'Access, "batch creation has one Undo entry and preserves replacement files");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Batch_Undo_Covers_Every_Item'Access,
+         "a batch's throttled Undo records still end in one entry covering every item");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Pending_Create_Mutation_Guards'Access,
          "pending inline creation blocks direct selection mutations");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1857,6 +1861,8 @@ package body Files_Suite.Operations is
    procedure Test_Info_Selection_Completion (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Batch_Creation_History (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Batch_Undo_Covers_Every_Item (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Pending_Create_Mutation_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

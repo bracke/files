@@ -76,6 +76,7 @@ siblings next to this repository:
   files/          ← this repository
   project_tools/
   hostkit/
+  humanize/
   messages/
   i18n/
   textrender/

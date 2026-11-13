@@ -155,14 +155,14 @@ separate (Files.Rendering)
       end;
       Snapshot.Theme_Palette :=
         (case Settings.Theme is
-            when Files.Settings.Theme_Dark          => Theme_Dark,
-            when Files.Settings.Theme_Light         => Theme_Light,
-            when Files.Settings.Theme_High_Contrast => Theme_High_Contrast);
+            when Files.Settings.Theme_Dark          => Guikit.Draw.Theme_Dark,
+            when Files.Settings.Theme_Light         => Guikit.Draw.Theme_Light,
+            when Files.Settings.Theme_High_Contrast => Guikit.Draw.Theme_High_Contrast);
       --  High contrast rings focus in the selection colour, which stands out
       --  more than the border colour the other themes use.
       Snapshot.Theme_Focus_Ring :=
-        (if Files.Settings."=" (Settings.Theme, Files.Settings.Theme_High_Contrast) then Selection_Color
-         else Border_Color);
+        (if Files.Settings."=" (Settings.Theme, Files.Settings.Theme_High_Contrast) then Guikit.Draw.Selection_Color
+         else Guikit.Draw.Border_Color);
       --  The command palette owns its query/selection/results and renders itself
       --  (Guikit.Command_Palette, merged at the window layer); the snapshot only
       --  records that it is open, for overlay hit-testing.

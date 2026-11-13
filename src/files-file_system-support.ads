@@ -55,7 +55,7 @@ private package Files.File_System.Support is
    --
    --  @param Value Number to format.
    --  @return Value's decimal text, without a leading space.
-   function Natural_Text (Value : Natural) return String;
+   function Natural_Text (Value : Natural) return String renames Files.Types.Natural_Text;
 
    --  @param Parent Existing directory on the destination filesystem.
    --  @return Exclusively created, journaled private staging directory.
