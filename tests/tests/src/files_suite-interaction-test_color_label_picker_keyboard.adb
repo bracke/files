@@ -1,3 +1,4 @@
+with Files.Model.Label_Picker;
 separate (Files_Suite.Interaction)
    procedure Test_Color_Label_Picker_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -13,9 +14,9 @@ separate (Files_Suite.Interaction)
       Model := Loaded_Model (Dir);
       Files.Model.Select_All_Visible (Model);
 
-      Files.Model.Open_Label_Picker (Model);
+      Files.Model.Label_Picker.Open (Model);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Label_Picker_Highlight (Model),
+        (Files.Model.Label_Picker.Highlight (Model),
          Files.Types.Clear_Swatch,
          "the picker opens on the clear swatch");
 
@@ -23,7 +24,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_Right, Guikit.Input.No_Modifiers, Result);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Label_Picker_Highlight (Model),
+        (Files.Model.Label_Picker.Highlight (Model),
          Files.Types.Swatch_Count,
          "Right stays clamped at the last swatch");
       Files_Suite.Support.Assert_Equal (Natural (Files.Types.Swatch_Count), 8, "seven colors and the clear swatch");
@@ -31,16 +32,16 @@ separate (Files_Suite.Interaction)
          Files.Interaction.Handle_Key
            (Model, Settings, "", Guikit.Input.Key_Left, Guikit.Input.No_Modifiers, Result);
       end loop;
-      Files_Suite.Support.Assert_Equal (Files.Model.Label_Picker_Highlight (Model), 4, "four Lefts land on swatch 4");
+      Files_Suite.Support.Assert_Equal (Files.Model.Label_Picker.Highlight (Model), 4, "four Lefts land on swatch 4");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Label_Picker_Highlight_Color (Model),
+        (Files.Model.Label_Picker.Highlight_Color (Model),
          Files.Types.Green,
          "swatch 4 chooses Green");
 
       --  Enter applies the highlighted color to the whole selection and closes.
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_Return, Guikit.Input.No_Modifiers, Result);
-      Assert (not Files.Model.Label_Picker_Is_Open (Model), "Enter closes the picker");
+      Assert (not Files.Model.Label_Picker.Is_Open (Model), "Enter closes the picker");
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Label_Of (Settings, One),
          Files.Types.Green,

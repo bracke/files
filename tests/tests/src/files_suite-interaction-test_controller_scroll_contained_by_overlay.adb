@@ -1,4 +1,5 @@
 with Files.Controller.Testing;
+with Files.Model.Sort_Menu;
 separate (Files_Suite.Interaction)
    procedure Test_Controller_Scroll_Contained_By_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,7 +15,7 @@ separate (Files_Suite.Interaction)
          Info_Before : constant Natural := Files.Model.Info_Pane_Scroll_Lines (Model);
          Outcome     : Files.Controller.Controller_Result;
       begin
-         Files.Model.Toggle_Sort_Menu (Model);
+         Files.Model.Sort_Menu.Toggle (Model);
          Outcome := Files.Controller.Testing.Handle_Scroll (Model, 3);
          Files_Suite.Support.Assert_Equal
            (Outcome.Status, Files.Controller.Controller_Ignored,
@@ -32,6 +33,6 @@ separate (Files_Suite.Interaction)
            (Outcome.Status = Files.Controller.Controller_Ignored
             and then Files.Model.Main_View_Scroll_Lines (Model) = Main_Before,
             "direct targeted scrolling cannot move content behind an overlay");
-         Files.Model.Close_Sort_Menu (Model);
+         Files.Model.Sort_Menu.Close (Model);
       end;
    end Test_Controller_Scroll_Contained_By_Overlay;

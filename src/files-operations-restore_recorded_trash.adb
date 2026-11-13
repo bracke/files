@@ -3,9 +3,7 @@ function Restore_Recorded_Trash
   (Path : Files.Types.UString; Identities, Targets : Files.Types.String_Vectors.Vector;
    Index : Positive) return Boolean is
 begin
-   if Index > Identities.Last_Index or else Length (Identities (Index)) = 0
-     or else Index > Targets.Last_Index or else Length (Targets (Index)) = 0
-   then
+   if Files.Model.Value_At (Identities, Index) = "" or else Files.Model.Value_At (Targets, Index) = "" then
       return False;
    end if;
    --  Already restored (a retry after a crash before its marker was

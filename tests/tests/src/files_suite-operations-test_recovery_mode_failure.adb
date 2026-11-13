@@ -91,7 +91,9 @@ separate (Files_Suite.Operations)
       for Background in Boolean loop
          declare
             Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-            Model : Files.Model.Window_Model;
+            Model : aliased Files.Model.Window_Model;
+            Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+            pragma Unreferenced (Paste);
             Actions : Files.Paste.Resolved_Action_Vectors.Vector;
             Step : Files.Operations.Operation_Result;
             Copy_Source : constant String := Join (Root, "copy-source");
@@ -132,11 +134,6 @@ separate (Files_Suite.Operations)
                "Undo recovers the retained original and mode: bytes restored");
             Assert (Metadata_Mode_Of (Source) = 8#555#, "Undo recovers the retained original and mode: mode restored");
             Mutation := Files.File_System.Set_Permissions (Source, 8#755#);
-         exception
-            when others =>
-               Files.Model.Clear_Paste_Execution (Model);
-               Files.Refresh_Jobs.Cancel (Model);
-               raise;
          end;
       end loop;
       Cleanup;

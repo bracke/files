@@ -29,7 +29,7 @@ separate (Files.Controller)
 
       --  Delete at the caret; a key at the near edge of the field deletes
       --  nothing and is ignored.
-      Files.UTF8.Delete_At
+      Guikit.Utf8.Editing.Delete_At
         (Text, Cursor, Backward => Direction = Delete_Backward, By_Word => By_Word,
          New_Text => New_Text, New_Cursor => New_Cursor);
       if Length (New_Text) = Text'Length then

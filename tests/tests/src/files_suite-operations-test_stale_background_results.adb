@@ -2,7 +2,9 @@ separate (Files_Suite.Operations)
    procedure Test_Stale_Background_Results (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model    : Files.Model.Window_Model;
+      Model    : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
       Other    : constant String := Join (Root, "other-view");
@@ -171,8 +173,4 @@ separate (Files_Suite.Operations)
          "undoing the stale destructive result leaves the newer view intact: item count");
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Navigate_To (Model, Root, Load.Items);
-   exception
-      when others =>
-         Files.Model.Clear_Paste_Execution (Model);
-         raise;
    end Test_Stale_Background_Results;

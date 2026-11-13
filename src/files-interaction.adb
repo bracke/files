@@ -8,6 +8,11 @@ with Guikit.Settings_Panel;
 with Files.Command_Palette;
 with Files.File_System;
 with Files.Operations;
+with Files.Model.Command_Palette;
+with Files.Model.Context_Menu;
+with Files.Model.Label_Picker;
+with Files.Model.Settings_Pane;
+with Files.Model.Tree_Panel;
 
 package body Files.Interaction is
 
@@ -124,7 +129,7 @@ package body Files.Interaction is
          Paths.Append (Item.Full_Path);
       end loop;
       Files.Settings.Set_Labels (Updated, Paths, Label);
-      Files.Model.Close_Label_Picker (Model);
+      Files.Model.Label_Picker.Close (Model);
       Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted => Result.Settings_Changed);
    end Apply_Label;
 
@@ -248,15 +253,15 @@ package body Files.Interaction is
       Before   : Files.Settings.Settings_Model;
       Settings : Files.Settings.Settings_Model) is
    begin
-      if Files.Model.Settings_Pane_Is_Open (Model) then
+      if Files.Model.Settings_Pane.Is_Open (Model) then
          declare
             use type Files.Settings.Settings_Draft;
-            Shown     : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+            Shown     : constant Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
             Refreshed : constant Files.Settings.Settings_Draft :=
               Files.Settings.Refresh_Draft (Shown, Before, Settings);
          begin
             if Refreshed /= Shown then
-               Files.Model.Set_Settings_Draft (Model, Refreshed);
+               Files.Model.Settings_Pane.Set_Draft (Model, Refreshed);
             end if;
          end;
       end if;
@@ -370,16 +375,16 @@ package body Files.Interaction is
       Settings : Files.Settings.Settings_Model)
    is
    begin
-      if not Files.Model.Tree_Pick_Is_Active (Model) then
+      if not Files.Model.Tree_Panel.Pick_Is_Active (Model) then
          return;
       end if;
 
       declare
          Mode    : constant Files.Model.Tree_Pick_Mode :=
-           Files.Model.Tree_Pick_Mode_Of (Model);
+           Files.Model.Tree_Panel.Pick_Mode_Of (Model);
          Sources : constant Files.Types.String_Vectors.Vector :=
-           Files.Model.Tree_Pick_Sources (Model);
-         Target  : constant String := Files.Model.Tree_Pick_Target (Model);
+           Files.Model.Tree_Panel.Pick_Sources (Model);
+         Target  : constant String := Files.Model.Tree_Panel.Pick_Target (Model);
       begin
          --  An empty target can occur while a newly seeded tree has no visible
          --  rows.  Keep the modal open instead of turning Choose into Cancel.
@@ -396,7 +401,7 @@ package body Files.Interaction is
                   else Files.File_System.Drop_Copy));
          begin
             if Op.Status = Files.Operations.Operation_Success then
-               Files.Model.End_Tree_Pick (Model);
+               Files.Model.Tree_Panel.End_Pick (Model);
             end if;
          end;
       end;
@@ -442,11 +447,11 @@ package body Files.Interaction is
       --  when dispatch began.  A command executed by one overlay can open a
       --  different overlay, which must not consume the same keypress again.
       Label_Picker_At_Entry : constant Boolean :=
-        Files.Model.Label_Picker_Is_Open (Model);
+        Files.Model.Label_Picker.Is_Open (Model);
       Context_Menu_At_Entry : constant Boolean :=
-        Files.Model.Context_Menu_Is_Open (Model);
+        Files.Model.Context_Menu.Is_Open (Model);
       Tree_Pick_At_Entry : constant Boolean :=
-        Files.Model.Tree_Pick_Is_Active (Model);
+        Files.Model.Tree_Panel.Pick_Is_Active (Model);
    begin
       --  Start from a clean result so no flag leaks from a previous call when a
       --  caller reuses the same Result object across keystrokes.
@@ -510,10 +515,10 @@ package body Files.Interaction is
       --  Label_Picker_Choice_Input_Action uses, so both report the settings change
       --  the same way.
       if Label_Picker_At_Entry
-        and then Files.Model.Label_Picker_Is_Open (Model)
+        and then Files.Model.Label_Picker.Is_Open (Model)
         and then Key = Guikit.Input.Key_Return
       then
-         Apply_Label (Model, Settings, Settings_Path, Files.Model.Label_Picker_Highlight_Color (Model), Result);
+         Apply_Label (Model, Settings, Settings_Path, Files.Model.Label_Picker.Highlight_Color (Model), Result);
       end if;
 
       --  A keyboard Enter on the open context menu runs the highlighted command
@@ -521,14 +526,14 @@ package body Files.Interaction is
       --  (it also carries the zoom and settings follow-ups only this layer
       --  reports).
       if Context_Menu_At_Entry
-        and then Files.Model.Context_Menu_Is_Open (Model)
+        and then Files.Model.Context_Menu.Is_Open (Model)
         and then Key = Guikit.Input.Key_Return
       then
          declare
             use type Files.Commands.Context_Menu_Row_Kind;
             Rows      : constant Files.Commands.Context_Menu_Rows :=
-              Files.Commands.Context_Menu_Rows_For (Files.Model.Context_Menu_Target_Of (Model));
-            Highlight : constant Natural := Files.Model.Context_Menu_Highlight (Model);
+              Files.Commands.Context_Menu_Rows_For (Files.Model.Context_Menu.Target_Of (Model));
+            Highlight : constant Natural := Files.Model.Context_Menu.Highlight (Model);
          begin
             if Highlight in 1 .. Rows.Count
               and then Rows.Rows (Highlight).Kind = Files.Commands.Menu_Command
@@ -539,7 +544,7 @@ package body Files.Interaction is
             else
                --  Nothing highlighted (a mouse-opened menu not yet arrowed): a
                --  bare Enter just dismisses it.
-               Files.Model.Close_Context_Menu (Model);
+               Files.Model.Context_Menu.Close (Model);
             end if;
          end;
       end if;
@@ -548,7 +553,7 @@ package body Files.Interaction is
       --  or move the captured sources into the highlighted directory, then close
       --  the sidebar, through the routine the picker's Confirm button uses.
       if Tree_Pick_At_Entry
-        and then Files.Model.Tree_Pick_Is_Active (Model)
+        and then Files.Model.Tree_Panel.Pick_Is_Active (Model)
         and then Key = Guikit.Input.Key_Return
       then
          Confirm_Tree_Pick (Model, Settings);
@@ -562,7 +567,7 @@ package body Files.Interaction is
       if Key = Guikit.Input.Key_Space
         and then (Files.Model.Focus (Model) = Files.Types.Focus_None
                   or else (Files.Model.Focus (Model) = Files.Types.Focus_Settings_Input
-                           and then Files.Model.Settings_Focused_Kind (Model) in
+                           and then Files.Model.Settings_Pane.Focused_Kind (Model) in
                              Guikit.Settings_Panel.Toggle | Guikit.Settings_Panel.Choice))
       then
          Result.Clear_Pending_Text := True;
@@ -633,7 +638,7 @@ package body Files.Interaction is
             --  Apply the chosen color label to every selected item and persist
             --  through the same settings-write seam the favorite toggle uses,
             --  then close the picker. No_Label clears the label.
-            if Files.Model.Label_Picker_Is_Open (Model) then
+            if Files.Model.Label_Picker.Is_Open (Model) then
                Apply_Label (Model, Settings, Settings_Path, Action.Label, Result);
             end if;
          when Files.Events.Path_Favorite_Toggle_Input_Action =>
@@ -668,8 +673,8 @@ package body Files.Interaction is
             --  that changes settings runs through this layer's Execute_Command,
             --  which adds the follow-ups the shell needs, otherwise the
             --  controller activates the highlighted command.
-            if Files.Model.Command_Palette_Is_Open (Model)
-              and then Files.Model.Palette_Click (Model, Action.Click_X, Action.Click_Y)
+            if Files.Model.Command_Palette.Is_Open (Model)
+              and then Files.Model.Command_Palette.Click (Model, Action.Click_X, Action.Click_Y)
             then
                declare
                   Command : constant Files.Commands.Command_Id := Files.Command_Palette.Selected_Command (Model);
@@ -682,7 +687,7 @@ package body Files.Interaction is
                        (Model, Settings, Settings_Path, Command,
                         Modifiers, Result);
                      if Result.Status /= Files.Controller.Controller_Ignored then
-                        Files.Model.Close_Command_Palette (Model);
+                        Files.Model.Command_Palette.Close (Model);
                      end if;
                   else
                      Outcome :=
@@ -787,7 +792,7 @@ package body Files.Interaction is
       --  an action if its menu has already closed or its command does not
       --  belong to the menu that is open now; otherwise a delayed item-menu
       --  click could execute against a newer empty/header menu or selection.
-      if not Files.Model.Context_Menu_Is_Open (Model) then
+      if not Files.Model.Context_Menu.Is_Open (Model) then
          return;
       end if;
 
@@ -795,7 +800,7 @@ package body Files.Interaction is
          declare
             Rows : constant Files.Commands.Context_Menu_Rows :=
               Files.Commands.Context_Menu_Rows_For
-                (Files.Model.Context_Menu_Target_Of (Model));
+                (Files.Model.Context_Menu.Target_Of (Model));
          begin
             for Row in 1 .. Rows.Count loop
                if Rows.Rows (Row).Command = Command then
@@ -810,7 +815,7 @@ package body Files.Interaction is
          return;
       end if;
 
-      Files.Model.Close_Context_Menu (Model);
+      Files.Model.Context_Menu.Close (Model);
       if Command /= Files.Commands.No_Command then
          Execute_Command
            (Model, Settings, Settings_Path, Command,
@@ -842,18 +847,18 @@ package body Files.Interaction is
         Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Model.Context_Menu_Overlay);
    begin
       Result := (others => <>);
-      if On_Context_Menu and then Files.Model.Context_Menu_Is_Open (Model) then
+      if On_Context_Menu and then Files.Model.Context_Menu.Is_Open (Model) then
          return;
       elsif In_Details_Header and then not Overlay_Open then
          --  A right-click on the details-view column header opens the column
          --  configuration menu regardless of any item under the header band.
-         Files.Model.Open_Context_Menu (Model, X, Y, Files.Types.Context_Menu_Header);
+         Files.Model.Context_Menu.Open (Model, X, Y, Files.Types.Context_Menu_Header);
       elsif In_Main and then not Overlay_Open then
          if Item_Index > Files.Model.Visible_Count (Model) then
             --  A queued pointer action can outlive the snapshot that produced
             --  its visible index. Do not turn that stale index into an item
             --  menu operating on whatever selection happens to be current.
-            Files.Model.Close_Context_Menu (Model);
+            Files.Model.Context_Menu.Close (Model);
          elsif Item_Index /= 0 then
             --  Match desktop file-manager convention: right-click on an
             --  unselected item immediately selects it so the user can see what
@@ -866,7 +871,7 @@ package body Files.Interaction is
                begin
                   --  A menu still open for another item would make the
                   --  click below ignored, leaving nothing selected.
-                  Files.Model.Close_Context_Menu (Model);
+                  Files.Model.Context_Menu.Close (Model);
                   Files.Model.Clear_Selection (Model);
                   Click_Result :=
                     Files.Controller.Handle_Item_Click
@@ -878,13 +883,13 @@ package body Files.Interaction is
                   Observe_Controller_Outcome (Click_Result, Result);
                end;
             end if;
-            Files.Model.Open_Context_Menu
+            Files.Model.Context_Menu.Open
               (Model, X, Y, Files.Types.Context_Menu_Item, Item_Index);
          else
-            Files.Model.Open_Context_Menu (Model, X, Y, Files.Types.Context_Menu_Empty);
+            Files.Model.Context_Menu.Open (Model, X, Y, Files.Types.Context_Menu_Empty);
          end if;
       else
-         Files.Model.Close_Context_Menu (Model);
+         Files.Model.Context_Menu.Close (Model);
       end if;
    end Apply_Right_Click;
 

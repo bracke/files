@@ -280,7 +280,7 @@ package body Files.Archive_Writing is
 
       procedure Copy (Count : U32) is
          Remaining : IO.Count := IO.Count (Count);
-         Buffer : Stream_Element_Array (1 .. 65_536);
+         Buffer : Stream_Element_Array (1 .. Files.Types.IO_Chunk_Bytes);
          Chunk : Stream_Element_Offset;
       begin
          while Remaining > 0 loop

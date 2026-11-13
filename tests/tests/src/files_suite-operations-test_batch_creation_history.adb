@@ -3,7 +3,9 @@ separate (Files_Suite.Operations)
       pragma Unreferenced (T);
       use type Zlib.Status_Code;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Status : Zlib.Status_Code;
@@ -112,6 +114,4 @@ separate (Files_Suite.Operations)
             end loop;
          end loop;
       end loop;
-   exception
-      when others => Files.Model.Clear_Paste_Execution (Model); Files.Refresh_Jobs.Cancel (Model); raise;
    end Test_Batch_Creation_History;

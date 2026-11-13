@@ -8,15 +8,15 @@ separate (Files_Suite.Operations)
       Remote : Files_Suite.Volumes.Remote_Directory;
       --  The start of the trash's private copy of the item.
       function Trigger return String is (Join (Remote.Path, "data/Trash/files/.files-work-"));
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Environment_Guard;
       procedure Cleanup is
       begin
-         Files.Model.Clear_Paste_Execution (Model);
-         Files.Refresh_Jobs.Cancel (Model);
+         Files_Suite.Support.Release (Paste);
          Files.File_System.Testing.Stop_Changing_Source;
          Ada.Environment_Variables.Clear ("FILES_TEST_TRASH_TRIGGER");
          Ada.Environment_Variables.Clear ("FILES_TEST_TRASH_SOURCE");

@@ -3,9 +3,6 @@ with Files.Localization;
 
 with Ada.Strings.Unbounded;
 
-with Guikit.Layout;
-use Guikit.Layout;
-
 package body Files.UI is
 
    function Calculate_Bottom_Bar_Layout
@@ -14,13 +11,13 @@ package body Files.UI is
       Line_Height : Positive)
       return Guikit.Layout.Bottom_Bar_Layout
    is
-      Cell_W : constant Natural := Caret_Advance_Width (Line_Height);
+      Cell_W : constant Natural := Guikit.Layout.Caret_Advance_Width (Line_Height);
 
       --  Size the sort button to the active field's label only (plus the
       --  direction indicator), not the widest field, so it is never wider than
       --  the text it shows.
       Sort_Label_W : constant Natural :=
-        Label_Pixel_Width
+        Guikit.Layout.Label_Pixel_Width
           (Files.Localization.Text (Files.Commands.Sort_Label_Key (Sort_Field))
            & " "
            & Files.Localization.Text ("sort.direction.ascending"),
@@ -30,14 +27,14 @@ package body Files.UI is
         Guikit.Layout.Calculate_Bottom_Bar_Layout
           (Width               => Width,
            Small_Label_Width   =>
-             Label_Pixel_Width (Files.Localization.Text ("command.view.small.short"), Cell_W),
+             Guikit.Layout.Label_Pixel_Width (Files.Localization.Text ("command.view.small.short"), Cell_W),
            Large_Label_Width   =>
-             Label_Pixel_Width (Files.Localization.Text ("command.view.large.short"), Cell_W),
+             Guikit.Layout.Label_Pixel_Width (Files.Localization.Text ("command.view.large.short"), Cell_W),
            Details_Label_Width =>
-             Label_Pixel_Width (Files.Localization.Text ("command.view.details.short"), Cell_W),
+             Guikit.Layout.Label_Pixel_Width (Files.Localization.Text ("command.view.details.short"), Cell_W),
            Sort_Label_Width    => Sort_Label_W,
            Info_Label_Width    =>
-             Label_Pixel_Width (Files.Localization.Text ("command.info.toggle.short"), Cell_W),
+             Guikit.Layout.Label_Pixel_Width (Files.Localization.Text ("command.info.toggle.short"), Cell_W),
            Line_Height         => Line_Height);
    end Calculate_Bottom_Bar_Layout;
 
@@ -45,10 +42,10 @@ package body Files.UI is
      (Line_Height : Positive)
       return Natural
    is
-      Cell_W : constant Natural := Caret_Advance_Width (Line_Height);
+      Cell_W : constant Natural := Guikit.Layout.Caret_Advance_Width (Line_Height);
 
       function Label_W (Key : String) return Natural is
-        (Label_Pixel_Width
+        (Guikit.Layout.Label_Pixel_Width
            (Files.Localization.Text (Key)
             & " "
             & Files.Localization.Text ("sort.direction.ascending"),
@@ -63,15 +60,19 @@ package body Files.UI is
       --  for the widest field, so the dropdown never clips a row.
       return
         Natural'Max
-          (Saturating_Multiply (Line_Height, 2),
-           Saturating_Add (Widest, Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2)));
+          (Guikit.Layout.Saturating_Multiply (Line_Height, 2),
+           Guikit.Layout.Saturating_Add
+             (Widest, Guikit.Layout.Saturating_Multiply (Files.UI.Field_Padding (Line_Height), 2)));
    end Sort_Menu_Width;
 
    function Toolbar_Height (Line_Height : Positive) return Natural is
-     (Saturating_Multiply (Line_Height, 2));
+     (Guikit.Layout.Saturating_Multiply (Line_Height, 2));
 
    function Bottom_Bar_Height (Line_Height : Positive) return Natural is
-     (Saturating_Add (Line_Height, Saturating_Multiply (Scaled (Guikit.Layout.Bottom_Bar_Padding, Line_Height), 2)));
+     (Guikit.Layout.Saturating_Add
+        (Line_Height,
+         Guikit.Layout.Saturating_Multiply
+           (Guikit.Layout.Scaled (Guikit.Layout.Bottom_Bar_Padding, Line_Height), 2)));
 
    function Calculate_Sort_Menu_Layout
      (Width       : Natural;
@@ -80,14 +81,15 @@ package body Files.UI is
       Line_Height : Positive)
       return Sort_Menu_Layout
    is
-      Bottom    : constant Bottom_Bar_Layout :=
+      Bottom    : constant Guikit.Layout.Bottom_Bar_Layout :=
         Calculate_Bottom_Bar_Layout (Width, Sort_Field, Line_Height);
       Row_Count : constant Natural := Files.Types.Sort_Field'Pos (Files.Types.Sort_Field'Last) + 1;
       --  Each row is as tall as the bottom bar itself.
       Row_H     : constant Natural := Bottom_Bar_Height (Line_Height);
-      Menu_Pad  : constant Natural := Scaled (Sort_Menu_Padding, Line_Height);
+      Menu_Pad  : constant Natural := Guikit.Layout.Scaled (Guikit.Layout.Sort_Menu_Padding, Line_Height);
       Menu_H    : constant Natural :=
-        Saturating_Add (Saturating_Multiply (Row_H, Row_Count), Saturating_Multiply (Menu_Pad, 2));
+        Guikit.Layout.Saturating_Add
+          (Guikit.Layout.Saturating_Multiply (Row_H, Row_Count), Guikit.Layout.Saturating_Multiply (Menu_Pad, 2));
       Bottom_Y  : constant Natural := (if Height > Row_H then Height - Row_H else 0);
       Menu_Y    : constant Natural := (if Bottom_Y > Menu_H then Bottom_Y - Menu_H else 0);
    begin
@@ -100,7 +102,7 @@ package body Files.UI is
            (if Bottom.Sort_Button_Width = 0 or else Bottom.Sort_Button_X >= Width then 0
             else Natural'Min (Sort_Menu_Width (Line_Height), Width - Bottom.Sort_Button_X)),
          Height     => Menu_H,
-         Rows_Y     => Saturating_Add (Menu_Y, Menu_Pad),
+         Rows_Y     => Guikit.Layout.Saturating_Add (Menu_Y, Menu_Pad),
          Row_Height => Row_H,
          Row_Count  => Row_Count);
    end Calculate_Sort_Menu_Layout;
@@ -130,11 +132,11 @@ package body Files.UI is
      (Line_Height : Positive)
       return Natural
    is
-      Cell_W : constant Natural := Caret_Advance_Width (Line_Height);
+      Cell_W : constant Natural := Guikit.Layout.Caret_Advance_Width (Line_Height);
 
       function Label_W (Key : String) return Natural is
       begin
-         return Label_Pixel_Width (Files.Localization.Text (Key), Cell_W);
+         return Guikit.Layout.Label_Pixel_Width (Files.Localization.Text (Key), Cell_W);
       end Label_W;
 
       Widest : constant Natural :=
@@ -144,7 +146,7 @@ package body Files.UI is
              (Label_W ("search.scope.names"),
               Label_W ("search.scope.contents")));
    begin
-      return Saturating_Add (Widest, Saturating_Multiply (Field_Padding (Line_Height), 2));
+      return Guikit.Layout.Saturating_Add (Widest, Guikit.Layout.Saturating_Multiply (Field_Padding (Line_Height), 2));
    end Filter_Scope_Chip_Width;
 
    procedure Split_Status_Region
@@ -160,18 +162,18 @@ package body Files.UI is
    is
       Pad        : constant Natural := Status_Field_Padding (Line_Height);
       Div_Gap    : constant Natural := Guikit.Layout.Scaled (8, Line_Height);
-      Count_Cell : constant Natural := Caret_Advance_Width (Line_Height);
+      Count_Cell : constant Natural := Guikit.Layout.Caret_Advance_Width (Line_Height);
       --  Preserve enough room for a representative compact count such as
       --  "0/31/0", including the renderer's horizontal padding. Disk-space
       --  information yields before these primary counts become an ellipsis.
       Minimum_Counts : constant Natural :=
-        Saturating_Add (Saturating_Multiply (Count_Cell, 6), 2 * Pad);
+        Guikit.Layout.Saturating_Add (Guikit.Layout.Saturating_Multiply (Count_Cell, 6), 2 * Pad);
       --  Only split when there is a free label and room for it plus the divider
       --  gaps and a complete compact count summary.
       Show    : constant Boolean :=
         Free_Label_Width > 0
         and then Info_Width >=
-          Saturating_Add (Free_Label_Width, Saturating_Add (2 * Div_Gap, Minimum_Counts));
+          Guikit.Layout.Saturating_Add (Free_Label_Width, Guikit.Layout.Saturating_Add (2 * Div_Gap, Minimum_Counts));
    begin
       if not Show then
          Toggle_Width     := Info_Width;
@@ -182,12 +184,13 @@ package body Files.UI is
          return;
       end if;
 
-      Free_Field_X     := Saturating_Add (Info_X, Info_Width - Free_Label_Width - Pad);
+      Free_Field_X     := Guikit.Layout.Saturating_Add (Info_X, Info_Width - Free_Label_Width - Pad);
       Divider_X        := (if Free_Field_X > Div_Gap then Free_Field_X - Div_Gap else 0);
       Toggle_Width     := (if Divider_X > Info_X then Divider_X - Info_X else 0);
-      Free_Field_Width := Saturating_Add (Free_Label_Width, Pad);
+      Free_Field_Width := Guikit.Layout.Saturating_Add (Free_Label_Width, Pad);
       Free_Region_Width :=
-        (if Saturating_Add (Info_X, Info_Width) > Divider_X then Saturating_Add (Info_X, Info_Width) - Divider_X
+        (if Guikit.Layout.Saturating_Add (Info_X, Info_Width) > Divider_X
+         then Guikit.Layout.Saturating_Add (Info_X, Info_Width) - Divider_X
          else 0);
    end Split_Status_Region;
 

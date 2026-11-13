@@ -8,23 +8,23 @@ separate (Files.Controller)
    begin
       --  The destination picker is the tree itself, so it does not block
       --  tree clicks; every other input-owning overlay does.
-      if not Files.Model.Tree_Panel_Is_Open (Model)
+      if not Files.Model.Tree_Panel.Is_Open (Model)
         or else Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Model.Tree_Pick_Overlay)
         or else Node_Index = 0
-        or else Node_Index > Files.Model.Tree_Node_Count (Model)
+        or else Node_Index > Files.Model.Tree_Panel.Node_Count (Model)
       then
          return Make_Result (Controller_Ignored);
       end if;
 
       declare
          Index     : constant Positive := Positive (Node_Index);
-         Node_Path : constant String := Files.Model.Tree_Node_Path (Model, Index);
+         Node_Path : constant String := Files.Model.Tree_Panel.Node_Path (Model, Index);
       begin
          if Toggle then
-            if not Files.Model.Tree_Node_Is_Expanded (Model, Index) then
+            if not Files.Model.Tree_Panel.Node_Is_Expanded (Model, Index) then
                Load_Tree_Children (Model, Settings, Index, Node_Path);
             end if;
-            Files.Model.Tree_Toggle_Expanded (Model, Index);
+            Files.Model.Tree_Panel.Toggle_Expanded (Model, Index);
             return Make_Result
               (Controller_Command_Executed,
                Files.Commands.Toggle_Folder_Tree_Command,
@@ -33,17 +33,17 @@ separate (Files.Controller)
 
          --  While a Copy to.../Move to... picker is active a label click chooses
          --  the highlighted destination instead of navigating the main view.
-         if Files.Model.Tree_Pick_Is_Active (Model) then
-            Files.Model.Set_Tree_Pick_Target (Model, Node_Path);
+         if Files.Model.Tree_Panel.Pick_Is_Active (Model) then
+            Files.Model.Tree_Panel.Set_Pick_Target (Model, Node_Path);
             Files.Model.Set_Error (Model, "");
             return Make_Result
               (Controller_Command_Executed, Files.Commands.No_Command, Empty_Operation);
          end if;
 
-         if not Files.Model.Tree_Node_Is_Expanded (Model, Index) then
+         if not Files.Model.Tree_Panel.Node_Is_Expanded (Model, Index) then
             Load_Tree_Children (Model, Settings, Index, Node_Path);
          end if;
-         Files.Model.Tree_Set_Expanded (Model, Index, True);
+         Files.Model.Tree_Panel.Set_Expanded (Model, Index, True);
 
          declare
             Operation : constant Files.Operations.Operation_Result :=

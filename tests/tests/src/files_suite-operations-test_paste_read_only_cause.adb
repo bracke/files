@@ -3,7 +3,9 @@ separate (Files_Suite.Operations)
       pragma Unreferenced (T);
       Environment : Files_Suite.Support.Environment_Guard;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Sources : Files.Types.String_Vectors.Vector;
@@ -43,7 +45,5 @@ separate (Files_Suite.Operations)
    exception
       when others =>
          Unlock_Directory (Locked);
-         Files.Model.Clear_Paste_Execution (Model);
-         Files.Refresh_Jobs.Cancel (Model);
          raise;
    end Test_Paste_Read_Only_Cause;

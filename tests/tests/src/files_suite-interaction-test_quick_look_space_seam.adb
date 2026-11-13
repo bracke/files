@@ -1,3 +1,4 @@
+with Files.Model.Quick_Look;
 separate (Files_Suite.Interaction)
    procedure Test_Quick_Look_Space_Seam (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -25,7 +26,7 @@ separate (Files_Suite.Interaction)
       begin
          Files_Suite.Support.Select_Name (Model, "Alpha.txt");
          Press_Space (Model, Result);
-         Assert (Files.Model.Quick_Look_Is_Open (Model), "Space opens Quick Look for a single selection");
+         Assert (Files.Model.Quick_Look.Is_Open (Model), "Space opens Quick Look for a single selection");
          Assert (Result.Clear_Pending_Text, "the grid Space shortcut drops the parallel type-ahead space");
          declare
             Snapshot : constant Files.Rendering.View_Snapshot :=
@@ -36,11 +37,11 @@ separate (Files_Suite.Interaction)
 
          --  (2) Space again closes it.
          Press_Space (Model, Result);
-         Assert (not Files.Model.Quick_Look_Is_Open (Model), "Space again closes Quick Look");
+         Assert (not Files.Model.Quick_Look.Is_Open (Model), "Space again closes Quick Look");
 
          --  (3) Reopen, then Escape closes it.
          Press_Space (Model, Result);
-         Assert (Files.Model.Quick_Look_Is_Open (Model), "Space reopens Quick Look");
+         Assert (Files.Model.Quick_Look.Is_Open (Model), "Space reopens Quick Look");
          Files.Interaction.Handle_Key
            (Model             => Model,
             Settings          => Settings,
@@ -48,7 +49,7 @@ separate (Files_Suite.Interaction)
             Key               => Guikit.Input.Key_Escape,
             Modifiers         => No_Mod,
             Result            => Result);
-         Assert (not Files.Model.Quick_Look_Is_Open (Model), "Escape closes Quick Look");
+         Assert (not Files.Model.Quick_Look.Is_Open (Model), "Escape closes Quick Look");
       end;
 
       --  (4) No selection: Space does not open Quick Look.
@@ -58,7 +59,7 @@ separate (Files_Suite.Interaction)
       begin
          Files.Model.Deselect_All (Model);
          Press_Space (Model, Result);
-         Assert (not Files.Model.Quick_Look_Is_Open (Model), "Space with no selection does not open Quick Look");
+         Assert (not Files.Model.Quick_Look.Is_Open (Model), "Space with no selection does not open Quick Look");
       end;
 
       --  (5) Multi-selection: Space does not open Quick Look.
@@ -70,7 +71,7 @@ separate (Files_Suite.Interaction)
          Assert (Files.Model.Selected_Count (Model) > 1, "the sample model has more than one selectable item");
          Press_Space (Model, Result);
          Assert
-           (not Files.Model.Quick_Look_Is_Open (Model),
+           (not Files.Model.Quick_Look.Is_Open (Model),
             "Space with more than one item selected does not open Quick Look");
       end;
 
@@ -83,7 +84,7 @@ separate (Files_Suite.Interaction)
          Files.Model.Focus_Filter_Input (Model);
          Press_Space (Model, Result);
          Assert
-           (not Files.Model.Quick_Look_Is_Open (Model),
+           (not Files.Model.Quick_Look.Is_Open (Model),
             "Space in a focused text field does not open Quick Look");
          Assert
            (not Result.Clear_Pending_Text,

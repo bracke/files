@@ -2,7 +2,9 @@ separate (Files_Suite.Operations)
    procedure Test_Paste_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
@@ -30,10 +32,10 @@ separate (Files_Suite.Operations)
                Files.Operations.Begin_Paste_Execution (Model, Actions, Mode, False);
                for Attempt in Files_Suite.Support.Polling loop
                   Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-                  exit when Files.Model.Paste_Execution_Done (Model) = 1;
+                  exit when Files.Model.Pasting.Execution_Done (Model) = 1;
                end loop;
                Files_Suite.Support.Assert_Equal
-                 (Files.Model.Paste_Execution_Done (Model),
+                 (Files.Model.Pasting.Execution_Done (Model),
                   1,
                   "the first paste member commits");
                Assert (Hostkit.Fs.Move_No_Replace (A, Saved_A), "retain the first owned entry between batches");
@@ -71,6 +73,4 @@ separate (Files_Suite.Operations)
             end;
          end loop;
       end loop;
-   exception
-      when others => Files.Model.Clear_Paste_Execution (Model); Files.Refresh_Jobs.Cancel (Model); raise;
    end Test_Paste_Undo_Identity;

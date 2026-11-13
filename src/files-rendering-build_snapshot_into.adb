@@ -5,6 +5,14 @@ with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
 with Files.Commands.Status;
 with Files.Grouping;
+with Files.Model.Clipboard;
+with Files.Model.Context_Menu;
+with Files.Model.Label_Picker;
+with Files.Model.Quick_Look;
+with Files.Model.Root_Selector;
+with Files.Model.Sort_Menu;
+with Files.Model.Tree_Panel;
+with Files.Model.Pasting;
 separate (Files.Rendering)
    procedure Build_Snapshot_Into
      (Snapshot  : in out View_Snapshot;
@@ -82,8 +90,8 @@ separate (Files.Rendering)
       Snapshot.View_Mode := Files.Model.View_Mode_Of (Model);
       Snapshot.Sort_Field := Files.Model.Sort_Field_Of (Model);
       Snapshot.Sort_Ascending := Files.Model.Sort_Is_Ascending (Model);
-      Snapshot.Sort_Menu_Open := Files.Model.Sort_Menu_Is_Open (Model);
-      Snapshot.Sort_Menu_Highlight := Files.Model.Sort_Menu_Highlight (Model);
+      Snapshot.Sort_Menu_Open := Files.Model.Sort_Menu.Is_Open (Model);
+      Snapshot.Sort_Menu_Highlight := Files.Model.Sort_Menu.Highlight (Model);
       Snapshot.Show_Extensions := Settings.Show_File_Extensions;
       Snapshot.Show_Used_Space := Settings.Show_Used_Space;
       Snapshot.Show_Space_Bar := Settings.Show_Space_Bar;
@@ -133,24 +141,24 @@ separate (Files.Rendering)
       Snapshot.Icon_Theme := Settings.Icon_Theme;
       Snapshot.Info_Pane_Scroll_Lines := Files.Model.Info_Pane_Scroll_Lines (Model);
       Snapshot.Main_View_Scroll_Lines := Files.Model.Main_View_Scroll_Lines (Model);
-      Snapshot.Context_Menu_Open := Files.Model.Context_Menu_Is_Open (Model);
-      Snapshot.Context_Menu_Highlight := Files.Model.Context_Menu_Highlight (Model);
-      Snapshot.Context_Menu_X := Files.Model.Context_Menu_X (Model);
-      Snapshot.Context_Menu_Y := Files.Model.Context_Menu_Y (Model);
-      Snapshot.Context_Menu_Target := Files.Model.Context_Menu_Target_Of (Model);
-      Snapshot.Context_Menu_Item_Index := Files.Model.Context_Menu_Item_Index (Model);
-      Snapshot.Paste_Conflict_Open := Files.Model.Paste_Conflict_Is_Active (Model);
-      Snapshot.Paste_Conflict_Name := To_Unbounded_String (Files.Model.Paste_Conflict_Name (Model));
-      Snapshot.Paste_Conflict_Apply_All := Files.Model.Paste_Conflict_Apply_All (Model);
+      Snapshot.Context_Menu_Open := Files.Model.Context_Menu.Is_Open (Model);
+      Snapshot.Context_Menu_Highlight := Files.Model.Context_Menu.Highlight (Model);
+      Snapshot.Context_Menu_X := Files.Model.Context_Menu.X (Model);
+      Snapshot.Context_Menu_Y := Files.Model.Context_Menu.Y (Model);
+      Snapshot.Context_Menu_Target := Files.Model.Context_Menu.Target_Of (Model);
+      Snapshot.Context_Menu_Item_Index := Files.Model.Context_Menu.Item_Index (Model);
+      Snapshot.Paste_Conflict_Open := Files.Model.Pasting.Conflict_Is_Active (Model);
+      Snapshot.Paste_Conflict_Name := To_Unbounded_String (Files.Model.Pasting.Conflict_Name (Model));
+      Snapshot.Paste_Conflict_Apply_All := Files.Model.Pasting.Conflict_Apply_All (Model);
       declare
          use type Files.File_System.Drop_Import_Mode;
       begin
          Snapshot.Paste_Progress :=
-           (Open            => Files.Model.Paste_Execution_Is_Active (Model),
-            Done            => Files.Model.Paste_Execution_Done (Model),
-            Total           => Files.Model.Paste_Execution_Total (Model),
-            Name            => To_Unbounded_String (Files.Model.Paste_Execution_Current_Name (Model)),
-            Moving          => Files.Model.Paste_Execution_Mode (Model) = Files.File_System.Drop_Move,
+           (Open            => Files.Model.Pasting.Execution_Is_Active (Model),
+            Done            => Files.Model.Pasting.Execution_Done (Model),
+            Total           => Files.Model.Pasting.Execution_Total (Model),
+            Name            => To_Unbounded_String (Files.Model.Pasting.Execution_Current_Name (Model)),
+            Moving          => Files.Model.Pasting.Execution_Mode (Model) = Files.File_System.Drop_Move,
             Operation_Label => To_Unbounded_String (Files.Model.Background_Operation_Label (Model)));
       end;
       Snapshot.Theme_Palette :=
@@ -173,16 +181,16 @@ separate (Files.Rendering)
       --  and overlay text are separate GPU passes, so its text would otherwise
       --  bleed through the palette panel.
       Snapshot.Root_Selector_Open :=
-        Files.Model.Root_Selector_Is_Open (Model)
+        Files.Model.Root_Selector.Is_Open (Model)
         and then not Snapshot.Command_Palette_Open;
-      Snapshot.Root_Selected_Index := Files.Model.Root_Selected_Index (Model);
+      Snapshot.Root_Selected_Index := Files.Model.Root_Selector.Selected_Index (Model);
 
-      Snapshot.Label_Picker_Open := Files.Model.Label_Picker_Is_Open (Model);
-      Snapshot.Label_Picker_Highlight := Files.Model.Label_Picker_Highlight (Model);
-      if Files.Model.Quick_Look_Is_Open (Model) then
+      Snapshot.Label_Picker_Open := Files.Model.Label_Picker.Is_Open (Model);
+      Snapshot.Label_Picker_Highlight := Files.Model.Label_Picker.Highlight (Model);
+      if Files.Model.Quick_Look.Is_Open (Model) then
          declare
             Content : constant Files.Quick_Look.Quick_Look_Content :=
-              Files.Model.Quick_Look_Content_Of (Model);
+              Files.Model.Quick_Look.Content_Of (Model);
             Item    : constant Files.Items.Directory_Item :=
               Files.Model.Selected_Item (Model);
          begin
@@ -223,37 +231,38 @@ separate (Files.Rendering)
          Snapshot.Command_Enabled (Id) := Files.Commands.Status.Is_Enabled (Id, Model);
       end loop;
 
-      for Index in 1 .. Files.Model.Root_Count (Model) loop
+      for Index in 1 .. Files.Model.Root_Selector.Count (Model) loop
          Snapshot.Roots.Append
            (Root_Row'
-              (Path  => To_Unbounded_String (Files.Model.Root_Path (Model, Index)),
+              (Path  => To_Unbounded_String (Files.Model.Root_Selector.Path (Model, Index)),
                Label =>
-                 To_Unbounded_String (Files.Root_Labels.Display_Label (Files.Model.Root_Entry_At (Model, Index)))));
+                 To_Unbounded_String
+                   (Files.Root_Labels.Display_Label (Files.Model.Root_Selector.Entry_At (Model, Index)))));
       end loop;
 
-      Snapshot.Tree_Panel_Open := Files.Model.Tree_Panel_Is_Open (Model);
+      Snapshot.Tree_Panel_Open := Files.Model.Tree_Panel.Is_Open (Model);
       Snapshot.Tree_Panel_Scroll_Rows :=
-        Files.Model.Tree_Panel_Scroll_Rows (Model);
-      Snapshot.Tree_Pick_Active := Files.Model.Tree_Pick_Is_Active (Model);
+        Files.Model.Tree_Panel.Scroll_Rows (Model);
+      Snapshot.Tree_Pick_Active := Files.Model.Tree_Panel.Pick_Is_Active (Model);
       --  Rows only for a tree on screen: a closed one is not walked on every
       --  keystroke's rebuild.
       if Snapshot.Tree_Panel_Open or else Snapshot.Tree_Pick_Active then
-         Snapshot.Tree_Rows := Files.Model.Tree_Visible_Rows (Model);
+         Snapshot.Tree_Rows := Files.Model.Tree_Panel.Visible_Rows (Model);
       else
          Snapshot.Tree_Rows.Clear;
       end if;
       Snapshot.Tree_Pick_Moving :=
-        Files.Model.Tree_Pick_Mode_Of (Model) = Files.Model.Pick_Move;
-      Snapshot.Tree_Pick_Target := To_Unbounded_String (Files.Model.Tree_Pick_Target (Model));
-      Snapshot.Tree_Keyboard_Active := Files.Model.Tree_Has_Keyboard (Model);
-      Snapshot.Tree_Cursor := To_Unbounded_String (Files.Model.Tree_Cursor (Model));
+        Files.Model.Tree_Panel.Pick_Mode_Of (Model) = Files.Model.Pick_Move;
+      Snapshot.Tree_Pick_Target := To_Unbounded_String (Files.Model.Tree_Panel.Pick_Target (Model));
+      Snapshot.Tree_Keyboard_Active := Files.Model.Tree_Panel.Has_Keyboard (Model);
+      Snapshot.Tree_Cursor := To_Unbounded_String (Files.Model.Tree_Panel.Cursor (Model));
       Snapshot.Breadcrumb_Segments :=
         Files.Breadcrumbs.Segments (Files.Model.Current_Path (Model));
 
       declare
          use type Files.Model.Clipboard_Mode;
          Cut_Active : constant Boolean :=
-           Files.Model.Clipboard_Mode_Of (Model) = Files.Model.Clipboard_Cut;
+           Files.Model.Clipboard.Mode_Of (Model) = Files.Model.Clipboard_Cut;
 
          --  A set, not a vector: Is_Cut_Pending is asked once per visible item
          --  every frame, so a linear scan of the cut list is O(items x cut) per
@@ -267,7 +276,7 @@ separate (Files.Rendering)
             Result : Cut_Path_Sets.Set;
          begin
             if Cut_Active then
-               for Path of Files.Model.Clipboard_Paths (Model) loop
+               for Path of Files.Model.Clipboard.Paths (Model) loop
                   Result.Include (Path);
                end loop;
             end if;

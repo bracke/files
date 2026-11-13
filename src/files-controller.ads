@@ -290,7 +290,7 @@ package Files.Controller is
       Toggle     : Boolean)
       return Controller_Result;
 
-   --  Act on the command palette's highlighted command (from Palette_Selected_Id):
+   --  Act on the command palette's highlighted command (from Command_Palette.Selected_Id):
    --  launch the chosen application in Open-With mode, otherwise execute the
    --  command. Application preflight and spawn failures are returned as failed
    --  operations; handled selections close the palette.

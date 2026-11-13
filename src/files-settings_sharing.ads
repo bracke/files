@@ -1,3 +1,6 @@
+with Files.Model;
+with Files.Settings;
+
 --  Which windows take settings another window changed, decided over window
 --  revisions alone so the suite can drive it without real windows.
 --
@@ -32,5 +35,23 @@ package Files.Settings_Sharing is
       First   : Positive;
       Last    : Natural;
       Source  : Positive);
+
+   --  What adopting another window's settings does to one window: the
+   --  window takes them (Files.Interaction.Adopt_Shared_Settings) and its
+   --  cached frame is dropped. The view snapshot needs no invalidating:
+   --  it is rebuilt when the settings it reads differ, but the cached frame
+   --  does not compare them. Files.Application.Windows.Share_Settings_From
+   --  passes this as Share_From's Adopt, over the window's own fields.
+   --
+   --  @param Model The adopting window's model.
+   --  @param Settings The adopting window's settings, replaced by Shared.
+   --  @param Shared The settings of the window whose change is shared.
+   --  @param Frame_Cache_Valid The adopting window's cached-frame flag; False
+   --    after the adoption, so the next frame is drawn afresh.
+   procedure Adopt_Window
+     (Model             : in out Files.Model.Window_Model;
+      Settings          : in out Files.Settings.Settings_Model;
+      Shared            : Files.Settings.Settings_Model;
+      Frame_Cache_Valid : out Boolean);
 
 end Files.Settings_Sharing;

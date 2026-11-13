@@ -24,6 +24,9 @@ with Files.Process_Jobs;
 with Files.Rendering.Hit;
 with Files.UI;
 with Guikit.Utf8;
+with Files.Model.Clipboard;
+with Files.Model.Tree_Panel;
+with Files.Model.Pasting;
 
 package body Files.Application.Windows is
    use Ada.Strings.Unbounded;
@@ -85,7 +88,7 @@ package body Files.Application.Windows is
 
    --  Two clicks on the same item at most this far apart activate it: the
    --  interval every guikit application shares.
-   Double_Click_Interval : Ada.Real_Time.Time_Span renames Files.Mouse_Buttons.Double_Click_Interval;
+   Double_Click_Interval : Ada.Real_Time.Time_Span renames Guikit.Input.Mouse_Buttons.Double_Click_Interval;
 
    procedure Free_Window is new Ada.Unchecked_Deallocation
      (Object => Desktop_Window,
@@ -123,15 +126,15 @@ package body Files.Application.Windows is
    procedure Flush_System_Clipboard (Runtime : in out Runtime_Window) is
    begin
       if Runtime.Handle = null
-        or else not Files.Model.System_Clipboard_Request_Pending (Runtime.Model)
+        or else not Files.Model.Clipboard.System_Request_Pending (Runtime.Model)
       then
          return;
       end if;
 
       Glfw.Windows.Clipboard.Set
-        (As_Window (Runtime.Handle), Files.Model.System_Clipboard_Request_Text (Runtime.Model));
+        (As_Window (Runtime.Handle), Files.Model.Clipboard.System_Request_Text (Runtime.Model));
 
-      Files.Model.Clear_System_Clipboard_Request (Runtime.Model);
+      Files.Model.Clipboard.Clear_System_Request (Runtime.Model);
    end Flush_System_Clipboard;
 
    overriding procedure Receive
@@ -264,9 +267,9 @@ package body Files.Application.Windows is
       State  : Glfw.Input.Button_State;
       Mods   : Glfw.Input.Keys.Modifiers)
    is
-      use type Files.Mouse_Buttons.Button_Kind;
-      Event   : Files.Mouse_Buttons.Button_Event :=
-        (Button    => Files.Mouse_Buttons.Left_Mouse_Button,
+      use type Guikit.Input.Mouse_Buttons.Button_Kind;
+      Event   : Guikit.Input.Mouse_Buttons.Button_Event :=
+        (Button    => Guikit.Input.Mouse_Buttons.Left_Mouse_Button,
          Pressed   => State = Glfw.Input.Pressed,
          X         => Object.Last_Mouse_X,
          Y         => Object.Last_Mouse_Y,
@@ -280,16 +283,16 @@ package body Files.Application.Windows is
          if State /= Glfw.Input.Pressed then
             return;
          end if;
-         Event.Button := Files.Mouse_Buttons.Right_Mouse_Button;
+         Event.Button := Guikit.Input.Mouse_Buttons.Right_Mouse_Button;
       elsif Button /= Glfw.Input.Mouse.Left_Button then
          return;
       elsif not Event.Pressed then
          Event.Dragged := Object.Drag_Moved;
       end if;
 
-      Files.Mouse_Buttons.Queue_Event
+      Guikit.Input.Mouse_Buttons.Queue_Event
         (Object.Pending_Mouse, Object.Last_Left_Press_Time, Event, Bounced);
-      if Event.Button /= Files.Mouse_Buttons.Left_Mouse_Button then
+      if Event.Button /= Guikit.Input.Mouse_Buttons.Left_Mouse_Button then
          return;
       elsif not Event.Pressed then
          Object.Left_Mouse_Down := False;
@@ -608,7 +611,7 @@ package body Files.Application.Windows is
       Watch : in out Files.Refresh_Jobs.Watch_Session) is
    begin
       Files.Operations.Cancel_Folder_Scan (Model);
-      Files.Model.Clear_Paste_Execution (Model);
+      Files.Model.Pasting.Clear_Execution (Model);
       Files.Refresh_Jobs.Cancel (Model);
       Files.Refresh_Jobs.Release_Watch (Watch);
    end Release_Window_Jobs;
@@ -643,7 +646,7 @@ package body Files.Application.Windows is
          return;
       end if;
 
-      if Files.Model.Paste_Execution_Is_Active (Runtime.Model) then
+      if Files.Model.Pasting.Execution_Is_Active (Runtime.Model) then
          Files.Refresh_Jobs.Cancel (Runtime.Model);
          return;
       end if;
@@ -694,7 +697,7 @@ package body Files.Application.Windows is
    --  How long the event loop may wait for input: Paste_Wait_Timeout while
    --  any window carries out a paste through a helper process, else
    --  Event_Wait_Timeout, cut short to when a held-back mouse release
-   --  (Files.Mouse_Buttons.Ready_At) may be handled. Files.Event_Wait
+   --  (Guikit.Input.Mouse_Buttons.Ready_At) may be handled. Files.Event_Wait
    --  decides each window's part.
    function Event_Loop_Wait (Runtime_Windows : Runtime_Window_Vectors.Vector) return Duration is separate;
 
@@ -706,7 +709,7 @@ package body Files.Application.Windows is
          if Runtime.Handle /= null then
             declare
                Busy : constant Boolean :=
-                 Files.Model.Paste_Execution_Is_Active (Runtime.Model)
+                 Files.Model.Pasting.Execution_Is_Active (Runtime.Model)
                  or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Runtime.Model));
             begin
                --  Only the items and the selection decide what is measured: a
@@ -1238,8 +1241,8 @@ package body Files.Application.Windows is
       --  every file-grid drag and any scrollbar owned by covered content still
       --  gets canceled below.
       Keep_Tree_Scrollbar : constant Boolean :=
-        Files.Model.Tree_Pick_Is_Active (Runtime.Model)
-        and then Files.Model.Tree_Panel_Is_Open (Runtime.Model)
+        Files.Model.Tree_Panel.Pick_Is_Active (Runtime.Model)
+        and then Files.Model.Tree_Panel.Is_Open (Runtime.Model)
         and then Runtime.Scrollbar_Drag_Target = Files.Events.Scroll_Tree_Panel
         and then not Files.Model.Other_Input_Owning_Overlay_Is_Open (Runtime.Model, Files.Model.Tree_Pick_Overlay);
    begin

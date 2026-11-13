@@ -21,6 +21,7 @@ with Files.Folder_Tree;
 with Files.Interaction;
 with Files.Localization;
 with Files.Model;
+with Files.Model.Root_Selector;
 with Files.Operations;
 with Files.Paste;
 with Guikit.Draw;
@@ -30,8 +31,6 @@ with Files.Settings;
 with Files.Settings_Sharing;
 with Files.Event_Wait;
 with Guikit.Input;
-with Files.Mouse_Buttons;
-with Glfw.Input.Mouse;
 with Ada.Real_Time;
 with Files.Types;
 with Guikit.Layout;
@@ -102,12 +101,13 @@ package body Files_Suite.Interaction is
    overriding procedure Register_Tests (T : in out Interaction_Test_Case);
 
    procedure Test_Left_Click_Selects (T : in out AUnit.Test_Cases.Test_Case'Class);
-   procedure Test_Mouse_Button_Queue_Order (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Mouse_Release_Held_For_Bounce (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shared_Settings_Reach_Other_Window (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Shared_Once_Across_Windows (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Commands_Bump_Revision (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Event_Wait_Follows_Held_Release (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Event_Wait_Folds_Over_Windows (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Settings_Adoption_Drops_Frames (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Ctrl_Click_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shift_Click_Range_Selection (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Shift_Click_Anchors_At_Ctrl_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -210,9 +210,6 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Left_Click_Selects'Access, "left-click selects an item");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Mouse_Button_Queue_Order'Access,
-         "mouse button changes queue in order with their position and modifiers; a bounce drops with its release");
-      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Mouse_Release_Held_For_Bounce'Access,
          "a left release waits out its debounce window, so a later bounce press still withdraws it");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -227,6 +224,12 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Event_Wait_Follows_Held_Release'Access,
          "the event loop's wait is cut to a held mouse release's remaining debounce time, and no further");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Event_Wait_Folds_Over_Windows'Access,
+         "over several windows the event loop waits the shortest any window allows, never past the normal wait");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Settings_Adoption_Drops_Frames'Access,
+         "every window adopting shared settings takes them and drops its cached frame; the source keeps its own");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Ctrl_Click_Multi_Selection'Access, "ctrl-click builds and toggles a multi-selection");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -555,8 +558,6 @@ package body Files_Suite.Interaction is
 
    procedure Test_Left_Click_Selects (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
-   procedure Test_Mouse_Button_Queue_Order (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
-
    procedure Test_Mouse_Release_Held_For_Bounce (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Shared_Settings_Reach_Other_Window (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -566,6 +567,10 @@ package body Files_Suite.Interaction is
    procedure Test_Settings_Commands_Bump_Revision (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Event_Wait_Follows_Held_Release (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Event_Wait_Folds_Over_Windows (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Settings_Adoption_Drops_Frames (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Ctrl_Click_Multi_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -1040,9 +1045,9 @@ package body Files_Suite.Interaction is
       --  enough volumes to push the favourites out of view. Select the target
       --  first -- which is what scrolls it in -- exactly as a user reaching for
       --  an off-screen row would, and only then lay the frame out and click it.
-      for Index in 1 .. Files.Model.Root_Count (Model) loop
-         if Files.Model.Root_Path (Model, Index) = Target_Path then
-            Files.Model.Set_Root_Selected_Index (Model, Index);
+      for Index in 1 .. Files.Model.Root_Selector.Count (Model) loop
+         if Files.Model.Root_Selector.Path (Model, Index) = Target_Path then
+            Files.Model.Root_Selector.Set_Selected_Index (Model, Index);
             exit;
          end if;
       end loop;
@@ -1060,7 +1065,7 @@ package body Files_Suite.Interaction is
            Files.Rendering.Calculate_Root_Path_Layout (Snapshot, Selector);
       begin
          for Row of Rows loop
-            if Files.Model.Root_Path (Model, Positive (Row.Root_Index)) = Target_Path then
+            if Files.Model.Root_Selector.Path (Model, Positive (Row.Root_Index)) = Target_Path then
                X := Row.X + Row.Width / 2;
                Y := Row.Y + Row.Height / 2;
                Found := True;

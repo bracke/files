@@ -1,3 +1,4 @@
+with Files.Model.Command_Palette;
 separate (Files_Suite.Operations)
    procedure Test_Open_With_Palette_Launch (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -15,13 +16,14 @@ separate (Files_Suite.Operations)
             Targets.Append (To_Unbounded_String (Marker_Two));
             Files.Model.Initialize
               (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-            Files.Model.Open_Command_Palette (Model);
-            Files.Model.Set_Open_With_Targets (Model, Targets);
+            Files.Model.Command_Palette.Open (Model);
+            Files.Model.Command_Palette.Set_Open_With_Targets (Model, Targets);
             --  What the Open With command does: list the applications once.
-            Files.Model.Set_Open_With_Applications (Model, Files.Desktop_Applications.Available_Applications);
-            Files.Model.Set_Command_Palette_Mode (Model, Files.Model.Palette_Open_With);
-            Files.Model.Palette_Set_Query (Model, "Multi Target Marker");
-            Files.Model.Palette_Select_First (Model);
+            Files.Model.Command_Palette.Set_Open_With_Applications
+              (Model, Files.Desktop_Applications.Available_Applications);
+            Files.Model.Command_Palette.Set_Mode (Model, Files.Model.Palette_Open_With);
+            Files.Model.Command_Palette.Set_Query (Model, "Multi Target Marker");
+            Files.Model.Command_Palette.Select_First (Model);
 
             Routed := Files.Controller.Activate_Palette_Command
               (Model, Files.Settings.Default_Settings);
@@ -81,15 +83,16 @@ separate (Files_Suite.Operations)
             Files.Model.Initialize
               (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Targets.Append (To_Unbounded_String ("/tmp/a file.txt"));
-            Files.Model.Open_Command_Palette (Model);
-            Files.Model.Set_Open_With_Targets (Model, Targets);
+            Files.Model.Command_Palette.Open (Model);
+            Files.Model.Command_Palette.Set_Open_With_Targets (Model, Targets);
             --  What the Open With command does: list the applications once.
-            Files.Model.Set_Open_With_Applications (Model, Files.Desktop_Applications.Available_Applications);
-            Files.Model.Set_Command_Palette_Mode (Model, Files.Model.Palette_Open_With);
-            Files.Model.Palette_Select_Last (Model);
+            Files.Model.Command_Palette.Set_Open_With_Applications
+              (Model, Files.Desktop_Applications.Available_Applications);
+            Files.Model.Command_Palette.Set_Mode (Model, Files.Model.Palette_Open_With);
+            Files.Model.Command_Palette.Select_Last (Model);
             Files_Suite.Support.Assert_Equal
-              (Files.Model.Palette_Selected_Id (Model),
-               Natural (Files.Model.Open_With_Applications (Model).Length),
+              (Files.Model.Command_Palette.Selected_Id (Model),
+               Natural (Files.Model.Command_Palette.Open_With_Applications (Model).Length),
                "the missing executable fixture, listed last, is selected from the Open With palette");
 
             Routed := Files.Controller.Activate_Palette_Command
@@ -110,7 +113,7 @@ separate (Files_Suite.Operations)
             Assert
               (Files.Model.Last_Error_Key (Model) =
                  "error.open_action.executable_missing"
-               and then not Files.Model.Command_Palette_Is_Open (Model),
+               and then not Files.Model.Command_Palette.Is_Open (Model),
                "Open With exposes the diagnostic and closes the handled picker");
          end;
       end Check;

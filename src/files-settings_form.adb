@@ -5,6 +5,7 @@ with Files.Commands;
 with Files.Localization;
 with Files.Settings;
 with Files.Types;
+with Files.Model.Settings_Pane;
 
 package body Files.Settings_Form is
 
@@ -83,7 +84,7 @@ package body Files.Settings_Form is
      (Model : Files.Model.Window_Model)
       return SP.Field_Vectors.Vector
    is
-      D      : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+      D      : constant Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
       Result : SP.Field_Vectors.Vector;
 
       procedure Section (Key : String) is
@@ -275,7 +276,7 @@ package body Files.Settings_Form is
    end Fields;
 
    --  Replace the selected entry's key or value (keeping the sync field and its
-   --  vector element consistent; Set_Settings_Draft normalizes the rest).
+   --  vector element consistent; Settings_Pane.Set_Draft normalizes the rest).
    procedure Set_Entry
      (Keys, Values     : in out Files.Types.String_Vectors.Vector;
       Index            : Natural;
@@ -441,7 +442,7 @@ package body Files.Settings_Form is
 
    procedure Reset_To_Defaults (Model : in out Files.Model.Window_Model) is
    begin
-      Files.Model.Set_Settings_Draft (Model, Files.Settings.Reset_Draft_To_Defaults);
+      Files.Model.Settings_Pane.Set_Draft (Model, Files.Settings.Reset_Draft_To_Defaults);
       --  A full return to defaults drops the keyboard shortcut overrides too;
       --  the save that follows persists the default keymap (no [shortcuts]
       --  section).
@@ -453,7 +454,7 @@ package body Files.Settings_Form is
       Change : Guikit.Settings_Panel.Change)
       return Boolean
    is
-      D        : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+      D        : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
       Key      : constant String  := To_String (Change.Key);
       Val      : constant UString := Change.Value;
       Save     : Boolean := False;
@@ -548,7 +549,7 @@ package body Files.Settings_Form is
                if Key = "form.actions" then
                   if Button = "reset" then
                      Reset_To_Defaults (Model);
-                     D := Files.Model.Settings_Draft_Of (Model);
+                     D := Files.Model.Settings_Pane.Draft_Of (Model);
                   end if;
                elsif Key = "form.filetype.buttons" then
                   Group_Button (D.Filetype_Keys, D.Filetype_Values, D.Filetype_Index,
@@ -567,7 +568,7 @@ package body Files.Settings_Form is
             D.Error_Key := Null_Unbounded_String;
       end case;
 
-      Files.Model.Set_Settings_Draft (Model, D);
+      Files.Model.Settings_Pane.Set_Draft (Model, D);
       return Save;
    end Apply;
 

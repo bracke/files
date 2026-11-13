@@ -1,3 +1,4 @@
+with Files.Model.Settings_Pane;
 separate (Files.Application.Windows)
    procedure Perform_Accessibility_Request
      (Runtime : in out Runtime_Window;
@@ -44,7 +45,7 @@ separate (Files.Application.Windows)
 
          --  Space on the focused field changes it, saving included.
          if Files.Window_Policy.Activation_Presses_Space
-           (Activate, Files.Model.Focus (Runtime.Model), Files.Model.Settings_Focused_Kind (Runtime.Model))
+           (Activate, Files.Model.Focus (Runtime.Model), Files.Model.Settings_Pane.Focused_Kind (Runtime.Model))
          then
             declare
                Consumed : Boolean;

@@ -4,7 +4,9 @@ separate (Files_Suite.Operations)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Source   : constant String := Join (Root, "native-source");
       Dest     : constant String := Join (Root, "native-dest");
-      Model    : Files.Model.Window_Model;
+      Model    : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Step     : Files.Operations.Operation_Result;
       Backup   : Files.Types.UString;
@@ -71,10 +73,7 @@ separate (Files_Suite.Operations)
             Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Files.Model.Set_Background_Transfers (Model, Background);
             Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-            for Attempt in Files_Suite.Support.Polling loop
-               Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-               exit when not Files.Model.Paste_Execution_Is_Active (Model);
-            end loop;
+            Step := Files_Suite.Support.Finish_Paste (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operations.Operation_Success,
@@ -189,6 +188,4 @@ separate (Files_Suite.Operations)
         (Project_Tools.Files.Read_Raw_File (Dest),
          "original",
          "recovery retry restores the original bytes");
-   exception
-      when others => Files.Model.Clear_Paste_Execution (Model); raise;
    end Test_Native_Replace_Recovery;

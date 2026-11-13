@@ -1,3 +1,4 @@
+with Files.Model.Command_Palette;
 separate (Files_Suite.Model)
    procedure Test_Path_Input_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -61,9 +62,9 @@ separate (Files_Suite.Model)
          Files.Types.Focus_None,
          "escape clears path input focus");
 
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Command_Palette.Open (Model);
       Files.Model.Focus_Path_Input (Model);
-      Assert (not Files.Model.Command_Palette_Is_Open (Model), "path input focus closes command palette");
+      Assert (not Files.Model.Command_Palette.Is_Open (Model), "path input focus closes command palette");
       Files.Model.Set_Path_Input_Text (Model, "/tmp/files_aunit/valid");
       Files.Model.Commit_Path_Input (Model, Valid, Empty);
       Assert (Files.Model.Path_Input_Is_Valid (Model), "valid input clears validation state");

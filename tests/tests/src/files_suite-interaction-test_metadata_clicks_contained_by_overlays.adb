@@ -1,3 +1,4 @@
+with Files.Model.Command_Palette;
 separate (Files_Suite.Interaction)
    procedure Test_Metadata_Clicks_Contained_By_Overlays
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -9,7 +10,7 @@ separate (Files_Suite.Interaction)
       Before   : Natural;
    begin
       Files.Model.Toggle_Info_Pane (Model);
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Command_Palette.Open (Model);
       Before := Files.Model.Revision (Model);
 
       Files.Interaction.Apply_Input_Action
@@ -19,7 +20,7 @@ separate (Files_Suite.Interaction)
          Guikit.Input.No_Modifiers, Result);
       Assert
         (Files.Model.Revision (Model) = Before
-         and then Files.Model.Command_Palette_Is_Open (Model),
+         and then Files.Model.Command_Palette.Is_Open (Model),
          "a stale permission click cannot mutate behind the command palette");
 
       Files.Interaction.Apply_Input_Action
@@ -44,7 +45,7 @@ separate (Files_Suite.Interaction)
         (Files.Model.Info_Pane_Is_Open (Model),
          "a stale background command cannot mutate behind the command palette (info pane open)");
       Assert
-        (Files.Model.Command_Palette_Is_Open (Model),
+        (Files.Model.Command_Palette.Is_Open (Model),
          "a stale background command cannot mutate behind the command palette (palette open)");
       Files_Suite.Support.Assert_Equal
         (Result.Status,

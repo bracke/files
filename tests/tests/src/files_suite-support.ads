@@ -9,6 +9,7 @@ with Files.Events;
 with Files.Model;
 with Files.Operations;
 with Files.Rendering;
+with Files.Settings;
 with Guikit.Input;
 with Files.Types;
 with Files_Suite.Generic_Assert_Equal;
@@ -284,6 +285,36 @@ package Files_Suite.Support is
    --  @param Guard A guard.
    --  @return The working directory Guard restores.
    function Saved_Directory (Guard : Directory_Guard) return String;
+
+   --  Ends Model's paste execution and cancels its background refresh when
+   --  it leaves scope -- on an assertion failure too -- so a failing test
+   --  cannot leave a helper writing into the next one's fixtures. Release
+   --  does the same at once, for a test that must end them before the rest
+   --  of its cleanup; doing it twice is harmless. A cleanup that fails is
+   --  reported on standard error (a finalizer must not raise).
+   type Paste_Guard (Model : not null access Files.Model.Window_Model) is
+     new Ada.Finalization.Limited_Controlled with null record;
+
+   --  End the paste execution and the background refresh now.
+   --
+   --  @param Guard Guard whose model to clean up.
+   procedure Release (Guard : in out Paste_Guard);
+
+   --  End the paste execution and the background refresh.
+   --
+   --  @param Guard Guard leaving scope.
+   overriding procedure Finalize (Guard : in out Paste_Guard);
+
+   --  Advance Model's paste execution one item at a time, as the frame loop
+   --  does, until it ends, and assert it ended within the (scaled) poll
+   --  limit. It is advanced at least once.
+   --
+   --  @param Model Window model whose paste execution to finish.
+   --  @param Settings Settings the execution runs with.
+   --  @return The result of the last advance.
+   function Finish_Paste
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model) return Files.Operations.Operation_Result;
 
    --  Drive every queued background folder-size walk of Model to completion,
    --  publishing each result as the frame loop's Poll_Window_Workers would,

@@ -16,7 +16,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
          Filter_Raw    : constant String := To_String (Snapshot.Filter_Text);
          Filter_Skip   : constant Natural :=
            (if Snapshot.Focus = Files.Types.Focus_Filter_Input
-            then Files.UTF8.Byte_Offset_For_Display_Column
+            then Guikit.Utf8.Byte_Offset_For_Display_Column
                    (Filter_Raw,
                     Input_Scroll_Columns
                       (Filter_Raw, Snapshot.Text_Cursor_Position, Filter_Text_W, Line_Height))

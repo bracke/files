@@ -2,7 +2,9 @@ separate (Files_Suite.Operations)
    procedure Test_Background_Result_Mismatch (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model    : Files.Model.Window_Model;
+      Model    : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
    begin
@@ -25,13 +27,10 @@ separate (Files_Suite.Operations)
          Ada.Environment_Variables.Set
            ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH", "1");
          Step := Files.Operations.Duplicate_Selected (Model, Settings);
-         for Attempt in Files_Suite.Support.Polling loop
-            Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-            exit when not Files.Model.Paste_Execution_Is_Active (Model);
-         end loop;
+         Step := Files_Suite.Support.Finish_Paste (Model, Settings);
       end;
       Assert
-        (not Files.Model.Paste_Execution_Is_Active (Model),
+        (not Files.Model.Pasting.Execution_Is_Active (Model),
          "a helper result whose operation kind differs from its request is rejected: the execution ends");
       Files_Suite.Support.Assert_Equal
         (Step.Status,
@@ -64,13 +63,10 @@ separate (Files_Suite.Operations)
          Ada.Environment_Variables.Set
            ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH", "1");
          Step := Files.Operations.Duplicate_Selected (Model, Settings);
-         for Attempt in Files_Suite.Support.Polling loop
-            Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-            exit when not Files.Model.Paste_Execution_Is_Active (Model);
-         end loop;
+         Step := Files_Suite.Support.Finish_Paste (Model, Settings);
       end;
       Assert
-        (not Files.Model.Paste_Execution_Is_Active (Model),
+        (not Files.Model.Pasting.Execution_Is_Active (Model),
          "a helper result whose Recent-view flag differs from its request is rejected: the execution ends");
       Files_Suite.Support.Assert_Equal
         (Step.Status,
@@ -89,8 +85,4 @@ separate (Files_Suite.Operations)
         (Step.Status = Files.Operations.Operation_Success
          and then not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
          "the duplicate recovered from a Recent mismatch remains safely undoable");
-   exception
-      when others =>
-         Files.Model.Clear_Paste_Execution (Model);
-         raise;
    end Test_Background_Result_Mismatch;

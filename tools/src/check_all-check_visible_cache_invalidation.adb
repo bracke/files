@@ -67,34 +67,42 @@ separate (Check_All)
             return "";
          end Header_Name;
 
+         --  Judge the subprogram read so far, and forget it.
+         procedure Judge is
+            Text : constant String := Collapsed (To_String (Body_Of));
+         begin
+            if Length (Name) > 0 and then Ada.Strings.Fixed.Index (Text, "invalidate_visible") = 0 then
+               for Write of Writes loop
+                  if Ada.Strings.Fixed.Index (Text, To_String (Write)) > 0 then
+                     Put_Line
+                       (Standard_Error,
+                        Path & ": " & To_String (Name) & " writes '" & To_String (Write)
+                        & "' without Invalidate_Visible: the visible-row cache would serve old rows");
+                     Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+                     raise Program_Error;
+                  end if;
+               end loop;
+            end if;
+            Name := Null_Unbounded_String;
+            Body_Of := Null_Unbounded_String;
+         end Judge;
+
          procedure Visit (Line : String) is
          begin
-            if Length (Name) = 0 then
-               if Header_Name (Line) /= "" then
-                  Name := To_Unbounded_String (Header_Name (Line));
-                  Body_Of := To_Unbounded_String (Line);
-               end if;
+            --  An expression function (or a declaration) has no "end Name;":
+            --  the next header at the same level closes it, so what follows
+            --  one is never left unchecked.
+            if Header_Name (Line) /= "" then
+               Judge;
+               Name := To_Unbounded_String (Header_Name (Line));
+               Body_Of := To_Unbounded_String (Line);
+               return;
+            elsif Length (Name) = 0 then
                return;
             end if;
             Append (Body_Of, ASCII.LF & Line);
             if Line = Pad & "end " & To_String (Name) & ";" then
-               declare
-                  Text : constant String := Collapsed (To_String (Body_Of));
-               begin
-                  if Ada.Strings.Fixed.Index (Text, "invalidate_visible") = 0 then
-                     for Write of Writes loop
-                        if Ada.Strings.Fixed.Index (Text, To_String (Write)) > 0 then
-                           Put_Line
-                             (Standard_Error,
-                              Path & ": " & To_String (Name) & " writes '" & To_String (Write)
-                              & "' without Invalidate_Visible: the visible-row cache would serve old rows");
-                           Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
-                           raise Program_Error;
-                        end if;
-                     end loop;
-                  end if;
-               end;
-               Name := Null_Unbounded_String;
+               Judge;
             end if;
          end Visit;
 
@@ -109,6 +117,7 @@ separate (Check_All)
          if First <= Code'Last then
             Visit (Code (First .. Code'Last));
          end if;
+         Judge;
       end Check_File;
    begin
       Ada.Directories.Start_Search

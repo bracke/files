@@ -1,4 +1,5 @@
 with Files.Commands.Status;
+with Files.Model.Tree_Panel;
 separate (Files_Suite.Operations)
    procedure Test_Copy_To_Picker_Flow (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -33,25 +34,25 @@ separate (Files_Suite.Operations)
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,
          "copy-to command starts the picker");
-      Assert (Files.Model.Tree_Panel_Is_Open (Model), "copy-to opens the folder tree");
-      Assert (Files.Model.Tree_Pick_Is_Active (Model), "the destination picker is active");
+      Assert (Files.Model.Tree_Panel.Is_Open (Model), "copy-to opens the folder tree");
+      Assert (Files.Model.Tree_Panel.Pick_Is_Active (Model), "the destination picker is active");
       Assert
-        (Files.Model.Tree_Pick_Mode_Of (Model) = Files.Model.Pick_Copy,
+        (Files.Model.Tree_Panel.Pick_Mode_Of (Model) = Files.Model.Pick_Copy,
          "the picker records copy intent");
       Files_Suite.Support.Assert_Equal
-        (Natural (Files.Model.Tree_Pick_Sources (Model).Length),
+        (Natural (Files.Model.Tree_Panel.Pick_Sources (Model).Length),
          2,
          "the picker captured both selected sources");
 
-      Files.Model.Set_Tree_Pick_Target (Model, Dest_Dir);
+      Files.Model.Tree_Panel.Set_Pick_Target (Model, Dest_Dir);
       Confirm_Pick (Model, Settings);
 
       Assert (Ada.Directories.Exists (A_Dest), "a.txt is copied to the destination");
       Assert (Ada.Directories.Exists (B_Dest), "b.txt is copied to the destination");
       Assert (Ada.Directories.Exists (A_Src), "a.txt original is kept");
       Assert (Ada.Directories.Exists (B_Src), "b.txt original is kept");
-      Assert (not Files.Model.Tree_Pick_Is_Active (Model), "confirming clears the picker");
-      Assert (not Files.Model.Tree_Panel_Is_Open (Model), "confirming closes the folder tree");
+      Assert (not Files.Model.Tree_Panel.Pick_Is_Active (Model), "confirming clears the picker");
+      Assert (not Files.Model.Tree_Panel.Is_Open (Model), "confirming closes the folder tree");
 
       Undone := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal (Undone.Status, Files.Operations.Operation_Success, "the copy is undoable");

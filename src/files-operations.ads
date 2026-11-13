@@ -205,36 +205,27 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
-   --  Replace the current view with recursive search results for the filter
-   --  text. A partial answer is shown with a notice: "search.truncated" when
-   --  a limit cut it short, "search.incomplete" when a folder below the root
-   --  could not be read; no match shows the "search.no_matches" notice. Only
-   --  a root that cannot be searched fails, keeping the listing.
+   --  Replace the current view with the recursive search results for the
+   --  filter text below the current folder: by name (Search_Names), or by
+   --  content (Search_Contents) -- files whose bounded leading bytes contain
+   --  the query, case-insensitively, skipping binary files and not descending
+   --  symlinked directories. An empty query is refused (Disabled, with
+   --  "error.filter.empty"). A partial answer is shown with a notice:
+   --  "search.truncated" when a limit cut it short, "search.incomplete" when
+   --  a folder below the root could not be read (or, by content, a file, or
+   --  a text file longer than is read with no match in what was); no match
+   --  shows the "search.no_matches" notice. Only a root that cannot be
+   --  searched fails, keeping the listing. With background transfers on, the
+   --  search runs in a helper and applies the same way.
    --
    --  @param Model Window model containing the current path and filter query.
    --  @param Settings Settings model used for directory classification.
+   --  @param Scope Search by name or by content.
    --  @return Structured operation result.
-   function Run_Recursive_Search
+   function Run_Search
      (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result;
-
-   --  Replace the current view with recursive content-search results for the
-   --  filter text: files under the current directory whose bounded leading bytes
-   --  contain the query, case-insensitively. The walk is bounded (capped files
-   --  scanned, directory depth, and bytes read per file), skips binary and
-   --  unreadable files, and does not descend symlinked directories. An empty
-   --  query performs no search; a search with no matches shows an empty view and
-   --  reports the "search.no_matches" status key. A partial answer is shown as
-   --  Run_Recursive_Search shows one; an unreadable file, or a text file longer
-   --  than is read with no match in what was, makes it "search.incomplete".
-   --
-   --  @param Model Window model containing the current path and filter query.
-   --  @param Settings Settings model used for directory classification.
-   --  @return Structured operation result.
-   function Run_Content_Search
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
+      Settings : Files.Settings.Settings_Model;
+      Scope    : Files.Types.Tree_Search_Scope)
       return Operation_Result;
 
    --  Commit the current path-input text by validating and loading the destination.
@@ -712,7 +703,7 @@ package Files.Operations is
       Kept_Copy_Tree_Revisions : Files.Types.String_Vectors.Vector;
    end record;
 
-   --  Arm a paste (Files.Model.Begin_Paste_Execution) with the copy context
+   --  Arm a paste (Files.Model.Pasting.Begin_Execution) with the copy context
    --  its writes share when there is more than one: a batch transport, so
    --  made here and not by the model.
    --

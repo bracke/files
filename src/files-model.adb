@@ -1,9 +1,7 @@
 with Files.Diagnostics;
 with Ada.Containers.Ordered_Sets;
 
-with Files.Command_Palette;
 with Files.Type_Ahead;
-with Files.UTF8;
 
 with Files.Model.Support;
 with Files.Path_Checks;
@@ -11,20 +9,8 @@ with Files.Undo_Payloads;
 
 package body Files.Model is
 
-   --  An idle session of each kind, to release a held one by assignment:
-   --  the model only holds the job handles; Files.Operations drives them.
-   function Released_Transfer return Files.Transfer_Jobs.Session is
-      Idle : Files.Transfer_Jobs.Session;
-   begin
-      return Idle;
-   end Released_Transfer;
-
-   function Released_Process return Files.Process_Jobs.Session is
-      Idle : Files.Process_Jobs.Session;
-   begin
-      return Idle;
-   end Released_Process;
-
+   --  An idle folder-size session, to release a held one by assignment
+   --  (the transfer and process ones are Support's).
    function Released_Scan return Files.Folder_Size.Session is
       Idle : Files.Folder_Size.Session;
    begin
@@ -43,8 +29,21 @@ package body Files.Model is
    --  newest, so the reachable history is unaffected.
    Max_Undo_Depth : constant := 200;
 
-   function Undo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.Undo_Stack);
-   function Redo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.Redo_Stack);
+   procedure Set_Created
+     (Action : in out Undo_Entry; Index : Positive; Identity, Tree_Revision : UString) is
+   begin
+      while Action.Created_Identities.Last_Index < Index loop
+         Action.Created_Identities.Append (Null_Unbounded_String);
+      end loop;
+      while Action.Created_Tree_Revisions.Last_Index < Index loop
+         Action.Created_Tree_Revisions.Append (Null_Unbounded_String);
+      end loop;
+      Action.Created_Identities.Replace_Element (Index, Identity);
+      Action.Created_Tree_Revisions.Replace_Element (Index, Tree_Revision);
+   end Set_Created;
+
+   function Undo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.History.Undo_Stack);
+   function Redo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.History.Redo_Stack);
 
    function Same_Length
      (Left, Right : Files.Types.String_Vectors.Vector) return Boolean is
@@ -115,27 +114,6 @@ package body Files.Model is
       end loop;
       return True;
    end Completion_Markers_Valid;
-
-   function Valid_Copy_Records
-     (Values : Files.Types.String_Vectors.Vector) return Boolean
-   is
-      Index : Positive := 1;
-      Keys  : UString_Sets.Set;
-   begin
-      if Natural (Values.Length) mod 6 /= 0 or else not Nonempty_Values (Values) then
-         return False;
-      end if;
-      while Index <= Values.Last_Index loop
-         if Keys.Contains (Values (Index))
-           or else not Valid_Absolute_Path (Values (Index + 3))
-         then
-            return False;
-         end if;
-         Keys.Insert (Values (Index));
-         Index := Index + 6;
-      end loop;
-      return True;
-   end Valid_Copy_Records;
 
    function History_Entry_Usable
      (Action : Undo_Entry; For_Redo : Boolean) return Boolean
@@ -284,7 +262,7 @@ package body Files.Model is
            or else (Action.Kind = Undo_Delete_Created
              and then Action.Redoable
              and then Action.Create_Kind = Create_Copy
-             and then Valid_Copy_Records (Action.Copy_Records)));
+             and then Files.Copy_Context.Valid (Action.Copy_Records)));
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Model");
@@ -329,14 +307,14 @@ package body Files.Model is
       Next : Positive := State.Next_Sequence;
    begin
       Sanitize_History (Undo, Redo, Next, Sanitized_Undo, Sanitized_Redo);
-      Model.Undo_Stack := Sanitized_Undo;
-      Model.Redo_Stack := Sanitized_Redo;
-      Model.History_Journal :=
+      Model.History.Undo_Stack := Sanitized_Undo;
+      Model.History.Redo_Stack := Sanitized_Redo;
+      Model.History.Journal :=
         (Next_Sequence => Next, Unjournaled => State.Unjournaled, Redo_Retired => False);
       Support.Touch (Model);
    end Set_History;
 
-   function History_State (Model : Window_Model) return History_Journal_State is (Model.History_Journal);
+   function History_State (Model : Window_Model) return History_Journal_State is (Model.History.Journal);
 
    procedure Merge_History
      (Model : in out Window_Model;
@@ -369,22 +347,6 @@ package body Files.Model is
    end Set_Background_Refresh;
 
    function Background_Refresh (Model : Window_Model) return Files.Process_Jobs.Session is (Model.Refresh_Job);
-
-   function Paste_Job (Model : Window_Model) return Files.Transfer_Jobs.Session is (Model.Paste_Exec_Job);
-
-   procedure Set_Paste_Job (Model : in out Window_Model; Job : Files.Transfer_Jobs.Session) is
-   begin
-      Model.Paste_Exec_Job := Job;
-   end Set_Paste_Job;
-
-   procedure Note_Paste_Action_Started (Model : in out Window_Model) is
-   begin
-      Model.Paste_Exec.Current :=
-        To_Unbounded_String
-          (Files.Types.Leaf_Of
-             (To_String (Model.Paste_Exec.Actions.Element (Model.Paste_Exec.Cursor + 1).Source_Path)));
-      Support.Touch_Header (Model);
-   end Note_Paste_Action_Started;
 
    use type Ada.Calendar.Time;
    use type Files.File_System.Path_Status;
@@ -500,10 +462,10 @@ package body Files.Model is
          when Settings_Pane_Overlay   => return Model.Settings_Pane_Open;
          when Command_Palette_Overlay => return Model.Command_Palette.Open;
          when Root_Selector_Overlay   => return Model.Root_Selector.Open;
-         when Sort_Menu_Overlay       => return Model.Sort_Menu_Open;
+         when Sort_Menu_Overlay       => return Model.Sort_Menu.Open;
          when Context_Menu_Overlay    => return Model.Context_Menu.Open;
-         when Label_Picker_Overlay    => return Model.Label_Picker.Active;
-         when Quick_Look_Overlay      => return Model.Quick_Look.Active;
+         when Label_Picker_Overlay    => return Model.Label_Picker.Open;
+         when Quick_Look_Overlay      => return Model.Quick_Look.Open;
          when Tree_Pick_Overlay       => return Model.Tree_Pick.Mode /= Pick_None;
          when Paste_Conflict_Overlay  => return Model.Paste_Conflict.Active;
          when Paste_Execution_Overlay => return Model.Paste_Exec.Active;
@@ -588,15 +550,6 @@ package body Files.Model is
       return False;
    end Non_Text_Overlay_Owns_Input;
 
-   --  Opening an overlay ends the grid's current type-to-select session.  Every
-   --  caller already advances the model revision, so clear the private buffer
-   --  directly rather than adding a second revision for Reset_Type_Ahead.
-   procedure Claim_Overlay_Input
-     (Model : in out Window_Model) is
-   begin
-      Model.Type_Ahead_Buffer_Value := Null_Unbounded_String;
-   end Claim_Overlay_Input;
-
    --  Every change of directory goes through here: it starts a new view
    --  incarnation. Whether the new directory is the trash takes a disk check,
    --  so it starts out False and Files.Operations settles it, once, through
@@ -645,7 +598,7 @@ package body Files.Model is
       Model.View_Value := Default_View_Mode;
       Model.Sort_Field_Value := Files.Types.Sort_Name;
       Model.Sort_Ascending := True;
-      Model.Sort_Menu_Open := False;
+      Model.Sort_Menu.Open := False;
       Model.Back_History.Clear;
       Model.Forward_History.Clear;
       Model.Recent_View_Active := False;
@@ -669,11 +622,13 @@ package body Files.Model is
 
    function Current_Path
      (Model : Window_Model)
-      return String is separate;
+      return String is
+     (To_String (Model.Current_Path_Value));
 
    function Directory_Signature_Of
      (Model : Window_Model)
-      return Files.File_System.Directory_Signature is separate;
+      return Files.File_System.Directory_Signature is
+     (Model.Directory_Signature);
 
    procedure Set_Directory_Signature
      (Model     : in out Window_Model;
@@ -681,16 +636,18 @@ package body Files.Model is
 
    function Home_Path
      (Model : Window_Model)
-      return String is separate;
+      return String is
+     (To_String (Model.Home_Path_Value));
 
    function Item_Count
      (Model : Window_Model)
-      return Natural is separate;
+      return Natural is
+     (Natural (Model.Items.Length));
 
    function Visible_Count
      (Model : Window_Model)
-      return Natural
-   is separate;
+      return Natural is
+     (Visible_Item_Count (Model) + (if Temporary_Is_Visible (Model) then 1 else 0));
 
    function Hidden_Item_Count
      (Model : Window_Model)
@@ -736,7 +693,8 @@ package body Files.Model is
 
    function In_Recent_View
      (Model : Window_Model)
-      return Boolean is separate;
+      return Boolean is
+     (Model.Recent_View_Active);
 
    procedure Note_Recent_Open
      (Model : in out Window_Model;
@@ -749,11 +707,13 @@ package body Files.Model is
 
    function Can_Go_Back
      (Model : Window_Model)
-      return Boolean is separate;
+      return Boolean is
+     (not Model.Back_History.Is_Empty);
 
    function Can_Go_Forward
      (Model : Window_Model)
-      return Boolean is separate;
+      return Boolean is
+     (not Model.Forward_History.Is_Empty);
 
    function Current_Is_Trash (Model : Window_Model) return Boolean is (Model.Current_Is_Trash_Value);
 
@@ -791,7 +751,8 @@ package body Files.Model is
 
    function View_Mode_Of
      (Model : Window_Model)
-      return Files.Types.View_Mode is separate;
+      return Files.Types.View_Mode is
+     (Model.View_Value);
 
    procedure Set_View_Mode
      (Model : in out Window_Model;
@@ -799,11 +760,13 @@ package body Files.Model is
 
    function Sort_Field_Of
      (Model : Window_Model)
-      return Files.Types.Sort_Field is separate;
+      return Files.Types.Sort_Field is
+     (Model.Sort_Field_Value);
 
    function Sort_Is_Ascending
      (Model : Window_Model)
-      return Boolean is separate;
+      return Boolean is
+     (Model.Sort_Ascending);
 
    procedure Select_Sort_Field
      (Model : in out Window_Model;
@@ -821,28 +784,6 @@ package body Files.Model is
 
    function Grouping_Day (Model : Window_Model) return Ada.Calendar.Time is (Model.Grouping.Day);
 
-   procedure Toggle_Sort_Menu
-     (Model : in out Window_Model) is separate;
-
-   procedure Move_Sort_Menu_Highlight
-     (Model : in out Window_Model;
-      Delta_Value : Integer) is separate;
-
-   function Sort_Menu_Highlight
-     (Model : Window_Model)
-      return Natural is separate;
-
-   function Sort_Menu_Highlight_Field
-     (Model : Window_Model)
-      return Files.Types.Sort_Field is separate;
-
-   procedure Close_Sort_Menu
-     (Model : in out Window_Model) is separate;
-
-   function Sort_Menu_Is_Open
-     (Model : Window_Model)
-      return Boolean is separate;
-
    function Grouped (Model : Window_Model; Settings : Files.Settings.Settings_Model) return Window_Model is
    begin
       return Result : Window_Model := Model do
@@ -856,14 +797,16 @@ package body Files.Model is
 
    function Filter_Text
      (Model : Window_Model)
-      return String is separate;
+      return String is
+     (To_String (Model.Filter_Value));
 
    procedure Clear_Filter
      (Model : in out Window_Model) is separate;
 
    function Search_Scope_Of
      (Model : Window_Model)
-      return Files.Types.Search_Scope is separate;
+      return Files.Types.Search_Scope is
+     (Model.Search_Scope_Value);
 
    procedure Set_Search_Scope
      (Model : in out Window_Model;
@@ -871,7 +814,8 @@ package body Files.Model is
 
    function Search_Results_Are_Active
      (Model : Window_Model)
-      return Boolean is separate;
+      return Boolean is
+     (Model.Search_Results_Active);
 
    procedure Note_Search_Results
      (Model : in out Window_Model;
@@ -885,7 +829,8 @@ package body Files.Model is
 
    function Type_Ahead_Buffer
      (Model : Window_Model)
-      return String is separate;
+      return String is
+     (To_String (Model.Type_Ahead_Buffer_Value));
 
    procedure Type_Ahead_Input
      (Model   : in out Window_Model;
@@ -1018,7 +963,8 @@ package body Files.Model is
 
    function Focus
      (Model : Window_Model)
-      return Files.Types.Focus_Target is separate;
+      return Files.Types.Focus_Target is
+     (Model.Focus_Value);
 
    function Select_By_Name
      (Model : in out Window_Model;
@@ -1186,39 +1132,6 @@ package body Files.Model is
       Leave_View (Model, Mark.Path);
    end Return_To;
 
-   procedure Visit_Settings_Panel
-     (Model  : in out Window_Model;
-      Config : Guikit.Settings_Panel.Configuration;
-      Fields : Guikit.Settings_Panel.Field_Vectors.Vector;
-      Visit  : not null access procedure (Panel : in out Guikit.Settings_Panel.Panel)) is
-   begin
-      Guikit.Settings_Panel.Set_Configuration (Model.Settings_Panel_View, Config);
-      Guikit.Settings_Panel.Set_Fields (Model.Settings_Panel_View, Fields);
-      Visit (Model.Settings_Panel_View);
-   end Visit_Settings_Panel;
-
-   function Settings_Panel_Capturing (Model : Window_Model) return Boolean is
-     (Guikit.Settings_Panel.Is_Capturing (Model.Settings_Panel_View));
-
-   procedure Visit_Command_Palette
-     (Model       : in out Window_Model;
-      Line_Height : Positive;
-      Title       : String;
-      Empty_State : String;
-      Close_Label : String;
-      Visit       : not null access procedure (Palette : in out Guikit.Command_Palette.Palette)) is
-   begin
-      --  The component keeps the query and selection across these.
-      Guikit.Command_Palette.Set_Configuration
-        (Model.Command_Palette.View, Support.Palette_Config (Line_Height, Title, Empty_State, Close_Label));
-      if Model.Palette_Listed_Revision /= Model.Revision_Value then
-         Guikit.Command_Palette.Set_Commands
-           (Model.Command_Palette.View, Files.Command_Palette.Commands (Model));
-         Model.Palette_Listed_Revision := Model.Revision_Value;
-      end if;
-      Visit (Model.Command_Palette.View);
-   end Visit_Command_Palette;
-
    procedure Select_Visible_Set
      (Model   : in out Window_Model;
       Indexes : Visible_Index_List)
@@ -1285,7 +1198,8 @@ package body Files.Model is
 
    function Path_Input_Text
      (Model : Window_Model)
-      return String is separate;
+      return String is
+     (To_String (Model.Path_Input.Text));
 
    procedure Commit_Path_Input
      (Model  : in out Window_Model;
@@ -1294,71 +1208,34 @@ package body Files.Model is
 
    function Path_Input_Is_Valid
      (Model : Window_Model)
-      return Boolean is separate;
+      return Boolean is
+     (Model.Path_Input.Valid);
 
    function Path_Input_Error_Key
      (Model : Window_Model)
-      return String is separate;
-
-   procedure Focus_Command_Palette_Input
-     (Model : in out Window_Model) is separate;
-
-   procedure Open_Command_Palette
-     (Model : in out Window_Model) is separate;
-
-   procedure Close_Command_Palette
-     (Model : in out Window_Model) is separate;
-
-   procedure Toggle_Command_Palette
-     (Model : in out Window_Model) is separate;
-
-   function Command_Palette_Is_Open
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   function Palette_Query (Model : Window_Model) return String is separate;
-
-   procedure Palette_Set_Query (Model : in out Window_Model; Text : String) is separate;
-
-   procedure Palette_Move_Selection (Model : in out Window_Model; Delta_Rows : Integer) is separate;
-
-   procedure Palette_Select_First (Model : in out Window_Model) is separate;
-
-   procedure Palette_Select_Last (Model : in out Window_Model) is separate;
-
-   procedure Palette_Page (Model : in out Window_Model; Down : Boolean) is separate;
-
-   function Palette_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean is separate;
-
-   function Palette_Selected_Id (Model : Window_Model) return Natural is separate;
-
-   function Palette_Result_Count (Model : Window_Model) return Natural is separate;
-
-   function Command_Palette_Mode_Of
-     (Model : Window_Model)
-      return Palette_Mode is separate;
-
-   procedure Set_Command_Palette_Mode
-     (Model : in out Window_Model;
-      Mode  : Palette_Mode) is separate;
+      return String is
+     (To_String (Model.Path_Input.Error));
 
    procedure Focus_Rename_Input
      (Model : in out Window_Model) is separate;
 
    function Rename_Is_Enabled
      (Model : Window_Model)
-      return Boolean is separate;
+      return Boolean is
+     (Selected_Count (Model) >= 1 and then not Selection_Includes_Temporary (Model));
 
    procedure Toggle_Rename
      (Model : in out Window_Model) is separate;
 
    function Rename_Is_Active
      (Model : Window_Model)
-      return Boolean is separate;
+      return Boolean is
+     (Model.Rename.Active);
 
    function Rename_Text
      (Model : Window_Model)
-      return String is separate;
+      return String is
+     (First_Rename_Value (Model));
 
    procedure Set_Rename_Text
      (Model : in out Window_Model;
@@ -1403,8 +1280,8 @@ package body Files.Model is
      (Model : Window_Model;
       Visit : not null access procedure (Item_Index : Natural; Value : UString; Cursor : Natural)) is
    begin
-      if Model.Rename_Active then
-         for Field of Model.Rename_Fields loop
+      if Model.Rename.Active then
+         for Field of Model.Rename.Fields loop
             Visit (Field.Item_Index, Field.Value, Field.Cursor);
          end loop;
       end if;
@@ -1427,7 +1304,8 @@ package body Files.Model is
 
    function Ownership_Input_Text
      (Model : Window_Model)
-      return String is separate;
+      return String is
+     (To_String (Model.Ownership_Input.Text));
 
    procedure Set_Ownership_Input_Text
      (Model : in out Window_Model;
@@ -1435,78 +1313,8 @@ package body Files.Model is
 
    function Ownership_Editing_Group
      (Model : Window_Model)
-      return Boolean is separate;
-
-   procedure Open_Root_Selector
-     (Model : in out Window_Model;
-      Roots : Files.Types.String_Vectors.Vector)
-   is separate;
-
-   procedure Close_Root_Selector
-     (Model : in out Window_Model) is separate;
-
-   function Root_Selector_Is_Open
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   function Root_Count
-     (Model : Window_Model)
-      return Natural is separate;
-
-   function Root_Selected_Index
-     (Model : Window_Model)
-      return Natural is separate;
-
-   procedure Set_Root_Selected_Index
-     (Model : in out Window_Model;
-      Index : Natural) is separate;
-
-   procedure Move_Root_Selection
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction)
-   is separate;
-
-   function Root_Path
-     (Model : Window_Model;
-      Index : Positive)
-      return String is separate;
-
-   function Root_Label
-     (Model : Window_Model;
-      Index : Positive)
-      return String is separate;
-
-   function Root_Entry_At
-     (Model : Window_Model;
-      Index : Positive)
-      return Files.File_System.Root_Entry is separate;
-
-   function Root_Kind
-     (Model : Window_Model;
-      Index : Positive)
-      return Files.File_System.Root_Kind is separate;
-
-   function Root_Is_Removable
-     (Model : Window_Model;
-      Index : Positive)
-      return Boolean is separate;
-
-   procedure Open_Root_Selector
-     (Model : in out Window_Model;
-      Roots : Files.File_System.Root_Entry_Vectors.Vector) is
-   begin
-      Support.Touch (Model);
-      Model.Root_Selector.Entries := Roots;
-      Model.Root_Selector.Open := not Roots.Is_Empty;
-      if Model.Root_Selector.Open then
-         Claim_Overlay_Input (Model);
-      end if;
-      Model.Root_Selector.Selected := (if Model.Root_Selector.Open then 1 else 0);
-      Model.Settings_Pane_Open := False;
-      Model.Command_Palette.Open := False;
-      Guikit.Command_Palette.Reset (Model.Command_Palette.View);
-      Model.Focus_Value := Files.Types.Focus_None;
-   end Open_Root_Selector;
+      return Boolean is
+     (Model.Ownership_Input.Editing_Group);
 
    function Text_Cursor_Position
      (Model : Window_Model)
@@ -1547,12 +1355,12 @@ package body Files.Model is
          when Files.Types.Focus_Filter_Input =>
             Model.Filter_Cursor := Clamped;
          when Files.Types.Focus_Rename_Input =>
-            if not Model.Rename_Fields.Is_Empty then
+            if not Model.Rename.Fields.Is_Empty then
                declare
-                  Field : Rename_Field := Model.Rename_Fields.First_Element;
+                  Field : Rename_Field := Model.Rename.Fields.First_Element;
                begin
                   Field.Cursor := Clamped;
-                  Model.Rename_Fields.Replace_Element (Model.Rename_Fields.First_Index, Field);
+                  Model.Rename.Fields.Replace_Element (Model.Rename.Fields.First_Index, Field);
                end;
             end if;
          when Files.Types.Focus_Command_Palette =>
@@ -1597,162 +1405,15 @@ package body Files.Model is
 
       if Is_Temporary_Rename (Model) then
          Cancel_Create_File (Model);
-      elsif Model.Rename_Active then
+      elsif Model.Rename.Active then
          Reset_Rename_State (Model);
       end if;
 
       Model.Focus_Value := Files.Types.Focus_None;
    end Cancel_Focus_Or_Edit;
 
-   procedure Clamp_Tree_Panel_Scroll
-     (Model : in out Window_Model);
-
-   procedure Reconcile_Tree_Pick_Target
-     (Model          : in out Window_Model;
-      Fallback_Index : Positive);
-
-   procedure Clamp_Tree_Panel_Scroll
-     (Model : in out Window_Model)
-   is separate;
-
-   procedure Reconcile_Tree_Pick_Target
-     (Model          : in out Window_Model;
-      Fallback_Index : Positive)
-   is separate;
-
-   procedure Open_Tree_Panel
-     (Model : in out Window_Model) is separate;
-
-   procedure Close_Tree_Panel
-     (Model : in out Window_Model) is separate;
-
-   procedure Begin_Tree_Pick
-     (Model          : in out Window_Model;
-      Mode           : Tree_Pick_Mode;
-      Sources        : Files.Types.String_Vectors.Vector;
-      Initial_Target : String) is separate;
-
-   procedure Set_Tree_Pick_Target
-     (Model  : in out Window_Model;
-      Target : String) is separate;
-
    procedure Clear_Tree_Pick
      (Model : in out Window_Model) is separate;
-
-   function Tree_Pick_Mode_Of
-     (Model : Window_Model)
-      return Tree_Pick_Mode is separate;
-
-   function Tree_Pick_Is_Active
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   function Tree_Pick_Sources
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector is separate;
-
-   function Tree_Pick_Target
-     (Model : Window_Model)
-      return String is separate;
-
-   procedure Give_Tree_Keyboard
-     (Model : in out Window_Model)
-   is separate;
-
-   procedure Take_Tree_Keyboard
-     (Model : in out Window_Model) is separate;
-
-   function Tree_Has_Keyboard
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   function Tree_Cursor
-     (Model : Window_Model)
-      return String is separate;
-
-   procedure Set_Tree_Cursor
-     (Model : in out Window_Model;
-      Path  : String) is separate;
-
-   function Tree_Panel_Is_Open
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   function Tree_Panel_Scroll_Rows
-     (Model : Window_Model)
-      return Natural
-   is separate;
-
-   procedure Set_Tree_Panel_Scroll_Rows
-     (Model : in out Window_Model;
-      Rows  : Natural)
-   is separate;
-
-   procedure Scroll_Tree_Panel
-     (Model : in out Window_Model;
-      Rows  : Integer)
-   is separate;
-
-   procedure Ensure_Tree_Row_Visible
-     (Model       : in out Window_Model;
-      Visible_Row : Positive;
-      Page_Rows   : Natural)
-   is separate;
-
-   function Tree_Is_Seeded
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   function Tree_Roots_Match
-     (Model : Window_Model;
-      Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector)
-      return Boolean is (Files.Folder_Tree.Same_Roots (Model.Folder_Tree_Value, Roots));
-
-   procedure Seed_Tree
-     (Model : in out Window_Model;
-      Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector) is separate;
-
-   function Tree_Node_Count
-     (Model : Window_Model)
-      return Natural is separate;
-
-   function Tree_Node_Path
-     (Model : Window_Model;
-      Index : Positive)
-      return String is separate;
-
-   function Tree_Node_Is_Expanded
-     (Model : Window_Model;
-      Index : Positive)
-      return Boolean is separate;
-
-   procedure Tree_Set_Children
-     (Model    : in out Window_Model;
-      Index    : Positive;
-      Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector) is separate;
-
-   procedure Tree_Set_Expanded
-     (Model    : in out Window_Model;
-      Index    : Positive;
-      Expanded : Boolean) is separate;
-
-   procedure Tree_Toggle_Expanded
-     (Model : in out Window_Model;
-      Index : Positive) is separate;
-
-   function Tree_Visible_Rows
-     (Model : Window_Model)
-      return Files.Folder_Tree.Visible_Row_Vectors.Vector is separate;
-
-   procedure End_Tree_Pick (Model : in out Window_Model) is
-   begin
-      if Model.Tree_Pick.Opened_Panel then
-         Close_Tree_Panel (Model);
-      else
-         Clear_Tree_Pick (Model);
-      end if;
-      Model.Tree_Pick.Opened_Panel := False;
-   end End_Tree_Pick;
 
    procedure Toggle_Info_Pane
      (Model : in out Window_Model) is separate;
@@ -1767,62 +1428,8 @@ package body Files.Model is
 
    function Info_Pane_Is_Open
      (Model : Window_Model)
-      return Boolean is separate;
-
-   procedure Toggle_Settings_Pane
-     (Model : in out Window_Model) is separate;
-
-   function Settings_Pane_Is_Open
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   procedure Begin_Settings_Edit
-     (Model : in out Window_Model;
-      Draft : Files.Settings.Settings_Draft)
-   is separate;
-
-   function Settings_Draft_Of
-     (Model : Window_Model)
-      return Files.Settings.Settings_Draft is separate;
-
-   procedure Set_Settings_Draft
-     (Model : in out Window_Model;
-      Draft : Files.Settings.Settings_Draft)
-   is separate;
-
-   procedure Settings_Move_Focus (Model : in out Window_Model; Delta_Rows : Integer) is separate;
-
-   procedure Settings_Cycle_Choice (Model : in out Window_Model; Forward : Boolean) is separate;
-
-   procedure Settings_Set_Focused_Value (Model : in out Window_Model; Text : String) is separate;
-
-   procedure Settings_Scroll (Model : in out Window_Model; Lines : Integer) is separate;
-
-   function Settings_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean is separate;
-
-   function Settings_Take_Change (Model : in out Window_Model) return Guikit.Settings_Panel.Change is separate;
-
-   function Settings_Focused_Value (Model : Window_Model) return String is separate;
-
-   function Settings_Focused_Kind (Model : Window_Model) return Guikit.Settings_Panel.Field_Kind is separate;
-
-   function Settings_Focused_Key (Model : Window_Model) return String is separate;
-
-   procedure Settings_Set_Active_Section (Model : in out Window_Model; Ordinal : Natural) is separate;
-
-   function Settings_Section_Count (Model : Window_Model) return Natural is separate;
-
-   function Settings_Active_Section (Model : Window_Model) return Natural is separate;
-
-   procedure Settings_Begin_Capture (Model : in out Window_Model) is separate;
-
-   function Settings_Is_Capturing (Model : Window_Model) return Boolean is separate;
-
-   function Settings_Capturing_Key (Model : Window_Model) return String is separate;
-
-   procedure Settings_Set_Captured_Shortcut (Model : in out Window_Model; Text : String) is separate;
-
-   procedure Settings_Cancel_Capture (Model : in out Window_Model) is separate;
+      return Boolean is
+     (Model.Info_Pane_Open);
 
    procedure Scroll_Info_Pane
      (Model : in out Window_Model;
@@ -1831,7 +1438,8 @@ package body Files.Model is
 
    function Info_Pane_Scroll_Lines
      (Model : Window_Model)
-      return Natural is separate;
+      return Natural is
+     (Model.Info_Pane_Scroll);
 
    procedure Set_Info_Pane_Scroll_Lines
      (Model : in out Window_Model;
@@ -1848,84 +1456,8 @@ package body Files.Model is
 
    function Main_View_Scroll_Lines
      (Model : Window_Model)
-      return Natural is separate;
-
-   procedure Set_Open_With_Targets
-     (Model   : in out Window_Model;
-      Targets : Files.Types.String_Vectors.Vector) is separate;
-
-   function Open_With_Targets
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector is separate;
-
-   procedure Set_Open_With_Applications
-     (Model        : in out Window_Model;
-      Applications : Files.Desktop_Applications.Application_Vectors.Vector) is separate;
-
-   function Open_With_Applications
-     (Model : Window_Model)
-      return Files.Desktop_Applications.Application_Vectors.Vector is separate;
-
-   procedure Open_Label_Picker
-     (Model : in out Window_Model) is separate;
-
-   procedure Move_Label_Picker_Highlight
-     (Model : in out Window_Model;
-      Delta_Value : Integer) is separate;
-
-   function Label_Picker_Highlight
-     (Model : Window_Model)
-      return Positive is separate;
-
-   function Label_Picker_Highlight_Color
-     (Model : Window_Model)
-      return Files.Types.Color_Label is separate;
-
-   procedure Close_Label_Picker
-     (Model : in out Window_Model) is separate;
-
-   function Label_Picker_Is_Open
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   procedure Open_Quick_Look
-     (Model   : in out Window_Model;
-      Content : Files.Quick_Look.Quick_Look_Content) is separate;
-
-   procedure Close_Quick_Look
-     (Model : in out Window_Model) is separate;
-
-   procedure Set_Quick_Look_Image
-     (Model  : in out Window_Model;
-      Path   : String;
-      Pixels : Files.Shared_Bytes.Bytes;
-      Width  : Natural;
-      Height : Natural) is
-   begin
-      if Model.Quick_Look.Active
-        and then To_String (Model.Quick_Look.Content.Image_Path) = Path
-      then
-         Support.Touch_Header (Model);
-         Model.Quick_Look.Content.Image_Pixels := Pixels;
-         Model.Quick_Look.Content.Image_Width := Width;
-         Model.Quick_Look.Content.Image_Height := Height;
-      end if;
-   end Set_Quick_Look_Image;
-
-   procedure Toggle_Quick_Look
-     (Model : in out Window_Model) is separate;
-
-   function Quick_Look_Is_Open
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   function Quick_Look_Path
-     (Model : Window_Model)
-      return String is separate;
-
-   function Quick_Look_Content_Of
-     (Model : Window_Model)
-      return Files.Quick_Look.Quick_Look_Content is separate;
+      return Natural is
+     (Model.Main_View_Scroll);
 
    procedure Begin_Create_File
       (Model : in out Window_Model;
@@ -1937,15 +1469,18 @@ package body Files.Model is
 
    function Temporary_Item_Is_Active
      (Model : Window_Model)
-      return Boolean is separate;
+      return Boolean is
+     (Model.Temporary.Active);
 
    function Temporary_Item_Is_Directory
      (Model : Window_Model)
-      return Boolean is separate;
+      return Boolean is
+     (Model.Temporary.Is_Directory);
 
    function Temporary_Item_Name
      (Model : Window_Model)
-      return String is separate;
+      return String is
+     (To_String (Model.Temporary.Name));
 
    procedure Cancel_Create_File
      (Model : in out Window_Model) is separate;
@@ -2000,7 +1535,7 @@ package body Files.Model is
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       if Model.Temporary.Active then
          Cancel_Create_File (Model);
-      elsif Model.Rename_Active then
+      elsif Model.Rename.Active then
          Reset_Rename_State (Model);
       end if;
       if Model.Focus_Value = Files.Types.Focus_Rename_Input then
@@ -2038,46 +1573,12 @@ package body Files.Model is
 
    function Last_Error_Key
      (Model : Window_Model)
-      return String is separate;
+      return String is
+     (To_String (Model.Last_Error));
 
    function Last_Error_Path
      (Model : Window_Model)
       return String is (To_String (Model.Last_Error_Path_Value));
-
-   procedure Set_System_Clipboard_Request
-     (Model : in out Window_Model;
-      Text  : String) is separate;
-
-   function System_Clipboard_Request_Pending
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   function System_Clipboard_Request_Text
-     (Model : Window_Model)
-      return String is separate;
-
-   procedure Clear_System_Clipboard_Request
-     (Model : in out Window_Model) is separate;
-
-   procedure Set_Clipboard
-     (Model : in out Window_Model;
-      Paths : Files.Types.String_Vectors.Vector;
-      Mode  : Clipboard_Mode) is separate;
-
-   procedure Clear_Clipboard
-     (Model : in out Window_Model) is separate;
-
-   function Clipboard_Paths
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector is separate;
-
-   function Clipboard_Mode_Of
-     (Model : Window_Model)
-      return Clipboard_Mode is separate;
-
-   function Clipboard_Has_Items
-     (Model : Window_Model)
-      return Boolean is separate;
 
    procedure Retire_Payloads
      (Pending : in out Files.Types.String_Vectors.Vector;
@@ -2112,11 +1613,13 @@ package body Files.Model is
 
    function Undo_Available
      (Model : Window_Model)
-      return Boolean is separate;
+      return Boolean is
+     (not Model.History.Undo_Stack.Is_Empty);
 
    function Redo_Available
      (Model : Window_Model)
-      return Boolean is separate;
+      return Boolean is
+     (not Model.History.Redo_Stack.Is_Empty);
 
    procedure Take_Undo
      (Model  : in out Window_Model;
@@ -2139,133 +1642,6 @@ package body Files.Model is
    function Undo_From_Paths
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector is separate;
-
-   function Paste_Conflict_Of (Model : Window_Model) return Paste_Conflict_State is (Model.Paste_Conflict);
-
-   function Paste_Execution_Of (Model : Window_Model) return Paste_Execution_State is (Model.Paste_Exec);
-
-   procedure Begin_Paste_Conflict
-     (Model           : in out Window_Model;
-      Items           : Files.Paste.Work_Item_Vectors.Vector;
-      Existing        : Files.Types.String_Vectors.Vector;
-      Mode            : Files.File_System.Drop_Import_Mode;
-      Index           : Positive;
-      Clear_Clipboard : Boolean := True) is separate;
-
-   function Paste_Conflict_Is_Active
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   function Paste_Conflict_Name
-     (Model : Window_Model)
-      return String is separate;
-
-   function Paste_Conflict_Apply_All
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   procedure Toggle_Paste_Conflict_Apply_All
-     (Model : in out Window_Model) is separate;
-
-   procedure Set_Paste_Conflict_Policy
-     (Model  : in out Window_Model;
-      Policy : Files.Paste.Conflict_Policy) is separate;
-
-   procedure Set_Paste_Conflict_Override
-     (Model    : in out Window_Model;
-      Index    : Positive;
-      Decision : Files.Paste.Item_Decision) is separate;
-
-   procedure Set_Paste_Conflict_Index
-     (Model : in out Window_Model;
-      Index : Positive) is separate;
-
-   procedure Clear_Paste_Conflict
-     (Model : in out Window_Model) is separate;
-
-   procedure Begin_Paste_Execution
-     (Model           : in out Window_Model;
-      Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
-      Mode            : Files.File_System.Drop_Import_Mode;
-      Clear_Clipboard : Boolean := True;
-      Batch           : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
-   is separate;
-
-   function Paste_Execution_Is_Active
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   function Paste_Execution_Done
-     (Model : Window_Model)
-      return Natural is separate;
-
-   function Paste_Execution_Total
-     (Model : Window_Model)
-      return Natural is separate;
-
-   function Paste_Execution_Current_Name
-     (Model : Window_Model)
-      return String is separate;
-
-   function Paste_Execution_Mode
-     (Model : Window_Model)
-      return Files.File_System.Drop_Import_Mode is separate;
-
-   function Paste_Execution_Cancelled
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   function Paste_Execution_Cursor
-     (Model : Window_Model)
-      return Natural is separate;
-
-   function Paste_Execution_Action_Count
-     (Model : Window_Model)
-      return Natural is separate;
-
-   function Paste_Execution_Action
-     (Model : Window_Model;
-      Index : Positive)
-      return Files.Paste.Resolved_Action is separate;
-
-   function Paste_Execution_Replaced_Extends_Verified
-     (Model : Window_Model) return Boolean is separate;
-
-   procedure Record_Paste_Execution_Replaced_Trash
-     (Model      : in out Window_Model;
-      Trash_Path : Files.Types.UString;
-      Identity : String;
-      Original_Path : String;
-      Verified : Boolean) is separate;
-
-   procedure Skip_Paste_Execution_Action
-     (Model : in out Window_Model) is separate;
-
-   procedure Record_Paste_Execution_Write
-     (Model       : in out Window_Model;
-      Dest_Path   : Files.Types.UString;
-      Source_Path : Files.Types.UString;
-      Name        : String;
-      Identity    : String;
-      Tree_Revision : String;
-      Verified    : Boolean) is separate;
-
-   function Paste_Execution_Write_Extends_Verified
-     (Model : Window_Model) return Boolean is separate;
-
-   procedure Set_Paste_Cancelled
-     (Model     : in out Window_Model;
-      Requested : Boolean) is
-   begin
-      Support.Touch (Model);
-      Model.Paste_Exec.Cancelled := Requested;
-   end Set_Paste_Cancelled;
-
-   procedure Clear_Paste_Execution
-     (Model : in out Window_Model) is separate;
-
-   function Paste_Execution_Copy_Context (Model : Window_Model) return Files.Copy_Context.Session is
-     (Model.Paste_Exec.Copy_Context);
 
    procedure Update_Folder_Scan
      (Model  : in out Window_Model;
@@ -2360,7 +1736,7 @@ package body Files.Model is
       --  Ids on one host are few, but bound the table so a long session over
       --  many foreign volumes cannot grow it without limit.
       Max_Account_Names : constant := 4096;
-      Names : Account_Name_Maps.Map renames Model.Account_Names (Kind);
+      Names : Account_Name_Maps.Map renames Model.Account_Names.Names (Kind);
       Found : constant Account_Name_Maps.Cursor := Names.Find (Id);
    begin
       if Account_Name_Maps.Has_Element (Found) then
@@ -2382,7 +1758,7 @@ package body Files.Model is
       Kind  : Account_Kind;
       Id    : Files.Types.Account_Id)
       return Boolean is
-     (Model.Account_Names (Kind).Contains (Id));
+     (Model.Account_Names.Names (Kind).Contains (Id));
 
    function Account_Name
      (Model : Window_Model;
@@ -2390,7 +1766,7 @@ package body Files.Model is
       Id    : Files.Types.Account_Id)
       return String
    is
-      Found : constant Account_Name_Maps.Cursor := Model.Account_Names (Kind).Find (Id);
+      Found : constant Account_Name_Maps.Cursor := Model.Account_Names.Names (Kind).Find (Id);
    begin
       if Account_Name_Maps.Has_Element (Found) then
          return To_String (Account_Name_Maps.Element (Found));
@@ -2401,51 +1777,13 @@ package body Files.Model is
    procedure Note_Account_Names_Sampled
      (Model : in out Window_Model) is
    begin
-      Model.Account_Names_Sampled := Model.Revision_Value;
+      Model.Account_Names.Sampled := Model.Revision_Value;
    end Note_Account_Names_Sampled;
 
    function Account_Names_Current
      (Model : Window_Model)
       return Boolean is
-     (Model.Account_Names_Sampled = Model.Revision_Value);
-
-   procedure Open_Context_Menu
-     (Model      : in out Window_Model;
-      X          : Natural;
-      Y          : Natural;
-      Target     : Context_Menu_Target;
-      Item_Index : Natural := 0) is separate;
-
-   procedure Close_Context_Menu
-     (Model : in out Window_Model) is separate;
-
-   procedure Set_Context_Menu_Highlight
-     (Model : in out Window_Model;
-      Row   : Natural) is separate;
-
-   function Context_Menu_Highlight
-     (Model : Window_Model)
-      return Natural is separate;
-
-   function Context_Menu_Is_Open
-     (Model : Window_Model)
-      return Boolean is separate;
-
-   function Context_Menu_X
-     (Model : Window_Model)
-      return Natural is separate;
-
-   function Context_Menu_Y
-     (Model : Window_Model)
-      return Natural is separate;
-
-   function Context_Menu_Target_Of
-     (Model : Window_Model)
-      return Context_Menu_Target is separate;
-
-   function Context_Menu_Item_Index
-     (Model : Window_Model)
-      return Natural is separate;
+     (Model.Account_Names.Sampled = Model.Revision_Value);
 
    function Range_Anchor
      (Model : Window_Model)

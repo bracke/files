@@ -1,3 +1,4 @@
+with Files.Model.Sort_Menu;
 separate (Files_Suite.Model)
    procedure Test_Runtime_Sort_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -84,7 +85,7 @@ separate (Files_Suite.Model)
         (Result.Command,
          Files.Commands.Toggle_Sort_Menu_Command,
          "sort menu command is routed");
-      Assert (Files.Model.Sort_Menu_Is_Open (Model), "sort menu opens");
+      Assert (Files.Model.Sort_Menu.Is_Open (Model), "sort menu opens");
 
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Sort_By_Size_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -96,7 +97,7 @@ separate (Files_Suite.Model)
          Files.Types.Sort_Size,
          "sort-by-size selects size field");
       Assert (Files.Model.Sort_Is_Ascending (Model), "new sort field starts ascending");
-      Assert (not Files.Model.Sort_Menu_Is_Open (Model), "selecting a sort field closes the menu");
+      Assert (not Files.Model.Sort_Menu.Is_Open (Model), "selecting a sort field closes the menu");
       Files_Suite.Support.Assert_Equal (Snapshot_Name (1), "charlie.bin", "size ascending sorts smallest file first");
 
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Sort_By_Size_Command, Model, Settings);

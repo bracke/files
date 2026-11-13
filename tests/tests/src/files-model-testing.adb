@@ -19,7 +19,7 @@ package body Files.Model.Testing is
      (Model : Window_Model)
       return Natural is
    begin
-      return Natural (Model.Rename_Fields.Length);
+      return Natural (Model.Rename.Fields.Length);
    end Rename_Field_Count;
 
    procedure Rename_State_For_Visible
@@ -30,7 +30,7 @@ package body Files.Model.Testing is
       Cursor        : out Natural)
    is
       Field_Index : constant Natural :=
-        (if Model.Rename_Active then Find_Rename_Field (Model, Visible_Index) else 0);
+        (if Model.Rename.Active then Find_Rename_Field (Model, Visible_Index) else 0);
    begin
       if Field_Index = 0 then
          Active := False;
@@ -38,7 +38,7 @@ package body Files.Model.Testing is
          Cursor := 0;
       else
          declare
-            Field : constant Rename_Field := Model.Rename_Fields.Element (Field_Index);
+            Field : constant Rename_Field := Model.Rename.Fields.Element (Field_Index);
          begin
             Active := True;
             Value  := Field.Value;
@@ -65,22 +65,22 @@ package body Files.Model.Testing is
      (Model : Window_Model)
       return Undo_Action_Kind is
    begin
-      if Model.Undo_Stack.Is_Empty then
+      if Model.History.Undo_Stack.Is_Empty then
          return Undo_None;
       end if;
 
-      return Model.Undo_Stack.Last_Element.Kind;
+      return Model.History.Undo_Stack.Last_Element.Kind;
    end Undo_Kind_Of;
 
    function Undo_To_Paths
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector is
    begin
-      if Model.Undo_Stack.Is_Empty then
+      if Model.History.Undo_Stack.Is_Empty then
          return Files.Types.String_Vectors.Empty_Vector;
       end if;
 
-      return Model.Undo_Stack.Last_Element.To;
+      return Model.History.Undo_Stack.Last_Element.To;
    end Undo_To_Paths;
 
    function Item_At (Model : Window_Model; Index : Positive) return Files.Items.Directory_Item is

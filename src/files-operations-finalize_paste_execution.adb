@@ -1,3 +1,4 @@
+with Files.Model.Clipboard;
 separate (Files.Operations)
 --  Finalize an armed paste execution: record one undo covering the items
 --  actually completed (move reversed by moving back; copy by deleting the
@@ -12,7 +13,7 @@ function Finalize_Paste_Execution
    return Operation_Result
 is
    --  Read once: everything recorded below is what the paste gathered.
-   Exec       : constant Files.Model.Paste_Execution_State := Files.Model.Paste_Execution_Of (Model);
+   Exec       : constant Files.Model.Paste_Execution_State := Files.Model.Pasting.Execution_Of (Model);
    Mode       : constant Files.File_System.Drop_Import_Mode :=
      Exec.Mode;
    Undo_From  : constant Files.Types.String_Vectors.Vector :=
@@ -99,7 +100,7 @@ begin
         and then Exec.Clears_Clipboard
         and then not Undo_From.Is_Empty
       then
-         Files.Model.Clear_Clipboard (Model);
+         Files.Model.Clipboard.Clear (Model);
       end if;
    end if;
 
@@ -112,7 +113,7 @@ begin
             Retain_Verified_Main => Exec.Verified_Replaced_Count,
             others => <>));
    end if;
-   Files.Model.Clear_Paste_Execution (Model);
+   Files.Model.Pasting.Clear_Execution (Model);
 
    if Files.Model.Background_Transfers (Model) then
       --  Preserve mutation errors while a nonmodal helper refreshes the view.

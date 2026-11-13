@@ -10,14 +10,15 @@ separate (Files_Suite.Operations)
       function Dest return String is (Join (Remote.Path, "replace-target"));
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Environment_Guard;
-      Model    : Files.Model.Window_Model;
+      Model    : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Step     : Files.Operations.Operation_Result;
       Result   : Files.File_System.Mutation_Result;
 
       procedure Cleanup is
       begin
-         Files.Model.Clear_Paste_Execution (Model);
+         Files_Suite.Support.Release (Paste);
          Result := Files.File_System.Set_Permissions (Root, 8#755#);
          Result := Files.File_System.Set_Permissions (Locked, 8#755#);
       end Cleanup;
@@ -44,12 +45,9 @@ separate (Files_Suite.Operations)
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
-         for Attempt in Files_Suite.Support.Polling loop
-            Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-            exit when not Files.Model.Paste_Execution_Is_Active (Model);
-         end loop;
+         Step := Files_Suite.Support.Finish_Paste (Model, Settings);
          Result := Files.File_System.Set_Permissions (Root, 8#755#);
-         Assert (not Files.Model.Paste_Execution_Is_Active (Model)
+         Assert (not Files.Model.Pasting.Execution_Is_Active (Model)
                  and then Step.Status = Files.Operations.Operation_Failed,
                  "refused source removal completes as a failed replacement");
          Assert (not Files.Model.Undo_Available (Model),

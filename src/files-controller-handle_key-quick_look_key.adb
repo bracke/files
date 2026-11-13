@@ -1,3 +1,4 @@
+with Files.Model.Quick_Look;
 separate (Files.Controller.Handle_Key)
 --  While the Quick Look overlay is open it owns the keyboard: Escape or
 --  Space close it; the grid-navigation keys (arrows, Home/End, Page Up/Down)
@@ -8,11 +9,11 @@ separate (Files.Controller.Handle_Key)
 procedure Quick_Look_Key (Handled : out Boolean; Result : out Controller_Result) is
 begin
    Handled := True;
-   if Files.Model.Quick_Look_Is_Open (Model) then
+   if Files.Model.Quick_Look.Is_Open (Model) then
       if (Key = Guikit.Input.Key_Escape or else Key = Guikit.Input.Key_Space)
         and then Modifiers = Guikit.Input.No_Modifiers
       then
-         Files.Model.Close_Quick_Look (Model);
+         Files.Model.Quick_Look.Close (Model);
          Result := Successful_Command_Result (Files.Commands.Toggle_Quick_Look_Command);
          return;
       elsif Modifiers = Guikit.Input.No_Modifiers
@@ -48,7 +49,7 @@ begin
                Result := Make_Result (Controller_Ignored);
                return;
             end if;
-            Files.Model.Open_Quick_Look
+            Files.Model.Quick_Look.Open
               (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selected_Item (Model)));
             Result := Make_Result (Controller_Selection_Moved);
             return;

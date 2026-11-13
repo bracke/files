@@ -19,7 +19,7 @@ begin
    if Name = ""
      or else Name = "."
      or else Name = ".."
-     or else not Files.UTF8.Is_Valid (Name)
+     or else not Guikit.Utf8.Is_Valid (Name)
      or else Is_All_Whitespace (Name)
      or else Ends_With_Whitespace (Name)
    then
@@ -36,7 +36,7 @@ begin
    end if;
 
    while Index <= Name'Last loop
-      Files.UTF8.Decode_Next_Codepoint (Name, Index, Codepoint);
+      Guikit.Utf8.Decode_Next_Codepoint (Name, Index, Codepoint);
 
       if Codepoint < 32
         or else Codepoint = 127

@@ -1,4 +1,5 @@
 with Files.Overlays;
+with Files.Model.Command_Palette;
 separate (Files_Suite.Interaction)
    --  Open the command palette, derive its close (X) button from the real
    --  palette layout, click the button's center through the shell's
@@ -9,11 +10,11 @@ separate (Files_Suite.Interaction)
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
    begin
-      Files.Model.Open_Command_Palette (Model);
-      Assert (Files.Model.Command_Palette_Is_Open (Model), "the command palette is open before the close click");
+      Files.Model.Command_Palette.Open (Model);
+      Assert (Files.Model.Command_Palette.Is_Open (Model), "the command palette is open before the close click");
       declare
          Revision : constant Natural := Files.Model.Revision (Model);
-         Clicked  : constant Boolean := Files.Model.Palette_Click (Model, -1, -1);
+         Clicked  : constant Boolean := Files.Model.Command_Palette.Click (Model, -1, -1);
       begin
          Assert
            (not Clicked and then Files.Model.Revision (Model) = Revision,
@@ -54,6 +55,6 @@ separate (Files_Suite.Interaction)
             Guikit.Input.No_Modifiers, Result);
       end;
       Assert
-        (not Files.Model.Command_Palette_Is_Open (Model),
+        (not Files.Model.Command_Palette.Is_Open (Model),
          "clicking the palette close (X) button closes the command palette");
    end Test_Command_Palette_Close_Button_Closes;

@@ -25,4 +25,19 @@ package body Files.Event_Wait is
       return Wait;
    end Window_Wait;
 
+   function Fold
+     (Now     : Ada.Real_Time.Time;
+      Windows : Pending_List;
+      Limit   : Duration;
+      Prompt  : Duration)
+      return Duration
+   is
+      Wait : Duration := Duration'Max (Limit, 0.0);
+   begin
+      for Pending of Windows loop
+         Wait := Window_Wait (Now => Now, Pending => Pending, Limit => Wait, Prompt => Prompt);
+      end loop;
+      return Wait;
+   end Fold;
+
 end Files.Event_Wait;

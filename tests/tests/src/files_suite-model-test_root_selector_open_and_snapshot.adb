@@ -1,3 +1,5 @@
+with Files.Model.Root_Selector;
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Model)
    procedure Test_Root_Selector_Open_And_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -21,16 +23,16 @@ separate (Files_Suite.Model)
         (Result.Command,
          Files.Commands.Select_Drive_Command,
          "drive selector command is routed");
-      Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector opens root selector");
-      Assert (not Files.Model.Settings_Pane_Is_Open (Model), "root selector opening closes settings pane");
-      Assert (Files.Model.Root_Count (Model) >= 1, "root selector contains at least one root");
+      Assert (Files.Model.Root_Selector.Is_Open (Model), "drive selector opens root selector");
+      Assert (not Files.Model.Settings_Pane.Is_Open (Model), "root selector opening closes settings pane");
+      Assert (Files.Model.Root_Selector.Count (Model) >= 1, "root selector contains at least one root");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Root_Selected_Index (Model),
+        (Files.Model.Root_Selector.Selected_Index (Model),
          1,
          "root selector selects the first root by default");
-      Assert (Files.Model.Root_Path (Model, 1) /= "", "root selector exposes a root path");
+      Assert (Files.Model.Root_Selector.Path (Model, 1) /= "", "root selector exposes a root path");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Root_Path (Model, 99),
+        (Files.Model.Root_Selector.Path (Model, 99),
          "",
          "invalid root selector index returns empty path");
 
@@ -43,12 +45,12 @@ separate (Files_Suite.Model)
          "snapshot captures selected root selector row");
       Files_Suite.Support.Assert_Equal
         (Natural (Snapshot.Roots.Length),
-         Files.Model.Root_Count (Model),
+         Files.Model.Root_Selector.Count (Model),
          "snapshot captures one root selector row per root");
-      for Index in 1 .. Files.Model.Root_Count (Model) loop
+      for Index in 1 .. Files.Model.Root_Selector.Count (Model) loop
          Files_Suite.Support.Assert_Equal
            (To_String (Snapshot.Roots (Index).Path),
-            Files.Model.Root_Path (Model, Index),
+            Files.Model.Root_Selector.Path (Model, Index),
             "each root selector row carries its root's path");
       end loop;
       Assert (To_String (Snapshot.Roots (1).Label) /= "", "root selector label is non-empty");
@@ -63,7 +65,7 @@ separate (Files_Suite.Model)
             Volume_Name => To_Unbounded_String ("example-mount"),
             Ready => Files.File_System.Root_Ready,
             Removable => True));
-      Files.Model.Open_Root_Selector (Model, Entries);
+      Files.Model.Root_Selector.Open (Model, Entries);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Assert
         (To_String (Snapshot.Roots (1).Label) =
@@ -80,7 +82,7 @@ separate (Files_Suite.Model)
             Volume_Name => To_Unbounded_String ("example-mount"),
             Ready => Files.File_System.Root_Ready,
             Removable => True));
-      Files.Model.Open_Root_Selector (Model, Entries);
+      Files.Model.Root_Selector.Open (Model, Entries);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Assert
         (To_String (Snapshot.Roots (1).Label) = Mount_With_Detail ("example-mount"),
@@ -99,7 +101,7 @@ separate (Files_Suite.Model)
             Volume_Name => To_Unbounded_String ("a|b"),
             Ready => Files.File_System.Root_Ready,
             Removable => True));
-      Files.Model.Open_Root_Selector (Model, Entries);
+      Files.Model.Root_Selector.Open (Model, Entries);
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Files_Suite.Support.Assert_Equal
         (To_String (Snapshot.Roots (1).Label), Mount_With_Detail ("a|b"),

@@ -5,7 +5,7 @@ function Rename_Targets
 is
    Result : Rename_Target_Vectors.Vector;
 begin
-   for Field of Model.Rename_Fields loop
+   for Field of Model.Rename.Fields loop
       if Field.Item_Index in 1 .. Natural (Model.Items.Last_Index) then
          declare
             Item : constant Files.Items.Directory_Item :=

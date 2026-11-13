@@ -1,6 +1,7 @@
 with Files.Images;
 with Files.Preview_Decoder;
 with Files.Quick_Look;
+with Files.Model.Quick_Look;
 separate (Files_Suite.Operations)
    procedure Test_Quick_Look_Decodes_Off_Thread (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -102,18 +103,18 @@ separate (Files_Suite.Operations)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
       end;
       Files_Suite.Support.Select_Name (Model, "first.jpg");
-      Files.Model.Open_Quick_Look (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selected_Item (Model)));
+      Files.Model.Quick_Look.Open (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selected_Item (Model)));
       Assert
-        (Files.Model.Quick_Look_Content_Of (Model).Kind = Files.Quick_Look.Image_Content,
+        (Files.Model.Quick_Look.Content_Of (Model).Kind = Files.Quick_Look.Image_Content,
          "the preview opens as an image");
       Assert
-        (Files.Shared_Bytes.Is_Empty (Files.Model.Quick_Look_Content_Of (Model).Image_Pixels),
+        (Files.Shared_Bytes.Is_Empty (Files.Model.Quick_Look.Content_Of (Model).Image_Pixels),
          "without its decoded image: the decode is not done on the UI thread");
       for Attempt in Files_Suite.Support.Polling loop
          Files.Operations.Poll_Quick_Look (Model, 103);
-         exit when not Files.Shared_Bytes.Is_Empty (Files.Model.Quick_Look_Content_Of (Model).Image_Pixels);
+         exit when not Files.Shared_Bytes.Is_Empty (Files.Model.Quick_Look.Content_Of (Model).Image_Pixels);
       end loop;
       Assert
-        (not Files.Shared_Bytes.Is_Empty (Files.Model.Quick_Look_Content_Of (Model).Image_Pixels),
+        (not Files.Shared_Bytes.Is_Empty (Files.Model.Quick_Look.Content_Of (Model).Image_Pixels),
          "and gets its decoded image from the worker");
    end Test_Quick_Look_Decodes_Off_Thread;

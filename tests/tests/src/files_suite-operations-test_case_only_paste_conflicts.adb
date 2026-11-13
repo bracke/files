@@ -1,3 +1,4 @@
+with Files.Model.Clipboard;
 separate (Files_Suite.Operations)
    procedure Test_Case_Only_Paste_Conflicts (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -40,14 +41,14 @@ separate (Files_Suite.Operations)
          Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
          Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
          Paths.Append (To_Unbounded_String (Join (Src_Dir, Incoming)));
-         Files.Model.Set_Clipboard (Model, Paths, Files.Model.Clipboard_Copy);
+         Files.Model.Clipboard.Set (Model, Paths, Files.Model.Clipboard_Copy);
          Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
          Assert
-           (Files.Model.Paste_Conflict_Is_Active (Model),
+           (Files.Model.Pasting.Conflict_Is_Active (Model),
             "on a case-insensitive destination, pasting a " & Script
             & " name that matches an existing one only by case asks about the conflict");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Paste_Conflict_Name (Model),
+           (Files.Model.Pasting.Conflict_Name (Model),
             Incoming,
             "the dialog names the incoming " & Script & " item");
 
@@ -70,7 +71,7 @@ separate (Files_Suite.Operations)
             end Expect;
          begin
             for Attempt in 1 .. 100 loop
-               exit when not Files.Model.Paste_Execution_Is_Active (Model);
+               exit when not Files.Model.Pasting.Execution_Is_Active (Model);
                Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 8);
             end loop;
             Expect ("SRC", Script & " replace");

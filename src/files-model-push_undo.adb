@@ -4,6 +4,6 @@ procedure Push_Undo
    Action : Undo_Entry) is
 begin
    Touch (Model);
-   Model.Undo_Stack.Append (Action);
-   Model.History_Journal_Dirty := True;
+   Model.History.Undo_Stack.Append (Action);
+   Model.History.Journal_Dirty := True;
 end Push_Undo;

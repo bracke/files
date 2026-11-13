@@ -13,7 +13,7 @@ begin
       Model.Sort_Ascending := True;
    end if;
 
-   Model.Sort_Menu_Open := False;
+   Model.Sort_Menu.Open := False;
    Model.Main_View_Scroll := 0;
    Resort_Items (Model);
 end Select_Sort_Field;

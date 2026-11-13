@@ -9,7 +9,7 @@ separate (Files_Suite.Rendering)
    --  accounts for the extra row.
    --  A click on a grouping option segment resolves through the hit-test to that
    --  option (field 9, the clicked option index) at the segment's new row Y --
-   --  the same field/option the events layer feeds to Settings_Click -- so
+   --  the same field/option the events layer feeds to Settings_Pane.Click -- so
    --  choosing a grouping mode still works after the layout split.
    procedure Test_Bottom_Bar_Free_Space (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);

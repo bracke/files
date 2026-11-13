@@ -1,3 +1,4 @@
+with Files.Model.Clipboard;
 separate (Files_Suite.Operations)
    procedure Test_Paste_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -34,7 +35,7 @@ separate (Files_Suite.Operations)
          for Name of Names loop
             Paths.Append (To_Unbounded_String (Join (Src_Dir, To_String (Name))));
          end loop;
-         Files.Model.Set_Clipboard (Model, Paths, Files.Model.Clipboard_Copy);
+         Files.Model.Clipboard.Set (Model, Paths, Files.Model.Clipboard_Copy);
       end Arm_Model;
 
       One_File : Files.Types.String_Vectors.Vector;
@@ -56,9 +57,9 @@ separate (Files_Suite.Operations)
       Arm_Model (Model, One_File);
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
       pragma Unreferenced (Routed);
-      Assert (Files.Model.Paste_Conflict_Is_Active (Model), "a colliding paste arms the conflict dialog");
+      Assert (Files.Model.Pasting.Conflict_Is_Active (Model), "a colliding paste arms the conflict dialog");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Paste_Conflict_Name (Model),
+        (Files.Model.Pasting.Conflict_Name (Model),
          "a.txt",
          "the dialog names the colliding item");
       Resolved :=
@@ -67,7 +68,7 @@ separate (Files_Suite.Operations)
         (Resolved.Status,
          Files.Operations.Operation_Success,
          "replace resolves successfully");
-      Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "resolving clears the dialog");
+      Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "resolving clears the dialog");
       Files_Suite.Support.Assert_Equal
         (Read (Join (Dest_Dir, "a.txt")),
          "SRC",
@@ -88,7 +89,7 @@ separate (Files_Suite.Operations)
         (Resolved.Status,
          Files.Operations.Operation_Success,
          "skip resolves successfully");
-      Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "skip clears the dialog");
+      Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "skip clears the dialog");
       Files_Suite.Support.Assert_Equal
         (Read (Join (Dest_Dir, "a.txt")),
          "DEST",
@@ -109,7 +110,7 @@ separate (Files_Suite.Operations)
         (Resolved.Status,
          Files.Operations.Operation_Success,
          "rename resolves successfully");
-      Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "rename clears the dialog");
+      Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "rename clears the dialog");
       Files_Suite.Support.Assert_Equal
         (Read (Join (Dest_Dir, "a.txt")),
          "DEST",
@@ -134,14 +135,14 @@ separate (Files_Suite.Operations)
       Write_File (Join (Dest_Dir, "b.txt"), "DEST");
       Arm_Model (Model, Two_File);
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
-      Assert (Files.Model.Paste_Conflict_Is_Active (Model), "two collisions arm the dialog");
+      Assert (Files.Model.Pasting.Conflict_Is_Active (Model), "two collisions arm the dialog");
       Resolved :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, True);
       Files_Suite.Support.Assert_Equal
         (Resolved.Status,
          Files.Operations.Operation_Success,
          "apply-to-all resolves successfully");
-      Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "apply-to-all resolves both without a second prompt");
+      Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "apply-to-all resolves both without a second prompt");
       Files_Suite.Support.Assert_Equal
         (Read (Join (Dest_Dir, "a.txt")),
          "SRCA",
@@ -164,21 +165,21 @@ separate (Files_Suite.Operations)
          Write_File (Join (Dest_Dir, "b.txt"), "DESTB");
          Arm_Model (Model, Two_File);
          if Cut then
-            Files.Model.Set_Clipboard (Model, Files.Model.Clipboard_Paths (Model), Files.Model.Clipboard_Cut);
+            Files.Model.Clipboard.Set (Model, Files.Model.Clipboard.Paths (Model), Files.Model.Clipboard_Cut);
          end if;
          Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Paste_Conflict_Name (Model), "a.txt", "the dialog asks about a.txt first");
+           (Files.Model.Pasting.Conflict_Name (Model), "a.txt", "the dialog asks about a.txt first");
          Resolved :=
            Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Skip, False);
-         Assert (Files.Model.Paste_Conflict_Is_Active (Model), "a choice for one item leaves the other to ask about");
+         Assert (Files.Model.Pasting.Conflict_Is_Active (Model), "a choice for one item leaves the other to ask about");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Paste_Conflict_Name (Model), "b.txt", "the dialog moves on to b.txt");
+           (Files.Model.Pasting.Conflict_Name (Model), "b.txt", "the dialog moves on to b.txt");
          Resolved :=
            Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
          Files_Suite.Support.Assert_Equal
            (Resolved.Status, Files.Operations.Operation_Success, "the second choice finishes the paste");
-         Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "and closes the dialog");
+         Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "and closes the dialog");
          Files_Suite.Support.Assert_Equal (Read (Join (Dest_Dir, "a.txt")), "DESTA", "the skipped item is untouched");
          Files_Suite.Support.Assert_Equal (Read (Join (Dest_Dir, "b.txt")), "SRCB", "the replaced item is overwritten");
          Assert (Ada.Directories.Exists (Join (Src_Dir, "a.txt")), "the skipped item's source stays");
@@ -200,13 +201,13 @@ separate (Files_Suite.Operations)
         (Resolved.Status,
          Files.Operations.Operation_Success,
          "cancel resolves successfully");
-      Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "cancel clears the dialog");
+      Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "cancel clears the dialog");
       Files_Suite.Support.Assert_Equal
         (Read (Join (Dest_Dir, "a.txt")),
          "DEST",
          "cancel changes nothing at the destination");
       Assert (not Ada.Directories.Exists (Join (Dest_Dir, "a 2.txt")), "cancel writes no copy");
-      Assert (Files.Model.Clipboard_Has_Items (Model), "cancel keeps the clipboard for a retry");
+      Assert (Files.Model.Clipboard.Has_Items (Model), "cancel keeps the clipboard for a retry");
 
       --  A dangling link holding the name is a conflict too: the listing the
       --  dialog is armed from must not drop it, and Replace puts the file there.
@@ -217,7 +218,8 @@ separate (Files_Suite.Operations)
       if Hostkit.Fs.Create_Link ("missing-target", Join (Dest_Dir, "a.txt")) then
          Arm_Model (Model, One_File);
          Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Paste_Items_Command, Model, Settings);
-         Assert (Files.Model.Paste_Conflict_Is_Active (Model), "a dangling link at the name arms the conflict dialog");
+         Assert
+           (Files.Model.Pasting.Conflict_Is_Active (Model), "a dangling link at the name arms the conflict dialog");
          Resolved :=
            Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
          Files_Suite.Support.Assert_Equal

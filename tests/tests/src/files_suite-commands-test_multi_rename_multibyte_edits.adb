@@ -12,7 +12,7 @@ separate (Files_Suite.Commands)
         (To_String (Files.Model.Rename_Targets (Model) (Row).New_Name));
 
       function All_Valid return Boolean is
-        (for all Target of Files.Model.Rename_Targets (Model) => Files.UTF8.Is_Valid (To_String (Target.New_Name)));
+        (for all Target of Files.Model.Rename_Targets (Model) => Guikit.Utf8.Is_Valid (To_String (Target.New_Name)));
    begin
       Items.Append (Files.File_System.Make_Item
                       (Files_Suite.Support.Root, U8 ("café über.txt"), Files.Types.Regular_File_Item, "text/plain"));

@@ -1,3 +1,4 @@
+with Files.Model.Tree_Panel;
 separate (Files_Suite.Commands)
    procedure Test_Range_Edges_And_Picker_Tree (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -50,22 +51,22 @@ separate (Files_Suite.Commands)
       Files.Model.Select_Visible (Model, 1);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
-      Assert (Files.Model.Tree_Panel_Is_Open (Model), "the folder tree is open");
+      Assert (Files.Model.Tree_Panel.Is_Open (Model), "the folder tree is open");
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Copy_To_Command, Model, Settings);
-      Assert (Files.Model.Tree_Pick_Is_Active (Model), "Copy To starts picking a destination");
+      Assert (Files.Model.Tree_Panel.Pick_Is_Active (Model), "Copy To starts picking a destination");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert (not Files.Model.Tree_Pick_Is_Active (Model) and then Files.Model.Tree_Panel_Is_Open (Model),
+      Assert (not Files.Model.Tree_Panel.Pick_Is_Active (Model) and then Files.Model.Tree_Panel.Is_Open (Model),
               "Escape ends the pick and keeps the tree the user had open");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Copy_To_Command, Model, Settings);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
-      Assert (not Files.Model.Tree_Pick_Is_Active (Model) and then Files.Model.Tree_Panel_Is_Open (Model),
+      Assert (not Files.Model.Tree_Panel.Pick_Is_Active (Model) and then Files.Model.Tree_Panel.Is_Open (Model),
               "the picker's Cancel keeps it too");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Folder_Tree_Command, Model, Settings);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Copy_To_Command, Model, Settings);
-      Assert (Files.Model.Tree_Panel_Is_Open (Model), "Copy To opens a closed tree to pick in");
+      Assert (Files.Model.Tree_Panel.Is_Open (Model), "Copy To opens a closed tree to pick in");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert (not Files.Model.Tree_Panel_Is_Open (Model), "and closes it again when the pick ends");
+      Assert (not Files.Model.Tree_Panel.Is_Open (Model), "and closes it again when the pick ends");
    end Test_Range_Edges_And_Picker_Tree;

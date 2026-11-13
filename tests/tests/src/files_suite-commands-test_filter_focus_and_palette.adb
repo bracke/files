@@ -1,3 +1,4 @@
+with Files.Model.Command_Palette;
 separate (Files_Suite.Commands)
    procedure Test_Filter_Focus_And_Palette (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,7 +9,7 @@ separate (Files_Suite.Commands)
    begin
       Ctrl (Guikit.Input.Control_Key) := True;
       Files.Model.Set_Error (Model, "error.path.missing");
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Command_Palette.Open (Model);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -22,7 +23,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Last_Error_Key (Model),
          "",
          "filter focus clears stale error state");
-      Assert (not Files.Model.Command_Palette_Is_Open (Model), "filter focus closes command palette");
+      Assert (not Files.Model.Command_Palette.Is_Open (Model), "filter focus closes command palette");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_Filter_Input,
@@ -36,7 +37,7 @@ separate (Files_Suite.Commands)
         (Result.Command,
          Files.Commands.Open_Command_Palette_Command,
          "Control+P routes through command registry from filter input");
-      Assert (Files.Model.Command_Palette_Is_Open (Model), "Control+P opens palette from filter input");
+      Assert (Files.Model.Command_Palette.Is_Open (Model), "Control+P opens palette from filter input");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_Command_Palette,
@@ -46,5 +47,5 @@ separate (Files_Suite.Commands)
         (Result.Command,
          Files.Commands.Close_Command_Palette_Command,
          "Escape closes palette after filter shortcut");
-      Assert (not Files.Model.Command_Palette_Is_Open (Model), "palette closes before filter editing resumes");
+      Assert (not Files.Model.Command_Palette.Is_Open (Model), "palette closes before filter editing resumes");
    end Test_Filter_Focus_And_Palette;

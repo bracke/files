@@ -6,9 +6,9 @@ separate (Files.Controller)
    begin
       --  An overlay that owns the window refuses quietly: the command is not
       --  disabled, only out of place there.
-      if (Files.Model.Root_Selector_Is_Open (Model)
+      if (Files.Model.Root_Selector.Is_Open (Model)
           and then not Files.Commands.Allowed_With_Root_Selector (Id))
-        or else (Files.Model.Settings_Pane_Is_Open (Model)
+        or else (Files.Model.Settings_Pane.Is_Open (Model)
                  and then not Files.Commands.Allowed_With_Settings_Pane (Id))
       then
          return Make_Result (Controller_Ignored, Id);

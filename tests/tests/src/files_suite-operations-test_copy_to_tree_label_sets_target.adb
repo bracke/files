@@ -1,3 +1,4 @@
+with Files.Model.Tree_Panel;
 separate (Files_Suite.Operations)
    procedure Test_Copy_To_Tree_Label_Sets_Target (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -20,14 +21,14 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "a.txt");
 
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Copy_To_Command, Model, Settings);
-      Assert (Files.Model.Tree_Pick_Is_Active (Model), "the picker is active after the command");
+      Assert (Files.Model.Tree_Panel.Pick_Is_Active (Model), "the picker is active after the command");
 
       --  Reseed the tree with the destination as its only node so the label
       --  click has a deterministic target.
       Seeds.Append
         (Files.Folder_Tree.Entry_Seed'
            (Path => To_Unbounded_String (Dest_Dir), Name => To_Unbounded_String ("label-dest")));
-      Files.Model.Seed_Tree (Model, Seeds);
+      Files.Model.Tree_Panel.Seed (Model, Seeds);
 
       --  A label click (Toggle => False) while picking sets the target and must
       --  not navigate the main view away from the source directory.
@@ -37,12 +38,12 @@ separate (Files_Suite.Operations)
          Files.Controller.Controller_Command_Executed,
          "the label click is handled");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Tree_Pick_Target (Model),
+        (Files.Model.Tree_Panel.Pick_Target (Model),
          Dest_Dir,
          "the label click sets the highlighted target");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
          Src_Dir,
          "the label click does not navigate the main view");
-      Assert (Files.Model.Tree_Pick_Is_Active (Model), "the picker stays active after choosing a target");
+      Assert (Files.Model.Tree_Panel.Pick_Is_Active (Model), "the picker stays active after choosing a target");
    end Test_Copy_To_Tree_Label_Sets_Target;

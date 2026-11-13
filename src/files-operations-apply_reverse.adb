@@ -12,8 +12,10 @@ is
    --  (a rename keeps its identity), so a retry recognises it there.
    function Restored_In_Place
      (Targets, Identities : Files.Types.String_Vectors.Vector; Index : Positive) return Boolean is
-     (Index <= Targets.Last_Index and then Index <= Identities.Last_Index
-      and then Files.File_Identities.Token (To_String (Targets (Index))) = To_String (Identities (Index)));
+     (Files.Model.Value_At (Targets, Index) /= ""
+      and then Files.Model.Value_At (Identities, Index) /= ""
+      and then Files.File_Identities.Token (Files.Model.Value_At (Targets, Index))
+        = Files.Model.Value_At (Identities, Index));
    Restored  : Path_Sets.Set := To_Set (Action.Restores_Completed);
 begin
    --  Copies a failed move kept beside their sources leave first: before
@@ -26,12 +28,8 @@ begin
       end if;
       declare
          Target : constant String := To_String (Action.Kept_Copies (Index));
-         Identity : constant String :=
-           (if Index <= Action.Kept_Copy_Identities.Last_Index
-            then To_String (Action.Kept_Copy_Identities (Index)) else "");
-         Tree_Revision : constant String :=
-           (if Index <= Action.Kept_Copy_Tree_Revisions.Last_Index
-            then To_String (Action.Kept_Copy_Tree_Revisions (Index)) else "");
+         Identity : constant String := Files.Model.Kept_Copy_Identity (Action, Index);
+         Tree_Revision : constant String := Files.Model.Kept_Copy_Tree_Revision (Action, Index);
       begin
          if Reversed.Contains (Target) then
             null;
@@ -69,9 +67,9 @@ begin
                Succeeded := False;
             else
                --  Its labels come back out of the trash with it.
-               if Index <= Action.To.Last_Index then
+               if Files.Model.To_Value (Action, Index) /= "" then
                   Files.Model.Note_Path_Move
-                    (Model, To_String (Action.From (Index)), To_String (Action.To (Index)));
+                    (Model, To_String (Action.From (Index)), Files.Model.To_Value (Action, Index));
                end if;
                Action.Reverse_Completed.Append (Action.From.Element (Index));
                Reversed.Include (To_String (Action.From.Element (Index)));
@@ -93,24 +91,19 @@ begin
             end if;
             declare
                Target : constant String := To_String (Action.From.Element (Index));
-               Expected_Identity, Expected_Tree_Revision : Files.Types.UString;
+               Expected_Identity : constant String := Files.Model.Created_Identity (Action, Index);
+               Expected_Tree_Revision : constant String := Files.Model.Created_Tree_Revision (Action, Index);
             begin
-               if Index <= Action.Created_Identities.Last_Index then
-                  Expected_Identity := Action.Created_Identities (Index);
-               end if;
-               if Index <= Action.Created_Tree_Revisions.Last_Index then
-                  Expected_Tree_Revision := Action.Created_Tree_Revisions (Index);
-               end if;
                if Reversed.Contains (To_String (Action.From.Element (Index))) then
                   null;
                elsif Exists_Safely (Target)
-                 and then (Length (Expected_Identity) = 0
-                           or else Files.File_Identities.Token (Target) /= To_String (Expected_Identity))
+                 and then (Expected_Identity = ""
+                           or else Files.File_Identities.Token (Target) /= Expected_Identity)
                then
                   Succeeded := False;
                elsif Exists_Safely (Target)
                  and then not Files.File_System.Delete_Created_Entry
-                   (Target, To_String (Expected_Identity), To_String (Expected_Tree_Revision)).Success
+                   (Target, Expected_Identity, Expected_Tree_Revision).Success
                then
                   Succeeded := False;
                else
@@ -129,27 +122,22 @@ begin
             if Files.Job_Context.Cancelled then
                return False;
             end if;
-            if Index > Action.To.Last_Index then
-               --  Malformed entry: To shorter than From. Fail this item
-               --  rather than index out of range (mirrors the forward guard).
-               Succeeded := False;
-            else
-               declare
-
-                  Old_Text : constant String :=
-                    Ada.Strings.Fixed.Trim (To_String (Action.To.Element (Index)), Ada.Strings.Both);
-                  Old_Mode : Natural := 0;
-               begin
-                  --  The access record, where one was kept, is put back
-                  --  whole: on Windows the DACL the change replaced.
-                  if not Files.Undo_Payloads.Parse_Mode (Old_Text, Old_Mode)
-                    or else not Change_Recorded_Mode
-                      (Action, Index, Old_Mode, Files.Undo_Payloads.Mode_Access (Old_Text))
-                  then
-                     Succeeded := False;
-                  end if;
-               end;
-            end if;
+            declare
+               --  A malformed entry (To shorter than From) reads "", which
+               --  does not parse: that item fails.
+               Old_Text : constant String :=
+                 Ada.Strings.Fixed.Trim (Files.Model.To_Value (Action, Index), Ada.Strings.Both);
+               Old_Mode : Natural := 0;
+            begin
+               --  The access record, where one was kept, is put back
+               --  whole: on Windows the DACL the change replaced.
+               if not Files.Undo_Payloads.Parse_Mode (Old_Text, Old_Mode)
+                 or else not Change_Recorded_Mode
+                   (Action, Index, Old_Mode, Files.Undo_Payloads.Mode_Access (Old_Text))
+               then
+                  Succeeded := False;
+               end if;
+            end;
          end loop;
 
       when Files.Model.Undo_Set_Ownership =>
@@ -159,33 +147,28 @@ begin
             if Files.Job_Context.Cancelled then
                return False;
             end if;
-            if Index > Action.To.Last_Index then
-               Succeeded := False;
-            else
-               declare
-
-                  Old_Text : constant String :=
-                    Ada.Strings.Fixed.Trim (To_String (Action.To.Element (Index)), Ada.Strings.Both);
-                  Old_Uid  : Files.Types.Account_Id := 0;
-                  Old_Gid  : Files.Types.Account_Id := 0;
-                  Old_User_Name, Old_Group_Name : Files.Types.UString;
-               begin
-                  if Parse_Ownership_Text
-                    (Old_Text, Old_Uid, Old_Gid,
-                     Old_User_Name, Old_Group_Name)
+            declare
+               Old_Text : constant String :=
+                 Ada.Strings.Fixed.Trim (Files.Model.To_Value (Action, Index), Ada.Strings.Both);
+               Old_Uid  : Files.Types.Account_Id := 0;
+               Old_Gid  : Files.Types.Account_Id := 0;
+               Old_User_Name, Old_Group_Name : Files.Types.UString;
+            begin
+               if Parse_Ownership_Text
+                 (Old_Text, Old_Uid, Old_Gid,
+                  Old_User_Name, Old_Group_Name)
+               then
+                  if not Change_Recorded_Ownership
+                    (Action, Index, Old_Uid, Old_Gid,
+                     To_String (Old_User_Name),
+                     To_String (Old_Group_Name))
                   then
-                     if not Change_Recorded_Ownership
-                       (Action, Index, Old_Uid, Old_Gid,
-                        To_String (Old_User_Name),
-                        To_String (Old_Group_Name))
-                     then
-                        Succeeded := False;
-                     end if;
-                  else
                      Succeeded := False;
                   end if;
-               end;
-            end if;
+               else
+                  Succeeded := False;
+               end if;
+            end;
          end loop;
 
       when Files.Model.Undo_None =>

@@ -10,7 +10,7 @@ with Files.File_Identities;
 with Files.Fs_Primitives;
 with Files.Durable_Writes;
 with Files.Private_Directories;
-with Files.UTF8;
+with Guikit.Utf8;
 
 package body Files.Settings is
    use Ada.Strings.Unbounded;

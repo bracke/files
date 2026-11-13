@@ -39,7 +39,7 @@ is
       return Result;
    end Probed_Destinations;
 begin
-   if Files.Model.Paste_Execution_Is_Active (Model) or else Files.Model.Paste_Conflict_Is_Active (Model) then
+   if Files.Model.Pasting.Execution_Is_Active (Model) or else Files.Model.Pasting.Conflict_Is_Active (Model) then
       return Make_Result (Operation_Disabled, Path => Directory);
    end if;
    if Source_Paths.Is_Empty then
@@ -95,7 +95,7 @@ begin
          end;
       else
          --  Collisions remain: arm the conflict dialog and write nothing yet.
-         Files.Model.Begin_Paste_Conflict (Model, Work, Existing, Mode, Conflict, From_Clipboard);
+         Files.Model.Pasting.Begin_Conflict (Model, Work, Existing, Mode, Conflict, From_Clipboard);
          Files.Model.Set_Error (Model, "");
          return Make_Result (Operation_Success, Path => Directory);
       end if;

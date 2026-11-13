@@ -7,12 +7,12 @@ function Resolve_Paste_Conflict
    return Operation_Result
 is
 begin
-   if not Files.Model.Paste_Conflict_Is_Active (Model) then
+   if not Files.Model.Pasting.Conflict_Is_Active (Model) then
       return Disabled (Model, "error.selection.empty");
    end if;
 
    if Choice = Choice_Cancel then
-      Files.Model.Clear_Paste_Conflict (Model);
+      Files.Model.Pasting.Clear_Conflict (Model);
       Files.Model.Set_Error (Model, "");
       return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
    end if;
@@ -26,7 +26,7 @@ begin
            when Choice_Cancel  => Files.Paste.Decision_Skip);
    begin
       if Apply_All then
-         Files.Model.Set_Paste_Conflict_Policy
+         Files.Model.Pasting.Set_Conflict_Policy
            (Model,
             (case Choice is
                when Choice_Replace => Files.Paste.Policy_Replace_All,
@@ -34,14 +34,14 @@ begin
                when Choice_Rename  => Files.Paste.Policy_Rename_All,
                when Choice_Cancel  => Files.Paste.Policy_Skip_All));
       else
-         Files.Model.Set_Paste_Conflict_Override
-           (Model, Files.Model.Paste_Conflict_Of (Model).Index, Decision);
+         Files.Model.Pasting.Set_Conflict_Override
+           (Model, Files.Model.Pasting.Conflict_Of (Model).Index, Decision);
       end if;
    end;
 
    declare
       --  Read after the choice above was recorded.
-      Conflict : constant Files.Model.Paste_Conflict_State := Files.Model.Paste_Conflict_Of (Model);
+      Conflict : constant Files.Model.Paste_Conflict_State := Files.Model.Pasting.Conflict_Of (Model);
       Work     : constant Files.Paste.Work_Item_Vectors.Vector := Conflict.Items;
       Existing : constant Files.Types.String_Vectors.Vector :=
         Conflict.Existing;
@@ -54,7 +54,7 @@ begin
         Files.Paste.Next_Unresolved_Conflict (Work, Policy, Overrides, Existing);
    begin
       if Next /= 0 then
-         Files.Model.Set_Paste_Conflict_Index (Model, Next);
+         Files.Model.Pasting.Set_Conflict_Index (Model, Next);
          return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
       end if;
 
@@ -67,14 +67,14 @@ begin
                   (if Work.Is_Empty then "" else To_String (Work.First_Element.Dest_Dir)));
          --  Carry the clipboard-clearing intent (clipboard paste vs
          --  drag-and-drop) captured when the conflict dialog was armed, since
-         --  Clear_Paste_Conflict below resets it.
+         --  Pasting.Clear_Conflict below resets it.
          Clears_Clipboard : constant Boolean :=
            Conflict.Clears_Clipboard;
       begin
          --  Leave the conflict sub-mode, arm the resumable execution over the
          --  resolved actions, and run the first batch (small pastes finish
          --  here; larger ones continue under the render loop).
-         Files.Model.Clear_Paste_Conflict (Model);
+         Files.Model.Pasting.Clear_Conflict (Model);
          Files.Operations.Begin_Paste_Execution (Model, Actions, Mode, Clears_Clipboard);
          return Advance_Paste_Execution (Model, Settings, Paste_Execution_First_Batch);
       end;

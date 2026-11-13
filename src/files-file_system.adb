@@ -19,7 +19,7 @@ with Hostkit.Metadata;
 with Hostkit.Fs;
 with Hostkit.Host;
 with Hostkit.Regular_Files;
-with Files.UTF8;
+with Guikit.Utf8.Editing;
 with Files.Leaf_Names;
 with Files.File_System.Support;
 with Files.File_System.Thumbnails;
@@ -806,7 +806,7 @@ package body Files.File_System is
       Settings  : Files.Settings.Settings_Model)
       return Recursive_Search_Result is separate;
 
-   function Search_Recursive
+   function Search_Names
      (Root_Path : String;
       Query     : String;
       Settings  : Files.Settings.Settings_Model;

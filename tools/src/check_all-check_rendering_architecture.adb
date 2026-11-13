@@ -58,8 +58,7 @@ separate (Check_All)
           To_Unbounded_String ("Files.File_Types"),
           To_Unbounded_String ("Files.Fonts"),
           To_Unbounded_String ("Files.Localization"),
-          To_Unbounded_String ("Files.UI"),
-          To_Unbounded_String ("Files.UTF8")]);
+          To_Unbounded_String ("Files.UI")]);
       --  Hit-testing stays pure geometry: it may import only the domain UI
       --  layout it maps pixels through (the body is also covered above as a
       --  files-rendering-* source).
@@ -96,13 +95,20 @@ separate (Check_All)
             To_Unbounded_String ("Files.Items"),
             To_Unbounded_String ("Files.Localization"),
             To_Unbounded_String ("Files.Model"),
+            To_Unbounded_String ("Files.Model.Clipboard"),
+            To_Unbounded_String ("Files.Model.Context_Menu"),
+            To_Unbounded_String ("Files.Model.Label_Picker"),
+            To_Unbounded_String ("Files.Model.Pasting"),
+            To_Unbounded_String ("Files.Model.Quick_Look"),
+            To_Unbounded_String ("Files.Model.Root_Selector"),
+            To_Unbounded_String ("Files.Model.Sort_Menu"),
+            To_Unbounded_String ("Files.Model.Tree_Panel"),
             To_Unbounded_String ("Files.Quick_Look"),
             To_Unbounded_String ("Files.Root_Labels"),
             To_Unbounded_String ("Files.Settings"),
             To_Unbounded_String ("Files.Shared_Bytes"),
             To_Unbounded_String ("Files.Types"),
-            To_Unbounded_String ("Files.UI"),
-            To_Unbounded_String ("Files.UTF8")];
+            To_Unbounded_String ("Files.UI")];
       begin
          Ada.Directories.Start_Search
            (Search, Root & "/src", "files-rendering-*.adb", [Ada.Directories.Ordinary_File => True, others => False]);

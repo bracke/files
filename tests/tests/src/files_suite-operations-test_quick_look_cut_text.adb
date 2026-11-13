@@ -1,4 +1,4 @@
-with Files.UTF8;
+with Guikit.Utf8;
 separate (Files_Suite.Operations)
    --  A text file longer than the preview's byte cap shows as truncated even
    --  with few lines, and the text shown never ends inside a cut-off line or
@@ -45,7 +45,7 @@ separate (Files_Suite.Operations)
          Assert (Content.Text_Truncated, "a file cut at the byte cap is truncated, with only three lines");
          Files_Suite.Support.Assert_Equal
            (Natural (Content.Text_Lines.Length), 1, "the line the cap cut off is not shown");
-         Assert (Files.UTF8.Is_Valid (To_String (Content.Text_Lines.Last_Element)),
+         Assert (Guikit.Utf8.Is_Valid (To_String (Content.Text_Lines.Last_Element)),
                  "the last shown text is whole UTF-8");
       end;
 
@@ -61,7 +61,7 @@ separate (Files_Suite.Operations)
            (Natural (Content.Text_Lines.Length), 1, "the only line is kept");
          Assert (Length (Content.Text_Lines.Last_Element) > 0
                  and then Length (Content.Text_Lines.Last_Element) mod 3 = 0
-                 and then Files.UTF8.Is_Valid (To_String (Content.Text_Lines.Last_Element)),
+                 and then Guikit.Utf8.Is_Valid (To_String (Content.Text_Lines.Last_Element)),
                  "the only line ends on a whole character");
       end;
 

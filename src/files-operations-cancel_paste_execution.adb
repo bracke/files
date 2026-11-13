@@ -3,7 +3,7 @@ procedure Cancel_Paste_Execution
   (Model : in out Files.Model.Window_Model) is
    Requested : Boolean := True;
 begin
-   if not Files.Model.Paste_Execution_Is_Active (Model) then
+   if not Files.Model.Pasting.Execution_Is_Active (Model) then
       return;
    end if;
    --  Each cancel can fail (Process_Jobs refuses when it cannot write a
@@ -12,7 +12,7 @@ begin
    --  UI said "cancelled" while the helper ran to completion, and a second
    --  Cancel was never possible.
    begin
-      Files.Transfer_Jobs.Cancel (Files.Model.Paste_Job (Model));
+      Files.Transfer_Jobs.Cancel (Files.Model.Pasting.Job (Model));
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Operations");
@@ -25,5 +25,5 @@ begin
          Files.Diagnostics.Note (Swallowed, "Files.Operations");
          Requested := False;
    end;
-   Files.Model.Set_Paste_Cancelled (Model, Requested);
+   Files.Model.Pasting.Set_Cancelled (Model, Requested);
 end Cancel_Paste_Execution;

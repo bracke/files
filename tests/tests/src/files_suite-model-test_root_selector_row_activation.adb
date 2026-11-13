@@ -1,4 +1,5 @@
 with Files.Controller.Testing;
+with Files.Model.Root_Selector;
 separate (Files_Suite.Model)
    procedure Test_Root_Selector_Row_Activation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -16,8 +17,8 @@ separate (Files_Suite.Model)
       Roots_A.Append (To_Unbounded_String (Target));
       Roots_A.Append (To_Unbounded_String (Ada.Directories.Full_Name (Root)));
       --  Row 2 is Target.
-      Files.Model.Open_Root_Selector (Model, Roots_A);
-      Files.Model.Set_Root_Selected_Index (Model, 2);
+      Files.Model.Root_Selector.Open (Model, Roots_A);
+      Files.Model.Root_Selector.Set_Selected_Index (Model, 2);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
@@ -35,10 +36,10 @@ separate (Files_Suite.Model)
       Files.Model.Initialize (Model, Root, Sample_Items, Root);
       Roots_A.Clear;
       Roots_A.Append (To_Unbounded_String (Target));
-      Files.Model.Open_Root_Selector (Model, Roots_A);
+      Files.Model.Root_Selector.Open (Model, Roots_A);
       Files.Model.Focus_Path_Input (Model);
       Files.Controller.Testing.Replace_Focused_Text (Model, "/tmp/root-click-edit");
-      Files.Model.Open_Root_Selector (Model, Roots_A);
+      Files.Model.Root_Selector.Open (Model, Roots_A);
       Result := Files.Controller.Handle_Root_Click (Model, Settings, Root_Index => 1);
       Files_Suite.Support.Assert_Equal
         (Result.Command,

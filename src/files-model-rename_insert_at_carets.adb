@@ -12,15 +12,15 @@ begin
       return False;
    end if;
 
-   for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
+   for Index in Model.Rename.Fields.First_Index .. Model.Rename.Fields.Last_Index loop
       declare
-         Field : Rename_Field := Model.Rename_Fields.Element (Index);
+         Field : Rename_Field := Model.Rename.Fields.Element (Index);
          Old   : constant String := To_String (Field.Value);
          Base  : constant Natural := Natural'Min (Field.Cursor, Old'Length);
       begin
          Field.Value := To_Unbounded_String (Insert_Text_At (Old, Base, Text));
          Field.Cursor := Base + Text'Length;
-         Model.Rename_Fields.Replace_Element (Index, Field);
+         Model.Rename.Fields.Replace_Element (Index, Field);
          Sync_Temporary_From_Field (Model, Field);
          Changed := True;
       end;

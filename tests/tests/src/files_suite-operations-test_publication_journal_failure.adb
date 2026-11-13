@@ -60,7 +60,7 @@ separate (Files_Suite.Operations)
                         Files.Operations.Operation_Success,
                         "paste completion reports the committed mutation accurately: status");
                      Assert
-                       (not Files.Model.Paste_Execution_Is_Active (Model),
+                       (not Files.Model.Pasting.Execution_Is_Active (Model),
                         "paste completion reports the committed mutation accurately: paste finished");
                      Files_Suite.Support.Assert_Equal
                        (Files.Model.Last_Error_Key (Model),

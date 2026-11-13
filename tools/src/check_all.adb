@@ -690,8 +690,11 @@ procedure Check_All is
    --  on it to run the Windows and macOS backends on Linux, so it is held to
    --  the same rule: one known reader. A second one would let the override
    --  switch production behaviour where nobody reviewed it. Either name built
-   --  in pieces -- joined literals, or a string constant of the same unit
-   --  joined to one -- counts as read.
+   --  in pieces -- joined literals or characters, in parentheses or
+   --  qualified, or a string constant or variable of any unit in src/
+   --  (aliased, constrained, in a list, renamed, split over lines) joined to
+   --  one -- counts as read, and so does either name in any letter case:
+   --  Windows looks variables up regardless of case.
    procedure Check_Test_Hooks is separate;
 
    procedure Check_Crate_Structure is separate;

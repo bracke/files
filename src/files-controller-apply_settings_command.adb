@@ -13,7 +13,7 @@ begin
       when Files.Commands.Reset_Settings_Command =>
          --  The pane's Reset button: back to defaults, shortcuts included,
          --  and saved.
-         if not Files.Model.Settings_Pane_Is_Open (Model) then
+         if not Files.Model.Settings_Pane.Is_Open (Model) then
             return Settings_Closed_Result (Id, Model, Settings_Path);
          end if;
          Files.Settings_Form.Reset_To_Defaults (Model);
@@ -93,7 +93,7 @@ begin
               Apply_Settings_Change (Id, Model, Settings, Updated, Settings_Path)
             do
                --  Favorites are tree roots: a tree already shown follows.
-               if Files.Model.Tree_Is_Seeded (Model) then
+               if Files.Model.Tree_Panel.Is_Seeded (Model) then
                   Seed_Tree_If_Needed (Model, Settings);
                end if;
             end return;

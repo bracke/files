@@ -36,7 +36,7 @@ separate (Files.Rendering)
          Count : constant Natural := Natural (Src.Length);
       begin
          for I in 1 .. Count loop
-            Sum := Saturating_Add (Sum, Files.UTF8.Display_Units (To_String (Src.Element (I).Label)));
+            Sum := Saturating_Add (Sum, Guikit.Utf8.Display_Units (To_String (Src.Element (I).Label)));
             if I < Count then
                Sum := Saturating_Add (Sum, Sep_Cells);
             end if;
@@ -86,7 +86,7 @@ separate (Files.Rendering)
          for I in 1 .. Natural (Shown.Length) loop
             declare
                Seg        : constant Files.Breadcrumbs.Segment := Shown.Element (Positive (I));
-               Cells      : constant Natural := Files.UTF8.Display_Units (To_String (Seg.Label));
+               Cells      : constant Natural := Guikit.Utf8.Display_Units (To_String (Seg.Label));
                Seg_W      : constant Natural := Saturating_Multiply (Cells, Advance);
                Field_End  : constant Natural := Saturating_Add (Inner_X, Inner_W);
                Remaining  : constant Natural :=

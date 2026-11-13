@@ -1,3 +1,4 @@
+with Files.Model.Command_Palette;
 with Files.Commands.Status;
 with Ada.Strings.Unbounded;
 
@@ -22,10 +23,10 @@ package body Files.Command_Palette is
    is
       Result : Guikit.Command_Palette.Command_Vectors.Vector;
    begin
-      if Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Open_With then
+      if Files.Model.Command_Palette.Mode_Of (Model) = Files.Model.Palette_Open_With then
          declare
             Apps : constant Files.Desktop_Applications.Application_Vectors.Vector :=
-              Files.Model.Open_With_Applications (Model);
+              Files.Model.Command_Palette.Open_With_Applications (Model);
             Index : Natural := 0;
          begin
             for App of Apps loop
@@ -70,9 +71,9 @@ package body Files.Command_Palette is
      (Model : Files.Model.Window_Model)
       return Files.Commands.Command_Id
    is
-      Id : constant Natural := Files.Model.Palette_Selected_Id (Model);
+      Id : constant Natural := Files.Model.Command_Palette.Selected_Id (Model);
    begin
-      if Files.Model.Command_Palette_Mode_Of (Model) /= Files.Model.Palette_Commands
+      if Files.Model.Command_Palette.Mode_Of (Model) /= Files.Model.Palette_Commands
         or else Id > Files.Commands.Command_Id'Pos (Files.Commands.Command_Id'Last)
       then
          return Files.Commands.No_Command;

@@ -14,7 +14,12 @@ with Files.Command_Palette;
 with Files.Folder_Tree;
 with Files.Root_Labels;
 with Files.Settings_Form;
-with Files.UTF8;
+with Guikit.Utf8.Editing;
+with Files.Model.Command_Palette;
+with Files.Model.Root_Selector;
+with Files.Model.Settings_Pane;
+with Files.Model.Tree_Panel;
+with Files.Model.Pasting;
 
 package body Files.Controller is
    use Ada.Strings.Unbounded;
@@ -41,9 +46,9 @@ package body Files.Controller is
    --  focus has been cancelled without closing the overlay.
    function Text_Overlay_Rejects_Character_Input
      (Model : Files.Model.Window_Model) return Boolean is
-     (if Files.Model.Command_Palette_Is_Open (Model) then
+     (if Files.Model.Command_Palette.Is_Open (Model) then
          Files.Model.Focus (Model) /= Files.Types.Focus_Command_Palette
-      elsif Files.Model.Settings_Pane_Is_Open (Model) then
+      elsif Files.Model.Settings_Pane.Is_Open (Model) then
          Files.Model.Focus (Model) /= Files.Types.Focus_Settings_Input
       else
          False);
@@ -113,8 +118,8 @@ package body Files.Controller is
                   then To_Unbounded_String (Files.Root_Labels.Display_Label (Root))
                   else Root.Path)));
       end loop;
-      if not Files.Model.Tree_Is_Seeded (Model) or else not Files.Model.Tree_Roots_Match (Model, Seeds) then
-         Files.Model.Seed_Tree (Model, Seeds);
+      if not Files.Model.Tree_Panel.Is_Seeded (Model) or else not Files.Model.Tree_Panel.Roots_Match (Model, Seeds) then
+         Files.Model.Tree_Panel.Seed (Model, Seeds);
       end if;
    end Seed_Tree_If_Needed;
 
@@ -324,7 +329,7 @@ package body Files.Controller is
       Lines : Integer) is
    begin
       --  Wheel: a positive Lines advances (scrolls down) the selection.
-      Files.Model.Palette_Move_Selection (Model, Lines);
+      Files.Model.Command_Palette.Move_Selection (Model, Lines);
    end Scroll_Palette_Selection;
 
    procedure Replace_Focused_Text
@@ -339,12 +344,12 @@ package body Files.Controller is
          when Files.Types.Focus_Rename_Input =>
             Files.Model.Set_Rename_Text (Model, Text);
          when Files.Types.Focus_Command_Palette =>
-            Files.Model.Palette_Set_Query (Model, Text);
+            Files.Model.Command_Palette.Set_Query (Model, Text);
          when Files.Types.Focus_Settings_Input =>
-            Files.Model.Settings_Set_Focused_Value (Model, Text);
+            Files.Model.Settings_Pane.Set_Focused_Value (Model, Text);
             declare
                Saved : constant Boolean :=
-                 Files.Settings_Form.Apply (Model, Files.Model.Settings_Take_Change (Model));
+                 Files.Settings_Form.Apply (Model, Files.Model.Settings_Pane.Take_Change (Model));
                pragma Unreferenced (Saved);
             begin
                null;  --  text edits update the draft but persist on commit
@@ -368,9 +373,9 @@ package body Files.Controller is
          when Files.Types.Focus_Rename_Input =>
             return Files.Model.Rename_Text (Model);
          when Files.Types.Focus_Command_Palette =>
-            return Files.Model.Palette_Query (Model);
+            return Files.Model.Command_Palette.Query (Model);
          when Files.Types.Focus_Settings_Input =>
-            return Files.Model.Settings_Focused_Value (Model);
+            return Files.Model.Settings_Pane.Focused_Value (Model);
          when Files.Types.Focus_Ownership_Input =>
             return Files.Model.Ownership_Input_Text (Model);
          when Files.Types.Focus_None =>
@@ -388,7 +393,7 @@ package body Files.Controller is
 
    --  Delete the character, or By_Word the word, before (Delete_Backward) or
    --  after the caret of the focused text input; for rename, at every
-   --  synchronized caret. Both go through Files.UTF8.Delete_At.
+   --  synchronized caret. Both go through Guikit.Utf8.Editing.Delete_At.
    --
    --  @param Model Window model to update.
    --  @param Direction Which side of the caret to delete.
@@ -605,7 +610,7 @@ package body Files.Controller is
       Choice   : Files.Operations.Conflict_Choice)
       return Controller_Result is
    begin
-      if not Files.Model.Paste_Conflict_Is_Active (Model) then
+      if not Files.Model.Pasting.Conflict_Is_Active (Model) then
          return Make_Result (Controller_Ignored);
       end if;
       return Make_Result
@@ -615,17 +620,17 @@ package body Files.Controller is
              (Model     => Model,
               Settings  => Settings,
               Choice    => Choice,
-              Apply_All => Files.Model.Paste_Conflict_Apply_All (Model)));
+              Apply_All => Files.Model.Pasting.Conflict_Apply_All (Model)));
    end Handle_Conflict_Choice;
 
    function Handle_Conflict_Apply_All_Toggle
      (Model : in out Files.Model.Window_Model)
       return Controller_Result is
    begin
-      if not Files.Model.Paste_Conflict_Is_Active (Model) then
+      if not Files.Model.Pasting.Conflict_Is_Active (Model) then
          return Make_Result (Controller_Ignored);
       end if;
-      Files.Model.Toggle_Paste_Conflict_Apply_All (Model);
+      Files.Model.Pasting.Toggle_Conflict_Apply_All (Model);
       return Make_Result (Controller_Command_Executed);
    end Handle_Conflict_Apply_All_Toggle;
 
@@ -634,7 +639,7 @@ package body Files.Controller is
       Settings : Files.Settings.Settings_Model)
       return Controller_Result is
    begin
-      if not Files.Model.Paste_Execution_Is_Active (Model) then
+      if not Files.Model.Pasting.Execution_Is_Active (Model) then
          return Make_Result (Controller_Ignored);
       end if;
       Files.Operations.Cancel_Paste_Execution (Model);
@@ -754,11 +759,11 @@ package body Files.Controller is
       Root_Index : Positive)
       return Controller_Result is
    begin
-      Files.Model.Set_Root_Selected_Index (Model, Root_Index);
+      Files.Model.Root_Selector.Set_Selected_Index (Model, Root_Index);
       declare
-         Path : constant String := Files.Model.Root_Path (Model, Root_Index);
+         Path : constant String := Files.Model.Root_Selector.Path (Model, Root_Index);
          Kind : constant Files.File_System.Root_Kind :=
-           Files.Model.Root_Kind (Model, Root_Index);
+           Files.Model.Root_Selector.Kind (Model, Root_Index);
       begin
          --  A favorite may target a file or a stale path; ordinary roots are
          --  always directories and take the direct navigation path.
@@ -790,10 +795,10 @@ package body Files.Controller is
       Root_Index : Natural)
       return Controller_Result is
    begin
-      if not Files.Model.Root_Selector_Is_Open (Model)
+      if not Files.Model.Root_Selector.Is_Open (Model)
         or else Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Model.Root_Selector_Overlay)
         or else Root_Index = 0
-        or else Root_Index > Files.Model.Root_Count (Model)
+        or else Root_Index > Files.Model.Root_Selector.Count (Model)
       then
          return Make_Result (Controller_Ignored);
       end if;
@@ -863,7 +868,7 @@ package body Files.Controller is
                   Name => Item.Name));
          end if;
       end loop;
-      Files.Model.Tree_Set_Children (Model, Node_Index, Children);
+      Files.Model.Tree_Panel.Set_Children (Model, Node_Index, Children);
    end Load_Tree_Children;
 
    function Handle_Tree_Click
@@ -882,7 +887,7 @@ package body Files.Controller is
       return Controller_Result
    is
       Targets : constant Files.Types.String_Vectors.Vector :=
-        Files.Model.Open_With_Targets (Model);
+        Files.Model.Command_Palette.Open_With_Targets (Model);
       --  An application that runs in a terminal (Terminal=true) is started
       --  inside the one Open Terminal would open.
       Actions : constant Files.Desktop_Applications.Open_Action_Vectors.Vector :=
@@ -896,7 +901,7 @@ package body Files.Controller is
       Target_Path : constant Unbounded_String :=
         (if Targets.Is_Empty then Null_Unbounded_String else Targets.First_Element);
    begin
-      Files.Model.Close_Command_Palette (Model);
+      Files.Model.Command_Palette.Close (Model);
       Operation.Path := Target_Path;
       Operation.Action := Action;
 
@@ -940,7 +945,7 @@ package body Files.Controller is
       return Make_Result (Controller_Command_Executed, Files.Commands.Open_With_Command, Operation);
    end Launch_Application_Result;
 
-   --  Act on the palette's highlighted command (from Palette_Selected_Id):
+   --  Act on the palette's highlighted command (from Command_Palette.Selected_Id):
    --  launch the application in Open-With mode, otherwise execute the command,
    --  closing the palette on success (except Open_With, which re-opens the
    --  palette in application-picker mode).
@@ -950,12 +955,12 @@ package body Files.Controller is
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result
    is
-      Id : constant Natural := Files.Model.Palette_Selected_Id (Model);
+      Id : constant Natural := Files.Model.Command_Palette.Selected_Id (Model);
    begin
-      if Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Open_With then
+      if Files.Model.Command_Palette.Mode_Of (Model) = Files.Model.Palette_Open_With then
          declare
             Apps : constant Files.Desktop_Applications.Application_Vectors.Vector :=
-              Files.Model.Open_With_Applications (Model);
+              Files.Model.Command_Palette.Open_With_Applications (Model);
          begin
             if Id in 1 .. Natural (Apps.Length) then
                return Launch_Application_Result (Model, Apps.Element (Id));
@@ -975,7 +980,7 @@ package body Files.Controller is
          if Result.Status /= Controller_Ignored
            and then Command /= Files.Commands.Open_With_Command
          then
-            Files.Model.Close_Command_Palette (Model);
+            Files.Model.Command_Palette.Close (Model);
          end if;
          return Result;
       end;
@@ -1052,12 +1057,12 @@ package body Files.Controller is
       Rows  : Integer)
       return Controller_Result
    is
-      Old_Rows : constant Natural := Files.Model.Tree_Panel_Scroll_Rows (Model);
+      Old_Rows : constant Natural := Files.Model.Tree_Panel.Scroll_Rows (Model);
    begin
-      Files.Model.Scroll_Tree_Panel (Model, Rows);
+      Files.Model.Tree_Panel.Scroll (Model, Rows);
       return
         Make_Result
-          (if Files.Model.Tree_Panel_Scroll_Rows (Model) = Old_Rows
+          (if Files.Model.Tree_Panel.Scroll_Rows (Model) = Old_Rows
            then Controller_Ignored
            else Controller_Command_Executed);
    end Scroll_Tree_Result;
@@ -1067,7 +1072,7 @@ package body Files.Controller is
       Lines : Integer)
       return Controller_Result is
    begin
-      Files.Model.Settings_Scroll (Model, Lines);
+      Files.Model.Settings_Pane.Scroll (Model, Lines);
       return Make_Result (Controller_Command_Executed);
    end Scroll_Settings_Result;
 
@@ -1093,18 +1098,18 @@ package body Files.Controller is
    begin
       if Lines = 0 then
          return Make_Result (Controller_Ignored);
-      elsif Files.Model.Root_Selector_Is_Open (Model)
-        and then not Files.Model.Command_Palette_Is_Open (Model)
+      elsif Files.Model.Root_Selector.Is_Open (Model)
+        and then not Files.Model.Command_Palette.Is_Open (Model)
       then
          return Make_Result (Controller_Ignored);
-      elsif Files.Model.Command_Palette_Is_Open (Model) then
-         if Files.Model.Palette_Result_Count (Model) = 0 then
+      elsif Files.Model.Command_Palette.Is_Open (Model) then
+         if Files.Model.Command_Palette.Result_Count (Model) = 0 then
             return Make_Result (Controller_Ignored);
          else
             Scroll_Palette_Selection (Model, Lines);
             return Make_Result (Controller_Palette_Updated);
          end if;
-      elsif Files.Model.Settings_Pane_Is_Open (Model) then
+      elsif Files.Model.Settings_Pane.Is_Open (Model) then
          return Scroll_Settings_Result (Model, Lines);
       elsif Non_Text_Overlay_Owns_Input (Model) then
          --  Auto-targeted scrolling has no cursor geometry with which to find
@@ -1140,7 +1145,7 @@ package body Files.Controller is
      (Model : in out Files.Model.Window_Model)
       return Controller_Result is
    begin
-      if Files.Settings_Form.Apply (Model, Files.Model.Settings_Take_Change (Model)) then
+      if Files.Settings_Form.Apply (Model, Files.Model.Settings_Pane.Take_Change (Model)) then
          return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command);
       else
          return Make_Result (Controller_Text_Updated);
@@ -1161,15 +1166,15 @@ package body Files.Controller is
    --  the only keyboard path between sections -- Up/Down move field focus within
    --  the active section, never across tabs.
    procedure Cycle_Settings_Section (Model : in out Files.Model.Window_Model; Forward : Boolean) is
-      Count  : constant Natural := Files.Model.Settings_Section_Count (Model);
-      Active : constant Natural := Files.Model.Settings_Active_Section (Model);
+      Count  : constant Natural := Files.Model.Settings_Pane.Section_Count (Model);
+      Active : constant Natural := Files.Model.Settings_Pane.Active_Section (Model);
    begin
       if Count <= 1 then
          return;
       elsif Forward then
-         Files.Model.Settings_Set_Active_Section (Model, (if Active >= Count then 1 else Active + 1));
+         Files.Model.Settings_Pane.Set_Active_Section (Model, (if Active >= Count then 1 else Active + 1));
       else
-         Files.Model.Settings_Set_Active_Section (Model, (if Active <= 1 then Count else Active - 1));
+         Files.Model.Settings_Pane.Set_Active_Section (Model, (if Active <= 1 then Count else Active - 1));
       end if;
    end Cycle_Settings_Section;
 
@@ -1179,9 +1184,9 @@ package body Files.Controller is
       Y     : Integer)
       return Controller_Result is
    begin
-      if not Files.Model.Settings_Pane_Is_Open (Model)
+      if not Files.Model.Settings_Pane.Is_Open (Model)
         or else Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Model.Settings_Pane_Overlay)
-        or else not Files.Model.Settings_Click (Model, X, Y)
+        or else not Files.Model.Settings_Pane.Click (Model, X, Y)
       then
          return Make_Result (Controller_Ignored);
       end if;
@@ -1200,12 +1205,12 @@ package body Files.Controller is
       Direction : Guikit.Input.Navigation_Direction)
       return Controller_Result
    is
-      Old_Index : constant Natural := Files.Model.Root_Selected_Index (Model);
+      Old_Index : constant Natural := Files.Model.Root_Selector.Selected_Index (Model);
    begin
-      Files.Model.Move_Root_Selection (Model, Direction);
+      Files.Model.Root_Selector.Move_Selection (Model, Direction);
       return
         Make_Result
-          (if Files.Model.Root_Selected_Index (Model) = Old_Index
+          (if Files.Model.Root_Selector.Selected_Index (Model) = Old_Index
            then Controller_Ignored
            else Controller_Selection_Moved);
    end Root_Selection_Result;
@@ -1215,12 +1220,12 @@ package body Files.Controller is
       Index : Natural)
       return Controller_Result
    is
-      Old_Index : constant Natural := Files.Model.Root_Selected_Index (Model);
+      Old_Index : constant Natural := Files.Model.Root_Selector.Selected_Index (Model);
    begin
-      Files.Model.Set_Root_Selected_Index (Model, Index);
+      Files.Model.Root_Selector.Set_Selected_Index (Model, Index);
       return
         Make_Result
-          (if Files.Model.Root_Selected_Index (Model) = Old_Index
+          (if Files.Model.Root_Selector.Selected_Index (Model) = Old_Index
            then Controller_Ignored
            else Controller_Selection_Moved);
    end Root_Jump_Result;

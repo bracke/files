@@ -33,6 +33,6 @@ separate (Files_Suite.Operations)
         (Step.Status,
          Files.Operations.Operation_Success,
          "the one-item paste reports success");
-      Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the one-item paste clears its execution state");
+      Assert (not Files.Model.Pasting.Execution_Is_Active (Model), "the one-item paste clears its execution state");
       Assert (Ada.Directories.Exists (Dest), "the one item is copied to the destination");
    end Test_Paste_Execution_Small_Op;

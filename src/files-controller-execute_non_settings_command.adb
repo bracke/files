@@ -1,5 +1,7 @@
 with Files.Commands.Execution;
 with Files.Commands.Status;
+with Files.Model.Clipboard;
+with Files.Model.Quick_Look;
 separate (Files.Controller)
    function Execute_Non_Settings_Command
      (Id        : Files.Commands.Command_Id;
@@ -20,9 +22,9 @@ separate (Files.Controller)
          return Paths;
       end Selected_Paths;
    begin
-      if (Files.Model.Root_Selector_Is_Open (Model)
+      if (Files.Model.Root_Selector.Is_Open (Model)
           and then not Files.Commands.Allowed_With_Root_Selector (Id))
-        or else (Files.Model.Settings_Pane_Is_Open (Model)
+        or else (Files.Model.Settings_Pane.Is_Open (Model)
                  and then not Files.Commands.Allowed_With_Settings_Pane (Id))
         or else not Files.Commands.Status.Is_Enabled (Id, Model)
       then
@@ -56,12 +58,13 @@ separate (Files.Controller)
             declare
                Targets : constant Files.Types.String_Vectors.Vector := Selected_Paths;
             begin
-               --  Open_Command_Palette resets palette mode and targets, so
+               --  Command_Palette.Open resets palette mode and targets, so
                --  capture the selection into the model only afterwards.
-               Files.Model.Open_Command_Palette (Model);
-               Files.Model.Set_Open_With_Targets (Model, Targets);
-               Files.Model.Set_Open_With_Applications (Model, Files.Desktop_Applications.Available_Applications);
-               Files.Model.Set_Command_Palette_Mode (Model, Files.Model.Palette_Open_With);
+               Files.Model.Command_Palette.Open (Model);
+               Files.Model.Command_Palette.Set_Open_With_Targets (Model, Targets);
+               Files.Model.Command_Palette.Set_Open_With_Applications
+                 (Model, Files.Desktop_Applications.Available_Applications);
+               Files.Model.Command_Palette.Set_Mode (Model, Files.Model.Palette_Open_With);
                Files.Model.Set_Error (Model, "");
                Operation.Status := Files.Operations.Operation_Success;
             end;
@@ -70,11 +73,11 @@ separate (Files.Controller)
          when Files.Commands.Delete_Selected_Permanently_Command =>
             Operation := Files.Operations.Delete_Selected_Permanently (Model, Settings);
          when Files.Commands.Copy_Selected_Items_Command =>
-            Files.Model.Set_Clipboard (Model, Selected_Paths, Files.Model.Clipboard_Copy);
+            Files.Model.Clipboard.Set (Model, Selected_Paths, Files.Model.Clipboard_Copy);
             Files.Model.Set_Error (Model, "");
             Operation.Status := Files.Operations.Operation_Success;
          when Files.Commands.Cut_Selected_Items_Command =>
-            Files.Model.Set_Clipboard (Model, Selected_Paths, Files.Model.Clipboard_Cut);
+            Files.Model.Clipboard.Set (Model, Selected_Paths, Files.Model.Clipboard_Cut);
             Files.Model.Set_Error (Model, "");
             Operation.Status := Files.Operations.Operation_Success;
          when Files.Commands.Duplicate_Selected_Command =>
@@ -99,9 +102,9 @@ separate (Files.Controller)
             declare
                use type Files.Model.Clipboard_Mode;
                Paths : constant Files.Types.String_Vectors.Vector :=
-                 Files.Model.Clipboard_Paths (Model);
+                 Files.Model.Clipboard.Paths (Model);
                Mode  : constant Files.Model.Clipboard_Mode :=
-                 Files.Model.Clipboard_Mode_Of (Model);
+                 Files.Model.Clipboard.Mode_Of (Model);
                Drop_Mode : constant Files.File_System.Drop_Import_Mode :=
                  (if Mode = Files.Model.Clipboard_Cut
                   then Files.File_System.Drop_Move
@@ -117,20 +120,21 @@ separate (Files.Controller)
          when Files.Commands.Generate_Thumbnails_Command =>
             Operation := Files.Operations.Generate_Selected_Thumbnails (Model, Settings);
          when Files.Commands.Search_Recursive_Command =>
-            Operation := Files.Operations.Run_Recursive_Search (Model, Settings);
+            Operation := Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names);
          when Files.Commands.Search_Contents_Command =>
-            Operation := Files.Operations.Run_Content_Search (Model, Settings);
+            Operation := Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents);
          when Files.Commands.Refresh_Directory_Command =>
             Operation := Files.Operations.Refresh (Model, Settings);
          when Files.Commands.Open_Containing_Folder_Command =>
             return Reveal_Selected_Item (Model, Settings);
          when Files.Commands.Open_Selected_Root_Command =>
-            if not Files.Model.Root_Selector_Is_Open (Model)
-              or else Files.Model.Root_Selected_Index (Model) not in 1 .. Files.Model.Root_Count (Model)
+            if not Files.Model.Root_Selector.Is_Open (Model)
+              or else Files.Model.Root_Selector.Selected_Index (Model)
+                not in 1 .. Files.Model.Root_Selector.Count (Model)
             then
                return Make_Result (Controller_Ignored);
             end if;
-            return Open_Root (Model, Settings, Files.Model.Root_Selected_Index (Model));
+            return Open_Root (Model, Settings, Files.Model.Root_Selector.Selected_Index (Model));
          when Files.Commands.Eject_Selected_Root_Command =>
             Operation := Files.Operations.Eject_Selected_Root (Model);
          when Files.Commands.Create_File_Command =>
@@ -144,21 +148,21 @@ separate (Files.Controller)
                Files.File_System.Next_Untitled_Name (Files.Model.Current_Path (Model)));
             Files.Model.Set_Error (Model, "");
          when Files.Commands.Select_Drive_Command =>
-            if Files.Model.Root_Selector_Is_Open (Model) then
-               Files.Model.Close_Root_Selector (Model);
+            if Files.Model.Root_Selector.Is_Open (Model) then
+               Files.Model.Root_Selector.Close (Model);
             else
-               Files.Model.Open_Root_Selector (Model, Root_Entries_With_Favorites (Settings));
+               Files.Model.Root_Selector.Open (Model, Root_Entries_With_Favorites (Settings));
             end if;
             Files.Model.Set_Error (Model, "");
          when Files.Commands.Toggle_Folder_Tree_Command =>
-            if Files.Model.Tree_Pick_Is_Active (Model) then
+            if Files.Model.Tree_Panel.Pick_Is_Active (Model) then
                --  The picker's Cancel: leave the tree as it was before.
-               Files.Model.End_Tree_Pick (Model);
-            elsif Files.Model.Tree_Panel_Is_Open (Model) then
-               Files.Model.Close_Tree_Panel (Model);
+               Files.Model.Tree_Panel.End_Pick (Model);
+            elsif Files.Model.Tree_Panel.Is_Open (Model) then
+               Files.Model.Tree_Panel.Close (Model);
             else
                Seed_Tree_If_Needed (Model, Settings);
-               Files.Model.Open_Tree_Panel (Model);
+               Files.Model.Tree_Panel.Open (Model);
             end if;
             Files.Model.Set_Error (Model, "");
          when Files.Commands.Copy_To_Command | Files.Commands.Move_To_Command =>
@@ -170,10 +174,10 @@ separate (Files.Controller)
                   then Files.Model.Pick_Move
                   else Files.Model.Pick_Copy);
             begin
-               Files.Model.Begin_Tree_Pick
+               Files.Model.Tree_Panel.Begin_Pick
                  (Model, Mode, Selected_Paths, Files.Model.Current_Path (Model));
                Seed_Tree_If_Needed (Model, Settings);
-               Files.Model.Open_Tree_Panel (Model);
+               Files.Model.Tree_Panel.Open (Model);
                Files.Model.Set_Error (Model, "");
                Operation.Status := Files.Operations.Operation_Success;
             end;
@@ -181,10 +185,10 @@ separate (Files.Controller)
             --  Toggle the Quick Look overlay. Opening reads the bounded preview
             --  bytes (or classifies the image) so the overlay shows text/image
             --  content rather than the metadata-only pure fallback.
-            if Files.Model.Quick_Look_Is_Open (Model) then
-               Files.Model.Close_Quick_Look (Model);
+            if Files.Model.Quick_Look.Is_Open (Model) then
+               Files.Model.Quick_Look.Close (Model);
             else
-               Files.Model.Open_Quick_Look
+               Files.Model.Quick_Look.Open
                  (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selected_Item (Model)));
             end if;
             Files.Model.Set_Error (Model, "");
@@ -200,10 +204,10 @@ separate (Files.Controller)
                end if;
             end;
          when Files.Commands.Toggle_Settings_Pane_Command =>
-            if Files.Model.Settings_Pane_Is_Open (Model) then
-               Files.Model.Toggle_Settings_Pane (Model);
+            if Files.Model.Settings_Pane.Is_Open (Model) then
+               Files.Model.Settings_Pane.Toggle (Model);
             else
-               Files.Model.Begin_Settings_Edit (Model, Files.Settings.Make_Draft (Settings));
+               Files.Model.Settings_Pane.Begin_Edit (Model, Files.Settings.Make_Draft (Settings));
             end if;
          when Files.Commands.Settings_Command_Id =>
             --  Reported, not applied: changing the settings file needs its

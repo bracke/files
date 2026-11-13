@@ -12,7 +12,7 @@ is
    --  source went to a recovery stage. Only a vacated source makes the copy
    --  a move; otherwise undo must delete the copy, not move it back.
    function Source_Remains (Action : Files.Paste.Resolved_Action) return Boolean is
-     (Files.Model.Paste_Execution_Mode (Model) = Files.File_System.Drop_Move
+     (Files.Model.Pasting.Execution_Mode (Model) = Files.File_System.Drop_Move
       and then Files.Fs_Primitives.Entry_Exists (To_String (Action.Source_Path)));
 
    --  Start the current action in a helper when none runs, then poll it:
@@ -22,10 +22,10 @@ is
       Finished : out Boolean;
       Result   : out Files.Transfer_Jobs.Job_Result)
    is
-      Job : Files.Transfer_Jobs.Session := Files.Model.Paste_Job (Model);
+      Job : Files.Transfer_Jobs.Session := Files.Model.Pasting.Job (Model);
    begin
       if not Files.Transfer_Jobs.Active (Job) then
-         if Files.Model.Paste_Execution_Cancelled (Model) then
+         if Files.Model.Pasting.Execution_Cancelled (Model) then
             Finished := True;
             Result := (Cancelled => True, others => <>);
             return;
@@ -33,8 +33,8 @@ is
          begin
             Files.Transfer_Jobs.Start
               (Job,
-               Files.Model.Paste_Execution_Action (Model, Files.Model.Paste_Execution_Cursor (Model) + 1),
-               Files.Model.Paste_Execution_Mode (Model), Files.Model.Paste_Execution_Copy_Context (Model));
+               Files.Model.Pasting.Execution_Action (Model, Files.Model.Pasting.Execution_Cursor (Model) + 1),
+               Files.Model.Pasting.Execution_Mode (Model), Files.Model.Pasting.Execution_Copy_Context (Model));
          exception
             when Failure : others =>
                --  No helper (a process limit, a full temporary volume): the
@@ -48,13 +48,13 @@ is
                   others   => <>);
                return;
          end;
-         Files.Model.Set_Paste_Job (Model, Job);
-         Files.Model.Note_Paste_Action_Started (Model);
+         Files.Model.Pasting.Set_Job (Model, Job);
+         Files.Model.Pasting.Note_Action_Started (Model);
       end if;
       Files.Transfer_Jobs.Poll (Job, Finished, Result);
       if Finished then
          Files.Transfer_Jobs.Reset (Job);
-         Files.Model.Set_Paste_Job (Model, Job);
+         Files.Model.Pasting.Set_Job (Model, Job);
       end if;
    end Advance_Background_Paste;
 
@@ -62,23 +62,23 @@ begin
    if Files.Process_Jobs.Active (Files.Model.Background_Operation (Model)) then
       return Files.Operation_Jobs.Advance (Model, Settings);
    end if;
-   if not Files.Model.Paste_Execution_Is_Active (Model) then
+   if not Files.Model.Pasting.Execution_Is_Active (Model) then
       return Make_Result (Operation_Success, Path => Files.Model.Current_Path (Model));
    end if;
 
    while Processed < Max_Items
-     and then (not Files.Model.Paste_Execution_Cancelled (Model)
+     and then (not Files.Model.Pasting.Execution_Cancelled (Model)
                or else Files.Model.Background_Transfers (Model))
-     and then Files.Model.Paste_Execution_Cursor (Model)
-              < Files.Model.Paste_Execution_Action_Count (Model)
+     and then Files.Model.Pasting.Execution_Cursor (Model)
+              < Files.Model.Pasting.Execution_Action_Count (Model)
    loop
       declare
-         Index  : constant Positive := Files.Model.Paste_Execution_Cursor (Model) + 1;
+         Index  : constant Positive := Files.Model.Pasting.Execution_Cursor (Model) + 1;
          Action : constant Files.Paste.Resolved_Action :=
-           Files.Model.Paste_Execution_Action (Model, Index);
+           Files.Model.Pasting.Execution_Action (Model, Index);
       begin
          if Action.Skip then
-            Files.Model.Skip_Paste_Execution_Action (Model);
+            Files.Model.Pasting.Skip_Action (Model);
          elsif Files.Model.Background_Transfers (Model) then
             declare
                Finished : Boolean;
@@ -120,7 +120,7 @@ begin
                if Result.Recovered then
                   return Finalize_Paste_Execution (Model, Settings, "error.drop.failed");
                end if;
-               if Files.Model.Paste_Execution_Cancelled (Model) then
+               if Files.Model.Pasting.Execution_Cancelled (Model) then
                   return Finalize_Paste_Execution (Model, Settings, "");
                end if;
             end;
@@ -132,13 +132,13 @@ begin
                  Files.File_System.Import_Replacing
                    (Source                => To_String (Action.Source_Path),
                     Destination           => To_String (Action.Dest_Path),
-                    Mode                  => Files.Model.Paste_Execution_Mode (Model),
+                    Mode                  => Files.Model.Pasting.Execution_Mode (Model),
                     Replace               => Action.Replaced,
                     Replaced              => Replaced_Trash,
                     Replaced_Identity     => Replaced_Identity,
                     Created_Identity      => Created_Identity,
                     Created_Tree_Revision => Created_Tree_Revision,
-                    Batch                 => Files.Model.Paste_Execution_Copy_Context (Model));
+                    Batch                 => Files.Model.Pasting.Execution_Copy_Context (Model));
             begin
                --  An original still held after the action (the write
                --  succeeded, or neither it nor putting it back did) is
@@ -176,9 +176,9 @@ begin
       Processed := Processed + 1;
    end loop;
 
-   if Files.Model.Paste_Execution_Cancelled (Model)
-     or else Files.Model.Paste_Execution_Cursor (Model)
-             >= Files.Model.Paste_Execution_Action_Count (Model)
+   if Files.Model.Pasting.Execution_Cancelled (Model)
+     or else Files.Model.Pasting.Execution_Cursor (Model)
+             >= Files.Model.Pasting.Execution_Action_Count (Model)
    then
       return Finalize_Paste_Execution (Model, Settings, "");
    end if;

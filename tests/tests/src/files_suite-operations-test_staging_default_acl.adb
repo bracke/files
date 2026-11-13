@@ -12,7 +12,8 @@ separate (Files_Suite.Operations)
       Source : constant String := Join (Root, "source");
       Parent : constant String := Join (Root, "destination");
       Dest : constant String := Join (Parent, "copy");
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
@@ -89,8 +90,7 @@ separate (Files_Suite.Operations)
 
          procedure Cleanup is
          begin
-            Files.Model.Clear_Paste_Execution (Model);
-            Files.Refresh_Jobs.Cancel (Model);
+            Files_Suite.Support.Release (Paste);
          end Cleanup;
       begin
          Reset_Root;

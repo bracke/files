@@ -1,4 +1,5 @@
 with Files.Settings.Testing;
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Interaction)
    procedure Test_Settings_Command_Updates_Open_Pane (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,20 +18,20 @@ separate (Files_Suite.Interaction)
       end Run;
 
       function Shown (Setting : Files.Settings.Scalar_Setting) return String is
-        (Ada.Strings.Unbounded.To_String (Files.Model.Settings_Draft_Of (Model).Scalars (Setting)));
+        (Ada.Strings.Unbounded.To_String (Files.Model.Settings_Pane.Draft_Of (Model).Scalars (Setting)));
    begin
       Run (Files.Commands.Toggle_Settings_Pane_Command);
-      Assert (Files.Model.Settings_Pane_Is_Open (Model), "the settings pane is open");
+      Assert (Files.Model.Settings_Pane.Is_Open (Model), "the settings pane is open");
       Files_Suite.Support.Assert_Equal
         (Shown (Files.Settings.Show_Hidden_Files_Setting), "false", "the pane starts with hidden files off");
 
       --  Edit another field in the pane, then run a settings command over it.
       declare
-         Edited : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+         Edited : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
       begin
          Edited.Scalars (Files.Settings.Default_View_Mode_Setting) :=
            Ada.Strings.Unbounded.To_Unbounded_String ("details");
-         Files.Model.Set_Settings_Draft (Model, Edited);
+         Files.Model.Settings_Pane.Set_Draft (Model, Edited);
       end;
       Run (Files.Commands.Toggle_Hidden_Files_Command);
       Files_Suite.Support.Assert_Equal
@@ -44,7 +45,7 @@ separate (Files_Suite.Interaction)
       --  Saving the pane now writes the new value, not the one it opened with.
       declare
          Applied : constant Files.Settings.Settings_Parse_Result :=
-           Files.Settings.Apply_Draft (Settings, Files.Model.Settings_Draft_Of (Model));
+           Files.Settings.Apply_Draft (Settings, Files.Model.Settings_Pane.Draft_Of (Model));
       begin
          Assert (Applied.Settings.Show_Hidden_Files, "applying the pane keeps hidden files on");
       end;

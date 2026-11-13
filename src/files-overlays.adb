@@ -6,6 +6,8 @@ with Guikit.Settings_Panel;
 with Files.Localization;
 with Files.Settings;
 with Files.Settings_Form;
+with Files.Model.Command_Palette;
+with Files.Model.Settings_Pane;
 
 package body Files.Overlays is
 
@@ -40,17 +42,17 @@ package body Files.Overlays is
             Accessibility => Accessibility);
       end Draw;
    begin
-      Files.Model.Visit_Command_Palette
+      Files.Model.Command_Palette.Visit
         (Model,
          Region.Line_Height,
          Title       =>
            Files.Localization.Text
-             (if Files.Model.Command_Palette_Mode_Of (Model) = Files.Model.Palette_Open_With
+             (if Files.Model.Command_Palette.Mode_Of (Model) = Files.Model.Palette_Open_With
               then "command_palette.title.open_with"
               else "command_palette.title"),
          Empty_State => Files.Localization.Text ("command.palette.empty"),
          Close_Label => Files.Localization.Text ("command.action.close"),
-         Visit       => Draw'Access);
+         Draw        => Draw'Access);
    end Build_Palette_Frame;
 
    procedure Build_Settings_Frame
@@ -64,7 +66,7 @@ package body Files.Overlays is
       Accessibility : out Guikit.Draw.Accessibility_Node_Vectors.Vector)
    is
       Config : Guikit.Settings_Panel.Configuration;
-      Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+      Draft  : constant Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
 
       procedure Draw (Panel : in out Guikit.Settings_Panel.Panel) is
       begin
@@ -88,7 +90,7 @@ package body Files.Overlays is
       Config.Title := To_Unbounded_String (Files.Localization.Text ("settings.title"));
       Config.Switch_Tooltip := To_Unbounded_String (Files.Localization.Text ("settings.tabs.hint"));
       Config.Close_Label := To_Unbounded_String (Files.Localization.Text ("command.action.close"));
-      if Files.Model.Settings_Panel_Capturing (Model) then
+      if Files.Model.Settings_Pane.Panel_Capturing (Model) then
          --  While a chord is being captured, the footer prompts for input
          --  instead of showing any pending validation error.
          Config.Status := To_Unbounded_String (Files.Localization.Text ("settings.shortcut.capturing"));
@@ -96,7 +98,7 @@ package body Files.Overlays is
          Config.Status := To_Unbounded_String (Files.Localization.Text (To_String (Draft.Error_Key)));
          Config.Status_Is_Error := True;
       end if;
-      Files.Model.Visit_Settings_Panel (Model, Config, Files.Settings_Form.Fields (Model), Draw'Access);
+      Files.Model.Settings_Pane.Visit (Model, Config, Files.Settings_Form.Fields (Model), Draw'Access);
    end Build_Settings_Frame;
 
 end Files.Overlays;

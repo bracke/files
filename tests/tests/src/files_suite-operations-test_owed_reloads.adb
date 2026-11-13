@@ -29,10 +29,7 @@ separate (Files_Suite.Operations)
       Step := Files.Operations.Duplicate_Selected (Model, Settings);
       Await_Job (Files.Model.Background_Operation (Model), "the duplicate helper finishes");
       Files.Model.Set_Error (Model, "error.undo.failed");
-      for Attempt in Files_Suite.Support.Polling loop
-         Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-         exit when not Files.Model.Paste_Execution_Is_Active (Model);
-      end loop;
+      Step := Files_Suite.Support.Finish_Paste (Model, Settings);
       Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "the duplicate completes");
       Await_View (Model, Settings);
       Files_Suite.Support.Assert_Equal

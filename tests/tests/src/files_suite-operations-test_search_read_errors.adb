@@ -2,7 +2,9 @@ separate (Files_Suite.Operations)
    procedure Test_Search_Read_Errors (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
@@ -27,8 +29,8 @@ separate (Files_Suite.Operations)
                    when others => Join (Root, "needle.txt")));
                Mutation := Files.File_System.Set_Permissions (To_String (Denied), 0);
                Assert (Mutation.Success, "make the search input unreadable");
-               Step := (if Contents then Files.Operations.Run_Content_Search (Model, Settings)
-                        else Files.Operations.Run_Recursive_Search (Model, Settings));
+               Step := (if Contents then Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents)
+                        else Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names));
                Step := Complete_Operation (Model, Settings, Step);
                Mutation := Files.File_System.Set_Permissions (To_String (Denied), 8#755#);
                if Case_Id = 1 then
@@ -119,6 +121,5 @@ separate (Files_Suite.Operations)
          if Length (Denied) > 0 then
             Mutation := Files.File_System.Set_Permissions (To_String (Denied), 8#755#);
          end if;
-         Files.Model.Clear_Paste_Execution (Model);
          raise;
    end Test_Search_Read_Errors;

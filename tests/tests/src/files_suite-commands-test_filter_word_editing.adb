@@ -59,7 +59,7 @@ separate (Files_Suite.Commands)
          Files.Controller.Controller_Ignored,
          "Control+Backspace at start is ignored");
       Files_Suite.Support.Assert_Equal
-        (Files.UTF8.Word_Separator_Length ("x", Natural'Last),
+        (Guikit.Utf8.Editing.Word_Separator_Length ("x", Natural'Last),
          0,
          "word-separator lookup rejects an extreme out-of-range offset without raising");
       declare
@@ -68,13 +68,13 @@ separate (Files_Suite.Commands)
             Character'Val (16#80#)];
       begin
          Files_Suite.Support.Assert_Equal
-           (Files.UTF8.Next_Boundary (Malformed, 0), 1,
+           (Guikit.Utf8.Editing.Next_Boundary (Malformed, 0), 1,
             "overlong UTF-8 bytes remain separate cursor and deletion units (next from 0)");
          Files_Suite.Support.Assert_Equal
-           (Files.UTF8.Next_Boundary (Malformed, 1), 2,
+           (Guikit.Utf8.Editing.Next_Boundary (Malformed, 1), 2,
             "overlong UTF-8 bytes remain separate cursor and deletion units (next from 1)");
          Files_Suite.Support.Assert_Equal
-           (Files.UTF8.Previous_Boundary (Malformed, 3), 2,
+           (Guikit.Utf8.Editing.Previous_Boundary (Malformed, 3), 2,
             "overlong UTF-8 bytes remain separate cursor and deletion units (previous from 3)");
       end;
       Files.Controller.Testing.Replace_Focused_Text (Model, "beta");

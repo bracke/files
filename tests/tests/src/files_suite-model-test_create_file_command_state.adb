@@ -1,6 +1,8 @@
 with Files.File_System.Testing;
 with Files.Items;
 with Files.Commands.Status;
+with Files.Model.Command_Palette;
+with Files.Model.Root_Selector;
 separate (Files_Suite.Model)
    procedure Test_Create_File_Command_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -13,16 +15,16 @@ separate (Files_Suite.Model)
       Write_File (Join (Root, "untitled.txt"));
       Write_File (Join (Root, "untitled 2.txt"));
       Files.Model.Initialize (Model, Root, Items, Root);
-      Files.Model.Open_Root_Selector (Model, Files.File_System.Testing.Available_Roots);
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Root_Selector.Open (Model, Files.File_System.Testing.Available_Roots);
+      Files.Model.Command_Palette.Open (Model);
       Files.Model.Begin_Create_File (Model, "draft.txt");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "direct create adds temporary item");
-      Assert (not Files.Model.Root_Selector_Is_Open (Model), "direct create closes stale root selector");
+      Assert (not Files.Model.Root_Selector.Is_Open (Model), "direct create closes stale root selector");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Root_Count (Model),
+        (Files.Model.Root_Selector.Count (Model),
          0,
          "direct create clears stale root selector entries");
-      Assert (not Files.Model.Command_Palette_Is_Open (Model), "direct create closes stale command palette");
+      Assert (not Files.Model.Command_Palette.Is_Open (Model), "direct create closes stale command palette");
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Set_Filter (Model, "does-not-match-untitled");
       Files.Model.Set_Error (Model, "error.path.missing");

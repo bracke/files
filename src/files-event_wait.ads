@@ -1,9 +1,9 @@
 with Ada.Real_Time;
 
---  How long the event loop may sleep waiting for input, decided from what a
---  window has pending rather than from the window itself, so the suite can
---  check it without one. Files.Application.Windows.Event_Loop_Wait folds it
---  over every open window, starting from the loop's normal wait.
+--  How long the event loop may sleep waiting for input, decided from what
+--  the windows have pending rather than from the windows themselves, so the
+--  suite can check it without one. Files.Application.Windows.Event_Loop_Wait
+--  only gathers each open window's pending work and asks Fold.
 package Files.Event_Wait is
 
    --  What one window has pending that may cut the wait short.
@@ -12,10 +12,13 @@ package Files.Event_Wait is
       --  progress is polled, not posted as an event.
       Background_Paste : Boolean := False;
       --  When the oldest queued mouse change may be handled
-      --  (Files.Mouse_Buttons.Ready_At): the end of the debounce window of
+      --  (Guikit.Input.Mouse_Buttons.Ready_At): the end of the debounce window of
       --  a held-back left release, Time_Last for an empty queue.
       Mouse_Ready : Ada.Real_Time.Time := Ada.Real_Time.Time_Last;
    end record;
+
+   --  What every open window has pending, one entry a window.
+   type Pending_List is array (Positive range <>) of Window_Pending;
 
    --  The wait one window allows.
    --
@@ -31,6 +34,23 @@ package Files.Event_Wait is
    function Window_Wait
      (Now     : Ada.Real_Time.Time;
       Pending : Window_Pending;
+      Limit   : Duration;
+      Prompt  : Duration)
+      return Duration;
+
+   --  The wait all windows allow: Window_Wait folded over Windows, each
+   --  window's answer the next one's limit, so the shortest wins.
+   --
+   --  @param Now The current time.
+   --  @param Windows What each open window has pending.
+   --  @param Limit The loop's normal wait; the answer with no window, or
+   --    none with anything pending.
+   --  @param Prompt The short wait for work that is due now.
+   --  @return The shortest wait any window allows, at most Limit, never
+   --    negative.
+   function Fold
+     (Now     : Ada.Real_Time.Time;
+      Windows : Pending_List;
       Limit   : Duration;
       Prompt  : Duration)
       return Duration;

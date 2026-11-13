@@ -1,3 +1,4 @@
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Settings)
    procedure Test_Settings_Form_Mapping_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,10 +15,10 @@ separate (Files_Suite.Settings)
           Value => To_Unbounded_String (Value)));
 
       function Ext return String is
-        (To_String (Files.Model.Settings_Draft_Of (Model).Filetype_Extension));
+        (To_String (Files.Model.Settings_Pane.Draft_Of (Model).Filetype_Extension));
 
       function Count return Natural is
-        (Natural (Files.Model.Settings_Draft_Of (Model).Filetype_Keys.Length));
+        (Natural (Files.Model.Settings_Pane.Draft_Of (Model).Filetype_Keys.Length));
 
       function Ext_Label return String is
          Fields : constant SP.Field_Vectors.Vector := Files.Settings_Form.Fields (Model);
@@ -37,7 +38,7 @@ separate (Files_Suite.Settings)
       Draft.Filetype_Keys.Append (To_Unbounded_String ("md"));
       Draft.Filetype_Values.Append (To_Unbounded_String ("text/markdown"));
       Draft.Filetype_Index := 1;
-      Files.Model.Begin_Settings_Edit (Model, Draft);
+      Files.Model.Settings_Pane.Begin_Edit (Model, Draft);
 
       Files_Suite.Support.Assert_Equal
 
@@ -63,7 +64,7 @@ separate (Files_Suite.Settings)
       Files_Suite.Support.Assert_Equal (Count, 3, "Add appends a mapping entry");
       Assert
         (Files.Settings.Apply_Draft
-           (Files.Settings.Default_Settings, Files.Model.Settings_Draft_Of (Model)).Success,
+           (Files.Settings.Default_Settings, Files.Model.Settings_Pane.Draft_Of (Model)).Success,
          "a freshly added, still blank row does not block saving other settings");
 
       Saved := Files.Settings_Form.Apply (Model, Button ("remove"));

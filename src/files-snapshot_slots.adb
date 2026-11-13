@@ -1,5 +1,7 @@
 with Files.Snapshot_Policy;
 with Files.Timing;
+with Files.Model.Tree_Panel;
+with Files.Model.Pasting;
 
 package body Files.Snapshot_Slots is
 
@@ -17,7 +19,7 @@ package body Files.Snapshot_Slots is
            Same_Scroll   => View.Cached_Scroll_Revision = Files.Model.Scroll_Revision (Model),
            Same_Rows     => View.Cached_Rows_Revision = Files.Model.Rows_Revision (Model),
            Same_Row_Settings => Files.Settings.Same_Row_Settings (Settings, View.Cached_Settings_Key),
-           Pasting       => Files.Model.Paste_Execution_Is_Active (Model),
+           Pasting       => Files.Model.Pasting.Execution_Is_Active (Model),
            Paste_Interval_Elapsed =>
              Files.Timing.Elapsed (Now, View.Snapshot_Built_At, Paste_Progress_Interval));
       use type Files.Snapshot_Policy.Snapshot_Action;
@@ -44,7 +46,7 @@ package body Files.Snapshot_Slots is
             end if;
             View.Snapshots (View.Current_Slot).Main_View_Scroll_Lines := Files.Model.Main_View_Scroll_Lines (Model);
             View.Snapshots (View.Current_Slot).Info_Pane_Scroll_Lines := Files.Model.Info_Pane_Scroll_Lines (Model);
-            View.Snapshots (View.Current_Slot).Tree_Panel_Scroll_Rows := Files.Model.Tree_Panel_Scroll_Rows (Model);
+            View.Snapshots (View.Current_Slot).Tree_Panel_Scroll_Rows := Files.Model.Tree_Panel.Scroll_Rows (Model);
             View.Cached_Scroll_Revision := Files.Model.Scroll_Revision (Model);
          end if;
          return;

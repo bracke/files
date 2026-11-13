@@ -4,7 +4,9 @@ separate (Files_Suite.Operations)
       --  Puts the working directory back however the test ends.
       Cwd_Guard : Files_Suite.Support.Directory_Guard;
       Settings : Files.Settings.Settings_Model;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Archives : Files.Items.Item_Vectors.Vector;
@@ -114,9 +116,4 @@ separate (Files_Suite.Operations)
          Assert (Ada.Directories.Exists (Zip), "Undo removes only the newly extracted adjacent folders: archive kept");
          Ada.Directories.Set_Directory (Saved_Directory (Cwd_Guard));
       end loop;
-   exception
-      when others =>
-         Files.Model.Clear_Paste_Execution (Model);
-         Files.Refresh_Jobs.Cancel (Model);
-         raise;
    end Test_Recent_Archive_Destinations;

@@ -5,13 +5,13 @@ procedure Take_Undo
    Found  : out Boolean) is
 begin
    Touch (Model);
-   if Model.Undo_Stack.Is_Empty then
+   if Model.History.Undo_Stack.Is_Empty then
       Action := (others => <>);
       Found := False;
       return;
    end if;
 
-   Action := Model.Undo_Stack.Last_Element;
-   Model.Undo_Stack.Delete_Last;
+   Action := Model.History.Undo_Stack.Last_Element;
+   Model.History.Undo_Stack.Delete_Last;
    Found := True;
 end Take_Undo;

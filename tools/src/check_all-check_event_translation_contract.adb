@@ -3,12 +3,11 @@ separate (Check_All)
       Events_Spec : constant String := Root & "/src/files-events.ads";
       Events_Body : constant String := Root & "/src/files-events.adb";
 
-      --  Translation may only import Files.UTF8, Files.UI, and the pure
-      --  Files.Rendering.Hit geometry, which forbids the mutable model,
+      --  Of files' own units, translation may only import Files.UI and the
+      --  pure Files.Rendering.Hit geometry, which forbids the mutable model,
       --  filesystem-operation, and filesystem-inspection units.
       Body_Allowed : constant String_List :=
         [To_Unbounded_String ("Files.Rendering.Hit"),
-         To_Unbounded_String ("Files.UTF8"),
          To_Unbounded_String ("Files.UI")];
 
       --  Nor does it bind to foreign code itself: no import, export or
@@ -200,7 +199,7 @@ separate (Check_All)
       --  may import only these. A new import is a decision made here.
       Require_Only_Names_From
         ("files-model", "Files.Copy_Context",
-         [To_Unbounded_String ("Session"), To_Unbounded_String ("Empty_Session")],
+         [To_Unbounded_String ("Session"), To_Unbounded_String ("Empty_Session"), To_Unbounded_String ("Valid")],
          "the model makes no transport; Operations.Begin_Paste_Execution does");
       declare
          Search  : Ada.Directories.Search_Type;
@@ -229,8 +228,7 @@ separate (Check_All)
             To_Unbounded_String ("Files.Transfer_Jobs"),
             To_Unbounded_String ("Files.Type_Ahead"),
             To_Unbounded_String ("Files.Types"),
-            To_Unbounded_String ("Files.Undo_Payloads"),
-            To_Unbounded_String ("Files.UTF8")];
+            To_Unbounded_String ("Files.Undo_Payloads")];
       begin
          Ada.Directories.Start_Search
            (Search, Root & "/src", "files-model*.ad?", [Ada.Directories.Ordinary_File => True, others => False]);

@@ -18,7 +18,8 @@ separate (Files_Suite.Operations)
       function Dest return String is (Join (Remote.Path, "kept-destination"));
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Environment_Guard;
-      Model    : Files.Model.Window_Model;
+      Model    : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Mixed_Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       Step     : Files.Operations.Operation_Result;
@@ -27,7 +28,7 @@ separate (Files_Suite.Operations)
       begin
          Files.Durability.Testing.Clear;
          Ada.Environment_Variables.Set ("FILES_TEST_STAGE_SYNC_FAULT", "");
-         Files.Model.Clear_Paste_Execution (Model);
+         Files_Suite.Support.Release (Paste);
       end Cleanup;
    begin
       Reset_Root;
@@ -61,10 +62,7 @@ separate (Files_Suite.Operations)
             Ada.Environment_Variables.Set ("FILES_TEST_STAGE_SYNC_FAULT", "1");
             Files.Operations.Begin_Paste_Execution
               (Model, (if Mixed then Mixed_Actions else Actions), Files.File_System.Drop_Move);
-            for Attempt in Files_Suite.Support.Polling loop
-               Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-               exit when not Files.Model.Paste_Execution_Is_Active (Model);
-            end loop;
+            Step := Files_Suite.Support.Finish_Paste (Model, Settings);
             Cleanup;
             Assert (Step.Status = Files.Operations.Operation_Failed,
                     "the move fails, background " & Background'Image);

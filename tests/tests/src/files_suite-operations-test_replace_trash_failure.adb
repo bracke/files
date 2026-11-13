@@ -5,7 +5,9 @@ separate (Files_Suite.Operations)
       Source   : constant String := Join (Root, "replacement-source");
       Dest     : constant String := Join (Root, "replacement-original");
       Blocker  : constant String := Join (Root, "trash-blocker");
-      Model    : Files.Model.Window_Model;
+      Model    : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Step     : Files.Operations.Operation_Result;
@@ -31,11 +33,8 @@ separate (Files_Suite.Operations)
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Model.Set_Background_Transfers (Model, Background);
             Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
-            for Attempt in Files_Suite.Support.Polling loop
-               Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-               exit when not Files.Model.Paste_Execution_Is_Active (Model);
-            end loop;
-            Assert (not Files.Model.Paste_Execution_Is_Active (Model), "a failed Replace finishes its execution");
+            Step := Files_Suite.Support.Finish_Paste (Model, Settings);
+            Assert (not Files.Model.Pasting.Execution_Is_Active (Model), "a failed Replace finishes its execution");
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operations.Operation_Failed,
@@ -67,6 +66,5 @@ separate (Files_Suite.Operations)
    exception
       when others =>
          Files.File_Identities.Testing.Set_Unavailable (False);
-         Files.Model.Clear_Paste_Execution (Model);
          raise;
    end Test_Replace_Trash_Failure;

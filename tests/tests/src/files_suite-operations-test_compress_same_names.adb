@@ -17,7 +17,7 @@ separate (Files_Suite.Operations)
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Filter (Model, "readme");
-      Result := Files.Operations.Run_Recursive_Search (Model, Settings);
+      Result := Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names);
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "the search runs");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 2, "the search finds both files");
       Files.Model.Select_All_Visible (Model);

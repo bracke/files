@@ -1,4 +1,5 @@
 with Files.File_System.Testing;
+with Files.Model.Root_Selector;
 separate (Files_Suite.Model)
    procedure Test_Root_Selection_Navigation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,9 +15,9 @@ separate (Files_Suite.Model)
       Files.Model.Navigate_To (Model, Root, Files.Items.Item_Vectors.Empty_Vector);
 
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
-      Assert (Files.Model.Root_Selector_Is_Open (Model), "drive selector can reopen after palette Escape");
+      Assert (Files.Model.Root_Selector.Is_Open (Model), "drive selector can reopen after palette Escape");
       Files.Model.Begin_Create_File (Model, "root-pending.txt");
-      Files.Model.Open_Root_Selector (Model, Files.File_System.Testing.Available_Roots);
+      Files.Model.Root_Selector.Open (Model, Files.File_System.Testing.Available_Roots);
 
       Result := Files.Controller.Select_Root (Model, Settings, Join (Root, "missing-root"));
       Files_Suite.Support.Assert_Equal
@@ -39,7 +40,7 @@ separate (Files_Suite.Model)
         (Files.Model.Current_Path (Model),
          Root,
          "invalid root selection does not navigate");
-      Assert (Files.Model.Root_Selector_Is_Open (Model), "invalid root selection keeps selector open");
+      Assert (Files.Model.Root_Selector.Is_Open (Model), "invalid root selection keeps selector open");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
          "error.path.missing",
@@ -51,7 +52,7 @@ separate (Files_Suite.Model)
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "outside root row click is ignored");
-      Assert (Files.Model.Root_Selector_Is_Open (Model), "outside root row click keeps selector open");
+      Assert (Files.Model.Root_Selector.Is_Open (Model), "outside root row click keeps selector open");
 
       Result := Files.Controller.Select_Root (Model, Settings, Target);
       Files_Suite.Support.Assert_Equal
@@ -81,7 +82,7 @@ separate (Files_Suite.Model)
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "root selection clears temporary create state");
       Assert (not Files.Model.Rename_Is_Active (Model), "root selection clears rename state");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 1, "selected root directory items are loaded");
-      Assert (not Files.Model.Root_Selector_Is_Open (Model), "root selection closes selector");
+      Assert (not Files.Model.Root_Selector.Is_Open (Model), "root selection closes selector");
       Assert (Files.Model.Can_Go_Back (Model), "root selection updates back history");
       Result := Files.Controller.Handle_Root_Click (Model, Settings, Root_Index => 1);
       Files_Suite.Support.Assert_Equal

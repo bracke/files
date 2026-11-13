@@ -1,3 +1,7 @@
+with Files.Model.Clipboard;
+with Files.Model.Command_Palette;
+with Files.Model.Label_Picker;
+with Files.Model.Sort_Menu;
 separate (Files.Commands.Execution)
    procedure Execute
      (Id    : Pure_Command_Id;
@@ -16,7 +20,7 @@ separate (Files.Commands.Execution)
          when Toggle_Info_Pane_Command =>
             Files.Model.Toggle_Info_Pane (Model);
          when Toggle_Sort_Menu_Command =>
-            Files.Model.Toggle_Sort_Menu (Model);
+            Files.Model.Sort_Menu.Toggle (Model);
          when Sort_Command_Id =>
             Files.Model.Select_Sort_Field (Model, Sort_Field_For (Id));
          when Focus_Path_Input_Command =>
@@ -28,7 +32,7 @@ separate (Files.Commands.Execution)
             Files.Model.Focus_Filter_Input (Model);
             Files.Model.Set_Error (Model, "");
          when Open_Command_Palette_Command =>
-            Files.Model.Toggle_Command_Palette (Model);
+            Files.Model.Command_Palette.Toggle (Model);
             Files.Model.Set_Error (Model, "");
          when Clear_Filter_Command =>
             Files.Model.Clear_Filter (Model);
@@ -41,14 +45,14 @@ separate (Files.Commands.Execution)
          when Copy_Path_Command =>
             --  Building the newline-joined selection paths is pure; the shell
             --  reads the recorded request and writes the system clipboard.
-            Files.Model.Set_System_Clipboard_Request
+            Files.Model.Clipboard.Set_System_Request
               (Model, Joined_Full_Paths (Files.Model.Selected_Items (Model)));
             Files.Model.Set_Error (Model, "");
          when Set_Color_Label_Command =>
             --  Opening the swatch picker is pure model state; the chosen label is
             --  applied and persisted through the settings-write seam when the
             --  user clicks a swatch.
-            Files.Model.Open_Label_Picker (Model);
+            Files.Model.Label_Picker.Open (Model);
             Files.Model.Set_Error (Model, "");
       end case;
    end Execute;

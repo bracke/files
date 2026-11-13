@@ -1,5 +1,6 @@
 with Files.Items;
 with Files.Commands.Status;
+with Files.Model.Clipboard;
 separate (Files_Suite.Operations)
    procedure Test_Navigate_Parent_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -126,7 +127,7 @@ separate (Files_Suite.Operations)
                   Files.Operations.Operation_Disabled,
                   "direct terminal launch is rejected in the trash payload directory");
                Trash_Sources.Append (To_Unbounded_String (Join (Full_Child, "leaf.txt")));
-               Files.Model.Set_Clipboard
+               Files.Model.Clipboard.Set
                  (Trash_Model, Trash_Sources, Files.Model.Clipboard_Copy);
                Assert
                  (not Files.Commands.Status.Is_Enabled (Files.Commands.Create_File_Command, Trash_Model),

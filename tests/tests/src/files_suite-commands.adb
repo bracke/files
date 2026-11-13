@@ -25,7 +25,7 @@ with Files.Settings;
 with Guikit.Command_Palette;
 with Guikit.Input;
 with Files.Types;
-with Files.UTF8;
+with Guikit.Utf8.Editing;
 with Files_Suite.Support;
 
 package body Files_Suite.Commands is

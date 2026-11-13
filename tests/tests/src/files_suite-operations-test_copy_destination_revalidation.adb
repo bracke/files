@@ -6,7 +6,9 @@ separate (Files_Suite.Operations)
       Child : constant String := Join (Source, "child");
       Parent : constant String := Join (Root, "destination");
       Dest : constant String := Join (Parent, "source");
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
@@ -99,9 +101,4 @@ separate (Files_Suite.Operations)
                  and then File_Has_Bytes (Join (Dest, "original"), "original bytes"),
                  "Redo can be retried after repairing the destination");
       end loop;
-   exception
-      when others =>
-         Files.Model.Clear_Paste_Execution (Model);
-         Files.Refresh_Jobs.Cancel (Model);
-         raise;
    end Test_Copy_Destination_Revalidation;

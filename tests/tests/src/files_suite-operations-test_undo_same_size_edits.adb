@@ -2,7 +2,9 @@ separate (Files_Suite.Operations)
    procedure Test_Undo_Same_Size_Edits (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Source : constant String := Join (Root, "original");
@@ -99,6 +101,4 @@ separate (Files_Suite.Operations)
                "Undo retains a copied directory whose child bytes changed: edited bytes kept");
          end;
       end loop;
-   exception
-      when others => Files.Model.Clear_Paste_Execution (Model); Files.Refresh_Jobs.Cancel (Model); raise;
    end Test_Undo_Same_Size_Edits;

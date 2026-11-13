@@ -9,6 +9,24 @@ it under a dated version heading when a release is cut.
 ## [Unreleased]
 
 ### Fixed
+- A move that fails after copying keeps one Undo entry: undoing it removes the
+  copies left beside their sources and restores any replaced originals.
+- Names Windows reserves for devices are refused in every form, including
+  `COM0`, `LPT0`, and the superscript-digit names such as `COM¹`.
+- Long batch operations write their Undo checkpoints at most once a second, and
+  a notice says when an operation's Undo is unavailable.
+- Searches keep partial results: an unreadable folder or a reached limit shows
+  what was found with a "search incomplete" or "search truncated" notice.
+- Content search matches non-Latin text that straddles its 64 KiB read limit.
+- Open With runs applications marked `Terminal=true` in a terminal and starts
+  them in the working directory their `Path=` entry names.
+- Quoted values in `locale.conf` are read correctly.
+- Drops wait while an overlay is open instead of acting behind it.
+- Background jobs no longer drop older Undo history from the window.
+- The crash-recovery registry is locked across processes, so concurrent
+  instances cannot update it at the same time.
+- The folder icon colour follows the light theme.
+- Overlay close buttons are localized.
 - Windows C bridges now declare the Windows 8 API baseline required for stable
   128-bit file identities, including transport-lease ownership checks.
 - Accessibility frames now reach a11y's native provider bootstrap instead of
@@ -191,14 +209,16 @@ it under a dated version heading when a release is cut.
   before publication; move fallbacks use the same copy behavior.
 - Empty Trash purges hidden payloads and their sidecars independently of the
   hidden-file display preference.
-- Searches report traversal, match, and content byte limits as incomplete failures
-  instead of silently skipping possible matches or reporting no results.
+- A search that reaches its traversal, match, or content byte limit shows the
+  results it found with a "search truncated" notice, instead of silently
+  skipping possible matches or reporting no results.
 - Failed move fallbacks remove published copies and restore replaced destinations;
   directory source removal commits atomically before recursive cleanup.
 - Character input respects operation dialogs, and searches discard outcomes when
   their query, location, or settings have changed.
-- Name and content searches report unreadable directories and files as failures,
-  preserving the previous listing instead of presenting incomplete results.
+- Name and content searches skip unreadable directories and files and show
+  what they found with a "search incomplete" notice; only a search root that
+  cannot be read fails, keeping the previous listing.
 - Info panes populate selected file details after keyboard selection and refresh.
 - Duplicate and extraction batches retain one Undo entry, including partial
   failures, so another Undo cannot delete an unrelated replacement at an old path.

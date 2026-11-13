@@ -85,7 +85,7 @@ separate (Files.Application.Windows)
 
          procedure Set_Tree_Rows (Rows : Natural) is
          begin
-            Files.Model.Set_Tree_Panel_Scroll_Rows (Runtime.Model, Rows);
+            Files.Model.Tree_Panel.Set_Scroll_Rows (Runtime.Model, Rows);
          end Set_Tree_Rows;
       begin
          case Runtime.Scrollbar_Drag_Target is

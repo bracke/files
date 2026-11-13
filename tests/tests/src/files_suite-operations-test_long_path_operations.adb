@@ -190,7 +190,7 @@ separate (Files_Suite.Operations)
          end;
 
          --  Searched by name and by content.
-         Assert (Found (Files.File_System.Search_Recursive (Deep, "leaf", Settings), "leaf.txt"),
+         Assert (Found (Files.File_System.Search_Names (Deep, "leaf", Settings), "leaf.txt"),
                  "a name search finds the deepest file");
          Assert (Found (Files.File_System.Search_Contents (Deep, "inner bytes", Settings), "inner.txt"),
                  "a content search reads the deep files");

@@ -31,7 +31,7 @@ separate (Files_Suite.Operations)
       end if;
       for Contents in Boolean loop
          Search := (if Contents then Files.File_System.Search_Contents (Root, "needle", Settings)
-                    else Files.File_System.Search_Recursive (Root, "needle", Settings));
+                    else Files.File_System.Search_Names (Root, "needle", Settings));
          Assert (Search.Success and then Search.Incomplete and then not Search.Truncated,
                  "an unreadable folder makes the search incomplete, not failed, contents " & Contents'Image);
          Files_Suite.Support.Assert_Equal
@@ -41,8 +41,8 @@ separate (Files_Suite.Operations)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, False);
          Files.Model.Set_Filter (Model, "needle");
-         Step := (if Contents then Files.Operations.Run_Content_Search (Model, Settings)
-                  else Files.Operations.Run_Recursive_Search (Model, Settings));
+         Step := (if Contents then Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents)
+                  else Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names));
          Assert (Step.Status = Files.Operations.Operation_Success
                  and then Files.Model.Search_Results_Are_Active (Model)
                  and then Files.Model.Item_Count (Model) = 2,

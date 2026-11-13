@@ -1,3 +1,4 @@
+with Files.Model.Tree_Panel;
 separate (Files_Suite.Interaction)
    procedure Test_Tree_Expand_Collapse_And_Hidden (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -32,14 +33,14 @@ separate (Files_Suite.Interaction)
       Seeds.Append
         (Files.Folder_Tree.Entry_Seed'
            (Path => To_Unbounded_String (Tree_Dir), Name => To_Unbounded_String ("tree")));
-      Files.Model.Seed_Tree (Model, Seeds);
-      Files.Model.Open_Tree_Panel (Model);
+      Files.Model.Tree_Panel.Seed (Model, Seeds);
+      Files.Model.Tree_Panel.Open (Model);
 
-      Rows := Files.Model.Tree_Visible_Rows (Model);
+      Rows := Files.Model.Tree_Panel.Visible_Rows (Model);
       Files_Suite.Support.Assert_Equal (Natural (Rows.Length), 1, "an unexpanded tree shows only its root node");
 
       Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
-      Rows := Files.Model.Tree_Visible_Rows (Model);
+      Rows := Files.Model.Tree_Panel.Visible_Rows (Model);
       Files_Suite.Support.Assert_Equal (Natural (Rows.Length), 3, "expanding the root reveals its two subdirectories");
       Files_Suite.Support.Assert_Equal (Rows.Element (1).Depth, 0, "the root sits at depth zero");
       Assert
@@ -51,13 +52,13 @@ separate (Files_Suite.Interaction)
           (Model, Files.Events.Scroll_Tree_Panel, 1);
       Assert
         (Ignored.Status = Files.Controller.Controller_Command_Executed
-         and then Files.Model.Tree_Panel_Scroll_Rows (Model) = 1,
+         and then Files.Model.Tree_Panel.Scroll_Rows (Model) = 1,
          "targeted folder-tree scrolling advances the first requested row");
       Ignored :=
         Files.Controller.Handle_Targeted_Scroll
           (Model, Files.Events.Scroll_Tree_Panel, -1);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Tree_Panel_Scroll_Rows (Model),
+        (Files.Model.Tree_Panel.Scroll_Rows (Model),
          0,
          "folder-tree scrolling saturates back at the first row");
       declare
@@ -87,7 +88,7 @@ separate (Files_Suite.Interaction)
          Assert (Alpha_Index /= 0, "the alpha subdirectory is present");
          Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, Alpha_Index, Toggle => True);
       end;
-      Rows := Files.Model.Tree_Visible_Rows (Model);
+      Rows := Files.Model.Tree_Panel.Visible_Rows (Model);
       declare
          Depth_Two : Boolean := False;
       begin
@@ -99,22 +100,22 @@ separate (Files_Suite.Interaction)
          Assert (Depth_Two, "expanding alpha reveals its child at depth two");
       end;
 
-      Files.Model.Set_Tree_Panel_Scroll_Rows (Model, 3);
+      Files.Model.Tree_Panel.Set_Scroll_Rows (Model, 3);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Tree_Panel_Scroll_Rows (Model),
+        (Files.Model.Tree_Panel.Scroll_Rows (Model),
          3,
          "the expanded tree can scroll to its final visible row");
       Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
-      Rows := Files.Model.Tree_Visible_Rows (Model);
+      Rows := Files.Model.Tree_Panel.Visible_Rows (Model);
       Files_Suite.Support.Assert_Equal (Natural (Rows.Length), 1, "collapsing the root hides all its descendants");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Tree_Panel_Scroll_Rows (Model),
+        (Files.Model.Tree_Panel.Scroll_Rows (Model),
          0,
          "collapsing a branch clamps its now-hidden tree scroll offset");
 
       Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Tree_Panel_Scroll_Rows (Model),
+        (Files.Model.Tree_Panel.Scroll_Rows (Model),
          0,
          "re-expanding a branch does not resurrect its obsolete scroll offset");
       Ignored := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
@@ -129,10 +130,10 @@ separate (Files_Suite.Interaction)
          Seeds2.Append
            (Files.Folder_Tree.Entry_Seed'
               (Path => To_Unbounded_String (Tree_Dir), Name => To_Unbounded_String ("tree")));
-         Files.Model.Seed_Tree (Model2, Seeds2);
-         Files.Model.Open_Tree_Panel (Model2);
+         Files.Model.Tree_Panel.Seed (Model2, Seeds2);
+         Files.Model.Tree_Panel.Open (Model2);
          Ignored := Files.Controller.Handle_Tree_Click (Model2, Hidden_On, 1, Toggle => True);
-         Rows2 := Files.Model.Tree_Visible_Rows (Model2);
+         Rows2 := Files.Model.Tree_Panel.Visible_Rows (Model2);
          Assert (Row_Named (Rows2, ".secret") /= 0, "hidden directories appear when Show_Hidden_Files is on");
       end;
    end Test_Tree_Expand_Collapse_And_Hidden;

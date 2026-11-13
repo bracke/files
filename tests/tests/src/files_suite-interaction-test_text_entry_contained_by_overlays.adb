@@ -1,4 +1,11 @@
 with Files.Model.Testing;
+with Files.Model.Command_Palette;
+with Files.Model.Context_Menu;
+with Files.Model.Label_Picker;
+with Files.Model.Quick_Look;
+with Files.Model.Settings_Pane;
+with Files.Model.Sort_Menu;
+with Files.Model.Tree_Panel;
 separate (Files_Suite.Interaction)
    procedure Test_Text_Entry_Contained_By_Overlays
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -93,70 +100,70 @@ separate (Files_Suite.Interaction)
       Sources.Append (Ada.Strings.Unbounded.To_Unbounded_String ("/tmp/source"));
 
       Prepare_Background;
-      Files.Model.Toggle_Settings_Pane (Model);
+      Files.Model.Settings_Pane.Toggle (Model);
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_None,
          "the settings pane can remain open after focus is cancelled");
       Assert_Contained ("an unfocused settings pane");
-      Files.Model.Toggle_Settings_Pane (Model);
+      Files.Model.Settings_Pane.Toggle (Model);
 
       Prepare_Background;
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Command_Palette.Open (Model);
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_None,
          "the command palette can remain open after focus is cancelled");
       Assert_Contained ("an unfocused command palette");
-      Files.Model.Close_Command_Palette (Model);
+      Files.Model.Command_Palette.Close (Model);
 
-      Files.Model.Toggle_Settings_Pane (Model);
+      Files.Model.Settings_Pane.Toggle (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_Settings_Input,
          "opening settings focuses its input surface");
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Command_Palette.Open (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_Command_Palette,
          "the command palette takes focus above settings");
-      Files.Model.Close_Command_Palette (Model);
+      Files.Model.Command_Palette.Close (Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_Settings_Input,
          "closing the command palette restores settings focus");
-      Files.Model.Toggle_Settings_Pane (Model);
+      Files.Model.Settings_Pane.Toggle (Model);
 
       Prepare_Background;
-      Files.Model.Open_Root_Selector (Model, Roots);
+      Files.Model.Root_Selector.Open (Model, Roots);
       Assert_Contained ("the root selector");
-      Files.Model.Close_Root_Selector (Model);
+      Files.Model.Root_Selector.Close (Model);
 
       Prepare_Background;
-      Files.Model.Toggle_Sort_Menu (Model);
+      Files.Model.Sort_Menu.Toggle (Model);
       Assert_Contained ("the sort menu");
-      Files.Model.Close_Sort_Menu (Model);
+      Files.Model.Sort_Menu.Close (Model);
 
       Prepare_Background;
-      Files.Model.Open_Context_Menu (Model, 10, 10, Files.Types.Context_Menu_Empty);
+      Files.Model.Context_Menu.Open (Model, 10, 10, Files.Types.Context_Menu_Empty);
       Assert_Contained ("the context menu");
-      Files.Model.Close_Context_Menu (Model);
+      Files.Model.Context_Menu.Close (Model);
 
       Prepare_Background;
-      Files.Model.Open_Label_Picker (Model);
+      Files.Model.Label_Picker.Open (Model);
       Assert_Contained ("the label picker");
-      Files.Model.Close_Label_Picker (Model);
+      Files.Model.Label_Picker.Close (Model);
 
       Prepare_Background;
-      Files.Model.Toggle_Quick_Look (Model);
-      Assert (Files.Model.Quick_Look_Is_Open (Model), "Quick Look opens for the containment test");
+      Files.Model.Quick_Look.Toggle (Model);
+      Assert (Files.Model.Quick_Look.Is_Open (Model), "Quick Look opens for the containment test");
       Assert_Contained ("Quick Look");
-      Files.Model.Close_Quick_Look (Model);
+      Files.Model.Quick_Look.Close (Model);
 
       Prepare_Background;
-      Files.Model.Begin_Tree_Pick
+      Files.Model.Tree_Panel.Begin_Pick
         (Model, Files.Model.Pick_Copy, Sources, Files.Model.Current_Path (Model));
       Assert_Contained ("the destination picker");
       Files.Model.Testing.Clear_Tree_Pick (Model);

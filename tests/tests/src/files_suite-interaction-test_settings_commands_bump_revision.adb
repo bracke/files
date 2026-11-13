@@ -1,3 +1,4 @@
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Interaction)
    --  Every way a window changes its settings bumps its settings revision
    --  (Files.Model.Settings_Revision): the cross-window sync shares only what
@@ -54,13 +55,13 @@ separate (Files_Suite.Interaction)
          case Change is
             when Settings_Pane_Save =>
                Run (Files.Commands.Toggle_Settings_Pane_Command);
-               Assert (Files.Model.Settings_Pane_Is_Open (Model), "the settings pane opens for the save case");
+               Assert (Files.Model.Settings_Pane.Is_Open (Model), "the settings pane opens for the save case");
                declare
-                  Edited : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+                  Edited : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
                begin
                   Edited.Scalars (Files.Settings.Default_View_Mode_Setting) :=
                     Ada.Strings.Unbounded.To_Unbounded_String ("details");
-                  Files.Model.Set_Settings_Draft (Model, Edited);
+                  Files.Model.Settings_Pane.Set_Draft (Model, Edited);
                end;
             when Zoom_Reset =>
                Settings.Font_Pixel_Size := Files.Settings.Default_Font_Pixel_Size + 4;

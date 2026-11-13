@@ -30,10 +30,7 @@ begin
             end if;
             declare
                Dest   : constant String := To_String (Action.From.Element (Index));
-               Source : constant String :=
-                 (if Index <= Action.Forward.Last_Index
-                  then To_String (Action.Forward.Element (Index))
-                  else "");
+               Source : constant String := Files.Model.Forward_Value (Action, Index);
                Marked : constant Boolean :=
                  Forwarded.Contains (To_String (Action.From.Element (Index)));
                Matches : constant Boolean :=
@@ -94,16 +91,7 @@ begin
                                  then ""
                                  else Files.File_System.Tree_Revision (Dest));
                            end if;
-                           while Action.Created_Identities.Last_Index < Index loop
-                              Action.Created_Identities.Append (Null_Unbounded_String);
-                           end loop;
-                           while Action.Created_Tree_Revisions.Last_Index < Index loop
-                              Action.Created_Tree_Revisions.Append (Null_Unbounded_String);
-                           end loop;
-                           Action.Created_Identities.Replace_Element
-                             (Index, Identity);
-                           Action.Created_Tree_Revisions.Replace_Element
-                             (Index, Revision);
+                           Files.Model.Set_Created (Action, Index, Identity, Revision);
                            Action.Forward_Completed.Append (Action.From.Element (Index));
                            Forwarded.Include (To_String (Action.From.Element (Index)));
                            Action.Copy_Records := Files.Copy_Context.Records (Copy_Batch);
@@ -128,9 +116,7 @@ begin
             declare
 
                New_Text : constant String :=
-                 (if Index <= Action.Forward.Last_Index
-                  then Ada.Strings.Fixed.Trim (To_String (Action.Forward.Element (Index)), Ada.Strings.Both)
-                  else "");
+                 Ada.Strings.Fixed.Trim (Files.Model.Forward_Value (Action, Index), Ada.Strings.Both);
                New_Mode : Natural := 0;
             begin
                if New_Text = "" then
@@ -157,9 +143,7 @@ begin
             declare
 
                New_Text : constant String :=
-                 (if Index <= Action.Forward.Last_Index
-                  then Ada.Strings.Fixed.Trim (To_String (Action.Forward.Element (Index)), Ada.Strings.Both)
-                  else "");
+                 Ada.Strings.Fixed.Trim (Files.Model.Forward_Value (Action, Index), Ada.Strings.Both);
                New_Uid  : Files.Types.Account_Id := 0;
                New_Gid  : Files.Types.Account_Id := 0;
                New_User_Name, New_Group_Name : Files.Types.UString;

@@ -1,3 +1,4 @@
+with Files.Model.Pasting;
 separate (Files_Suite.Interaction)
    procedure Test_Conflict_Action_Guards
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -27,7 +28,7 @@ separate (Files_Suite.Interaction)
          Apply (Files.Events.Conflict_Button_Apply_All);
          Assert
            (Files.Model.Revision (Model) = Revision
-            and then not Files.Model.Paste_Conflict_Apply_All (Model),
+            and then not Files.Model.Pasting.Conflict_Apply_All (Model),
             "a stale apply-all click does not mutate hidden conflict state");
       end;
 
@@ -50,7 +51,7 @@ separate (Files_Suite.Interaction)
             Dest_Name   => Ada.Strings.Unbounded.To_Unbounded_String ("a.txt")));
       Existing.Append
         (Ada.Strings.Unbounded.To_Unbounded_String (Files.Paste.Desired_Path ("/dest", "a.txt")));
-      Files.Model.Begin_Paste_Conflict
+      Files.Model.Pasting.Begin_Conflict
         (Model, Items, Existing, Files.File_System.Drop_Copy, 1);
 
       --  The button is typed now, so no unknown value can be sent; an action
@@ -61,19 +62,19 @@ separate (Files_Suite.Interaction)
       begin
          Apply (Files.Events.No_Conflict_Button);
          Assert
-           (Files.Model.Paste_Conflict_Is_Active (Model)
+           (Files.Model.Pasting.Conflict_Is_Active (Model)
             and then Files.Model.Revision (Model) = Revision,
             "no conflict button leaves the active dialog untouched");
       end;
 
       Apply (Files.Events.Conflict_Button_Apply_All);
       Assert
-        (Files.Model.Paste_Conflict_Is_Active (Model)
-         and then Files.Model.Paste_Conflict_Apply_All (Model),
+        (Files.Model.Pasting.Conflict_Is_Active (Model)
+         and then Files.Model.Pasting.Conflict_Apply_All (Model),
          "the valid apply-all control still toggles the active dialog");
 
       Apply (Files.Events.Conflict_Button_Cancel);
       Assert
-        (not Files.Model.Paste_Conflict_Is_Active (Model),
+        (not Files.Model.Pasting.Conflict_Is_Active (Model),
          "the explicit cancel control still closes the conflict dialog");
    end Test_Conflict_Action_Guards;

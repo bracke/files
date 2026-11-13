@@ -1,3 +1,4 @@
+with Files.Model.Tree_Panel;
 separate (Files_Suite.Operations)
    procedure Test_Copy_To_Cancel (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -23,8 +24,8 @@ separate (Files_Suite.Operations)
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,
          "copy-to command starts the picker");
-      Assert (Files.Model.Tree_Pick_Is_Active (Model), "the picker is active after the command");
-      Files.Model.Set_Tree_Pick_Target (Model, Dest_Dir);
+      Assert (Files.Model.Tree_Panel.Pick_Is_Active (Model), "the picker is active after the command");
+      Files.Model.Tree_Panel.Set_Pick_Target (Model, Dest_Dir);
 
       --  Cancel is routed through the tree-toggle command (also used by the
       --  Cancel button and the panel close box): it closes the tree and clears
@@ -35,17 +36,17 @@ separate (Files_Suite.Operations)
         (Routed.Status,
          Files.Controller.Controller_Command_Executed,
          "the cancel command is executed");
-      Assert (not Files.Model.Tree_Pick_Is_Active (Model), "cancelling clears the picker");
-      Assert (not Files.Model.Tree_Panel_Is_Open (Model), "cancelling closes the folder tree");
+      Assert (not Files.Model.Tree_Panel.Pick_Is_Active (Model), "cancelling clears the picker");
+      Assert (not Files.Model.Tree_Panel.Is_Open (Model), "cancelling closes the folder tree");
       Assert (not Ada.Directories.Exists (Join (Dest_Dir, "a.txt")), "cancelling copies nothing");
       Assert (Ada.Directories.Exists (A_Src), "cancelling leaves the source unchanged");
 
       --  A queued Choose click can arrive after cancellation. It must not close
       --  a subsequently opened ordinary folder-tree panel.
-      Files.Model.Open_Tree_Panel (Model);
+      Files.Model.Tree_Panel.Open (Model);
       Confirm_Pick (Model, Settings);
       Assert
-        (Files.Model.Tree_Panel_Is_Open (Model)
-         and then not Files.Model.Tree_Pick_Is_Active (Model),
+        (Files.Model.Tree_Panel.Is_Open (Model)
+         and then not Files.Model.Tree_Panel.Pick_Is_Active (Model),
          "a stale picker-confirm action leaves an ordinary tree panel open");
    end Test_Copy_To_Cancel;

@@ -1,20 +1,21 @@
+with Files.Model.Root_Selector;
 separate (Files.Operations)
 function Eject_Selected_Root
   (Model : in out Files.Model.Window_Model)
    return Operation_Result
 is
-   Index : constant Natural := Files.Model.Root_Selected_Index (Model);
+   Index : constant Natural := Files.Model.Root_Selector.Selected_Index (Model);
    Path  : Unbounded_String;
 begin
-   if not Files.Model.Root_Selector_Is_Open (Model)
+   if not Files.Model.Root_Selector.Is_Open (Model)
      or else Index = 0
-     or else Index > Files.Model.Root_Count (Model)
+     or else Index > Files.Model.Root_Selector.Count (Model)
    then
       return Disabled (Model, "error.root.selection.empty");
    end if;
 
-   Path := To_Unbounded_String (Files.Model.Root_Path (Model, Index));
-   if not Files.Model.Root_Is_Removable (Model, Index) then
+   Path := To_Unbounded_String (Files.Model.Root_Selector.Path (Model, Index));
+   if not Files.Model.Root_Selector.Is_Removable (Model, Index) then
       return Disabled (Model, "error.root.eject_unavailable");
    end if;
 

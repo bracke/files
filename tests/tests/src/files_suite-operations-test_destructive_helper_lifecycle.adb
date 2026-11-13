@@ -68,7 +68,7 @@ separate (Files_Suite.Operations)
                & Files.Operations.Operation_Status'Image (Step.Status)
                & " " & To_String (Step.Error_Key));
             Assert_Within (Taken, Prompt_Limit, Kind'Image (Job_Kind) & " command returns before its helper finishes");
-            Assert (Files.Model.Paste_Execution_Is_Active (Model),
+            Assert (Files.Model.Pasting.Execution_Is_Active (Model),
                     Kind'Image (Job_Kind) & " command left no background job running");
          end;
          declare

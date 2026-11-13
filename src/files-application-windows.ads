@@ -15,7 +15,6 @@ private with Files.Accessibility;
 private with Files.Commands;
 private with Files.Drop_Events;
 private with Files.Events;
-private with Files.Mouse_Buttons;
 private with Files.Rendering;
 private with Files.Snapshot_Slots;
 private with Files.Settings;
@@ -25,6 +24,7 @@ private with Glfw.Input.Keys;
 private with Glfw.Windows;
 private with Guikit.Draw;
 private with Guikit.Input;
+private with Guikit.Input.Mouse_Buttons;
 
 --  GLFW-backed desktop window session for resolved startup windows.
 package Files.Application.Windows is
@@ -195,7 +195,7 @@ private
       Pending_Scroll_Remainder : Long_Float := 0.0;
       --  Mouse button changes in arrival order, each with where it happened
       --  and the modifiers held then; Handle_Mouse drains them in order.
-      Pending_Mouse : Files.Mouse_Buttons.Button_Event_Vectors.Vector;
+      Pending_Mouse : Guikit.Input.Mouse_Buttons.Button_Event_Vectors.Vector;
       Last_Mouse_X : Glfw.Input.Mouse.Coordinate := 0.0;
       Last_Mouse_Y : Glfw.Input.Mouse.Coordinate := 0.0;
       Drag_Start_X : Glfw.Input.Mouse.Coordinate := 0.0;
@@ -206,7 +206,7 @@ private
       --  failing mouse switch (or an un-debounced compositor) can emit a spurious
       --  second press within a few ms of the real one, which double-fires the
       --  click -- for a toggle toolbar icon that cancels out and looks like the
-      --  click "did nothing". See Files.Mouse_Buttons.Left_Press_Debounce.
+      --  click "did nothing". See Guikit.Input.Mouse_Buttons.Left_Press_Debounce.
       Last_Left_Press_Time : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
       Drop_Source : Files.Drop_Events.Drop_Event_Source;
    end record;

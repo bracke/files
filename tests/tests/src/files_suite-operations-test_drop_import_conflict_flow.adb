@@ -1,3 +1,4 @@
+with Files.Model.Clipboard;
 separate (Files_Suite.Operations)
    procedure Test_Drop_Import_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -47,14 +48,14 @@ separate (Files_Suite.Operations)
            (Routed.Operation.Status,
             Files.Operations.Operation_Success,
             "an armed drop conflict reports success without writing");
-         Assert (Files.Model.Paste_Conflict_Is_Active (Model), "a colliding drop arms the conflict dialog");
+         Assert (Files.Model.Pasting.Conflict_Is_Active (Model), "a colliding drop arms the conflict dialog");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Paste_Conflict_Name (Model),
+           (Files.Model.Pasting.Conflict_Name (Model),
             "a.txt",
             "the drop dialog names the colliding item");
          Routed.Operation :=
            Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
-         Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "resolving the drop clears the dialog");
+         Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "resolving the drop clears the dialog");
          Files_Suite.Support.Assert_Equal
            (Read (Join (Dest_Dir, "a.txt")),
             "SRC",
@@ -112,7 +113,7 @@ separate (Files_Suite.Operations)
          Load := Files.File_System.Load_Directory (Dest_Dir, Settings);
          Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
          Clip.Append (To_Unbounded_String (Join (Dest_Dir, "clip.txt")));
-         Files.Model.Set_Clipboard (Model, Clip, Files.Model.Clipboard_Copy);
+         Files.Model.Clipboard.Set (Model, Clip, Files.Model.Clipboard_Copy);
          Sources.Append (To_Unbounded_String (Join (Src_Dir, "m.txt")));
          Routed :=
            Files.Controller.Handle_Drop_Import (Model, Settings, Sources, Files.File_System.Drop_Move);
@@ -125,7 +126,7 @@ separate (Files_Suite.Operations)
             "a collision-free dropped move imports the source");
          Assert (not Ada.Directories.Exists (Join (Src_Dir, "m.txt")), "a dropped move removes the source");
          Assert
-           (Files.Model.Clipboard_Has_Items (Model),
+           (Files.Model.Clipboard.Has_Items (Model),
             "a dropped move does not clear the unrelated clipboard selection");
       end;
    end Test_Drop_Import_Conflict_Flow;

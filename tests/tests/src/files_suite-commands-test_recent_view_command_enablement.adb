@@ -1,5 +1,6 @@
 with Files.Items;
 with Files.Commands.Status;
+with Files.Model.Clipboard;
 separate (Files_Suite.Commands)
    procedure Test_Recent_View_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -11,7 +12,7 @@ separate (Files_Suite.Commands)
    begin
       Files.Model.Select_Visible (Model, 1);
       Clipboard.Append (To_Unbounded_String (Join (Root, "Alpha.txt")));
-      Files.Model.Set_Clipboard (Model, Clipboard, Files.Model.Clipboard_Copy);
+      Files.Model.Clipboard.Set (Model, Clipboard, Files.Model.Clipboard_Copy);
       Files.Model.Navigate_Recent (Model, Empty);
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Create_File_Command, Model)

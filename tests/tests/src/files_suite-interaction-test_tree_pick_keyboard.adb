@@ -1,3 +1,4 @@
+with Files.Model.Tree_Panel;
 separate (Files_Suite.Interaction)
    procedure Test_Tree_Pick_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -23,8 +24,8 @@ separate (Files_Suite.Interaction)
       Seeds.Append
         (Files.Folder_Tree.Entry_Seed'
            (Path => To_Unbounded_String (Tree_Dir), Name => To_Unbounded_String ("tree")));
-      Files.Model.Seed_Tree (Model, Seeds);
-      Files.Model.Open_Tree_Panel (Model);
+      Files.Model.Tree_Panel.Seed (Model, Seeds);
+      Files.Model.Tree_Panel.Open (Model);
       --  Expand the root so alpha and beta are visible rows.
       CResult := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
       Files_Suite.Support.Assert_Equal
@@ -33,20 +34,20 @@ separate (Files_Suite.Interaction)
          "expanding the destination tree reports an executed command");
 
       Sources.Append (To_Unbounded_String (Src_File));
-      Files.Model.Begin_Tree_Pick (Model, Files.Model.Pick_Copy, Sources, "");
-      Assert (Files.Model.Tree_Pick_Is_Active (Model), "the copy-to pick is active");
+      Files.Model.Tree_Panel.Begin_Pick (Model, Files.Model.Pick_Copy, Sources, "");
+      Assert (Files.Model.Tree_Panel.Pick_Is_Active (Model), "the copy-to pick is active");
 
       --  The first Down lands on the first row; the next moves down one.
-      Rows := Files.Model.Tree_Visible_Rows (Model);
+      Rows := Files.Model.Tree_Panel.Visible_Rows (Model);
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Assert
         (CResult.Status = Files.Controller.Controller_Selection_Moved
-         and then Files.Model.Tree_Pick_Target (Model) = To_String (Rows.Element (1).Path),
+         and then Files.Model.Tree_Panel.Pick_Target (Model) = To_String (Rows.Element (1).Path),
          "the first arrow highlights the first tree row");
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Assert
         (CResult.Status = Files.Controller.Controller_Selection_Moved
-         and then Files.Model.Tree_Pick_Target (Model) = To_String (Rows.Element (2).Path),
+         and then Files.Model.Tree_Panel.Pick_Target (Model) = To_String (Rows.Element (2).Path),
          "Down moves the highlight to the next row");
       CResult :=
         Files.Controller.Handle_Key
@@ -55,21 +56,21 @@ separate (Files_Suite.Interaction)
         (CResult.Status, Files.Controller.Controller_Selection_Moved,
          "keyboard tree navigation reveals a highlight that crosses the viewport edge (status)");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Tree_Pick_Target (Model), To_String (Rows.Element (3).Path),
+        (Files.Model.Tree_Panel.Pick_Target (Model), To_String (Rows.Element (3).Path),
          "keyboard tree navigation reveals a highlight that crosses the viewport edge (target)");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Tree_Panel_Scroll_Rows (Model), 1,
+        (Files.Model.Tree_Panel.Scroll_Rows (Model), 1,
          "keyboard tree navigation reveals a highlight that crosses the viewport edge (scroll rows)");
 
       --  Right on the alpha folder (which has a child) expands it; Left collapses.
-      Files.Model.Set_Tree_Pick_Target (Model, Alpha);
+      Files.Model.Tree_Panel.Set_Pick_Target (Model, Alpha);
       declare
-         Before : constant Natural := Natural (Files.Model.Tree_Visible_Rows (Model).Length);
+         Before : constant Natural := Natural (Files.Model.Tree_Panel.Visible_Rows (Model).Length);
       begin
          CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
          Assert
            (CResult.Status = Files.Controller.Controller_Command_Executed
-            and then Natural (Files.Model.Tree_Visible_Rows (Model).Length) > Before,
+            and then Natural (Files.Model.Tree_Panel.Visible_Rows (Model).Length) > Before,
             "Right expands the highlighted folder");
 
          --  Select alpha's child, then collapse alpha through the independent
@@ -77,12 +78,12 @@ separate (Files_Suite.Interaction)
          --  destination that Choose would silently use.
          CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Tree_Pick_Target (Model),
+           (Files.Model.Tree_Panel.Pick_Target (Model),
             A1,
             "Right on an expanded destination enters its first child");
          declare
             Expanded_Rows : constant Files.Folder_Tree.Visible_Row_Vectors.Vector :=
-              Files.Model.Tree_Visible_Rows (Model);
+              Files.Model.Tree_Panel.Visible_Rows (Model);
             Alpha_Node : Natural := 0;
          begin
             for Row of Expanded_Rows loop
@@ -99,19 +100,19 @@ separate (Files_Suite.Interaction)
            (CResult.Status, Files.Controller.Controller_Command_Executed,
             "collapsing an ancestor retargets a hidden destination to that ancestor (status)");
          Files_Suite.Support.Assert_Equal
-           (Natural (Files.Model.Tree_Visible_Rows (Model).Length), Before,
+           (Natural (Files.Model.Tree_Panel.Visible_Rows (Model).Length), Before,
             "collapsing an ancestor retargets a hidden destination to that ancestor (visible rows)");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Tree_Pick_Target (Model), Alpha,
+           (Files.Model.Tree_Panel.Pick_Target (Model), Alpha,
             "collapsing an ancestor retargets a hidden destination to that ancestor (target)");
       end;
 
       --  Enter confirms the pick: copy the source into the highlighted folder
       --  (alpha). The sidebar was open before the pick, so it stays open.
-      Files.Model.Set_Tree_Pick_Target (Model, Alpha);
+      Files.Model.Tree_Panel.Set_Pick_Target (Model, Alpha);
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_Return, Guikit.Input.No_Modifiers, Result);
-      Assert (not Files.Model.Tree_Pick_Is_Active (Model) and then Files.Model.Tree_Panel_Is_Open (Model),
+      Assert (not Files.Model.Tree_Panel.Pick_Is_Active (Model) and then Files.Model.Tree_Panel.Is_Open (Model),
               "Enter ends the pick and keeps the sidebar that was open before it");
       Assert
         (Ada.Directories.Exists (Files_Suite.Support.Join (Alpha, "src.txt")),

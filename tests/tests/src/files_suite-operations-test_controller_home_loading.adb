@@ -1,3 +1,4 @@
+with Files.Model.Command_Palette;
 separate (Files_Suite.Operations)
    procedure Test_Controller_Home_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,7 +15,7 @@ separate (Files_Suite.Operations)
       Load := Files.File_System.Load_Directory (First, Settings);
       Files.Model.Initialize (Model, First, Load.Items, Missing_Home);
       Files.Model.Begin_Create_File (Model, "failed-home-pending.txt");
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Command_Palette.Open (Model);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
@@ -36,11 +37,11 @@ separate (Files_Suite.Operations)
          "failed home records path error");
       Assert (Files.Model.Temporary_Item_Is_Active (Model), "failed home preserves temporary create state");
       Assert (Files.Model.Rename_Is_Active (Model), "failed home preserves rename state");
-      Assert (Files.Model.Command_Palette_Is_Open (Model), "failed home preserves command palette");
+      Assert (Files.Model.Command_Palette.Is_Open (Model), "failed home preserves command palette");
       Files.Model.Testing.Cancel_Create_File (Model);
       Files.Model.Initialize (Model, First, Load.Items, First);
       Files.Model.Begin_Create_File (Model, "home-pending.txt");
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Command_Palette.Open (Model);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
@@ -53,5 +54,5 @@ separate (Files_Suite.Operations)
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "home clears temporary create state");
       Assert (not Files.Model.Rename_Is_Active (Model), "home clears rename state");
       Files_Suite.Support.Assert_Equal (Files.Model.Focus (Model), Files.Types.Focus_None, "home clears rename focus");
-      Assert (not Files.Model.Command_Palette_Is_Open (Model), "home clears command palette");
+      Assert (not Files.Model.Command_Palette.Is_Open (Model), "home clears command palette");
    end Test_Controller_Home_Loading;

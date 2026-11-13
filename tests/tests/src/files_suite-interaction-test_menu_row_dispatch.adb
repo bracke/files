@@ -1,3 +1,5 @@
+with Files.Model.Clipboard;
+with Files.Model.Context_Menu;
 separate (Files_Suite.Interaction)
    procedure Test_Menu_Row_Dispatch (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -27,7 +29,7 @@ separate (Files_Suite.Interaction)
          Index := Files.Rendering.Hit.Item_At (Items, X, Y);
          Files.Interaction.Apply_Right_Click (Model, Settings, In_Main, Index, X, Y, Result);
       end;
-      Assert (Files.Model.Context_Menu_Is_Open (Model), "context menu is open before the row click");
+      Assert (Files.Model.Context_Menu.Is_Open (Model), "context menu is open before the row click");
 
       --  Resolve the Copy row from the real menu layout (rule a) and dispatch it.
       declare
@@ -70,15 +72,15 @@ separate (Files_Suite.Interaction)
          Files.Commands.Copy_Selected_Items_Command,
 
          "the result echoes the dispatched command id");
-      Assert (not Files.Model.Context_Menu_Is_Open (Model), "dispatching a menu row closes the menu");
+      Assert (not Files.Model.Context_Menu.Is_Open (Model), "dispatching a menu row closes the menu");
       Assert
-        (Files.Model.Clipboard_Mode_Of (Model) = Files.Model.Clipboard_Copy,
+        (Files.Model.Clipboard.Mode_Of (Model) = Files.Model.Clipboard_Copy,
          "the copy command records a copy clipboard intent");
-      Assert (Files.Model.Clipboard_Has_Items (Model), "the copy command captured the selected item");
+      Assert (Files.Model.Clipboard.Has_Items (Model), "the copy command captured the selected item");
 
       --  Replaying that row after its menu has closed must not execute it
       --  against whatever selection exists at reduction time.
-      Files.Model.Clear_Clipboard (Model);
+      Files.Model.Clipboard.Clear (Model);
       Files.Interaction.Apply_Context_Menu_Command
         (Model             => Model,
          Settings          => Settings,
@@ -87,18 +89,18 @@ separate (Files_Suite.Interaction)
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
       Assert
-        (not Files.Model.Clipboard_Has_Items (Model),
+        (not Files.Model.Clipboard.Has_Items (Model),
          "a stale menu-row action is inert after its menu closes (clipboard empty)");
       Assert
         (Result.Status /= Files.Controller.Controller_Command_Executed,
          "a stale menu-row action is inert after its menu closes (command executed)");
       Assert
-        (not Files.Model.Context_Menu_Is_Open (Model),
+        (not Files.Model.Context_Menu.Is_Open (Model),
          "a stale menu-row action is inert after its menu closes (menu stays closed)");
 
       --  A click that misses every menu row still closes the menu and must not
       --  leak follow-up flags from an earlier result stored in the same object.
-      Files.Model.Open_Context_Menu (Model, X, Y, Files.Types.Context_Menu_Empty);
+      Files.Model.Context_Menu.Open (Model, X, Y, Files.Types.Context_Menu_Empty);
       Files.Interaction.Apply_Context_Menu_Command
         (Model             => Model,
          Settings          => Settings,
@@ -107,10 +109,10 @@ separate (Files_Suite.Interaction)
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
       Assert
-        (Files.Model.Context_Menu_Is_Open (Model),
+        (Files.Model.Context_Menu.Is_Open (Model),
          "an item-only command is rejected by the open empty-area menu (menu open)");
       Assert
-        (not Files.Model.Clipboard_Has_Items (Model),
+        (not Files.Model.Clipboard.Has_Items (Model),
          "an item-only command is rejected by the open empty-area menu (clipboard empty)");
       Assert
         (Result.Status /= Files.Controller.Controller_Command_Executed,
@@ -127,7 +129,7 @@ separate (Files_Suite.Interaction)
          Command           => Files.Commands.No_Command,
          Modifiers         => Guikit.Input.No_Modifiers,
          Result            => Result);
-      Assert (not Files.Model.Context_Menu_Is_Open (Model), "a missed menu row still closes the menu");
+      Assert (not Files.Model.Context_Menu.Is_Open (Model), "a missed menu row still closes the menu");
       Files_Suite.Support.Assert_Equal
         (Result.Command, Files.Commands.No_Command,
          "a missed menu row returns only its own context-menu follow-up (command)");
@@ -152,12 +154,12 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_F10, Shift, Result);
       Assert
-        (Files.Model.Context_Menu_Is_Open (Model),
+        (Files.Model.Context_Menu.Is_Open (Model),
          "Shift+F10 opens the context menu");
       Files.Interaction.Handle_Key
         (Model, Settings, "", Guikit.Input.Key_Escape,
          Guikit.Input.No_Modifiers, Result);
       Assert
-        (not Files.Model.Context_Menu_Is_Open (Model),
+        (not Files.Model.Context_Menu.Is_Open (Model),
          "Escape closes the context menu");
    end Test_Menu_Row_Dispatch;

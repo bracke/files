@@ -1,3 +1,4 @@
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Settings)
    --  A built-in secondary shortcut is part of the default binding: rebinding
    --  or unbinding the command drops it, and a chord held only by another
@@ -22,7 +23,7 @@ separate (Files_Suite.Settings)
         (Files.Commands.Shortcut_Text (Files.Commands.Parse_Shortcut (Chord)));
    begin
       Files.Commands.Reset_Shortcut_Overrides;
-      Files.Model.Begin_Settings_Edit
+      Files.Model.Settings_Pane.Begin_Edit
         (Model, Files.Settings.Make_Draft (Files.Settings.Default_Settings));
 
       --  By default Backspace deletes too.

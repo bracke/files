@@ -1,3 +1,4 @@
+with Files.Model.Tree_Panel;
 separate (Files_Suite.Operations)
    procedure Test_Copy_To_Into_Self_Guard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -26,7 +27,7 @@ separate (Files_Suite.Operations)
          "copy-to command starts the picker");
 
       --  Target the selected directory itself: copying it into itself must fail.
-      Files.Model.Set_Tree_Pick_Target (Model, Box_Dir);
+      Files.Model.Tree_Panel.Set_Pick_Target (Model, Box_Dir);
       Confirm_Pick (Model, Settings);
 
       Files_Suite.Support.Assert_Equal
@@ -40,16 +41,16 @@ separate (Files_Suite.Operations)
       Assert (Ada.Directories.Exists (Inside), "the selected folder is unchanged");
 
       Assert
-        (Files.Model.Tree_Pick_Is_Active (Model)
-         and then Files.Model.Tree_Panel_Is_Open (Model),
+        (Files.Model.Tree_Panel.Pick_Is_Active (Model)
+         and then Files.Model.Tree_Panel.Is_Open (Model),
          "a rejected destination leaves the picker open for correction");
-      Files.Model.Set_Tree_Pick_Target (Model, Retry_Dir);
+      Files.Model.Tree_Panel.Set_Pick_Target (Model, Retry_Dir);
       Confirm_Pick (Model, Settings);
       Assert
         (Ada.Directories.Exists (Join (Retry_Dir, "box")),
          "choosing a valid destination after the rejection completes the copy");
       Assert
-        (not Files.Model.Tree_Pick_Is_Active (Model)
-         and then not Files.Model.Tree_Panel_Is_Open (Model),
+        (not Files.Model.Tree_Panel.Pick_Is_Active (Model)
+         and then not Files.Model.Tree_Panel.Is_Open (Model),
          "a successful retry closes the destination picker");
    end Test_Copy_To_Into_Self_Guard;

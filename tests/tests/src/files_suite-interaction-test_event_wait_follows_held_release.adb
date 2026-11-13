@@ -1,3 +1,4 @@
+with Guikit.Input.Mouse_Buttons;
 separate (Files_Suite.Interaction)
    --  The event loop's wait (Files.Event_Wait.Window_Wait, which
    --  Files.Application.Windows.Event_Loop_Wait folds over every window): a
@@ -7,7 +8,7 @@ separate (Files_Suite.Interaction)
    --  the normal limit.
    procedure Test_Event_Wait_Follows_Held_Release (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use Files.Mouse_Buttons;
+      use Guikit.Input.Mouse_Buttons;
       use type Ada.Real_Time.Time;
       use type Ada.Real_Time.Time_Span;
 

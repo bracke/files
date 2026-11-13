@@ -22,12 +22,12 @@ separate (Files.Rendering.Build_Frame_Commands)
             Cell_W      : constant Positive :=
               Guikit.Layout.Caret_Advance_Width (Line_Height);
             Label_W     : constant Natural :=
-              Saturating_Multiply (Files.UTF8.Display_Units (Field_Label), Cell_W);
+              Saturating_Multiply (Guikit.Utf8.Display_Units (Field_Label), Cell_W);
             --  Tighter than a full monospace space so the direction arrow sits
             --  close to the sort field it belongs to.
             Arrow_Gap   : constant Natural := Cell_W / 2;
             Arrow_W     : constant Natural :=
-              Saturating_Multiply (Files.UTF8.Display_Units (Arrow_Text), Cell_W);
+              Saturating_Multiply (Guikit.Utf8.Display_Units (Arrow_Text), Cell_W);
             --  Actual field + gap + arrow width drawn. The button is sized assuming
             --  a full space before the arrow, so it is a touch wider; centre the
             --  drawn content within the button rather than left-aligning it.
@@ -122,7 +122,7 @@ separate (Files.Rendering.Build_Frame_Commands)
               & Grouped_Natural_Text (Snapshot.Selected_Count);
             Use_Compact : constant Boolean :=
               Length (Snapshot.Last_Error_Key) = 0
-              and then Saturating_Multiply (Files.UTF8.Display_Units (To_String (Info_Text)), Cell_W) > Counts_W;
+              and then Saturating_Multiply (Guikit.Utf8.Display_Units (To_String (Info_Text)), Cell_W) > Counts_W;
             Status_Text : constant UString :=
               (if Use_Compact then To_Unbounded_String (Compact) else Info_Text);
             --  The counts area is the clickable hidden-files toggle, so its text

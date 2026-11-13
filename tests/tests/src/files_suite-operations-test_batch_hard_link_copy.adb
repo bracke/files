@@ -4,7 +4,9 @@ separate (Files_Suite.Operations)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Source : constant String := Join (Root, "source");
       Parent : constant String := Join (Root, "destination");
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Paths : Files.Types.String_Vectors.Vector;
       Step : Files.Operations.Operation_Result;
@@ -125,9 +127,4 @@ separate (Files_Suite.Operations)
                  "a retry refuses a same-size edited copy even when its modification time is restored: "
                  & "nothing recreated");
       end loop;
-   exception
-      when others =>
-         Files.Model.Clear_Paste_Execution (Model);
-         Files.Refresh_Jobs.Cancel (Model);
-         raise;
    end Test_Batch_Hard_Link_Copy;

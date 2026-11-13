@@ -1,3 +1,4 @@
+with Files.Model.Context_Menu;
 separate (Files_Suite.Interaction)
    procedure Test_Header_Menu_Column_Config (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -52,9 +53,9 @@ separate (Files_Suite.Interaction)
             In_Details_Header => True);
       end;
 
-      Assert (Files.Model.Context_Menu_Is_Open (Model), "the header menu opens on the column header");
+      Assert (Files.Model.Context_Menu.Is_Open (Model), "the header menu opens on the column header");
       Assert
-        (Files.Model.Context_Menu_Target_Of (Model) = Files.Types.Context_Menu_Header,
+        (Files.Model.Context_Menu.Target_Of (Model) = Files.Types.Context_Menu_Header,
          "the right-click targets the details-header menu");
 
       --  Every column toggle and the grouping cycle are offered (rule a).
@@ -88,6 +89,6 @@ separate (Files_Suite.Interaction)
          Assert
            (Settings.Column_Visible (Files.Types.Size_Column) /= Before,
             "dispatching the toggle flips the column's visibility setting");
-         Assert (not Files.Model.Context_Menu_Is_Open (Model), "dispatching a menu row closes the menu");
+         Assert (not Files.Model.Context_Menu.Is_Open (Model), "dispatching a menu row closes the menu");
       end;
    end Test_Header_Menu_Column_Config;

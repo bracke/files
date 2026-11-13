@@ -13,8 +13,8 @@ separate (Files.Application.Windows)
       begin
          --  The tree scrolls its highlight into view whenever it has the
          --  keyboard, in the side panel as in the destination picker.
-         if not Files.Model.Tree_Pick_Is_Active (Runtime.Model)
-           and then not Files.Model.Tree_Has_Keyboard (Runtime.Model)
+         if not Files.Model.Tree_Panel.Pick_Is_Active (Runtime.Model)
+           and then not Files.Model.Tree_Panel.Has_Keyboard (Runtime.Model)
          then
             return 0;
          end if;

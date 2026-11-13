@@ -6,20 +6,20 @@ separate (Files.Controller)
       return Controller_Result
    is
       Applied : constant Files.Settings.Settings_Parse_Result :=
-        Files.Settings.Apply_Draft (Settings, Files.Model.Settings_Draft_Of (Model));
+        Files.Settings.Apply_Draft (Settings, Files.Model.Settings_Pane.Draft_Of (Model));
       Final     : Files.Settings.Settings_Model;
       Saved     : Files.Settings.Settings_Write_Result;
       Operation : Files.Operations.Operation_Result := Empty_Operation;
    begin
-      if not Files.Model.Settings_Pane_Is_Open (Model) then
+      if not Files.Model.Settings_Pane.Is_Open (Model) then
          return Settings_Closed_Result (Files.Commands.Save_Settings_Command, Model, Settings_Path);
       elsif not Applied.Success then
          declare
-            Draft : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+            Draft : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
          begin
             Draft.Valid := False;
             Draft.Error_Key := Applied.Error_Key;
-            Files.Model.Set_Settings_Draft (Model, Draft);
+            Files.Model.Settings_Pane.Set_Draft (Model, Draft);
          end;
          Files.Model.Set_Error (Model, To_String (Applied.Error_Key));
          Operation.Status := Files.Operations.Operation_Failed;
@@ -53,7 +53,7 @@ separate (Files.Controller)
       Files.Operations.Apply_Ui_State (Model, Final);
 
       Operation := Files.Operations.Refresh (Model, Settings);
-      Files.Model.Set_Settings_Draft (Model, Files.Settings.Make_Draft (Settings));
+      Files.Model.Settings_Pane.Set_Draft (Model, Files.Settings.Make_Draft (Settings));
       if Operation.Status = Files.Operations.Operation_Failed then
          return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
       end if;

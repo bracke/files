@@ -6,7 +6,9 @@ separate (Files_Suite.Operations)
    procedure Test_Search_Match_Cap (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model    : Files.Model.Window_Model;
+      Model    : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
       Search   : Files.File_System.Recursive_Search_Result;
@@ -16,7 +18,7 @@ separate (Files_Suite.Operations)
          Write_Binary_File (Join (Root, "needle-" & Files.Types.Natural_Text (Index) & ".txt"), "needle");
       end loop;
       Ada.Directories.Create_Directory (Join (Root, "empty-folder"));
-      Search := Files.File_System.Search_Recursive (Root, "needle", Settings);
+      Search := Files.File_System.Search_Names (Root, "needle", Settings);
       Assert (Search.Success and then not Search.Truncated and then not Search.Incomplete,
               "exactly the cap's matches, and an empty folder left to walk, is a complete answer");
       Files_Suite.Support.Assert_Equal
@@ -24,7 +26,7 @@ separate (Files_Suite.Operations)
       Write_Binary_File
         (Join (Root, "needle-" & Files.Types.Natural_Text (Files.File_System.Max_Search_Results + 1) & ".txt"),
          "needle");
-      Search := Files.File_System.Search_Recursive (Root, "needle", Settings);
+      Search := Files.File_System.Search_Names (Root, "needle", Settings);
       Assert (Search.Success and then Search.Truncated and then not Search.Incomplete,
               "one match past the cap truncates the name search");
       Files_Suite.Support.Assert_Equal
@@ -35,8 +37,8 @@ separate (Files_Suite.Operations)
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Model.Set_Filter (Model, "needle");
             Files.Model.Set_Background_Transfers (Model, Background);
-            Step := (if Contents then Files.Operations.Run_Content_Search (Model, Settings)
-                     else Files.Operations.Run_Recursive_Search (Model, Settings));
+            Step := (if Contents then Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents)
+                     else Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names));
             Step := Complete_Operation (Model, Settings, Step);
             Assert (Step.Status = Files.Operations.Operation_Success
                     and then Files.Model.Search_Results_Are_Active (Model),
@@ -49,6 +51,4 @@ separate (Files_Suite.Operations)
                "with the truncated notice, background " & Background'Image & ", contents " & Contents'Image);
          end loop;
       end loop;
-   exception
-      when others => Files.Model.Clear_Paste_Execution (Model); raise;
    end Test_Search_Match_Cap;

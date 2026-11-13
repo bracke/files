@@ -3,6 +3,23 @@ separate (Check_All)
       Main_Manifest : constant String := Root & "/alire.toml";
       Localization  : constant String := Root & "/src/files-localization.adb";
       Check_Source  : constant String := Combined_Check_All;
+
+      --  Path's code, comments dropped and strings blanked, must say Pattern
+      --  (a name, no quotes): searched in the raw text, a guard's pattern
+      --  would satisfy itself, as its own literal is part of check_all's
+      --  source.
+      procedure Require_In_Code (Path : String; Pattern : String; Message : String) is
+      begin
+         if not Project_Tools.Files.File_Exists (Path)
+           or else Ada.Strings.Fixed.Index
+                     (Code_Of (To_String (Project_Tools.Text.Read_Text_File (Path)), Blank_Strings => True),
+                      Pattern) = 0
+         then
+            Put_Line (Standard_Error, Path & ": " & Message);
+            Ada.Command_Line.Set_Exit_Status (Ada.Command_Line.Failure);
+            raise Program_Error;
+         end if;
+      end Require_In_Code;
    begin
       Project_Tools.Files.Require_Contains
         (Main_Manifest,
@@ -17,9 +34,13 @@ separate (Check_All)
          "if Literal = ""cd /d """ & ASCII.LF
          & "        or else Literal = ""cd """,
          "hard-coded text checks must keep terminal shell-verb exemptions narrow");
-      Project_Tools.Files.Require_Contains
+      Require_In_Code
         (Check_Source,
          "function Diagnostic_Pragma_Length",
+         "hard-coded text checks must exempt developer-diagnostic pragma messages");
+      Require_In_Code
+        (Root & "/tools/src/check_all-check_no_user_text_literals.adb",
+         "Diagnostic_Pragma_Length (",
          "hard-coded text checks must exempt developer-diagnostic pragma messages");
       Project_Tools.Files.Require_Contains
         (Check_Source,

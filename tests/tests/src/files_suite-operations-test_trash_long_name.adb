@@ -1,7 +1,7 @@
 with Files.Fs_Primitives;
 with Ada.Strings.Fixed;
 with Ada.Strings.Wide_Wide_Fixed;
-with Files.UTF8;
+with Guikit.Utf8;
 separate (Files_Suite.Operations)
    --  A name too long for the trash to add ".trashinfo" or a counter to is
    --  still trashed, under a shortened name, and restored under its own.
@@ -51,7 +51,7 @@ separate (Files_Suite.Operations)
          Assert (Files.Types.Starts_With (To_String (Leaf), Ada.Strings.Fixed."*" (121, 'x'))
                  and then Ada.Directories.Extension (To_String (Leaf)) = "txt",
                  "the shortened name keeps its start and extension");
-         Assert (Files.UTF8.Is_Valid (To_String (Leaf)), "the cut ends a whole character");
+         Assert (Guikit.Utf8.Is_Valid (To_String (Leaf)), "the cut ends a whole character");
          Assert (Files.File_System.Restore_From_Trash (To_String (Trashed)).Success,
                  "it is restored");
          Assert (Present (Original), "under its own name");

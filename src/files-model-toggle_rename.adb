@@ -4,7 +4,7 @@ procedure Toggle_Rename
 begin
    Touch (Model);
    Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
-   if Model.Rename_Active then
+   if Model.Rename.Active then
       if Is_Temporary_Rename (Model) then
          --  Which also takes the focus from the rename field.
          Cancel_Create_File (Model);
@@ -17,7 +17,7 @@ begin
       end if;
    elsif Rename_Is_Enabled (Model) then
       Clear_Overlay_State_For_Edit (Model);
-      Model.Rename_Fields.Clear;
+      Model.Rename.Fields.Clear;
       declare
          Indexes : constant Natural_Vectors.Vector := Selected_Loaded_Indexes (Model);
       begin
@@ -26,7 +26,7 @@ begin
                Name : constant String :=
                  To_String (Model.Items.Element (Item_Index).Name);
             begin
-               Model.Rename_Fields.Append
+               Model.Rename.Fields.Append
                  (Rename_Field'
                     (Item_Index => Item_Index,
                      Value      => To_Unbounded_String (Name),
@@ -35,8 +35,8 @@ begin
          end loop;
       end;
 
-      if not Model.Rename_Fields.Is_Empty then
-         Model.Rename_Active := True;
+      if not Model.Rename.Fields.Is_Empty then
+         Model.Rename.Active := True;
          Model.Focus_Value := Files.Types.Focus_Rename_Input;
       end if;
    end if;

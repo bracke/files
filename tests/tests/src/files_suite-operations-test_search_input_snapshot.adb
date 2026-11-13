@@ -2,7 +2,9 @@ separate (Files_Suite.Operations)
    procedure Test_Search_Input_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Outcome : Files.Controller.Controller_Result;
@@ -18,8 +20,8 @@ separate (Files_Suite.Operations)
             Files.Model.Set_Background_Transfers (Model, True);
             Files.Model.Set_Filter (Model, "alpha");
             Files.Model.Focus_Filter_Input (Model);
-            Step := (if Contents then Files.Operations.Run_Content_Search (Model, Settings)
-                     else Files.Operations.Run_Recursive_Search (Model, Settings));
+            Step := (if Contents then Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents)
+                     else Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names));
             Revision := Files.Model.Revision (Model);
             Outcome := Files.Controller.Append_Focused_Text (Model, "x");
             Files_Suite.Support.Assert_Equal
@@ -52,6 +54,4 @@ separate (Files_Suite.Operations)
                "changed queries discard old outcomes while unchanged searches apply: item count");
          end loop;
       end loop;
-   exception
-      when others => Files.Model.Clear_Paste_Execution (Model); raise;
    end Test_Search_Input_Snapshot;

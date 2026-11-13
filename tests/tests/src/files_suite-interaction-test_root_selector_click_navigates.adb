@@ -1,3 +1,4 @@
+with Files.Model.Command_Palette;
 separate (Files_Suite.Interaction)
    procedure Test_Root_Selector_Click_Navigates (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,7 +15,7 @@ separate (Files_Suite.Interaction)
       Ada.Directories.Create_Path (Root_B);
       Roots.Append (Ada.Strings.Unbounded.To_Unbounded_String (Root_A));
       Roots.Append (Ada.Strings.Unbounded.To_Unbounded_String (Root_B));
-      Files.Model.Open_Root_Selector (Model, Roots);
+      Files.Model.Root_Selector.Open (Model, Roots);
 
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=
@@ -54,7 +55,7 @@ separate (Files_Suite.Interaction)
          declare
             Path_Before : constant String := Files.Model.Current_Path (Model);
          begin
-            Files.Model.Open_Command_Palette (Model);
+            Files.Model.Command_Palette.Open (Model);
             Files.Interaction.Apply_Input_Action
               (Model, Settings, "", Action,
                Guikit.Input.No_Modifiers, Result);
@@ -62,15 +63,15 @@ separate (Files_Suite.Interaction)
               (Files.Model.Current_Path (Model), Path_Before,
                "a delayed root-row click is contained by the stacked palette (path)");
             Assert
-              (Files.Model.Root_Selector_Is_Open (Model),
+              (Files.Model.Root_Selector.Is_Open (Model),
                "a delayed root-row click is contained by the stacked palette (root selector open)");
             Assert
-              (Files.Model.Command_Palette_Is_Open (Model),
+              (Files.Model.Command_Palette.Is_Open (Model),
                "a delayed root-row click is contained by the stacked palette (palette open)");
             Files_Suite.Support.Assert_Equal
               (Result.Status, Files.Controller.Controller_Ignored,
                "a delayed root-row click is contained by the stacked palette (status)");
-            Files.Model.Close_Command_Palette (Model);
+            Files.Model.Command_Palette.Close (Model);
          end;
 
          Files.Interaction.Apply_Input_Action
@@ -84,5 +85,5 @@ separate (Files_Suite.Interaction)
          Root_B,
 
          "the root click navigates to the chosen root");
-      Assert (not Files.Model.Root_Selector_Is_Open (Model), "selecting a root closes the root selector");
+      Assert (not Files.Model.Root_Selector.Is_Open (Model), "selecting a root closes the root selector");
    end Test_Root_Selector_Click_Navigates;

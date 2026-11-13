@@ -1,3 +1,4 @@
+with Files.Model.Command_Palette;
 separate (Files_Suite.Interaction)
    --  Text entry: the shell's real typed-character path is
    --  Files.Controller.Append_Focused_Text on whatever input is focused (only
@@ -22,8 +23,8 @@ separate (Files_Suite.Interaction)
          "rep",
          "typed text lands in the focused filter input");
 
-      Files.Model.Open_Command_Palette (Model);
-      Files.Model.Focus_Command_Palette_Input (Model);
+      Files.Model.Command_Palette.Open (Model);
+      Files.Model.Command_Palette.Focus_Input (Model);
       declare
          Outcome : constant Files.Controller.Controller_Result :=
            Files.Controller.Append_Focused_Text (Model, "view");
@@ -33,18 +34,18 @@ separate (Files_Suite.Interaction)
             "typed text lands in the command-palette input (status)");
       end;
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Palette_Query (Model),
+        (Files.Model.Command_Palette.Query (Model),
          "view",
          "typed text lands in the command-palette input");
 
       --  The root selector is allowed to remain beneath the command palette.
       --  Its modal key guard must not intercept editing keys owned by the
       --  visible palette above it.
-      Files.Model.Close_Command_Palette (Model);
+      Files.Model.Command_Palette.Close (Model);
       Roots.Append
         (Ada.Strings.Unbounded.To_Unbounded_String (Files.Model.Current_Path (Model)));
-      Files.Model.Open_Root_Selector (Model, Roots);
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Root_Selector.Open (Model, Roots);
+      Files.Model.Command_Palette.Open (Model);
       declare
          Outcome : constant Files.Controller.Controller_Result :=
            Files.Controller.Append_Focused_Text (Model, "find");
@@ -55,7 +56,7 @@ separate (Files_Suite.Interaction)
             "printable text edits the palette stacked above the root selector");
       end;
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Palette_Query (Model),
+        (Files.Model.Command_Palette.Query (Model),
          "find",
          "the stacked palette receives native character input");
       declare
@@ -68,11 +69,11 @@ separate (Files_Suite.Interaction)
             "Backspace edits the palette stacked above the root selector");
       end;
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Palette_Query (Model),
+        (Files.Model.Command_Palette.Query (Model),
          "fin",
          "the stacked palette query loses its final character");
       Assert
-        (Files.Model.Root_Selector_Is_Open (Model)
-         and then Files.Model.Command_Palette_Is_Open (Model),
+        (Files.Model.Root_Selector.Is_Open (Model)
+         and then Files.Model.Command_Palette.Is_Open (Model),
          "editing the stacked palette preserves both overlay states");
    end Test_Text_Entry_Updates_Focused_Input;

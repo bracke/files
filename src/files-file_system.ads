@@ -356,7 +356,7 @@ package Files.File_System is
    --  @param Settings Settings used for filetype, icon, and hidden-file policy.
    --  @param Max_Items Maximum number of matching items to return.
    --  @return Deterministic recursive search result or recoverable error.
-   function Search_Recursive
+   function Search_Names
      (Root_Path : String;
       Query     : String;
       Settings  : Files.Settings.Settings_Model;
@@ -374,7 +374,7 @@ package Files.File_System is
       return Boolean;
 
    --  Search a directory tree for text files whose first 64 KiB contain
-   --  Query, ignoring case, with Search_Recursive's walk: real folders only
+   --  Query, ignoring case, with Search_Names's walk: real folders only
    --  (a linked folder is an item, so cycles are impossible), Max_Search_Depth
    --  deep, and cancellable. Past its limits (Max_Search_Results matches,
    --  20,000 files read) the answer is Truncated; a file it could not read,
@@ -678,20 +678,7 @@ package Files.File_System is
    --  @return True on the Linux platform, False on the stub platforms.
    function Supports_Ownership return Boolean;
 
-   --  Change the permission bits of one verified entry through a handle that
-   --  pins it, capturing the bits it had.
-   --
-   --  @param Path Existing entry; symbolic links must be resolved by the caller.
-   --  @param Expected_Identity History identity to verify, or empty for a new live change.
-   --  @param Mode New permission bits, 0 .. 8#7777#.
-   --  @param Previous Live previous permission bits captured before mutation.
-   --  @param Identity Identity of the entry actually changed.
-   --  @return Result of applying the mode to the verified entry.
-   function Change_Mode
-     (Path, Expected_Identity : String; Mode : Natural;
-      Previous : out Natural; Identity : out Files.Types.UString) return Mutation_Result;
-
-   --  Change_Mode as a user's edit makes it, reporting the entry's whole
+   --  Change the permission bits of one verified entry as a user's edit does, reporting its whole
    --  access record too where the mode cannot hold it all: on Windows the
    --  DACL, before and after (Hostkit.Metadata.Update_Entry_Metadata), which
    --  the edit changes only where the bits do. With Access_Text -- a record
@@ -1065,6 +1052,21 @@ package Files.File_System is
    function Read_Preview_Text
      (Path : String; Max_Bytes : Natural; Success, Complete : out Boolean) return String;
 private
+
+   --  Change the permission bits of one verified entry through a handle that
+   --  pins it, capturing the bits it had. In the private part: only
+   --  recovery, replaying a journalled change, sets bare bits; an edit goes
+   --  through Change_Access.
+   --
+   --  @param Path Existing entry; symbolic links must be resolved by the caller.
+   --  @param Expected_Identity History identity to verify, or empty for a new live change.
+   --  @param Mode New permission bits, 0 .. 8#7777#.
+   --  @param Previous Live previous permission bits captured before mutation.
+   --  @param Identity Identity of the entry actually changed.
+   --  @return Result of applying the mode to the verified entry.
+   function Change_Mode
+     (Path, Expected_Identity : String; Mode : Natural;
+      Previous : out Natural; Identity : out Files.Types.UString) return Mutation_Result;
 
    --  Whether a mount point is one a user put there (a stick, a share), as
    --  the root list shows them: "/" and anything under /mnt, /media,

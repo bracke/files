@@ -247,12 +247,12 @@ package Files.Rendering is
       Tree_Rows             : Files.Folder_Tree.Visible_Row_Vectors.Vector;
       --  Copy to.../Move to... destination picker state driving the tree: when
       --  active the panel shows a Choose/Cancel bar, the title names the copy or
-      --  move intent, and the row whose path equals Tree_Pick_Target is marked.
+      --  move intent, and the row whose path equals Tree_Panel.Pick_Target is marked.
       Tree_Pick_Active      : Boolean := False;
       Tree_Pick_Moving      : Boolean := False;
       Tree_Pick_Target      : UString;
       --  The side panel has the keyboard: the row whose path equals
-      --  Tree_Cursor is marked instead of the current folder.
+      --  Tree_Panel.Cursor is marked instead of the current folder.
       Tree_Keyboard_Active  : Boolean := False;
       Tree_Cursor           : UString;
       Breadcrumb_Segments   : Files.Breadcrumbs.Segment_Vectors.Vector;
@@ -1022,18 +1022,6 @@ package Files.Rendering is
       Line_Height : Positive)
       return Natural;
 
-   --  Horizontal space reserved at the left of the path bar's interior for the
-   --  favorite star, in pixels. Breadcrumbs and the editable path field start
-   --  this many pixels further right so they never overlap the star.
-   --
-   --  @param Width Window width in pixels.
-   --  @param Line_Height Text line height in pixels.
-   --  @return Reserved width in pixels, or zero when the star is not shown.
-   function Path_Bar_Content_Offset
-     (Width       : Natural;
-      Line_Height : Positive)
-      return Natural;
-
    --  Horizontal extent of a toolbar input field: the box drawn for it, which
    --  is also where a click focuses it, and inside it where the first
    --  character is drawn and how wide the text may run.
@@ -1096,22 +1084,6 @@ package Files.Rendering is
      (Snapshot : View_Snapshot;
       Layout   : Tree_Panel_Layout)
       return Natural;
-
-   --  Largest line offset a scrollable region can take: enough lines to
-   --  bring the content's bottom edge into the viewport. Shared by wheel,
-   --  track-click, and thumb-drag handling so their limits cannot drift.
-   --
-   --  @param Content_Height Total content height in pixels.
-   --  @param Viewport_Height Visible height in pixels.
-   --  @param Line_Height Pixels scrolled per line.
-   --  @return Maximum scroll offset in lines; zero when everything fits.
-   function Max_Scroll_Lines
-     (Content_Height  : Natural;
-      Viewport_Height : Natural;
-      Line_Height     : Positive)
-      return Natural is
-     (if Content_Height <= Viewport_Height then 0
-      else 1 + (Content_Height - Viewport_Height - 1) / Line_Height);
 
    --  Largest line offset the main view can take, as wheel, track-click,
    --  thumb-drag and marquee auto-scroll handling all bound it: its viewport
@@ -1315,6 +1287,34 @@ package Files.Rendering is
       return Text_Render_Result;
 
 private
+
+   --  Horizontal space reserved at the left of the path bar's interior for the
+   --  favorite star, in pixels. Breadcrumbs and the editable path field start
+   --  this many pixels further right so they never overlap the star.
+   --
+   --  @param Width Window width in pixels.
+   --  @param Line_Height Text line height in pixels.
+   --  @return Reserved width in pixels, or zero when the star is not shown.
+   function Path_Bar_Content_Offset
+     (Width       : Natural;
+      Line_Height : Positive)
+      return Natural;
+
+   --  Largest line offset a scrollable region can take: enough lines to
+   --  bring the content's bottom edge into the viewport. Shared by wheel,
+   --  track-click, and thumb-drag handling so their limits cannot drift.
+   --
+   --  @param Content_Height Total content height in pixels.
+   --  @param Viewport_Height Visible height in pixels.
+   --  @param Line_Height Pixels scrolled per line.
+   --  @return Maximum scroll offset in lines; zero when everything fits.
+   function Max_Scroll_Lines
+     (Content_Height  : Natural;
+      Viewport_Height : Natural;
+      Line_Height     : Positive)
+      return Natural is
+     (if Content_Height <= Viewport_Height then 0
+      else 1 + (Content_Height - Viewport_Height - 1) / Line_Height);
 
    --  How wide a centred dialog (paste conflict, paste progress) is: 22
    --  rows' worth, or less in a window that leaves it two rows each side.

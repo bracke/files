@@ -1,4 +1,9 @@
 with Files.Model.Testing;
+with Files.Model.Context_Menu;
+with Files.Model.Label_Picker;
+with Files.Model.Quick_Look;
+with Files.Model.Settings_Pane;
+with Files.Model.Tree_Panel;
 separate (Files_Suite.Interaction)
    procedure Test_Right_Click_Opens_Menu (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -39,7 +44,7 @@ separate (Files_Suite.Interaction)
       begin
          Right_Click (2);
          Assert
-           (not Files.Model.Context_Menu_Is_Open (Model),
+           (not Files.Model.Context_Menu.Is_Open (Model),
             "right-click behind " & Overlay_Name & " leaves the context menu closed");
       end Assert_Right_Click_Suppressed;
    begin
@@ -49,7 +54,7 @@ separate (Files_Suite.Interaction)
       Result.Clear_Pending_Text := True;
       Right_Click (2);
       Assert (Found, "a layout cell exists for the right-clicked item");
-      Assert (Files.Model.Context_Menu_Is_Open (Model), "right-click opens the context menu");
+      Assert (Files.Model.Context_Menu.Is_Open (Model), "right-click opens the context menu");
       Assert (Files.Model.Is_Selected (Model, 2), "right-click selects the unselected item under the cursor");
       Assert
         (not Result.Settings_Changed,
@@ -67,7 +72,7 @@ separate (Files_Suite.Interaction)
       --  With that menu still open, a right-click on another, unselected
       --  item moves the menu there and selects that item alone.
       Right_Click (3);
-      Assert (Files.Model.Context_Menu_Is_Open (Model), "a second right-click opens the menu again");
+      Assert (Files.Model.Context_Menu.Is_Open (Model), "a second right-click opens the menu again");
       Assert (Files.Model.Is_Selected (Model, 3), "it selects the newly right-clicked item");
       Assert (not Files.Model.Is_Selected (Model, 2), "and only that item");
       Right_Click (2);
@@ -83,7 +88,7 @@ separate (Files_Suite.Interaction)
          Y          => Y,
          Result     => Result);
       Assert
-        (not Files.Model.Context_Menu_Is_Open (Model),
+        (not Files.Model.Context_Menu.Is_Open (Model),
          "a stale right-click item index leaves the context menu closed");
       Assert
         (Files.Model.Is_Selected (Model, 2),
@@ -91,29 +96,29 @@ separate (Files_Suite.Interaction)
 
       --  With a modal overlay open the same right-click must be swallowed: the
       --  menu stays closed (the shell suppresses it behind modals).
-      Files.Model.Close_Context_Menu (Model);
-      Files.Model.Toggle_Settings_Pane (Model);
-      Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings overlay is open for the suppression case");
+      Files.Model.Context_Menu.Close (Model);
+      Files.Model.Settings_Pane.Toggle (Model);
+      Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings overlay is open for the suppression case");
       Assert_Right_Click_Suppressed ("Settings");
-      Files.Model.Toggle_Settings_Pane (Model);
+      Files.Model.Settings_Pane.Toggle (Model);
 
-      Files.Model.Open_Label_Picker (Model);
+      Files.Model.Label_Picker.Open (Model);
       Assert_Right_Click_Suppressed ("the label picker");
-      Files.Model.Close_Label_Picker (Model);
+      Files.Model.Label_Picker.Close (Model);
 
-      Files.Model.Toggle_Quick_Look (Model);
-      Assert (Files.Model.Quick_Look_Is_Open (Model), "Quick Look opens for right-click suppression");
+      Files.Model.Quick_Look.Toggle (Model);
+      Assert (Files.Model.Quick_Look.Is_Open (Model), "Quick Look opens for right-click suppression");
       Assert_Right_Click_Suppressed ("Quick Look");
-      Files.Model.Close_Quick_Look (Model);
+      Files.Model.Quick_Look.Close (Model);
 
       declare
          Sources : Files.Types.String_Vectors.Vector;
       begin
          Sources.Append (Ada.Strings.Unbounded.To_Unbounded_String ("/tmp/source"));
-         Files.Model.Begin_Tree_Pick (Model, Files.Model.Pick_Copy, Sources, "");
-         Files.Model.Open_Tree_Panel (Model);
+         Files.Model.Tree_Panel.Begin_Pick (Model, Files.Model.Pick_Copy, Sources, "");
+         Files.Model.Tree_Panel.Open (Model);
          Assert_Right_Click_Suppressed ("the destination picker");
          Files.Model.Testing.Clear_Tree_Pick (Model);
-         Files.Model.Close_Tree_Panel (Model);
+         Files.Model.Tree_Panel.Close (Model);
       end;
    end Test_Right_Click_Opens_Menu;

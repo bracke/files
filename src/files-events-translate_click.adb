@@ -62,11 +62,11 @@ separate (Files.Events)
          Click_Column : Natural;
       begin
          if Click_X <= Text_X then
-            return Files.UTF8.Byte_Offset_For_Display_Column (Raw, Scroll);
+            return Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, Scroll);
          end if;
 
          Click_Column := Saturating_Add (Click_X - Text_X, Char_W / 2) / Char_W;
-         return Files.UTF8.Byte_Offset_For_Display_Column (Raw, Saturating_Add (Click_Column, Scroll));
+         return Guikit.Utf8.Byte_Offset_For_Display_Column (Raw, Saturating_Add (Click_Column, Scroll));
       end Cursor_At;
 
       function Text_Click

@@ -2,7 +2,9 @@ separate (Files_Suite.Operations)
    procedure Test_Drops_While_Busy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Outcome : Files.Controller.Controller_Result;
@@ -61,7 +63,7 @@ separate (Files_Suite.Operations)
       end loop;
       Write_Binary_File (Join (Root, "incoming.txt"), "existing destination");
       Step := Files.Operations.Begin_Paste (Model, Settings, Sources);
-      Assert (Files.Model.Paste_Conflict_Is_Active (Model), "prepare a collision dialog");
+      Assert (Files.Model.Pasting.Conflict_Is_Active (Model), "prepare a collision dialog");
       declare
          Revision : constant Natural := Files.Model.Revision (Model);
       begin
@@ -79,14 +81,12 @@ separate (Files_Suite.Operations)
            (Files.Model.Revision (Model),
             Revision,
             "a second drop cannot reset an unresolved collision dialog: revision");
-         Assert (Files.Model.Paste_Conflict_Is_Active (Model),
+         Assert (Files.Model.Pasting.Conflict_Is_Active (Model),
                  "a second drop cannot reset an unresolved collision dialog: dialog still open");
       end;
-      Files.Model.Clear_Paste_Conflict (Model);
+      Files.Model.Pasting.Clear_Conflict (Model);
    exception
       when others =>
-         Files.Model.Clear_Paste_Conflict (Model);
-         Files.Model.Clear_Paste_Execution (Model);
-         Files.Refresh_Jobs.Cancel (Model);
+         Files.Model.Pasting.Clear_Conflict (Model);
          raise;
    end Test_Drops_While_Busy;

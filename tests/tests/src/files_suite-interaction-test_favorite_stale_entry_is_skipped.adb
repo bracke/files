@@ -12,7 +12,7 @@ separate (Files_Suite.Interaction)
       Settings.Favorite_Paths.Append (Ada.Strings.Unbounded.To_Unbounded_String (Stale));
 
       Open_Favorites_Selector (Model, Settings);
-      Assert (Files.Model.Root_Selector_Is_Open (Model), "the selector opens for the stale-favorite test");
+      Assert (Files.Model.Root_Selector.Is_Open (Model), "the selector opens for the stale-favorite test");
 
       --  Clicking the stale favorite must not raise and must not navigate.
       Click_Root_Row (Model, Settings, Stale, Found, Result);
@@ -25,5 +25,5 @@ separate (Files_Suite.Interaction)
         (Files.Model.Current_Path (Model),
          Before,
          "a stale favorite click does not navigate");
-      Assert (Files.Model.Root_Selector_Is_Open (Model), "a skipped stale click leaves the selector open");
+      Assert (Files.Model.Root_Selector.Is_Open (Model), "a skipped stale click leaves the selector open");
    end Test_Favorite_Stale_Entry_Is_Skipped;

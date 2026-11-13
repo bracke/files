@@ -1,3 +1,5 @@
+with Files.Model.Clipboard;
+with Files.Model.Context_Menu;
 separate (Files_Suite.Interaction)
    procedure Test_Context_Menu_Open_And_Edit (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -28,7 +30,7 @@ separate (Files_Suite.Interaction)
            (Files.Model.Current_Path (Model),
             Dir,
             "opening a directory navigates into it");
-         Assert (not Files.Model.Context_Menu_Is_Open (Model), "dispatching a menu row closes the menu");
+         Assert (not Files.Model.Context_Menu.Is_Open (Model), "dispatching a menu row closes the menu");
       end;
 
       --  Rename, Cut, and Duplicate on a real file, each from a fresh model.
@@ -61,9 +63,9 @@ separate (Files_Suite.Interaction)
             Files.Commands.Cut_Selected_Items_Command,
             "the result echoes the cut command");
          Assert
-           (Files.Model.Clipboard_Mode_Of (Model) = Files.Model.Clipboard_Cut,
+           (Files.Model.Clipboard.Mode_Of (Model) = Files.Model.Clipboard_Cut,
             "cut records a cut clipboard intent");
-         Assert (Files.Model.Clipboard_Has_Items (Model), "cut captures the selected item");
+         Assert (Files.Model.Clipboard.Has_Items (Model), "cut captures the selected item");
 
          Model := Loaded_Model (Dir);
          Files_Suite.Support.Select_Name (Model, "report.txt");

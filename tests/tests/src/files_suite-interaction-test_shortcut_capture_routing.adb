@@ -1,4 +1,5 @@
 with Files.Overlays;
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Interaction)
    --  With a settings Shortcut row armed, the key seam routes the next physical
    --  chord to capture (rebinding the live keymap) rather than acting on it, and
@@ -34,8 +35,8 @@ separate (Files_Suite.Interaction)
            (Model => Model, Region => (X => 0, Y => 0, Width => 600, Height => 500,
                      Clip_Width => 600, Clip_Height => 500, Line_Height => 20), Focused => True,
             Rectangles => Rects, Text => Text, Accessibility => Nodes);
-         Files.Model.Settings_Set_Active_Section (Model, Natural'Last);
-         Files.Model.Settings_Begin_Capture (Model);
+         Files.Model.Settings_Pane.Set_Active_Section (Model, Natural'Last);
+         Files.Model.Settings_Pane.Begin_Capture (Model);
       end Open_And_Arm;
 
       procedure Press
@@ -60,13 +61,13 @@ separate (Files_Suite.Interaction)
       begin
          Files.Commands.Reset_Shortcut_Overrides;
          Open_And_Arm (Model, Settings);
-         Assert (Files.Model.Settings_Is_Capturing (Model), "the first shortcut row is armed");
+         Assert (Files.Model.Settings_Pane.Is_Capturing (Model), "the first shortcut row is armed");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Settings_Capturing_Key (Model),
+           (Files.Model.Settings_Pane.Capturing_Key (Model),
             "shortcut.view.small",
             "the armed row is the first command's shortcut field");
          Press (Model, Settings, Guikit.Input.Key_5, Ctrl_Shift);
-         Assert (not Files.Model.Settings_Is_Capturing (Model), "capturing a chord disarms the row");
+         Assert (not Files.Model.Settings_Pane.Is_Capturing (Model), "capturing a chord disarms the row");
          declare
             SC : constant Files.Commands.Shortcut := Files.Commands.Shortcut_For (Cmd);
          begin
@@ -91,7 +92,7 @@ separate (Files_Suite.Interaction)
          Files.Commands.Reset_Shortcut_Overrides;
          Open_And_Arm (Model, Settings);
          Press (Model, Settings, Guikit.Input.Key_Escape, Guikit.Input.No_Modifiers);
-         Assert (not Files.Model.Settings_Is_Capturing (Model), "Escape disarms the row");
+         Assert (not Files.Model.Settings_Pane.Is_Capturing (Model), "Escape disarms the row");
          Assert (Files.Commands.Shortcut_For (Cmd) = Files.Commands.Default_Shortcut_For (Cmd),
                  "Escape leaves the binding at its default");
       end;

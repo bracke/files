@@ -13,7 +13,6 @@ with Files.Folder_Tree;
 with Files.Folder_Size;
 with Files.Paste;
 with Files.Quick_Look;
-with Files.Shared_Bytes;
 with Files.Settings;
 with Guikit.Command_Palette;
 with Guikit.Input;
@@ -393,53 +392,6 @@ package Files.Model is
      (Model    : Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Window_Model;
-
-   --  Toggle the bottom-bar sort menu visibility.
-   --
-   --  @param Model Model to update.
-   procedure Toggle_Sort_Menu
-     (Model : in out Window_Model);
-
-   --  Close the bottom-bar sort menu.
-   --
-   --  @param Model Model to update.
-   procedure Close_Sort_Menu
-     (Model : in out Window_Model);
-
-   --  Return whether the bottom-bar sort menu is open.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when the sort menu is open.
-   function Sort_Menu_Is_Open
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Move the keyboard highlight across the sort menu's five rows (1 .. 5,
-   --  mirroring the sort fields), clamped to that range.
-   --
-   --  @param Model Model to update.
-   --  @param Delta_Value Signed number of rows to move.
-   procedure Move_Sort_Menu_Highlight
-     (Model : in out Window_Model;
-      Delta_Value : Integer);
-
-   --  The one-based index of the highlighted sort-menu row (0 when none), for
-   --  rendering.
-   --
-   --  @param Model Model to inspect.
-   --  @return Highlighted row index, 0 or 1 .. 5.
-   function Sort_Menu_Highlight
-     (Model : Window_Model)
-      return Natural;
-
-   --  The sort field the highlighted sort-menu row selects, for applying a
-   --  keyboard confirmation.
-   --
-   --  @param Model Model to inspect.
-   --  @return Sort field under the highlight.
-   function Sort_Menu_Highlight_Field
-     (Model : Window_Model)
-      return Files.Types.Sort_Field;
 
    --  Return the number of loaded directory items.
    --
@@ -1020,12 +972,6 @@ package Files.Model is
    procedure Focus_Filter_Input
      (Model : in out Window_Model);
 
-   --  Focus the command-palette input without changing its existing query.
-   --
-   --  @param Model Model to update.
-   procedure Focus_Command_Palette_Input
-     (Model : in out Window_Model);
-
    --  Focus the active rename input without changing its existing text.
    --
    --  @param Model Model to update.
@@ -1072,369 +1018,9 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
-   --  Open the root selector with available root paths.
-   --
-   --  @param Model Model to update.
-   --  @param Roots Root paths to expose.
-   procedure Open_Root_Selector
-     (Model : in out Window_Model;
-      Roots : Files.Types.String_Vectors.Vector);
-
-   --  Open the root selector with root metadata entries.
-   --
-   --  @param Model Model to update.
-   --  @param Roots Root entries to expose.
-   procedure Open_Root_Selector
-     (Model : in out Window_Model;
-      Roots : Files.File_System.Root_Entry_Vectors.Vector);
-
-   --  Close the root selector.
-   --
-   --  @param Model Model to update.
-   procedure Close_Root_Selector
-     (Model : in out Window_Model);
-
-   --  Return whether the root selector is open.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when the root selector is open.
-   function Root_Selector_Is_Open
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Return the number of root paths in the selector.
-   --
-   --  @param Model Model to inspect.
-   --  @return Number of root paths.
-   function Root_Count
-     (Model : Window_Model)
-      return Natural;
-
-   --  Return the selected root-selector row.
-   --
-   --  @param Model Model to inspect.
-   --  @return One-based selected root index, or zero when none is selected.
-   function Root_Selected_Index
-     (Model : Window_Model)
-      return Natural;
-
-   --  Set the selected root-selector row.
-   --
-   --  @param Model Model to update.
-   --  @param Index One-based selected root index, or zero for no row.
-   procedure Set_Root_Selected_Index
-     (Model : in out Window_Model;
-      Index : Natural);
-
-   --  Move the selected root-selector row with wraparound.
-   --
-   --  @param Model Model to update.
-   --  @param Direction Direction requested by user input.
-   procedure Move_Root_Selection
-     (Model     : in out Window_Model;
-      Direction : Guikit.Input.Navigation_Direction);
-
-   --  Return a root path from the selector.
-   --
-   --  @param Model Model to inspect.
-   --  @param Index One-based root index.
-   --  @return Root path or an empty string when Index is invalid.
-   function Root_Path
-     (Model : Window_Model;
-      Index : Positive)
-      return String;
-
-   --  Return a root label from the selector.
-   --
-   --  @param Model Model to inspect.
-   --  @param Index One-based root index.
-   --  @return Root label or an empty string when Index is invalid.
-   function Root_Label
-     (Model : Window_Model;
-      Index : Positive)
-      return String;
-
-   --  Return a root entry from the selector, as Files.Root_Labels shows it.
-   --
-   --  @param Model Model to inspect.
-   --  @param Index One-based root index.
-   --  @return The entry, or an empty one when Index is invalid.
-   function Root_Entry_At
-     (Model : Window_Model;
-      Index : Positive)
-      return Files.File_System.Root_Entry;
-
-   --  Return a root kind from the selector.
-   --
-   --  @param Model Model to inspect.
-   --  @param Index One-based root index.
-   --  @return Root kind or Root_Filesystem when Index is invalid.
-   function Root_Kind
-     (Model : Window_Model;
-      Index : Positive)
-      return Files.File_System.Root_Kind;
-
-   --  Return whether a root entry reports removable media.
-   --
-   --  @param Model Window model to inspect.
-   --  @param Index One-based root selector index.
-   --  @return True when Index names a removable root.
-   function Root_Is_Removable
-     (Model : Window_Model;
-      Index : Positive)
-      return Boolean;
-
-   --  Open the folder-tree sidebar.
-   --
-   --  @param Model Model to update.
-   procedure Open_Tree_Panel
-     (Model : in out Window_Model);
-
-   --  Close the folder-tree sidebar.
-   --
-   --  @param Model Model to update.
-   procedure Close_Tree_Panel
-     (Model : in out Window_Model);
-
-   --  Return whether the folder-tree sidebar is open.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when the tree sidebar is open.
-   function Tree_Panel_Is_Open
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Scroll the visible folder-tree rows. Positive values move down and
-   --  negative values move up.
-   --
-   --  @param Model Model to update.
-   --  @param Rows Signed number of rows to scroll.
-   procedure Scroll_Tree_Panel
-     (Model : in out Window_Model;
-      Rows  : Integer);
-
-   --  Zero-based index of the first requested folder-tree row.
-   --
-   --  @param Model Model to inspect.
-   --  @return Current zero-based folder-tree row offset.
-   function Tree_Panel_Scroll_Rows
-     (Model : Window_Model)
-      return Natural;
-
-   --  Set the zero-based first requested tree row, clamped to the available
-   --  rows. Used by direct scrollbar manipulation.
-   --
-   --  @param Model Model to update.
-   --  @param Rows Requested zero-based folder-tree row offset.
-   procedure Set_Tree_Panel_Scroll_Rows
-     (Model : in out Window_Model;
-      Rows  : Natural);
-
-   --  Adjust the tree offset only when a visible row lies outside the current
-   --  viewport. Page_Rows is the number of rows supplied by the live layout.
-   --
-   --  @param Model Model to update.
-   --  @param Visible_Row One-based visible row that must remain in view.
-   --  @param Page_Rows Number of visible rows in the current viewport.
-   procedure Ensure_Tree_Row_Visible
-     (Model       : in out Window_Model;
-      Visible_Row : Positive;
-      Page_Rows   : Natural);
-
-   --  Return whether the folder tree has been seeded with root nodes.
-   --
-   --  @param Model Model to inspect.
-   --  @return True once the tree holds its root nodes.
-   function Tree_Is_Seeded
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Whether the folder tree's roots are Roots, in order.
-   --
-   --  @param Model Model to inspect.
-   --  @param Roots Root locations to compare with.
-   --  @return True when the tree was seeded with exactly these.
-   function Tree_Roots_Match
-     (Model : Window_Model;
-      Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector)
-      return Boolean;
-
-   --  Seed the folder tree with root nodes.
-   --
-   --  @param Model Model to update.
-   --  @param Roots Root locations shown at the top of the tree.
-   procedure Seed_Tree
-     (Model : in out Window_Model;
-      Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector);
-
-   --  Return the number of nodes currently held by the folder tree.
-   --
-   --  @param Model Model to inspect.
-   --  @return Total tree node count.
-   function Tree_Node_Count
-     (Model : Window_Model)
-      return Natural;
-
-   --  Return a tree node's absolute directory path.
-   --
-   --  @param Model Model to inspect.
-   --  @param Index One-based node index.
-   --  @return Node path, or an empty string when Index is out of range.
-   function Tree_Node_Path
-     (Model : Window_Model;
-      Index : Positive)
-      return String;
-
-   --  Return whether a tree node is currently expanded.
-   --
-   --  @param Model Model to inspect.
-   --  @param Index One-based node index.
-   --  @return True when the node shows its children.
-   function Tree_Node_Is_Expanded
-     (Model : Window_Model;
-      Index : Positive)
-      return Boolean;
-
-   --  Attach a tree node's child subdirectories in place of those it had
-   --  (Files.Folder_Tree.Replace_Children): children still there keep their
-   --  nodes and expanded subtrees, and the tree pick target follows them.
-   --
-   --  @param Model Model to update.
-   --  @param Index One-based parent node index.
-   --  @param Children Child subdirectories in display order.
-   procedure Tree_Set_Children
-     (Model    : in out Window_Model;
-      Index    : Positive;
-      Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector);
-
-   --  Set a tree node's expanded flag.
-   --
-   --  @param Model Model to update.
-   --  @param Index One-based node index.
-   --  @param Expanded New expanded state.
-   procedure Tree_Set_Expanded
-     (Model    : in out Window_Model;
-      Index    : Positive;
-      Expanded : Boolean);
-
-   --  Flip a tree node's expanded flag.
-   --
-   --  @param Model Model to update.
-   --  @param Index One-based node index.
-   procedure Tree_Toggle_Expanded
-     (Model : in out Window_Model;
-      Index : Positive);
-
-   --  Return the flattened, currently visible folder-tree rows.
-   --
-   --  @param Model Model to inspect.
-   --  @return Visible tree rows in top-to-bottom display order.
-   function Tree_Visible_Rows
-     (Model : Window_Model)
-      return Files.Folder_Tree.Visible_Row_Vectors.Vector;
-
    --  Destination-picker mode driving the folder tree while the user chooses a
    --  Copy to.../Move to... target directory.
    type Tree_Pick_Mode is (Pick_None, Pick_Copy, Pick_Move);
-
-   --  Begin the destination-picker sub-mode: record the copy/move intent, the
-   --  captured source paths, and the initial highlighted target directory.
-   --
-   --  @param Model Model to update.
-   --  @param Mode Copy or move intent (Pick_None clears the picker).
-   --  @param Sources Full source paths to copy or move.
-   --  @param Initial_Target Directory highlighted as the initial destination.
-   procedure Begin_Tree_Pick
-     (Model          : in out Window_Model;
-      Mode           : Tree_Pick_Mode;
-      Sources        : Files.Types.String_Vectors.Vector;
-      Initial_Target : String);
-
-   --  Set the highlighted destination directory for the active picker.
-   --
-   --  @param Model Model to update.
-   --  @param Target Directory to highlight as the destination.
-   procedure Set_Tree_Pick_Target
-     (Model  : in out Window_Model;
-      Target : String);
-
-   --  Finish the destination picker: close the folder tree when the picker
-   --  opened it, or else leave the tree as the user had it.
-   --
-   --  @param Model Model to update.
-   procedure End_Tree_Pick
-     (Model : in out Window_Model);
-
-   --  Return the active destination-picker mode.
-   --
-   --  @param Model Model to inspect.
-   --  @return Pick_None when no destination picker is active.
-   function Tree_Pick_Mode_Of
-     (Model : Window_Model)
-      return Tree_Pick_Mode;
-
-   --  Return whether a destination picker is active.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when a Copy to.../Move to... picker is running.
-   function Tree_Pick_Is_Active
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Return the captured destination-picker source paths.
-   --
-   --  @param Model Model to inspect.
-   --  @return Source paths to copy or move when the picker confirms.
-   function Tree_Pick_Sources
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
-
-   --  Return the highlighted destination directory.
-   --
-   --  @param Model Model to inspect.
-   --  @return Currently highlighted destination path, or an empty string.
-   function Tree_Pick_Target
-     (Model : Window_Model)
-      return String;
-
-   --  Hand the keyboard to the folder tree side panel: arrows then move a
-   --  highlighted row instead of the grid selection. The highlight starts on
-   --  the current folder when the tree shows it, else on the first row.
-   --
-   --  @param Model Model to update.
-   procedure Give_Tree_Keyboard
-     (Model : in out Window_Model);
-
-   --  Give the keyboard back to the grid.
-   --
-   --  @param Model Model to update.
-   procedure Take_Tree_Keyboard
-     (Model : in out Window_Model);
-
-   --  Return whether the folder tree has the keyboard: it was given it, the
-   --  panel is open, no destination picker runs and no text field is focused.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when arrows and Enter act on the tree.
-   function Tree_Has_Keyboard
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Return the tree row highlighted for the keyboard.
-   --
-   --  @param Model Model to inspect.
-   --  @return Path of the highlighted folder, or an empty string.
-   function Tree_Cursor
-     (Model : Window_Model)
-      return String;
-
-   --  Move the keyboard highlight to a folder of the tree.
-   --
-   --  @param Model Model to update.
-   --  @param Path Folder to highlight.
-   procedure Set_Tree_Cursor
-     (Model : in out Window_Model;
-      Path  : String);
 
    --  Return the current focus target.
    --
@@ -1550,203 +1136,6 @@ package Files.Model is
      (Model : in out Window_Model;
       Extra : Files.Extra_Info.Info);
 
-   --  Toggle settings pane visibility.
-   --
-   --  @param Model Model to update.
-   procedure Toggle_Settings_Pane
-     (Model : in out Window_Model);
-
-   --  Return whether the settings pane is visible.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when the settings pane is open.
-   function Settings_Pane_Is_Open
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Begin editing settings values in the settings pane.
-   --
-   --  @param Model Model to update.
-   --  @param Draft Draft values to edit.
-   procedure Begin_Settings_Edit
-     (Model : in out Window_Model;
-      Draft : Files.Settings.Settings_Draft);
-
-   --  Return the current settings draft.
-   --
-   --  @param Model Model to inspect.
-   --  @return Editable settings draft.
-   function Settings_Draft_Of
-     (Model : Window_Model)
-      return Files.Settings.Settings_Draft;
-
-   --  Replace the active settings draft.
-   --
-   --  @param Model Model to update.
-   --  @param Draft Draft values to store.
-   procedure Set_Settings_Draft
-     (Model : in out Window_Model;
-      Draft : Files.Settings.Settings_Draft);
-
-   --  Feed input to the settings panel. Guikit.Settings_Panel owns the focus,
-   --  scroll, hit-testing and rendering; these forward events, and the caller
-   --  drains the emitted change with Settings_Take_Change to apply it.
-
-   --  Move keyboard focus over the panel's fields (sections are skipped).
-   --
-   --  @param Model Model to update.
-   --  @param Delta_Rows Signed number of fields to move focus.
-   procedure Settings_Move_Focus (Model : in out Window_Model; Delta_Rows : Integer);
-
-   --  Advance/retreat the focused toggle or choice, or step a focused number.
-   --
-   --  @param Model Model to update.
-   --  @param Forward True to advance, False to retreat.
-   procedure Settings_Cycle_Choice (Model : in out Window_Model; Forward : Boolean);
-
-   --  Replace the whole value of the focused text field.
-   --
-   --  @param Model Model to update.
-   --  @param Text New text value.
-   procedure Settings_Set_Focused_Value (Model : in out Window_Model; Text : String);
-
-   --  Scroll the panel content by whole rows (positive scrolls down).
-   --
-   --  @param Model Model to update.
-   --  @param Lines Rows to scroll.
-   procedure Settings_Scroll (Model : in out Window_Model; Lines : Integer);
-
-   --  Hit-test a window coordinate, focusing/editing the field under it.
-   --
-   --  @param Model Model to update.
-   --  @param X Pointer x coordinate in pixels.
-   --  @param Y Pointer y coordinate in pixels.
-   --  @return True when a field was hit.
-   function Settings_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean;
-
-   --  The change emitted by the panel's most recent input (clears on read).
-   --
-   --  @param Model Model to update.
-   --  @return The pending change.
-   function Settings_Take_Change (Model : in out Window_Model) return Guikit.Settings_Panel.Change;
-
-   --  The focused field's current value ("" when none).
-   --
-   --  @param Model Model to inspect.
-   --  @return The focused field's value.
-   function Settings_Focused_Value (Model : Window_Model) return String;
-
-   --  The focused field's kind (Section when none), so keys that act only on
-   --  some kinds -- Space flips a toggle but types into a text field -- can
-   --  tell them apart.
-   --
-   --  @param Model Model to inspect.
-   --  @return The focused field's kind.
-   function Settings_Focused_Kind (Model : Window_Model) return Guikit.Settings_Panel.Field_Kind;
-
-   --  The focused field's Key ("" when none).
-   --
-   --  @param Model Model to inspect.
-   --  @return The focused field's Key.
-   function Settings_Focused_Key (Model : Window_Model) return String;
-
-   --  Press-to-capture routing for the settings panel's Shortcut fields. Arming
-   --  a focused Shortcut row (by click, or Begin_Capture on a keyboard
-   --  activation) makes Settings_Is_Capturing true; the controller then routes
-   --  the next physical chord here instead of acting on it, formats it to text,
-   --  and commits it with Settings_Set_Captured_Shortcut (empty text unbinds) or
-   --  cancels with Settings_Cancel_Capture.
-
-   --  Show the Ordinal-th settings section (clamped to the available range),
-   --  moving focus to its first field. Used to drive the tab switcher
-   --  programmatically (keyboard tab navigation and tests).
-   --
-   --  @param Model Model to update.
-   --  @param Ordinal One-based section ordinal.
-   procedure Settings_Set_Active_Section (Model : in out Window_Model; Ordinal : Natural);
-
-   --  The number of settings sections (tabs) in the current field list.
-   --
-   --  @param Model Model to inspect.
-   --  @return Section count (0 before the panel has been laid out).
-   function Settings_Section_Count (Model : Window_Model) return Natural;
-
-   --  The one-based ordinal of the currently shown settings section.
-   --
-   --  @param Model Model to inspect.
-   --  @return Active section ordinal.
-   function Settings_Active_Section (Model : Window_Model) return Natural;
-
-   --  Arm the focused field for capture when it is an enabled Shortcut field.
-   --
-   --  @param Model Model to update.
-   procedure Settings_Begin_Capture (Model : in out Window_Model);
-
-   --  Whether a Shortcut field is armed for capture.
-   --
-   --  @param Model Model to inspect.
-   --  @return True while a chord is being captured.
-   function Settings_Is_Capturing (Model : Window_Model) return Boolean;
-
-   --  The command identifier of the armed Shortcut field ("" when none). The
-   --  field Key is "shortcut.<identifier>"; this returns that whole Key.
-   --
-   --  @param Model Model to inspect.
-   --  @return The armed field's Key, or "".
-   function Settings_Capturing_Key (Model : Window_Model) return String;
-
-   --  Commit a captured chord (empty Text unbinds) to the armed field, disarm,
-   --  and emit the panel's Value_Changed.
-   --
-   --  @param Model Model to update.
-   --  @param Text The formatted chord text, or "" to unbind.
-   procedure Settings_Set_Captured_Shortcut (Model : in out Window_Model; Text : String);
-
-   --  Configure the settings panel (Config, built by the window layer with its
-   --  localized texts, and the form's Fields) and hand it to Visit, which
-   --  draws it: the model holds the panel's state, the window layer renders.
-   --
-   --  @param Model Model whose panel to visit.
-   --  @param Config The panel's configuration this frame.
-   --  @param Fields The form's fields this frame.
-   --  @param Visit Draws the panel.
-   procedure Visit_Settings_Panel
-     (Model  : in out Window_Model;
-      Config : Guikit.Settings_Panel.Configuration;
-      Fields : Guikit.Settings_Panel.Field_Vectors.Vector;
-      Visit  : not null access procedure (Panel : in out Guikit.Settings_Panel.Panel));
-
-   --  Whether the settings panel is capturing a shortcut chord.
-   --
-   --  @param Model Model to inspect.
-   --  @return True while a chord is being captured.
-   function Settings_Panel_Capturing (Model : Window_Model) return Boolean;
-
-   --  Refresh the command palette for this frame -- its line height, and its
-   --  command list (their enablement) after a model change -- and hand it to
-   --  Visit, which draws it: the model holds the palette's state (query,
-   --  selection, scroll), the window layer renders.
-   --
-   --  @param Model Model whose palette to visit.
-   --  @param Line_Height Row height in pixels.
-   --  @param Title The palette's heading, in the current language.
-   --  @param Empty_State What it shows when no command matches.
-   --  @param Close_Label Its close button's accessible name, in the current
-   --    language.
-   --  @param Visit Draws the palette.
-   procedure Visit_Command_Palette
-     (Model       : in out Window_Model;
-      Line_Height : Positive;
-      Title       : String;
-      Empty_State : String;
-      Close_Label : String;
-      Visit       : not null access procedure (Palette : in out Guikit.Command_Palette.Palette));
-
-   --  Disarm capture without changing any field.
-   --
-   --  @param Model Model to update.
-   procedure Settings_Cancel_Capture (Model : in out Window_Model);
-
    --  Scroll the info pane by logical text lines.
    --
    --  @param Model Model to update.
@@ -1797,252 +1186,7 @@ package Files.Model is
      (Model : in out Window_Model;
       Lines : Natural);
 
-   --  Open the command palette.
-   --
-   --  @param Model Model to update.
-   procedure Open_Command_Palette
-     (Model : in out Window_Model);
-
-   --  Close the command palette.
-   --
-   --  @param Model Model to update.
-   procedure Close_Command_Palette
-     (Model : in out Window_Model);
-
-   --  Toggle the command palette.
-   --
-   --  @param Model Model to update.
-   procedure Toggle_Command_Palette
-     (Model : in out Window_Model);
-
-   --  Return whether the command palette is open.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when command palette is open.
-   function Command_Palette_Is_Open
-     (Model : Window_Model)
-      return Boolean;
-
-   --  The palette's current query text. Guikit.Command_Palette owns the query,
-   --  selection and scroll; these only forward to it.
-   --
-   --  @param Model Model to inspect.
-   --  @return The current query text.
-   function Palette_Query (Model : Window_Model) return String;
-
-   --  Replace the palette's query text (resets its selection).
-   --
-   --  @param Model Model to update.
-   --  @param Text New query text.
-   procedure Palette_Set_Query (Model : in out Window_Model; Text : String);
-
-   --  Move the highlighted result by Delta_Rows (clamped/wrapped by the palette).
-   --
-   --  @param Model Model to update.
-   --  @param Delta_Rows Signed number of rows to move the selection.
-   procedure Palette_Move_Selection (Model : in out Window_Model; Delta_Rows : Integer);
-
-   --  Highlight the first result.
-   --
-   --  @param Model Model to update.
-   procedure Palette_Select_First (Model : in out Window_Model);
-
-   --  Highlight the last result.
-   --
-   --  @param Model Model to update.
-   procedure Palette_Select_Last (Model : in out Window_Model);
-
-   --  Move the selection by one page.
-   --
-   --  @param Model Model to update.
-   --  @param Down True to page down, False to page up.
-   procedure Palette_Page (Model : in out Window_Model; Down : Boolean);
-
-   --  Select the palette result at a window coordinate, using the last render.
-   --
-   --  @param Model Model to update.
-   --  @param X Pointer x coordinate in pixels.
-   --  @param Y Pointer y coordinate in pixels.
-   --  @return True when a result row was hit (and is now selected).
-   function Palette_Click (Model : in out Window_Model; X : Integer; Y : Integer) return Boolean;
-
-   --  The Id of the highlighted command, or 0 when none. In Palette_Commands
-   --  mode this is Files.Commands.Command_Id'Pos of the command; in
-   --  Palette_Open_With mode the one-based application index.
-   --
-   --  @param Model Model to inspect.
-   --  @return The chosen command Id, or 0.
-   function Palette_Selected_Id (Model : Window_Model) return Natural;
-
-   --  Number of results matching the current query (from the last render's
-   --  command list).
-   --
-   --  @param Model Model to inspect.
-   --  @return The result count.
-   function Palette_Result_Count (Model : Window_Model) return Natural;
-
    type Palette_Mode is (Palette_Commands, Palette_Open_With);
-
-   --  Return the active command-palette mode.
-   --
-   --  @param Model Model to inspect.
-   --  @return Palette_Commands for the registered-command picker, or
-   --  Palette_Open_With for the "Open With" application picker.
-   function Command_Palette_Mode_Of
-     (Model : Window_Model)
-      return Palette_Mode;
-
-   --  Set the active command-palette mode.
-   --
-   --  @param Model Model to update.
-   --  @param Mode New palette mode.
-   procedure Set_Command_Palette_Mode
-     (Model : in out Window_Model;
-      Mode  : Palette_Mode);
-
-   --  Replace the stored "Open With" target paths.
-   --
-   --  @param Model Model to update.
-   --  @param Targets Full paths the chosen application should open.
-   procedure Set_Open_With_Targets
-     (Model   : in out Window_Model;
-      Targets : Files.Types.String_Vectors.Vector);
-
-   --  Return the stored "Open With" target paths.
-   --
-   --  @param Model Model to inspect.
-   --  @return Full paths captured for the "Open With" picker.
-   function Open_With_Targets
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
-
-   --  Store the applications the "Open With" picker lists. The caller scans
-   --  once when the picker opens; the list drawn and the one a choice is
-   --  resolved against are then the same, however the installed set changes.
-   --
-   --  @param Model Model to update.
-   --  @param Applications Installed applications, in picker order.
-   procedure Set_Open_With_Applications
-     (Model        : in out Window_Model;
-      Applications : Files.Desktop_Applications.Application_Vectors.Vector);
-
-   --  Return the applications the "Open With" picker lists.
-   --
-   --  @param Model Model to inspect.
-   --  @return The list stored when the picker opened; empty otherwise. A
-   --    picker Id is a one-based index into it.
-   function Open_With_Applications
-     (Model : Window_Model)
-      return Files.Desktop_Applications.Application_Vectors.Vector;
-
-   --  Open the Quick Look overlay with prepared preview content, capturing the
-   --  currently selected item's path as the previewed identity.
-   --
-   --  @param Model Model to update.
-   --  @param Content Prepared preview content the overlay renders.
-   procedure Open_Quick_Look
-     (Model   : in out Window_Model;
-      Content : Files.Quick_Look.Quick_Look_Content);
-
-   --  Close the Quick Look overlay and drop its previewed content.
-   --
-   --  @param Model Model to update.
-   procedure Close_Quick_Look
-     (Model : in out Window_Model);
-
-   --  Give the open preview its decoded image, if it still shows Path.
-   --
-   --  @param Model Model to update.
-   --  @param Path The file the image was decoded from.
-   --  @param Pixels Its RGBA pixels.
-   --  @param Width Its width.
-   --  @param Height Its height.
-   procedure Set_Quick_Look_Image
-     (Model  : in out Window_Model;
-      Path   : String;
-      Pixels : Files.Shared_Bytes.Bytes;
-      Width  : Natural;
-      Height : Natural);
-
-   --  Toggle the Quick Look overlay. When opening, the previewed content is a
-   --  metadata-only info card derived from the selected item without any
-   --  filesystem read; when closing, the previewed content is dropped.
-   --
-   --  @param Model Model to update.
-   procedure Toggle_Quick_Look
-     (Model : in out Window_Model);
-
-   --  Return whether the Quick Look overlay is open.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when Quick Look is active.
-   function Quick_Look_Is_Open
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Return the full path of the item Quick Look is previewing.
-   --
-   --  @param Model Model to inspect.
-   --  @return Previewed item full path, or an empty string when closed.
-   function Quick_Look_Path
-     (Model : Window_Model)
-      return String;
-
-   --  Return the prepared Quick Look preview content.
-   --
-   --  @param Model Model to inspect.
-   --  @return Preview content; its kind is Info_Content when closed.
-   function Quick_Look_Content_Of
-     (Model : Window_Model)
-      return Files.Quick_Look.Quick_Look_Content;
-
-   --  Open the color-label swatch picker overlay. The chosen label is applied to
-   --  the current selection by the interaction reducer when a swatch is clicked.
-   --
-   --  @param Model Model to update.
-   procedure Open_Label_Picker
-     (Model : in out Window_Model);
-
-   --  Close the color-label swatch picker overlay.
-   --
-   --  @param Model Model to update.
-   procedure Close_Label_Picker
-     (Model : in out Window_Model);
-
-   --  Return whether the color-label swatch picker overlay is open.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when the label picker is active.
-   function Label_Picker_Is_Open
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Move the keyboard highlight across the label picker's swatches (one per
-   --  real color, then Files.Types.Clear_Swatch), clamped to
-   --  1 .. Files.Types.Swatch_Count.
-   --
-   --  @param Model Model to update.
-   --  @param Delta_Value Signed number of swatches to move.
-   procedure Move_Label_Picker_Highlight
-     (Model : in out Window_Model;
-      Delta_Value : Integer);
-
-   --  The one-based index of the highlighted label-picker swatch, for rendering.
-   --
-   --  @param Model Model to inspect.
-   --  @return Highlighted swatch index in 1 .. Files.Types.Swatch_Count.
-   function Label_Picker_Highlight
-     (Model : Window_Model)
-      return Positive;
-
-   --  The color label the highlighted swatch chooses (No_Label for the clear
-   --  swatch), for applying a keyboard confirmation.
-   --
-   --  @param Model Model to inspect.
-   --  @return Color label under the highlight.
-   function Label_Picker_Highlight_Color
-     (Model : Window_Model)
-      return Files.Types.Color_Label;
 
    --  Return whether rename can start for the current selection.
    --
@@ -2253,127 +1397,7 @@ package Files.Model is
 
    subtype Context_Menu_Target is Files.Types.Context_Menu_Target;
 
-   --  Open the right-click context menu at the given window position.
-   --
-   --  @param Model Model to update.
-   --  @param X Window-space X coordinate of the cursor.
-   --  @param Y Window-space Y coordinate of the cursor.
-   --  @param Target Whether the menu is anchored on an item, the empty grid, or
-   --    the details-view column header.
-   --  @param Item_Index Visible item index when the menu is anchored on a row.
-   procedure Open_Context_Menu
-     (Model      : in out Window_Model;
-      X          : Natural;
-      Y          : Natural;
-      Target     : Context_Menu_Target;
-      Item_Index : Natural := 0);
-
-   --  Close the right-click context menu.
-   --
-   --  @param Model Model to update.
-   procedure Close_Context_Menu
-     (Model : in out Window_Model);
-
-   --  Return whether the context menu is open.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when the context menu is open.
-   function Context_Menu_Is_Open
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Return the anchor X coordinate.
-   --
-   --  @param Model Model to inspect.
-   --  @return The context menu's anchor X coordinate in pixels.
-   function Context_Menu_X
-     (Model : Window_Model)
-      return Natural;
-
-   --  Return the anchor Y coordinate.
-   --
-   --  @param Model Model to inspect.
-   --  @return The context menu's anchor Y coordinate in pixels.
-   function Context_Menu_Y
-     (Model : Window_Model)
-      return Natural;
-
-   --  Return whether the menu was opened on an item or the empty area.
-   --
-   --  @param Model Model to inspect.
-   --  @return Whether the menu targets an item or the empty area.
-   function Context_Menu_Target_Of
-     (Model : Window_Model)
-      return Context_Menu_Target;
-
-   --  Return the item index the menu was anchored to (0 when empty area).
-   --
-   --  @param Model Model to inspect.
-   --  @return The anchored item index, or 0 when opened on the empty area.
-   function Context_Menu_Item_Index
-     (Model : Window_Model)
-      return Natural;
-
-   --  Set the one-based index of the keyboard-highlighted context-menu row (0
-   --  for none). The controller resolves which row is a selectable command via
-   --  Files.Commands.Context_Menu_Rows_For and stores the result here.
-   --
-   --  @param Model Model to update.
-   --  @param Row Highlighted row index, or 0 for none.
-   procedure Set_Context_Menu_Highlight
-     (Model : in out Window_Model;
-      Row   : Natural);
-
-   --  The one-based index of the keyboard-highlighted context-menu row, or 0
-   --  when none is highlighted (e.g. a menu opened by mouse and not yet arrowed).
-   --
-   --  @param Model Model to inspect.
-   --  @return Highlighted row index, or 0.
-   function Context_Menu_Highlight
-     (Model : Window_Model)
-      return Natural;
-
    type Clipboard_Mode is (Clipboard_None, Clipboard_Copy, Clipboard_Cut);
-
-   --  Record a clipboard snapshot of source paths and a copy/cut mode.
-   --
-   --  @param Model Model to update.
-   --  @param Paths Filesystem paths to remember.
-   --  @param Mode  Copy or cut intent for the next paste.
-   procedure Set_Clipboard
-     (Model : in out Window_Model;
-      Paths : Files.Types.String_Vectors.Vector;
-      Mode  : Clipboard_Mode);
-
-   --  Clear any pending clipboard snapshot.
-   --
-   --  @param Model Model to update.
-   procedure Clear_Clipboard
-     (Model : in out Window_Model);
-
-   --  Return the remembered clipboard source paths.
-   --
-   --  @param Model Model to inspect.
-   --  @return Filesystem paths captured on the last copy or cut.
-   function Clipboard_Paths
-     (Model : Window_Model)
-      return Files.Types.String_Vectors.Vector;
-
-   --  Return whether the clipboard intent is copy or cut.
-   --
-   --  @param Model Model to inspect.
-   --  @return Clipboard_None when no clipboard snapshot exists.
-   function Clipboard_Mode_Of
-     (Model : Window_Model)
-      return Clipboard_Mode;
-
-   --  Return whether the clipboard has at least one remembered path.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when paste can act.
-   function Clipboard_Has_Items
-     (Model : Window_Model)
-      return Boolean;
 
    --  Multi-level undo/redo history. Each entry stores enough to BOTH reverse
    --  (undo) and re-apply (redo) one action. Paths are parallel From/To
@@ -2456,6 +1480,63 @@ package Files.Model is
       --  Commit_Undo_Record; 0 until then.
       Sequence : Natural := 0;
    end record;
+
+   --  An Undo_Entry's parallel fields can be shorter than the vector they
+   --  parallel: an entry recorded before a field existed, or one that never
+   --  filled it. These read a field at an index as "" past its end, so no
+   --  caller guards the index itself.
+
+   --  @param Values A parallel field.
+   --  @param Index Position in the vector Values parallels.
+   --  @return Values (Index), or "" when Values is shorter.
+   function Value_At (Values : Files.Types.String_Vectors.Vector; Index : Positive) return String is
+     (if Index <= Values.Last_Index then Ada.Strings.Unbounded.To_String (Values (Index)) else "");
+
+   --  @param Action Entry to read.
+   --  @param Index Position in From.
+   --  @return The identity the entry recorded at Index, or "".
+   function Created_Identity (Action : Undo_Entry; Index : Positive) return String is
+     (Value_At (Action.Created_Identities, Index));
+
+   --  @param Action Entry to read.
+   --  @param Index Position in From.
+   --  @return The tree revision the entry recorded at Index, or "".
+   function Created_Tree_Revision (Action : Undo_Entry; Index : Positive) return String is
+     (Value_At (Action.Created_Tree_Revisions, Index));
+
+   --  @param Action Entry to read.
+   --  @param Index Position in Kept_Copies.
+   --  @return The identity of the kept copy at Index, or "".
+   function Kept_Copy_Identity (Action : Undo_Entry; Index : Positive) return String is
+     (Value_At (Action.Kept_Copy_Identities, Index));
+
+   --  @param Action Entry to read.
+   --  @param Index Position in Kept_Copies.
+   --  @return The tree revision of the kept copy at Index, or "".
+   function Kept_Copy_Tree_Revision (Action : Undo_Entry; Index : Positive) return String is
+     (Value_At (Action.Kept_Copy_Tree_Revisions, Index));
+
+   --  @param Action Entry to read.
+   --  @param Index Position in From.
+   --  @return Forward (Index), or "".
+   function Forward_Value (Action : Undo_Entry; Index : Positive) return String is
+     (Value_At (Action.Forward, Index));
+
+   --  @param Action Entry to read.
+   --  @param Index Position in From.
+   --  @return To (Index), or "".
+   function To_Value (Action : Undo_Entry; Index : Positive) return String is
+     (Value_At (Action.To, Index));
+
+   --  Record what a creation at From (Index) published, growing the
+   --  parallel fields with empty values up to Index first.
+   --
+   --  @param Action Entry to update.
+   --  @param Index Position in From.
+   --  @param Identity The created entry's identity.
+   --  @param Tree_Revision Its tree revision, or "".
+   procedure Set_Created
+     (Action : in out Undo_Entry; Index : Positive; Identity, Tree_Revision : UString);
 
    --  The window's folder-size measurements: a handle the model holds as
    --  data, which Files.Operations drives (targets, steps, cancels) in place,
@@ -2681,14 +1762,6 @@ package Files.Model is
       Clears_Clipboard : Boolean := True;
    end record;
 
-   --  The paste-conflict state as it stands: what the dialog asks about,
-   --  and the choices made so far. A copy, for a caller that reads several
-   --  of its fields once (resolving a choice).
-   --
-   --  @param Model Model to inspect.
-   --  @return A copy of the conflict state.
-   function Paste_Conflict_Of (Model : Window_Model) return Paste_Conflict_State;
-
    --  One paste (or drop) being carried out, action by action. Every field's
    --  default is the idle state, so a paste starts and ends by assigning a
    --  fresh aggregate rather than clearing each field by hand.
@@ -2718,115 +1791,6 @@ package Files.Model is
       Verified_Replaced_Count : Natural := 0;
    end record;
 
-   --  The paste being carried out, as it stands. A copy, for a caller that
-   --  reads several of its fields once (finishing the paste); progress read
-   --  every frame has its own queries, which copy nothing.
-   --
-   --  @param Model Model to inspect.
-   --  @return A copy of the execution state.
-   function Paste_Execution_Of (Model : Window_Model) return Paste_Execution_State;
-
-   --  Enter the pending paste-conflict sub-mode. The work-list, the set of
-   --  existing destination paths, and the copy/move mode are recorded, the
-   --  policy starts at Policy_Ask with no per-item overrides, and the dialog is
-   --  positioned at the first unresolved conflict (Index).
-   --
-   --  @param Model Model to update.
-   --  @param Items Full paste work-list.
-   --  @param Existing Destination paths that already exist.
-   --  @param Mode Copy or move mode for the whole batch.
-   --  @param Index One-based index of the first unresolved conflict.
-   --  @param Clear_Clipboard Whether finalizing a move should clear the
-   --    clipboard (True for clipboard paste, False for drag-and-drop).
-   procedure Begin_Paste_Conflict
-     (Model           : in out Window_Model;
-      Items           : Files.Paste.Work_Item_Vectors.Vector;
-      Existing        : Files.Types.String_Vectors.Vector;
-      Mode            : Files.File_System.Drop_Import_Mode;
-      Index           : Positive;
-      Clear_Clipboard : Boolean := True);
-
-   --  Whether the pending paste-conflict dialog is active.
-   --
-   --  @param Model Model to inspect.
-   --  @return True while a paste is paused awaiting conflict decisions.
-   function Paste_Conflict_Is_Active
-     (Model : Window_Model)
-      return Boolean;
-
-   --  The leaf name of the conflict currently shown.
-   --
-   --  @param Model Model to inspect.
-   --  @return The colliding destination name, or "" when inactive.
-   function Paste_Conflict_Name
-     (Model : Window_Model)
-      return String;
-
-   --  Whether the dialog's "apply to all remaining" toggle is on.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when the next decision should apply to every remaining conflict.
-   function Paste_Conflict_Apply_All
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Flip the dialog's "apply to all remaining" toggle.
-   --
-   --  @param Model Model to update.
-   procedure Toggle_Paste_Conflict_Apply_All
-     (Model : in out Window_Model);
-
-   --  Record the batch-wide policy (used when a decision is applied to all).
-   --
-   --  @param Model Model to update.
-   --  @param Policy New conflict policy.
-   procedure Set_Paste_Conflict_Policy
-     (Model  : in out Window_Model;
-      Policy : Files.Paste.Conflict_Policy);
-
-   --  Record a per-item decision for one work-list index.
-   --
-   --  @param Model Model to update.
-   --  @param Index One-based work-list index.
-   --  @param Decision Chosen per-item decision.
-   procedure Set_Paste_Conflict_Override
-     (Model    : in out Window_Model;
-      Index    : Positive;
-      Decision : Files.Paste.Item_Decision);
-
-   --  Move the dialog to a different conflict index.
-   --
-   --  @param Model Model to update.
-   --  @param Index One-based work-list index of the next conflict.
-   procedure Set_Paste_Conflict_Index
-     (Model : in out Window_Model;
-      Index : Positive);
-
-   --  Clear the pending paste-conflict sub-mode, discarding its state.
-   --
-   --  @param Model Model to update.
-   procedure Clear_Paste_Conflict
-     (Model : in out Window_Model);
-
-   --  Arm a resumable paste execution from a fully resolved action list. The
-   --  execution starts at the first action with no items completed; Total counts
-   --  only the actions that actually write (non-skip), so progress reflects the
-   --  real copies/moves. The batched driver advances it a few actions at a time.
-   --
-   --  @param Model Model to update.
-   --  @param Actions Fully resolved paste actions (post conflict resolution).
-   --  @param Mode Copy or move mode for the whole batch.
-   --  @param Clear_Clipboard Whether finalizing a move should clear the
-   --    clipboard (True for clipboard paste, False for drag-and-drop).
-   --  @param Batch The copy context the writes share (hard links kept as
-   --    links), made by the caller: the model makes no transport itself.
-   procedure Begin_Paste_Execution
-     (Model           : in out Window_Model;
-      Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
-      Mode            : Files.File_System.Drop_Import_Mode;
-      Clear_Clipboard : Boolean := True;
-      Batch           : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);
-
    --  Select helper execution for a live window; headless callers can step synchronously.
    --  @param Model Window model to configure before starting a paste.
    --  @param Enabled Whether filesystem actions run on helper processes.
@@ -2836,24 +1800,6 @@ package Files.Model is
    --  @param Model Window model to inspect.
    --  @return True when background transfers are enabled.
    function Background_Transfers (Model : Window_Model) return Boolean;
-
-   --  The helper running the current paste action: a handle the model holds
-   --  as data, which Files.Operations starts, polls and cancels.
-   --
-   --  @param Model Window to inspect.
-   --  @return Its transfer session (inactive between actions).
-   function Paste_Job (Model : Window_Model) return Files.Transfer_Jobs.Session;
-
-   --  Store the transfer session after driving it.
-   --
-   --  @param Model Window to update.
-   --  @param Job Its transfer session.
-   procedure Set_Paste_Job (Model : in out Window_Model; Job : Files.Transfer_Jobs.Session);
-
-   --  The current paste action has been handed to a helper: show its name.
-   --
-   --  @param Model Window to update.
-   procedure Note_Paste_Action_Started (Model : in out Window_Model);
 
    --  @param Model Window owning a general background operation.
    --  @param Job Helper session to attach while the progress overlay is open.
@@ -2877,157 +1823,6 @@ package Files.Model is
    --  @param Model Window owning a nonmodal directory-read helper.
    --  @return Shared refresh session, or an empty session.
    function Background_Refresh (Model : Window_Model) return Files.Process_Jobs.Session;
-
-   --  Whether a resumable paste execution is currently in flight.
-   --
-   --  @param Model Model to inspect.
-   --  @return True between Begin_Paste_Execution and Clear_Paste_Execution.
-   function Paste_Execution_Is_Active
-     (Model : Window_Model)
-      return Boolean;
-
-   --  The number of write actions completed so far.
-   --
-   --  @param Model Model to inspect.
-   --  @return Count of items already copied or moved.
-   function Paste_Execution_Done
-     (Model : Window_Model)
-      return Natural;
-
-   --  The total number of write actions in the armed execution.
-   --
-   --  @param Model Model to inspect.
-   --  @return Count of items to copy or move (skips excluded).
-   function Paste_Execution_Total
-     (Model : Window_Model)
-      return Natural;
-
-   --  The leaf name of the item most recently written, for the progress display.
-   --
-   --  @param Model Model to inspect.
-   --  @return The current item's simple name, or "" before the first write.
-   function Paste_Execution_Current_Name
-     (Model : Window_Model)
-      return String;
-
-   --  The copy/move mode of the armed execution.
-   --
-   --  @param Model Model to inspect.
-   --  @return Copy or move mode.
-   function Paste_Execution_Mode
-     (Model : Window_Model)
-      return Files.File_System.Drop_Import_Mode;
-
-   --  Whether the armed execution has been asked to cancel.
-   --
-   --  @param Model Model to inspect.
-   --  @return True once Cancel_Paste_Execution has been requested.
-   function Paste_Execution_Cancelled
-     (Model : Window_Model)
-      return Boolean;
-
-   --  The cursor position: the number of actions already consumed.
-   --
-   --  @param Model Model to inspect.
-   --  @return Zero-based count of processed actions (writes and skips).
-   function Paste_Execution_Cursor
-     (Model : Window_Model)
-      return Natural;
-
-   --  The number of resolved actions in the armed execution.
-   --
-   --  @param Model Model to inspect.
-   --  @return Count of actions (writes and skips).
-   function Paste_Execution_Action_Count
-     (Model : Window_Model)
-      return Natural;
-
-   --  The resolved action at a one-based index.
-   --
-   --  @param Model Model to inspect.
-   --  @param Index One-based action index (1 .. Paste_Execution_Action_Count).
-   --  @return The resolved action to execute.
-   function Paste_Execution_Action
-     (Model : Window_Model;
-      Index : Positive)
-      return Files.Paste.Resolved_Action;
-
-   --  @param Model Window owning the active copy batch.
-   --  @return Shared private hard-link journal, or an empty session.
-   function Paste_Execution_Copy_Context (Model : Window_Model) return Files.Copy_Context.Session;
-
-   --  Whether a preserved original recorded next would extend the verified
-   --  prefix, i.e. every original recorded so far was verified. Only then
-   --  does the operations layer check the live entry before recording.
-   --  @param Model Window owning the current paste batch.
-   --  @return True when all recorded originals are verified.
-   function Paste_Execution_Replaced_Extends_Verified
-     (Model : Window_Model) return Boolean;
-
-   --  Record a preserved original and its identity for the paste's Undo.
-   --  The operations layer resolves the original destination and checks the
-   --  live entry first; this touches no filesystem.
-   --  @param Model Model to update.
-   --  @param Trash_Path The overwritten original's location inside the trash.
-   --  @param Identity Snapshot captured when the original was preserved.
-   --  @param Original_Path Original destination of the preserved entry.
-   --  @param Verified True when the live entry at Trash_Path matched Identity
-   --    while the verified prefix could still be extended.
-   procedure Record_Paste_Execution_Replaced_Trash
-     (Model : in out Window_Model; Trash_Path : Files.Types.UString; Identity : String;
-      Original_Path : String; Verified : Boolean);
-
-   --  Advance the cursor past a skipped action without recording a write.
-   --
-   --  @param Model Model to update.
-   procedure Skip_Paste_Execution_Action
-     (Model : in out Window_Model);
-
-   --  Record a completed write: advance the cursor, bump Done, remember the
-   --  current name and first destination, and accumulate the undo pair.
-   --
-   --  @param Model Model to update.
-   --  @param Dest_Path Destination path just written.
-   --  @param Source_Path Source path just copied or moved.
-   --  @param Name Leaf name shown as the current progress item.
-   --  @param Identity Entry identity captured by the process that published the destination.
-   --  @param Tree_Revision Directory or regular-file revision captured before publication.
-   --  @param Verified True when the publication snapshot was verified (by a
-   --    recovery checkpoint or against the live entry by the operations
-   --    layer) while the verified prefix could still be extended.
-   procedure Record_Paste_Execution_Write
-     (Model       : in out Window_Model;
-      Dest_Path   : Files.Types.UString;
-      Source_Path : Files.Types.UString;
-      Name        : String;
-      Identity    : String;
-      Tree_Revision : String;
-      Verified    : Boolean);
-
-   --  Whether a write recorded next would extend the verified prefix, i.e.
-   --  every write recorded so far was verified. Only then does the operations
-   --  layer check the published entry before recording.
-   --  @param Model Window owning the current paste batch.
-   --  @return True when all recorded writes are verified.
-   function Paste_Execution_Write_Extends_Verified
-     (Model : Window_Model) return Boolean;
-
-   --  Record how a cancellation of the armed execution went: when every
-   --  helper was told (Files.Operations.Cancel_Paste_Execution tells them),
-   --  the next advance finalizes over the items completed so far
-   --  (already-written files are kept); otherwise it stays cancellable.
-   --
-   --  @param Model Model to update.
-   --  @param Requested Whether every helper accepted the request.
-   procedure Set_Paste_Cancelled
-     (Model     : in out Window_Model;
-      Requested : Boolean);
-
-   --  Clear the resumable paste execution, discarding its state.
-   --
-   --  @param Model Model to update.
-   procedure Clear_Paste_Execution
-     (Model : in out Window_Model);
 
    --  Forget every cached folder-size measurement.
    --
@@ -3181,39 +1976,6 @@ package Files.Model is
      (Model : Window_Model)
       return String;
 
-   --  Record text to be written to the system text clipboard by the platform
-   --  shell on its next follow-up pass. The model only stores the request; the
-   --  GLFW-backed shell performs the actual clipboard write and clears it.
-   --
-   --  @param Model Model to update.
-   --  @param Text Text to place on the system clipboard.
-   procedure Set_System_Clipboard_Request
-     (Model : in out Window_Model;
-      Text  : String);
-
-   --  Return whether a system-clipboard write has been requested and not yet
-   --  consumed by the shell.
-   --
-   --  @param Model Model to inspect.
-   --  @return True when a pending system-clipboard request exists.
-   function System_Clipboard_Request_Pending
-     (Model : Window_Model)
-      return Boolean;
-
-   --  Return the text of the pending system-clipboard request.
-   --
-   --  @param Model Model to inspect.
-   --  @return Requested clipboard text, or an empty string when none is pending.
-   function System_Clipboard_Request_Text
-     (Model : Window_Model)
-      return String;
-
-   --  Clear any pending system-clipboard request once the shell has written it.
-   --
-   --  @param Model Model to update.
-   procedure Clear_System_Clipboard_Request
-     (Model : in out Window_Model);
-
 private
 
    --  Cache a recursive folder-size measurement for a directory path.
@@ -3349,18 +2111,79 @@ private
    --  The Quick Look overlay: whether it is shown, the path it previews and
    --  the content prepared for it. Every default is the closed state.
    type Quick_Look_State is record
-      Active  : Boolean := False;
+      Open    : Boolean := False;
       Path    : UString;
       Content : Files.Quick_Look.Quick_Look_Content;
    end record;
 
-   --  The command palette overlay: whether it is shown, what it lists, and
-   --  the guikit component holding its query, scroll and selection. Every
-   --  default is the closed state.
+   --  The command palette overlay: whether it is shown, what it lists, the
+   --  guikit component holding its query, scroll and selection, the paths
+   --  and applications an Open With listing is for, and the model revision
+   --  its command list was built at, so a frame rebuilds it (every command's
+   --  enablement) only after a change. Every default is the closed state.
    type Command_Palette_State is record
-      Open : Boolean := False;
-      Mode : Palette_Mode := Palette_Commands;
-      View : Guikit.Command_Palette.Palette;
+      Open                   : Boolean := False;
+      Mode                   : Palette_Mode := Palette_Commands;
+      View                   : Guikit.Command_Palette.Palette;
+      Open_With_Targets      : Files.Types.String_Vectors.Vector;
+      Open_With_Applications : Files.Desktop_Applications.Application_Vectors.Vector;
+      Listed_Revision        : Natural := Natural'Last;
+   end record;
+
+   --  The sort menu over the bottom bar: whether it is shown and its keyboard
+   --  highlight (0 = none). Every default is the closed state.
+   type Sort_Menu_State is record
+      Open      : Boolean := False;
+      Highlight : Natural := 0;
+   end record;
+
+   --  The folder-tree side panel: whether it is shown, its scroll in rows,
+   --  the tree it shows, whether it holds the keyboard, and the path of its
+   --  keyboard cursor. Every default is the closed, unseeded panel.
+   type Tree_Panel_State is record
+      Open     : Boolean := False;
+      Scroll   : Natural := 0;
+      Tree     : Files.Folder_Tree.Tree;
+      Keyboard : Boolean := False;
+      Cursor   : UString;
+   end record;
+
+   --  Inline rename: whether it is active and one field per renamed item.
+   --  Every default is the idle state.
+   type Rename_State is record
+      Active : Boolean := False;
+      Fields : Rename_Field_Vectors.Vector;
+   end record;
+
+   --  The undo history: the two stacks, the work owed to the operations
+   --  layer (Take_Retired_History) -- payloads of retired entries to delete,
+   --  payloads of a released history to send to the trash -- whether the
+   --  history changed since it was last saved, and what its journal holds
+   --  besides the stacks. Every default is the empty history.
+   type Undo_History_State is record
+      Undo_Stack       : Undo_Entry_Vectors.Vector;
+      Redo_Stack       : Undo_Entry_Vectors.Vector;
+      Retired_Discards : Files.Types.String_Vectors.Vector;
+      Retired_Releases : Files.Types.String_Vectors.Vector;
+      Journal_Dirty    : Boolean := False;
+      Journal          : History_Journal_State;
+   end record;
+
+   --  The clipboard: the paths cut or copied in this window and how, and a
+   --  text the window layer is asked to put on the system clipboard. Every
+   --  default is the empty clipboard.
+   type Clipboard_State is record
+      Paths                  : Files.Types.String_Vectors.Vector;
+      Mode                   : Clipboard_Mode := Clipboard_None;
+      System_Request         : UString;
+      System_Request_Pending : Boolean := False;
+   end record;
+
+   --  Owner and group names resolved by the window layer, and the revision
+   --  they were last sampled at (Natural'Last: never).
+   type Account_Names_State is record
+      Names   : Account_Name_Tables;
+      Sampled : Natural := Natural'Last;
    end record;
 
    --  The root (volume) selector overlay: whether it is shown, the roots it
@@ -3375,7 +2198,7 @@ private
    --  The label picker overlay: whether it is shown and its keyboard
    --  highlight. Every default is the closed state.
    type Label_Picker_State is record
-      Active : Boolean := False;
+      Open   : Boolean := False;
       Swatch : Positive := Files.Types.Clear_Swatch;
    end record;
 
@@ -3449,8 +2272,7 @@ private
       View_Value           : Files.Types.View_Mode := Files.Types.Small_Icons;
       Sort_Field_Value     : Files.Types.Sort_Field := Files.Types.Sort_Name;
       Sort_Ascending       : Boolean := True;
-      Sort_Menu_Open       : Boolean := False;
-      Sort_Menu_Highlight_Value : Natural := 0;
+      Sort_Menu            : Sort_Menu_State;
       Back_History         : Files.Types.String_Vectors.Vector;
       Forward_History      : Files.Types.String_Vectors.Vector;
       Focus_Value          : Files.Types.Focus_Target := Files.Types.Focus_None;
@@ -3463,39 +2285,18 @@ private
       Info_Pane_Scroll     : Natural := 0;
       Main_View_Scroll     : Natural := 0;
       Root_Selector        : Root_Selector_State;
-      Tree_Panel_Open      : Boolean := False;
-      Tree_Panel_Scroll    : Natural := 0;
-      Folder_Tree_Value    : Files.Folder_Tree.Tree;
+      Tree_Panel           : Tree_Panel_State;
       Tree_Pick               : Tree_Pick_State;
-      Tree_Keyboard_Value     : Boolean := False;
-      Tree_Cursor_Value       : UString;
       Command_Palette          : Command_Palette_State;
       Quick_Look               : Quick_Look_State;
       Label_Picker             : Label_Picker_State;
-      Open_With_Targets_Value  : Files.Types.String_Vectors.Vector;
-      Open_With_Applications_Value : Files.Desktop_Applications.Application_Vectors.Vector;
-      --  The model revision the palette's command list was built at, so a
-      --  frame rebuilds it (every command's enablement) only after a change.
-      Palette_Listed_Revision  : Natural := Natural'Last;
-      Rename_Active            : Boolean := False;
-      Rename_Fields            : Rename_Field_Vectors.Vector;
+      Rename                   : Rename_State;
       Temporary            : Temporary_Item_State;
       Filter_Cursor        : Natural := 0;
       Last_Error           : UString;
       Last_Error_Path_Value : UString;
-      System_Clipboard_Request_Value   : UString;
-      System_Clipboard_Request_Pending : Boolean := False;
-      Clipboard_Paths_Value : Files.Types.String_Vectors.Vector;
-      Clipboard_Mode_Value  : Clipboard_Mode := Clipboard_None;
-      Undo_Stack            : Undo_Entry_Vectors.Vector;
-      Redo_Stack            : Undo_Entry_Vectors.Vector;
-      --  History work owed to the operations layer (Take_Retired_History):
-      --  payloads of retired entries to delete, payloads of a released
-      --  history to send to the trash, and an unsaved history change.
-      Retired_Discards      : Files.Types.String_Vectors.Vector;
-      Retired_Releases      : Files.Types.String_Vectors.Vector;
-      History_Journal_Dirty : Boolean := False;
-      History_Journal       : History_Journal_State;
+      Clipboard             : Clipboard_State;
+      History               : Undo_History_State;
       Folder_Sizes            : Folder_Size_Maps.Map;
       Folder_Scan             : Files.Folder_Size.Session;
       Context_Menu                  : Context_Menu_State;
@@ -3523,10 +2324,7 @@ private
       Selection_Revision_Value : Natural := 0;
       --  The volume-space sample (Set_Volume_Space).
       Volume_Sample : Volume_Sample_State;
-      --  Owner and group names resolved by the window layer, and the revision
-      --  they were last sampled at (Natural'Last: never).
-      Account_Names         : Account_Name_Tables;
-      Account_Names_Sampled : Natural := Natural'Last;
+      Account_Names         : Account_Names_State;
       --  The grouping the items are ordered by (Sync_Grouping).
       Grouping : Grouping_State;
       --  Narrower generation used to reject stale background directory reads

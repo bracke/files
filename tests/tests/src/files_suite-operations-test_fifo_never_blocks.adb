@@ -46,7 +46,8 @@ separate (Files_Suite.Operations)
 
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Files.Model.Set_Filter (Model, "needle");
-      Step := Complete_Operation (Model, Settings, Files.Operations.Run_Content_Search (Model, Settings));
+      Step := Complete_Operation
+        (Model, Settings, Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents));
       Assert (Step.Status = Files.Operations.Operation_Success and then Files.Model.Item_Count (Model) = 1,
               "content search reads the file and passes the FIFO by");
 

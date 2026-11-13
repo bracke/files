@@ -1,3 +1,4 @@
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Interaction)
    --  Drive the GENUINE live key-dispatch seam the shell uses --
    --  Files.Interaction.Handle_Key -- rather than the Translate_Key ->
@@ -47,7 +48,7 @@ separate (Files_Suite.Interaction)
          Result   : Files.Interaction.Interaction_Result;
       begin
          --  Open the pane through the same key seam (Ctrl+, =
-         --  Toggle_Settings_Pane, a non-settings-path command that takes the
+         --  Settings_Pane.Toggle, a non-settings-path command that takes the
          --  plain controller branch) so the whole scenario stays on the seam.
          Files.Interaction.Handle_Key
            (Model             => Model,
@@ -57,7 +58,7 @@ separate (Files_Suite.Interaction)
             Modifiers         => Ctrl,
             Result            => Result);
          Assert
-           (Files.Model.Settings_Pane_Is_Open (Model),
+           (Files.Model.Settings_Pane.Is_Open (Model),
             "the settings pane is open so the Ctrl+S save command is enabled");
          Files.Interaction.Handle_Key
            (Model             => Model,

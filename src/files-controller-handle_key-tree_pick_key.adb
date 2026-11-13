@@ -5,9 +5,9 @@ separate (Files.Controller.Handle_Key)
 procedure Tree_Pick_Key (Handled : out Boolean; Result : out Controller_Result) is
 begin
    Handled := True;
-   if Files.Model.Tree_Pick_Is_Active (Model) then
+   if Files.Model.Tree_Panel.Pick_Is_Active (Model) then
       if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
-         Files.Model.End_Tree_Pick (Model);
+         Files.Model.Tree_Panel.End_Pick (Model);
          Result := Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
          return;
       elsif Key in Guikit.Input.Key_Up | Guikit.Input.Key_Down

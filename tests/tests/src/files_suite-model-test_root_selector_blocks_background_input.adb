@@ -1,4 +1,7 @@
 with Files.Controller.Testing;
+with Files.Model.Command_Palette;
+with Files.Model.Root_Selector;
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Model)
    procedure Test_Root_Selector_Blocks_Background_Input (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -21,7 +24,7 @@ separate (Files_Suite.Model)
       Roots_A.Append (To_Unbounded_String (Root));
       Roots_A.Append (To_Unbounded_String (Target));
       Roots_A.Append (To_Unbounded_String (Ada.Directories.Full_Name (Root)));
-      Files.Model.Open_Root_Selector (Model, Roots_A);
+      Files.Model.Root_Selector.Open (Model, Roots_A);
       Files.Model.Select_Visible (Model, 1);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
       Files_Suite.Support.Assert_Equal
@@ -32,7 +35,7 @@ separate (Files_Suite.Model)
         (Files.Model.Selected_Count (Model),
          1,
          "blocked root selector delete keeps selection");
-      Assert (Files.Model.Root_Selector_Is_Open (Model), "blocked root selector delete keeps selector open");
+      Assert (Files.Model.Root_Selector.Is_Open (Model), "blocked root selector delete keeps selector open");
       Result := Files.Controller.Handle_Text_Click (Model, Files.Types.Focus_Path_Input, Cursor_Position => 1);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -78,8 +81,8 @@ separate (Files_Suite.Model)
         (Result.Command,
          Files.Commands.Open_Command_Palette_Command,
          "root selector allows palette shortcut");
-      Assert (Files.Model.Command_Palette_Is_Open (Model), "palette opens over root selector from shortcut");
-      Assert (Files.Model.Root_Selector_Is_Open (Model), "palette shortcut keeps root selector available");
+      Assert (Files.Model.Command_Palette.Is_Open (Model), "palette opens over root selector from shortcut");
+      Assert (Files.Model.Root_Selector.Is_Open (Model), "palette shortcut keeps root selector available");
       Snapshot := Files.Rendering.Build_Snapshot (Model);
       Assert (Snapshot.Command_Palette_Open, "snapshot exposes the active palette overlay");
       Assert
@@ -90,7 +93,7 @@ separate (Files_Suite.Model)
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "same palette search cursor click is ignored over root selector");
-      Files.Model.Close_Command_Palette (Model);
+      Files.Model.Command_Palette.Close (Model);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Focus_Path_Input_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -119,8 +122,8 @@ separate (Files_Suite.Model)
         (Result.Status,
          Files.Controller.Controller_Ignored,
          "root selector blocks direct settings command");
-      Assert (Files.Model.Root_Selector_Is_Open (Model), "blocked direct settings keeps root selector open");
-      Assert (not Files.Model.Settings_Pane_Is_Open (Model), "blocked direct settings leaves settings pane closed");
+      Assert (Files.Model.Root_Selector.Is_Open (Model), "blocked direct settings keeps root selector open");
+      Assert (not Files.Model.Settings_Pane.Is_Open (Model), "blocked direct settings leaves settings pane closed");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
          "error.path.missing",
@@ -131,12 +134,12 @@ separate (Files_Suite.Model)
         (Result.Command,
          Files.Commands.Open_Command_Palette_Command,
          "root selector allows direct palette command");
-      Assert (Files.Model.Command_Palette_Is_Open (Model), "direct palette command opens over root selector");
-      Files.Model.Close_Command_Palette (Model);
+      Assert (Files.Model.Command_Palette.Is_Open (Model), "direct palette command opens over root selector");
+      Files.Model.Command_Palette.Close (Model);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Select_Drive_Command,
          "root selector allows drive toggle command");
-      Assert (not Files.Model.Root_Selector_Is_Open (Model), "drive toggle closes root selector");
+      Assert (not Files.Model.Root_Selector.Is_Open (Model), "drive toggle closes root selector");
    end Test_Root_Selector_Blocks_Background_Input;

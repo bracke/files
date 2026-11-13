@@ -1,3 +1,4 @@
+with Files.Model.Command_Palette;
 separate (Files_Suite.Interaction)
    procedure Test_Text_Focus_Blocks_File_Shortcuts (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -66,8 +67,8 @@ separate (Files_Suite.Interaction)
       declare
          Hidden_Before : constant Boolean := Settings.Show_Hidden_Files;
       begin
-         Files.Model.Open_Command_Palette (Model);
-         Files.Model.Focus_Command_Palette_Input (Model);
+         Files.Model.Command_Palette.Open (Model);
+         Files.Model.Command_Palette.Focus_Input (Model);
          declare
             Typed : constant Files.Controller.Controller_Result :=
               Files.Controller.Append_Focused_Text (Model, "hidden");
@@ -76,7 +77,7 @@ separate (Files_Suite.Interaction)
             null;
          end;
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Palette_Selected_Id (Model),
+           (Files.Model.Command_Palette.Selected_Id (Model),
             Files.Commands.Command_Id'Pos (Files.Commands.Toggle_Hidden_Files_Command),
             "the palette query selects the hidden-files command");
          --  Toggle_Hidden_Files saves before it applies, so it needs a real file.
@@ -85,6 +86,6 @@ separate (Files_Suite.Interaction)
             Guikit.Input.Key_Return, Guikit.Input.No_Modifiers, Result);
          Assert (Settings.Show_Hidden_Files /= Hidden_Before,
                  "Enter in the palette applies a settings command");
-         Assert (not Files.Model.Command_Palette_Is_Open (Model), "the applied command closes the palette");
+         Assert (not Files.Model.Command_Palette.Is_Open (Model), "the applied command closes the palette");
       end;
    end Test_Text_Focus_Blocks_File_Shortcuts;

@@ -1,3 +1,4 @@
+with Ada.Containers.Vectors;
 with Ada.Streams;
 with Files.Types;
 
@@ -56,6 +57,19 @@ package Files.Images is
       Width  : out Natural;
       Height : out Natural)
       return Boolean;
+
+   --  One pixel of a raster a thumbnail is made from, each channel 0 .. 255.
+   type Rgba_Pixel is record
+      Red   : Natural := 0;
+      Green : Natural := 0;
+      Blue  : Natural := 0;
+      Alpha : Natural := 255;
+   end record;
+
+   --  A raster's pixels, row-major from index 0.
+   package Pixel_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Natural,
+      Element_Type => Rgba_Pixel);
 
    --  A decoded raster image: RGBA bytes (row-major, 4 bytes/pixel) scaled to
    --  fit within a target box while preserving aspect ratio. Available is False

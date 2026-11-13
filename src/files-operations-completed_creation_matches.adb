@@ -3,12 +3,8 @@ function Completed_Creation_Matches
   (Action : Files.Model.Undo_Entry; Index : Positive; Path : String)
    return Boolean
 is
-   Identity : constant String :=
-     (if Index <= Action.Created_Identities.Last_Index
-      then To_String (Action.Created_Identities (Index)) else "");
-   Expected_Tree_Revision : constant String :=
-     (if Index <= Action.Created_Tree_Revisions.Last_Index
-      then To_String (Action.Created_Tree_Revisions (Index)) else "");
+   Identity : constant String := Files.Model.Created_Identity (Action, Index);
+   Expected_Tree_Revision : constant String := Files.Model.Created_Tree_Revision (Action, Index);
 begin
    if Identity = "" or else Files.File_Identities.Token (Path) /= Identity then
       return False;

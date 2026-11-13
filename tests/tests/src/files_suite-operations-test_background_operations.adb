@@ -2,7 +2,9 @@ separate (Files_Suite.Operations)
    procedure Test_Background_Operations (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model    : Files.Model.Window_Model;
+      Model    : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
 
@@ -63,11 +65,11 @@ separate (Files_Suite.Operations)
          end;
       end loop;
       Files.Model.Set_Filter (Model, "needle");
-      Step := Files.Operations.Run_Recursive_Search (Model, Settings);
+      Step := Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names);
       Finish;
       Assert (Files.Model.Search_Results_Are_Active (Model) and then Files.Model.Item_Count (Model) = 1,
               "background name search returns recursive results");
-      Step := Files.Operations.Run_Content_Search (Model, Settings);
+      Step := Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents);
       Finish;
       Assert (Files.Model.Search_Results_Are_Active (Model),
               "background content search returns matches regardless of filename: search results active");
@@ -106,8 +108,4 @@ separate (Files_Suite.Operations)
       Finish;
       Assert (not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
               "cancellation before work publishes no duplicate");
-   exception
-      when others =>
-         Files.Model.Clear_Paste_Execution (Model);
-         raise;
    end Test_Background_Operations;

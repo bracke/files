@@ -4,6 +4,7 @@ separate (Files.Controller)
       Settings : Files.Settings.Settings_Model)
       return Controller_Result
    is
+      use type Files.Types.Search_Scope;
       Next : constant Files.Types.Search_Scope :=
         Files.Types.Next_Scope (Files.Model.Search_Scope_Of (Model));
       Had_Results : constant Boolean := Files.Model.Search_Results_Are_Active (Model);
@@ -27,25 +28,18 @@ separate (Files.Controller)
                  (Controller_Command_Executed, Files.Commands.Clear_Filter_Command, Operation);
             end if;
             return Make_Result (Controller_Command_Executed, Files.Commands.Clear_Filter_Command);
-         when Files.Types.Search_Names =>
+         when Files.Types.Tree_Search_Scope =>
             if Has_Query then
-               Operation := Files.Operations.Run_Recursive_Search (Model, Settings);
+               Operation := Files.Operations.Run_Search (Model, Settings, Next);
             elsif Had_Results then
                Operation := Files.Operations.Refresh (Model, Settings);
                Files.Model.Clear_Search_Results (Model);
                Files.Model.Set_Search_Scope (Model, Next);
             end if;
             return Make_Result
-              (Controller_Command_Executed, Files.Commands.Search_Recursive_Command, Operation);
-         when Files.Types.Search_Contents =>
-            if Has_Query then
-               Operation := Files.Operations.Run_Content_Search (Model, Settings);
-            elsif Had_Results then
-               Operation := Files.Operations.Refresh (Model, Settings);
-               Files.Model.Clear_Search_Results (Model);
-               Files.Model.Set_Search_Scope (Model, Next);
-            end if;
-            return Make_Result
-              (Controller_Command_Executed, Files.Commands.Search_Contents_Command, Operation);
+              (Controller_Command_Executed,
+               (if Next = Files.Types.Search_Names then Files.Commands.Search_Recursive_Command
+                else Files.Commands.Search_Contents_Command),
+               Operation);
       end case;
    end Handle_Search_Scope_Toggle;

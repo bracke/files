@@ -19,7 +19,6 @@ with Hostkit.Durability;
 with Hostkit.Host;
 with Hostkit.Metadata;
 with Hostkit.Regular_Files;
-with Files.Path_Checks;
 
 package body Files.File_System.Support is
 
@@ -328,7 +327,7 @@ package body Files.File_System.Support is
       use type GNAT.OS_Lib.File_Descriptor;
       Descriptor : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
       Supported : Boolean;
-      Buffer : Stream_Element_Array (1 .. 65_536);
+      Buffer : Stream_Element_Array (1 .. Files.Types.IO_Chunk_Bytes);
       Bytes_Read : Integer;
       Context : CryptoLib.Hashes.SHA256_Context;
       Digest : CryptoLib.Hashes.SHA256_Digest;
@@ -572,43 +571,25 @@ package body Files.File_System.Support is
    function Load_Links (Batch : Files.Copy_Context.Session) return Copied_File_Maps.Map is
       Items : constant Files.Types.String_Vectors.Vector := Files.Copy_Context.Records (Batch);
       Links : Copied_File_Maps.Map;
-      Index : Positive := 1;
-
-      function Nul_Free (Value : String) return Boolean renames Files.Path_Checks.Nul_Free;
-
-      function Valid_Absolute_Path (Path : String) return Boolean is
-        (Files.Path_Checks.Valid_Absolute_Path (Path));
    begin
-      if Natural (Items.Length) mod 6 /= 0 then
+      --  Copy_Context is deliberately only a bounded transport.  Validate
+      --  the hard-link schema here before a persisted pathname can be used
+      --  for identity checks, digest reads, or link creation.
+      if not Files.Copy_Context.Valid (Items) then
          raise Ada.Directories.Use_Error;
       end if;
-      while Index <= Items.Last_Index loop
-         --  Copy_Context is deliberately only a bounded transport.  Validate
-         --  the hard-link schema here before a persisted pathname can be used
-         --  for identity checks, digest reads, or link creation.
-         if Length (Items (Index)) = 0
-           or else Length (Items (Index + 1)) = 0
-           or else Length (Items (Index + 2)) = 0
-           or else not Valid_Absolute_Path (To_String (Items (Index + 3)))
-           or else Length (Items (Index + 4)) = 0
-           or else Length (Items (Index + 5)) = 0
-           or else not Nul_Free (To_String (Items (Index)))
-           or else not Nul_Free (To_String (Items (Index + 1)))
-           or else not Nul_Free (To_String (Items (Index + 2)))
-           or else not Nul_Free (To_String (Items (Index + 4)))
-           or else not Nul_Free (To_String (Items (Index + 5)))
-           or else Links.Contains (To_String (Items (Index)))
-         then
-            raise Ada.Directories.Use_Error;
-         end if;
-         Links.Insert
-           (To_String (Items (Index)),
-            (Path                 => Items (Index + 3),
-             Identity             => Items (Index + 4),
-             Source_Revision      => Items (Index + 1),
-             Destination_Revision => Items (Index + 5),
-             Content_Digest       => Items (Index + 2)));
-         Index := Index + 6;
+      for Position in 1 .. Files.Copy_Context.Record_Count (Items) loop
+         declare
+            Item : constant Files.Copy_Context.Copy_Record := Files.Copy_Context.Decode (Items, Position);
+         begin
+            Links.Insert
+              (To_String (Item.Source_Identity),
+               (Path                 => Item.Destination_Path,
+                Identity             => Item.Destination_Identity,
+                Source_Revision      => Item.Source_Revision,
+                Destination_Revision => Item.Destination_Revision,
+                Content_Digest       => Item.Content_Digest));
+         end;
       end loop;
       return Links;
    end Load_Links;
@@ -620,15 +601,16 @@ package body Files.File_System.Support is
       for Cursor in Links.Iterate loop
          declare
             Item : constant Copied_File := Copied_File_Maps.Element (Cursor);
-            Path : constant String := To_String (Item.Path);
-            Published : constant String := Hostkit.Fs.Rebase (Path, Stage, Destination);
          begin
-            Items.Append (To_Unbounded_String (Copied_File_Maps.Key (Cursor)));
-            Items.Append (Item.Source_Revision);
-            Items.Append (Item.Content_Digest);
-            Items.Append (To_Unbounded_String (Published));
-            Items.Append (Item.Identity);
-            Items.Append (Item.Destination_Revision);
+            Files.Copy_Context.Encode
+              ((Source_Identity      => To_Unbounded_String (Copied_File_Maps.Key (Cursor)),
+                Source_Revision      => Item.Source_Revision,
+                Content_Digest       => Item.Content_Digest,
+                Destination_Path     =>
+                  To_Unbounded_String (Hostkit.Fs.Rebase (To_String (Item.Path), Stage, Destination)),
+                Destination_Identity => Item.Identity,
+                Destination_Revision => Item.Destination_Revision),
+               Items);
          end;
       end loop;
       Files.Copy_Context.Save (Batch, Items);
@@ -1005,7 +987,7 @@ package body Files.File_System.Support is
       Input_Descriptor : GNAT.OS_Lib.File_Descriptor :=
         GNAT.OS_Lib.Invalid_FD;
       Output : GNAT.OS_Lib.File_Descriptor := GNAT.OS_Lib.Invalid_FD;
-      Buffer : Stream_Element_Array (1 .. 65_536);
+      Buffer : Stream_Element_Array (1 .. Files.Types.IO_Chunk_Bytes);
       Last   : Stream_Element_Offset;
       Next   : Stream_Element_Offset;
       Bytes_Read : Integer;

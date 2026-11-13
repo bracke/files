@@ -1,5 +1,6 @@
 with Files.Items;
 with Files.Commands.Status;
+with Files.Model.Context_Menu;
 separate (Files_Suite.Commands)
    procedure Test_Context_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,16 +18,16 @@ separate (Files_Suite.Commands)
 
       --  The Menu key opens the context menu; Escape closes it again.
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Menu);
-      Assert (Files.Model.Context_Menu_Is_Open (Model), "the Menu key opens the context menu");
+      Assert (Files.Model.Context_Menu.Is_Open (Model), "the Menu key opens the context menu");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert (not Files.Model.Context_Menu_Is_Open (Model), "Escape closes the context menu");
+      Assert (not Files.Model.Context_Menu.Is_Open (Model), "Escape closes the context menu");
 
       --  Shift+F10 opens the context menu (empty-area, since nothing is selected).
       Shift (Guikit.Input.Shift_Key) := True;
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_F10, Shift);
-      Assert (Files.Model.Context_Menu_Is_Open (Model), "Shift+F10 opens the context menu");
+      Assert (Files.Model.Context_Menu.Is_Open (Model), "Shift+F10 opens the context menu");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Context_Menu_Highlight (Model),
+        (Files.Model.Context_Menu.Highlight (Model),
          0,
          "the menu opens with no row highlighted");
 
@@ -34,13 +35,13 @@ separate (Files_Suite.Commands)
       --  disabled entries, and always moves forward.
       declare
          Rows : constant Files.Commands.Context_Menu_Rows :=
-           Files.Commands.Context_Menu_Rows_For (Files.Model.Context_Menu_Target_Of (Model));
+           Files.Commands.Context_Menu_Rows_For (Files.Model.Context_Menu.Target_Of (Model));
          Previous : Natural := 0;
       begin
          for Step in 1 .. Files.Commands.Max_Context_Menu_Rows loop
             Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
             declare
-               Highlight : constant Natural := Files.Model.Context_Menu_Highlight (Model);
+               Highlight : constant Natural := Files.Model.Context_Menu.Highlight (Model);
             begin
                if Highlight /= Previous then
                   Assert (Highlight > Previous, "Down moves the context-menu highlight forward");
@@ -59,5 +60,5 @@ separate (Files_Suite.Commands)
 
       --  Escape closes it.
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert (not Files.Model.Context_Menu_Is_Open (Model), "Escape closes the context menu");
+      Assert (not Files.Model.Context_Menu.Is_Open (Model), "Escape closes the context menu");
    end Test_Context_Menu_Keyboard;

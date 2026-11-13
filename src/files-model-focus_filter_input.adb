@@ -5,7 +5,7 @@ begin
    Touch (Model);
    Reset_Type_Ahead (Model);
    Model.Focus_Value := Files.Types.Focus_Filter_Input;
-   Model.Tree_Keyboard_Value := False;
+   Model.Tree_Panel.Keyboard := False;
    Model.Filter_Cursor := Length (Model.Filter_Value);
    Clear_Root_Selector_State (Model);
    Model.Command_Palette.Open := False;

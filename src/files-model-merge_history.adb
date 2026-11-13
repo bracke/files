@@ -6,7 +6,7 @@ procedure Merge_History
 is
    package Sequence_Sets is new Ada.Containers.Ordered_Sets (Element_Type => Positive);
 
-   Next : Positive := Positive'Max (State.Next_Sequence, Model.History_Journal.Next_Sequence);
+   Next : Positive := Positive'Max (State.Next_Sequence, Model.History.Journal.Next_Sequence);
    Journal_Undo, Journal_Redo : Undo_Entry_Vectors.Vector;
    Merged_Undo, Merged_Redo : Undo_Entry_Vectors.Vector;
    Journaled, Unjournaled : Sequence_Sets.Set;
@@ -52,7 +52,7 @@ is
                --  The helper's new record retired the redo stack, and this
                --  entry, which it never held, with it.
                for Payload of Action.Restore_Trash loop
-                  Model.Retired_Discards.Append (Payload);
+                  Model.History.Retired_Discards.Append (Payload);
                end loop;
             end if;
          end;
@@ -77,24 +77,24 @@ begin
 
    --  An entry the journal neither holds nor lists the helper retired,
    --  payloads and all; one it lists stays where the window had it.
-   Merge_Stack (Model.Undo_Stack, Journal_Undo, True, Merged_Undo);
-   Merge_Stack (Model.Redo_Stack, Journal_Redo, not State.Redo_Retired, Merged_Redo);
+   Merge_Stack (Model.History.Undo_Stack, Journal_Undo, True, Merged_Undo);
+   Merge_Stack (Model.History.Redo_Stack, Journal_Redo, not State.Redo_Retired, Merged_Redo);
 
    while Natural (Merged_Undo.Length) > Max_Undo_Depth loop
       --  As Commit_Undo_Record: a dropped entry could still have been
       --  undone, so its originals go to the system trash.
       for Payload of Merged_Undo.First_Element.Restore_Trash loop
-         Model.Retired_Releases.Append (Payload);
+         Model.History.Retired_Releases.Append (Payload);
       end loop;
       Merged_Undo.Delete_First;
    end loop;
 
-   Model.Undo_Stack := Merged_Undo;
-   Model.Redo_Stack := Merged_Redo;
-   Model.History_Journal :=
+   Model.History.Undo_Stack := Merged_Undo;
+   Model.History.Redo_Stack := Merged_Redo;
+   Model.History.Journal :=
      (Next_Sequence => Next,
       Unjournaled   => Sequence_Vectors.Empty_Vector,
-      Redo_Retired  => Model.History_Journal.Redo_Retired or else State.Redo_Retired);
-   Model.History_Journal_Dirty := True;
+      Redo_Retired  => Model.History.Journal.Redo_Retired or else State.Redo_Retired);
+   Model.History.Journal_Dirty := True;
    Support.Touch (Model);
 end Merge_History;

@@ -1,5 +1,6 @@
 with Files.Diagnostics;
 with Ada.Containers;
+with Ada.Containers.Ordered_Sets;
 with Ada.Directories;
 with Ada.IO_Exceptions;
 with Ada.Strings.Unbounded;
@@ -9,6 +10,7 @@ with Files.Bounded_Streams;
 with Files.Durable_Writes;
 with Files.Lease_Streams;
 with Files.Fs_Primitives;
+with Files.Path_Checks;
 with Hostkit.Fs;
 with Hostkit.Lease_Files;
 
@@ -39,6 +41,60 @@ package body Files.Copy_Context is
          Files.Diagnostics.Note (Swallowed, "Files.Copy_Context");
          return False;
    end Valid_Batch_Directory;
+
+   function Valid (Item : Copy_Record) return Boolean is
+      function Present (Value : Files.Types.UString) return Boolean is
+        (Length (Value) > 0 and then Files.Path_Checks.Nul_Free (To_String (Value)));
+   begin
+      return Present (Item.Source_Identity)
+        and then Present (Item.Source_Revision)
+        and then Present (Item.Content_Digest)
+        and then Files.Path_Checks.Valid_Absolute_Path (To_String (Item.Destination_Path))
+        and then Present (Item.Destination_Identity)
+        and then Present (Item.Destination_Revision);
+   end Valid;
+
+   function Valid (Items : Files.Types.String_Vectors.Vector) return Boolean is
+      package Identity_Sets is new Ada.Containers.Ordered_Sets (Element_Type => Files.Types.UString);
+      Sources : Identity_Sets.Set;
+   begin
+      if Natural (Items.Length) mod Fields_Per_Record /= 0 then
+         return False;
+      end if;
+      for Position in 1 .. Record_Count (Items) loop
+         declare
+            Item : constant Copy_Record := Decode (Items, Position);
+         begin
+            if not Valid (Item) or else Sources.Contains (Item.Source_Identity) then
+               return False;
+            end if;
+            Sources.Insert (Item.Source_Identity);
+         end;
+      end loop;
+      return True;
+   end Valid;
+
+   procedure Encode (Item : Copy_Record; Into : in out Files.Types.String_Vectors.Vector) is
+   begin
+      Into.Append (Item.Source_Identity);
+      Into.Append (Item.Source_Revision);
+      Into.Append (Item.Content_Digest);
+      Into.Append (Item.Destination_Path);
+      Into.Append (Item.Destination_Identity);
+      Into.Append (Item.Destination_Revision);
+   end Encode;
+
+   function Decode (Items : Files.Types.String_Vectors.Vector; Position : Positive) return Copy_Record is
+      First : constant Positive := (Position - 1) * Fields_Per_Record + 1;
+   begin
+      return
+        (Source_Identity      => Items (First),
+         Source_Revision      => Items (First + 1),
+         Content_Digest       => Items (First + 2),
+         Destination_Path     => Items (First + 3),
+         Destination_Identity => Items (First + 4),
+         Destination_Revision => Items (First + 5));
+   end Decode;
 
    function Create return Session is
       Result : Session;

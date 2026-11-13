@@ -1,4 +1,4 @@
-with Files.UTF8;
+with Guikit.Utf8;
 
 package body Files.Leaf_Names is
 
@@ -16,7 +16,7 @@ package body Files.Leaf_Names is
    is
       Units : Natural := 0;
    begin
-      if not Dos_Rules or else not Files.UTF8.Is_Valid (Name) then
+      if not Dos_Rules or else not Guikit.Utf8.Is_Valid (Name) then
          return Name'Length;
       end if;
       for Item of Name loop

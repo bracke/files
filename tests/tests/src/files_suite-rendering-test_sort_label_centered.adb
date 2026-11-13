@@ -12,7 +12,7 @@ separate (Files_Suite.Rendering)
       Cell_W   : constant Natural := Natural'Max (1, 20 * 12 / 20);
       Field    : constant String := Files.Localization.Text ("command.sort.name");
       Arrow    : constant String := Files.Localization.Text ("sort.direction.ascending");
-      Arrow_W  : constant Natural := Files.UTF8.Display_Units (Arrow) * Cell_W;
+      Arrow_W  : constant Natural := Guikit.Utf8.Display_Units (Arrow) * Cell_W;
       Field_X  : Integer := -1;
       Arrow_X  : Integer := -1;
    begin

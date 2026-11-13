@@ -1,3 +1,4 @@
+with Files.Model.Tree_Panel;
 separate (Files_Suite.Interaction)
    --  Favorites are folder-tree roots: starring or unstarring one with the
    --  tree shown reseeds it, so the tree never lists a stale set of roots.
@@ -18,7 +19,7 @@ separate (Files_Suite.Interaction)
 
       function Tree_Has_Root (Root : String) return Boolean is
       begin
-         for Row of Files.Model.Tree_Visible_Rows (Model) loop
+         for Row of Files.Model.Tree_Panel.Visible_Rows (Model) loop
             if Row.Depth = 0 and then Ada.Strings.Unbounded.To_String (Row.Path) = Root then
                return True;
             end if;
@@ -28,7 +29,7 @@ separate (Files_Suite.Interaction)
    begin
       Files_Suite.Support.Reset_Root;
       Run (Files.Commands.Toggle_Folder_Tree_Command);
-      Assert (Files.Model.Tree_Is_Seeded (Model), "the tree is shown and seeded");
+      Assert (Files.Model.Tree_Panel.Is_Seeded (Model), "the tree is shown and seeded");
       Assert (not Tree_Has_Root (Item), "the file is not a tree root before it is a favorite");
 
       Files_Suite.Support.Select_Name (Model, "Alpha.txt");

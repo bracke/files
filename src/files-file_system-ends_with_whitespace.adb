@@ -5,11 +5,11 @@ function Ends_With_Whitespace (Name : String) return Boolean is
    Last     : Boolean := False;
 begin
    while Position < Name'Length loop
-      Length := Files.UTF8.Whitespace_Separator_Length (Name, Position);
+      Length := Guikit.Utf8.Whitespace_Separator_Length (Name, Position);
       Last := Length > 0 and then Position + Length = Name'Length;
       if Length = 0 then
          declare
-            Next_Position : constant Natural := Files.UTF8.Next_Boundary (Name, Position);
+            Next_Position : constant Natural := Guikit.Utf8.Editing.Next_Boundary (Name, Position);
          begin
             if Next_Position <= Position then
                return False;

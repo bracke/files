@@ -37,19 +37,19 @@ separate (Files_Suite.Operations)
         (Routed.Operation.Status,
          Files.Operations.Operation_Success,
          "large drop import reports success");
-      Assert (Files.Model.Paste_Execution_Is_Active (Model), "a large drop keeps the progress executor active");
+      Assert (Files.Model.Pasting.Execution_Is_Active (Model), "a large drop keeps the progress executor active");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Paste_Execution_Total (Model),
+        (Files.Model.Pasting.Execution_Total (Model),
          Count,
          "the drop progress total counts every source");
-      Assert (Files.Model.Paste_Execution_Done (Model) < Count, "the first drop batch does not finish the whole set");
+      Assert (Files.Model.Pasting.Execution_Done (Model) < Count, "the first drop batch does not finish the whole set");
 
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, Count);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
          Files.Operations.Operation_Success,
          "advancing the drop executor reports success");
-      Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the drop executor finalizes after the last batch");
+      Assert (not Files.Model.Pasting.Execution_Is_Active (Model), "the drop executor finalizes after the last batch");
 
       for N in 1 .. Count loop
          Assert (Ada.Directories.Exists (Dest (N)), "every dropped source is imported to the destination");

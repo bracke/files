@@ -1,3 +1,4 @@
+with Files.Model.Clipboard;
 separate (Files_Suite.Interaction)
    procedure Test_Sequence_Cut_Paste_Into_Subdir (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -24,7 +25,7 @@ separate (Files_Suite.Interaction)
         (Model, Settings, "", Files.Commands.Cut_Selected_Items_Command, Result, Found);
       Assert (Found, "the item menu offers the cut command");
       Assert
-        (Files.Model.Clipboard_Mode_Of (Model) = Files.Model.Clipboard_Cut,
+        (Files.Model.Clipboard.Mode_Of (Model) = Files.Model.Clipboard_Cut,
          "cut records a cut clipboard intent");
 
       --  Step 2: navigate into the subdirectory and paste via the empty-area menu.

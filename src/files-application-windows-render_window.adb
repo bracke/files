@@ -159,7 +159,7 @@ separate (Files.Application.Windows)
       --  Drive a long copy/move a few actions at a time so the UI stays
       --  responsive and the progress overlay animates. Small pastes have already
       --  finished (in Begin_Paste / Resolve_Paste_Conflict) and never get here.
-      if Files.Model.Paste_Execution_Is_Active (Runtime.Model) then
+      if Files.Model.Pasting.Execution_Is_Active (Runtime.Model) then
          declare
             Progress : constant Files.Operations.Operation_Result :=
               Files.Operations.Advance_Paste_Execution (Runtime.Model, Runtime.Settings, 8);
@@ -242,6 +242,14 @@ separate (Files.Application.Windows)
             Runtime.Cached_Inputs := Inputs;
             Runtime.Cached_Minute := Current_Minute;
             Runtime.Frame_Cache_Valid := True;
+            --  With the key and presented= traces, CI checks that the frame
+            --  shown after a key is one drawn with the selection it moved to.
+            declare
+               Shown : constant String := Natural'Image (Files.Model.Selected_Index (Runtime.Model));
+            begin
+               Files.Diagnostics.Trace
+                 ("Files.Application.Windows", "drawn-selection=" & Shown (Shown'First + 1 .. Shown'Last));
+            end;
          end Rebuild_Frame;
       begin
          --  Build_Snapshot is O(items) with a sort and per-item work, so the

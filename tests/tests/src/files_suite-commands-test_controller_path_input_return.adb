@@ -1,4 +1,5 @@
 with Files.Controller.Testing;
+with Files.Model.Command_Palette;
 separate (Files_Suite.Commands)
    procedure Test_Controller_Path_Input_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -50,7 +51,7 @@ separate (Files_Suite.Commands)
         (Result.Command,
          Files.Commands.Open_Command_Palette_Command,
          "Control+P routes through command registry from path input");
-      Assert (Files.Model.Command_Palette_Is_Open (Model), "Control+P opens palette from path input");
+      Assert (Files.Model.Command_Palette.Is_Open (Model), "Control+P opens palette from path input");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Path_Input_Text (Model),
          Root,

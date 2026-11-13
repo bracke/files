@@ -41,7 +41,7 @@ separate (Files_Suite.Operations)
          Files.Operations.Operation_Success,
          "the first batch reports success");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Paste_Execution_Done (Model),
+        (Files.Model.Pasting.Execution_Done (Model),
          2,
          "two writes complete before cancelling");
 
@@ -51,7 +51,7 @@ separate (Files_Suite.Operations)
         (Step.Status,
          Files.Operations.Operation_Success,
          "a cancelled paste finalizes without an error");
-      Assert (not Files.Model.Paste_Execution_Is_Active (Model), "a cancelled paste finalizes on the next advance");
+      Assert (not Files.Model.Pasting.Execution_Is_Active (Model), "a cancelled paste finalizes on the next advance");
 
       Assert (Ada.Directories.Exists (Dest (1)), "the first completed copy is kept");
       Assert (Ada.Directories.Exists (Dest (2)), "the second completed copy is kept");

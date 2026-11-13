@@ -109,7 +109,7 @@ separate (Files_Suite.Operations)
       Files.Operations.Cancel_Paste_Execution (Model);
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
       Assert_Within (Before, Prompt_Limit, "paste cancellation finalizes without waiting for a directory reload");
-      Assert (not Files.Model.Paste_Execution_Is_Active (Model)
+      Assert (not Files.Model.Pasting.Execution_Is_Active (Model)
               and then not Ada.Directories.Exists (Join (Root, "dest")),
               "paste cancellation finalizes without copying");
       Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),

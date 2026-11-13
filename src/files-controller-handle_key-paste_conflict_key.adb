@@ -5,7 +5,7 @@ separate (Files.Controller.Handle_Key)
 procedure Paste_Conflict_Key (Handled : out Boolean; Result : out Controller_Result) is
 begin
    Handled := True;
-   if Files.Model.Paste_Conflict_Is_Active (Model) then
+   if Files.Model.Pasting.Conflict_Is_Active (Model) then
       if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
          declare
             Cancelled : constant Files.Operations.Operation_Result :=

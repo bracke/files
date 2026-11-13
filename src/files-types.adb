@@ -4,7 +4,7 @@ with Ada.Strings.Fixed;
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Wide_Wide_Characters.Handling;
 with I18N.Normalization;
-with Files.UTF8;
+with Guikit.Utf8;
 with Hostkit.Path_Text;
 
 package body Files.Types is
@@ -178,7 +178,7 @@ package body Files.Types is
    begin
       while Index <= Text'Last loop
          Start := Index;
-         Files.UTF8.Decode_Next_Codepoint (Text, Index, Codepoint);
+         Guikit.Utf8.Decode_Next_Codepoint (Text, Index, Codepoint);
 
          declare
             Folded : constant String := Base_Letter (Codepoint);
@@ -234,7 +234,7 @@ package body Files.Types is
             Start : constant Integer := Index;
             Code  : Natural;
          begin
-            Files.UTF8.Decode_Next_Codepoint (Text, Index, Code, Replacement_Codepoint => Invalid);
+            Guikit.Utf8.Decode_Next_Codepoint (Text, Index, Code, Replacement_Codepoint => Invalid);
             if Code = Invalid then
                --  The run before it is folded; the stray byte stays as is.
                Ada.Strings.Unbounded.Append (Result, Fold_Run (Text (Run .. Start - 1)));

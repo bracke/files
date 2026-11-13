@@ -1,4 +1,6 @@
 with Files.Overlays;
+with Files.Model.Label_Picker;
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Interaction)
    --  Ctrl+Tab / Ctrl+Shift+Tab move between the settings section tabs through the
    --  key seam -- the only keyboard route across sections -- and wrap at the ends.
@@ -66,7 +68,7 @@ separate (Files_Suite.Interaction)
       end loop;
       Assert (Found_Hit, "the live settings component exposes a clickable button");
 
-      Files.Model.Open_Label_Picker (Model);
+      Files.Model.Label_Picker.Open (Model);
       declare
          Revision : constant Natural := Files.Model.Revision (Model);
          Outcome  : constant Files.Controller.Controller_Result :=
@@ -78,11 +80,11 @@ separate (Files_Suite.Interaction)
             and then Files.Model.Revision (Model) = Revision,
             "a delayed settings click is contained by the label picker");
       end;
-      Files.Model.Close_Label_Picker (Model);
+      Files.Model.Label_Picker.Close (Model);
 
       declare
          Revision : constant Natural := Files.Model.Revision (Model);
-         Clicked  : constant Boolean := Files.Model.Settings_Click (Model, -1, -1);
+         Clicked  : constant Boolean := Files.Model.Settings_Pane.Click (Model, -1, -1);
       begin
          Assert
            (not Clicked and then Files.Model.Revision (Model) = Revision,
@@ -90,69 +92,69 @@ separate (Files_Suite.Interaction)
       end;
 
       declare
-         Count : constant Natural := Files.Model.Settings_Section_Count (Model);
+         Count : constant Natural := Files.Model.Settings_Pane.Section_Count (Model);
       begin
          Assert (Count > 1, "the settings form has multiple section tabs");
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Settings_Active_Section (Model),
+           (Files.Model.Settings_Pane.Active_Section (Model),
             1,
             "the first section is active initially");
 
          Tab (Ctrl);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Settings_Active_Section (Model),
+           (Files.Model.Settings_Pane.Active_Section (Model),
             2,
             "Ctrl+Tab advances to the next section");
 
          Tab (Ctrl_Shift);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Settings_Active_Section (Model),
+           (Files.Model.Settings_Pane.Active_Section (Model),
             1,
             "Ctrl+Shift+Tab returns to the previous section");
 
          --  Wrap backward from the first section to the last.
          Tab (Ctrl_Shift);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Settings_Active_Section (Model),
+           (Files.Model.Settings_Pane.Active_Section (Model),
             Count,
             "Ctrl+Shift+Tab wraps from the first section to the last");
 
          --  Wrap forward from the last section back to the first.
          Tab (Ctrl);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Settings_Active_Section (Model),
+           (Files.Model.Settings_Pane.Active_Section (Model),
             1,
             "Ctrl+Tab wraps from the last section to the first");
       end;
 
       --  Plain Tab / Shift+Tab walk the fields like Down / Up.
       declare
-         First : constant String := Files.Model.Settings_Focused_Key (Model);
+         First : constant String := Files.Model.Settings_Pane.Focused_Key (Model);
       begin
          Tab (Guikit.Input.No_Modifiers);
-         Assert (Files.Model.Settings_Focused_Key (Model) /= First, "Tab moves focus to the next field");
+         Assert (Files.Model.Settings_Pane.Focused_Key (Model) /= First, "Tab moves focus to the next field");
          Tab (Shift);
          Files_Suite.Support.Assert_Equal
-           (Files.Model.Settings_Focused_Key (Model),
+           (Files.Model.Settings_Pane.Focused_Key (Model),
             First,
             "Shift+Tab moves focus back");
       end;
 
       --  Space flips a focused toggle and drops its own character.
       for Step in 1 .. 50 loop
-         exit when Files.Model.Settings_Focused_Kind (Model) = Guikit.Settings_Panel.Toggle;
+         exit when Files.Model.Settings_Pane.Focused_Kind (Model) = Guikit.Settings_Panel.Toggle;
          Tab (Guikit.Input.No_Modifiers);
       end loop;
-      Assert (Files.Model.Settings_Focused_Kind (Model) = Guikit.Settings_Panel.Toggle,
+      Assert (Files.Model.Settings_Pane.Focused_Kind (Model) = Guikit.Settings_Panel.Toggle,
               "the first section has a toggle to focus");
       declare
-         Before : constant String := Files.Model.Settings_Focused_Value (Model);
+         Before : constant String := Files.Model.Settings_Pane.Focused_Value (Model);
       begin
          Files.Interaction.Handle_Key
            (Model => Model, Settings => Settings, Settings_Path => Path,
             Key => Guikit.Input.Key_Space, Modifiers => Guikit.Input.No_Modifiers,
             Result => Result);
-         Assert (Files.Model.Settings_Focused_Value (Model) /= Before, "Space flips the focused toggle");
+         Assert (Files.Model.Settings_Pane.Focused_Value (Model) /= Before, "Space flips the focused toggle");
          Assert (Result.Clear_Pending_Text, "the flipping space is not also typed");
       end;
    end Test_Settings_Tab_Keys;

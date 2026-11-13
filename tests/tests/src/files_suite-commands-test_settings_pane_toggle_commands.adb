@@ -1,5 +1,7 @@
 with Files.Controller.Testing;
 with Files.Commands.Status;
+with Files.Model.Command_Palette;
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Commands)
    procedure Test_Settings_Pane_Toggle_Commands (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,7 +19,7 @@ separate (Files_Suite.Commands)
         (Files.Commands.Toggle_Settings_Pane_Command not in Files.Commands.Pure_Command_Id,
          "the settings toggle is not a pure model command");
       Assert
-        (not Files.Model.Settings_Pane_Is_Open (Model),
+        (not Files.Model.Settings_Pane.Is_Open (Model),
          "the settings pane starts closed");
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Save_Settings_Command, Model),
@@ -27,7 +29,7 @@ separate (Files_Suite.Commands)
          "reset settings is disabled without settings pane");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
-      Assert (Files.Model.Settings_Pane_Is_Open (Model), "controller opens settings pane with editable draft");
+      Assert (Files.Model.Settings_Pane.Is_Open (Model), "controller opens settings pane with editable draft");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
          Files.Operations.Operation_Success,
@@ -38,13 +40,13 @@ separate (Files_Suite.Commands)
          "settings pane receives editable settings focus");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
-      Assert (not Files.Model.Settings_Pane_Is_Open (Model), "the settings toggle closes the open pane");
+      Assert (not Files.Model.Settings_Pane.Is_Open (Model), "the settings toggle closes the open pane");
       Files.Model.Begin_Create_File (Model, "settings-pending.txt");
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Command_Palette.Open (Model);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert
-        (Files.Model.Settings_Pane_Is_Open (Model),
+        (Files.Model.Settings_Pane.Is_Open (Model),
          "controller opens settings pane over pending create");
       Assert
         (not Files.Model.Temporary_Item_Is_Active (Model),
@@ -59,11 +61,11 @@ separate (Files_Suite.Commands)
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert
-        (not Files.Model.Settings_Pane_Is_Open (Model),
+        (not Files.Model.Settings_Pane.Is_Open (Model),
          "the settings toggle closes the seeded settings pane");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
-      Assert (Files.Model.Settings_Pane_Is_Open (Model), "controller reopens settings pane with editable draft");
+      Assert (Files.Model.Settings_Pane.Is_Open (Model), "controller reopens settings pane with editable draft");
       Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Save_Settings_Command, Model),
               "save settings is enabled");
       Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Reset_Settings_Command, Model),

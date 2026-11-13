@@ -1,3 +1,4 @@
+with Files.Model.Context_Menu;
 separate (Files.Controller.Handle_Key)
 --  The Menu key, or Shift+F10 where a keyboard has none, opens the
 --  context menu on the current selection -- the keyboard equivalent of a
@@ -10,10 +11,10 @@ begin
      and then Files.Model.Focus (Model) = Files.Types.Focus_None
    then
       if Files.Model.Selected_Count (Model) > 0 then
-         Files.Model.Open_Context_Menu
+         Files.Model.Context_Menu.Open
            (Model, 0, 0, Files.Types.Context_Menu_Item, Files.Model.Selected_Index (Model));
       else
-         Files.Model.Open_Context_Menu (Model, 0, 0, Files.Types.Context_Menu_Empty);
+         Files.Model.Context_Menu.Open (Model, 0, 0, Files.Types.Context_Menu_Empty);
       end if;
       Result := Make_Result (Controller_Selection_Moved);
       return;

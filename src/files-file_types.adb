@@ -1,7 +1,7 @@
 with Ada.Strings.Unbounded;
 
 with Hostkit.Path_Text;
-with Files.UTF8;
+with Guikit.Utf8.Editing;
 
 package body Files.File_Types is
 
@@ -15,7 +15,7 @@ package body Files.File_Types is
 
       while First_Offset < Name'Length loop
          declare
-            Separator_Length : constant Natural := Files.UTF8.Whitespace_Separator_Length (Name, First_Offset);
+            Separator_Length : constant Natural := Guikit.Utf8.Whitespace_Separator_Length (Name, First_Offset);
          begin
             exit when Separator_Length = 0;
             First_Offset := First_Offset + Separator_Length;
@@ -31,13 +31,13 @@ package body Files.File_Types is
       begin
          while Position < Name'Length loop
             declare
-               Separator_Length : constant Natural := Files.UTF8.Whitespace_Separator_Length (Name, Position);
+               Separator_Length : constant Natural := Guikit.Utf8.Whitespace_Separator_Length (Name, Position);
                Next_Position    : Natural := Position;
             begin
                if Separator_Length > 0 then
                   Next_Position := Position + Separator_Length;
                else
-                  Next_Position := Files.UTF8.Next_Boundary (Name, Position);
+                  Next_Position := Guikit.Utf8.Editing.Next_Boundary (Name, Position);
                   if Next_Position <= Position then
                      Next_Position := Position + 1;
                   end if;

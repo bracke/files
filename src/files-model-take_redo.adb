@@ -5,13 +5,13 @@ procedure Take_Redo
    Found  : out Boolean) is
 begin
    Touch (Model);
-   if Model.Redo_Stack.Is_Empty then
+   if Model.History.Redo_Stack.Is_Empty then
       Action := (others => <>);
       Found := False;
       return;
    end if;
 
-   Action := Model.Redo_Stack.Last_Element;
-   Model.Redo_Stack.Delete_Last;
+   Action := Model.History.Redo_Stack.Last_Element;
+   Model.History.Redo_Stack.Delete_Last;
    Found := True;
 end Take_Redo;

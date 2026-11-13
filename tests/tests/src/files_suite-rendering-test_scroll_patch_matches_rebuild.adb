@@ -1,3 +1,4 @@
+with Files.Model.Tree_Panel;
 separate (Files_Suite.Rendering)
    --  The window patches a snapshot's three scroll fields when only a scroll
    --  offset moved (Snapshot_Policy.Patch_Scroll). That is right only if every
@@ -14,7 +15,7 @@ separate (Files_Suite.Rendering)
          Scroll   : constant Natural := Files.Model.Scroll_Revision (Model);
          function Offsets return String is
            (Files.Model.Main_View_Scroll_Lines (Model)'Image & Files.Model.Info_Pane_Scroll_Lines (Model)'Image
-            & Files.Model.Tree_Panel_Scroll_Rows (Model)'Image);
+            & Files.Model.Tree_Panel.Scroll_Rows (Model)'Image);
          Before   : constant String := Offsets;
       begin
          Change.all;
@@ -28,7 +29,7 @@ separate (Files_Suite.Rendering)
          --  What Refresh_Snapshot does for Patch_Scroll.
          Patched.Main_View_Scroll_Lines := Files.Model.Main_View_Scroll_Lines (Model);
          Patched.Info_Pane_Scroll_Lines := Files.Model.Info_Pane_Scroll_Lines (Model);
-         Patched.Tree_Panel_Scroll_Rows := Files.Model.Tree_Panel_Scroll_Rows (Model);
+         Patched.Tree_Panel_Scroll_Rows := Files.Model.Tree_Panel.Scroll_Rows (Model);
          Assert
            (Patched = Files.Rendering.Build_Snapshot (Model, Settings),
             Step & ": the patched snapshot is the rebuilt one");
@@ -38,8 +39,8 @@ separate (Files_Suite.Rendering)
       procedure Main_Set is begin Files.Model.Set_Main_View_Scroll_Lines (Model, 0); end Main_Set;
       procedure Info is begin Files.Model.Scroll_Info_Pane (Model, 3); end Info;
       procedure Info_Set is begin Files.Model.Set_Info_Pane_Scroll_Lines (Model, 0); end Info_Set;
-      procedure Tree is begin Files.Model.Scroll_Tree_Panel (Model, 1); end Tree;
-      procedure Tree_Set is begin Files.Model.Set_Tree_Panel_Scroll_Rows (Model, 0); end Tree_Set;
+      procedure Tree is begin Files.Model.Tree_Panel.Scroll (Model, 1); end Tree;
+      procedure Tree_Set is begin Files.Model.Tree_Panel.Set_Scroll_Rows (Model, 0); end Tree_Set;
    begin
       --  Enough rows that the view really scrolls.
       declare
@@ -54,7 +55,7 @@ separate (Files_Suite.Rendering)
       end;
       --  The info pane and the tree scroll only while open, and the tree only
       --  when it has rows to scroll through.
-      Files.Model.Open_Tree_Panel (Model);
+      Files.Model.Tree_Panel.Open (Model);
       declare
          Roots : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
       begin
@@ -65,7 +66,7 @@ separate (Files_Suite.Rendering)
                     To_Unbounded_String (Files_Suite.Support.Join (Files_Suite.Support.Root, "dir" & Index'Image)),
                   Name => To_Unbounded_String ("dir" & Index'Image)));
          end loop;
-         Files.Model.Seed_Tree (Model, Roots);
+         Files.Model.Tree_Panel.Seed (Model, Roots);
       end;
       Files.Model.Select_Visible (Model, 1);
       if not Files.Model.Info_Pane_Is_Open (Model) then
@@ -82,7 +83,7 @@ separate (Files_Suite.Rendering)
       declare
          Revision : constant Natural := Files.Model.Revision (Model);
       begin
-         Files.Model.Close_Tree_Panel (Model);
+         Files.Model.Tree_Panel.Close (Model);
          Assert (Files.Model.Revision (Model) /= Revision, "closing the tree moves the revision");
       end;
    end Test_Scroll_Patch_Matches_Rebuild;

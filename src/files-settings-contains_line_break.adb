@@ -17,7 +17,7 @@ separate (Files.Settings)
             end if;
          end;
 
-         Files.UTF8.Decode_Next_Codepoint (Text, Index, Codepoint);
+         Guikit.Utf8.Decode_Next_Codepoint (Text, Index, Codepoint);
          if Codepoint = Character'Pos (ASCII.LF)
            or else Codepoint = Character'Pos (ASCII.CR)
            or else Codepoint = Character'Pos (ASCII.VT)

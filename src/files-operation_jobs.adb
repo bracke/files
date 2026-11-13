@@ -20,6 +20,7 @@ with Files.Paste;
 with Files.Process_Jobs;
 with Hostkit.Fs;
 with Files.Path_Checks;
+with Files.Model.Pasting;
 
 package body Files.Operation_Jobs is
    use Ada.Strings.Unbounded;
@@ -191,7 +192,7 @@ package body Files.Operation_Jobs is
          View_Incarnation => Files.Model.View_Incarnation (Model));
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
    begin
-      if Files.Model.Paste_Execution_Is_Active (Model) or else Files.Model.Paste_Conflict_Is_Active (Model) then
+      if Files.Model.Pasting.Execution_Is_Active (Model) or else Files.Model.Pasting.Conflict_Is_Active (Model) then
          return (Status => Files.Operations.Operation_Disabled, others => <>);
       end if;
       if Kind in Search_Names | Search_Contents and then Length (Work.Query) = 0 then
@@ -346,16 +347,8 @@ package body Files.Operation_Jobs is
                         declare
                            Index : constant Positive := Places.Element (Dest);
                         begin
-                           while Action.Created_Identities.Last_Index < Index loop
-                              Action.Created_Identities.Append (Null_Unbounded_String);
-                           end loop;
-                           Action.Created_Identities.Replace_Element
-                             (Index, Identities (Created_Index));
-                           while Action.Created_Tree_Revisions.Last_Index < Index loop
-                              Action.Created_Tree_Revisions.Append (Null_Unbounded_String);
-                           end loop;
-                           Action.Created_Tree_Revisions.Replace_Element
-                             (Index, Tree_Revisions (Created_Index));
+                           Files.Model.Set_Created
+                             (Action, Index, Identities (Created_Index), Tree_Revisions (Created_Index));
                         end;
                         Action.Forward_Completed.Append (Destinations (Created_Index));
                         Completed.Include (Dest);
@@ -427,11 +420,11 @@ package body Files.Operation_Jobs is
          if not Context_Matches
            or else Work.Query /= Files.Model.Filter_Text (Model)
          then
-            Files.Model.Clear_Paste_Execution (Model);
+            Files.Model.Pasting.Clear_Execution (Model);
             return (Status => Files.Operations.Operation_Success, others => <>);
          end if;
       end if;
-      Files.Model.Clear_Paste_Execution (Model);
+      Files.Model.Pasting.Clear_Execution (Model);
       if Done.Result.Status /= Files.Operations.Operation_Success then
          Recover_Undo;
       end if;
@@ -516,7 +509,7 @@ package body Files.Operation_Jobs is
                Files.Diagnostics.Note (Swallowed, "Files.Operation_Jobs");
                Same_View := False;
          end;
-         Files.Model.Clear_Paste_Execution (Model);
+         Files.Model.Pasting.Clear_Execution (Model);
          declare
             Restored : constant Boolean :=
               Files.History_Journal.Merge (Files.Process_Jobs.Path (Job, ""), Model);
@@ -572,8 +565,8 @@ package body Files.Operation_Jobs is
             when Compress_Seven_Zip =>
               Files.Operations.Compress_Selected (Model, Work.Settings, Files.Operations.Seven_Zip_Archive),
             when Extract => Files.Operations.Extract_Selected (Model, Work.Settings),
-            when Search_Names => Files.Operations.Run_Recursive_Search (Model, Work.Settings),
-            when Search_Contents => Files.Operations.Run_Content_Search (Model, Work.Settings),
+            when Search_Names => Files.Operations.Run_Search (Model, Work.Settings, Files.Types.Search_Names),
+            when Search_Contents => Files.Operations.Run_Search (Model, Work.Settings, Files.Types.Search_Contents),
             when Trash => Files.Operations.Delete_Selected (Model, Work.Settings),
             when Delete_Permanently => Files.Operations.Delete_Selected_Permanently (Model, Work.Settings),
             when Restore => Files.Operations.Restore_Selected_From_Trash (Model, Work.Settings),

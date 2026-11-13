@@ -1,4 +1,5 @@
 with Files.Controller.Testing;
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Model)
    procedure Test_Main_View_Scroll_And_Settings_Block (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -41,7 +42,7 @@ separate (Files_Suite.Model)
           (Files.Commands.Toggle_Settings_Pane_Command,
            Model,
            Settings);
-      Assert (Files.Model.Settings_Pane_Is_Open (Model), "settings pane opens over main view");
+      Assert (Files.Model.Settings_Pane.Is_Open (Model), "settings pane opens over main view");
       Result := Files.Controller.Testing.Handle_Scroll (Model, Lines => 3);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
@@ -84,5 +85,5 @@ separate (Files_Suite.Model)
           (Files.Commands.Toggle_Settings_Pane_Command,
            Model,
            Settings);
-      Assert (not Files.Model.Settings_Pane_Is_Open (Model), "settings pane closes before command click checks");
+      Assert (not Files.Model.Settings_Pane.Is_Open (Model), "settings pane closes before command click checks");
    end Test_Main_View_Scroll_And_Settings_Block;

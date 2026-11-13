@@ -23,7 +23,7 @@ with Files.Folder_Tree;
 with Files.Localization;
 with Files.Model;
 with Files.UI;
-with Files.UTF8;
+with Guikit.Utf8;
 with Files.Quick_Look;
 with Interfaces;
 with Guikit.Draw;

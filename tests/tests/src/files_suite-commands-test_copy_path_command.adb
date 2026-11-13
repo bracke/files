@@ -1,5 +1,6 @@
 with Files.Items;
 with Files.Commands.Status;
+with Files.Model.Clipboard;
 separate (Files_Suite.Commands)
    procedure Test_Copy_Path_Command (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -39,19 +40,19 @@ separate (Files_Suite.Commands)
 
       --  Executing records the system-clipboard request without touching disk.
       Assert
-        (not Files.Model.System_Clipboard_Request_Pending (Model),
+        (not Files.Model.Clipboard.System_Request_Pending (Model),
          "no clipboard request is pending before copy-path runs");
       Files_Suite.Support.Run_Command (Files.Commands.Copy_Path_Command, Model);
       Assert
-        (Files.Model.System_Clipboard_Request_Pending (Model),
+        (Files.Model.Clipboard.System_Request_Pending (Model),
          "copy-path records a pending system-clipboard request");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.System_Clipboard_Request_Text (Model),
+        (Files.Model.Clipboard.System_Request_Text (Model),
          Alpha_Path & ASCII.LF & Beta_Path & ASCII.LF & Gamma_Path,
          "copy-path stores the newline-joined selection paths");
-      Files.Model.Clear_System_Clipboard_Request (Model);
+      Files.Model.Clipboard.Clear_System_Request (Model);
       Assert
-        (not Files.Model.System_Clipboard_Request_Pending (Model),
+        (not Files.Model.Clipboard.System_Request_Pending (Model),
          "the shell clears the request once consumed");
 
       --  Control+Shift+C routes to the command through the controller.

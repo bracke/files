@@ -2,7 +2,9 @@ separate (Files_Suite.Operations)
    procedure Test_Move_Without_Read_Access (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
@@ -61,9 +63,4 @@ separate (Files_Suite.Operations)
          Mutation := Files.File_System.Set_Permissions
            ((if Directory_Move then Join (Destination, "child") else Destination), 8#644#);
       end loop;
-   exception
-      when others =>
-         Files.Model.Clear_Paste_Execution (Model);
-         Files.Refresh_Jobs.Cancel (Model);
-         raise;
    end Test_Move_Without_Read_Access;

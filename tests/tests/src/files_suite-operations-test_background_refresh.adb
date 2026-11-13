@@ -1,3 +1,4 @@
+with Files.Model.Context_Menu;
 separate (Files_Suite.Operations)
    procedure Test_Background_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -75,7 +76,7 @@ separate (Files_Suite.Operations)
         (Model, Settings, In_Main => True, Item_Index => 0,
          X => 0, Y => 0, Result => Routed);
       Assert
-        (Files.Model.Context_Menu_Is_Open (Model),
+        (Files.Model.Context_Menu.Is_Open (Model),
          "the refresh recovery path opens the empty-area context menu");
       Files.Interaction.Apply_Context_Menu_Command
         (Model, Settings, "", Files.Commands.Refresh_Directory_Command, Guikit.Input.No_Modifiers, Routed);

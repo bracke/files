@@ -1,3 +1,4 @@
+with Files.Model.Label_Picker;
 separate (Files_Suite.Interaction)
    procedure Test_Labels_Follow_Moves_And_Stay_Loadable (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -87,7 +88,7 @@ separate (Files_Suite.Interaction)
       end loop;
       Model := Loaded_Model (Dir);
       Files.Model.Select_All_Visible (Model);
-      Files.Model.Open_Label_Picker (Model);
+      Files.Model.Label_Picker.Open (Model);
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "",
          (Kind => Files.Events.Label_Picker_Choice_Input_Action,

@@ -1,4 +1,7 @@
 with Files.Commands.Status;
+with Files.Model.Context_Menu;
+with Files.Model.Tree_Panel;
+with Files.Model.Pasting;
 separate (Files_Suite.Interaction)
    procedure Test_Item_Menu_Contents_And_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -14,7 +17,7 @@ separate (Files_Suite.Interaction)
       Model := Loaded_Model (Dir);
       Files_Suite.Support.Select_Name (Model, "report.txt");
       Open_Item_Context_Menu (Model, Settings, Result);
-      Assert (Files.Model.Context_Menu_Is_Open (Model), "the item menu opens on the selected file");
+      Assert (Files.Model.Context_Menu.Is_Open (Model), "the item menu opens on the selected file");
 
       --  Every item-context command the layout promises is present (rule a).
       Assert (Menu_Offers (Model, Settings, Files.Commands.Open_Selected_Items_Command),
@@ -95,7 +98,7 @@ separate (Files_Suite.Interaction)
       declare
          Rows : constant Files.Commands.Context_Menu_Rows :=
            Files.Commands.Context_Menu_Rows_For
-             (Files.Model.Context_Menu_Target_Of (Model));
+             (Files.Model.Context_Menu.Target_Of (Model));
          Copy_To_Row : Natural := 0;
       begin
          for Row in 1 .. Rows.Count loop
@@ -105,22 +108,22 @@ separate (Files_Suite.Interaction)
             end if;
          end loop;
          Assert (Copy_To_Row > 0, "the live item menu has a Copy to row for keyboard dispatch");
-         Files.Model.Set_Context_Menu_Highlight (Model, Copy_To_Row);
+         Files.Model.Context_Menu.Set_Highlight (Model, Copy_To_Row);
          Files.Interaction.Handle_Key
            (Model, Settings, "", Guikit.Input.Key_Return,
             Guikit.Input.No_Modifiers, Result);
       end;
       Assert
-        (not Files.Model.Context_Menu_Is_Open (Model),
+        (not Files.Model.Context_Menu.Is_Open (Model),
          "context-menu Enter opens Copy to without immediately confirming it (menu closed)");
       Assert
-        (Files.Model.Tree_Pick_Is_Active (Model),
+        (Files.Model.Tree_Panel.Pick_Is_Active (Model),
          "context-menu Enter opens Copy to without immediately confirming it (tree pick active)");
       Assert
-        (Files.Model.Tree_Panel_Is_Open (Model),
+        (Files.Model.Tree_Panel.Is_Open (Model),
          "context-menu Enter opens Copy to without immediately confirming it (tree panel open)");
       Assert
-        (not Files.Model.Paste_Conflict_Is_Active (Model)
-         and then not Files.Model.Paste_Execution_Is_Active (Model),
+        (not Files.Model.Pasting.Conflict_Is_Active (Model)
+         and then not Files.Model.Pasting.Execution_Is_Active (Model),
          "the newly opened picker does not start a transfer from the same Enter");
    end Test_Item_Menu_Contents_And_Enablement;

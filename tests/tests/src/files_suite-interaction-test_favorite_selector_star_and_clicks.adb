@@ -15,7 +15,7 @@ separate (Files_Suite.Interaction)
       Settings.Favorite_Paths.Append (Ada.Strings.Unbounded.To_Unbounded_String (Fav_File));
 
       Open_Favorites_Selector (Model, Settings);
-      Assert (Files.Model.Root_Selector_Is_Open (Model), "the selector opens for the favorites test");
+      Assert (Files.Model.Root_Selector.Is_Open (Model), "the selector opens for the favorites test");
 
       --  The star-prefixed base names are what the selector renders for
       --  favorites (semantic label assertion, not pixels).
@@ -44,7 +44,7 @@ separate (Files_Suite.Interaction)
         (Files.Model.Current_Path (Model),
          Fav_Folder,
          "a folder favorite navigates into the folder");
-      Assert (not Files.Model.Root_Selector_Is_Open (Model), "a folder favorite click closes the selector");
+      Assert (not Files.Model.Root_Selector.Is_Open (Model), "a folder favorite click closes the selector");
 
       --  Clicking the file favorite opens its parent with the file selected.
       Open_Favorites_Selector (Model, Settings);

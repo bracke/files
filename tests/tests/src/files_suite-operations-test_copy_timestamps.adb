@@ -3,7 +3,8 @@ separate (Files_Suite.Operations)
    procedure Test_Copy_Timestamps (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
@@ -14,8 +15,7 @@ separate (Files_Suite.Operations)
       File_Time, Directory_Time : Ada.Calendar.Time;
       procedure Cleanup is
       begin
-         Files.Model.Clear_Paste_Execution (Model);
-         Files.Refresh_Jobs.Cancel (Model);
+         Files_Suite.Support.Release (Paste);
       end Cleanup;
       procedure Prepare is
       begin

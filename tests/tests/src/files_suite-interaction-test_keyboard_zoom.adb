@@ -1,3 +1,4 @@
+with Files.Model.Sort_Menu;
 separate (Files_Suite.Interaction)
    --  Ctrl+'=' / Ctrl+'+' grow, Ctrl+'-' shrinks, and Ctrl+0 resets the live
    --  font size, all clamped to the supported range, through the key seam.
@@ -63,7 +64,7 @@ separate (Files_Suite.Interaction)
       --  Zoom is background UI state and must obey the same ownership rule as
       --  scrolling, clicks, and drops while a modal overlay is open.
       Settings.Font_Pixel_Size := Files.Settings.Default_Font_Pixel_Size;
-      Files.Model.Toggle_Sort_Menu (Model);
+      Files.Model.Sort_Menu.Toggle (Model);
       Zoom (Guikit.Input.Key_Equal, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Settings.Font_Pixel_Size,
@@ -81,8 +82,8 @@ separate (Files_Suite.Interaction)
       Assert
         (Result.Clear_Pending_Text,
          "a blocked zoom chord still consumes its parallel character event");
-      Assert (Files.Model.Sort_Menu_Is_Open (Model), "blocked zoom leaves the owning overlay open");
-      Files.Model.Close_Sort_Menu (Model);
+      Assert (Files.Model.Sort_Menu.Is_Open (Model), "blocked zoom leaves the owning overlay open");
+      Files.Model.Sort_Menu.Close (Model);
 
       --  A settings file that cannot be written still takes the change: the
       --  window's font follows it (the failed save is reported, not undone).

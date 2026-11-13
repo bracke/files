@@ -10,11 +10,11 @@ separate (Files.Controller)
       Old_Cursor : constant Natural := Files.Model.Text_Cursor_Position (Model);
    begin
       if Target = Files.Types.Focus_Command_Palette
-        and then not Files.Model.Command_Palette_Is_Open (Model)
+        and then not Files.Model.Command_Palette.Is_Open (Model)
       then
          return Make_Result (Controller_Ignored);
       elsif Target = Files.Types.Focus_Settings_Input
-        and then not Files.Model.Settings_Pane_Is_Open (Model)
+        and then not Files.Model.Settings_Pane.Is_Open (Model)
       then
          return Make_Result (Controller_Ignored);
       elsif Target = Files.Types.Focus_Rename_Input
@@ -23,11 +23,11 @@ separate (Files.Controller)
          return Make_Result (Controller_Ignored);
       end if;
 
-      if Files.Model.Command_Palette_Is_Open (Model) then
+      if Files.Model.Command_Palette.Is_Open (Model) then
          if Target /= Files.Types.Focus_Command_Palette then
             return Make_Result (Controller_Ignored);
          end if;
-      elsif Files.Model.Settings_Pane_Is_Open (Model) then
+      elsif Files.Model.Settings_Pane.Is_Open (Model) then
          if Target /= Files.Types.Focus_Settings_Input then
             return Make_Result (Controller_Ignored);
          end if;
@@ -47,7 +47,7 @@ separate (Files.Controller)
          when Files.Types.Focus_Rename_Input =>
             Files.Model.Focus_Rename_Input (Model);
          when Files.Types.Focus_Command_Palette =>
-            Files.Model.Focus_Command_Palette_Input (Model);
+            Files.Model.Command_Palette.Focus_Input (Model);
          when Files.Types.Focus_Settings_Input =>
             --  Settings clicks route through Handle_Settings_Click (the panel
             --  hit-tests them), not the generic text-click path.

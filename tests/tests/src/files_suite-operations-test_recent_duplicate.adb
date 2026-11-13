@@ -109,17 +109,14 @@ separate (Files_Suite.Operations)
                Files.Operations.Operation_Success,
                "Recent Duplicate starts or completes successfully");
             if Background then
-               for Attempt in Files_Suite.Support.Polling loop
-                  Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-                  exit when not Files.Model.Paste_Execution_Is_Active (Model);
-               end loop;
+               Step := Files_Suite.Support.Finish_Paste (Model, Settings);
             end if;
             Files_Suite.Support.Assert_Equal
               (Step.Status,
                Files.Operations.Operation_Success,
                "Recent Duplicate reports success and records all created paths for Undo: status");
             Assert
-              (not Files.Model.Paste_Execution_Is_Active (Model),
+              (not Files.Model.Pasting.Execution_Is_Active (Model),
                "Recent Duplicate reports success and records all created paths for Undo: paste finished");
             Files_Suite.Support.Assert_Equal
               (Files.Model.Last_Error_Key (Model),

@@ -1,5 +1,6 @@
 with Files.Controller.Testing;
 with Files.File_System.Testing;
+with Files.Model.Root_Selector;
 separate (Files_Suite.Operations)
    procedure Test_Controller_History_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -27,10 +28,10 @@ separate (Files_Suite.Operations)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
 
       Load := Files.File_System.Load_Directory (Second, Settings);
-      Files.Model.Open_Root_Selector (Model, Files.File_System.Testing.Available_Roots);
+      Files.Model.Root_Selector.Open (Model, Files.File_System.Testing.Available_Roots);
       Files.Model.Navigate_To (Model, Second, Load.Items);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Root_Count (Model),
+        (Files.Model.Root_Selector.Count (Model),
          0,
          "direct navigation clears stale root selector entries");
       Files.Model.Begin_Create_File (Model, "history-pending.txt");

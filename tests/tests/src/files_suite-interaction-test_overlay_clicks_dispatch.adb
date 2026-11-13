@@ -1,5 +1,7 @@
 with Files.Command_Palette;
 with Files.Overlays;
+with Files.Model.Command_Palette;
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Interaction)
    --  A click on the settings panel or on a palette row reaches the controller
    --  through Apply_Input_Action, and a palette row whose command changes
@@ -35,7 +37,7 @@ separate (Files_Suite.Interaction)
         (Model => Model, Settings => Settings, Settings_Path => Path,
          Key => Guikit.Input.Key_Comma, Modifiers => Ctrl,
          Result => Result);
-      Assert (Files.Model.Settings_Pane_Is_Open (Model), "Ctrl+, opens the settings panel");
+      Assert (Files.Model.Settings_Pane.Is_Open (Model), "Ctrl+, opens the settings panel");
       Files.Overlays.Build_Settings_Frame
         (Model => Model, Region => (X => 0, Y => 0, Width => 600, Height => 500,
                      Clip_Width => 600, Clip_Height => 500, Line_Height => 20), Focused => True,
@@ -50,10 +52,10 @@ separate (Files_Suite.Interaction)
          end if;
       end loop;
       Assert (Found, "a click on a settings control is dispatched to the panel");
-      Files.Model.Toggle_Settings_Pane (Model);
+      Files.Model.Settings_Pane.Toggle (Model);
 
       --  The palette: a row whose command changes a setting.
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Command_Palette.Open (Model);
       declare
          Typed : constant Files.Controller.Controller_Result := Files.Controller.Append_Focused_Text (Model, "hidden");
          pragma Unreferenced (Typed);
@@ -72,7 +74,7 @@ separate (Files_Suite.Interaction)
             if Node.Role = Guikit.Draw.Role_List_Item and then Node.Width > 0 then
                declare
                   Hit : constant Boolean :=
-                    Files.Model.Palette_Click (Model, Node.X + Node.Width / 2, Node.Y + Node.Height / 2);
+                    Files.Model.Command_Palette.Click (Model, Node.X + Node.Width / 2, Node.Y + Node.Height / 2);
                begin
                   if Hit and then Files.Command_Palette.Selected_Command (Model)
                                   = Files.Commands.Toggle_Hidden_Files_Command
@@ -88,7 +90,7 @@ separate (Files_Suite.Interaction)
          Assert (Found, "the palette lists the hidden-files toggle for ""hidden""");
          Click (Files.Events.Command_Result_Click_Input_Action, Row_X, Row_Y);
          Assert (Settings.Show_Hidden_Files /= Hidden_Before, "the clicked row's setting is applied");
-         Assert (not Files.Model.Command_Palette_Is_Open (Model), "and the palette closes");
+         Assert (not Files.Model.Command_Palette.Is_Open (Model), "and the palette closes");
          Assert (Ada.Directories.Exists (Path), "and the change is saved to the settings file");
       end;
    end Test_Overlay_Clicks_Dispatch;

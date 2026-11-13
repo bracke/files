@@ -13,7 +13,7 @@ separate (Files.Rendering.Build_Frame_Commands)
         Saturating_Add
           (Saturating_Add (X, Files.UI.Field_Padding (Line_Height)),
            Saturating_Multiply
-             (Files.UTF8.Display_Units_Before (Raw, Cursor), Char_W));
+             (Guikit.Utf8.Display_Units_Before (Raw, Cursor), Char_W));
       Max_X  : constant Natural := (if Field_W > 2 then Saturating_Add (X, Field_W - 2) else X);
       --  The caret height tracks the font: a fixed fraction of the line
       --  height (so it scales linearly with the font size), clamped to the

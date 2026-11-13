@@ -11,7 +11,7 @@ separate (Files.Rendering.Build_Frame_Commands)
       Vertical_Gap   : constant Natural := Guikit.Layout.Scaled (18, Line_Height);
       Text        : constant UString := Tooltip_At (Hover_X, Hover_Y);
       Text_Raw    : constant String := To_String (Text);
-      Text_Len    : constant Natural := Files.UTF8.Display_Units (Text_Raw);
+      Text_Len    : constant Natural := Guikit.Utf8.Display_Units (Text_Raw);
       Cell_W      : constant Natural := Guikit.Layout.Caret_Advance_Width (Line_Height);
       Max_Tip_W   : constant Natural :=
         (if Width > 2 * Margin then Width - 2 * Margin else Width);
@@ -60,7 +60,7 @@ separate (Files.Rendering.Build_Frame_Commands)
 
          procedure Consider (A, B : Integer) is
             Units : constant Natural :=
-              (if B < A then 0 else Files.UTF8.Display_Units (Block (A .. B)));
+              (if B < A then 0 else Guikit.Utf8.Display_Units (Block (A .. B)));
          begin
             if Units > Best then
                Best := Units;

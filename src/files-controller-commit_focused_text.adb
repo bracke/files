@@ -27,8 +27,8 @@ separate (Files.Controller)
          when Files.Types.Focus_Settings_Input =>
             declare
                Parsed : constant Files.Settings.Settings_Parse_Result :=
-                 Files.Settings.Validate_Draft (Files.Model.Settings_Draft_Of (Model));
-               Draft  : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+                 Files.Settings.Validate_Draft (Files.Model.Settings_Pane.Draft_Of (Model));
+               Draft  : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
             begin
                if Parsed.Success then
                   Draft.Valid := True;
@@ -42,7 +42,7 @@ separate (Files.Controller)
                   Operation.Status := Files.Operations.Operation_Failed;
                   Operation.Error_Key := Parsed.Error_Key;
                end if;
-               Files.Model.Set_Settings_Draft (Model, Draft);
+               Files.Model.Settings_Pane.Set_Draft (Model, Draft);
             end;
             return
               Make_Result

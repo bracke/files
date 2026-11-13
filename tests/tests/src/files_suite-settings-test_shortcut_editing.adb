@@ -1,3 +1,4 @@
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Settings)
    --  Files.Settings_Form maps the draft to typed panel fields and applies the
    --  panel's emitted changes: paging (Prev/Next) moves the selected mapping
@@ -44,7 +45,7 @@ separate (Files_Suite.Settings)
           (Files.Commands.Default_Shortcut_For (Files.Commands.Select_Small_Icons_Command));
    begin
       Files.Commands.Reset_Shortcut_Overrides;
-      Files.Model.Begin_Settings_Edit (Model, Draft);
+      Files.Model.Settings_Pane.Begin_Edit (Model, Draft);
 
       --  The form emits a row per command, keyed by "shortcut.<identifier>",
       --  showing the command's current shortcut.

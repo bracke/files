@@ -1,6 +1,6 @@
 with Files.File_System;
 with Files.Model.Testing;
-with Files.Settings;
+with Files.Refresh_Jobs;
 with Ada.Text_IO;
 with Ada.Command_Line;
 with Ada.Directories;
@@ -25,6 +25,7 @@ with Hostkit.Fs;
 with Hostkit.Host;
 with Hostkit.Metadata;
 with Hostkit.Process;
+with Files.Model.Pasting;
 
 package body Files_Suite.Support is
 
@@ -751,6 +752,37 @@ package body Files_Suite.Support is
            (Ada.Text_IO.Standard_Error,
             "Shortcut_Guard could not clear the shortcut overrides: " & Ada.Exceptions.Exception_Message (Error));
    end Finalize;
+
+   procedure Release (Guard : in out Paste_Guard) is
+   begin
+      Files.Model.Pasting.Clear_Execution (Guard.Model.all);
+      Files.Refresh_Jobs.Cancel (Guard.Model.all);
+   end Release;
+
+   overriding procedure Finalize (Guard : in out Paste_Guard) is
+   begin
+      Release (Guard);
+   exception
+      when Error : others =>
+         Ada.Text_IO.Put_Line
+           (Ada.Text_IO.Standard_Error,
+            "Paste_Guard could not end the paste execution: " & Ada.Exceptions.Exception_Message (Error));
+   end Finalize;
+
+   function Finish_Paste
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model) return Files.Operations.Operation_Result
+   is
+      Result : Files.Operations.Operation_Result;
+   begin
+      for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
+         Result := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
+         exit when not Files.Model.Pasting.Execution_Is_Active (Model);
+      end loop;
+      AUnit.Assertions.Assert
+        (not Files.Model.Pasting.Execution_Is_Active (Model), "the paste execution finishes");
+      return Result;
+   end Finish_Paste;
 
    overriding procedure Initialize (Guard : in out Directory_Guard) is
    begin

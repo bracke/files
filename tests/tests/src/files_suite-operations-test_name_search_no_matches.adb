@@ -4,7 +4,9 @@ separate (Files_Suite.Operations)
    procedure Test_Name_Search_No_Matches (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model    : Files.Model.Window_Model;
+      Model    : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
    begin
@@ -17,7 +19,8 @@ separate (Files_Suite.Operations)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Filter (Model, "absent");
          Files.Model.Set_Background_Transfers (Model, Background);
-         Step := Complete_Operation (Model, Settings, Files.Operations.Run_Recursive_Search (Model, Settings));
+         Step := Complete_Operation
+           (Model, Settings, Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names));
          Assert (Step.Status = Files.Operations.Operation_Success
                  and then Files.Model.Search_Results_Are_Active (Model)
                  and then Files.Model.Item_Count (Model) = 0,
@@ -26,6 +29,4 @@ separate (Files_Suite.Operations)
            (Files.Model.Last_Error_Key (Model), "search.no_matches",
             "with the no-matches notice, background " & Background'Image);
       end loop;
-   exception
-      when others => Files.Model.Clear_Paste_Execution (Model); raise;
    end Test_Name_Search_No_Matches;

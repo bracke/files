@@ -20,7 +20,7 @@ separate (Files_Suite.Commands)
          Expected_Cursor : Natural;
          Context         : String) is
       begin
-         Files.UTF8.Delete_At (Text, Cursor, Backward, By_Word, New_Text, New_Cursor);
+         Guikit.Utf8.Editing.Delete_At (Text, Cursor, Backward, By_Word, New_Text, New_Cursor);
          Assert_Equal (To_String (New_Text), Expected_Text, Context & ": text");
          Assert_Equal (New_Cursor, Expected_Cursor, Context & ": cursor");
       end Check;
@@ -36,7 +36,7 @@ separate (Files_Suite.Commands)
       Check (Words, Words'Length, True, True, "alpha beta-", 11, "word Backspace deletes the word before the caret");
       Check
         (Words, 0, False, True,
-         Files.UTF8.Remove_Range (Words, 0, Files.UTF8.Next_Word_Boundary (Words, 0)), 0,
+         Guikit.Utf8.Editing.Remove_Range (Words, 0, Guikit.Utf8.Editing.Next_Word_Boundary (Words, 0)), 0,
          "word Delete deletes to the next word boundary");
       Assert (Length (New_Text) < Words'Length, "word Delete removes something");
    end Test_Utf8_Delete_At;

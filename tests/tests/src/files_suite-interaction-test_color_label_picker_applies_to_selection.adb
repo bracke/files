@@ -1,3 +1,4 @@
+with Files.Model.Label_Picker;
 separate (Files_Suite.Interaction)
    procedure Test_Color_Label_Picker_Applies_To_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -34,12 +35,12 @@ separate (Files_Suite.Interaction)
          "all three files are selected before labeling");
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Open_Cmd, Guikit.Input.No_Modifiers, Result);
-      Assert (Files.Model.Label_Picker_Is_Open (Model), "the set-label command opens the picker");
+      Assert (Files.Model.Label_Picker.Is_Open (Model), "the set-label command opens the picker");
 
       --  Choosing a color labels every selected item and closes the picker.
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Choose (Files.Types.Green), Guikit.Input.No_Modifiers, Result);
-      Assert (not Files.Model.Label_Picker_Is_Open (Model), "choosing a swatch closes the picker");
+      Assert (not Files.Model.Label_Picker.Is_Open (Model), "choosing a swatch closes the picker");
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Label_Of (Settings, One),
          Files.Types.Green,
@@ -59,7 +60,7 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Choose (Files.Types.Red),
          Guikit.Input.No_Modifiers, Result);
-      Assert (not Files.Model.Label_Picker_Is_Open (Model),
+      Assert (not Files.Model.Label_Picker.Is_Open (Model),
               "a stale choice does not reopen the picker");
       Files_Suite.Support.Assert_Equal
         (Files.Settings.Label_Of (Settings, One),
@@ -67,7 +68,7 @@ separate (Files_Suite.Interaction)
          "a stale choice does not relabel the selection");
 
       --  Choosing None clears every selected item's label.
-      Files.Model.Open_Label_Picker (Model);
+      Files.Model.Label_Picker.Open (Model);
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Choose (Files.Types.No_Label), Guikit.Input.No_Modifiers, Result);
       Files_Suite.Support.Assert_Equal
@@ -86,7 +87,7 @@ separate (Files_Suite.Interaction)
       --  A mixed selection (one already labeled differently) all takes the
       --  chosen color.
       Files.Settings.Set_Label (Settings, Two, Files.Types.Red);
-      Files.Model.Open_Label_Picker (Model);
+      Files.Model.Label_Picker.Open (Model);
       Files.Interaction.Apply_Input_Action
         (Model, Settings, "", Choose (Files.Types.Blue), Guikit.Input.No_Modifiers, Result);
       Files_Suite.Support.Assert_Equal

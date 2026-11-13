@@ -25,7 +25,7 @@ separate (Files_Suite.Operations)
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
       Files.Process_Jobs.Testing.Refuse_Next_Launch;
       Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-      Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the paste ends instead of staying armed");
+      Assert (not Files.Model.Pasting.Execution_Is_Active (Model), "the paste ends instead of staying armed");
       Files_Suite.Support.Assert_Equal
         (Step.Status, Files.Operations.Operation_Failed, "and reports the failure");
       Files_Suite.Support.Assert_Equal

@@ -1,10 +1,11 @@
+with Guikit.Input.Mouse_Buttons;
 separate (Files_Suite.Interaction)
    --  A left release is held back for its debounce window: a drain before the
    --  bounce press arrives leaves it queued, so the bounce still withdraws it
    --  and the held drag is not ended. A release older than the window drains.
    procedure Test_Mouse_Release_Held_For_Bounce (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use Files.Mouse_Buttons;
+      use Guikit.Input.Mouse_Buttons;
       use type Ada.Real_Time.Time;
       Queue   : Button_Event_Vectors.Vector;
       Last    : Ada.Real_Time.Time := Ada.Real_Time.Time_First;

@@ -15,7 +15,7 @@ is
    Loader_Was_Closed : Boolean := False;
    Signal_Name : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.Null_Ptr;
    Requested_Size : aliased C_Int := C_Int (Max_Size);
-   Buffer     : Ada.Streams.Stream_Element_Array (1 .. 64 * 1024);
+   Buffer     : Ada.Streams.Stream_Element_Array (1 .. Files.Types.IO_Chunk_Bytes);
    Bytes_Read : Integer;
    Total      : Natural := 0;
    Result     : Decoded_Image;

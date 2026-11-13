@@ -1,6 +1,7 @@
 with Files.File_System.Testing;
 with Files.Items;
 with Files.Commands.Status;
+with Files.Model.Root_Selector;
 separate (Files_Suite.Commands)
    procedure Test_Pure_Command_Execution (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -25,7 +26,7 @@ separate (Files_Suite.Commands)
       Assert
         (Files.Commands.Open_Selected_Items_Command not in Files.Commands.Pure_Command_Id,
          "open loads the selected items, so it is not a pure command");
-      Files.Model.Open_Root_Selector (Model, Files.File_System.Testing.Available_Roots);
+      Files.Model.Root_Selector.Open (Model, Files.File_System.Testing.Available_Roots);
       Files_Suite.Support.Run_Command (Files.Commands.Select_Details_Command, Model);
       Files_Suite.Support.Assert_Equal
         (Files.Model.View_Mode_Of (Model),
@@ -33,7 +34,7 @@ separate (Files_Suite.Commands)
          "command execution respects root-selector modal disablement");
       Files_Suite.Support.Run_Command (Files.Commands.Close_Command_Palette_Command, Model);
       Assert
-        (not Files.Model.Root_Selector_Is_Open (Model),
+        (not Files.Model.Root_Selector.Is_Open (Model),
          "context cancel can close root selector");
       Files.Model.Navigate_To (Model, "/tmp/files_aunit/direct-next", Empty);
       Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Navigate_Back_Command, Model),

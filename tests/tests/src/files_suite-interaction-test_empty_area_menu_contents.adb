@@ -1,3 +1,4 @@
+with Files.Model.Context_Menu;
 separate (Files_Suite.Interaction)
    procedure Test_Empty_Area_Menu_Contents (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -11,7 +12,7 @@ separate (Files_Suite.Interaction)
       Model := Loaded_Model (Dir);
 
       Open_Empty_Context_Menu (Model, Settings, Result);
-      Assert (Files.Model.Context_Menu_Is_Open (Model), "the empty-area menu opens on empty space");
+      Assert (Files.Model.Context_Menu.Is_Open (Model), "the empty-area menu opens on empty space");
 
       Assert (Menu_Offers (Model, Settings, Files.Commands.Create_File_Command),
               "the empty-area menu lists Create File");

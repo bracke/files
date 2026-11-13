@@ -2,7 +2,9 @@ separate (Files_Suite.Operations)
    procedure Test_Undo_Admits_Verified_Identities (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Step : Files.Operations.Operation_Result;
    begin
       Reset_Root;
@@ -177,6 +179,4 @@ separate (Files_Suite.Operations)
                  and then not Ada.Directories.Exists (Older),
                  "identity filtering leaves earlier usable history reachable");
       end;
-   exception
-      when others => Files.Model.Clear_Paste_Execution (Model); Files.Refresh_Jobs.Cancel (Model); raise;
    end Test_Undo_Admits_Verified_Identities;

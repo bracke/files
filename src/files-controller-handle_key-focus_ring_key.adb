@@ -21,21 +21,21 @@ begin
          Backward : constant Boolean := Modifiers (Guikit.Input.Shift_Key);
          --  The tree joins the ring only while it is shown and has rows.
          Tree_Takes_Keyboard : constant Boolean :=
-           Files.Model.Tree_Panel_Is_Open (Model)
-           and then not Files.Model.Tree_Pick_Is_Active (Model)
-           and then not Files.Model.Tree_Visible_Rows (Model).Is_Empty;
+           Files.Model.Tree_Panel.Is_Open (Model)
+           and then not Files.Model.Tree_Panel.Pick_Is_Active (Model)
+           and then not Files.Model.Tree_Panel.Visible_Rows (Model).Is_Empty;
       begin
          case Files.Model.Focus (Model) is
             when Files.Types.Focus_None =>
-               if Files.Model.Tree_Has_Keyboard (Model) then
+               if Files.Model.Tree_Panel.Has_Keyboard (Model) then
                   if Backward then
                      Files.Model.Focus_Filter_Input (Model);
                   else
-                     Files.Model.Take_Tree_Keyboard (Model);
+                     Files.Model.Tree_Panel.Take_Keyboard (Model);
                   end if;
                elsif Backward then
                   if Tree_Takes_Keyboard then
-                     Files.Model.Give_Tree_Keyboard (Model);
+                     Files.Model.Tree_Panel.Give_Keyboard (Model);
                   else
                      Files.Model.Focus_Filter_Input (Model);
                   end if;
@@ -54,7 +54,7 @@ begin
                else
                   Files.Model.Cancel_Focus_Or_Edit (Model);
                   if Tree_Takes_Keyboard then
-                     Files.Model.Give_Tree_Keyboard (Model);
+                     Files.Model.Tree_Panel.Give_Keyboard (Model);
                   end if;
                end if;
             when others =>

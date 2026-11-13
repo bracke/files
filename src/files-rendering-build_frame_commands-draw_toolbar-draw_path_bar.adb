@@ -16,7 +16,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Toolbar)
          --  While focused, start the text far enough in that the caret shows.
          Path_Skip    : constant Natural :=
            (if Snapshot.Focus = Files.Types.Focus_Path_Input
-            then Files.UTF8.Byte_Offset_For_Display_Column
+            then Guikit.Utf8.Byte_Offset_For_Display_Column
                    (Path_Raw,
                     Input_Scroll_Columns
                       (Path_Raw, Snapshot.Text_Cursor_Position, Path_Text_W, Line_Height))

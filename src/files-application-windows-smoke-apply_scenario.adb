@@ -1,6 +1,13 @@
 with Files.Folder_Tree;
 with Files.Quick_Look;
 with Files.Shared_Bytes;
+with Files.Model.Command_Palette;
+with Files.Model.Context_Menu;
+with Files.Model.Quick_Look;
+with Files.Model.Root_Selector;
+with Files.Model.Settings_Pane;
+with Files.Model.Sort_Menu;
+with Files.Model.Tree_Panel;
 
 separate (Files.Application.Windows.Smoke)
    procedure Apply_Scenario
@@ -26,7 +33,7 @@ separate (Files.Application.Windows.Smoke)
               (Runtime.Model, Scenario_Scroll_Lines);
 
          when Scenario_Context_Menu =>
-            Files.Model.Open_Context_Menu
+            Files.Model.Context_Menu.Open
               (Model      => Runtime.Model,
                X          => 64,
                Y          => 96,
@@ -36,7 +43,7 @@ separate (Files.Application.Windows.Smoke)
                Item_Index => (if Has_Item then 1 else 0));
 
          when Scenario_Palette =>
-            Files.Model.Open_Command_Palette (Runtime.Model);
+            Files.Model.Command_Palette.Open (Runtime.Model);
 
          when Scenario_Root_Selector =>
             declare
@@ -44,11 +51,11 @@ separate (Files.Application.Windows.Smoke)
             begin
                Roots.Append (To_Unbounded_String ("/"));
                Roots.Append (To_Unbounded_String ("/home"));
-               Files.Model.Open_Root_Selector (Runtime.Model, Roots);
+               Files.Model.Root_Selector.Open (Runtime.Model, Roots);
             end;
 
          when Scenario_Sort_Menu =>
-            Files.Model.Toggle_Sort_Menu (Runtime.Model);
+            Files.Model.Sort_Menu.Toggle (Runtime.Model);
 
          when Scenario_Tree_Panel =>
             declare
@@ -62,36 +69,36 @@ separate (Files.Application.Windows.Smoke)
                  (Files.Folder_Tree.Entry_Seed'
                     (Path => To_Unbounded_String ("/home"),
                      Name => To_Unbounded_String ("Home")));
-               Files.Model.Seed_Tree (Runtime.Model, Seeds);
-               Files.Model.Open_Tree_Panel (Runtime.Model);
+               Files.Model.Tree_Panel.Seed (Runtime.Model, Seeds);
+               Files.Model.Tree_Panel.Open (Runtime.Model);
                --  As Tab leaves it: the tree has the keyboard, its highlight
                --  on a row other than the current folder.
-               Files.Model.Give_Tree_Keyboard (Runtime.Model);
-               Files.Model.Set_Tree_Cursor (Runtime.Model, "/home");
+               Files.Model.Tree_Panel.Give_Keyboard (Runtime.Model);
+               Files.Model.Tree_Panel.Set_Cursor (Runtime.Model, "/home");
             end;
 
          when Scenario_Settings =>
-            Files.Model.Begin_Settings_Edit
+            Files.Model.Settings_Pane.Begin_Edit
               (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
 
          when Scenario_Settings_Tab_2 .. Scenario_Settings_Tab_7 =>
-            Files.Model.Begin_Settings_Edit
+            Files.Model.Settings_Pane.Begin_Edit
               (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
-            Files.Model.Settings_Set_Active_Section
+            Files.Model.Settings_Pane.Set_Active_Section
               (Runtime.Model,
                2 + Live_Smoke_Scenario'Pos (Scenario) - Live_Smoke_Scenario'Pos (Scenario_Settings_Tab_2));
 
          when Scenario_Settings_Light =>
             Runtime.Settings.Theme := Files.Settings.Theme_Light;
             Files.Model.Note_Settings_Changed (Runtime.Model);
-            Files.Model.Begin_Settings_Edit
+            Files.Model.Settings_Pane.Begin_Edit
               (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
 
          when Scenario_Settings_Large_Font =>
             Runtime.Settings.Font_Pixel_Size := Large_Font;
             Files.Model.Note_Settings_Changed (Runtime.Model);
             Runtime.Font_Pixel_Size := Scaled_Font_Size (Runtime);
-            Files.Model.Begin_Settings_Edit
+            Files.Model.Settings_Pane.Begin_Edit
               (Runtime.Model, Files.Settings.Make_Draft (Runtime.Settings));
 
          when Scenario_Settings_Keyboard =>
@@ -132,7 +139,7 @@ separate (Files.Application.Windows.Smoke)
             --  top of the grid, exercising the overlay icon/text/rect passes.
             if Has_Item then
                Files.Model.Select_Visible (Runtime.Model, 1);
-               Files.Model.Toggle_Quick_Look (Runtime.Model);
+               Files.Model.Quick_Look.Toggle (Runtime.Model);
             end if;
 
          when Scenario_Quick_Look_Image =>
@@ -158,7 +165,7 @@ separate (Files.Application.Windows.Smoke)
                      end loop;
                   end loop;
                   Content.Image_Pixels := Files.Shared_Bytes.To_Shared (Pixels);
-                  Files.Model.Open_Quick_Look (Runtime.Model, Content);
+                  Files.Model.Quick_Look.Open (Runtime.Model, Content);
                end;
             end if;
       end case;

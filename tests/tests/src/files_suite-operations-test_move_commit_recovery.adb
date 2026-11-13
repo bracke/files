@@ -5,15 +5,15 @@ separate (Files_Suite.Operations)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Source : constant String := Join (Root, "inbox/entry");
       Remote : Files_Suite.Volumes.Remote_Directory;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       procedure Cleanup is
       begin
-         Files.Model.Clear_Paste_Execution (Model);
-         Files.Refresh_Jobs.Cancel (Model);
+         Files_Suite.Support.Release (Paste);
       end Cleanup;
    begin
       --  The same-device half runs everywhere; the cross-device half needs a

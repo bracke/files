@@ -28,10 +28,10 @@ procedure Editing_Key (Handled : out Boolean; Result : out Controller_Result) is
       case Move is
          when Word_Left =>
             Files.Model.Set_Text_Cursor_Position
-              (Model, Files.UTF8.Previous_Word_Boundary (Focused_Text (Model), Old_Position));
+              (Model, Guikit.Utf8.Editing.Previous_Word_Boundary (Focused_Text (Model), Old_Position));
          when Word_Right =>
             Files.Model.Set_Text_Cursor_Position
-              (Model, Files.UTF8.Next_Word_Boundary (Focused_Text (Model), Old_Position));
+              (Model, Guikit.Utf8.Editing.Next_Word_Boundary (Focused_Text (Model), Old_Position));
          when Char_Left =>
             Files.Model.Move_Text_Cursor (Model, Guikit.Input.Move_Left);
          when Char_Right =>
@@ -111,7 +111,7 @@ begin
    elsif Key = Guikit.Input.Key_Home
      and then Modifiers = Guikit.Input.No_Modifiers
      and then Files.Model.Focus (Model) = Files.Types.Focus_None
-     and then not Files.Model.Settings_Pane_Is_Open (Model)
+     and then not Files.Model.Settings_Pane.Is_Open (Model)
    then
       --  Plain Home in the file grid selects the first visible item. This has
       --  no modifier, so it never collides with Alt+Home = navigate home.
@@ -120,7 +120,7 @@ begin
    elsif Key = Guikit.Input.Key_End
      and then Modifiers = Guikit.Input.No_Modifiers
      and then Files.Model.Focus (Model) = Files.Types.Focus_None
-     and then not Files.Model.Settings_Pane_Is_Open (Model)
+     and then not Files.Model.Settings_Pane.Is_Open (Model)
    then
       --  Plain End in the file grid selects the last visible item.
       Result := Last_Selection_Result (Model);
@@ -142,7 +142,7 @@ begin
    elsif Key = Guikit.Input.Key_Page_Up
      and then Modifiers = Guikit.Input.No_Modifiers
      and then Files.Model.Focus (Model) = Files.Types.Focus_None
-     and then not Files.Model.Settings_Pane_Is_Open (Model)
+     and then not Files.Model.Settings_Pane.Is_Open (Model)
    then
       --  With the info pane open Page Up scrolls it; over the file grid it
       --  pages the selection up by a page (like the arrow keys move it).
@@ -156,7 +156,7 @@ begin
    elsif Key = Guikit.Input.Key_Page_Down
      and then Modifiers = Guikit.Input.No_Modifiers
      and then Files.Model.Focus (Model) = Files.Types.Focus_None
-     and then not Files.Model.Settings_Pane_Is_Open (Model)
+     and then not Files.Model.Settings_Pane.Is_Open (Model)
    then
       if Files.Model.Info_Pane_Is_Open (Model) then
          Result := Scroll_Info_Result (Model, 10);
@@ -170,8 +170,8 @@ begin
         and then not Files.Model.Rename_Is_Active (Model)
         and then not Files.Model.Temporary_Item_Is_Active (Model)
       then
-         if Files.Model.Settings_Pane_Is_Open (Model) then
-            Files.Model.Toggle_Settings_Pane (Model);
+         if Files.Model.Settings_Pane.Is_Open (Model) then
+            Files.Model.Settings_Pane.Toggle (Model);
             Result := Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
             return;
          else

@@ -1,5 +1,7 @@
 with Files.Items;
 with Files.Commands.Status;
+with Files.Model.Command_Palette;
+with Files.Model.Root_Selector;
 separate (Files_Suite.Model)
    procedure Test_Root_Selector_Eject_And_Open (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -23,7 +25,7 @@ separate (Files_Suite.Model)
             Volume_Name => To_Unbounded_String ("example-mount"),
             Ready => Files.File_System.Root_Ready,
             Removable => True));
-      Files.Model.Open_Root_Selector (Model, Entries);
+      Files.Model.Root_Selector.Open (Model, Entries);
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Eject_Selected_Root_Command, Model),
          "eject command is enabled for removable roots");
@@ -56,7 +58,7 @@ separate (Files_Suite.Model)
             Volume_Name => To_Unbounded_String ("selected-root"),
             Ready => Files.File_System.Root_Ready,
             Removable => False));
-      Files.Model.Open_Root_Selector (Model, Entries);
+      Files.Model.Root_Selector.Open (Model, Entries);
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Eject_Selected_Root_Command, Model),
          "eject command is disabled for non-removable roots");
@@ -77,8 +79,8 @@ separate (Files_Suite.Model)
 
       --  Chosen from the palette, opened over the selector, it opens too.
       Files.Model.Navigate_To (Model, Root, Files.Items.Item_Vectors.Empty_Vector);
-      Files.Model.Open_Root_Selector (Model, Entries);
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Root_Selector.Open (Model, Entries);
+      Files.Model.Command_Palette.Open (Model);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Open_Selected_Root_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal

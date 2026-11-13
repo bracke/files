@@ -2,7 +2,8 @@ separate (Files_Suite.Operations)
    procedure Test_Recovery_Entry_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
       Step : Files.Operations.Operation_Result;
       Source : constant String := Join (Root, "original");
       Dest : constant String := Join (Root, "original (copy)");
@@ -222,8 +223,7 @@ separate (Files_Suite.Operations)
    exception
       when others =>
          Files.Job_Context.Initialize ("");
-         Files.Model.Clear_Paste_Execution (Model);
-         Files.Refresh_Jobs.Cancel (Model);
+         Files_Suite.Support.Release (Paste);
          if Ada.Streams.Stream_IO.Is_Open (File) then
             Ada.Streams.Stream_IO.Close (File);
          end if;

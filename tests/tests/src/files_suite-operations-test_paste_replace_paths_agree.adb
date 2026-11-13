@@ -7,7 +7,9 @@ separate (Files_Suite.Operations)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Source   : constant String := Join (Root, "agree-source");
       Dest     : constant String := Join (Root, "agree-vanished");
-      Model    : Files.Model.Window_Model;
+      Model    : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Step     : Files.Operations.Operation_Result;
 
@@ -21,11 +23,8 @@ separate (Files_Suite.Operations)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, Background);
          Files.Operations.Begin_Paste_Execution (Model, Actions, Mode);
-         for Attempt in Files_Suite.Support.Polling loop
-            Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-            exit when not Files.Model.Paste_Execution_Is_Active (Model);
-         end loop;
-         Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the paste finishes its execution");
+         Step := Files_Suite.Support.Finish_Paste (Model, Settings);
+         Assert (not Files.Model.Pasting.Execution_Is_Active (Model), "the paste finishes its execution");
       end Run;
    begin
       for Background in Boolean loop
@@ -54,8 +53,4 @@ separate (Files_Suite.Operations)
             end loop;
          end;
       end loop;
-   exception
-      when others =>
-         Files.Model.Clear_Paste_Execution (Model);
-         raise;
    end Test_Paste_Replace_Paths_Agree;

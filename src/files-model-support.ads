@@ -409,4 +409,65 @@ private package Files.Model.Support is
        Name         : String;
        Is_Directory : Boolean);
 
+   --  Opening an overlay ends the grid's current type-to-select session.  Every
+   --  caller already advances the model revision, so clear the private buffer
+   --  directly rather than adding a second revision for Reset_Type_Ahead.
+   --
+   --  @param Model Model taking the keyboard for an overlay.
+   procedure Claim_Overlay_Input
+     (Model : in out Window_Model);
+
+   --  Close the command palette.
+   --
+   --  @param Model Model to update.
+   procedure Close_Command_Palette
+     (Model : in out Window_Model);
+
+   --  Close the root selector.
+   --
+   --  @param Model Model to update.
+   procedure Close_Root_Selector
+     (Model : in out Window_Model);
+
+   --  Close the color-label swatch picker overlay.
+   --
+   --  @param Model Model to update.
+   procedure Close_Label_Picker
+     (Model : in out Window_Model);
+
+   --  Close the bottom-bar sort menu.
+   --
+   --  @param Model Model to update.
+   procedure Close_Sort_Menu
+     (Model : in out Window_Model);
+
+   --  Close the right-click context menu.
+   --
+   --  @param Model Model to update.
+   procedure Close_Context_Menu
+     (Model : in out Window_Model);
+
+   --  Toggle settings pane visibility.
+   --
+   --  @param Model Model to update.
+   procedure Toggle_Settings_Pane
+     (Model : in out Window_Model);
+
+   --  The focused field's current value ("" when none).
+   --
+   --  @param Model Model to inspect.
+   --  @return The focused field's value.
+   function Settings_Focused_Value (Model : Window_Model) return String;
+
+   --  An idle transfer session, to release a held one by assignment: the
+   --  model only holds the job handles; Files.Operations drives them.
+   --
+   --  @return A session holding no job.
+   function Released_Transfer return Files.Transfer_Jobs.Session;
+
+   --  An idle process session, to release a held one by assignment.
+   --
+   --  @return A session holding no job.
+   function Released_Process return Files.Process_Jobs.Session;
+
 end Files.Model.Support;

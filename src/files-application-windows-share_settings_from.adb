@@ -23,14 +23,11 @@ separate (Files.Application.Windows)
          Target   : Positive;
          Source   : Positive) is
       begin
-         Files.Interaction.Adopt_Shared_Settings
-           (Model    => Runtimes (Target).Model,
-            Settings => Runtimes (Target).Settings,
-            Shared   => Runtimes (Source).Settings);
-         --  The view snapshot needs no invalidating: Snapshot_Slots
-         --  rebuilds it when the settings it reads (Cached_Settings_Key)
-         --  differ. The cached frame does not compare them.
-         Runtimes (Target).Frame_Cache_Valid := False;
+         Files.Settings_Sharing.Adopt_Window
+           (Model             => Runtimes (Target).Model,
+            Settings          => Runtimes (Target).Settings,
+            Shared            => Runtimes (Source).Settings,
+            Frame_Cache_Valid => Runtimes (Target).Frame_Cache_Valid);
       end Adopt;
 
       procedure Share is new Files.Settings_Sharing.Share_From

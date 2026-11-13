@@ -4,6 +4,6 @@ procedure Push_Redo
    Action : Undo_Entry) is
 begin
    Touch (Model);
-   Model.Redo_Stack.Append (Action);
-   Model.History_Journal_Dirty := True;
+   Model.History.Redo_Stack.Append (Action);
+   Model.History.Journal_Dirty := True;
 end Push_Redo;

@@ -1,3 +1,5 @@
+with Files.Model.Context_Menu;
+with Files.Model.Tree_Panel;
 separate (Files_Suite.Interaction)
    procedure Test_Tree_Toggle_Command_And_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,8 +11,8 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Execute_Command
         (Model, Settings, "", Files.Commands.Toggle_Folder_Tree_Command,
          Guikit.Input.No_Modifiers, Result);
-      Assert (Files.Model.Tree_Panel_Is_Open (Model), "the toggle command opens the folder tree");
-      Assert (Files.Model.Tree_Node_Count (Model) > 0, "opening the tree seeds it with root nodes");
+      Assert (Files.Model.Tree_Panel.Is_Open (Model), "the toggle command opens the folder tree");
+      Assert (Files.Model.Tree_Panel.Node_Count (Model) > 0, "opening the tree seeds it with root nodes");
 
       declare
          Snapshot : constant Files.Rendering.View_Snapshot :=
@@ -23,7 +25,7 @@ separate (Files_Suite.Interaction)
            Files.Rendering.Calculate_Tree_Panel_Layout (Snapshot, Layout, Line);
          Rows     : constant Files.Rendering.Tree_Row_Layout_Vectors.Vector :=
            Files.Rendering.Calculate_Tree_Row_Layout (Snapshot, Panel, Line);
-         Target   : constant String := Files.Model.Tree_Node_Path (Model, 1);
+         Target   : constant String := Files.Model.Tree_Panel.Node_Path (Model, 1);
          Expected : constant Files.File_System.Path_Result :=
            Files.File_System.Normalize_Path (Target);
          Action   : Files.Events.Input_Action;
@@ -47,7 +49,7 @@ separate (Files_Suite.Interaction)
 
          --  A tree action queued before another overlay opens must not navigate
          --  through that top-most surface.
-         Files.Model.Open_Context_Menu
+         Files.Model.Context_Menu.Open
            (Model, X, Y, Files.Types.Context_Menu_Empty);
          declare
             Path_Before : constant String := Files.Model.Current_Path (Model);
@@ -63,13 +65,13 @@ separate (Files_Suite.Interaction)
               (Files.Model.Revision (Model), Revision,
                "a delayed tree-row click is contained by the context menu (revision)");
             Assert
-              (Files.Model.Context_Menu_Is_Open (Model),
+              (Files.Model.Context_Menu.Is_Open (Model),
                "a delayed tree-row click is contained by the context menu (menu open)");
             Files_Suite.Support.Assert_Equal
               (Result.Status, Files.Controller.Controller_Ignored,
                "a delayed tree-row click is contained by the context menu (status)");
          end;
-         Files.Model.Close_Context_Menu (Model);
+         Files.Model.Context_Menu.Close (Model);
 
          Files.Interaction.Apply_Input_Action
            (Model, Settings, "", Action, Guikit.Input.No_Modifiers, Result);
@@ -85,5 +87,5 @@ separate (Files_Suite.Interaction)
       Files.Interaction.Execute_Command
         (Model, Settings, "", Files.Commands.Toggle_Folder_Tree_Command,
          Guikit.Input.No_Modifiers, Result);
-      Assert (not Files.Model.Tree_Panel_Is_Open (Model), "toggling again closes the folder tree");
+      Assert (not Files.Model.Tree_Panel.Is_Open (Model), "toggling again closes the folder tree");
    end Test_Tree_Toggle_Command_And_Click;

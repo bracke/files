@@ -2,7 +2,9 @@ separate (Files_Suite.Operations)
    procedure Test_Search_Limit_Errors (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Child : Unbounded_String;
@@ -21,8 +23,8 @@ separate (Files_Suite.Operations)
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Model.Set_Filter (Model, "needle");
             Files.Model.Set_Background_Transfers (Model, Background);
-            Step := (if Contents then Files.Operations.Run_Content_Search (Model, Settings)
-                     else Files.Operations.Run_Recursive_Search (Model, Settings));
+            Step := (if Contents then Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents)
+                     else Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names));
             Step := Complete_Operation (Model, Settings, Step);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
@@ -43,11 +45,11 @@ separate (Files_Suite.Operations)
       end loop;
       Reset_Root;
       Write_Binary_File (Join (Root, "needle-a.txt"), "needle");
-      Search := Files.File_System.Search_Recursive (Root, "needle", Settings, Max_Items => 1);
+      Search := Files.File_System.Search_Names (Root, "needle", Settings, Max_Items => 1);
       Assert (Search.Success and then Natural (Search.Items.Length) = 1 and then not Search.Truncated,
               "an exact final match limit is complete when nothing remains to scan");
       Write_Binary_File (Join (Root, "needle-b.txt"), "needle");
-      Search := Files.File_System.Search_Recursive (Root, "needle", Settings, Max_Items => 1);
+      Search := Files.File_System.Search_Names (Root, "needle", Settings, Max_Items => 1);
       Assert (Search.Success and then Search.Truncated and then Natural (Search.Items.Length) = 1,
               "an additional skipped entry keeps the matches found and marks the search truncated");
       for Background in Boolean loop
@@ -63,7 +65,8 @@ separate (Files_Suite.Operations)
             Files.Model.Initialize (Model, Root, Load.Items, Root);
             Files.Model.Set_Filter (Model, "needle");
             Files.Model.Set_Background_Transfers (Model, Background);
-            Step := Complete_Operation (Model, Settings, Files.Operations.Run_Content_Search (Model, Settings));
+            Step := Complete_Operation
+              (Model, Settings, Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents));
             Assert (Step.Status = Files.Operations.Operation_Success
                     and then (if Oversized
                               then Files.Model.Last_Error_Key (Model) = "search.incomplete"
@@ -72,6 +75,4 @@ separate (Files_Suite.Operations)
                     "content reads distinguish a complete byte boundary from omitted bytes in helpers too");
          end loop;
       end loop;
-   exception
-      when others => Files.Model.Clear_Paste_Execution (Model); raise;
    end Test_Search_Limit_Errors;

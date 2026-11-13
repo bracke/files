@@ -15,8 +15,8 @@ separate (Files_Suite.Rendering)
          Text := Ada.Strings.Unbounded.Null_Unbounded_String;
          Found := False;
          for C of Frame.Tooltips loop
-            if Files.UTF8.Display_Units (To_String (C.Text)) > Best then
-               Best := Files.UTF8.Display_Units (To_String (C.Text));
+            if Guikit.Utf8.Display_Units (To_String (C.Text)) > Best then
+               Best := Guikit.Utf8.Display_Units (To_String (C.Text));
                HX := C.X + C.Width / 2;
                HY := C.Y + C.Height / 2;
                Text := C.Text;
@@ -87,7 +87,7 @@ separate (Files_Suite.Rendering)
          Probe : constant Frame_Commands := Build_Frame_Commands (Base, 260, 800, 20);
       begin
          Longest_Tooltip (Probe, HX, HY, Tip, Found);
-         Assert (Found and then Files.UTF8.Display_Units (To_String (Tip)) >= 24,
+         Assert (Found and then Guikit.Utf8.Display_Units (To_String (Tip)) >= 24,
                  "a long toolbar tooltip is present in a narrow window");
          declare
             Frame : constant Frame_Commands :=

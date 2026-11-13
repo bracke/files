@@ -76,7 +76,7 @@ separate (Files_Suite.Operations)
 
       Files.Model.Set_Filter (Model, "created");
       Files.Model.Set_Background_Transfers (Model, True);
-      Result := Files.Operations.Run_Recursive_Search (Model, Settings);
+      Result := Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operations.Operation_Disabled,
@@ -88,7 +88,7 @@ separate (Files_Suite.Operations)
       Assert
         (not Files.Process_Jobs.Active (Files.Model.Background_Operation (Model)),
          "recent-view name search is rejected before a background helper starts: no helper");
-      Result := Files.Operations.Run_Content_Search (Model, Settings);
+      Result := Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Operations.Operation_Disabled,

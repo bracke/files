@@ -1,3 +1,4 @@
+with Files.Model.Root_Selector;
 separate (Files.Operations)
 --  Shared normalize -> load -> navigate tail for the absolute-destination
 --  navigations (Home, Parent, Trash, Select_Root). Path is the raw requested
@@ -36,7 +37,7 @@ begin
       Settle_Current_Is_Trash (Model);
       Files.Model.Set_Directory_Signature (Model, Load.Signature);
       if Close_Selector then
-         Files.Model.Close_Root_Selector (Model);
+         Files.Model.Root_Selector.Close (Model);
       end if;
       Files.Model.Set_Error (Model, "");
       --  Last, once the listing it refreshes is the current one.

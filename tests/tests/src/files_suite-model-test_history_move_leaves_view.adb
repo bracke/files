@@ -1,3 +1,4 @@
+with Files.Model.Quick_Look;
 separate (Files_Suite.Model)
    --  Going back or forward leaves the view as navigating does: Quick Look
    --  of the old folder's item closes, and recording an Undo step redraws
@@ -8,10 +9,10 @@ separate (Files_Suite.Model)
       Content : Files.Quick_Look.Quick_Look_Content;
    begin
       Files.Model.Navigate_To (Model, "/tmp/files_aunit/other", Files.Items.Item_Vectors.Empty_Vector);
-      Files.Model.Open_Quick_Look (Model, Content);
-      Assert (Files.Model.Quick_Look_Is_Open (Model), "Quick Look is open");
+      Files.Model.Quick_Look.Open (Model, Content);
+      Assert (Files.Model.Quick_Look.Is_Open (Model), "Quick Look is open");
       Files.Model.Go_Back (Model);
-      Assert (not Files.Model.Quick_Look_Is_Open (Model), "going back closes Quick Look of the folder left");
+      Assert (not Files.Model.Quick_Look.Is_Open (Model), "going back closes Quick Look of the folder left");
 
       declare
          Before : constant Natural := Files.Model.Revision (Model);

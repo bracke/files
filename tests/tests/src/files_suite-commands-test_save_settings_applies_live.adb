@@ -1,4 +1,5 @@
 with Files.Controller.Testing;
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Commands)
    procedure Test_Save_Settings_Applies_Live (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -22,18 +23,18 @@ separate (Files_Suite.Commands)
 
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
-      Assert (Files.Model.Settings_Pane_Is_Open (Model), "the settings pane opens with an editable draft");
+      Assert (Files.Model.Settings_Pane.Is_Open (Model), "the settings pane opens with an editable draft");
 
       --  Edit the draft to a different view, sort field, and direction.
       declare
-         Draft : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+         Draft : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
       begin
          Draft.Scalars (Files.Settings.Default_View_Mode_Setting) :=
            Ada.Strings.Unbounded.To_Unbounded_String ("details");
          Draft.Scalars (Files.Settings.Sort_Field_Setting) := Ada.Strings.Unbounded.To_Unbounded_String ("size");
          Draft.Scalars (Files.Settings.Sort_Ascending_Setting) :=
            Ada.Strings.Unbounded.To_Unbounded_String ("false");
-         Files.Model.Set_Settings_Draft (Model, Draft);
+         Files.Model.Settings_Pane.Set_Draft (Model, Draft);
       end;
 
       Result := Files.Controller.Testing.Save_Settings (Model, Settings, Path);

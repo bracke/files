@@ -8,7 +8,7 @@ begin
    end if;
 
    while Position < Name'Length loop
-      Length := Files.UTF8.Whitespace_Separator_Length (Name, Position);
+      Length := Guikit.Utf8.Whitespace_Separator_Length (Name, Position);
       if Length = 0 then
          return False;
       end if;

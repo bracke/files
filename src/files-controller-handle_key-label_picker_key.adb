@@ -1,3 +1,4 @@
+with Files.Model.Label_Picker;
 separate (Files.Controller.Handle_Key)
 --  The label picker owns the keyboard while open: Escape closes it, the
 --  arrows move its highlight, Enter applies the highlighted swatch (on the
@@ -6,21 +7,21 @@ separate (Files.Controller.Handle_Key)
 procedure Label_Picker_Key (Handled : out Boolean; Result : out Controller_Result) is
 begin
    Handled := True;
-   if Files.Model.Label_Picker_Is_Open (Model) then
+   if Files.Model.Label_Picker.Is_Open (Model) then
       if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
-         Files.Model.Close_Label_Picker (Model);
+         Files.Model.Label_Picker.Close (Model);
          Result := Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
          return;
       elsif (Key = Guikit.Input.Key_Left or else Key = Guikit.Input.Key_Up)
         and then Modifiers = Guikit.Input.No_Modifiers
       then
-         Files.Model.Move_Label_Picker_Highlight (Model, -1);
+         Files.Model.Label_Picker.Move_Highlight (Model, -1);
          Result := Make_Result (Controller_Selection_Moved);
          return;
       elsif (Key = Guikit.Input.Key_Right or else Key = Guikit.Input.Key_Down)
         and then Modifiers = Guikit.Input.No_Modifiers
       then
-         Files.Model.Move_Label_Picker_Highlight (Model, 1);
+         Files.Model.Label_Picker.Move_Highlight (Model, 1);
          Result := Make_Result (Controller_Selection_Moved);
          return;
       else

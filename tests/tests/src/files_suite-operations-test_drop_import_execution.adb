@@ -42,15 +42,15 @@ separate (Files_Suite.Operations)
          Files.Operations.Operation_Success,
          "controller drop import succeeds");
       Assert
-        (Files.Model.Paste_Conflict_Is_Active (Model),
+        (Files.Model.Pasting.Conflict_Is_Active (Model),
          "a colliding drop arms the conflict dialog instead of auto-renaming");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Paste_Conflict_Name (Model),
+        (Files.Model.Pasting.Conflict_Name (Model),
          "drop-source.txt",
          "the drop conflict dialog names the colliding item");
       Routed.Operation :=
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Rename, False);
-      Assert (not Files.Model.Paste_Conflict_Is_Active (Model), "resolving the drop conflict clears the dialog");
+      Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "resolving the drop conflict clears the dialog");
       Assert
         (Ada.Directories.Exists (Join (Drop_Target, "drop-source 2.txt")),
          "renaming the drop conflict writes a collision-safe destination");
@@ -80,7 +80,7 @@ separate (Files_Suite.Operations)
          Files.Operations.Operation_Success,
          "item drag import can target a specific directory");
       Assert
-        (not Files.Model.Paste_Conflict_Is_Active (Model),
+        (not Files.Model.Pasting.Conflict_Is_Active (Model),
          "a collision-free targeted drop executes without arming the dialog");
       Assert
         (Ada.Directories.Exists (Join (Join (Drop_Target, "nested-target"), "drag-source.txt")),

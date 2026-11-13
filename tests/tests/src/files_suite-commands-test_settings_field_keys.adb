@@ -1,4 +1,5 @@
 with Files.Controller.Testing;
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Commands)
    procedure Test_Settings_Field_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -19,22 +20,22 @@ separate (Files_Suite.Commands)
       --  position. Focus the icon-theme field (appearance is the third section, its
       --  second field -- a Choice whose displayed value mirrors the draft) to check
       --  this on a real, non-empty setting; the assert catches any layout drift.
-      Files.Model.Settings_Set_Active_Section (Model, 3);
-      Files.Model.Settings_Move_Focus (Model, 1);
+      Files.Model.Settings_Pane.Set_Active_Section (Model, 3);
+      Files.Model.Settings_Pane.Move_Focus (Model, 1);
       declare
-         Draft : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+         Draft : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
       begin
          Draft.Scalars (Files.Settings.Icon_Theme_Setting) := To_Unbounded_String ("files-basic");
-         Files.Model.Set_Settings_Draft (Model, Draft);
+         Files.Model.Settings_Pane.Set_Draft (Model, Draft);
       end;
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Settings_Focused_Value (Model),
+        (Files.Model.Settings_Pane.Focused_Value (Model),
          "files-basic",
          "icon-theme field is focused for the settings caret check");
       Files.Model.Set_Text_Cursor_Position (Model, 1);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Text_Cursor_Position (Model),
-         Files.Model.Settings_Focused_Value (Model)'Length,
+         Files.Model.Settings_Pane.Focused_Value (Model)'Length,
          "settings caret rests at the end of the focused value, ignoring a manual cursor");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_S, Ctrl);
       Files_Suite.Support.Assert_Equal
@@ -64,10 +65,10 @@ separate (Files_Suite.Commands)
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       declare
-         Bad : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+         Bad : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
       begin
          Bad.Scalars (Files.Settings.Show_Hidden_Files_Setting) := To_Unbounded_String ("maybe");
-         Files.Model.Set_Settings_Draft (Model, Bad);
+         Files.Model.Settings_Pane.Set_Draft (Model, Bad);
       end;
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
@@ -79,10 +80,10 @@ separate (Files_Suite.Commands)
          "error.settings.invalid_boolean",
          "invalid settings field Return reports diagnostic key");
       declare
-         Good : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Model);
+         Good : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Model);
       begin
          Good.Scalars (Files.Settings.Show_Hidden_Files_Setting) := To_Unbounded_String ("true");
-         Files.Model.Set_Settings_Draft (Model, Good);
+         Files.Model.Settings_Pane.Set_Draft (Model, Good);
       end;
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
@@ -95,5 +96,5 @@ separate (Files_Suite.Commands)
          "valid settings draft field validates on Return");
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
-      Assert (not Files.Model.Settings_Pane_Is_Open (Model), "controller closes settings pane");
+      Assert (not Files.Model.Settings_Pane.Is_Open (Model), "controller closes settings pane");
    end Test_Settings_Field_Keys;

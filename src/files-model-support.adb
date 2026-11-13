@@ -5,7 +5,7 @@ with Ada.Strings.Hash;
 
 with Files.Grouping;
 with Files.Settings_Form;
-with Files.UTF8;
+with Guikit.Utf8.Editing;
 
 package body Files.Model.Support is
 
@@ -119,7 +119,7 @@ package body Files.Model.Support is
       Cursor : Natural)
       return Natural is
    begin
-      return Files.UTF8.Previous_Boundary (Text, Cursor);
+      return Guikit.Utf8.Editing.Previous_Boundary (Text, Cursor);
    end Previous_Text_Boundary;
 
    function Next_Text_Boundary
@@ -127,7 +127,7 @@ package body Files.Model.Support is
       Cursor : Natural)
       return Natural is
    begin
-      return Files.UTF8.Next_Boundary (Text, Cursor);
+      return Guikit.Utf8.Editing.Next_Boundary (Text, Cursor);
    end Next_Text_Boundary;
 
    function Text_Boundary_At_Or_Before
@@ -135,7 +135,7 @@ package body Files.Model.Support is
       Cursor : Natural)
       return Natural is
    begin
-      return Files.UTF8.Boundary_At_Or_Before (Text, Cursor);
+      return Guikit.Utf8.Editing.Boundary_At_Or_Before (Text, Cursor);
    end Text_Boundary_At_Or_Before;
 
    function Insert_Text_At
@@ -165,7 +165,7 @@ package body Files.Model.Support is
       if Dot = 0 then
          return Name'Length;
       else
-         return Files.UTF8.Boundary_At_Or_Before (Name, Dot);
+         return Guikit.Utf8.Editing.Boundary_At_Or_Before (Name, Dot);
       end if;
    end Caret_Before_Extension;
 
@@ -174,18 +174,18 @@ package body Files.Model.Support is
    begin
       Touch (Model);
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
-      Model.Rename_Active := False;
-      Model.Rename_Fields.Clear;
+      Model.Rename.Active := False;
+      Model.Rename.Fields.Clear;
    end Reset_Rename_State;
 
    function First_Rename_Value
      (Model : Window_Model)
       return String is
    begin
-      if Model.Rename_Fields.Is_Empty then
+      if Model.Rename.Fields.Is_Empty then
          return "";
       else
-         return To_String (Model.Rename_Fields.First_Element.Value);
+         return To_String (Model.Rename.Fields.First_Element.Value);
       end if;
    end First_Rename_Value;
 
@@ -193,10 +193,10 @@ package body Files.Model.Support is
      (Model : Window_Model)
       return Natural is
    begin
-      if Model.Rename_Fields.Is_Empty then
+      if Model.Rename.Fields.Is_Empty then
          return 0;
       else
-         return Model.Rename_Fields.First_Element.Cursor;
+         return Model.Rename.Fields.First_Element.Cursor;
       end if;
    end First_Rename_Cursor;
 
@@ -208,7 +208,7 @@ package body Files.Model.Support is
          return False;
       end if;
 
-      for Field of Model.Rename_Fields loop
+      for Field of Model.Rename.Fields loop
          if Field.Item_Index = 0 then
             return True;
          end if;
@@ -423,7 +423,7 @@ package body Files.Model.Support is
    procedure Reconcile_Rename_With_Selection (Model : in out Window_Model) is
    begin
       Touch_Selection (Model);
-      if not Model.Rename_Active then
+      if not Model.Rename.Active then
          return;
       end if;
 
@@ -440,21 +440,21 @@ package body Files.Model.Support is
       declare
          Selected : constant Selection_Flags := Selected_Flags (Model);
       begin
-         for Index in reverse Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
+         for Index in reverse Model.Rename.Fields.First_Index .. Model.Rename.Fields.Last_Index loop
             declare
-               Item : constant Natural := Model.Rename_Fields.Element (Index).Item_Index;
+               Item : constant Natural := Model.Rename.Fields.Element (Index).Item_Index;
             begin
                if Item not in Selected'Range or else not Selected (Item) then
                   --  A row's rename field goes: the rows change.
                   Touch (Model);
-                  Model.Rename_Fields.Delete (Index);
+                  Model.Rename.Fields.Delete (Index);
                end if;
             end;
          end loop;
       end;
 
-      if Model.Rename_Fields.Is_Empty then
-         Model.Rename_Active := False;
+      if Model.Rename.Fields.Is_Empty then
+         Model.Rename.Active := False;
          if Model.Focus_Value = Files.Types.Focus_Rename_Input then
             Model.Focus_Value := Files.Types.Focus_None;
          end if;
@@ -695,7 +695,7 @@ package body Files.Model.Support is
       --  Capture each rename field's item identity before the reorder. The
       --  temporary field (Item_Index = 0) records a null path sentinel so it
       --  can be preserved rather than remapped by identity.
-      for Field of Model.Rename_Fields loop
+      for Field of Model.Rename.Fields loop
          Rename_Old_Paths.Append (Path_At (Field.Item_Index));
       end loop;
 
@@ -743,7 +743,7 @@ package body Files.Model.Support is
          Rebuilt : Rename_Field_Vectors.Vector;
          Cursor  : Positive := Rename_Old_Paths.First_Index;
       begin
-         for Field of Model.Rename_Fields loop
+         for Field of Model.Rename.Fields loop
             declare
                Old_Path  : constant Unbounded_String := Rename_Old_Paths.Element (Cursor);
                New_Field : Rename_Field := Field;
@@ -763,7 +763,7 @@ package body Files.Model.Support is
             end;
             Cursor := Cursor + 1;
          end loop;
-         Model.Rename_Fields := Rebuilt;
+         Model.Rename.Fields := Rebuilt;
       end;
    end Resort_Items;
 
@@ -826,13 +826,13 @@ package body Files.Model.Support is
          return False;
       end if;
 
-      First := Files.UTF8.Next_Boundary (Lower, 0);
+      First := Guikit.Utf8.Editing.Next_Boundary (Lower, 0);
       declare
          Head : constant String := Lower (Lower'First .. Lower'First + First - 1);
       begin
          Cursor := First;
          while Cursor < Lower'Length loop
-            Unit := Files.UTF8.Next_Boundary (Lower, Cursor) - Cursor;
+            Unit := Guikit.Utf8.Editing.Next_Boundary (Lower, Cursor) - Cursor;
             if Unit /= Head'Length
               or else Lower (Lower'First + Cursor .. Lower'First + Cursor + Unit - 1) /= Head
             then
@@ -846,7 +846,7 @@ package body Files.Model.Support is
    end Is_Repeated_Single_Codepoint;
 
    function First_Codepoint (Text : String) return String is
-      Unit : constant Natural := Files.UTF8.Next_Boundary (Text, 0);
+      Unit : constant Natural := Guikit.Utf8.Editing.Next_Boundary (Text, 0);
    begin
       if Text = "" or else Unit = 0 then
          return "";
@@ -964,8 +964,8 @@ package body Files.Model.Support is
          Target := Loaded;
       end if;
 
-      for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
-         if Model.Rename_Fields.Element (Index).Item_Index = Target then
+      for Index in Model.Rename.Fields.First_Index .. Model.Rename.Fields.Last_Index loop
+         if Model.Rename.Fields.Element (Index).Item_Index = Target then
             return Index;
          end if;
       end loop;
@@ -982,18 +982,107 @@ package body Files.Model.Support is
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Clear_Overlay_State_For_Edit (Model);
       Model.Temporary := (Active => True, Is_Directory => Is_Directory, Name => To_Unbounded_String (Name));
-      Model.Rename_Fields.Clear;
-      Model.Rename_Fields.Append
+      Model.Rename.Fields.Clear;
+      Model.Rename.Fields.Append
         (Rename_Field'
            (Item_Index => 0,
             Value      => To_Unbounded_String (Name),
             Cursor     => Name'Length));
-      Model.Rename_Active := True;
+      Model.Rename.Active := True;
       Model.Main_View_Scroll := 0;
       Model.Selected_Item_Index := Temporary_Item_Index;
       Model.Selected_Item_Indexes.Clear;
       Add_Selected_Index (Model, Temporary_Item_Index);
       Model.Focus_Value := Files.Types.Focus_Rename_Input;
    end Begin_Create_Temporary;
+
+   procedure Claim_Overlay_Input
+     (Model : in out Window_Model) is
+   begin
+      Model.Type_Ahead_Buffer_Value := Null_Unbounded_String;
+   end Claim_Overlay_Input;
+
+   procedure Close_Command_Palette
+     (Model : in out Window_Model) is
+   begin
+      Touch (Model);
+      Model.Command_Palette.Open := False;
+      Model.Command_Palette.Mode := Palette_Commands;
+      Model.Command_Palette.Open_With_Targets.Clear;
+      Model.Command_Palette.Open_With_Applications.Clear;
+      Guikit.Command_Palette.Reset (Model.Command_Palette.View);
+      if Model.Focus_Value = Files.Types.Focus_Command_Palette then
+         --  Settings intentionally remains open beneath the palette.  Return
+         --  keyboard focus to that revealed input surface when the palette
+         --  closes instead of leaving the hidden file grid active.
+         Model.Focus_Value :=
+           (if Model.Settings_Pane_Open
+            then Files.Types.Focus_Settings_Input
+            else Files.Types.Focus_None);
+      end if;
+   end Close_Command_Palette;
+
+   procedure Close_Root_Selector
+     (Model : in out Window_Model) is
+   begin
+      Touch (Model);
+      Clear_Root_Selector_State (Model);
+   end Close_Root_Selector;
+
+   procedure Close_Label_Picker
+     (Model : in out Window_Model) is
+   begin
+      Touch (Model);
+      Model.Label_Picker := (others => <>);
+   end Close_Label_Picker;
+
+   procedure Close_Sort_Menu
+     (Model : in out Window_Model) is
+   begin
+      Touch (Model);
+      Model.Sort_Menu := (others => <>);
+   end Close_Sort_Menu;
+
+   procedure Close_Context_Menu
+     (Model : in out Window_Model) is
+   begin
+      Touch (Model);
+      Model.Context_Menu := (others => <>);
+   end Close_Context_Menu;
+
+   procedure Toggle_Settings_Pane
+     (Model : in out Window_Model) is
+   begin
+      Touch (Model);
+      Model.Settings_Pane_Open := not Model.Settings_Pane_Open;
+      if Model.Settings_Pane_Open then
+         Claim_Overlay_Input (Model);
+         Clear_Edit_State (Model);
+         Clear_Root_Selector_State (Model);
+         Model.Command_Palette.Open := False;
+         Guikit.Command_Palette.Reset (Model.Command_Palette.View);
+         Reset_Settings_Panel (Model);
+         Model.Focus_Value := Files.Types.Focus_Settings_Input;
+      elsif Model.Focus_Value = Files.Types.Focus_Settings_Input then
+         Model.Focus_Value := Files.Types.Focus_None;
+      end if;
+   end Toggle_Settings_Pane;
+
+   function Settings_Focused_Value (Model : Window_Model) return String is
+   begin
+      return Guikit.Settings_Panel.Focused_Value (Model.Settings_Panel_View);
+   end Settings_Focused_Value;
+
+   function Released_Transfer return Files.Transfer_Jobs.Session is
+      Idle : Files.Transfer_Jobs.Session;
+   begin
+      return Idle;
+   end Released_Transfer;
+
+   function Released_Process return Files.Process_Jobs.Session is
+      Idle : Files.Process_Jobs.Session;
+   begin
+      return Idle;
+   end Released_Process;
 
 end Files.Model.Support;

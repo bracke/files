@@ -37,6 +37,8 @@ with Ada.Unchecked_Deallocation;
 with Files.File_Identities;
 with Files.History_Journal;
 with Files.Archive_Writing;
+with Files.Model.Quick_Look;
+with Files.Model.Pasting;
 
 package body Files.Operations is
    use Ada.Strings.Unbounded;
@@ -111,32 +113,17 @@ package body Files.Operations is
       return Operation_Result
    is separate;
 
-   --  The one search behind both scopes: the filter text searched for below
-   --  the current folder, by name or by content, its answer applied to the
-   --  view with the notice it calls for -- the same in a helper.
    function Run_Search
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Scope    : Files.Types.Search_Scope)
+      Scope    : Files.Types.Tree_Search_Scope)
       return Operation_Result
    is separate;
-
-   function Run_Recursive_Search
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result is
-     (Run_Search (Model, Settings, Files.Types.Search_Names));
 
    function Content_Matches
      (Bytes : String;
       Query : String)
       return Boolean renames Files.File_System.Content_Matches;
-
-   function Run_Content_Search
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-      return Operation_Result is
-     (Run_Search (Model, Settings, Files.Types.Search_Contents));
 
    procedure Apply_Ui_State
      (Model    : in out Files.Model.Window_Model;
@@ -632,7 +619,7 @@ package body Files.Operations is
    --  flight (or a paste) must see the revision it was started at. While one
    --  runs, measurements carry on but their results wait in the scan.
    function Folder_Sizes_Paused (Model : Files.Model.Window_Model) return Boolean is
-     (Files.Model.Paste_Execution_Is_Active (Model)
+     (Files.Model.Pasting.Execution_Is_Active (Model)
       or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)));
 
    procedure Poll_Folder_Sizes (Model : in out Files.Model.Window_Model) is
@@ -904,9 +891,9 @@ package body Files.Operations is
       Owner : Files.Preview_Decoder.Requester) is
       use type Files.Quick_Look.Content_Kind;
    begin
-      if Files.Model.Quick_Look_Is_Open (Model) then
+      if Files.Model.Quick_Look.Is_Open (Model) then
          declare
-            Content : Files.Quick_Look.Quick_Look_Content renames Files.Model.Quick_Look_Content_Of (Model);
+            Content : Files.Quick_Look.Quick_Look_Content renames Files.Model.Quick_Look.Content_Of (Model);
          begin
             if Content.Kind = Files.Quick_Look.Image_Content
               and then Files.Shared_Bytes.Is_Empty (Content.Image_Pixels)
@@ -921,7 +908,7 @@ package body Files.Operations is
                   if not Asked then
                      Files.Preview_Decoder.Request (Owner, Path, Files.Quick_Look.Preview_Side);
                   elsif Ready and then Image.Available then
-                     Files.Model.Set_Quick_Look_Image
+                     Files.Model.Quick_Look.Set_Image
                        (Model, Path, Files.Shared_Bytes.To_Shared (Image.Pixels), Image.Width, Image.Height);
                   end if;
                end;
@@ -943,7 +930,7 @@ package body Files.Operations is
             Writes := Writes + 1;
          end if;
       end loop;
-      Files.Model.Begin_Paste_Execution
+      Files.Model.Pasting.Begin_Execution
         (Model, Actions, Mode, Clear_Clipboard,
          Batch => (if Writes > 1 then Files.Copy_Context.Create else Files.Copy_Context.Empty_Session));
    end Begin_Paste_Execution;

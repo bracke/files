@@ -1,3 +1,4 @@
+with Files.Model.Command_Palette;
 separate (Files_Suite.Commands)
    procedure Test_Controller_Command_Palette_Escape_Priority (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -16,7 +17,7 @@ separate (Files_Suite.Commands)
         (Result.Command,
          Files.Commands.Open_Command_Palette_Command,
          "Control+P routes from rename input");
-      Assert (Files.Model.Command_Palette_Is_Open (Model), "Control+P opens palette over rename state");
+      Assert (Files.Model.Command_Palette.Is_Open (Model), "Control+P opens palette over rename state");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
          Files.Types.Focus_Command_Palette,
@@ -31,7 +32,7 @@ separate (Files_Suite.Commands)
         (Result.Command,
          Files.Commands.Close_Command_Palette_Command,
          "Escape first closes palette");
-      Assert (not Files.Model.Command_Palette_Is_Open (Model), "Escape closes the open palette");
+      Assert (not Files.Model.Command_Palette.Is_Open (Model), "Escape closes the open palette");
       Assert (Files.Model.Rename_Is_Active (Model), "Escape does not cancel rename while palette is open");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),

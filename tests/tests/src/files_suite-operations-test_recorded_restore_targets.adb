@@ -4,7 +4,8 @@ separate (Files_Suite.Operations)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Source : constant String := Join (Root, "entry");
       Redirected : constant String := Join (Root, "redirected");
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Paths : Files.Types.String_Vectors.Vector;
@@ -14,8 +15,7 @@ separate (Files_Suite.Operations)
       Environment : Files_Suite.Support.Environment_Guard;
       procedure Restore is
       begin
-         Files.Model.Clear_Paste_Execution (Model);
-         Files.Refresh_Jobs.Cancel (Model);
+         Files_Suite.Support.Release (Paste);
       end Restore;
    begin
       Files_Suite.Support.Save (Environment, "XDG_DATA_HOME");

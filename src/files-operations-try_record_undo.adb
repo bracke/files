@@ -196,12 +196,8 @@ begin
    for Index in Provenance.Kept_Copies.First_Index .. Provenance.Kept_Copies.Last_Index loop
       declare
          Path : constant String := To_String (Provenance.Kept_Copies (Index));
-         Identity : constant String :=
-           (if Index <= Provenance.Kept_Copy_Identities.Last_Index
-            then To_String (Provenance.Kept_Copy_Identities (Index)) else "");
-         Tree_Revision : constant String :=
-           (if Index <= Provenance.Kept_Copy_Tree_Revisions.Last_Index
-            then To_String (Provenance.Kept_Copy_Tree_Revisions (Index)) else "");
+         Identity : constant String := Files.Model.Value_At (Provenance.Kept_Copy_Identities, Index);
+         Tree_Revision : constant String := Files.Model.Value_At (Provenance.Kept_Copy_Tree_Revisions, Index);
       begin
          if Kind = Files.Model.Undo_Move
            and then Identity /= ""

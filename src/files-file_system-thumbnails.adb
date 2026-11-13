@@ -9,8 +9,6 @@ with System;
 
 with GNAT.OS_Lib;
 
-with Zlib;
-
 with Files.File_Types;
 
 with Hostkit.Fs;
@@ -22,9 +20,7 @@ with Files.File_Identities;
 with Files.Private_Directories;
 with Ada.Characters;
 with Ada.Containers.Ordered_Sets;
-with Ada.Unchecked_Deallocation;
 with CryptoLib.Hashes;
-with GNAT.CRC32;
 
 package body Files.File_System.Thumbnails is
 
@@ -32,7 +28,6 @@ package body Files.File_System.Thumbnails is
    use Ada.Strings.Unbounded;
    use type Ada.Calendar.Time;
    use type Ada.Directories.File_Kind;
-   use type Ada.Streams.Stream_Element;
    use type Ada.Streams.Stream_Element_Offset;
 
    use type System.Address;
@@ -44,7 +39,6 @@ package body Files.File_System.Thumbnails is
    Max_Source_Side   : constant := Files.Images.Max_Source_Side;
    Max_Source_Pixels : constant := Files.Images.Max_Source_Pixels;
    Max_Thumbnail_Dimension : constant Positive := Files.Images.Max_Decoded_Side;
-   PNG_Magic : Ada.Streams.Stream_Element_Array renames Files.Images.PNG_Magic;
 
    function Thumbnail_Extension
      (Source_Path : String)
@@ -167,43 +161,8 @@ package body Files.File_System.Thumbnails is
 
    function Source_Fits_Fast_Decode (Source_Path : String) return Boolean is separate;
 
-   type Rgba_Pixel is record
-      Red   : Natural := 0;
-      Green : Natural := 0;
-      Blue  : Natural := 0;
-      Alpha : Natural := 255;
-   end record;
-
-   package Pixel_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => Rgba_Pixel);
-
-   package Thumbnail_Byte_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Natural,
-      Element_Type => Ada.Streams.Stream_Element);
-
-   type Stream_Element_Array_Access is
-     access Ada.Streams.Stream_Element_Array;
-
-   procedure Free_Stream_Element_Array is new Ada.Unchecked_Deallocation
-     (Object => Ada.Streams.Stream_Element_Array,
-      Name   => Stream_Element_Array_Access);
-
-   function Byte_At
-     (Data  : Thumbnail_Byte_Vectors.Vector;
-      Index : Natural)
-      return Natural is separate;
-
-   function U32_BE_From
-     (Data  : Thumbnail_Byte_Vectors.Vector;
-      Index : Natural)
-      return Natural
-   is separate;
-
-   function Bytes_To_Stream_Array
-     (Data : Thumbnail_Byte_Vectors.Vector)
-      return Stream_Element_Array_Access
-   is separate;
+   subtype Rgba_Pixel is Files.Images.Rgba_Pixel;
+   package Pixel_Vectors renames Files.Images.Pixel_Vectors;
 
    procedure Write_Pixels_As_Ppm
      (Target_Path   : String;

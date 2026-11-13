@@ -58,7 +58,7 @@ separate (Files.Rendering)
                     Files.Localization.Text
                       (Files.Commands.Name_Key (Result.Rows (Row).Command));
                   Label_W : constant Natural :=
-                    Saturating_Multiply (Files.UTF8.Display_Units (Label), Cell_W);
+                    Saturating_Multiply (Guikit.Utf8.Display_Units (Label), Cell_W);
                begin
                   Max_Label := Natural'Max (Max_Label, Label_W);
                end;

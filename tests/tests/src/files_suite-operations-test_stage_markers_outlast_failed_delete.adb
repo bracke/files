@@ -40,4 +40,10 @@ separate (Files_Suite.Operations)
       end loop;
       Files.File_System.Testing.Delete_Owned_Tree (Stage);
       Assert (not Ada.Directories.Exists (Stage), "once nothing refuses, the stage goes entirely");
+   exception
+      when others =>
+         --  Any other failure (an assertion, an unexpected exception from the
+         --  delete) must not leave the refusal armed for the tests after this.
+         Files.File_System.Testing.Stop_Failing_Owned_Delete;
+         raise;
    end Test_Stage_Markers_Outlast_Failed_Delete;

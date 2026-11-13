@@ -90,6 +90,7 @@ with Files.Types;
 with Files.Transfer_Jobs;
 with Files.Transfer_Jobs.Testing;
 with Files_Suite.Support;
+with Files.Model.Pasting;
 
 package body Files_Suite.Operations is
 
@@ -136,18 +137,8 @@ package body Files_Suite.Operations is
    function Complete_Operation
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Started : Files.Operations.Operation_Result) return Files.Operations.Operation_Result
-   is
-      Result : Files.Operations.Operation_Result := Started;
-   begin
-      for Attempt in Polling (Limit => Seconds (Scaled (Poll_Limit))) loop
-         exit when not Files.Model.Paste_Execution_Is_Active (Model);
-         Result := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-         exit when not Files.Model.Paste_Execution_Is_Active (Model);
-      end loop;
-      Assert (not Files.Model.Paste_Execution_Is_Active (Model), "the background filesystem operation completes");
-      return Result;
-   end Complete_Operation;
+      Started : Files.Operations.Operation_Result) return Files.Operations.Operation_Result is
+     (if Files.Model.Pasting.Execution_Is_Active (Model) then Finish_Paste (Model, Settings) else Started);
 
    --  Bring the selected item's details in the way a window does, off the
    --  UI thread: asked of the reader and polled until read.
@@ -2180,13 +2171,10 @@ package body Files_Suite.Operations is
       Settings : Files.Settings.Settings_Model;
       Step     : in out Files.Operations.Operation_Result) is
    begin
-      Assert (Files.Model.Paste_Execution_Is_Active (Model),
+      Assert (Files.Model.Pasting.Execution_Is_Active (Model),
               "a long operation returns with its progress overlay open");
-      for Attempt in Files_Suite.Support.Polling loop
-         Step := Files.Operations.Advance_Paste_Execution (Model, Settings, 1);
-         exit when not Files.Model.Paste_Execution_Is_Active (Model);
-      end loop;
-      Assert (not Files.Model.Paste_Execution_Is_Active (Model),
+      Step := Files_Suite.Support.Finish_Paste (Model, Settings);
+      Assert (not Files.Model.Pasting.Execution_Is_Active (Model),
               "the UI collects the helper result without blocking");
       Files_Suite.Support.Assert_Equal
         (Step.Status,

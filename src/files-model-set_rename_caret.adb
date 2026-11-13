@@ -1,4 +1,4 @@
-with Files.UTF8;
+with Guikit.Utf8.Editing;
 separate (Files.Model)
 procedure Set_Rename_Caret
   (Model         : in out Window_Model;
@@ -6,7 +6,7 @@ procedure Set_Rename_Caret
    Position      : Natural) is
 begin
    Touch (Model);
-   if Visible_Index = 0 or else not Model.Rename_Active then
+   if Visible_Index = 0 or else not Model.Rename.Active then
       return;
    end if;
 
@@ -15,10 +15,10 @@ begin
    begin
       if Field_Index /= 0 then
          declare
-            Field : Rename_Field := Model.Rename_Fields.Element (Field_Index);
+            Field : Rename_Field := Model.Rename.Fields.Element (Field_Index);
          begin
-            Field.Cursor := Files.UTF8.Boundary_At_Or_Before (To_String (Field.Value), Position);
-            Model.Rename_Fields.Replace_Element (Field_Index, Field);
+            Field.Cursor := Guikit.Utf8.Editing.Boundary_At_Or_Before (To_String (Field.Value), Position);
+            Model.Rename.Fields.Replace_Element (Field_Index, Field);
          end;
       end if;
    end;

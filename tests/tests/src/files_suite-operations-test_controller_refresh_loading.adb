@@ -1,3 +1,4 @@
+with Files.Model.Command_Palette;
 separate (Files_Suite.Operations)
    procedure Test_Controller_Refresh_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,7 +18,7 @@ separate (Files_Suite.Operations)
       Files.Model.Begin_Create_File (Model, "pending.txt");
       Files.Model.Select_Visible (Model, 3);
       Files.Model.Scroll_Info_Pane (Model, Lines => 4);
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Command_Palette.Open (Model);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -35,7 +36,7 @@ separate (Files_Suite.Operations)
         (Files.Model.Focus (Model),
          Files.Types.Focus_None,
          "refresh clears rename focus");
-      Assert (not Files.Model.Command_Palette_Is_Open (Model), "refresh clears command palette");
+      Assert (not Files.Model.Command_Palette.Is_Open (Model), "refresh clears command palette");
       Assert (not Files.Model.Testing.Selected_Item_Is_Temporary (Model), "refresh clears temporary selection");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Info_Pane_Scroll_Lines (Model),
@@ -44,7 +45,7 @@ separate (Files_Suite.Operations)
       Files.Model.Select_Visible (Model, 1);
       Files.Model.Toggle_Visible_Selection (Model, 2);
       Write_File (Join (First, "later.txt"));
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Command_Palette.Open (Model);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -58,7 +59,7 @@ separate (Files_Suite.Operations)
          "synchronous refresh preserves a multi-selection and its primary item by path");
 
       Project_Tools.Files.Delete_Tree (First);
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Command_Palette.Open (Model);
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -78,7 +79,7 @@ separate (Files_Suite.Operations)
         (Files.Model.Last_Error_Key (Model),
          "error.directory.load",
          "failed refresh records load error");
-      Assert (Files.Model.Command_Palette_Is_Open (Model), "failed refresh preserves command palette");
+      Assert (Files.Model.Command_Palette.Is_Open (Model), "failed refresh preserves command palette");
       Ada.Directories.Create_Path (First);
       Write_File (Join (First, "one.txt"));
       Write_File (Join (First, "fresh.txt"));

@@ -9,24 +9,24 @@ separate (Files.Controller)
          return Make_Result (Controller_Ignored);
       end if;
 
-      if Files.Model.Command_Palette_Is_Open (Model)
+      if Files.Model.Command_Palette.Is_Open (Model)
         and then Target /= Files.Events.Scroll_Auto
         and then Target /= Files.Events.Scroll_Command_Palette
       then
          return Make_Result (Controller_Ignored);
-      elsif Files.Model.Root_Selector_Is_Open (Model)
-        and then not Files.Model.Command_Palette_Is_Open (Model)
+      elsif Files.Model.Root_Selector.Is_Open (Model)
+        and then not Files.Model.Command_Palette.Is_Open (Model)
       then
          return Make_Result (Controller_Ignored);
-      elsif Files.Model.Settings_Pane_Is_Open (Model)
-        and then not Files.Model.Command_Palette_Is_Open (Model)
+      elsif Files.Model.Settings_Pane.Is_Open (Model)
+        and then not Files.Model.Command_Palette.Is_Open (Model)
         and then Target /= Files.Events.Scroll_Auto
         and then Target /= Files.Events.Scroll_Settings_Pane
       then
          return Make_Result (Controller_Ignored);
       elsif Non_Text_Overlay_Owns_Input (Model)
         and then not
-          (Files.Model.Tree_Pick_Is_Active (Model)
+          (Files.Model.Tree_Panel.Pick_Is_Active (Model)
            and then Target = Files.Events.Scroll_Tree_Panel)
       then
          --  Targeted calls can legitimately identify the destination tree,
@@ -39,8 +39,8 @@ separate (Files.Controller)
          when Files.Events.Scroll_Auto =>
             return Handle_Scroll (Model, Lines);
          when Files.Events.Scroll_Command_Palette =>
-            if Files.Model.Command_Palette_Is_Open (Model) then
-               if Files.Model.Palette_Result_Count (Model) = 0 then
+            if Files.Model.Command_Palette.Is_Open (Model) then
+               if Files.Model.Command_Palette.Result_Count (Model) = 0 then
                   return Make_Result (Controller_Ignored);
                else
                   Scroll_Palette_Selection (Model, Lines);
@@ -52,11 +52,11 @@ separate (Files.Controller)
                return Scroll_Info_Result (Model, Lines);
             end if;
          when Files.Events.Scroll_Tree_Panel =>
-            if Files.Model.Tree_Panel_Is_Open (Model) then
+            if Files.Model.Tree_Panel.Is_Open (Model) then
                return Scroll_Tree_Result (Model, Lines);
             end if;
          when Files.Events.Scroll_Settings_Pane =>
-            if Files.Model.Settings_Pane_Is_Open (Model) then
+            if Files.Model.Settings_Pane.Is_Open (Model) then
                return Scroll_Settings_Result (Model, Lines);
             end if;
          when Files.Events.Scroll_Main_View =>

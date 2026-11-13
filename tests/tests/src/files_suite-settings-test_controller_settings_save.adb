@@ -1,4 +1,5 @@
 with Files.Controller.Testing;
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Settings)
    procedure Test_Controller_Settings_Save (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -20,7 +21,7 @@ separate (Files_Suite.Settings)
          Ada.Directories.Create_Path (Join (Root, "draft-config"));
          Write_File (Draft_Path, "[settings]" & ASCII.LF & "default_view_mode = details" & ASCII.LF);
          Controller_Result := Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
-         Files.Model.Begin_Settings_Edit (Draft_Model, Files.Settings.Make_Draft (Draft_Settings));
+         Files.Model.Settings_Pane.Begin_Edit (Draft_Model, Files.Settings.Make_Draft (Draft_Settings));
          --  Parse no longer injects the built-in mappings (the file is now
          --  authoritative), so seed this draft-editing test's mapping set from
          --  the defaults directly, keeping the same populated set it relies on.
@@ -31,7 +32,7 @@ separate (Files_Suite.Settings)
             Draft_Settings.Icon_Mappings := Defaults.Icon_Mappings;
             Draft_Settings.Open_Actions := Defaults.Open_Actions;
          end;
-         Files.Model.Toggle_Settings_Pane (Draft_Model);
+         Files.Model.Settings_Pane.Toggle (Draft_Model);
          Controller_Result :=
            Files.Controller.Execute_Non_Settings_Command
              (Files.Commands.Toggle_Settings_Pane_Command, Draft_Model, Draft_Settings);
@@ -57,10 +58,10 @@ separate (Files_Suite.Settings)
          Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "text/markdown");
          Files.Controller.Testing.Replace_Focused_Text (Draft_Model, "reader {path}");
          declare
-            Bad : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Draft_Model);
+            Bad : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Draft_Model);
          begin
             Bad.Scalars (Files.Settings.Default_View_Mode_Setting) := To_Unbounded_String ("bad-view");
-            Files.Model.Set_Settings_Draft (Draft_Model, Bad);
+            Files.Model.Settings_Pane.Set_Draft (Draft_Model, Bad);
          end;
          Controller_Result := Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
          Files_Suite.Support.Assert_Equal
@@ -76,7 +77,7 @@ separate (Files_Suite.Settings)
             Draft_Path,
             "controller invalid settings save reports settings path");
          declare
-            Good : Files.Settings.Settings_Draft := Files.Model.Settings_Draft_Of (Draft_Model);
+            Good : Files.Settings.Settings_Draft := Files.Model.Settings_Pane.Draft_Of (Draft_Model);
          begin
             Good.Scalars (Files.Settings.Default_View_Mode_Setting) := To_Unbounded_String ("details");
             Good.Scalars (Files.Settings.Theme_Setting) := To_Unbounded_String ("high_contrast");
@@ -96,7 +97,7 @@ separate (Files_Suite.Settings)
             Good.Open_Action_Commands.Clear;
             Good.Open_Action_Keys.Append (To_Unbounded_String ("text/markdown"));
             Good.Open_Action_Commands.Append (To_Unbounded_String ("reader {path}"));
-            Files.Model.Set_Settings_Draft (Draft_Model, Good);
+            Files.Model.Settings_Pane.Set_Draft (Draft_Model, Good);
          end;
          Controller_Result :=
            Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Join (Root, "settings-dir"));
@@ -175,7 +176,7 @@ separate (Files_Suite.Settings)
                Files.Controller.Controller_Command_Executed,
                "missing-current save fixture executes settings command");
             Assert
-              (Files.Model.Settings_Pane_Is_Open (Missing_Model),
+              (Files.Model.Settings_Pane.Is_Open (Missing_Model),
                "missing-current save fixture opens settings pane");
             Ada.Directories.Delete_Directory (Missing_Current_Path);
             Missing_Result := Files.Controller.Testing.Save_Settings (Missing_Model, Missing_Settings, Draft_Path);

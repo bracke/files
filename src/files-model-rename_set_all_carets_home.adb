@@ -6,13 +6,13 @@ is
    Changed : Boolean := False;
 begin
    Touch (Model);
-   for Index in Model.Rename_Fields.First_Index .. Model.Rename_Fields.Last_Index loop
+   for Index in Model.Rename.Fields.First_Index .. Model.Rename.Fields.Last_Index loop
       declare
-         Field : Rename_Field := Model.Rename_Fields.Element (Index);
+         Field : Rename_Field := Model.Rename.Fields.Element (Index);
       begin
          if Field.Cursor /= 0 then
             Field.Cursor := 0;
-            Model.Rename_Fields.Replace_Element (Index, Field);
+            Model.Rename.Fields.Replace_Element (Index, Field);
             Changed := True;
          end if;
       end;

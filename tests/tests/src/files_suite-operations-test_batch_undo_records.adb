@@ -1,3 +1,4 @@
+with Ada.Real_Time;
 with Files.File_System.Testing;
 separate (Files_Suite.Operations)
    --  A batch records its Undo entry at once and then at most once a second,
@@ -16,6 +17,14 @@ separate (Files_Suite.Operations)
 
       function Name (Index : Positive) return String is
         ("item-" & Files.Types.Natural_Text (Index) & ".txt");
+
+      --  When the batch started: it records once at the start and then at
+      --  most once a second, so a slow runner may see one more record per
+      --  second the batch took -- never one per item.
+      Started : Ada.Real_Time.Time := Ada.Real_Time.Clock;
+
+      function Allowed_Records return Natural is
+        (2 + Natural (Ada.Real_Time.To_Duration (Ada.Real_Time."-" (Ada.Real_Time.Clock, Started))));
 
       procedure Cleanup is
       begin
@@ -54,10 +63,11 @@ separate (Files_Suite.Operations)
 
       --  Duplicate: twelve fast copies, one entry recorded at most twice.
       Prepare;
+      Started := Ada.Real_Time.Clock;
       Step := Files.Operations.Duplicate_Selected (Model, Settings);
       Assert (Step.Status = Files.Operations.Operation_Success, "the duplicate succeeds");
       Files_Suite.Support.Assert_Equal (Copies_Present, Count, "every item is duplicated");
-      Assert (Files.Operations.Testing.Undo_Records <= 2,
+      Assert (Files.Operations.Testing.Undo_Records <= Allowed_Records,
               "the duplicate records its entry at most twice, not once per item:"
               & Natural'Image (Files.Operations.Testing.Undo_Records));
       Files_Suite.Support.Assert_Equal
@@ -74,12 +84,13 @@ separate (Files_Suite.Operations)
       Project_Tools.Files.Delete_Tree (Trash_Home);
       Ada.Environment_Variables.Set ("XDG_DATA_HOME", Trash_Home);
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
+      Started := Ada.Real_Time.Clock;
       Step := Files.Operations.Delete_Selected (Model, Settings);
       Assert (Step.Status = Files.Operations.Operation_Success, "the trash batch succeeds");
       for Index in 1 .. Count loop
          Assert (not Ada.Directories.Exists (Join (Root, Name (Index))), "item" & Index'Image & " is trashed");
       end loop;
-      Assert (Files.Operations.Testing.Undo_Records <= 2,
+      Assert (Files.Operations.Testing.Undo_Records <= Allowed_Records,
               "the trash batch records its entry at most twice:"
               & Natural'Image (Files.Operations.Testing.Undo_Records));
       Files_Suite.Support.Assert_Equal
@@ -96,13 +107,14 @@ separate (Files_Suite.Operations)
       --  says so; the refused record is not retried on every item.
       Prepare;
       Files.File_System.Testing.Refuse_Creation_Matches (True);
+      Started := Ada.Real_Time.Clock;
       Step := Files.Operations.Duplicate_Selected (Model, Settings);
       Assert (Step.Status = Files.Operations.Operation_Success, "an unverifiable duplicate still succeeds");
       Files_Suite.Support.Assert_Equal (Copies_Present, Count, "every unverifiable copy stays");
       Assert (not Files.Model.Undo_Available (Model), "no Undo is recorded for unverifiable copies");
       Assert (Files.Model.Last_Error_Key (Model) = "undo.unavailable",
               "the missing Undo is reported, not passed over: " & Files.Model.Last_Error_Key (Model));
-      Assert (Files.Operations.Testing.Undo_Records <= 2,
+      Assert (Files.Operations.Testing.Undo_Records <= Allowed_Records,
               "a refused record is retried at most once more:"
               & Natural'Image (Files.Operations.Testing.Undo_Records));
       Cleanup;

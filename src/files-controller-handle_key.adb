@@ -24,19 +24,19 @@ separate (Files.Controller)
       --  the parent.
       function Move_Tree_Highlight (Pick : Boolean) return Controller_Result is
          Rows    : constant Files.Folder_Tree.Visible_Row_Vectors.Vector :=
-           Files.Model.Tree_Visible_Rows (Model);
+           Files.Model.Tree_Panel.Visible_Rows (Model);
          Target  : constant String :=
-           (if Pick then Files.Model.Tree_Pick_Target (Model) else Files.Model.Tree_Cursor (Model));
+           (if Pick then Files.Model.Tree_Panel.Pick_Target (Model) else Files.Model.Tree_Panel.Cursor (Model));
          Current : Natural := 0;
 
          procedure Select_Row (Index : Positive) is
          begin
             if Pick then
-               Files.Model.Set_Tree_Pick_Target (Model, To_String (Rows (Index).Path));
+               Files.Model.Tree_Panel.Set_Pick_Target (Model, To_String (Rows (Index).Path));
             else
-               Files.Model.Set_Tree_Cursor (Model, To_String (Rows (Index).Path));
+               Files.Model.Tree_Panel.Set_Cursor (Model, To_String (Rows (Index).Path));
             end if;
-            Files.Model.Ensure_Tree_Row_Visible (Model, Index, Tree_Page_Rows);
+            Files.Model.Tree_Panel.Ensure_Row_Visible (Model, Index, Tree_Page_Rows);
          end Select_Row;
       begin
          if Rows.Is_Empty then
@@ -161,7 +161,7 @@ separate (Files.Controller)
             return Execute_Non_Settings_Command (Action.Command, Model, Settings, Modifiers);
          when Files.Events.Selection_Input_Action =>
             if Files.Model.Focus (Model) = Files.Types.Focus_None
-              and then not Files.Model.Settings_Pane_Is_Open (Model)
+              and then not Files.Model.Settings_Pane.Is_Open (Model)
             then
                declare
                   Old_Index : constant Natural := Files.Model.Selected_Index (Model);

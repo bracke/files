@@ -1,4 +1,5 @@
 with Files.Settings.Testing;
+with Files.Model.Settings_Pane;
 separate (Files_Suite.Settings)
    procedure Test_Settings_Draft_Ignores_Orphan_Rows (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -17,9 +18,9 @@ separate (Files_Suite.Settings)
          --  Keep missing open-action lookups deterministic by opting out of
          --  the host opener fallback that would otherwise resolve.
          Empty_Settings.Use_System_Default_Opener := False;
-         Files.Model.Begin_Settings_Edit (Empty_Model, Files.Settings.Make_Draft (Empty_Settings));
+         Files.Model.Settings_Pane.Begin_Edit (Empty_Model, Files.Settings.Make_Draft (Empty_Settings));
 
-         Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
+         Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Pane.Draft_Of (Empty_Model));
          Assert (Empty_Load.Success, "empty mapping draft remains valid after ignored edits");
          Files_Suite.Support.Assert_Equal
            (Files.Settings.Filetype_For_Extension (Empty_Load.Settings, "ghost"),
@@ -39,8 +40,8 @@ separate (Files_Suite.Settings)
          Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
          Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
          Repair_Draft.Filetype_Index := 1;
-         Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-         Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
+         Files.Model.Settings_Pane.Begin_Edit (Empty_Model, Repair_Draft);
+         Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Pane.Draft_Of (Empty_Model));
          Assert (Empty_Load.Success, "repaired misaligned filetype draft validates");
          Files_Suite.Support.Assert_Equal
            (Files.Settings.Filetype_For_Extension (Empty_Load.Settings, "orphan-ext"),
@@ -50,8 +51,8 @@ separate (Files_Suite.Settings)
          Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
          Repair_Draft.Icon_Values.Append (To_Unbounded_String ("orphan-icon"));
          Repair_Draft.Icon_Index := 1;
-         Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-         Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
+         Files.Model.Settings_Pane.Begin_Edit (Empty_Model, Repair_Draft);
+         Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Pane.Draft_Of (Empty_Model));
          Assert (Empty_Load.Success, "repaired misaligned icon draft validates");
          Files_Suite.Support.Assert_Equal
            (Files.Settings.Icon_For_Filetype (Empty_Load.Settings, "text/x-orphan"),
@@ -61,8 +62,8 @@ separate (Files_Suite.Settings)
          Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
          Repair_Draft.Open_Action_Keys.Append (To_Unbounded_String ("text/x-orphan"));
          Repair_Draft.Open_Action_Index := 1;
-         Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
-         Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Draft_Of (Empty_Model));
+         Files.Model.Settings_Pane.Begin_Edit (Empty_Model, Repair_Draft);
+         Empty_Load := Files.Settings.Apply_Draft (Empty_Settings, Files.Model.Settings_Pane.Draft_Of (Empty_Model));
          Assert (Empty_Load.Success, "repaired misaligned open-action draft validates");
          Lookup :=
            Files.Settings.Lookup_Open_Action
@@ -74,9 +75,9 @@ separate (Files_Suite.Settings)
          Repair_Draft := Files.Settings.Make_Draft (Empty_Settings);
          Repair_Draft.Filetype_Keys.Append (To_Unbounded_String ("orphan-ext"));
          Repair_Draft.Filetype_Index := 1;
-         Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
+         Files.Model.Settings_Pane.Begin_Edit (Empty_Model, Repair_Draft);
          Files_Suite.Support.Assert_Equal
-           (Natural (Files.Model.Settings_Draft_Of (Empty_Model).Filetype_Keys.Length),
+           (Natural (Files.Model.Settings_Pane.Draft_Of (Empty_Model).Filetype_Keys.Length),
             0,
             "begin settings edit drops orphan filetype rows");
 
@@ -86,6 +87,6 @@ separate (Files_Suite.Settings)
          Repair_Draft.Filetype_Index := Natural (Repair_Draft.Filetype_Keys.Length);
          Repair_Draft.Filetype_Extension := To_Unbounded_String ("stale-ext");
          Repair_Draft.Filetype_Value := To_Unbounded_String ("text/x-stale");
-         Files.Model.Begin_Settings_Edit (Empty_Model, Repair_Draft);
+         Files.Model.Settings_Pane.Begin_Edit (Empty_Model, Repair_Draft);
       end;
    end Test_Settings_Draft_Ignores_Orphan_Rows;

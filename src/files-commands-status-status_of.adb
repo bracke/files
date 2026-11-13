@@ -1,3 +1,7 @@
+with Files.Model.Clipboard;
+with Files.Model.Quick_Look;
+with Files.Model.Root_Selector;
+with Files.Model.Settings_Pane;
 separate (Files.Commands.Status)
    function Status_Of
      (Id    : Command_Id;
@@ -64,16 +68,16 @@ separate (Files.Commands.Status)
         (Require (Files.Model.Current_Path (Model) /= ""));
 
       function Valid_Root_Selected return Boolean is
-        (Files.Model.Root_Selector_Is_Open (Model)
-         and then Files.Model.Root_Selected_Index (Model) > 0
-         and then Files.Model.Root_Selected_Index (Model) <= Files.Model.Root_Count (Model));
+        (Files.Model.Root_Selector.Is_Open (Model)
+         and then Files.Model.Root_Selector.Selected_Index (Model) > 0
+         and then Files.Model.Root_Selector.Selected_Index (Model) <= Files.Model.Root_Selector.Count (Model));
    begin
       --  A modal overlay owns the keyboard; it blocks other commands silently.
-      if Files.Model.Root_Selector_Is_Open (Model)
+      if Files.Model.Root_Selector.Is_Open (Model)
         and then not Allowed_With_Root_Selector (Id)
       then
          return Disabled;
-      elsif Files.Model.Settings_Pane_Is_Open (Model)
+      elsif Files.Model.Settings_Pane.Is_Open (Model)
         and then not Allowed_With_Settings_Pane (Id)
       then
          return Disabled;
@@ -128,7 +132,7 @@ separate (Files.Commands.Status)
          when Paste_Items_Command =>
             return
               All_Of
-                (Require (Files.Model.Clipboard_Has_Items (Model), Clipboard_Empty_Reason),
+                (Require (Files.Model.Clipboard.Has_Items (Model), Clipboard_Empty_Reason),
                  No_Pending_Create, Ordinary_View, Has_Directory);
          when Create_File_Command | New_Folder_Command =>
             return All_Of (No_Pending_Create, Ordinary_View, Has_Directory);
@@ -162,7 +166,8 @@ separate (Files.Commands.Status)
                 (Require (Valid_Root_Selected, Root_Unselected_Reason),
                  Require
                    (Valid_Root_Selected
-                    and then Files.Model.Root_Is_Removable (Model, Files.Model.Root_Selected_Index (Model)),
+                    and then Files.Model.Root_Selector.Is_Removable
+                      (Model, Files.Model.Root_Selector.Selected_Index (Model)),
                     Eject_Unavailable_Reason));
          when Clear_Filter_Command =>
             return Require (Files.Model.Filter_Text (Model) /= "", Filter_Empty_Reason);
@@ -177,7 +182,7 @@ separate (Files.Commands.Status)
             return Require (Files.Model.Selected_Count (Model) > 0);
          when Save_Settings_Command
             | Reset_Settings_Command =>
-            return Require (Files.Model.Settings_Pane_Is_Open (Model), Settings_Closed_Reason);
+            return Require (Files.Model.Settings_Pane.Is_Open (Model), Settings_Closed_Reason);
          when Toggle_Favorite_Command =>
             --  Favoriting works on the selection when present, otherwise on the
             --  current directory, in an ordinary directory view. A temporary
@@ -221,7 +226,7 @@ separate (Files.Commands.Status)
             --  Quick Look previews exactly one real item outside the trash
             --  payload view. Closing an open preview is always allowed, even
             --  after a reload emptied the selection.
-            if Files.Model.Quick_Look_Is_Open (Model) then
+            if Files.Model.Quick_Look.Is_Open (Model) then
                return Enabled;
             end if;
             return All_Of (Single_Real_Selection, Not_Trash_View);

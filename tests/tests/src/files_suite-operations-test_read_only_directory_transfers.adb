@@ -5,7 +5,8 @@ separate (Files_Suite.Operations)
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Source : constant String := Join (Root, "source");
       Remote : Files_Suite.Volumes.Remote_Directory;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
@@ -18,8 +19,7 @@ separate (Files_Suite.Operations)
       end Remove;
       procedure Cleanup is
       begin
-         Files.Model.Clear_Paste_Execution (Model);
-         Files.Refresh_Jobs.Cancel (Model);
+         Files_Suite.Support.Release (Paste);
          if Ada.Directories.Exists (Source) then
             Remove (Source);
          end if;

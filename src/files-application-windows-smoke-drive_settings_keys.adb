@@ -1,6 +1,7 @@
 with Files.Fs_Primitives;
 with Guikit.Settings_Panel;
 with Hostkit.Fs;
+with Files.Model.Settings_Pane;
 
 separate (Files.Application.Windows.Smoke)
    procedure Drive_Settings_Keys
@@ -76,10 +77,10 @@ separate (Files.Application.Windows.Smoke)
       end Expect;
 
       function Open return Boolean is
-        (Files.Model.Settings_Pane_Is_Open (Runtime.Model)
+        (Files.Model.Settings_Pane.Is_Open (Runtime.Model)
          and then Files.Model.Focus (Runtime.Model) = Files.Types.Focus_Settings_Input);
 
-      function Key_Now return String is (Files.Model.Settings_Focused_Key (Runtime.Model));
+      function Key_Now return String is (Files.Model.Settings_Pane.Focused_Key (Runtime.Model));
    begin
       Failed_Step := 0;
       if Runtime.Handle = null then
@@ -106,20 +107,20 @@ separate (Files.Application.Windows.Smoke)
       --  Walk to a toggle, flip it with Space (whose own space must not also
       --  be typed), then flip it back with Right.
       for Attempt in 1 .. 50 loop
-         exit when Files.Model.Settings_Focused_Kind (Runtime.Model) = Guikit.Settings_Panel.Toggle;
+         exit when Files.Model.Settings_Pane.Focused_Kind (Runtime.Model) = Guikit.Settings_Panel.Toggle;
          Press (Guikit.Input.Key_Tab);
       end loop;
-      Expect (Files.Model.Settings_Focused_Kind (Runtime.Model) = Guikit.Settings_Panel.Toggle);
+      Expect (Files.Model.Settings_Pane.Focused_Kind (Runtime.Model) = Guikit.Settings_Panel.Toggle);
       declare
-         Before : constant String := Files.Model.Settings_Focused_Value (Runtime.Model);
+         Before : constant String := Files.Model.Settings_Pane.Focused_Value (Runtime.Model);
       begin
          Press (Guikit.Input.Key_Space, Typed => " ");
-         Expect (Files.Model.Settings_Focused_Value (Runtime.Model) /= Before);
+         Expect (Files.Model.Settings_Pane.Focused_Value (Runtime.Model) /= Before);
          --  The change applies without a save error: the smoke has no
          --  settings file, which turns persistence off rather than failing.
          Expect (Files.Model.Last_Error_Key (Runtime.Model) = "");
          Press (Guikit.Input.Key_Right);
-         Expect (Files.Model.Settings_Focused_Value (Runtime.Model) = Before);
+         Expect (Files.Model.Settings_Pane.Focused_Value (Runtime.Model) = Before);
 
          --  The mouse: a click on the toggle's switch flips it, through the
          --  path a real click takes (window position -> input action ->
@@ -137,7 +138,7 @@ separate (Files.Application.Windows.Smoke)
                   for Step in 0 .. Node.Width / 4 loop
                      exit when Node.Width < 4 * Step + 1;
                      Click_At (Node.X + Node.Width - 1 - 4 * Step, Node.Y + Node.Height / 2);
-                     Flipped := Files.Model.Settings_Focused_Value (Runtime.Model) /= Before;
+                     Flipped := Files.Model.Settings_Pane.Focused_Value (Runtime.Model) /= Before;
                      exit when Flipped;
                   end loop;
                   Render_Window (Runtime);
@@ -152,7 +153,7 @@ separate (Files.Application.Windows.Smoke)
          --  centre, which only focuses a settings row, then its change).
          declare
             Shown  : constant Guikit.Draw.Accessibility_Node_Vectors.Vector := Runtime.Shown_Accessibility;
-            Was    : constant String := Files.Model.Settings_Focused_Value (Runtime.Model);
+            Was    : constant String := Files.Model.Settings_Pane.Focused_Value (Runtime.Model);
             Asked  : Boolean := False;
          begin
             for Node of Shown loop
@@ -167,17 +168,17 @@ separate (Files.Application.Windows.Smoke)
                   exit;
                end if;
             end loop;
-            Expect (Asked and then Files.Model.Settings_Focused_Value (Runtime.Model) /= Was);
+            Expect (Asked and then Files.Model.Settings_Pane.Focused_Value (Runtime.Model) /= Was);
          end;
       end;
 
       Press (Guikit.Input.Key_Tab, Ctrl);
-      Expect (Files.Model.Settings_Active_Section (Runtime.Model) = 2);
+      Expect (Files.Model.Settings_Pane.Active_Section (Runtime.Model) = 2);
       Press (Guikit.Input.Key_Tab, Ctrl_Shift);
-      Expect (Files.Model.Settings_Active_Section (Runtime.Model) = 1);
+      Expect (Files.Model.Settings_Pane.Active_Section (Runtime.Model) = 1);
 
       Press (Guikit.Input.Key_Escape);
-      Expect (not Files.Model.Settings_Pane_Is_Open (Runtime.Model)
+      Expect (not Files.Model.Settings_Pane.Is_Open (Runtime.Model)
               and then Files.Model.Focus (Runtime.Model) = Files.Types.Focus_None);
 
       --  The list: the selection follows the keyboard into view, and a press on
@@ -226,8 +227,8 @@ separate (Files.Application.Windows.Smoke)
                        Glfw.Input.Mouse.Coordinate
                          (Float (Cell.Y + Cell.Height / 2) * Float (Window_H) / Float (Frame_H));
                      Runtime.Handle.Pending_Mouse.Append
-                       (Files.Mouse_Buttons.Button_Event'
-                          (Button    => Files.Mouse_Buttons.Left_Mouse_Button,
+                       (Guikit.Input.Mouse_Buttons.Button_Event'
+                          (Button    => Guikit.Input.Mouse_Buttons.Left_Mouse_Button,
                            Pressed   => True,
                            X         => Runtime.Handle.Drag_Start_X,
                            Y         => Runtime.Handle.Drag_Start_Y,
@@ -246,8 +247,8 @@ separate (Files.Application.Windows.Smoke)
          procedure Release_Left is
          begin
             Runtime.Handle.Pending_Mouse.Append
-              (Files.Mouse_Buttons.Button_Event'
-                 (Button    => Files.Mouse_Buttons.Left_Mouse_Button,
+              (Guikit.Input.Mouse_Buttons.Button_Event'
+                 (Button    => Guikit.Input.Mouse_Buttons.Left_Mouse_Button,
                   Pressed   => False,
                   X         => Runtime.Handle.Drag_Start_X,
                   Y         => Runtime.Handle.Drag_Start_Y,
@@ -328,5 +329,5 @@ separate (Files.Application.Windows.Smoke)
       Press (Guikit.Input.Key_Comma, Ctrl);
       Expect (Open);
       Press (Guikit.Input.Key_Tab, Ctrl);
-      Expect (Files.Model.Settings_Active_Section (Runtime.Model) = 2);
+      Expect (Files.Model.Settings_Pane.Active_Section (Runtime.Model) = 2);
    end Drive_Settings_Keys;

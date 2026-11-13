@@ -7,7 +7,9 @@ separate (Files_Suite.Operations)
         (Duplicate_Item, Compress_Item, Extract_Item,
          Create_Symbolic_Link, Create_Hard_Link);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Model : Files.Model.Window_Model;
+      Model : aliased Files.Model.Window_Model;
+      Paste : Files_Suite.Support.Paste_Guard (Model'Access);
+      pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Step : Files.Operations.Operation_Result;
       Routed : Files.Controller.Controller_Result;
@@ -100,8 +102,8 @@ separate (Files_Suite.Operations)
             Files_Suite.Support.Assert_Equal
               (To_String (Step.Error_Key), "error.create.pending", Context & ": error key");
             Assert (Files.Model.Temporary_Item_Is_Active (Model), Context & ": the inline creation stays active");
-            Assert (not Files.Model.Paste_Execution_Is_Active (Model), Context & ": no paste execution");
-            Assert (not Files.Model.Paste_Conflict_Is_Active (Model), Context & ": no paste conflict");
+            Assert (not Files.Model.Pasting.Execution_Is_Active (Model), Context & ": no paste execution");
+            Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), Context & ": no paste conflict");
             Assert (not Ada.Directories.Exists (Join (Join (Root, "view"), "incoming.txt")),
                     Context & ": nothing written");
          end;
@@ -135,9 +137,4 @@ separate (Files_Suite.Operations)
            (not Ada.Directories.Exists (Join (Join (Root, "view"), "incoming.txt")),
             "targeted moves preserve both the pending editor and their source: nothing written");
       end;
-   exception
-      when others =>
-         Files.Model.Clear_Paste_Execution (Model);
-         Files.Refresh_Jobs.Cancel (Model);
-         raise;
    end Test_Pending_Create_Mutation_Guards;

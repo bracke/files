@@ -113,20 +113,6 @@ package Files.File_System.Thumbnails is
       Pixels : Files.Types.Byte_Vectors.Vector;
    end record;
 
-   --  Whether a listed item is one a thumbnail is made for automatically.
-   --
-   --  @param Kind Filesystem item kind.
-   --  @param Filetype Detected filetype identifier.
-   --  @param Name File name.
-   --  @param Icon_Id Icon identifier.
-   --  @return True for a raster image a listing makes a thumbnail of.
-   function Should_Auto_Generate_Thumbnail
-     (Kind     : Files.Types.Item_Kind;
-      Filetype : String;
-      Name     : String;
-      Icon_Id  : String)
-      return Boolean;
-
    --  The thumbnail names in a cache directory, as a listing reads them once.
    package Thumbnail_Name_Sets is new Ada.Containers.Indefinite_Hashed_Sets
      (Element_Type        => String,
@@ -176,6 +162,20 @@ package Files.File_System.Thumbnails is
       return Cached_Thumbnail;
 
 private
+
+   --  Whether a listed item is one a thumbnail is made for automatically.
+   --
+   --  @param Kind Filesystem item kind.
+   --  @param Filetype Detected filetype identifier.
+   --  @param Name File name.
+   --  @param Icon_Id Icon identifier.
+   --  @return True for a raster image a listing makes a thumbnail of.
+   function Should_Auto_Generate_Thumbnail
+     (Kind     : Files.Types.Item_Kind;
+      Filetype : String;
+      Name     : String;
+      Icon_Id  : String)
+      return Boolean;
 
    --  The pure-Ada PNG path: decode Source_Path and write its thumbnail to
    --  Target_Path, or answer False for a PNG it will not read (then gdk-pixbuf

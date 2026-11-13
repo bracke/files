@@ -1,3 +1,4 @@
+with Files.Model.Tree_Panel;
 separate (Files_Suite.Interaction)
    procedure Test_Tree_Panel_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -27,51 +28,52 @@ separate (Files_Suite.Interaction)
       Seeds.Append
         (Files.Folder_Tree.Entry_Seed'
            (Path => To_Unbounded_String (Tree_Dir), Name => To_Unbounded_String ("tree")));
-      Files.Model.Seed_Tree (Model, Seeds);
+      Files.Model.Tree_Panel.Seed (Model, Seeds);
 
       --  Closed, the tree is not part of the ring: filter -> grid as before.
       Tab;
       Tab;
       Tab;
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_None
-              and then not Files.Model.Tree_Has_Keyboard (Model),
+              and then not Files.Model.Tree_Panel.Has_Keyboard (Model),
               "with the tree closed, Tab from the filter returns to the grid");
 
-      Files.Model.Open_Tree_Panel (Model);
+      Files.Model.Tree_Panel.Open (Model);
       CResult := Files.Controller.Handle_Tree_Click (Model, Settings, 1, Toggle => True);
 
       --  Open, the filter hands on to the tree, and the tree back to the grid.
       Tab;
       Tab;
       Tab;
-      Assert (Files.Model.Tree_Has_Keyboard (Model)
-              and then Files.Model.Tree_Cursor (Model) /= "",
+      Assert (Files.Model.Tree_Panel.Has_Keyboard (Model)
+              and then Files.Model.Tree_Panel.Cursor (Model) /= "",
               "Tab from the filter gives the open tree the keyboard and a highlighted row");
 
       --  Arrows move the tree's highlight and leave the grid's selection alone.
       Selected := Files.Model.Selected_Index (Model);
-      Files.Model.Set_Tree_Cursor (Model, Tree_Dir);
+      Files.Model.Tree_Panel.Set_Cursor (Model, Tree_Dir);
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Down);
       Files_Suite.Support.Assert_Equal
         (CResult.Status, Files.Controller.Controller_Selection_Moved,
          "Down moves the tree highlight, not the grid selection (status)");
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Tree_Cursor (Model), Alpha,
+        (Files.Model.Tree_Panel.Cursor (Model), Alpha,
          "Down moves the tree highlight, not the grid selection (tree cursor)");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selected_Index (Model), Selected,
          "Down moves the tree highlight, not the grid selection (grid selection)");
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Assert (CResult.Status = Files.Controller.Controller_Command_Executed
-              and then Files.Model.Tree_Has_Keyboard (Model),
+              and then Files.Model.Tree_Panel.Has_Keyboard (Model),
               "Right expands the highlighted folder and the tree keeps the keyboard");
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Right);
       Files_Suite.Support.Assert_Equal
-        (Files.Model.Tree_Cursor (Model),
+        (Files.Model.Tree_Panel.Cursor (Model),
          A1,
          "Right on an expanded folder steps into it");
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Left);
-      Files_Suite.Support.Assert_Equal (Files.Model.Tree_Cursor (Model), Alpha, "Left steps out to the parent folder");
+      Files_Suite.Support.Assert_Equal
+        (Files.Model.Tree_Panel.Cursor (Model), Alpha, "Left steps out to the parent folder");
 
       --  Enter opens the highlighted folder in the main view.
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
@@ -83,17 +85,17 @@ separate (Files_Suite.Interaction)
       --  Escape gives the keyboard back to the grid; Shift+Tab from the grid
       --  comes back to the tree, and from the tree goes on to the filter.
       CResult := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
-      Assert (not Files.Model.Tree_Has_Keyboard (Model), "Escape hands the keyboard back to the grid");
+      Assert (not Files.Model.Tree_Panel.Has_Keyboard (Model), "Escape hands the keyboard back to the grid");
       Tab (Backward => True);
-      Assert (Files.Model.Tree_Has_Keyboard (Model), "Shift+Tab from the grid reaches the open tree");
+      Assert (Files.Model.Tree_Panel.Has_Keyboard (Model), "Shift+Tab from the grid reaches the open tree");
       Tab (Backward => True);
       Assert (Files.Model.Focus (Model) = Files.Types.Focus_Filter_Input
-              and then not Files.Model.Tree_Has_Keyboard (Model),
+              and then not Files.Model.Tree_Panel.Has_Keyboard (Model),
               "Shift+Tab from the tree goes on to the filter");
 
       --  Closing the panel ends its turn.
       Tab;
-      Assert (Files.Model.Tree_Has_Keyboard (Model), "Tab from the filter returns to the tree");
-      Files.Model.Close_Tree_Panel (Model);
-      Assert (not Files.Model.Tree_Has_Keyboard (Model), "closing the tree takes its keyboard away");
+      Assert (Files.Model.Tree_Panel.Has_Keyboard (Model), "Tab from the filter returns to the tree");
+      Files.Model.Tree_Panel.Close (Model);
+      Assert (not Files.Model.Tree_Panel.Has_Keyboard (Model), "closing the tree takes its keyboard away");
    end Test_Tree_Panel_Keyboard;

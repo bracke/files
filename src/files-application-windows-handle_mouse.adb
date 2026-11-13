@@ -1,3 +1,4 @@
+with Files.Model.Context_Menu;
 separate (Files.Application.Windows)
    procedure Handle_Mouse
      (Runtime : in out Runtime_Window)
@@ -8,7 +9,7 @@ separate (Files.Application.Windows)
       Frame_H  : Glfw.Size := 0;
 
       --  A right press: the context menu for what lies where it went down.
-      procedure Right_Press (Event : Files.Mouse_Buttons.Button_Event) is
+      procedure Right_Press (Event : Guikit.Input.Mouse_Buttons.Button_Event) is
       begin
          declare
             Press_X  : constant Glfw.Input.Mouse.Coordinate := Event.X;
@@ -70,9 +71,9 @@ separate (Files.Application.Windows)
 
       --  A left press: a click where the button went down, with the
       --  modifiers held then.
-      procedure Left_Press (Event : Files.Mouse_Buttons.Button_Event) is
+      procedure Left_Press (Event : Guikit.Input.Mouse_Buttons.Button_Event) is
       begin
-         if Files.Model.Context_Menu_Is_Open (Runtime.Model) then
+         if Files.Model.Context_Menu.Is_Open (Runtime.Model) then
             declare
                --  Where the button went down, as for any other click.
                Press_X  : constant Glfw.Input.Mouse.Coordinate := Event.X;
@@ -174,7 +175,7 @@ separate (Files.Application.Windows)
       end Left_Press;
 
       --  A left release: the end of a drag (a drop) or of a deferred click.
-      procedure Left_Release (Event : Files.Mouse_Buttons.Button_Event) is
+      procedure Left_Release (Event : Guikit.Input.Mouse_Buttons.Button_Event) is
       begin
          if Event.Dragged and then Runtime.Drag_Source_Index /= 0 then
             declare
@@ -227,15 +228,15 @@ separate (Files.Application.Windows)
       --  by Mouse_Buttons.Ready_At, takes it.
       while Runtime.Handle /= null loop
          declare
-            Event : Files.Mouse_Buttons.Button_Event;
+            Event : Guikit.Input.Mouse_Buttons.Button_Event;
             Taken : Boolean;
          begin
-            Files.Mouse_Buttons.Next_Ready (Runtime.Handle.Pending_Mouse, Ada.Real_Time.Clock, Event, Taken);
+            Guikit.Input.Mouse_Buttons.Next_Ready (Runtime.Handle.Pending_Mouse, Ada.Real_Time.Clock, Event, Taken);
             exit when not Taken;
             case Event.Button is
-               when Files.Mouse_Buttons.Right_Mouse_Button =>
+               when Guikit.Input.Mouse_Buttons.Right_Mouse_Button =>
                   Right_Press (Event);
-               when Files.Mouse_Buttons.Left_Mouse_Button =>
+               when Guikit.Input.Mouse_Buttons.Left_Mouse_Button =>
                   if Event.Pressed then
                      Left_Press (Event);
                   else

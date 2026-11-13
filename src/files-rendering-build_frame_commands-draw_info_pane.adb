@@ -442,7 +442,7 @@ separate (Files.Rendering.Build_Frame_Commands)
                                    Saturating_Add
                                      (Text_X,
                                       Saturating_Multiply
-                                        (Files.UTF8.Display_Units_Before
+                                        (Guikit.Utf8.Display_Units_Before
                                            (Raw, Snapshot.Text_Cursor_Position),
                                          Char_W));
                               begin

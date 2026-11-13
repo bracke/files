@@ -1,3 +1,5 @@
+with Files.Model.Command_Palette;
+with Files.Model.Root_Selector;
 separate (Files_Suite.Model)
    --  Every "is an overlay open" question reads Files.Model's one list of
    --  input-owning overlays: the overlay's own click handler excludes itself,
@@ -14,7 +16,7 @@ separate (Files_Suite.Model)
       end loop;
 
       Roots.Append (Ada.Strings.Unbounded.To_Unbounded_String (Files_Suite.Support.Root));
-      Files.Model.Open_Root_Selector (Model, Roots);
+      Files.Model.Root_Selector.Open (Model, Roots);
       Assert (Files.Model.Testing.Overlay_Is_Open (Model, Files.Model.Root_Selector_Overlay), "the selector is open");
       Assert (Files.Model.Input_Owning_Overlay_Is_Open (Model), "the selector owns input");
       Assert
@@ -25,7 +27,7 @@ separate (Files_Suite.Model)
          "the selector blocks a context menu");
       Assert (Files.Model.Non_Text_Overlay_Owns_Input (Model), "the selector has no text field of its own");
 
-      Files.Model.Open_Command_Palette (Model);
+      Files.Model.Command_Palette.Open (Model);
       Assert
         (Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Model.Root_Selector_Overlay),
          "the palette over the selector blocks the selector's clicks");

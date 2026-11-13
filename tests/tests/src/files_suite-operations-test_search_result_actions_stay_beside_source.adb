@@ -30,7 +30,7 @@ separate (Files_Suite.Operations)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, False);
          Files.Model.Set_Filter (Model, Query);
-         Result := Files.Operations.Run_Recursive_Search (Model, Settings);
+         Result := Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names);
          Assert (Files.Model.Search_Results_Are_Active (Model) and then Files.Model.Item_Count (Model) = 1,
                  "the search finds the one deep file for " & Query);
          Files.Model.Select_Visible (Model, 1);

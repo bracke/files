@@ -18,6 +18,9 @@ with Hostkit.Fs;
 with Hostkit.Lease_Files;
 with Hostkit.Watch;
 with Files.Path_Checks;
+with Files.Model.Command_Palette;
+with Files.Model.Quick_Look;
+with Files.Model.Pasting;
 
 package body Files.Refresh_Jobs is
    use Ada.Strings.Unbounded;
@@ -258,13 +261,13 @@ package body Files.Refresh_Jobs is
          Error_Key => (if Previous_Error = "error.directory.load" then Null_Unbounded_String
                        else To_Unbounded_String (Previous_Error)));
    begin
-      if Files.Model.Paste_Execution_Is_Active (Model)
+      if Files.Model.Pasting.Execution_Is_Active (Model)
         or else (not Force and then (Work.Recent or else Files.Model.Search_Results_Are_Active (Model)))
       then
          return (Status => Files.Operations.Operation_Success, others => <>);
       elsif not Force
         and then (Files.Model.Rename_Is_Active (Model) or else Files.Model.Temporary_Item_Is_Active (Model)
-                  or else Files.Model.Command_Palette_Is_Open (Model))
+                  or else Files.Model.Command_Palette.Is_Open (Model))
       then
          --  Replacing the items now would drop the edit or close the palette:
          --  the reload is owed, and Resume_Owed starts it once they are done.
@@ -303,7 +306,7 @@ package body Files.Refresh_Jobs is
    begin
       if not Files.Model.Refresh_Is_Owed (Model)
         or else Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model))
-        or else Files.Model.Paste_Execution_Is_Active (Model)
+        or else Files.Model.Pasting.Execution_Is_Active (Model)
       then
          return;
       end if;
@@ -356,7 +359,7 @@ package body Files.Refresh_Jobs is
       if not Files.Process_Jobs.Active (Job) then
          return False;
       end if;
-      if Files.Model.Paste_Execution_Is_Active (Model) then
+      if Files.Model.Pasting.Execution_Is_Active (Model) then
          Cancel (Model);
          return False;
       end if;
@@ -372,7 +375,7 @@ package body Files.Refresh_Jobs is
          Owe_Reload;
          Cancel (Model);
          return False;
-      elsif Files.Model.Command_Palette_Is_Open (Model)
+      elsif Files.Model.Command_Palette.Is_Open (Model)
         or else Files.Model.Rename_Is_Active (Model)
         or else Files.Model.Temporary_Item_Is_Active (Model)
       then
@@ -414,10 +417,10 @@ package body Files.Refresh_Jobs is
             --  A refresh of the folder in view keeps where the user was: its
             --  scroll, and a Quick Look whose item is still there.
             Previous_Scroll  : constant Natural := Files.Model.Main_View_Scroll_Lines (Model);
-            Previewing       : constant Boolean := Files.Model.Quick_Look_Is_Open (Model);
-            Previewed        : constant String := Files.Model.Quick_Look_Path (Model);
+            Previewing       : constant Boolean := Files.Model.Quick_Look.Is_Open (Model);
+            Previewed        : constant String := Files.Model.Quick_Look.Path (Model);
             Previous_Preview : constant Files.Quick_Look.Quick_Look_Content :=
-              Files.Model.Quick_Look_Content_Of (Model);
+              Files.Model.Quick_Look.Content_Of (Model);
          begin
             if Work.Recent then
                Files.Model.Navigate_Recent (Model, Done.Items);
@@ -446,7 +449,7 @@ package body Files.Refresh_Jobs is
             then
                --  Prepared afresh when the change being picked up is to it;
                --  otherwise the preview it had, image and all, comes back.
-               Files.Model.Open_Quick_Look
+               Files.Model.Quick_Look.Open
                  (Model,
                   (if Files.Operations.Quick_Look_Stamp (Files.Model.Selected_Item (Model))
                       = Previous_Preview.Source_Stamp

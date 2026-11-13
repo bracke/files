@@ -11,6 +11,10 @@ package Files.Types is
    --  it is never mistaken for one (the matching Available flag says so too).
    Unknown_Time : constant Ada.Calendar.Time := Ada.Calendar.Time_Of (1901, 1, 1);
 
+   --  How many bytes a streaming read or copy moves per call: the size of
+   --  the one buffer every such loop reuses.
+   IO_Chunk_Bytes : constant := 64 * 1024;
+
    subtype UString is Ada.Strings.Unbounded.Unbounded_String;
 
    package String_Vectors is new Ada.Containers.Vectors
@@ -286,6 +290,10 @@ package Files.Types is
      (Filter_Here,
       Search_Names,
       Search_Contents);
+
+   --  The scopes that search the tree below the current folder, replacing
+   --  the view with what they find.
+   subtype Tree_Search_Scope is Search_Scope range Search_Names .. Search_Contents;
 
    --  Return the search scope reached by cycling one step forward, wrapping from
    --  Search_Contents back to Filter_Here.

@@ -17,7 +17,7 @@ with Guikit.Widgets;
 with Files.Display_Text;
 with Files.Localization;
 with Files.UI;
-with Files.UTF8;
+with Guikit.Utf8.Editing;
 
 package body Files.Rendering is
 
@@ -359,7 +359,7 @@ package body Files.Rendering is
          return Saturating_Multiply (Line_Height, 3);
       end if;
 
-      return Saturating_Multiply (Files.UTF8.Display_Units (Label), Cell_W);
+      return Saturating_Multiply (Guikit.Utf8.Display_Units (Label), Cell_W);
    end Free_Space_Label_Width;
 
    function Permission_Text (Permissions : String; Inline : Boolean := False) return String
@@ -902,7 +902,7 @@ package body Files.Rendering is
       return Natural
    is
      (Guikit.Layout.Input_Scroll_Columns
-        (Files.UTF8.Display_Units_Before (Text, Natural'Min (Cursor, Text'Length)), Text_Width, Line_Height));
+        (Guikit.Utf8.Display_Units_Before (Text, Natural'Min (Cursor, Text'Length)), Text_Width, Line_Height));
 
    function Tree_Row_Capacity (Snapshot : View_Snapshot; Layout : Tree_Panel_Layout) return Natural is separate;
 

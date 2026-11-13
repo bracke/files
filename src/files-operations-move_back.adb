@@ -34,9 +34,7 @@ begin
            (if Forward then Sources.First_Index + Step else Sources.Last_Index - Step);
          Source : constant String := To_String (Sources.Element (Index));
          Target : constant String := To_String (Targets.Element (Index));
-         Identity : constant String :=
-           (if Index <= Action.Created_Identities.Last_Index
-            then To_String (Action.Created_Identities (Index)) else "");
+         Identity : constant String := Files.Model.Created_Identity (Action, Index);
          Marked : constant Boolean := Done.Contains (To_String (Sources (Index)));
          Matches : constant Boolean :=
            Identity /= "" and then Files.File_Identities.Token (Target) = Identity;
