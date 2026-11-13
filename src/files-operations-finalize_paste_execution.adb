@@ -23,11 +23,40 @@ is
    --  and a paste that replaced anything is undo-only (redo is not attempted).
    Replaced_Trash : constant Files.Types.String_Vectors.Vector :=
      Exec.Replaced_Trash;
-   Redoable   : constant Boolean := Replaced_Trash.Is_Empty;
+   --  A copy a failed move kept beside its source joins the paste's one
+   --  undo entry, which deletes it before anything moves back or any
+   --  original returns to its path; so does a paste that kept one, being
+   --  undo-only too (its redo would meet the source still in place).
+   Has_Kept   : constant Boolean := Length (Kept.Dest_Path) > 0;
+   Kept_Paths : constant Files.Types.String_Vectors.Vector :=
+     (if Has_Kept then Files.Types.String_Vectors.To_Vector (Kept.Dest_Path, 1)
+      else Files.Types.String_Vectors.Empty_Vector);
+   Redoable   : constant Boolean := Replaced_Trash.Is_Empty and then not Has_Kept;
    First_Dest : constant String := To_String (Exec.First_Dest);
+   --  A kept copy no longer verifiable on a path an original goes back to
+   --  makes the whole undo unsafe: Try_Record_Undo records nothing, and the
+   --  paste reports it rather than letting the missing Undo pass unnoticed.
+   Unsafe_Kept : constant Boolean :=
+     Has_Kept
+     and then Exec.Replaced_Targets.Contains (Kept.Dest_Path)
+     and then not Files.File_System.Creation_Matches
+       (To_String (Kept.Dest_Path), To_String (Kept.Identity), To_String (Kept.Tree_Revision), False);
+   Reported_Key : constant String :=
+     (if Unsafe_Kept then "error.paste.undo_unavailable" else Error_Key);
+   Kept_Provenance : constant Undo_Provenance :=
+     (Kept_Copies              => Kept_Paths,
+      Kept_Copy_Identities     =>
+        (if Has_Kept then Files.Types.String_Vectors.To_Vector (Kept.Identity, 1)
+         else Files.Types.String_Vectors.Empty_Vector),
+      Kept_Copy_Tree_Revisions =>
+        (if Has_Kept then Files.Types.String_Vectors.To_Vector (Kept.Tree_Revision, 1)
+         else Files.Types.String_Vectors.Empty_Vector),
+      others                   => <>);
 begin
-   if not Undo_From.Is_Empty then
+   if not Undo_From.Is_Empty or else Has_Kept then
       if Mode = Files.File_System.Drop_Move then
+         --  With no moved member, the kept copies alone are recorded (as the
+         --  creations they are, by Try_Record_Undo) with the originals.
          Record_Undo
            (Model, Files.Model.Undo_Move, Undo_From, Undo_To,
             Redoable      => Redoable,
@@ -38,7 +67,10 @@ begin
                Identities => Exec.Identities,
                Tree_Revisions => Exec.Tree_Revisions,
                Retain_Verified_Main => Exec.Verified_Created_Count,
-               Retain_Verified_Restores => Exec.Verified_Replaced_Count));
+               Retain_Verified_Restores => Exec.Verified_Replaced_Count,
+               Kept_Copies => Kept_Provenance.Kept_Copies,
+               Kept_Copy_Identities => Kept_Provenance.Kept_Copy_Identities,
+               Kept_Copy_Tree_Revisions => Kept_Provenance.Kept_Copy_Tree_Revisions));
       else
          --  A copy is reversed by deleting the created copies (Undo_From) and
          --  redone by copying each source (Undo_To) back to its destination.
@@ -55,7 +87,8 @@ begin
                Identities => Exec.Identities,
                Tree_Revisions => Exec.Tree_Revisions,
                Retain_Verified_Main => Exec.Verified_Created_Count,
-               Retain_Verified_Restores => Exec.Verified_Replaced_Count));
+               Retain_Verified_Restores => Exec.Verified_Replaced_Count,
+               others => <>));
       end if;
 
       --  A clipboard cut/move consumes the clipboard once the paste has run
@@ -64,12 +97,13 @@ begin
       --  it must not clear an unrelated clipboard selection.
       if Mode = Files.File_System.Drop_Move
         and then Exec.Clears_Clipboard
+        and then not Undo_From.Is_Empty
       then
          Files.Model.Clear_Clipboard (Model);
       end if;
    end if;
 
-   if Undo_From.Is_Empty and then not Replaced_Trash.Is_Empty then
+   if Undo_From.Is_Empty and then not Has_Kept and then not Replaced_Trash.Is_Empty then
       Record_Undo
         (Model, Files.Model.Undo_Restore_Trash, Replaced_Trash,
          Exec.Replaced_Targets, Redoable => False,
@@ -78,30 +112,16 @@ begin
             Retain_Verified_Main => Exec.Verified_Replaced_Count,
             others => <>));
    end if;
-   --  Recorded last, so undone first: the copy leaves its destination
-   --  before an original replaced there is restored to it.
-   if Length (Kept.Dest_Path) > 0 then
-      Record_Undo
-        (Model, Files.Model.Undo_Delete_Created,
-         Files.Types.String_Vectors.To_Vector (Kept.Dest_Path, 1),
-         Files.Types.String_Vectors.Empty_Vector,
-         Forward     => Files.Types.String_Vectors.To_Vector (Kept.Source_Path, 1),
-         Create_Kind => Files.Model.Create_Copy,
-         Provenance  =>
-           (Identities     => Files.Types.String_Vectors.To_Vector (Kept.Identity, 1),
-            Tree_Revisions => Files.Types.String_Vectors.To_Vector (Kept.Tree_Revision, 1),
-            others         => <>));
-   end if;
    Files.Model.Clear_Paste_Execution (Model);
 
    if Files.Model.Background_Transfers (Model) then
       --  Preserve mutation errors while a nonmodal helper refreshes the view.
-      Files.Model.Set_Error (Model, Error_Key);
+      Files.Model.Set_Error (Model, Reported_Key);
       declare
          Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
       begin
-         if Error_Key /= "" then
-            return Make_Result (Operation_Failed, Error_Key, Files.Model.Current_Path (Model));
+         if Reported_Key /= "" then
+            return Make_Result (Operation_Failed, Reported_Key, Files.Model.Current_Path (Model));
          elsif Reload.Status /= Operation_Success then
             return Reload;
          end if;
@@ -113,17 +133,17 @@ begin
       Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
    begin
       if Reload.Status /= Operation_Success then
-         if Error_Key /= "" then
-            Files.Model.Set_Error (Model, Error_Key);
-            return Make_Result (Operation_Failed, Error_Key, Files.Model.Current_Path (Model));
+         if Reported_Key /= "" then
+            Files.Model.Set_Error (Model, Reported_Key);
+            return Make_Result (Operation_Failed, Reported_Key, Files.Model.Current_Path (Model));
          end if;
          return Reload;
       end if;
    end;
 
-   if Error_Key /= "" then
-      Files.Model.Set_Error (Model, Error_Key);
-      return Make_Result (Operation_Failed, Error_Key, Files.Model.Current_Path (Model));
+   if Reported_Key /= "" then
+      Files.Model.Set_Error (Model, Reported_Key);
+      return Make_Result (Operation_Failed, Reported_Key, Files.Model.Current_Path (Model));
    end if;
 
    Files.Model.Set_Error (Model, "");

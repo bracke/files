@@ -1,4 +1,5 @@
 with Files.Commands;
+with Files.Drop_Events;
 with Files.Events;
 with Files.File_System;
 with Files.Model;
@@ -319,6 +320,26 @@ package Files.Controller is
       Activate      : Boolean := False;
       Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result;
+
+   --  Whether dropped paths may be imported now: not while an overlay owns
+   --  the input (a dialog, the palette, a paste's progress), which would turn
+   --  the import away. Until it closes the drop stays queued, not lost.
+   --
+   --  @param Model Window model to inspect.
+   --  @return True when Handle_Drop_Import would import a drop.
+   function Accepts_Drop_Import (Model : Files.Model.Window_Model) return Boolean;
+
+   --  Import the drop Source holds (Handle_Drop_Import), once the window
+   --  accepts one (Accepts_Drop_Import): while an overlay owns the input the
+   --  drop stays queued in Source, to be imported when the overlay closes.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used by operations.
+   --  @param Source The window's queue of dropped paths.
+   procedure Import_Pending_Drops
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Source   : in out Files.Drop_Events.Drop_Event_Source);
 
    --  Import paths dropped into the current window through the paste engine, so
    --  a drop gets the same conflict dialog and resumable progress/cancel overlay

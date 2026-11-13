@@ -16,6 +16,11 @@ package Files.Protocol_Names is
    --  What every recovery stage's folder name starts with (then a number).
    Recovery_Stage_Prefix : constant String := ".files-recovery-";
 
+   --  The file in the recovery registry that every process changing the
+   --  registry holds an advisory lock on, so one never removes a slot
+   --  another has just claimed.
+   Recovery_Registry_Lock : constant String := ".files-registry-lock";
+
    --  The file in a recovery stage that names whose it is.
    Recovery_Owner : constant String := ".files-recovery-owner";
 

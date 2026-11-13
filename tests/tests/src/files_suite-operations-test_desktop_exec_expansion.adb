@@ -124,12 +124,14 @@ separate (Files_Suite.Operations)
               (Name         => To_Unbounded_String ("Single Target"),
                Exec         => To_Unbounded_String ("viewer --before %f --after"),
                Icon         => Null_Unbounded_String,
-               Desktop_File => Null_Unbounded_String);
+               Desktop_File => Null_Unbounded_String,
+               others       => <>);
             Percent_App : constant Files.Desktop_Applications.Application :=
               (Name         => To_Unbounded_String ("Percent Executable"),
                Exec         => To_Unbounded_String ("viewer%%tool %F"),
                Icon         => Null_Unbounded_String,
-               Desktop_File => Null_Unbounded_String);
+               Desktop_File => Null_Unbounded_String,
+               others       => <>);
             Actions : Files.Desktop_Applications.Open_Action_Vectors.Vector;
             Action  : Files.Settings.Open_Action;
          begin

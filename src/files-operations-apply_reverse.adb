@@ -16,6 +16,43 @@ is
       and then Files.File_Identities.Token (To_String (Targets (Index))) = To_String (Identities (Index)));
    Restored  : Path_Sets.Set := To_Set (Action.Restores_Completed);
 begin
+   --  Copies a failed move kept beside their sources leave first: before
+   --  anything moves back, and before an original a replace preserved is
+   --  restored to the path one of them holds. Each step is marked, so a
+   --  retry never deletes what a restore has since put there.
+   for Index in Action.Kept_Copies.First_Index .. Action.Kept_Copies.Last_Index loop
+      if Files.Job_Context.Cancelled then
+         return False;
+      end if;
+      declare
+         Target : constant String := To_String (Action.Kept_Copies (Index));
+         Identity : constant String :=
+           (if Index <= Action.Kept_Copy_Identities.Last_Index
+            then To_String (Action.Kept_Copy_Identities (Index)) else "");
+         Tree_Revision : constant String :=
+           (if Index <= Action.Kept_Copy_Tree_Revisions.Last_Index
+            then To_String (Action.Kept_Copy_Tree_Revisions (Index)) else "");
+      begin
+         if Reversed.Contains (Target) then
+            null;
+         elsif Exists_Safely (Target)
+           and then (Identity = ""
+             or else Files.File_Identities.Token (Target) /= Identity
+             or else not Files.File_System.Delete_Created_Entry (Target, Identity, Tree_Revision).Success)
+         then
+            Succeeded := False;
+         else
+            Action.Reverse_Completed.Append (Action.Kept_Copies (Index));
+            Reversed.Include (Target);
+            Files.History_Journal.Checkpoint (Model, Action, False);
+         end if;
+      end;
+   end loop;
+   --  An original goes back only to a path no kept copy still holds.
+   if not Succeeded then
+      return False;
+   end if;
+
    case Action.Kind is
       when Files.Model.Undo_Rename | Files.Model.Undo_Move =>
          Succeeded := Move_Back (Action, Model, False);

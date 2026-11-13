@@ -159,7 +159,10 @@ private package Files.Operations.Support is
    --  the last second's items from Undo, which stay where the batch put them
    --  (copies beside their sources, trashed items in the trash).
    --  Finish_Undo records whatever Checkpoint_Undo left out, so the entry a
-   --  batch ends with covers all of it.
+   --  batch ends with covers all of it. A record attempt that keeps nothing
+   --  (no member could be verified, as when something else touched every
+   --  copy) is throttled the same way: it is retried at Finish_Undo, not on
+   --  every item.
    type Progressive_Undo is record
       --  How the entry is recorded, as for Try_Record_Undo.
       Kind        : Files.Model.Undo_Action_Kind := Files.Model.Undo_Delete_Created;
@@ -174,10 +177,12 @@ private package Files.Operations.Support is
       From, To, Forward          : Files.Types.String_Vectors.Vector;
       Identities, Tree_Revisions : Files.Types.String_Vectors.Vector;
       --  Kept by Checkpoint_Undo and Finish_Undo: whether the top Undo entry
-      --  is this batch's, how many From members it covers, how many of those
-      --  were verified (Retain_Verified_Main), and when it was recorded.
+      --  is this batch's, whether a record was attempted, how many From
+      --  members the last attempt covered, how many of those were verified
+      --  (Retain_Verified_Main), and when the last attempt was.
       Recorded        : Boolean := False;
-      Recorded_Count  : Natural := 0;
+      Attempted       : Boolean := False;
+      Attempted_Count : Natural := 0;
       Verified_Count  : Natural := 0;
       Last_Checkpoint : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
    end record;
@@ -191,18 +196,43 @@ private package Files.Operations.Support is
      (Model    : in out Files.Model.Window_Model;
       Progress : in out Progressive_Undo);
 
+   --  How a batch's Undo ended up.
+   --    * Undo_Covered: the batch's entry is recorded (members that could
+   --      not be verified are left out of it), or it appended nothing.
+   --    * Undo_Unavailable: it appended items but no entry could be
+   --      recorded. The batch's work stands, so it still succeeds, but with
+   --      the "undo.unavailable" notice rather than a silent missing Undo.
+   type Undo_Outcome is (Undo_Covered, Undo_Unavailable);
+
+   --  The notice a batch whose Undo is unavailable shows.
+   Undo_Unavailable_Notice : constant String := "undo.unavailable";
+
    --  Record whatever Checkpoint_Undo left out, so the entry covers every
-   --  item appended. A record that fails raises, so a batch that otherwise
-   --  succeeded reports the failure rather than an Undo it does not have.
+   --  item appended. A record that raises propagates, so a batch that
+   --  otherwise succeeded reports the failure rather than an Undo it does not
+   --  have; a record that keeps nothing is reported as Undo_Unavailable.
    --
    --  @param Model Model whose history is updated.
    --  @param Progress The batch's entry.
-   procedure Finish_Undo
+   --  @return Whether the batch has its Undo.
+   function Finish_Undo
      (Model    : in out Files.Model.Window_Model;
-      Progress : in out Progressive_Undo);
+      Progress : in out Progressive_Undo) return Undo_Outcome;
+
+   --  Show Notice once a batch's Undo turned out unavailable, after the
+   --  reload a successful batch ends with (which clears notices).
+   --
+   --  @param Model Window that shows the notice.
+   --  @param Outcome The batch's Finish_Undo outcome.
+   --  @param Result The batch's result; only a success is given the notice.
+   procedure Note_Undo_Outcome
+     (Model   : in out Files.Model.Window_Model;
+      Outcome : Undo_Outcome;
+      Result  : Operation_Result);
 
    --  Finish_Undo for a batch that has already failed: a record that fails
-   --  too is noted, and the batch's own failure is what the caller reports.
+   --  (raises or keeps nothing) is noted, and the batch's own failure is
+   --  what the caller reports.
    --
    --  @param Model Window whose Undo history holds the batch's entry.
    --  @param Progress The batch's entry so far.

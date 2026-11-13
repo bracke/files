@@ -108,6 +108,9 @@ package Files.Application.Windows.Smoke is
       --  whether a key pressed through the loop's own pass was drawn.
       Loop_Failures      : Natural := 0;
       Loop_Drew_Input    : Boolean := False;
+      --  Whether, after the window was resized, a frame was read back at the
+      --  new size: the renderer rebuilt its swapchain under load.
+      Resize_Drawn       : Boolean := False;
       --  Per-scenario structural verdict and framebuffer hash captured by the
       --  multi-scenario live smoke; Framebuffer_* above mirror the default
       --  scenario's frame for the legacy single-frame diagnostics.

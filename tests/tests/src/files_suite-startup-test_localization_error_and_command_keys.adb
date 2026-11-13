@@ -42,6 +42,7 @@ separate (Files_Suite.Startup)
       Add_Error_Key ("search.no_matches");
       Add_Error_Key ("search.truncated");
       Add_Error_Key ("search.incomplete");
+      Add_Error_Key ("undo.unavailable");
       Add_Error_Key ("error.permanent_delete.refused");
       Add_Error_Key ("error.permanent_delete.failed");
       Add_Error_Key ("error.permissions.failed");
@@ -54,6 +55,7 @@ separate (Files_Suite.Startup)
       Add_Error_Key ("error.drop.failed");
       Add_Error_Key ("error.move.source_changed");
       Add_Error_Key ("error.move.source_set_aside");
+      Add_Error_Key ("error.paste.undo_unavailable");
       Add_Error_Key ("error.settings.not_persisted");
       Add_Error_Key ("error.extract.not_archive");
       Add_Error_Key ("error.clipboard.empty");

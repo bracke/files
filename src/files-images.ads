@@ -59,12 +59,15 @@ package Files.Images is
 
    --  A decoded raster image: RGBA bytes (row-major, 4 bytes/pixel) scaled to
    --  fit within a target box while preserving aspect ratio. Available is False
-   --  when the image could not be decoded.
+   --  when the image could not be decoded; Extent_Refused says it was not
+   --  even handed to a decoder, its header declaring more pixels than a
+   --  file decode accepts.
    type Decoded_Image is record
       Available : Boolean := False;
       Width     : Natural := 0;
       Height    : Natural := 0;
       Pixels    : Files.Types.Byte_Vectors.Vector;
+      Extent_Refused : Boolean := False;
    end record;
 
    --  The pixel dimensions an encoded image declares, without decoding it.

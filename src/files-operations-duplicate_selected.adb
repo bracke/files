@@ -99,14 +99,21 @@ begin
          end;
       end loop;
    end;
-   Finish_Undo (Model, Progress);
+   declare
+      Undo : constant Undo_Outcome := Finish_Undo (Model, Progress);
+   begin
+      if not Created_Any then
+         return Failed;
+      end if;
 
-   if not Created_Any then
-      return Failed;
-   end if;
-
-   --  Reload the active view; an ordinary folder selects the first copy.
-   return Reload_Current_Directory (Model, Settings, To_String (First_Created));
+      --  Reload the active view; an ordinary folder selects the first copy.
+      declare
+         Result : constant Operation_Result := Reload_Current_Directory (Model, Settings, To_String (First_Created));
+      begin
+         Note_Undo_Outcome (Model, Undo, Result);
+         return Result;
+      end;
+   end;
 exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.Operations");

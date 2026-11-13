@@ -60,6 +60,13 @@ package Files.File_System.Testing is
    --  Delete entries of ours again.
    procedure Stop_Failing_Owned_Delete;
 
+   --  From now on, make Creation_Matches refuse every entry (Refuse True),
+   --  as if something had touched each one since its creation, so Undo can
+   --  verify none; or verify them again (False).
+   --
+   --  @param Refuse Whether every creation is refused.
+   procedure Refuse_Creation_Matches (Refuse : Boolean);
+
    --  Delete a folder of ours (a recovery stage, a transport) the way the
    --  program does.
    --

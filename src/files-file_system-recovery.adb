@@ -4,6 +4,8 @@ with Files.Diagnostics;
 with Files.File_Identities;
 with Files.Io_Errors;
 with Ada.Containers.Indefinite_Hashed_Sets;
+with Ada.Finalization;
+with Ada.Task_Identification;
 with Ada.Directories;
 with Ada.Streams;
 with Ada.Strings.Hash;
@@ -14,6 +16,7 @@ with Hostkit.Durability;
 with Hostkit.Fs;
 with Hostkit.Host;
 with Hostkit.Lease_Files;
+with Hostkit.Locks;
 with Hostkit.Metadata;
 with Files.Bounded_Streams;
 with Files.Exclusive_Streams;
@@ -387,8 +390,79 @@ package body Files.File_System.Recovery is
          return False;
    end Read_Registry_Record;
 
+   --  Every change to the registry happens under one advisory lock on a file
+   --  in it, across processes and tasks. Without it, a process that judged a
+   --  slot stale and went to delete it could delete the fresh slot another
+   --  process had reclaimed under the same name in between -- whose record
+   --  then failed to write, and whose Undo failed with it.
+   --
+   --  Held per task and reentrantly: a sweep that finishes a stage goes on
+   --  to unregister it, and a second lock on the file from the same process
+   --  would wait for itself.
+   protected Registry_Owner is
+      --  @return Whether Task holds the lock.
+      function Holds (Task_Id : Ada.Task_Identification.Task_Id) return Boolean;
+      procedure Claim (Task_Id : Ada.Task_Identification.Task_Id);
+      procedure Clear;
+   private
+      Owner : Ada.Task_Identification.Task_Id := Ada.Task_Identification.Null_Task_Id;
+   end Registry_Owner;
+
+   protected body Registry_Owner is
+      function Holds (Task_Id : Ada.Task_Identification.Task_Id) return Boolean is
+        (Ada.Task_Identification."=" (Owner, Task_Id));
+
+      procedure Claim (Task_Id : Ada.Task_Identification.Task_Id) is
+      begin
+         Owner := Task_Id;
+      end Claim;
+
+      procedure Clear is
+      begin
+         Owner := Ada.Task_Identification.Null_Task_Id;
+      end Clear;
+   end Registry_Owner;
+
+   --  The lock while it lives; an inner hold in the same task does nothing.
+   type Registry_Hold is new Ada.Finalization.Limited_Controlled with record
+      Lock  : Hostkit.Locks.Lock;
+      Outer : Boolean := False;
+   end record;
+
+   overriding procedure Finalize (Hold : in out Registry_Hold);
+
+   overriding procedure Finalize (Hold : in out Registry_Hold) is
+   begin
+      if Hold.Outer then
+         Hold.Outer := False;
+         Registry_Owner.Clear;
+         Hostkit.Locks.Release (Hold.Lock);
+      end if;
+   end Finalize;
+
+   --  Take the registry lock under Root for this task, waiting for any
+   --  other holder. A host or volume without advisory locks goes on
+   --  unguarded, as every registry change did before the lock.
+   procedure Hold_Registry (Root : String; Hold : in out Registry_Hold) is
+   begin
+      if Root = "" or else Registry_Owner.Holds (Ada.Task_Identification.Current_Task) then
+         return;
+      end if;
+      declare
+         Outcome : constant Hostkit.Locks.Lock_Outcome := Hostkit.Locks.Acquire
+           (Hostkit.Fs.Join (Root, Files.Protocol_Names.Recovery_Registry_Lock),
+            Hostkit.Locks.Lock_Exclusive, Wait => True, Item => Hold.Lock);
+         pragma Unreferenced (Outcome);
+      begin
+         null;
+      end;
+      Registry_Owner.Claim (Ada.Task_Identification.Current_Task);
+      Hold.Outer := True;
+   end Hold_Registry;
+
    procedure Delete_Registry_Record (Directory : String) is
       Root : constant String := Registry_Root (Create => False);
+      Hold : Registry_Hold;
       Count : Natural := 0;
       Other : Boolean := False;
 
@@ -409,6 +483,7 @@ package body Files.File_System.Recovery is
       then
          return;
       end if;
+      Hold_Registry (Root, Hold);
       Files.Fs_Primitives.For_Each_Name (Directory, Check'Access);
       if Count = 1 and then not Other then
          Delete_Owned_Tree (Directory);
@@ -441,12 +516,14 @@ package body Files.File_System.Recovery is
 
    function Register (Payload : String) return String is
       Root : constant String := Registry_Root (Create => True);
+      Hold : Registry_Hold;
       Directory : UString;
       File : aliased Files.Exclusive_Streams.Output_Stream;
    begin
       if Root = "" or else not Valid_Absolute_Path (Payload) then
          raise Ada.Directories.Use_Error;
       end if;
+      Hold_Registry (Root, Hold);
       --  Preserve registers a stage it has just created exclusively, and stage
       --  names are reused once freed, so any record already naming this
       --  payload belongs to an earlier, finished stage of the same name.
@@ -510,6 +587,7 @@ package body Files.File_System.Recovery is
 
    procedure Unregister (Payload : String) is
       Root : constant String := Registry_Root (Create => False);
+      Hold : Registry_Hold;
 
       procedure Check (Name : String; Stop : in out Boolean) is
          pragma Unreferenced (Stop);
@@ -528,6 +606,7 @@ package body Files.File_System.Recovery is
       if Root = "" then
          return;
       end if;
+      Hold_Registry (Root, Hold);
       Files.Fs_Primitives.For_Each_Name (Root, Check'Access);
    exception
       when Failure : others =>
@@ -1110,6 +1189,7 @@ package body Files.File_System.Recovery is
 
    procedure Sweep_Registry is
       Root : constant String := Registry_Root (Create => False);
+      Hold : Registry_Hold;
       Seen : Path_Sets.Set;
 
       procedure Check (Name : String; Stop : in out Boolean) is
@@ -1149,6 +1229,7 @@ package body Files.File_System.Recovery is
       if Root = "" then
          return;
       end if;
+      Hold_Registry (Root, Hold);
       Files.Fs_Primitives.For_Each_Name (Root, Check'Access);
    exception
       when Failure : others =>

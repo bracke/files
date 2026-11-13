@@ -49,7 +49,8 @@ begin
    --  report and does not pretend to: what used to be reported was the backgrounding
    --  wrapper shell's zero, which said nothing about the application.
    if Detach then
-      return Hostkit.Process.Launch (Executable, Arguments);
+      return Hostkit.Process.Launch
+        (Executable, Arguments, Working_Directory => To_String (Action.Working_Directory));
    end if;
 
    return Hostkit.Process.Run (Executable, Arguments, Exit_Status);

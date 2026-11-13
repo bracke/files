@@ -62,5 +62,6 @@ separate (Files.Settings)
       return
         (Executable => Program,
          Arguments  => Args,
-         Use_Shell  => Use_Shell);
+         Use_Shell  => Use_Shell,
+         others     => <>);
    end Parse_Action;

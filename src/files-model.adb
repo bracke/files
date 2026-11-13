@@ -35,6 +35,14 @@ package body Files.Model is
    package UString_Sets is new Ada.Containers.Ordered_Sets
      (Element_Type => UString);
 
+   --  Cap the undo history so a session doing thousands of operations does not
+   --  grow it without bound: each entry retains the full source and destination
+   --  path lists (and permission/ownership images), so an unbounded stack pins
+   --  that data for the life of the window. Past the cap the oldest entry --
+   --  least likely to ever be undone -- is dropped; LIFO undo only touches the
+   --  newest, so the reachable history is unaffected.
+   Max_Undo_Depth : constant := 200;
+
    function Undo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.Undo_Stack);
    function Redo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector is (Model.Redo_Stack);
 
@@ -153,10 +161,23 @@ package body Files.Model is
       end Payload_Images_Valid;
 
       Forward_Markers_Valid : Boolean := False;
+      --  Reverse markers name a From path or a kept copy.
+      Reverse_Allowed : Files.Types.String_Vectors.Vector := Action.From;
    begin
+      Reverse_Allowed.Append_Vector (Action.Kept_Copies);
       if Action.Kind = Undo_None
         or else Main_Count = 0
         or else not Unique_Absolute_Paths (Action.From)
+        or else (not Action.Kept_Copies.Is_Empty
+          and then (Action.Kind /= Undo_Move
+            or else Action.Redoable
+            or else not Unique_Absolute_Paths (Action.Kept_Copies)
+            or else not Same_Length (Action.Kept_Copies, Action.Kept_Copy_Identities)
+            or else not Same_Length (Action.Kept_Copies, Action.Kept_Copy_Tree_Revisions)
+            or else not Nonempty_Values (Action.Kept_Copy_Identities)
+            or else not Unique_Nonempty_Values (Reverse_Allowed)))
+        or else (Action.Kept_Copies.Is_Empty
+          and then not (Action.Kept_Copy_Identities.Is_Empty and then Action.Kept_Copy_Tree_Revisions.Is_Empty))
         or else not Same_Length (Action.From, Action.Created_Identities)
         or else not Same_Length (Action.From, Action.Created_Tree_Revisions)
         or else not Nonempty_Values (Action.Created_Identities)
@@ -254,7 +275,7 @@ package body Files.Model is
       end case;
 
       return Forward_Markers_Valid
-        and then Completion_Markers_Valid (Action.Reverse_Completed, Action.From)
+        and then Completion_Markers_Valid (Action.Reverse_Completed, Reverse_Allowed)
         and then (not For_Redo or else
           (Action.Reverse_Completed.Is_Empty and then Action.Restores_Completed.Is_Empty))
         and then (For_Redo or else Action.Forward_Completed.Is_Empty)
@@ -270,23 +291,57 @@ package body Files.Model is
          return False;
    end History_Entry_Usable;
 
-   procedure Set_History (Model : in out Window_Model; Undo, Redo : Undo_Entry_Vectors.Vector) is
-      Sanitized_Undo, Sanitized_Redo : Undo_Entry_Vectors.Vector;
-   begin
-      for Action of Undo loop
-         if History_Entry_Usable (Action, For_Redo => False) then
-            Sanitized_Undo.Append (Action);
+   --  The usable entries of Undo and Redo, each with a Sequence: one an
+   --  older journal did not carry is given the next of Next.
+   procedure Sanitize_History
+     (Undo, Redo : Undo_Entry_Vectors.Vector;
+      Next : in out Positive;
+      Sanitized_Undo, Sanitized_Redo : out Undo_Entry_Vectors.Vector)
+   is
+      procedure Keep (Action : Undo_Entry; For_Redo : Boolean; Stack : in out Undo_Entry_Vectors.Vector) is
+         Kept : Undo_Entry := Action;
+      begin
+         if History_Entry_Usable (Action, For_Redo) then
+            if Kept.Sequence = 0 then
+               Kept.Sequence := Next;
+            end if;
+            Next := Positive'Max (Next, Kept.Sequence + 1);
+            Stack.Append (Kept);
          end if;
+      end Keep;
+   begin
+      Sanitized_Undo.Clear;
+      Sanitized_Redo.Clear;
+      for Action of Undo loop
+         Keep (Action, False, Sanitized_Undo);
       end loop;
       for Action of Redo loop
-         if History_Entry_Usable (Action, For_Redo => True) then
-            Sanitized_Redo.Append (Action);
-         end if;
+         Keep (Action, True, Sanitized_Redo);
       end loop;
+   end Sanitize_History;
+
+   procedure Set_History
+     (Model : in out Window_Model;
+      Undo, Redo : Undo_Entry_Vectors.Vector;
+      State : History_Journal_State := (others => <>))
+   is
+      Sanitized_Undo, Sanitized_Redo : Undo_Entry_Vectors.Vector;
+      Next : Positive := State.Next_Sequence;
+   begin
+      Sanitize_History (Undo, Redo, Next, Sanitized_Undo, Sanitized_Redo);
       Model.Undo_Stack := Sanitized_Undo;
       Model.Redo_Stack := Sanitized_Redo;
+      Model.History_Journal :=
+        (Next_Sequence => Next, Unjournaled => State.Unjournaled, Redo_Retired => False);
       Support.Touch (Model);
    end Set_History;
+
+   function History_State (Model : Window_Model) return History_Journal_State is (Model.History_Journal);
+
+   procedure Merge_History
+     (Model : in out Window_Model;
+      Undo, Redo : Undo_Entry_Vectors.Vector;
+      State : History_Journal_State) is separate;
 
    procedure Set_Background_Transfers (Model : in out Window_Model; Enabled : Boolean) is
    begin

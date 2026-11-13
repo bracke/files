@@ -49,11 +49,14 @@ begin
    --  The first block is read before the loader exists, so its header can
    --  refuse an oversized image; the loop below feeds it to the loader first.
    Bytes_Read := GNAT.OS_Lib.Read (Descriptor, Buffer'Address, Integer (Buffer'Length));
-   if Bytes_Read < 0
-     or else not Declared_Extent_Allowed
-       (Path, Buffer (Buffer'First .. Buffer'First + Ada.Streams.Stream_Element_Offset (Bytes_Read) - 1))
+   if Bytes_Read < 0 then
+      Clean;
+      return Result;
+   elsif not Declared_Extent_Allowed
+     (Path, Buffer (Buffer'First .. Buffer'First + Ada.Streams.Stream_Element_Offset (Bytes_Read) - 1))
    then
       Clean;
+      Result.Extent_Refused := True;
       return Result;
    end if;
    Loader := Loader_New;
@@ -160,5 +163,5 @@ exception
       Files.Diagnostics.Note (Swallowed, "Files.Images");
       Clean;
       return (Available => False, Width => 0, Height => 0,
-              Pixels => Files.Types.Byte_Vectors.Empty_Vector);
+              Pixels => Files.Types.Byte_Vectors.Empty_Vector, Extent_Refused => False);
 end Decode_Image_To_Pixels;

@@ -41,8 +41,10 @@ is
          return;
       end if;
       --  Checked before the folder is listed: listing it in full only to
-      --  return was most of a stopped search's cost.
-      if Natural (Result.Items.Length) >= Max_Items or else Scanned >= Max_Entries_Scanned then
+      --  return was most of a stopped search's cost. Only the walk's own
+      --  bound is: a search holding as many matches as it may still walks on,
+      --  as a folder left (an empty one, say) may hold no further match.
+      if Scanned >= Max_Entries_Scanned then
          Stop;
          return;
       end if;
@@ -61,14 +63,14 @@ is
          end if;
          for Item of Load.Items loop
             exit when Files.Job_Context.Cancelled;
-            --  Reaching the cap on the final item of a complete walk is
-            --  allowed; an item left unjudged past it is not.
-            if Natural (Result.Items.Length) >= Max_Items then
-               Stop;
-               return;
-            end if;
             case Judge (Item) is
                when Found =>
+                  --  The answer is cut short only by a match the cap turns
+                  --  away: exactly Max_Items matches is a complete answer.
+                  if Natural (Result.Items.Length) >= Max_Items then
+                     Stop;
+                     return;
+                  end if;
                   Result.Items.Append (Item);
                when Passed =>
                   null;

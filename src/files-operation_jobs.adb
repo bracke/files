@@ -228,9 +228,7 @@ package body Files.Operation_Jobs is
       Files.Model.Set_Error (Model, "");
       Work.Context_Revision := Files.Model.Listing_Revision (Model);
       Files.Process_Jobs.Reserve (Job);
-      Files.History_Journal.Save_Stacks
-        (Files.Process_Jobs.Path (Job, ""), Files.Model.Undo_History (Model),
-         Files.Model.Redo_History (Model), Required => True);
+      Files.History_Journal.Save_To (Files.Process_Jobs.Path (Job, ""), Model, Required => True);
       Files.Exclusive_Streams.Create
         (File, Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
       Write_Request (File'Access, Work);
@@ -415,11 +413,14 @@ package body Files.Operation_Jobs is
                Files.Model.Note_Path_Move (Model, To_String (Move.From), To_String (Move.To));
          end case;
       end loop;
-      if not Files.History_Journal.Restore
+      --  Merged, not replaced: entries the journal left out stay, and what
+      --  the merge retires has its payloads released here.
+      if not Files.History_Journal.Merge
         (Files.Process_Jobs.Path (Job, ""), Model)
       then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
+      Files.Operations.Settle_History (Model);
       Same_View := Matches_Current_View (Work);
       Context_Matches := Matches_Current_Context (Work);
       if Done.Kind in Search_Names | Search_Contents then
@@ -518,10 +519,10 @@ package body Files.Operation_Jobs is
          Files.Model.Clear_Paste_Execution (Model);
          declare
             Restored : constant Boolean :=
-              Files.History_Journal.Restore (Files.Process_Jobs.Path (Job, ""), Model);
+              Files.History_Journal.Merge (Files.Process_Jobs.Path (Job, ""), Model);
             pragma Unreferenced (Restored);
          begin
-            null;
+            Files.Operations.Settle_History (Model);
          end;
          Recover_Undo;
          --  Even an interrupted destructive operation may have changed its

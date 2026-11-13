@@ -31,6 +31,11 @@ function Try_Record_Undo
    Targets : Files.Types.String_Vectors.Vector := To;
    Kept_From, Kept_To, Kept_Forward : Files.Types.String_Vectors.Vector;
    Kept_Identities, Kept_Tree_Revisions : Files.Types.String_Vectors.Vector;
+   Kept_Copies, Kept_Copy_Identities, Kept_Copy_Tree_Revisions : Files.Types.String_Vectors.Vector;
+   --  An entry that deletes kept copies first is undo-only: redoing the move
+   --  would collide with the sources the failed move left in place.
+   Entry_Redoable : constant Boolean := Redoable and then Provenance.Kept_Copies.Is_Empty;
+   Entry_Kind : Files.Model.Undo_Action_Kind := Kind;
    Invalid_Main : Boolean := False;
    Invalid_Restore : Boolean := False;
    Recorded : Boolean;
@@ -91,9 +96,16 @@ begin
    --  everything that reads the filesystem happens here, before the model
    --  commits the entry.
    Files.Model.Begin_Undo_Record (Model, Kind, From, To);
-   if Kind = Files.Model.Undo_None or else From.Is_Empty then
+   if Kind = Files.Model.Undo_None or else (From.Is_Empty and then Provenance.Kept_Copies.Is_Empty) then
       return False;
    end if;
+   declare
+      Attempted : constant Record_Hook := Undo_Record_Attempted;
+   begin
+      if Attempted /= null then
+         Attempted.all;
+      end if;
+   end;
    if Kind in Files.Model.Undo_Delete_Created | Files.Model.Undo_Rename | Files.Model.Undo_Move
      | Files.Model.Undo_Restore_Trash | Files.Model.Undo_Set_Permissions | Files.Model.Undo_Set_Ownership
    then
@@ -177,11 +189,55 @@ begin
       end;
    end loop;
 
+   --  A kept copy is deleted by Undo only while it is still the copy the
+   --  failed move published. One that cannot be verified is left out -- but
+   --  not when an original a replace preserved goes back to its path: that
+   --  restore would meet the unverified copy, so nothing is recorded.
+   for Index in Provenance.Kept_Copies.First_Index .. Provenance.Kept_Copies.Last_Index loop
+      declare
+         Path : constant String := To_String (Provenance.Kept_Copies (Index));
+         Identity : constant String :=
+           (if Index <= Provenance.Kept_Copy_Identities.Last_Index
+            then To_String (Provenance.Kept_Copy_Identities (Index)) else "");
+         Tree_Revision : constant String :=
+           (if Index <= Provenance.Kept_Copy_Tree_Revisions.Last_Index
+            then To_String (Provenance.Kept_Copy_Tree_Revisions (Index)) else "");
+      begin
+         if Kind = Files.Model.Undo_Move
+           and then Identity /= ""
+           and then Creation_Snapshot_Matches (Path, Identity, Tree_Revision, False)
+         then
+            Kept_Copies.Append (Provenance.Kept_Copies (Index));
+            Kept_Copy_Identities.Append (To_Unbounded_String (Identity));
+            Kept_Copy_Tree_Revisions.Append (To_Unbounded_String (Tree_Revision));
+         elsif Restore_Targets.Contains (Provenance.Kept_Copies (Index)) then
+            Invalid_Restore := True;
+         end if;
+      end;
+   end loop;
+
    --  A replacement reversal must remove or move every created destination
    --  before restoring its preserved originals. Dropping only an
    --  unverifiable member would make those steps refer to different sets.
    if Invalid_Restore or else (not Restore_Trash.Is_Empty and then Invalid_Main) then
       Kept_From.Clear;
+      Kept_Copies.Clear;
+   elsif Kept_From.Is_Empty and then not Kept_Copies.Is_Empty then
+      --  No moved member is left to move back: the kept copies alone are
+      --  undone, as the creations they are.
+      Entry_Kind := Files.Model.Undo_Delete_Created;
+      Kept_From := Kept_Copies;
+      Kept_To.Clear;
+      Kept_Forward.Clear;
+      Kept_Identities := Kept_Copy_Identities;
+      Kept_Tree_Revisions := Kept_Copy_Tree_Revisions;
+      Kept_Copies.Clear;
+      Kept_Copy_Identities.Clear;
+      Kept_Copy_Tree_Revisions.Clear;
+   end if;
+   if Kept_Copies.Is_Empty then
+      Kept_Copy_Identities.Clear;
+      Kept_Copy_Tree_Revisions.Clear;
    end if;
 
    --  The model retires the redo stack (and, past its depth cap, the oldest
@@ -190,17 +246,20 @@ begin
    Recorded := Files.Model.Commit_Undo_Record
      (Model,
       Files.Model.Undo_Entry'
-        (Kind          => Kind,
+        (Kind          => Entry_Kind,
          From          => Kept_From,
          To            => Kept_To,
          Forward       => Kept_Forward,
          Create_Kind   => Create_Kind,
-         Redoable      => Redoable,
+         Redoable      => Entry_Redoable,
          Restore_Trash => Restore_Trash,
          Restore_Identities => Restore_Identities,
          Restore_Targets => Restore_Targets,
          Created_Identities => Kept_Identities,
          Created_Tree_Revisions => Kept_Tree_Revisions,
+         Kept_Copies   => Kept_Copies,
+         Kept_Copy_Identities => Kept_Copy_Identities,
+         Kept_Copy_Tree_Revisions => Kept_Copy_Tree_Revisions,
          others        => <>));
    Settle_History (Model);
    return Recorded;

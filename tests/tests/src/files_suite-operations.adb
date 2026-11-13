@@ -211,6 +211,7 @@ package body Files_Suite.Operations is
    procedure Test_Rename_Trash_Delete_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Settings_Save_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Desktop_Exec_Quoted_Percent (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Desktop_Terminal_Entries (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Long_Path_Operations (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    procedure Test_Archive_Completeness (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -243,6 +244,7 @@ package body Files_Suite.Operations is
    procedure Test_Move_Source_Changes_Off_Volume (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_Keeps_Source_Until_Copy_Synced (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Failed_Move_Kept_Copy_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Batch_Undo_Records (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Read_Only_Survives_Copy_And_Move (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_Keeps_Trash_Until_Synced (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Name_Too_Long_Is_Reported (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -421,6 +423,7 @@ package body Files_Suite.Operations is
    procedure Test_Undo_Redo_History (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_History_Save_Replaces_Leftover (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_History_Journal_Fits_Large_Actions (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_History_Merge_Keeps_Unjournaled (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Symlink_Creation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Set_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Permission_Undo_Restores_Access (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -495,6 +498,7 @@ package body Files_Suite.Operations is
    procedure Test_Background_Result_Mismatch (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Owed_Reloads (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Registry_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Registry_Changes_Wait_For_Its_Lock (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Helper_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transport_Protocol_Gaps (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Journal_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -585,6 +589,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Recovery_Registry_Bounded'Access,
          "verified deletes leave no recovery-registry record and stale records are reclaimed");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Registry_Changes_Wait_For_Its_Lock'Access,
+         "a recovery registry change waits for the registry's lock and goes ahead once it is let go");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Owed_Reloads'Access,
          "edits within a view discard stale background results but never the reload they owe");
@@ -1028,6 +1035,9 @@ package body Files_Suite.Operations is
         (T, Test_History_Journal_Fits_Large_Actions'Access,
          "The history journal leaves out the oldest entries to fit");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_History_Merge_Keeps_Unjournaled'Access,
+         "A background helper's history merges back without losing what its journal left out");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Redo_Symlink_Creation'Access, "a created symlink undoes and redoes symmetrically");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Redo_Set_Permissions'Access, "chmod undoes to the old mode and redoes to the new mode");
@@ -1296,6 +1306,9 @@ package body Files_Suite.Operations is
         (T, Test_Failed_Move_Kept_Copy_Undo'Access,
          "undo of a failed move's kept copy deletes the copy and leaves the source that stayed");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Batch_Undo_Records'Access,
+         "a batch records its Undo at most once a second, and reports a batch it cannot record for Undo");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Read_Only_Survives_Copy_And_Move'Access,
          "read-only files stay read-only when copied and moved across devices");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1413,6 +1426,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Desktop_Exec_Quoted_Percent'Access,
          "a quoted %% in a desktop Exec line is a literal percent sign");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Desktop_Terminal_Entries'Access,
+         "Terminal=true desktop entries run inside a terminal, and Path is read");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Long_Path_Operations'Access,
          "every file operation works in a folder past the Windows path limit");
@@ -1776,6 +1792,8 @@ package body Files_Suite.Operations is
 
    procedure Test_Failed_Move_Kept_Copy_Undo (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Batch_Undo_Records (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Read_Only_Survives_Copy_And_Move (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Restore_Keeps_Trash_Until_Synced (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -1992,6 +2010,8 @@ package body Files_Suite.Operations is
 
    procedure Test_History_Journal_Fits_Large_Actions (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_History_Merge_Keeps_Unjournaled (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Partial_Redo_Creation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Partial_Redo_Move (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -2149,6 +2169,7 @@ package body Files_Suite.Operations is
    procedure Test_Native_Replace_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Recovery_Registry_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Registry_Changes_Wait_For_Its_Lock (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Owed_Reloads (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -2261,6 +2282,8 @@ package body Files_Suite.Operations is
    procedure Test_Settings_Save_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Desktop_Exec_Quoted_Percent (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Desktop_Terminal_Entries (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Long_Path_Operations (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

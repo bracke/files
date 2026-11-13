@@ -10,6 +10,7 @@ separate (Files_Suite.Startup)
       Dirty_Exit  : Files.Application.Windows.Smoke.Live_Smoke_Result;
       Loop_Failed : Files.Application.Windows.Smoke.Live_Smoke_Result;
       Not_Drawn   : Files.Application.Windows.Smoke.Live_Smoke_Result;
+      Not_Resized : Files.Application.Windows.Smoke.Live_Smoke_Result;
    begin
       --  A plan skipped for want of a display or Vulkan maps to Skip.
       Skipped.Skipped_By_Plan := True;
@@ -37,6 +38,7 @@ separate (Files_Suite.Startup)
       Passed.Framebuffer_Passed := True;
       Passed.Closed_Cleanly := True;
       Passed.Loop_Drew_Input := True;
+      Passed.Resize_Drawn := True;
       Assert
         (Files.Application.Windows.Smoke.Gate_Outcome (Passed) =
            Files.Application.Windows.Smoke.Live_Smoke_Pass,
@@ -81,4 +83,12 @@ separate (Files_Suite.Startup)
         (Files.Application.Windows.Smoke.Gate_Outcome (Not_Drawn) =
            Files.Application.Windows.Smoke.Live_Smoke_Fail,
          "a live smoke whose loop did not draw a pressed key maps to Fail");
+
+      --  And a window that drew nothing at its new size after a resize.
+      Not_Resized := Passed;
+      Not_Resized.Resize_Drawn := False;
+      Assert
+        (Files.Application.Windows.Smoke.Gate_Outcome (Not_Resized) =
+           Files.Application.Windows.Smoke.Live_Smoke_Fail,
+         "a live smoke whose window drew nothing at its new size maps to Fail");
    end Test_Live_Smoke_Gate_Outcome;

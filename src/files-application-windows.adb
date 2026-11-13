@@ -584,11 +584,7 @@ package body Files.Application.Windows is
    end Handle_All_Type_Ahead_Timeout;
 
    procedure Handle_Drop_Input
-     (Runtime : in out Runtime_Window)
-   is
-      Result : Files.Controller.Controller_Result;
-      Drops  : Files.Types.String_Vectors.Vector;
-      Mode   : Files.File_System.Drop_Import_Mode := Files.File_System.Drop_Copy;
+     (Runtime : in out Runtime_Window) is
    begin
       if Runtime.Handle = null then
          return;
@@ -597,13 +593,8 @@ package body Files.Application.Windows is
          Files.Model.Set_Error (Runtime.Model, "error.drop.failed");
          return;
       end if;
-      if not Files.Drop_Events.Has_Pending (Runtime.Handle.Drop_Source) then
-         return;
-      end if;
-
-      Files.Drop_Events.Take (Runtime.Handle.Drop_Source, Drops, Mode);
-      Result := Files.Controller.Handle_Drop_Import (Runtime.Model, Runtime.Settings, Drops, Mode);
-      pragma Unreferenced (Result);
+      --  Left queued while an overlay owns the input, not lost.
+      Files.Controller.Import_Pending_Drops (Runtime.Model, Runtime.Settings, Runtime.Handle.Drop_Source);
    end Handle_Drop_Input;
 
    procedure Handle_All_Drop_Input

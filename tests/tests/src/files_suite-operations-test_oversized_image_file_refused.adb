@@ -116,8 +116,16 @@ separate (Files_Suite.Operations)
       Assert (Decoded.Width <= 256 and then Decoded.Height <= 256 and then Decoded.Width > Decoded.Height,
               "and it is scaled to fit, keeping its shape");
 
+      Decoded := Files.Images.Decode_Image_To_Pixels (Small, 256);
+      Assert (not Decoded.Extent_Refused, "a small image passes the header check");
+      Decoded := Files.Images.Decode_Image_To_Pixels (Screen, 256);
+      Assert (not Decoded.Extent_Refused, "a 4K screenshot passes the header check");
+
       Decoded := Files.Images.Decode_Image_To_Pixels (Huge, 256);
       Assert (not Decoded.Available, "the same PNG declaring 40000 x 40000 pixels is refused");
+      --  Its one pixel of data would fail a decode anyway: only the reason
+      --  shows the header check, not the decoder, refused it.
+      Assert (Decoded.Extent_Refused, "the refusal comes from the declared extent, before any decoder");
       Files_Suite.Support.Assert_Equal
         (Natural (Decoded.Pixels.Length), 0, "a refused image file carries no pixels");
    end Test_Oversized_Image_File_Refused;

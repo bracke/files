@@ -704,6 +704,12 @@ package Files.Operations is
       --  before and may survive a later pathname replacement.
       Retain_Verified_Main     : Natural := 0;
       Retain_Verified_Restores : Natural := 0;
+      --  Copies a failed move kept beside their still present sources, with
+      --  their identities and tree revisions; for an Undo_Move only, which
+      --  then deletes them first and is never redoable.
+      Kept_Copies              : Files.Types.String_Vectors.Vector;
+      Kept_Copy_Identities     : Files.Types.String_Vectors.Vector;
+      Kept_Copy_Tree_Revisions : Files.Types.String_Vectors.Vector;
    end record;
 
    --  Arm a paste (Files.Model.Begin_Paste_Execution) with the copy context
@@ -744,6 +750,14 @@ package Files.Operations is
       Restore_Trash : Files.Types.String_Vectors.Vector :=
         Files.Types.String_Vectors.Empty_Vector;
       Provenance  : Undo_Provenance := (others => <>));
+
+   --  Carry out the filesystem work model history mutations queued: delete
+   --  the recovery payloads of retired entries, release those of an ended
+   --  history to the system trash, and save the history journal when the
+   --  history changed. Call it right after each model history mutation.
+   --
+   --  @param Model Model whose queued history work to perform.
+   procedure Settle_History (Model : in out Files.Model.Window_Model);
 
    --  Forget the entire undo and redo history, then delete the recovery
    --  payloads it retained and save the history journal.
@@ -838,7 +852,11 @@ private
    --  verifiable, since their reverse steps are inseparable. Identities,
    --  revisions and trash origins not supplied are captured here, before the
    --  model records the entry; payloads the record retires are then deleted
-   --  and the history journal saved (Settle_History).
+   --  and the history journal saved (Settle_History). A move's kept copies
+   --  (Provenance) stay in its entry, which is then undo-only, while they
+   --  verify; with no moved member left they are recorded alone as created
+   --  entries, and one that does not verify on a path an original returns to
+   --  makes the whole action unrecordable.
    --
    --  @param Model Model whose history is updated.
    --  @param Kind Kind of action that can be undone.
@@ -863,12 +881,12 @@ private
         Files.Types.String_Vectors.Empty_Vector;
       Provenance  : Undo_Provenance := (others => <>)) return Boolean;
 
-   --  Carry out the filesystem work model history mutations queued: delete
-   --  the recovery payloads of retired entries, release those of an ended
-   --  history to the system trash, and save the history journal when the
-   --  history changed. Call it right after each model history mutation.
-   --
-   --  @param Model Model whose queued history work to perform.
-   procedure Settle_History (Model : in out Files.Model.Window_Model);
+   --  What Try_Record_Undo calls on each attempt to record an entry.
+   type Record_Hook is access procedure;
+
+   --  Set only by the test suite (Files.Operations.Testing), to count the
+   --  records a batch makes. The application never sets it.
+   Undo_Record_Attempted : Record_Hook := null
+     with Atomic;
 
 end Files.Operations;

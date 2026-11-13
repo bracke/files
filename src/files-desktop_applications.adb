@@ -1,3 +1,4 @@
+with Ada.Characters.Handling;
 with Files.Environment;
 with Files.Diagnostics;
 with Ada.Containers.Indefinite_Ordered_Sets;
@@ -628,6 +629,87 @@ package body Files.Desktop_Applications is
       return Result;
    end Build_Open_Actions;
 
+   function In_Terminal
+     (Action   : Files.Settings.Open_Action;
+      Terminal : String)
+      return Files.Settings.Open_Action
+   is
+      --  The terminal's program name: no folder, no ".exe", lower case.
+      function Program_Name return String is
+         First : Positive := Terminal'First;
+         Last  : Natural := Terminal'Last;
+      begin
+         for Index in Terminal'Range loop
+            if Terminal (Index) in '/' | '\' then
+               First := Index + 1;
+            end if;
+         end loop;
+         if Last - First + 1 > 4
+           and then Ada.Characters.Handling.To_Lower (Terminal (Last - 3 .. Last)) = ".exe"
+         then
+            Last := Last - 4;
+         end if;
+         return Ada.Characters.Handling.To_Lower (Terminal (First .. Last));
+      end Program_Name;
+
+      Name    : constant String := Program_Name;
+      Options : Files.Types.String_Vectors.Vector;
+      Wrapped : Files.Settings.Open_Action := Action;
+      None    : constant Files.Settings.Open_Action := (others => <>);
+   begin
+      if Terminal = "" or else Action.Use_Shell or else To_String (Action.Executable) = "" then
+         return None;
+      end if;
+      if Name = "gnome-terminal" then
+         Options.Append (To_Unbounded_String ("--"));
+      elsif Name in "xfce4-terminal" | "terminator" then
+         Options.Append (To_Unbounded_String ("-x"));
+      elsif Name = "wezterm" then
+         Options.Append (To_Unbounded_String ("start"));
+         Options.Append (To_Unbounded_String ("--"));
+      elsif Name in "kitty" | "foot" | "wt" then
+         null;
+      elsif Name = "cmd" then
+         Options.Append (To_Unbounded_String ("/k"));
+      elsif Name in "pwsh" | "powershell" | "open" then
+         --  These take a command line, not a program and its arguments.
+         return None;
+      else
+         --  x-terminal-emulator, konsole, tilix, alacritty, ghostty, urxvt,
+         --  xterm and most others.
+         Options.Append (To_Unbounded_String ("-e"));
+      end if;
+      Wrapped.Executable := To_Unbounded_String (Terminal);
+      Wrapped.Arguments := Options;
+      Wrapped.Arguments.Append (Action.Executable);
+      Wrapped.Arguments.Append_Vector (Action.Arguments);
+      return Wrapped;
+   end In_Terminal;
+
+   function Launch_Actions
+     (App      : Application;
+      Targets  : Files.Types.String_Vectors.Vector;
+      Terminal : String)
+      return Open_Action_Vectors.Vector
+   is
+      Actions : constant Open_Action_Vectors.Vector := Build_Open_Actions (App, Targets);
+      Result  : Open_Action_Vectors.Vector;
+   begin
+      for Action of Actions loop
+         declare
+            Wrapped : Files.Settings.Open_Action :=
+              (if App.Terminal then In_Terminal (Action, Terminal) else Action);
+         begin
+            if To_String (Wrapped.Executable) = "" then
+               return Open_Action_Vectors.Empty_Vector;
+            end if;
+            Wrapped.Working_Directory := App.Working_Directory;
+            Result.Append (Wrapped);
+         end;
+      end loop;
+      return Result;
+   end Launch_Actions;
+
    --  Parse a single .desktop file into an Application, returning whether it is
    --  a displayable application entry. Any failure leaves Found False.
    procedure Parse_Desktop_File
@@ -655,6 +737,8 @@ package body Files.Desktop_Applications is
       Icon_Value   : Unbounded_String;
       Localized_Icon_Value : Unbounded_String;
       Try_Exec_Value : Unbounded_String;
+      Terminal_Value : Boolean := False;
+      Path_Value     : Unbounded_String;
       Only_Show_In : Files.Types.String_Vectors.Vector;
       Not_Show_In  : Files.Types.String_Vectors.Vector;
       Have_Type    : Boolean := False;
@@ -825,6 +909,10 @@ package body Files.Desktop_Applications is
                         Assign_Boolean (Value, No_Display);
                      elsif Key = "Hidden" then
                         Assign_Boolean (Value, Hidden);
+                     elsif Key = "Terminal" then
+                        Assign_Boolean (Value, Terminal_Value);
+                     elsif Key = "Path" then
+                        Assign_Decoded (Value, Path_Value);
                      end if;
                   end if;
                end;
@@ -837,7 +925,9 @@ package body Files.Desktop_Applications is
         (Name         => Null_Unbounded_String,
          Exec         => Null_Unbounded_String,
          Icon         => Null_Unbounded_String,
-         Desktop_File => Null_Unbounded_String);
+         Desktop_File => Null_Unbounded_String,
+         Terminal     => False,
+         Working_Directory => Null_Unbounded_String);
 
       --  A file over the cap is not an entry; one that cannot be read is not
       --  found either way.
@@ -906,10 +996,18 @@ package body Files.Desktop_Applications is
            (Name         => Name_Value,
             Exec         => Exec_Value,
             Icon         => Icon_Value,
-            Desktop_File => To_Unbounded_String (Path));
-         Found := To_String
-           (Build_Open_Action
-              (App, Files.Types.String_Vectors.Empty_Vector).Executable) /= "";
+            Desktop_File => To_Unbounded_String (Path),
+            Terminal     => Terminal_Value,
+            Working_Directory => Path_Value);
+         declare
+            Action : constant Files.Settings.Open_Action :=
+              Build_Open_Action (App, Files.Types.String_Vectors.Empty_Vector);
+         begin
+            --  A terminal program is offered only where a terminal can run it.
+            Found := To_String (Action.Executable) /= ""
+              and then (not Terminal_Value
+                or else To_String (In_Terminal (Action, Hostkit.Process.Default_Terminal).Executable) /= "");
+         end;
       end if;
    exception
       when Swallowed : others =>

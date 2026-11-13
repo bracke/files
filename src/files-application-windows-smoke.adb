@@ -342,6 +342,7 @@ package body Files.Application.Windows.Smoke is
             Scenario_Results   => [others => <>],
             Loop_Failures      => 0,
             Loop_Drew_Input    => False,
+            Resize_Drawn       => False,
             Error_Key          => Plan.Reason_Key);
       end if;
 
@@ -365,6 +366,7 @@ package body Files.Application.Windows.Smoke is
          Scenario_Results   => [others => <>],
          Loop_Failures      => 0,
          Loop_Drew_Input    => False,
+         Resize_Drawn       => False,
          Error_Key          => To_Unbounded_String ("runtime.smoke.requires_live_harness"));
    end Evaluate_Live_Window_Smoke;
 
@@ -390,6 +392,7 @@ package body Files.Application.Windows.Smoke is
         and then Result.Closed_Cleanly
         and then Result.Loop_Failures = 0
         and then Result.Loop_Drew_Input
+        and then Result.Resize_Drawn
       then
          return Live_Smoke_Pass;
       else

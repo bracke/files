@@ -189,6 +189,8 @@ package body Files_Suite.Interaction is
    procedure Test_Tree_Toggle_Command_And_Click (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Pick_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tree_Panel_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Tree_Right_On_Empty_Folder (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Drop_Waits_For_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Large_Folder_Tree (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Quick_Look_Space_Seam (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Record_Open_Persists_Recent (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -443,6 +445,12 @@ package body Files_Suite.Interaction is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Tree_Panel_Keyboard'Access,
          "Tab reaches the folder tree, whose rows then take the arrows, Enter and Escape");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Tree_Right_On_Empty_Folder'Access,
+         "Right on an expanded folder with no children keeps the tree highlight");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Drop_Waits_For_Overlay'Access,
+         "a drop made while an overlay owns the input waits for it to close");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Large_Folder_Tree'Access,
          "a folder tree of 150,000 shown folders flattens without exhausting the stack");
@@ -974,6 +982,10 @@ package body Files_Suite.Interaction is
    procedure Test_Tree_Pick_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Tree_Panel_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Tree_Right_On_Empty_Folder (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Drop_Waits_For_Overlay (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Large_Folder_Tree (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Tree_Toggle_Command_And_Click (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;

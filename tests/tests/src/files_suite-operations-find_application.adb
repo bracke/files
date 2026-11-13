@@ -13,5 +13,6 @@ separate (Files_Suite.Operations)
         (Name         => Null_Unbounded_String,
          Exec         => Null_Unbounded_String,
          Icon         => Null_Unbounded_String,
-         Desktop_File => Null_Unbounded_String);
+         Desktop_File => Null_Unbounded_String,
+         others       => <>);
    end Find_Application;

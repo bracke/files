@@ -17,6 +17,14 @@ separate (Files_Suite.Model)
          return Result;
       end Rename_Action;
 
+      --  Admission gives each entry its Sequence; everything else is kept.
+      function Same_Action (Admitted, Given : Files.Model.Undo_Entry) return Boolean is
+         Expected : Files.Model.Undo_Entry := Given;
+      begin
+         Expected.Sequence := Admitted.Sequence;
+         return Admitted = Expected and then Admitted.Sequence > 0;
+      end Same_Action;
+
       Good_Undo : Files.Model.Undo_Entry := Rename_Action;
       Good_Redo : constant Files.Model.Undo_Entry := Rename_Action;
       Short_Targets : Files.Model.Undo_Entry := Rename_Action;
@@ -111,11 +119,11 @@ separate (Files_Suite.Model)
 
       Assert
         (Natural (Files.Model.Undo_History (Model).Length) = 1
-         and then Files.Model.Undo_History (Model).First_Element = Good_Undo,
+         and then Same_Action (Files.Model.Undo_History (Model).First_Element, Good_Undo),
          "only the structurally and path-valid Undo action and its partial progress survive");
       Assert
         (Natural (Files.Model.Redo_History (Model).Length) = 1
-         and then Files.Model.Redo_History (Model).First_Element = Good_Redo,
+         and then Same_Action (Files.Model.Redo_History (Model).First_Element, Good_Redo),
          "Redo filters undo-only entries but retains a valid action with stale paths");
       Assert
         (Files.Model.Undo_History (Model).First_Element.Created_Identities.First_Element =

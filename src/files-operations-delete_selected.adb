@@ -88,14 +88,14 @@ begin
 
    --  Restoring from trash reproduces the original path, but re-trashing
    --  allocates a fresh trash location, so this entry is undo-only.
-   Finish_Undo (Model, Progress);
-
    declare
+      Undo : constant Undo_Outcome := Finish_Undo (Model, Progress);
       Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
    begin
       if Reload.Status /= Operation_Success then
          return Reload;
       end if;
+      Note_Undo_Outcome (Model, Undo, Reload);
    end;
 
    return Make_Result (Operation_Success, Path => To_String (First_Path));

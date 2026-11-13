@@ -119,4 +119,21 @@ package Files.Localization is
       Locale : String := "")
       return String;
 
+private
+
+   --  The value of Key in the configuration file at Path: in its Section
+   --  ([Section] header), or before any section when Section is "". A value
+   --  in one matching pair of quotes (" or ', as locale.conf's shell syntax
+   --  allows) is returned without them.
+   --
+   --  @param Path Configuration file to read.
+   --  @param Section Section to look in, or "".
+   --  @param Key Key to look up.
+   --  @return The value, or "" when the file or the key is missing.
+   function Locale_Config_Value
+     (Path    : String;
+      Section : String;
+      Key     : String)
+      return String;
+
 end Files.Localization;

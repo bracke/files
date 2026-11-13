@@ -145,6 +145,18 @@ package body Files.File_System.Testing is
       Delete_Trigger := Null_Unbounded_String;
    end Stop_Failing_Owned_Delete;
 
+   --  The Refuse_Creation_Match hook Refuse_Creation_Matches installs.
+   function Refuse_Every_Creation (Path : String) return Boolean is
+      pragma Unreferenced (Path);
+   begin
+      return True;
+   end Refuse_Every_Creation;
+
+   procedure Refuse_Creation_Matches (Refuse : Boolean) is
+   begin
+      Refuse_Creation_Match := (if Refuse then Refuse_Every_Creation'Access else null);
+   end Refuse_Creation_Matches;
+
    procedure Delete_Owned_Tree (Path : String) is
    begin
       Files.File_System.Support.Delete_Owned_Tree (Path);

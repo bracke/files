@@ -1246,7 +1246,8 @@ package body Files.Settings is
       return
         (Executable => To_Unbounded_String (Executable),
          Arguments  => Arguments,
-         Use_Shell  => Use_Shell);
+         Use_Shell  => Use_Shell,
+         others     => <>);
    end Make_Action;
 
    function Expand_Placeholders

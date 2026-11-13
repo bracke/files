@@ -24,6 +24,7 @@ function Run_Live_Smoke (Result : Startup_Result) return Ada.Command_Line.Exit_S
    Region_Word       : constant String := "region";
    Keys_Word         : constant String := "keys";
    Loop_Word         : constant String := "loop";
+   Resize_Word       : constant String := "resize";
 
    --  Automake convention: a skipped test exits with code 77 so CI
    --  can tell "environment could not run it" apart from a pass (0)
@@ -45,6 +46,8 @@ function Run_Live_Smoke (Result : Startup_Result) return Ada.Command_Line.Exit_S
          return Files.Localization.Text ("runtime.smoke.loop_failed");
       elsif not Failed.Loop_Drew_Input then
          return Files.Localization.Text ("runtime.smoke.loop_not_drawn");
+      elsif not Failed.Resize_Drawn then
+         return Files.Localization.Text ("runtime.smoke.resize_not_drawn");
       elsif not Failed.Framebuffer_Readback_Ready then
          return Files.Localization.Text ("runtime.smoke.readback_missing");
       else
@@ -140,6 +143,11 @@ begin
       & (if Live_Result.Loop_Failures = 0 and then Live_Result.Loop_Drew_Input
          then Pass_Word else Fail_Word)
       & Natural'Image (Live_Result.Loop_Failures));
+
+   --  The resize phase: a frame read back at the window's new size.
+   Ada.Text_IO.Put_Line
+     (Scenario_Prefix & Space & Resize_Word & Colon & Space
+      & (if Live_Result.Resize_Drawn then Pass_Word else Fail_Word));
 
    --  Emit exactly one canonical, greppable verdict line and set a
    --  matching exit code so CI can classify the run:

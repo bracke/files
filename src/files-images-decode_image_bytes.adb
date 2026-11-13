@@ -113,5 +113,5 @@ exception
       Release_Loader;
 
       return (Available => False, Width => 0, Height => 0,
-              Pixels => Files.Types.Byte_Vectors.Empty_Vector);
+              Pixels => Files.Types.Byte_Vectors.Empty_Vector, Extent_Refused => False);
 end Decode_Image_Bytes;

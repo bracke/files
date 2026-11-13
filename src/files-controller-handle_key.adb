@@ -68,7 +68,14 @@ separate (Files.Controller)
                if Rows (Current).Has_Children and then not Rows (Current).Expanded then
                   return Handle_Tree_Click
                     (Model, Settings, Rows (Current).Node_Index, Toggle => True);
-               elsif Rows (Current).Expanded and then Current < Rows.Last_Index then
+               elsif Rows (Current).Expanded
+                 and then Rows (Current).Has_Children
+                 and then Current < Rows.Last_Index
+                 and then Rows (Current + 1).Depth > Rows (Current).Depth
+               then
+                  --  Into the first child; an expanded folder with none
+                  --  keeps the highlight rather than handing it to the
+                  --  next sibling.
                   Select_Row (Current + 1);
                end if;
             when Guikit.Input.Key_Left =>

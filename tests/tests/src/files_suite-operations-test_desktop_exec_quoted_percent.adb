@@ -8,12 +8,14 @@ separate (Files_Suite.Operations)
         (Name         => To_Unbounded_String ("Percent App"),
          Exec         => To_Unbounded_String ("printf ""100%% done"" %f"),
          Icon         => Null_Unbounded_String,
-         Desktop_File => Null_Unbounded_String);
+         Desktop_File => Null_Unbounded_String,
+         others       => <>);
       Bad     : constant Files.Desktop_Applications.Application :=
         (Name         => To_Unbounded_String ("Field In Quotes"),
          Exec         => To_Unbounded_String ("printf ""%f"""),
          Icon         => Null_Unbounded_String,
-         Desktop_File => Null_Unbounded_String);
+         Desktop_File => Null_Unbounded_String,
+         others       => <>);
       Targets : Files.Types.String_Vectors.Vector;
       Action  : Files.Settings.Open_Action;
    begin

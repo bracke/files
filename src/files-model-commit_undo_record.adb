@@ -2,18 +2,14 @@ separate (Files.Model)
 function Commit_Undo_Record
   (Model  : in out Window_Model;
    Action : Undo_Entry) return Boolean is
-   --  Cap the undo history so a session doing thousands of operations does not
-   --  grow it without bound: each entry retains the full source and destination
-   --  path lists (and permission/ownership images), so an unbounded stack pins
-   --  that data for the life of the window. Past the cap the oldest entry --
-   --  least likely to ever be undone -- is dropped; LIFO undo only touches the
-   --  newest, so the reachable history is unaffected.
-   Max_Undo_Depth : constant := 200;
+   Numbered : Undo_Entry := Action;
 begin
    --  Payloads are queued only once their entry has left both stacks; the
    --  operations layer deletes them when it drains Take_Retired_History.
    Retire_Payloads (Model.Retired_Discards, Model.Redo_Stack);
    Model.Redo_Stack.Clear;
+   --  Redo entries a background helper's journal left out go too.
+   Model.History_Journal.Redo_Retired := True;
    --  Undo and Redo availability is drawn and enables commands.
    Touch (Model);
    Model.History_Journal_Dirty := True;
@@ -26,7 +22,9 @@ begin
       return False;
    end if;
 
-   Model.Undo_Stack.Append (Action);
+   Numbered.Sequence := Model.History_Journal.Next_Sequence;
+   Model.History_Journal.Next_Sequence := Model.History_Journal.Next_Sequence + 1;
+   Model.Undo_Stack.Append (Numbered);
    while Natural (Model.Undo_Stack.Length) > Max_Undo_Depth loop
       --  The dropped entry could still have been undone, so the originals it
       --  holds go to the system trash, as on window close, not to deletion.

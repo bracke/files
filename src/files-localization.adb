@@ -73,11 +73,6 @@ package body Files.Localization is
      (Key    : String;
       Locale : String)
       return String;
-   function Locale_Config_Value
-     (Path    : String;
-      Section : String;
-      Key     : String)
-      return String;
    function Portable_Locale (Value : String) return Boolean;
    function Catalog_Path return String;
    function Locale_Catalog_Path (Locale : String) return String;
@@ -488,6 +483,13 @@ package body Files.Localization is
                            else "");
                      begin
                         if Name = Key then
+                           --  locale.conf is shell syntax: LANG="de_DE.UTF-8".
+                           if Value'Length >= 2
+                             and then Value (Value'First) in '"' | '''
+                             and then Value (Value'Last) = Value (Value'First)
+                           then
+                              return Value (Value'First + 1 .. Value'Last - 1);
+                           end if;
                            return Value;
                         end if;
                      end;

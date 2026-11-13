@@ -1301,7 +1301,11 @@ package body Files.File_System is
    function Creation_Matches
      (Path, Identity, Tree_Revision : String;
       Retain_Verified : Boolean := False) return Boolean is
+      Refuse : constant Restore_Hook := Refuse_Creation_Match;
    begin
+      if Refuse /= null and then Refuse (Path) then
+         return False;
+      end if;
       if not Entry_Identity_Matches (Path, Identity) then
          return Retain_Verified and then Identity /= "";
       end if;

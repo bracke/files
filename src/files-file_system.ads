@@ -1165,4 +1165,10 @@ private
    Refuse_Owned_Delete : Restore_Hook := null
      with Atomic;
 
+   --  Set only by the test suite (Files.File_System.Testing): True for an
+   --  entry at Path makes Creation_Matches refuse it, as an entry something
+   --  else touched since its creation would be. The application never sets it.
+   Refuse_Creation_Match : Restore_Hook := null
+     with Atomic;
+
 end Files.File_System;

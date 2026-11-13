@@ -1,6 +1,8 @@
 separate (Files_Suite.Operations)
    --  Reaching the match cap shows the first matches with the truncated
-   --  notice instead of failing the search, in a helper too.
+   --  notice instead of failing the search, in a helper too. Exactly as many
+   --  matches as the cap is a complete answer, even with a folder (an empty
+   --  one) still to walk once the cap is reached.
    procedure Test_Search_Match_Cap (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
@@ -10,9 +12,18 @@ separate (Files_Suite.Operations)
       Search   : Files.File_System.Recursive_Search_Result;
    begin
       Reset_Root;
-      for Index in 1 .. Files.File_System.Max_Search_Results + 1 loop
+      for Index in 1 .. Files.File_System.Max_Search_Results loop
          Write_Binary_File (Join (Root, "needle-" & Files.Types.Natural_Text (Index) & ".txt"), "needle");
       end loop;
+      Ada.Directories.Create_Directory (Join (Root, "empty-folder"));
+      Search := Files.File_System.Search_Recursive (Root, "needle", Settings);
+      Assert (Search.Success and then not Search.Truncated and then not Search.Incomplete,
+              "exactly the cap's matches, and an empty folder left to walk, is a complete answer");
+      Files_Suite.Support.Assert_Equal
+        (Natural (Search.Items.Length), Files.File_System.Max_Search_Results, "every match is kept");
+      Write_Binary_File
+        (Join (Root, "needle-" & Files.Types.Natural_Text (Files.File_System.Max_Search_Results + 1) & ".txt"),
+         "needle");
       Search := Files.File_System.Search_Recursive (Root, "needle", Settings);
       Assert (Search.Success and then Search.Truncated and then not Search.Incomplete,
               "one match past the cap truncates the name search");

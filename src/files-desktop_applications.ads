@@ -12,6 +12,13 @@ package Files.Desktop_Applications is
       Exec         : UString;
       Icon         : UString;
       Desktop_File : UString;
+      --  Terminal=true: the program runs inside a terminal emulator
+      --  (Launch_Actions wraps it in one).
+      Terminal     : Boolean := False;
+      --  Path=: the folder the entry asks to run in, decoded; empty when it
+      --  names none. Kept for the launch, whose detached start
+      --  (Hostkit.Process.Launch) cannot yet be given a working directory.
+      Working_Directory : UString;
    end record;
 
    package Application_Vectors is new Ada.Containers.Vectors
@@ -31,7 +38,9 @@ package Files.Desktop_Applications is
    --  XDG paths are ignored as invalid. Each
    --  entry's [Desktop Entry] group is parsed; entries are skipped when their
    --  Type is not Application, when NoDisplay or Hidden is true, when TryExec is
-   --  unavailable, when the current desktop is excluded, or when Exec is empty.
+   --  unavailable, when the current desktop is excluded, or when Exec is empty;
+   --  an entry with Terminal=true is skipped too when no terminal emulator
+   --  this host has can run it (In_Terminal).
    --  Escapes and separators in OnlyShowIn/NotShowIn string lists are parsed, and
    --  the two keys may coexist when their desktop-name sets do not overlap.
    --  Malformed desktop Exec command lines are skipped. Entries are resolved by
@@ -78,6 +87,37 @@ package Files.Desktop_Applications is
    function Build_Open_Actions
      (App     : Application;
       Targets : Files.Types.String_Vectors.Vector)
+      return Open_Action_Vectors.Vector;
+
+   --  The open action that runs Action inside the terminal emulator
+   --  Terminal (Hostkit.Process.Default_Terminal names one): the terminal's
+   --  program, its option for a command to run (-e for most, -- for
+   --  gnome-terminal, -x for xfce4-terminal and terminator, start -- for
+   --  wezterm, none for kitty, foot and Windows Terminal, /k for cmd), then
+   --  Action's executable and arguments, as arguments of their own.
+   --
+   --  @param Action The command to run; a shell command line is not wrapped.
+   --  @param Terminal The terminal's program, by name or path.
+   --  @return The wrapped action; one with no executable when there is no
+   --          terminal, or it has no known way to be handed a program and its
+   --          arguments (PowerShell, macOS `open`).
+   function In_Terminal
+     (Action   : Files.Settings.Open_Action;
+      Terminal : String)
+      return Files.Settings.Open_Action;
+
+   --  Build_Open_Actions, each run inside Terminal when App asks for one
+   --  (Terminal=true).
+   --
+   --  @param App Application to launch.
+   --  @param Targets Selected paths to open.
+   --  @param Terminal The terminal emulator for an App that needs one.
+   --  @return The actions in launch order; empty when App needs a terminal
+   --          and Terminal cannot run it.
+   function Launch_Actions
+     (App      : Application;
+      Targets  : Files.Types.String_Vectors.Vector;
+      Terminal : String)
       return Open_Action_Vectors.Vector;
 
 end Files.Desktop_Applications;

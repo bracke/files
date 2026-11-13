@@ -149,14 +149,21 @@ begin
          end if;
       end;
    end loop;
-   Finish_Undo (Model, Progress);
+   declare
+      Undo : constant Undo_Outcome := Finish_Undo (Model, Progress);
+   begin
+      if not Extracted_Any then
+         return Failed;
+      end if;
 
-   if not Extracted_Any then
-      return Failed;
-   end if;
-
-   --  Reload so the new directories appear, and select the first one.
-   return Reload_Current_Directory (Model, Settings, To_String (First_Created));
+      --  Reload so the new directories appear, and select the first one.
+      declare
+         Result : constant Operation_Result := Reload_Current_Directory (Model, Settings, To_String (First_Created));
+      begin
+         Note_Undo_Outcome (Model, Undo, Result);
+         return Result;
+      end;
+   end;
 exception
    when Swallowed : others =>
       Files.Diagnostics.Note (Swallowed, "Files.Operations");

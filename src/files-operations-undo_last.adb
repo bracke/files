@@ -10,7 +10,11 @@ is
    Returned_Action : Boolean := False;
    Succeeded : Boolean;
 begin
-   if Files.Model.Background_Transfers (Model) then
+   --  A helper undoes only what its journal hands it: an entry too large
+   --  for the journal is undone here instead.
+   if Files.Model.Background_Transfers (Model)
+     and then Files.History_Journal.Journals_Newest (Model, Redo => False)
+   then
       return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Undo);
    end if;
    Files.Model.Take_Undo (Model, Action, Found);

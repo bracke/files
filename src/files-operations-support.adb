@@ -242,6 +242,11 @@ package body Files.Operations.Support is
          --  take the entry under it, which is not the batch's.
          Progress.Recorded := False;
       end if;
+      --  Counted before the record, which may raise: a failed attempt is
+      --  not retried until the next interval either.
+      Progress.Attempted := True;
+      Progress.Attempted_Count := Natural (Progress.From.Length);
+      Progress.Last_Checkpoint := Ada.Real_Time.Clock;
       Progress.Recorded := Try_Record_Undo
         (Model, Progress.Kind, Progress.From, Progress.To,
          Forward     => Progress.Forward,
@@ -260,35 +265,50 @@ package body Files.Operations.Support is
       if Progress.Durable then
          Files.History_Journal.Save (Model, Required => True);
       end if;
-      Progress.Recorded_Count := Natural (Progress.From.Length);
-      Progress.Last_Checkpoint := Ada.Real_Time.Clock;
    end Record_Progress;
 
    procedure Checkpoint_Undo
      (Model    : in out Files.Model.Window_Model;
       Progress : in out Progressive_Undo) is
    begin
-      if not Progress.Recorded
+      if not Progress.Attempted
         or else Files.Timing.Elapsed (Ada.Real_Time.Clock, Progress.Last_Checkpoint, Checkpoint_Interval)
       then
          Record_Progress (Model, Progress);
       end if;
    end Checkpoint_Undo;
 
-   procedure Finish_Undo
+   function Finish_Undo
      (Model    : in out Files.Model.Window_Model;
-      Progress : in out Progressive_Undo) is
+      Progress : in out Progressive_Undo) return Undo_Outcome is
    begin
-      if Natural (Progress.From.Length) /= Progress.Recorded_Count then
+      if Natural (Progress.From.Length) /= Progress.Attempted_Count then
          Record_Progress (Model, Progress);
       end if;
+      return (if Progress.From.Is_Empty or else Progress.Recorded then Undo_Covered else Undo_Unavailable);
    end Finish_Undo;
+
+   procedure Note_Undo_Outcome
+     (Model   : in out Files.Model.Window_Model;
+      Outcome : Undo_Outcome;
+      Result  : Operation_Result) is
+   begin
+      if Outcome = Undo_Unavailable and then Result.Status = Operation_Success then
+         Files.Model.Set_Error (Model, Undo_Unavailable_Notice);
+      end if;
+   end Note_Undo_Outcome;
 
    procedure Finish_Failed_Undo
      (Model    : in out Files.Model.Window_Model;
       Progress : in out Progressive_Undo) is
    begin
-      Finish_Undo (Model, Progress);
+      declare
+         --  The batch's own failure is reported; a missing Undo is no news.
+         Outcome : constant Undo_Outcome := Finish_Undo (Model, Progress);
+         pragma Unreferenced (Outcome);
+      begin
+         null;
+      end;
    exception
       when Unrecorded : others =>
          Files.Diagnostics.Note (Unrecorded, "Files.Operations.Support");

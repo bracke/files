@@ -1,3 +1,4 @@
+with Hostkit.Process;
 with Files.Fs_Primitives;
 with Files.Diagnostics;
 with Files.Items;
@@ -882,10 +883,13 @@ package body Files.Controller is
    is
       Targets : constant Files.Types.String_Vectors.Vector :=
         Files.Model.Open_With_Targets (Model);
+      --  An application that runs in a terminal (Terminal=true) is started
+      --  inside the one Open Terminal would open.
       Actions : constant Files.Desktop_Applications.Open_Action_Vectors.Vector :=
-        Files.Desktop_Applications.Build_Open_Actions (App, Targets);
+        Files.Desktop_Applications.Launch_Actions
+          (App, Targets, (if App.Terminal then Hostkit.Process.Default_Terminal else ""));
       Action : constant Files.Settings.Open_Action :=
-        Actions.First_Element;
+        (if Actions.Is_Empty then (others => <>) else Actions.First_Element);
       Operation   : Files.Operations.Operation_Result := Empty_Operation;
       Exit_Status : Integer := 0;
       Failure_Key : Unbounded_String;
@@ -896,6 +900,12 @@ package body Files.Controller is
       Operation.Path := Target_Path;
       Operation.Action := Action;
 
+      if Actions.Is_Empty then
+         Operation.Status := Files.Operations.Operation_Failed;
+         Operation.Error_Key := To_Unbounded_String ("error.terminal.unavailable");
+         Files.Model.Set_Error (Model, "error.terminal.unavailable");
+         return Make_Result (Controller_Command_Executed, Files.Commands.Open_With_Command, Operation);
+      end if;
       for Candidate of Actions loop
          if not Files.Operations.Open_Action_Executable_Is_Available (Candidate) then
             Operation.Status := Files.Operations.Operation_Failed;
@@ -979,6 +989,9 @@ package body Files.Controller is
       Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result is separate;
 
+   function Accepts_Drop_Import (Model : Files.Model.Window_Model) return Boolean is
+     (not Any_Overlay_Owns_Input (Model));
+
    function Handle_Drop_Import
      (Model        : in out Files.Model.Window_Model;
       Settings     : Files.Settings.Settings_Model;
@@ -992,13 +1005,32 @@ package body Files.Controller is
       --  unrelated clipboard selection on finalize.
       Operation : Files.Operations.Operation_Result;
    begin
-      if Any_Overlay_Owns_Input (Model) then
+      if not Accepts_Drop_Import (Model) then
          return Make_Result (Controller_Ignored);
       end if;
       Operation := Files.Operations.Begin_Paste
         (Model, Settings, Source_Paths, Mode, From_Clipboard => False);
       return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);
    end Handle_Drop_Import;
+
+   procedure Import_Pending_Drops
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Source   : in out Files.Drop_Events.Drop_Event_Source)
+   is
+      Drops : Files.Types.String_Vectors.Vector;
+      Mode  : Files.File_System.Drop_Import_Mode;
+   begin
+      if Files.Drop_Events.Has_Pending (Source) and then Accepts_Drop_Import (Model) then
+         Files.Drop_Events.Take (Source, Drops, Mode);
+         declare
+            Result : constant Controller_Result := Handle_Drop_Import (Model, Settings, Drops, Mode);
+            pragma Unreferenced (Result);
+         begin
+            null;
+         end;
+      end if;
+   end Import_Pending_Drops;
 
    function Scroll_Info_Result
      (Model : in out Files.Model.Window_Model;

@@ -245,6 +245,41 @@ separate (Files.Application.Windows.Smoke)
                exit when Result.Loop_Drew_Input;
             end loop;
          end;
+
+         --  Then a resize, which the scenarios above never make: the renderer
+         --  rebuilds its swapchain for the new size while frames are still in
+         --  flight. A frame drawn after the resize must be read back at the
+         --  new framebuffer size.
+         declare
+            Window          : Runtime_Window renames Runtime_Windows (1);
+            Resize_Passes   : constant := 60;
+            Width, Height   : Glfw.Size;
+            Old_Frame_Width : Glfw.Size;
+            Old_Frame_Height : Glfw.Size;
+            Frame_Width     : Glfw.Size;
+            Frame_Height    : Glfw.Size;
+            Submitted       : Natural;
+         begin
+            Glfw.Windows.Get_Size (As_Window (Window.Handle), Width, Height);
+            Glfw.Windows.Get_Framebuffer_Size (As_Window (Window.Handle), Old_Frame_Width, Old_Frame_Height);
+            Glfw.Windows.Set_Size (As_Window (Window.Handle), Width - Width / 4, Height - Height / 4);
+            Submitted := Guikit.Vulkan.Diagnostics (Window.Vulkan).Submitted_Frames;
+            for Pass in 1 .. Resize_Passes loop
+               Guikit.Vulkan.Poll_Events;
+               Event_Loop_Pass (Runtime_Windows, Loop_State);
+               Glfw.Windows.Get_Framebuffer_Size (As_Window (Window.Handle), Frame_Width, Frame_Height);
+               declare
+                  Drawn : constant Guikit.Vulkan.Renderer_Diagnostics := Guikit.Vulkan.Diagnostics (Window.Vulkan);
+               begin
+                  Result.Resize_Drawn :=
+                    (Frame_Width /= Old_Frame_Width or else Frame_Height /= Old_Frame_Height)
+                    and then Drawn.Last_Framebuffer_Frame > Submitted
+                    and then Drawn.Frame_Width = Natural (Frame_Width)
+                    and then Drawn.Frame_Height = Natural (Frame_Height);
+               end;
+               exit when Result.Resize_Drawn;
+            end loop;
+         end;
       end;
 
       --  Overall structural verdict: every scenario must pass and every

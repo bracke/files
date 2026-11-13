@@ -51,6 +51,9 @@ package Files.Settings is
       Executable : UString;
       Arguments  : String_Vectors.Vector;
       Use_Shell  : Boolean := False;
+      --  Where a detached launch starts the program (a desktop entry's
+      --  Path=); "" for this process's own directory. Never saved.
+      Working_Directory : UString;
    end record;
 
    package Action_Maps is new Ada.Containers.Indefinite_Hashed_Maps

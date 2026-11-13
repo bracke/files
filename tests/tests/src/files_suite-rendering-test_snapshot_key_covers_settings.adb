@@ -39,7 +39,7 @@ separate (Files_Suite.Rendering)
                Result.Open_Actions.Include
                  ("text/plain",
                   Files.Settings.Open_Action'
-                    (Executable => To_Unbounded_String ("zzq"), Arguments => <>, Use_Shell => False));
+                    (Executable => To_Unbounded_String ("zzq"), Arguments => <>, Use_Shell => False, others => <>));
             when Default_View =>
                Result.Default_View :=
                  (if Base.Default_View = Files.Types.Details then Files.Types.Small_Icons else Files.Types.Details);

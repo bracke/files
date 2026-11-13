@@ -2442,6 +2442,19 @@ package Files.Model is
       --  and links use an empty value. Undo refuses a directory whose complete
       --  tree no longer matches the snapshot captured at publication.
       Created_Tree_Revisions : Files.Types.String_Vectors.Vector;
+      --  Copies a failed move left beside their still present sources, set
+      --  only on a non-redoable Undo_Move: reverse deletes each (verified by
+      --  the parallel identity and tree revision) before it moves anything
+      --  back or restores an original a replace preserved, so one paste is
+      --  one Undo. Their completion markers join Reverse_Completed.
+      Kept_Copies              : Files.Types.String_Vectors.Vector;
+      Kept_Copy_Identities     : Files.Types.String_Vectors.Vector;
+      Kept_Copy_Tree_Revisions : Files.Types.String_Vectors.Vector;
+      --  Who the entry is across processes: a background helper's history
+      --  journal names entries by it, so the window can tell an entry the
+      --  helper left out of its journal from one it retired. Given by
+      --  Commit_Undo_Record; 0 until then.
+      Sequence : Natural := 0;
    end record;
 
    --  The window's folder-size measurements: a handle the model holds as
@@ -2469,6 +2482,23 @@ package Files.Model is
      (Index_Type   => Positive,
       Element_Type => Undo_Entry);
 
+   --  Undo_Entry.Sequence values.
+   package Sequence_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Positive);
+
+   --  What a history journal holds besides its stacks.
+   type History_Journal_State is record
+      --  The Sequence the next recorded entry gets.
+      Next_Sequence : Positive := 1;
+      --  Sequences of entries still in the history but left out of the
+      --  journal (too old, or too large, to fit it).
+      Unjournaled   : Sequence_Vectors.Vector;
+      --  Whether a new record retired the redo stack since the history was
+      --  loaded: redo entries the loader never saw are retired with it.
+      Redo_Retired  : Boolean := False;
+   end record;
+
    --  @param Model Window whose history to snapshot.
    --  @return Undo stack, oldest first.
    function Undo_History (Model : Window_Model) return Undo_Entry_Vectors.Vector;
@@ -2480,10 +2510,38 @@ package Files.Model is
    --  Restore checkpointed history after filtering structurally unusable
    --  actions and completion markers. Identity snapshots are retained without
    --  consulting current pathnames so refused operations remain retryable.
+   --  Entries without a Sequence (a journal from an older build) are given
+   --  one, and the next Sequence is past every one the history holds.
    --  @param Model Window whose checkpointed history to restore.
    --  @param Undo Undo stack, oldest first.
    --  @param Redo Redo stack, oldest first.
-   procedure Set_History (Model : in out Window_Model; Undo, Redo : Undo_Entry_Vectors.Vector);
+   --  @param State The journal's state; Redo_Retired starts over as False.
+   procedure Set_History
+     (Model : in out Window_Model;
+      Undo, Redo : Undo_Entry_Vectors.Vector;
+      State : History_Journal_State := (others => <>));
+
+   --  @param Model Window whose journal state to read.
+   --  @return The journal state to write beside its stacks.
+   function History_State (Model : Window_Model) return History_Journal_State;
+
+   --  Take back the history a background helper journaled, merging it into
+   --  the window's own instead of replacing it: an entry the journal does
+   --  not hold stays when the journal lists it as unjournaled (it left the
+   --  journal only to fit it, or the helper never saw it) and goes when the
+   --  helper retired it (the helper released its payloads). Redo entries the
+   --  helper never saw are retired here when its new record retired its redo
+   --  stack, and the merged undo stack keeps the depth cap; payloads of what
+   --  is retired here are queued for Take_Retired_History.
+   --
+   --  @param Model Window whose history to merge into.
+   --  @param Undo Journaled undo stack, oldest first.
+   --  @param Redo Journaled redo stack, oldest first.
+   --  @param State The journal's state.
+   procedure Merge_History
+     (Model : in out Window_Model;
+      Undo, Redo : Undo_Entry_Vectors.Vector;
+      State : History_Journal_State);
 
    --  Start recording a performed action: advance the model revision and, for
    --  a completed rename or move, note each path move whether or not the
@@ -3437,6 +3495,7 @@ private
       Retired_Discards      : Files.Types.String_Vectors.Vector;
       Retired_Releases      : Files.Types.String_Vectors.Vector;
       History_Journal_Dirty : Boolean := False;
+      History_Journal       : History_Journal_State;
       Folder_Sizes            : Folder_Size_Maps.Map;
       Folder_Scan             : Files.Folder_Size.Session;
       Context_Menu                  : Context_Menu_State;
