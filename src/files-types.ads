@@ -312,12 +312,21 @@ package Files.Types is
    --  only Latin-1 (Привет, Łódź, Ελλάδα), and one Unicode form, so a name
    --  stored decomposed (é as e and a combining accent, as older Macs write
    --  it) matches the composed é a user types. The result is for comparing
-   --  only -- its length can differ from Text's. Text that is not UTF-8
-   --  falls back to To_Lower.
+   --  only -- its length can differ from Text's. Bytes that are not UTF-8
+   --  are kept as they are, and the well-formed text around them is folded
+   --  all the same: one stray byte (a read cut mid-character) must not cost
+   --  the rest its folding.
    --
    --  @param Text Text to fold.
    --  @return Folded text.
    function Fold_Case (Text : String) return String;
+
+   --  Raw cut back to its last whole UTF-8 character: a multibyte sequence a
+   --  bounded read cut short is dropped. Anything else is left as it is.
+   --
+   --  @param Raw Bytes read from the start of a file, possibly cut short.
+   --  @return Raw without a trailing incomplete character.
+   function Trim_To_Character (Raw : String) return String;
 
    --  Return a case-insensitive, accent-folded sort key for Text: an
    --  ASCII-lowercased copy in which the accented Latin letters are reduced to

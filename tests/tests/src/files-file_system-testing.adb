@@ -3,6 +3,7 @@ with Ada.Environment_Variables;
 with Ada.Streams.Stream_IO;
 with Ada.Strings.Unbounded;
 with Files.Diagnostics;
+with Files.File_System.Support;
 with Hostkit.Fs;
 
 package body Files.File_System.Testing is
@@ -17,6 +18,9 @@ package body Files.File_System.Testing is
    --  What Fail_Directory_Restore armed.
    Restore_Trigger : Unbounded_String;
    Restore_Block   : Unbounded_String;
+
+   --  What Fail_Owned_Delete armed.
+   Delete_Trigger : Unbounded_String;
 
    --  Path with every '\' read as '/'.
    function Slashed (Path : String) return String is
@@ -124,6 +128,27 @@ package body Files.File_System.Testing is
       Restore_Trigger := Null_Unbounded_String;
       Restore_Block := Null_Unbounded_String;
    end Stop_Failing_Directory_Restore;
+
+   --  The Refuse_Owned_Delete hook Fail_Owned_Delete installs.
+   function Refuse_Delete (Path : String) return Boolean is
+     (Slashed (Path) = Slashed (To_String (Delete_Trigger)));
+
+   procedure Fail_Owned_Delete (Trigger : String) is
+   begin
+      Delete_Trigger := To_Unbounded_String (Trigger);
+      Refuse_Owned_Delete := Refuse_Delete'Access;
+   end Fail_Owned_Delete;
+
+   procedure Stop_Failing_Owned_Delete is
+   begin
+      Refuse_Owned_Delete := null;
+      Delete_Trigger := Null_Unbounded_String;
+   end Stop_Failing_Owned_Delete;
+
+   procedure Delete_Owned_Tree (Path : String) is
+   begin
+      Files.File_System.Support.Delete_Owned_Tree (Path);
+   end Delete_Owned_Tree;
 
    procedure Install_From_Environment is
       Trigger : constant String := Ada.Environment_Variables.Value ("FILES_TEST_TRASH_TRIGGER", "");

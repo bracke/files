@@ -111,11 +111,21 @@ package body Files.Operations is
       return Operation_Result
    is separate;
 
+   --  The one search behind both scopes: the filter text searched for below
+   --  the current folder, by name or by content, its answer applied to the
+   --  view with the notice it calls for -- the same in a helper.
+   function Run_Search
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Scope    : Files.Types.Search_Scope)
+      return Operation_Result
+   is separate;
+
    function Run_Recursive_Search
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
-      return Operation_Result
-   is separate;
+      return Operation_Result is
+     (Run_Search (Model, Settings, Files.Types.Search_Names));
 
    function Content_Matches
      (Bytes : String;
@@ -125,8 +135,8 @@ package body Files.Operations is
    function Run_Content_Search
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
-      return Operation_Result
-   is separate;
+      return Operation_Result is
+     (Run_Search (Model, Settings, Files.Types.Search_Contents));
 
    procedure Apply_Ui_State
      (Model    : in out Files.Model.Window_Model;
@@ -309,10 +319,23 @@ package body Files.Operations is
 
    Paste_Execution_First_Batch : constant := 32;
 
+   --  A failed move's copy that had to stay at its destination while its
+   --  source is still where it was: nothing moved, so its undo deletes the
+   --  copy, as a copy's does, instead of moving it back onto the source.
+   type Kept_Copy is record
+      Dest_Path     : Files.Types.UString;
+      Source_Path   : Files.Types.UString;
+      Identity      : Files.Types.UString;
+      Tree_Revision : Files.Types.UString;
+   end record;
+
+   No_Kept_Copy : constant Kept_Copy := (others => <>);
+
    function Finalize_Paste_Execution
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Error_Key : String)
+      Error_Key : String;
+      Kept      : Kept_Copy := No_Kept_Copy)
       return Operation_Result
    is separate;
 

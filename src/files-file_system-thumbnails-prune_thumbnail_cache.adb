@@ -17,23 +17,6 @@ is
    function Older (Left : Cached_File; Right : Cached_File) return Boolean is
      (Left.Modified < Right.Modified);
 
-   function Is_Thumbnail_Name (Name : String) return Boolean is
-      Prefix : constant String := "thumb_";
-      Suffix : constant String := ".ppm";
-      Digest_First : constant Integer := Name'Last - Suffix'Length - 63;
-   begin
-      return Name'Length >= Prefix'Length + 1 + 1 + 64 + Suffix'Length
-        and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
-        and then Name (Name'Last - Suffix'Length + 1 .. Name'Last) = Suffix
-        and then Name (Digest_First - 1) = '_'
-        and then (for all Index in Digest_First .. Digest_First + 63 =>
-          Name (Index) in '0' .. '9' | 'a' .. 'f');
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
-         return False;
-   end Is_Thumbnail_Name;
-
    package Sorting is new Cached_File_Vectors.Generic_Sorting ("<" => Older);
 
    Cap         : constant Natural := Max_Entries;

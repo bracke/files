@@ -1150,11 +1150,12 @@ package body Files.Model is
       Line_Height : Positive;
       Title       : String;
       Empty_State : String;
+      Close_Label : String;
       Visit       : not null access procedure (Palette : in out Guikit.Command_Palette.Palette)) is
    begin
       --  The component keeps the query and selection across these.
       Guikit.Command_Palette.Set_Configuration
-        (Model.Command_Palette_View, Support.Palette_Config (Line_Height, Title, Empty_State));
+        (Model.Command_Palette_View, Support.Palette_Config (Line_Height, Title, Empty_State, Close_Label));
       if Model.Palette_Listed_Revision /= Model.Revision_Value then
          Guikit.Command_Palette.Set_Commands
            (Model.Command_Palette_View, Files.Command_Palette.Commands (Model));

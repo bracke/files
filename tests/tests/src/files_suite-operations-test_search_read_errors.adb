@@ -31,22 +31,42 @@ separate (Files_Suite.Operations)
                         else Files.Operations.Run_Recursive_Search (Model, Settings));
                Step := Complete_Operation (Model, Settings, Step);
                Mutation := Files.File_System.Set_Permissions (To_String (Denied), 8#755#);
-               Files_Suite.Support.Assert_Equal
-                 (Step.Status,
-                  Files.Operations.Operation_Failed,
-                  "read failures preserve the listing and report an error instead of partial success: status");
-               Files_Suite.Support.Assert_Equal
-                 (Files.Model.Item_Count (Model),
-                  2,
-                  "read failures preserve the listing and report an error instead of partial success: item count");
-               Assert
-                 (not Files.Model.Search_Results_Are_Active (Model),
-                  "read failures preserve the listing and report an error instead of partial success"
-                  & ": results inactive");
-               Files_Suite.Support.Assert_Equal
-                 (To_String (Step.Error_Key),
-                  (if Case_Id = 1 then "error.directory.load" else "error.search.failed"),
-                  "read failures preserve the listing and report an error instead of partial success: error key");
+               if Case_Id = 1 then
+                  --  Nothing can be searched: the search fails and keeps the listing.
+                  Files_Suite.Support.Assert_Equal
+                    (Step.Status,
+                     Files.Operations.Operation_Failed,
+                     "an unreadable root preserves the listing and reports an error: status");
+                  Files_Suite.Support.Assert_Equal
+                    (Files.Model.Item_Count (Model),
+                     2,
+                     "an unreadable root preserves the listing and reports an error: item count");
+                  Assert
+                    (not Files.Model.Search_Results_Are_Active (Model),
+                     "an unreadable root preserves the listing and reports an error: results inactive");
+                  Files_Suite.Support.Assert_Equal
+                    (To_String (Step.Error_Key),
+                     "error.directory.load",
+                     "an unreadable root preserves the listing and reports an error: error key");
+               else
+                  --  Only part of the tree is unreadable: what was found is
+                  --  shown, with the notice that the answer is incomplete.
+                  Files_Suite.Support.Assert_Equal
+                    (Step.Status,
+                     Files.Operations.Operation_Success,
+                     "an unreadable folder or file below the root still shows the other match: status");
+                  Assert
+                    (Files.Model.Search_Results_Are_Active (Model),
+                     "an unreadable folder or file below the root still shows the other match: results active");
+                  Files_Suite.Support.Assert_Equal
+                    (Files.Model.Item_Count (Model),
+                     1,
+                     "an unreadable folder or file below the root still shows the other match: item count");
+                  Files_Suite.Support.Assert_Equal
+                    (Files.Model.Last_Error_Key (Model),
+                     "search.incomplete",
+                     "an unreadable folder or file below the root still shows the other match: notice");
+               end if;
             end loop;
          end loop;
       end loop;

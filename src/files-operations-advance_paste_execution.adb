@@ -6,6 +6,15 @@ function Advance_Paste_Execution
    return Operation_Result
 is
    Processed : Natural := 0;
+
+   --  A failed move that still published its copy left its source in place
+   --  (its removal was refused, and so was removing the copy) unless the
+   --  source went to a recovery stage. Only a vacated source makes the copy
+   --  a move; otherwise undo must delete the copy, not move it back.
+   function Source_Remains (Action : Files.Paste.Resolved_Action) return Boolean is
+     (Files.Model.Paste_Execution_Mode (Model) = Files.File_System.Drop_Move
+      and then Files.Fs_Primitives.Entry_Exists (To_String (Action.Source_Path)));
+
    --  Start the current action in a helper when none runs, then poll it:
    --  the model holds the transfer handle, this drives it.
    procedure Advance_Background_Paste
@@ -74,6 +83,7 @@ begin
             declare
                Finished : Boolean;
                Result   : Files.Transfer_Jobs.Job_Result;
+               Kept     : Kept_Copy := No_Kept_Copy;
             begin
                Advance_Background_Paste (Model, Finished, Result);
                if not Finished then
@@ -84,17 +94,23 @@ begin
                     (Model, Result.Trashed, To_String (Result.Trashed_Identity), To_String (Action.Dest_Path));
                end if;
                --  A move that failed yet kept its copy at the destination:
-               --  the copy is recorded so the paste's undo covers it.
+               --  the copy is recorded so the paste's undo covers it -- as a
+               --  move when its source is gone, as a copy when it remains.
                if not Result.Mutation.Success and then Length (Result.Created_Identity) > 0 then
-                  Record_Paste_Write
-                    (Model, Action.Dest_Path, Action.Source_Path,
-                     Files.Fs_Primitives.Leaf_Text (To_String (Action.Dest_Path)),
-                     To_String (Result.Created_Identity), To_String (Result.Created_Tree_Revision));
+                  if Source_Remains (Action) then
+                     Kept :=
+                       (Action.Dest_Path, Action.Source_Path, Result.Created_Identity, Result.Created_Tree_Revision);
+                  else
+                     Record_Paste_Write
+                       (Model, Action.Dest_Path, Action.Source_Path,
+                        Files.Fs_Primitives.Leaf_Text (To_String (Action.Dest_Path)),
+                        To_String (Result.Created_Identity), To_String (Result.Created_Tree_Revision));
+                  end if;
                end if;
                if Result.Cancelled then
-                  return Finalize_Paste_Execution (Model, Settings, "");
+                  return Finalize_Paste_Execution (Model, Settings, "", Kept);
                elsif not Result.Mutation.Success then
-                  return Finalize_Paste_Execution (Model, Settings, To_String (Result.Mutation.Error_Key));
+                  return Finalize_Paste_Execution (Model, Settings, To_String (Result.Mutation.Error_Key), Kept);
                end if;
                Record_Paste_Write
                  (Model, Action.Dest_Path, Action.Source_Path,
@@ -133,8 +149,13 @@ begin
                end if;
                if not Mutation.Success then
                   --  A move that failed yet kept its copy at the destination:
-                  --  the copy is recorded so the paste's undo covers it.
-                  if Length (Created_Identity) > 0 then
+                  --  the copy is recorded so the paste's undo covers it -- as
+                  --  a move when its source is gone, as a copy when it remains.
+                  if Length (Created_Identity) > 0 and then Source_Remains (Action) then
+                     return Finalize_Paste_Execution
+                       (Model, Settings, To_String (Mutation.Error_Key),
+                        (Action.Dest_Path, Action.Source_Path, Created_Identity, Created_Tree_Revision));
+                  elsif Length (Created_Identity) > 0 then
                      Record_Paste_Write
                        (Model, Action.Dest_Path, Action.Source_Path,
                         Files.Fs_Primitives.Leaf_Text (To_String (Action.Dest_Path)),

@@ -913,7 +913,8 @@ package body Files.Model.Support is
    function Palette_Config
      (Line_Height : Positive;
       Title       : String := "";
-      Empty_State : String := "") return Guikit.Command_Palette.Configuration is
+      Empty_State : String := "";
+      Close_Label : String := "") return Guikit.Command_Palette.Configuration is
      (Line_Height    => Line_Height,
       Show_Icons     => False,
       Show_Shortcuts => True,
@@ -921,7 +922,8 @@ package body Files.Model.Support is
       Wrap_Selection => True,
       Placeholder    => Null_Unbounded_String,
       Empty_State    => To_Unbounded_String (Empty_State),
-      Title          => To_Unbounded_String (Title));
+      Title          => To_Unbounded_String (Title),
+      Close_Label    => To_Unbounded_String (Close_Label));
 
    function Selected_Loaded_Indexes
      (Model : Window_Model)

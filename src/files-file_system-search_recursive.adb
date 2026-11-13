@@ -3,103 +3,29 @@ function Search_Recursive
   (Root_Path : String;
    Query     : String;
    Settings  : Files.Settings.Settings_Model;
-   Max_Items : Natural := 1_000)
+   Max_Items : Natural := Max_Search_Results)
    return Recursive_Search_Result
 is
-   Result : Recursive_Search_Result :=
-     (Success   => False,
-      Root_Path => To_Unbounded_String (Root_Path),
-      Query     => To_Unbounded_String (Query),
-      Items     => Item_Vectors.Empty_Vector,
-      Error_Key => Null_Unbounded_String);
    Normalized_Query : constant String := Files.Types.Fold_Case (Query);
-   Options          : constant Files.Types.Listing_Options := Files.Settings.Listing_Options_Of (Settings);
 
-   --  Bound the walk independently of how many entries match. The only stop
-   --  condition used to be Max_Items, which advances solely on a match, so a
-   --  query that matched little or nothing walked the entire subtree on the UI
-   --  thread (a freeze). The depth cap is Search_Contents' too; the name
-   --  match is far cheaper per entry than a content read, so the scanned cap
-   --  is larger than its 20,000 files.
-   Max_Entries_Scanned : constant := 100_000;
-   Scanned             : Natural := 0;
-
-   function Matches (Name : UString) return Boolean is
+   function Matches (Name : String) return Boolean is
    begin
       return Normalized_Query = ""
-        or else Ada.Strings.Fixed.Index
-          (Files.Types.Fold_Case (To_String (Name)), Normalized_Query) > 0;
+        or else Ada.Strings.Fixed.Index (Files.Types.Fold_Case (Name), Normalized_Query) > 0;
    end Matches;
 
-   --  Every listed entry counts toward the scan cap; only names that match
-   --  and folders to descend into are built into full items.
-   function Include (Name : String; Kind : Files.Types.Item_Kind) return Boolean is
+   --  Only names that match are built into full items: the name match is
+   --  far cheaper per entry than building one.
+   function Wanted (Name : String; Kind : Files.Types.Item_Kind) return Boolean is
+      pragma Unreferenced (Kind);
    begin
-      Scanned := Scanned + 1;
-      return Kind = Files.Types.Directory_Item
-        or else Matches (To_Unbounded_String (Name));
-   end Include;
+      return Matches (Name);
+   end Wanted;
 
-   procedure Visit (Directory_Path : String; Depth : Natural) is
+   function Judge (Item : Directory_Item) return Search_Verdict is
    begin
-      if Files.Job_Context.Cancelled then
-         return;
-      end if;
-      if Depth > Max_Search_Depth or else Natural (Result.Items.Length) >= Max_Items
-        or else Scanned >= Max_Entries_Scanned
-      then
-         Result.Error_Key := To_Unbounded_String ("error.search.failed");
-         return;
-      end if;
-      declare
-         Load : constant Directory_Load_Result :=
-           Load_Directory_Filtered (Directory_Path, Settings, Options, Include'Access);
-      begin
-         if not Load.Success then
-            Result.Error_Key := To_Unbounded_String
-              (if Depth = 0 then "error.directory.load" else "error.search.failed");
-            return;
-         end if;
-         for Item of Load.Items loop
-            exit when Files.Job_Context.Cancelled;
-            if Natural (Result.Items.Length) >= Max_Items or else Scanned > Max_Entries_Scanned then
-               Result.Error_Key := To_Unbounded_String ("error.search.failed");
-               return;
-            end if;
-            if Matches (Item.Name) then
-               Result.Items.Append (Item);
-            end if;
-         end loop;
-         --  Only a skipped subtree makes the walk incomplete. Reaching a
-         --  limit on the final file of a complete leaf listing is allowed.
-         for Item of Load.Items loop
-            exit when Files.Job_Context.Cancelled;
-            if Item.Kind = Files.Types.Directory_Item then
-               Visit (To_String (Item.Full_Path), Depth + 1);
-            end if;
-         end loop;
-      end;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.File_System");
-         Result.Error_Key := To_Unbounded_String
-           (if Depth = 0 then "error.directory.load" else "error.search.failed");
-   end Visit;
+      return (if Matches (To_String (Item.Name)) then Found else Passed);
+   end Judge;
 begin
-   if not Files.Fs_Primitives.Directory_Exists (Root_Path)
-   then
-      Result.Error_Key := To_Unbounded_String ("error.directory.load");
-      return Result;
-   end if;
-
-   Result.Root_Path := To_Unbounded_String (Files.Fs_Primitives.Full_Name (Root_Path));
-   Visit (Root_Path, 0);
-   Result.Success := Length (Result.Error_Key) = 0;
-   return Result;
-exception
-   when Swallowed : others =>
-      Files.Diagnostics.Note (Swallowed, "Files.File_System");
-      Result.Success := False;
-      Result.Error_Key := To_Unbounded_String ("error.search.failed");
-      return Result;
+   return Search_Tree (Root_Path, Settings, Wanted'Access, Judge'Access, Max_Items);
 end Search_Recursive;

@@ -62,6 +62,26 @@ package body Files.File_System.Thumbnails is
      (Source_Path : String)
       return String;
 
+   --  Whether Name is one this cache writes ("thumb_", a key, "_", 64 hex
+   --  digits, ".ppm"): what a listing and a prune count, so a foreign file
+   --  in the cache directory counts against neither's cap.
+   function Is_Thumbnail_Name (Name : String) return Boolean is
+      Prefix : constant String := "thumb_";
+      Suffix : constant String := ".ppm";
+      Digest_First : constant Integer := Name'Last - Suffix'Length - 63;
+   begin
+      return Name'Length >= Prefix'Length + 1 + 1 + 64 + Suffix'Length
+        and then Name (Name'First .. Name'First + Prefix'Length - 1) = Prefix
+        and then Name (Name'Last - Suffix'Length + 1 .. Name'Last) = Suffix
+        and then Name (Digest_First - 1) = '_'
+        and then (for all Index in Digest_First .. Digest_First + 63 =>
+          Name (Index) in '0' .. '9' | 'a' .. 'f');
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System.Thumbnails");
+         return False;
+   end Is_Thumbnail_Name;
+
    function Thumbnail_Extension
      (Source_Path : String)
       return String
@@ -243,7 +263,10 @@ package body Files.File_System.Thumbnails is
       Icon_Id  : String)
       return Boolean is separate;
 
-   function List_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is separate;
+   function List_Thumbnail_Cache
+     (Cache_Directory : String;
+      Max_Entries     : Positive := Max_Cache_Prune_Entries)
+      return Cache_Index is separate;
 
    protected Cache_Index_Memo is
       function Holds (Directory : String; Stamp : Ada.Calendar.Time) return Boolean;

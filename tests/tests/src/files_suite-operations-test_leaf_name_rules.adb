@@ -32,6 +32,25 @@ separate (Files_Suite.Operations)
       Assert (not Win ("aux"), "Windows rejects reserved device names: aux");
       Assert (not Win ("CON.txt"), "Windows rejects reserved device names: CON.txt");
       Assert (not Win ("CONIN$"), "Windows rejects reserved device names: CONIN$");
+      --  COM and LPT with any digit, 0 included, or a superscript 1-3, in any
+      --  case, with or without an extension.
+      for Port in Character range '0' .. '9' loop
+         Assert (not Win ("COM" & Port) and then not Win ("lpt" & Port & ".txt"),
+                 "Windows rejects the COM and LPT ports numbered " & Port);
+      end loop;
+      for Superscript of String'(Character'Val (16#B9#), Character'Val (16#B2#), Character'Val (16#B3#)) loop
+         declare
+            Number : constant String := Character'Val (16#C2#) & Superscript;
+         begin
+            Assert (not Win ("Com" & Number) and then not Win ("LPT" & Number & ".log"),
+                    "Windows rejects the COM and LPT ports numbered with a superscript");
+            Assert (Posix ("COM" & Number), "POSIX allows a superscript-numbered port name");
+         end;
+      end loop;
+      Assert (Win ("COM10") and then Win ("LPT") and then Win ("COMA.txt"),
+              "only a single digit or superscript makes a port name");
+      Assert (Win ("COM" & Character'Val (16#C2#) & Character'Val (16#B4#)),
+              "another two-byte character after COM is not a port");
       Assert (Posix ("ends-with-dot."), "POSIX allows a trailing dot");
       Assert (not Win ("ends-with-dot."), "Windows rejects a trailing dot");
 

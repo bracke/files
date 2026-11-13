@@ -51,6 +51,21 @@ package Files.File_System.Testing is
    --  Give folders their modes back again.
    procedure Stop_Failing_Directory_Restore;
 
+   --  From now on, refuse to delete the entry at Trigger inside a folder of
+   --  ours, as a Windows sharing violation would.
+   --
+   --  @param Trigger The entry's path (separators compare as one).
+   procedure Fail_Owned_Delete (Trigger : String);
+
+   --  Delete entries of ours again.
+   procedure Stop_Failing_Owned_Delete;
+
+   --  Delete a folder of ours (a recovery stage, a transport) the way the
+   --  program does.
+   --
+   --  @param Path The folder.
+   procedure Delete_Owned_Tree (Path : String);
+
    --  Arm the faults the environment names, for a helper the suite started:
    --  FILES_TEST_TRASH_TRIGGER, FILES_TEST_TRASH_SOURCE and
    --  FILES_TEST_TRASH_FAULT ("edit", "replace" or "folder") as

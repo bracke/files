@@ -96,22 +96,15 @@ package Files.Images is
      (Data : Ada.Streams.Stream_Element_Array)
       return Decoded_Image;
 
-   --  Whether the image file at Path declares an extent a file decode
-   --  accepts: at most Max_File_Source_Side on a side and
-   --  Max_File_Source_Pixels in all. A PNG is measured from its IHDR; any
-   --  other format through the loader's header probe, and one no loader
-   --  recognizes is allowed (the loader refuses it). Decode_Image_To_Pixels
-   --  checks this before it feeds the loader, which allocates the full
-   --  source size while it reads.
-   --
-   --  @param Path Image file to measure.
-   --  @return False when the declared extent is too large or Path cannot be read.
-   function File_Extent_Allowed (Path : String) return Boolean;
-
    --  Decode an image file directly to RGBA pixels, scaled to fit within
    --  Max_Size x Max_Size while preserving aspect ratio. Used for the Quick Look
    --  image preview so it renders from the original rather than the small
    --  thumbnail. Returns Available => False when decoding is unavailable.
+   --  An image file declaring more than Max_File_Source_Side on a side or
+   --  Max_File_Source_Pixels in all is refused from its header, before the
+   --  loader (which allocates the full source size while it reads) sees it:
+   --  a PNG is measured from its IHDR, any other format through the loader's
+   --  header probe, and one no loader recognizes is left for it to refuse.
    --
    --  @param Path Image file to decode.
    --  @param Max_Size Longest-side bound in pixels for the decoded result.

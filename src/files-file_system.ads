@@ -47,12 +47,19 @@ package Files.File_System is
       Signature : Directory_Signature;
    end record;
 
+   --  A search's answer. Success with Items is an answer to show, partial
+   --  or not; only a root that could not be searched at all fails.
    type Recursive_Search_Result is record
       Success   : Boolean := False;
-      Root_Path : UString;
-      Query     : UString;
       Items     : Item_Vectors.Vector;
       Error_Key : UString;
+      --  A limit stopped the walk before it saw everything (the match cap,
+      --  Max_Search_Depth, the scan caps): Items are the first found.
+      Truncated : Boolean := False;
+      --  Something under the root could not be searched (a folder or file
+      --  that could not be read, a text file longer than is read with no
+      --  match in what was): a match there is missing from Items.
+      Incomplete : Boolean := False;
    end record;
 
    type Directory_Change_Result is record
@@ -332,7 +339,17 @@ package Files.File_System is
       Field     : Files.Types.Sort_Field;
       Ascending : Boolean);
 
+   --  How many matches either search returns; one more found makes the
+   --  answer Truncated.
+   Max_Search_Results : constant := 1_000;
+
+   --  How deep either search walks below its root; a folder past it goes
+   --  unsearched and makes the answer Truncated.
+   Max_Search_Depth : constant := 64;
+
    --  Search a directory tree recursively for item names matching Query.
+   --  A folder below the root that cannot be read is skipped (Incomplete),
+   --  and a limit reached ends the walk (Truncated); both keep what was found.
    --
    --  @param Root_Path Directory where recursive search starts.
    --  @param Query Case-insensitive name fragment to match.
@@ -343,12 +360,8 @@ package Files.File_System is
      (Root_Path : String;
       Query     : String;
       Settings  : Files.Settings.Settings_Model;
-      Max_Items : Natural := 1_000)
+      Max_Items : Natural := Max_Search_Results)
       return Recursive_Search_Result;
-
-   --  How deep either search walks below its root; a folder past it fails
-   --  the search (error.search.failed) rather than silently go unsearched.
-   Max_Search_Depth : constant := 64;
 
    --  Whether Bytes, text and not binary, contain Query, ignoring case.
    --
@@ -363,9 +376,10 @@ package Files.File_System is
    --  Search a directory tree for text files whose first 64 KiB contain
    --  Query, ignoring case, with Search_Recursive's walk: real folders only
    --  (a linked folder is an item, so cycles are impossible), Max_Search_Depth
-   --  deep, cancellable, and failing rather than returning a partial answer
-   --  past its limits (1,000 matches, 20,000 files read, a text file larger
-   --  than it reads).
+   --  deep, and cancellable. Past its limits (Max_Search_Results matches,
+   --  20,000 files read) the answer is Truncated; a file it could not read,
+   --  or a text file larger than it reads with no match in what it read,
+   --  makes it Incomplete.
    --
    --  @param Root_Path Directory where the search starts.
    --  @param Query Text to look for.
@@ -1143,6 +1157,12 @@ private
    --  folder now at Directory refuses the restoration, as a failing chmod
    --  would. The application never sets it.
    Refuse_Directory_Restore : Restore_Hook := null
+     with Atomic;
+
+   --  Set only by the test suite (Files.File_System.Testing): True for an
+   --  entry at Path inside a folder of ours refuses its delete, as a Windows
+   --  sharing violation would. The application never sets it.
+   Refuse_Owned_Delete : Restore_Hook := null
      with Atomic;
 
 end Files.File_System;

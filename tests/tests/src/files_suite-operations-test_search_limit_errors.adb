@@ -26,30 +26,30 @@ separate (Files_Suite.Operations)
             Step := Complete_Operation (Model, Settings, Step);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Failed,
-               "a skipped deep subtree is a failed search, preserving the prior listing: status");
+               Files.Operations.Operation_Success,
+               "a skipped deep subtree still shows the search's answer: status");
             Files_Suite.Support.Assert_Equal
-              (To_String (Step.Error_Key),
-               "error.search.failed",
-               "a skipped deep subtree is a failed search, preserving the prior listing: error key");
+              (Files.Model.Last_Error_Key (Model),
+               "search.truncated",
+               "a skipped deep subtree still shows the search's answer: the truncated notice");
             Files_Suite.Support.Assert_Equal
               (Files.Model.Item_Count (Model),
-               1,
-               "a skipped deep subtree is a failed search, preserving the prior listing: item count");
+               0,
+               "a skipped deep subtree still shows the search's answer: nothing found above it");
             Assert
-              (not Files.Model.Search_Results_Are_Active (Model),
-               "a skipped deep subtree is a failed search, preserving the prior listing: results inactive");
+              (Files.Model.Search_Results_Are_Active (Model),
+               "a skipped deep subtree still shows the search's answer: results active");
          end loop;
       end loop;
       Reset_Root;
       Write_Binary_File (Join (Root, "needle-a.txt"), "needle");
       Search := Files.File_System.Search_Recursive (Root, "needle", Settings, Max_Items => 1);
-      Assert (Search.Success and then Natural (Search.Items.Length) = 1,
+      Assert (Search.Success and then Natural (Search.Items.Length) = 1 and then not Search.Truncated,
               "an exact final match limit is complete when nothing remains to scan");
       Write_Binary_File (Join (Root, "needle-b.txt"), "needle");
       Search := Files.File_System.Search_Recursive (Root, "needle", Settings, Max_Items => 1);
-      Assert (not Search.Success and then To_String (Search.Error_Key) = "error.search.failed",
-              "an additional skipped entry makes the search incomplete");
+      Assert (Search.Success and then Search.Truncated and then Natural (Search.Items.Length) = 1,
+              "an additional skipped entry keeps the matches found and marks the search truncated");
       for Background in Boolean loop
          for Oversized in Boolean loop
             Reset_Root;
@@ -64,9 +64,10 @@ separate (Files_Suite.Operations)
             Files.Model.Set_Filter (Model, "needle");
             Files.Model.Set_Background_Transfers (Model, Background);
             Step := Complete_Operation (Model, Settings, Files.Operations.Run_Content_Search (Model, Settings));
-            Assert (Step.Status = (if Oversized then Files.Operations.Operation_Failed
-                                   else Files.Operations.Operation_Success)
-                    and then (if Oversized then To_String (Step.Error_Key) = "error.search.failed"
+            Assert (Step.Status = Files.Operations.Operation_Success
+                    and then (if Oversized
+                              then Files.Model.Last_Error_Key (Model) = "search.incomplete"
+                                and then Files.Model.Visible_Count (Model) = 0
                               else Files.Model.Visible_Count (Model) = 1),
                     "content reads distinguish a complete byte boundary from omitted bytes in helpers too");
          end loop;

@@ -49,6 +49,7 @@ package body Files.Overlays is
               then "command_palette.title.open_with"
               else "command_palette.title"),
          Empty_State => Files.Localization.Text ("command.palette.empty"),
+         Close_Label => Files.Localization.Text ("command.action.close"),
          Visit       => Draw'Access);
    end Build_Palette_Frame;
 
@@ -86,6 +87,7 @@ package body Files.Overlays is
       Config.Line_Height := Region.Line_Height;
       Config.Title := To_Unbounded_String (Files.Localization.Text ("settings.title"));
       Config.Switch_Tooltip := To_Unbounded_String (Files.Localization.Text ("settings.tabs.hint"));
+      Config.Close_Label := To_Unbounded_String (Files.Localization.Text ("command.action.close"));
       if Files.Model.Settings_Panel_Capturing (Model) then
          --  While a chord is being captured, the footer prompts for input
          --  instead of showing any pending validation error.

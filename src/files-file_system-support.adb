@@ -1362,19 +1362,33 @@ package body Files.File_System.Support is
       end Delete_Root;
 
       procedure Delete_Owned_Level (Path : String) is
+         --  The files that make a folder one of ours, in the order they go:
+         --  a recovery stage's markers, then the owner file that names whose
+         --  stage it is; a transport's marker, then its lease.
+         subtype Held_Index is Positive range 1 .. 5;
+         function Held_Back (Index : Held_Index) return String is
+           (case Index is
+               when 1 => Files.Protocol_Names.Recovery_Vacated,
+               when 2 => Files.Protocol_Names.Recovery_Releasing,
+               when 3 => Files.Protocol_Names.Recovery_Owner,
+               when 4 => Files.Protocol_Names.Transport_Marker,
+               when 5 => Files.Protocol_Names.Transport_Lease);
+         Present   : array (Held_Index) of Boolean := [others => False];
          Available : Boolean;
          Mode : Natural;
-         Lease_Present  : Boolean := False;
-         Marker_Present : Boolean := False;
          procedure Delete_Entry (Name : String) is
+            Refuse : constant Restore_Hook := Refuse_Owned_Delete;
          begin
-            if Name = Files.Protocol_Names.Transport_Lease then
-               Lease_Present := True;
-            elsif Name = Files.Protocol_Names.Transport_Marker then
-               Marker_Present := True;
-            else
-               Delete_Owned_Level (Hostkit.Fs.Join (Path, Name));
+            for Index in Held_Index loop
+               if Name = Held_Back (Index) then
+                  Present (Index) := True;
+                  return;
+               end if;
+            end loop;
+            if Refuse /= null and then Refuse (Hostkit.Fs.Join (Path, Name)) then
+               raise Ada.Directories.Use_Error;
             end if;
+            Delete_Owned_Level (Hostkit.Fs.Join (Path, Name));
          end Delete_Entry;
       begin
          if Hostkit.Fs.Is_Link (Path) or else Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Directory then
@@ -1390,16 +1404,16 @@ package body Files.File_System.Support is
             end if;
          end if;
          For_Each_Entry (Path, Delete_Entry'Access);
-         --  Keep the lease and the transport marker until every other child is
-         --  gone. If one cannot be removed (a Windows sharing violation, EACCES),
-         --  the restored directory still carries its marker and stays
-         --  reclaimable; without it, cleanup and the scavenger refuse it forever.
-         if Marker_Present then
-            Delete_Owned_Level (Hostkit.Fs.Join (Path, Files.Protocol_Names.Transport_Marker));
-         end if;
-         if Lease_Present then
-            Delete_Owned_Level (Hostkit.Fs.Join (Path, Files.Protocol_Names.Transport_Lease));
-         end if;
+         --  Keep what marks the folder as ours until every other child is
+         --  gone. If one cannot be removed (a Windows sharing violation,
+         --  EACCES), the folder still carries its markers and owner and stays
+         --  reclaimable: the recovery sweep, cleanup and the scavenger finish
+         --  it later; without them they refuse it forever.
+         for Index in Held_Index loop
+            if Present (Index) then
+               Delete_Owned_Level (Hostkit.Fs.Join (Path, Held_Back (Index)));
+            end if;
+         end loop;
          --  Only ever the emptied directory: a Windows read-only folder (kept
          --  from its source by the copy) is cleared first, not refused.
          if not Hostkit.Fs.Delete_Empty_Directory (Path) then

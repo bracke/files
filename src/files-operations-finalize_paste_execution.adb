@@ -2,11 +2,13 @@ separate (Files.Operations)
 --  Finalize an armed paste execution: record one undo covering the items
 --  actually completed (move reversed by moving back; copy by deleting the
 --  created copies), clear the move-mode clipboard, reload, and clear the
---  execution state. A non-empty Error_Key reports a mid-run write failure.
+--  execution state. A non-empty Error_Key reports a mid-run write failure;
+--  Kept names a failed move's copy left beside its still present source.
 function Finalize_Paste_Execution
   (Model     : in out Files.Model.Window_Model;
    Settings  : Files.Settings.Settings_Model;
-   Error_Key : String)
+   Error_Key : String;
+   Kept      : Kept_Copy := No_Kept_Copy)
    return Operation_Result
 is
    --  Read once: everything recorded below is what the paste gathered.
@@ -75,6 +77,20 @@ begin
            (Identities => Exec.Replaced_Identities,
             Retain_Verified_Main => Exec.Verified_Replaced_Count,
             others => <>));
+   end if;
+   --  Recorded last, so undone first: the copy leaves its destination
+   --  before an original replaced there is restored to it.
+   if Length (Kept.Dest_Path) > 0 then
+      Record_Undo
+        (Model, Files.Model.Undo_Delete_Created,
+         Files.Types.String_Vectors.To_Vector (Kept.Dest_Path, 1),
+         Files.Types.String_Vectors.Empty_Vector,
+         Forward     => Files.Types.String_Vectors.To_Vector (Kept.Source_Path, 1),
+         Create_Kind => Files.Model.Create_Copy,
+         Provenance  =>
+           (Identities     => Files.Types.String_Vectors.To_Vector (Kept.Identity, 1),
+            Tree_Revisions => Files.Types.String_Vectors.To_Vector (Kept.Tree_Revision, 1),
+            others         => <>));
    end if;
    Files.Model.Clear_Paste_Execution (Model);
 

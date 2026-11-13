@@ -369,11 +369,14 @@ private package Files.Model.Support is
    --  @param Title The heading, in the current language ("" for none yet:
    --    Files.Overlays supplies it when it draws).
    --  @param Empty_State What shows when no command matches.
+   --  @param Close_Label The close button's accessible name, in the current
+   --    language ("" for none yet: Files.Overlays supplies it when it draws).
    --  @return Command-palette component configuration.
    function Palette_Config
      (Line_Height : Positive;
       Title       : String := "";
-      Empty_State : String := "") return Guikit.Command_Palette.Configuration;
+      Empty_State : String := "";
+      Close_Label : String := "") return Guikit.Command_Palette.Configuration;
 
    --  Return the loaded-item indexes of the current real (non-temporary)
    --  selection, in loaded order, for populating rename fields.

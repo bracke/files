@@ -1,267 +1,35 @@
 with Files.Images;
 with Files.Environment;
 with Files.Diagnostics;
-with Ada.Containers.Vectors;
 with Ada.Streams;
-with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
-with Textrender.Fonts;
-
-with Files.Fs_Primitives;
+with Guikit.Fonts;
+with Guikit.Text;
 with Hostkit.Fs;
 
+--  Font discovery itself is Guikit.Fonts' -- the known locations, the folder
+--  scan, the loadability test and the coverage score are shared with every
+--  guikit application. What is the file manager's own is where the host keeps
+--  its fonts (Hostkit's answer, which on Windows is the Fonts known folder),
+--  the FILES_FONT_PATH override, and the PNG decoder that lets the chain
+--  include the bitmap colour emoji fonts.
 package body Files.Fonts is
    use Ada.Strings.Unbounded;
-   use type Textrender.Fonts.Glyph_Lookup_Result;
-   use type Textrender.Fonts.Load_Result;
 
-   type Font_Path_Array is array (Positive range <>) of Unbounded_String;
-   package Font_Path_Vectors is new Ada.Containers.Vectors
-     (Index_Type   => Positive,
-      Element_Type => Unbounded_String);
-
-   Max_Discovered_Fonts : constant Natural := 256;
-   Max_Search_Depth : constant Natural := 4;
-   Max_Scanned_Font_Entries : constant Natural := 100_000;
-
-   Candidate_Paths : constant Font_Path_Array :=
-     [To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoSansMono-Regular.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/liberation/LiberationMono-Regular.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/liberation2/LiberationMono-Regular.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoMono-Regular.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/vlgothic/VL-Gothic-Regular.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/vlgothic/VL-PGothic-Regular.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/droid/DroidSansFallbackFull.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"),
-      To_Unbounded_String ("/usr/share/fonts/opentype/noto/NotoSerifCJK-Regular.ttc"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoSerifCJK-Regular.ttc"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/unifont/unifont.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/freefont/FreeSans.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
-      To_Unbounded_String ("/usr/share/fonts/truetype/fonts-japanese-gothic.ttf"),
-      To_Unbounded_String ("/System/Library/Fonts/PingFang.ttc")];
-
-   --  Fonts known by their file name alone, looked for after Candidate_Paths
-   --  in each of the host's font folders (Hostkit.Fs.Font_Directories): on
-   --  Windows the Fonts folder is wherever Windows is, which need not be
-   --  C:\Windows, and a font installed for one user lives in their profile.
-   Candidate_Leaves : constant Font_Path_Array :=
-     [To_Unbounded_String ("malgun.ttf"),
-      To_Unbounded_String ("msgothic.ttc"),
-      To_Unbounded_String ("seguiemj.ttf"),
-      To_Unbounded_String ("segoeui.ttf"),
-      To_Unbounded_String ("arial.ttf")];
-
-   Cached_Default_Override : Unbounded_String;
-   Cached_Default_Path     : Unbounded_String;
-   Cached_Default_Ready    : Boolean := False;
-
-   --  Leaf in each of the host's font folders, the system's first.
-   function In_Font_Directories (Leaf : String) return Font_Path_Array is
-      Folders : constant Hostkit.Fs.Path_List := Hostkit.Fs.Font_Directories;
+   --  The host's font folders, the system's first.
+   function Font_Directories return Guikit.Text.Font_Path_Vectors.Vector is
+      Result : Guikit.Text.Font_Path_Vectors.Vector;
    begin
-      return [for Index in Folders'Range =>
-                To_Unbounded_String (Hostkit.Fs.Join (To_String (Folders (Index)), Leaf))];
+      for Folder of Hostkit.Fs.Font_Directories loop
+         Result.Append (To_String (Folder));
+      end loop;
+      return Result;
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Fonts");
-         return [];
-   end In_Font_Directories;
-
-   --  Candidate_Paths, then each Candidate_Leaves entry in every font folder.
-   function Named_Candidates return Font_Path_Array is
-      Result : Font_Path_Vectors.Vector;
-   begin
-      for Path of Candidate_Paths loop
-         Result.Append (Path);
-      end loop;
-      for Leaf of Candidate_Leaves loop
-         for Path of In_Font_Directories (To_String (Leaf)) loop
-            Result.Append (Path);
-         end loop;
-      end loop;
-      return [for Index in 1 .. Natural (Result.Length) => Result.Element (Index)];
-   end Named_Candidates;
-
-   function Is_Ordinary_File
-     (Path : String)
-      return Boolean is
-   begin
-      return Path /= "" and then Files.Fs_Primitives.File_Exists (Path);
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Fonts");
-         return False;
-   end Is_Ordinary_File;
-
-   --  UTF-8 aware: a byte-wise Latin-1 lowering broke multi-byte names.
-   function To_Lower (Text : String) return String renames Files.Types.To_Lower;
-
-   function Has_Suffix
-     (Text   : String;
-      Suffix : String)
-      return Boolean is
-   begin
-      return Text'Length >= Suffix'Length
-        and then Text (Text'Last - Suffix'Length + 1 .. Text'Last) = Suffix;
-   end Has_Suffix;
-
-   function Is_Font_File
-     (Path : String)
-      return Boolean
-   is
-      Lower : constant String := To_Lower (Path);
-   begin
-      return Has_Suffix (Lower, ".ttf")
-        or else Has_Suffix (Lower, ".otf");
-   end Is_Font_File;
-
-   function Is_Known_Unsupported_Renderer_Font
-     (Path : String)
-      return Boolean
-   is
-      --  Match the file's simple name, not the whole path, so a font merely
-      --  living in a directory whose name contains one of these substrings
-      --  (e.g. ".../liberation/SomeOtherFont.ttf", or an explicit
-      --  FILES_FONT_PATH under such a directory) is not wrongly blocked.
-      function Simple_Name return String is
-      begin
-         return Files.Fs_Primitives.Leaf_Text (Path);
-      exception
-         when Swallowed : others =>
-            Files.Diagnostics.Note (Swallowed, "Files.Fonts");
-            return Path;
-      end Simple_Name;
-
-      Lower : constant String := To_Lower (Simple_Name);
-   begin
-      --  Noto Color Emoji was on this list because the renderer could not read
-      --  it: it carries no outlines at all, and loading a font without them
-      --  failed outright. It can be read now -- the pictures inside it are
-      --  decoded and drawn as colour glyphs -- so the exclusion has become the
-      --  only thing keeping emoji off the screen.
-      return Ada.Strings.Fixed.Index (Lower, "droidsansfallbackfull.ttf") > 0
-        or else Ada.Strings.Fixed.Index (Lower, "liberation") > 0
-        or else Ada.Strings.Fixed.Index (Lower, "unifont.ttf") > 0;
-   end Is_Known_Unsupported_Renderer_Font;
-
-   procedure Append_Unique
-     (Paths : in out Font_Path_Vectors.Vector;
-      Path  : String) is
-   begin
-      if Path = "" then
-         return;
-      end if;
-
-      for Existing of Paths loop
-         if To_String (Existing) = Path then
-            return;
-         end if;
-      end loop;
-
-      Paths.Append (To_Unbounded_String (Path));
-   end Append_Unique;
-
-   procedure Sort_Paths
-     (Paths : in out Font_Path_Vectors.Vector)
-   is
-      Best : Positive;
-      Temp : Unbounded_String;
-   begin
-      if Natural (Paths.Length) < 2 then
-         return;
-      end if;
-
-      for Left in Paths.First_Index .. Paths.Last_Index - 1 loop
-         Best := Left;
-         for Right in Left + 1 .. Paths.Last_Index loop
-            if To_String (Paths.Element (Right)) < To_String (Paths.Element (Best)) then
-               Best := Right;
-            end if;
-         end loop;
-
-         if Best /= Left then
-            Temp := Paths.Element (Left);
-            Paths.Replace_Element (Left, Paths.Element (Best));
-            Paths.Replace_Element (Best, Temp);
-         end if;
-      end loop;
-   end Sort_Paths;
-
-   procedure Scan_Font_Directory
-     (Paths : in out Font_Path_Vectors.Vector;
-      Root  : String;
-      Depth : Natural;
-      Scanned : in out Natural)
-   is
-      use type Hostkit.Fs.Entry_Kind;
-
-      procedure Visit (Name : String; Kind : Hostkit.Fs.Entry_Kind; Stop : in out Boolean) is
-         Full : constant String := Hostkit.Fs.Join (Root, Name);
-      begin
-         if Natural (Paths.Length) >= Max_Discovered_Fonts or else Scanned >= Max_Scanned_Font_Entries then
-            Stop := True;
-            return;
-         elsif Kind not in Hostkit.Fs.Ordinary_File_Entry | Hostkit.Fs.Directory_Entry then
-            return;
-         end if;
-         Scanned := Scanned + 1;
-         if Kind = Hostkit.Fs.Directory_Entry then
-            if not Hostkit.Fs.Is_Link (Full) then
-               Scan_Font_Directory (Paths, Full, Depth + 1, Scanned);
-            end if;
-         elsif Is_Font_File (Full) and then not Is_Known_Unsupported_Renderer_Font (Full) then
-            Append_Unique (Paths, Full);
-         end if;
-      end Visit;
-   begin
-      if Natural (Paths.Length) >= Max_Discovered_Fonts
-        or else Scanned >= Max_Scanned_Font_Entries
-        or else Depth > Max_Search_Depth
-        or else Root = ""
-        or else not Files.Fs_Primitives.Directory_Exists (Root)
-      then
-         return;
-      end if;
-
-      Files.Fs_Primitives.For_Each_Listed (Root, Visit'Access);
-   exception
-      when Failure : others =>
-         Files.Diagnostics.Note (Failure, "Files.Fonts");
-   end Scan_Font_Directory;
-
-   function Candidate_Fonts return Font_Path_Vectors.Vector is
-      Paths      : Font_Path_Vectors.Vector;
-      Discovered : Font_Path_Vectors.Vector;
-      Scanned    : Natural := 0;
-   begin
-      for Path of Named_Candidates loop
-         if Is_Font_File (To_String (Path))
-           and then not Is_Known_Unsupported_Renderer_Font (To_String (Path))
-         then
-            Append_Unique (Paths, To_String (Path));
-         end if;
-      end loop;
-
-      for Root of Hostkit.Fs.Font_Directories loop
-         Scan_Font_Directory (Discovered, To_String (Root), 0, Scanned);
-         exit when Scanned >= Max_Scanned_Font_Entries;
-      end loop;
-
-      Sort_Paths (Discovered);
-      for Path of Discovered loop
-         Append_Unique (Paths, To_String (Path));
-      end loop;
-
-      return Paths;
-   end Candidate_Fonts;
+         return Result;
+   end Font_Directories;
 
    --  The two halves of Textrender's colour glyph seam, in the shape it asks
    --  for. A colour emoji is a PNG inside the font file; Textrender hands out
@@ -329,272 +97,22 @@ package body Files.Fonts is
       return True;
    end Decode_Colour_Glyph_Image;
 
-   function Is_Loadable_Font
-     (Path : String)
-      return Boolean
-   is
-      Font : Textrender.Fonts.Font;
-
-      function Has_Drawable_Glyph
-        (Codepoint : Textrender.Fonts.Codepoint)
-         return Boolean
-      is
-         Glyph : Textrender.Fonts.Glyph_Info;
-      begin
-         return Textrender.Fonts.Lookup_Glyph (Font, Codepoint, Glyph) = Textrender.Fonts.Glyph_Found
-           and then not Glyph.Is_Empty;
-      end Has_Drawable_Glyph;
-
-      function Has_Drawable_ASCII_Sample return Boolean is
-         Sample : constant String := "files/tmp-09.txt";
-      begin
-         for Char of Sample loop
-            if not Has_Drawable_Glyph (Textrender.Fonts.Codepoint (Character'Pos (Char))) then
-               return False;
-            end if;
-         end loop;
-
-         return True;
-      end Has_Drawable_ASCII_Sample;
-   begin
-      if not Is_Ordinary_File (Path) then
-         return False;
-      elsif Is_Known_Unsupported_Renderer_Font (Path) then
-         return False;
-      end if;
-
-      if Textrender.Fonts.Load (Font, Path) /= Textrender.Fonts.Loaded then
-         Textrender.Fonts.Reset (Font);
-         return False;
-      end if;
-
-      --  A colour font is judged on different evidence. The ASCII sample below
-      --  asks whether outlines can be drawn for ordinary text, and a colour
-      --  emoji font cannot: a bitmap font has no outlines at all, and a layered
-      --  one has plenty but none for 'f' or '0'. Either way every lookup in that
-      --  sample fails however sound the font is, so what counts instead is
-      --  whether it has the colour glyphs it exists for.
-      if Textrender.Fonts.Is_Bitmap_Only (Font)
-        or else Textrender.Fonts.Has_Colour_Layers (Font)
-      then
-         declare
-            Usable : constant Boolean :=
-              Textrender.Fonts.Has_Colour_Bitmaps (Font)
-              or else Textrender.Fonts.Has_Colour_Layers (Font);
-         begin
-            Textrender.Fonts.Reset (Font);
-            return Usable;
-         end;
-      end if;
-
-      if not Has_Drawable_ASCII_Sample
-        or else not Has_Drawable_Glyph (Textrender.Fonts.Codepoint (Character'Pos ('?')))
-      then
-         Textrender.Fonts.Reset (Font);
-         return False;
-      end if;
-      Textrender.Fonts.Reset (Font);
-      return True;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Fonts");
-         Textrender.Fonts.Reset (Font);
-         return False;
-   end Is_Loadable_Font;
-
-   function Glyph_Coverage_Score
-     (Path : String)
-      return Integer
-   is
-      type Codepoint_Array is array (Positive range <>) of Textrender.Fonts.Codepoint;
-
-      Probe_Codepoints : constant Codepoint_Array :=
-        [16#00E5#,
-         16#00E6#,
-         16#00E9#,
-         16#00F8#,
-         16#00FC#,
-         16#0142#,
-         16#00F1#,
-         16#0416#,
-         16#0439#,
-         16#03A9#,
-         16#05D0#,
-         16#0627#,
-         16#0905#,
-         16#3042#,
-         16#AC00#,
-         16#6587#,
-         16#4EF6#];
-      Score            : Integer := 0;
-      Font             : Textrender.Fonts.Font;
-      Glyph            : Textrender.Fonts.Glyph_Info;
-   begin
-      if not Is_Loadable_Font (Path) then
-         return -1;
-      end if;
-
-      if Textrender.Fonts.Load (Font, Path) /= Textrender.Fonts.Loaded then
-         Textrender.Fonts.Reset (Font);
-         return -1;
-      end if;
-
-      for Codepoint of Probe_Codepoints loop
-         if Textrender.Fonts.Lookup_Glyph (Font, Codepoint, Glyph) = Textrender.Fonts.Glyph_Found
-           and then not Glyph.Is_Empty
-         then
-            Score := Score + 1;
-         end if;
-      end loop;
-      Textrender.Fonts.Reset (Font);
-      return Score;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Fonts");
-         Textrender.Fonts.Reset (Font);
-         return -1;
-   end Glyph_Coverage_Score;
-
    function Default_Font_Path return String is
-      Override_Path : constant String := Files.Environment.Value ("FILES_FONT_PATH");
-      Best_Path  : Unbounded_String;
-      Best_Score : Integer := -1;
-
-      procedure Remember (Path : String) is
-      begin
-         Cached_Default_Override := To_Unbounded_String (Override_Path);
-         Cached_Default_Path := To_Unbounded_String (Path);
-         Cached_Default_Ready := True;
-      end Remember;
-   begin
-      if Cached_Default_Ready
-        and then To_String (Cached_Default_Override) = Override_Path
-      then
-         return To_String (Cached_Default_Path);
-      end if;
-
-      if Is_Loadable_Font (Override_Path) then
-         Remember (Override_Path);
-         return Override_Path;
-      end if;
-
-      for Path of Named_Candidates loop
-         if Is_Font_File (To_String (Path))
-           and then not Is_Known_Unsupported_Renderer_Font (To_String (Path))
-           and then Is_Loadable_Font (To_String (Path))
-         then
-            Remember (To_String (Path));
-            return To_String (Path);
-         end if;
-      end loop;
-
-      declare
-         Candidates : constant Font_Path_Vectors.Vector := Candidate_Fonts;
-      begin
-         for Path of Candidates loop
-            declare
-               Value : constant String := To_String (Path);
-               Score : constant Integer := Glyph_Coverage_Score (Value);
-            begin
-               if Score > Best_Score then
-                  Best_Path := Path;
-                  Best_Score := Score;
-               end if;
-            end;
-         end loop;
-      end;
-
-      if Best_Score >= 0 then
-         Remember (To_String (Best_Path));
-         return To_String (Best_Path);
-      end if;
-
-      Remember ("");
-      return "";
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Fonts");
-         return "";
-   end Default_Font_Path;
+     (Guikit.Fonts.Default_Font_Path
+        (Font_Directories => Font_Directories,
+         Override         => Files.Environment.Value ("FILES_FONT_PATH")));
 
    function Fallback_Font_Paths return Files.Types.String_Vectors.Vector is
-      Primary : constant String := Default_Font_Path;
-      Result  : Files.Types.String_Vectors.Vector;
-
-      --  Curated, ordered fallback set consulted per glyph after the monospace
-      --  primary. Kept small so per-frame font loading stays bounded:
-      --    * DejaVuSansMono -- monospace symbols (stars, arrows, box drawing)
-      --    * DejaVuSans     -- broad proportional symbol coverage
-      --    * VL-Gothic      -- CJK ideographs/kana (a TrueType glyf face the
-      --                        renderer can rasterize; the CFF/.ttc Noto CJK
-      --                        fonts are unsupported by textrender)
-      --    * NotoSans       -- broad international Latin/diacritic coverage
-      --  Non-existent or unsupported entries are simply skipped on systems that
-      --  lack them; Is_Loadable_Font also rejects the renderer's known-bad faces.
-      Text_Fallback_Paths : constant Font_Path_Array :=
-        [To_Unbounded_String ("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"),
-         To_Unbounded_String ("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
-         To_Unbounded_String ("/usr/share/fonts/truetype/vlgothic/VL-Gothic-Regular.ttf"),
-         To_Unbounded_String ("/usr/share/fonts/truetype/vlgothic/VL-PGothic-Regular.ttf"),
-         To_Unbounded_String ("/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf")];
-
-      procedure Consider (Path : String) is
-      begin
-         if Path = "" or else Path = Primary then
-            return;
-         end if;
-
-         for Existing of Result loop
-            if To_String (Existing) = Path then
-               return;
-            end if;
-         end loop;
-
-         if Is_Loadable_Font (Path) then
-            Result.Append (To_Unbounded_String (Path));
-         end if;
-      end Consider;
-
-      --  Leaf in every one of the host's font folders: the system's, then the
-      --  one a font installed without administrator rights lands in.
-      procedure Consider_In_Font_Directories (Leaf : String) is
-      begin
-         for Path of In_Font_Directories (Leaf) loop
-            Consider (To_String (Path));
-         end loop;
-      end Consider_In_Font_Directories;
+      Result : Files.Types.String_Vectors.Vector;
    begin
-      for Path of Text_Fallback_Paths loop
-         Consider (To_String (Path));
+      for Path of Guikit.Fonts.Fallback_Font_Paths
+        (Primary          => Default_Font_Path,
+         Font_Directories => Font_Directories,
+         Colour_Bitmaps   => True)
+      loop
+         Result.Append (To_Unbounded_String (Path));
       end loop;
-
-      --  Colour emoji, and last on purpose. The chain is resolved by asking
-      --  each font whether it maps a codepoint and taking the first that says
-      --  yes, and these fonts map far more than emoji -- arrows, stars, the
-      --  check mark. Ahead of the text fonts it would capture characters they
-      --  draw perfectly well today. Noto Color Emoji is also looked for by name
-      --  in the host's font folders: Windows and macOS ship none, so it is
-      --  wherever its user installed it.
-      Consider ("/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf");
-      Consider_In_Font_Directories ("NotoColorEmoji.ttf");
-      Consider ("/System/Library/Fonts/Apple Color Emoji.ttc");
-
-      --  The layered kind, which costs a reader nothing: a COLR/CPAL emoji is
-      --  outlines and a palette, both of which Textrender reads on its own,
-      --  where the ones above are PNGs and need the decoder this application
-      --  installs. Listed because not every application sharing this chain has
-      --  one -- the desktop search front end builds its renderer straight from
-      --  Guikit.Text, and these are the only emoji fonts it can draw.
-      Consider_In_Font_Directories ("seguiemj.ttf");
-      Consider ("/usr/share/fonts/truetype/twemoji/TwemojiMozilla.ttf");
-      Consider ("/usr/share/fonts/TTF/TwemojiMozilla.ttf");
-      Consider_In_Font_Directories ("TwemojiMozilla.ttf");
-
       return Result;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Fonts");
-         return Files.Types.String_Vectors.Empty_Vector;
    end Fallback_Font_Paths;
 
 end Files.Fonts;

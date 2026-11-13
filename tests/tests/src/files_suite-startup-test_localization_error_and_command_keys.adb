@@ -40,6 +40,8 @@ separate (Files_Suite.Startup)
       Add_Error_Key ("error.trash.recycle_bin_unusable");
       Add_Error_Key ("error.search.failed");
       Add_Error_Key ("search.no_matches");
+      Add_Error_Key ("search.truncated");
+      Add_Error_Key ("search.incomplete");
       Add_Error_Key ("error.permanent_delete.refused");
       Add_Error_Key ("error.permanent_delete.failed");
       Add_Error_Key ("error.permissions.failed");

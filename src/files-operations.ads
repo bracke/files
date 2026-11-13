@@ -205,7 +205,11 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
-   --  Replace the current view with recursive search results for the filter text.
+   --  Replace the current view with recursive search results for the filter
+   --  text. A partial answer is shown with a notice: "search.truncated" when
+   --  a limit cut it short, "search.incomplete" when a folder below the root
+   --  could not be read; no match shows the "search.no_matches" notice. Only
+   --  a root that cannot be searched fails, keeping the listing.
    --
    --  @param Model Window model containing the current path and filter query.
    --  @param Settings Settings model used for directory classification.
@@ -221,7 +225,9 @@ package Files.Operations is
    --  scanned, directory depth, and bytes read per file), skips binary and
    --  unreadable files, and does not descend symlinked directories. An empty
    --  query performs no search; a search with no matches shows an empty view and
-   --  reports the "search.no_matches" status key.
+   --  reports the "search.no_matches" status key. A partial answer is shown as
+   --  Run_Recursive_Search shows one; an unreadable file, or a text file longer
+   --  than is read with no match in what was, makes it "search.incomplete".
    --
    --  @param Model Window model containing the current path and filter query.
    --  @param Settings Settings model used for directory classification.

@@ -1741,12 +1741,15 @@ package Files.Model is
    --  @param Line_Height Row height in pixels.
    --  @param Title The palette's heading, in the current language.
    --  @param Empty_State What it shows when no command matches.
+   --  @param Close_Label Its close button's accessible name, in the current
+   --    language.
    --  @param Visit Draws the palette.
    procedure Visit_Command_Palette
      (Model       : in out Window_Model;
       Line_Height : Positive;
       Title       : String;
       Empty_State : String;
+      Close_Label : String;
       Visit       : not null access procedure (Palette : in out Guikit.Command_Palette.Palette));
 
    --  Disarm capture without changing any field.

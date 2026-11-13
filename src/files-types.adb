@@ -199,24 +199,81 @@ package body Files.Types is
    end Fold_For_Sort;
 
    function Fold_Case (Text : String) return String is
+      --  Never a codepoint: marks a byte that starts no UTF-8 character.
+      Invalid : constant := 16#11_0000#;
+      Result  : Ada.Strings.Unbounded.Unbounded_String;
+      Index   : Integer := Text'First;
+      Run     : Integer := Text'First;
+
+      --  A well-formed run, folded through Unicode.
+      function Fold_Run (Run_Text : String) return String is
+      begin
+         if (for all C of Run_Text => Character'Pos (C) < 128) then
+            return Ada.Characters.Handling.To_Lower (Run_Text);
+         end if;
+         declare
+            Composed : constant String :=
+              (if I18N.Normalization.Available then I18N.Normalization.Normalize (Run_Text, I18N.Normalization.NFC)
+               else Run_Text);
+         begin
+            return Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode
+              (Ada.Wide_Wide_Characters.Handling.To_Lower
+                 (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Decode (Composed)));
+         end;
+      exception
+         when Swallowed : others =>
+            Files.Diagnostics.Note (Swallowed, "Files.Types");
+            return To_Lower (Run_Text);
+      end Fold_Run;
    begin
       if (for all C of Text => Character'Pos (C) < 128) then
          return Ada.Characters.Handling.To_Lower (Text);
       end if;
-      declare
-         Composed : constant String :=
-           (if I18N.Normalization.Available then I18N.Normalization.Normalize (Text, I18N.Normalization.NFC)
-            else Text);
-      begin
-         return Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Encode
-           (Ada.Wide_Wide_Characters.Handling.To_Lower
-              (Ada.Strings.UTF_Encoding.Wide_Wide_Strings.Decode (Composed)));
-      end;
-   exception
-      when Swallowed : others =>
-         Files.Diagnostics.Note (Swallowed, "Files.Types");
-         return To_Lower (Text);
+      while Index <= Text'Last loop
+         declare
+            Start : constant Integer := Index;
+            Code  : Natural;
+         begin
+            Files.UTF8.Decode_Next_Codepoint (Text, Index, Code, Replacement_Codepoint => Invalid);
+            if Code = Invalid then
+               --  The run before it is folded; the stray byte stays as is.
+               Ada.Strings.Unbounded.Append (Result, Fold_Run (Text (Run .. Start - 1)));
+               Ada.Strings.Unbounded.Append (Result, Text (Start .. Index - 1));
+               Run := Index;
+            end if;
+         end;
+      end loop;
+      Ada.Strings.Unbounded.Append (Result, Fold_Run (Text (Run .. Text'Last)));
+      return Ada.Strings.Unbounded.To_String (Result);
    end Fold_Case;
+
+   function Trim_To_Character (Raw : String) return String is
+      Lead : Natural := Raw'Last;
+   begin
+      --  Step back over at most three continuation bytes (10xxxxxx).
+      while Lead >= Raw'First
+        and then Raw'Last - Lead < 3
+        and then Is_Continuation (Raw (Lead))
+      loop
+         Lead := Lead - 1;
+      end loop;
+      if Lead < Raw'First then
+         return Raw;
+      end if;
+      declare
+         Code   : constant Natural := Character'Pos (Raw (Lead));
+         Needed : constant Natural :=
+           (if Code in 16#C0# .. 16#DF# then 2
+            elsif Code in 16#E0# .. 16#EF# then 3
+            elsif Code in 16#F0# .. 16#F7# then 4
+            else 1);
+      begin
+         if Raw'Last - Lead + 1 < Needed then
+            return Raw (Raw'First .. Lead - 1);
+         end if;
+         return Raw;
+      end;
+   end Trim_To_Character;
 
    function Contains_Case_Insensitive
      (Haystack : String;

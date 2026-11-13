@@ -1,5 +1,9 @@
 separate (Files.File_System.Thumbnails)
-function List_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is
+function List_Thumbnail_Cache
+  (Cache_Directory : String;
+   Max_Entries     : Positive := Max_Cache_Prune_Entries)
+   return Cache_Index
+is
    Result : Cache_Index;
    Count  : Natural := 0;
    Capped : Boolean := False;
@@ -7,9 +11,11 @@ function List_Thumbnail_Cache (Cache_Directory : String) return Cache_Index is
    procedure Collect (Name : String; Kind : Hostkit.Fs.Entry_Kind; Stop : in out Boolean) is
       use type Hostkit.Fs.Entry_Kind;
    begin
-      if Kind /= Hostkit.Fs.Ordinary_File_Entry then
+      --  Only thumbnails count, as a prune counts them: foreign files
+      --  never make the cache look oversized.
+      if Kind /= Hostkit.Fs.Ordinary_File_Entry or else not Is_Thumbnail_Name (Name) then
          return;
-      elsif Count = Max_Cache_Prune_Entries then
+      elsif Count = Max_Entries then
          Capped := True;
          Stop := True;
          return;

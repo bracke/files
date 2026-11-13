@@ -187,4 +187,17 @@ private
       Target_Path : String)
       return Boolean;
 
+   --  Read the cache directory once, holding at most Max_Entries thumbnail
+   --  names; a cache holding more is left unlisted (per-item checks). Files
+   --  that are not thumbnails are not counted. In the private part so the
+   --  suite can try the cap without making a hundred thousand files.
+   --
+   --  @param Cache_Directory The thumbnail cache directory.
+   --  @param Max_Entries How many thumbnails a listing holds.
+   --  @return The thumbnail names it holds, or an unlisted index.
+   function List_Thumbnail_Cache
+     (Cache_Directory : String;
+      Max_Entries     : Positive := Max_Cache_Prune_Entries)
+      return Cache_Index;
+
 end Files.File_System.Thumbnails;

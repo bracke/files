@@ -1,408 +1,95 @@
-with Guikit.Layout;
-with Guikit.Utf8;
+with Guikit.Utf8.Editing;
 
---  The Unicode primitives shared with Guikit.Utf8 (display width, codepoint
---  decoding, the zero-width classification and the whitespace/encode helpers)
---  are not reimplemented here: they delegate to the guikit library so the two
---  copies cannot drift. Only the file-manager-specific helpers below (validity,
---  text/word boundaries, range removal, the legacy-byte display decoder) live
---  in this package.
+--  Nothing is implemented here: display width, codepoint decoding and the
+--  whitespace rule are Guikit.Utf8's, and the caret/word boundaries, range
+--  removal and the shared deletion rule are Guikit.Utf8.Editing's, so the
+--  file manager's text fields and the toolkit's own (the command palette's
+--  query) edit by one rule that cannot drift.
 package body Files.UTF8 is
-
-   function Saturating_Add
-     (Left  : Natural;
-      Right : Natural)
-      return Natural
-     renames Guikit.Layout.Saturating_Add;
-
-   function Is_Continuation (Value : Character) return Boolean is
-      Code : constant Natural := Character'Pos (Value);
-   begin
-      return Code in 16#80# .. 16#BF#;
-   end Is_Continuation;
-
-   --  How far Guikit.Utf8's decoder steps: a whole well-formed sequence,
-   --  else one byte, by the same rules.
-   function Unit_Length
-     (Content : String;
-      Index   : Integer)
-      return Positive
-   is
-      Next      : Integer := Index;
-      Codepoint : Natural;
-   begin
-      Guikit.Utf8.Decode_Next_Codepoint (Content, Next, Codepoint);
-      pragma Unreferenced (Codepoint);
-      return Next - Index;
-   end Unit_Length;
-
-   --  The width tables are guikit's, which lays out and draws the text.
-   function Is_Combining_Codepoint (Codepoint : Natural) return Boolean
-     renames Guikit.Utf8.Is_Combining_Codepoint;
-
-   function Codepoint_Display_Units (Codepoint : Natural) return Natural
-     renames Guikit.Utf8.Codepoint_Display_Units;
-
-   function Codepoint_At_Offset
-     (Content : String;
-      Offset  : Natural)
-      return Natural
-   is
-      Index     : Integer := Content'First + Offset;
-      Codepoint : Natural := 0;
-   begin
-      if Offset >= Content'Length then
-         return 16#110000#;
-      end if;
-
-      Decode_Next_Codepoint
-        (Content,
-         Index,
-         Codepoint,
-         Replacement_Codepoint => 16#FFFD#);
-      return Codepoint;
-   end Codepoint_At_Offset;
-
-   function Continuation_At
-     (Content  : String;
-      Position : Natural)
-      return Boolean
-   is
-      Index : constant Natural := Content'First + Position;
-      Lead  : Natural := Position;
-   begin
-      if Position = 0
-        or else Position >= Content'Length
-        or else not Is_Continuation (Content (Index))
-      then
-         return False;
-      end if;
-
-      while Lead > 0 and then Is_Continuation (Content (Content'First + Lead)) loop
-         Lead := Lead - 1;
-      end loop;
-
-      declare
-         Lead_Index : constant Integer := Content'First + Integer (Lead);
-         Length     : constant Positive := Unit_Length (Content, Lead_Index);
-      begin
-         --  Unit_Length performs the complete UTF-8 validity check, including
-         --  overlong, surrogate, out-of-range and truncated sequences.  Merely
-         --  counting continuation bytes here would incorrectly merge the bytes
-         --  of those malformed sequences into one cursor/deletion unit.
-         return Length > 1 and then Position - Lead < Natural (Length);
-      end;
-   end Continuation_At;
-
-   function Next_Unit_Boundary
-     (Content : String;
-      Cursor  : Natural)
-      return Natural
-   is
-      Position : Natural := Natural'Min (Cursor, Content'Length);
-   begin
-      if Position >= Content'Length then
-         return Content'Length;
-      end if;
-
-      Position := Position + 1;
-      while Position < Content'Length and then Continuation_At (Content, Position) loop
-         Position := Position + 1;
-      end loop;
-
-      return Position;
-   end Next_Unit_Boundary;
 
    function Display_Units
      (Content : String)
-      return Natural is
-     (Guikit.Utf8.Display_Units (Content));
+      return Natural
+     renames Guikit.Utf8.Display_Units;
 
    function Prefix_By_Units
      (Content   : String;
       Max_Units : Natural)
-      return String is
-     (Guikit.Utf8.Prefix_By_Units (Content, Max_Units));
+      return String
+     renames Guikit.Utf8.Prefix_By_Units;
 
    function Display_Units_Before
      (Content : String;
       Cursor  : Natural)
-      return Natural is
-     (Guikit.Utf8.Display_Units_Before (Content, Cursor));
+      return Natural
+     renames Guikit.Utf8.Display_Units_Before;
 
    function Byte_Offset_For_Display_Column
      (Content : String;
       Column  : Natural)
       return Natural
-   is
-      Index     : Integer := Content'First;
-      Units     : Natural := 0;
-      Codepoint : Natural := 0;
-      Width     : Natural := 0;
-      Offset    : Natural := 0;
-
-      function After_Trailing_Zero_Width (Start : Integer) return Natural is
-         Scan            : Integer := Start;
-         Scanned_Point   : Natural := 0;
-         Scanned_Width   : Natural := 0;
-      begin
-         while Scan <= Content'Last loop
-            declare
-               Unit_Start : constant Integer := Scan;
-            begin
-               Decode_Next_Codepoint (Content, Scan, Scanned_Point);
-               Scanned_Width := Codepoint_Display_Units (Scanned_Point);
-               exit when Scanned_Width > 0;
-               Offset := Natural (Scan - Content'First);
-            exception
-               when Constraint_Error =>
-                  return Natural (Unit_Start - Content'First);
-            end;
-         end loop;
-
-         return Offset;
-      end After_Trailing_Zero_Width;
-   begin
-      if Content'Length = 0 or else Column = 0 then
-         return 0;
-      end if;
-
-      while Index <= Content'Last loop
-         Offset := Natural (Index - Content'First);
-         if Units >= Column then
-            return After_Trailing_Zero_Width (Index);
-         end if;
-
-         Decode_Next_Codepoint (Content, Index, Codepoint);
-         Width := Codepoint_Display_Units (Codepoint);
-         if Width > 0 and then Saturating_Add (Units, Width) > Column then
-            return Offset;
-         end if;
-
-         Units := Saturating_Add (Units, Width);
-      end loop;
-
-      return Content'Length;
-   end Byte_Offset_For_Display_Column;
+     renames Guikit.Utf8.Byte_Offset_For_Display_Column;
 
    procedure Decode_Next_Codepoint
      (Content               : String;
       Index                 : in out Integer;
       Codepoint             : out Natural;
-      Replacement_Codepoint : Natural := 16#FFFD#) is
-   begin
-      Guikit.Utf8.Decode_Next_Codepoint (Content, Index, Codepoint, Replacement_Codepoint);
-   end Decode_Next_Codepoint;
+      Replacement_Codepoint : Natural := 16#FFFD#)
+     renames Guikit.Utf8.Decode_Next_Codepoint;
 
    function Is_Valid
      (Content : String)
       return Boolean
-   is
-      Invalid_Codepoint : constant Natural := 16#110000#;
-      Index             : Integer := Content'First;
-      Codepoint         : Natural := 0;
-   begin
-      while Index <= Content'Last loop
-         Decode_Next_Codepoint
-           (Content,
-            Index,
-            Codepoint,
-            Replacement_Codepoint => Invalid_Codepoint);
-         if Codepoint = Invalid_Codepoint then
-            return False;
-         end if;
-      end loop;
-
-      return True;
-   end Is_Valid;
+     renames Guikit.Utf8.Is_Valid;
 
    function Previous_Boundary
      (Content : String;
       Cursor  : Natural)
       return Natural
-   is
-      Position : Natural := Natural'Min (Cursor, Content'Length);
-      Codepoint : Natural := 0;
-   begin
-      if Position = 0 then
-         return 0;
-      end if;
-
-      loop
-         Position := Position - 1;
-         while Position > 0 and then Continuation_At (Content, Position) loop
-            Position := Position - 1;
-         end loop;
-
-         Codepoint := Codepoint_At_Offset (Content, Position);
-         exit when not Is_Combining_Codepoint (Codepoint) or else Position = 0;
-      end loop;
-
-      return Position;
-   end Previous_Boundary;
+     renames Guikit.Utf8.Editing.Previous_Boundary;
 
    function Next_Boundary
      (Content : String;
       Cursor  : Natural)
       return Natural
-   is
-      Position : Natural := Natural'Min (Cursor, Content'Length);
-      Codepoint : Natural := 0;
-   begin
-      Position := Next_Unit_Boundary (Content, Position);
-      while Position < Content'Length loop
-         Codepoint := Codepoint_At_Offset (Content, Position);
-         exit when not Is_Combining_Codepoint (Codepoint);
-         Position := Next_Unit_Boundary (Content, Position);
-      end loop;
-
-      return Position;
-   end Next_Boundary;
+     renames Guikit.Utf8.Editing.Next_Boundary;
 
    function Boundary_At_Or_Before
      (Content : String;
       Cursor  : Natural)
       return Natural
-   is
-      Position : Natural := Natural'Min (Cursor, Content'Length);
-      Codepoint : Natural := 0;
-   begin
-      while Position > 0
-        and then Position < Content'Length
-        and then Continuation_At (Content, Position)
-      loop
-         Position := Position - 1;
-      end loop;
-
-      if Position > 0 and then Position < Content'Length then
-         Codepoint := Codepoint_At_Offset (Content, Position);
-         if Is_Combining_Codepoint (Codepoint) then
-            return Previous_Boundary (Content, Position);
-         end if;
-      end if;
-
-      return Position;
-   end Boundary_At_Or_Before;
-
-   function Is_Word_Punctuation (Codepoint : Natural) return Boolean is
-   begin
-      return Codepoint = Character'Pos ('/')
-        or else Codepoint = Character'Pos ('\')
-        or else Codepoint = Character'Pos ('.')
-        or else Codepoint = Character'Pos ('-')
-        or else Codepoint = Character'Pos ('_');
-   end Is_Word_Punctuation;
+     renames Guikit.Utf8.Editing.Boundary_At_Or_Before;
 
    function Whitespace_Separator_Length
      (Content  : String;
       Position : Natural)
-      return Natural is
-     (Guikit.Utf8.Whitespace_Separator_Length (Content, Position));
+      return Natural
+     renames Guikit.Utf8.Whitespace_Separator_Length;
 
    function Word_Separator_Length
      (Content  : String;
       Position : Natural)
       return Natural
-   is
-   begin
-      if Position >= Content'Length then
-         return 0;
-      end if;
-
-      declare
-         Length : constant Natural :=
-           Whitespace_Separator_Length (Content, Position);
-         Index  : constant Integer := Content'First + Integer (Position);
-      begin
-         if Length > 0 then
-            return Length;
-         elsif Is_Word_Punctuation (Character'Pos (Content (Index))) then
-            return 1;
-         end if;
-      end;
-
-      return 0;
-   end Word_Separator_Length;
-
-   function Previous_Word_Separator_Length
-     (Content  : String;
-      Position : Natural)
-      return Natural
-   is
-      Max_Length : constant Natural := Natural'Min (4, Position);
-   begin
-      for Length in reverse 1 .. Max_Length loop
-         if Word_Separator_Length (Content, Position - Length) = Length then
-            return Length;
-         end if;
-      end loop;
-
-      return 0;
-   end Previous_Word_Separator_Length;
+     renames Guikit.Utf8.Editing.Word_Separator_Length;
 
    function Previous_Word_Boundary
      (Content : String;
       Cursor  : Natural)
       return Natural
-   is
-      Position : Natural := Natural'Min (Cursor, Content'Length);
-      Separator_Length : Natural;
-   begin
-      loop
-         Separator_Length := Previous_Word_Separator_Length (Content, Position);
-         exit when Separator_Length = 0;
-         Position := Position - Separator_Length;
-      end loop;
-
-      while Position > 0 and then Previous_Word_Separator_Length (Content, Position) = 0 loop
-         Position := Previous_Boundary (Content, Position);
-      end loop;
-
-      return Position;
-   end Previous_Word_Boundary;
+     renames Guikit.Utf8.Editing.Previous_Word_Boundary;
 
    function Next_Word_Boundary
      (Content : String;
       Cursor  : Natural)
       return Natural
-   is
-      Position : Natural := Natural'Min (Cursor, Content'Length);
-      Separator_Length : Natural;
-   begin
-      loop
-         Separator_Length := Word_Separator_Length (Content, Position);
-         exit when Separator_Length = 0;
-         Position := Natural'Min (Position + Separator_Length, Content'Length);
-      end loop;
-
-      while Position < Content'Length and then Word_Separator_Length (Content, Position) = 0 loop
-         Position := Next_Boundary (Content, Position);
-      end loop;
-
-      return Position;
-   end Next_Word_Boundary;
+     renames Guikit.Utf8.Editing.Next_Word_Boundary;
 
    function Remove_Range
      (Content : String;
       First   : Natural;
       Last    : Natural)
       return String
-   is
-      Start_Index : constant Natural := Natural'Min (First, Content'Length);
-      End_Index   : constant Natural := Natural'Min (Last, Content'Length);
-   begin
-      if Content = "" or else Start_Index >= End_Index then
-         return Content;
-      end if;
-
-      return
-        (if Start_Index > 0
-         then Content (Content'First .. Content'First + Start_Index - 1)
-         else "")
-        & (if End_Index < Content'Length
-           then Content (Content'First + End_Index .. Content'Last)
-           else "");
-   end Remove_Range;
+     renames Guikit.Utf8.Editing.Remove_Range;
 
    procedure Delete_At
      (Text       : String;
@@ -411,26 +98,6 @@ package body Files.UTF8 is
       By_Word    : Boolean;
       New_Text   : out Ada.Strings.Unbounded.Unbounded_String;
       New_Cursor : out Natural)
-   is
-      Boundary : Natural;
-   begin
-      New_Text := Ada.Strings.Unbounded.To_Unbounded_String (Text);
-      New_Cursor := Cursor;
-      if Backward then
-         if Cursor = 0 then
-            return;
-         end if;
-         Boundary :=
-           (if By_Word then Previous_Word_Boundary (Text, Cursor) else Previous_Boundary (Text, Cursor));
-         New_Text := Ada.Strings.Unbounded.To_Unbounded_String (Remove_Range (Text, Boundary, Cursor));
-         New_Cursor := Boundary;
-      else
-         if Cursor >= Text'Length then
-            return;
-         end if;
-         Boundary := (if By_Word then Next_Word_Boundary (Text, Cursor) else Next_Boundary (Text, Cursor));
-         New_Text := Ada.Strings.Unbounded.To_Unbounded_String (Remove_Range (Text, Cursor, Boundary));
-      end if;
-   end Delete_At;
+     renames Guikit.Utf8.Editing.Delete_At;
 
 end Files.UTF8;

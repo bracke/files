@@ -97,9 +97,10 @@ separate (Files_Suite.Operations)
       Write_File (Join (Search_Root, "oversize.txt"), Big);
       Files.Model.Set_Filter (Model, "needle");
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Search_Contents_Command, Model, Settings);
-      Assert (Routed.Operation.Status = Files.Operations.Operation_Failed
-              and then Files.Model.Last_Error_Key (Model) = "error.search.failed",
-              "content search reports an incomplete oversized file instead of silently skipping it");
+      Assert (Routed.Operation.Status = Files.Operations.Operation_Success
+              and then Files.Model.Last_Error_Key (Model) = "search.incomplete"
+              and then Files.Model.Item_Count (Model) = 2,
+              "content search shows its matches and notes an oversized file it could not search in full");
 
       --  But a match within what is read counts, however long the file is.
       Write_File (Join (Search_Root, "oversize.txt"), "needle" & Big);

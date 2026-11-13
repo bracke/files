@@ -83,8 +83,9 @@ package body Files.Application.Windows is
    --  where the idle-CPU saving actually matters.
    Present_Grace_Frames : constant := 24;
 
-   --  Two clicks on the same item at most this far apart activate it.
-   Double_Click_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (500);
+   --  Two clicks on the same item at most this far apart activate it: the
+   --  interval every guikit application shares.
+   Double_Click_Interval : Ada.Real_Time.Time_Span renames Files.Mouse_Buttons.Double_Click_Interval;
 
    procedure Free_Window is new Ada.Unchecked_Deallocation
      (Object => Desktop_Window,

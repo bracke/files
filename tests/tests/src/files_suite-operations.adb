@@ -241,6 +241,7 @@ package body Files_Suite.Operations is
    procedure Test_Move_Source_Changes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_Source_Changes_Off_Volume (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_Keeps_Source_Until_Copy_Synced (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Failed_Move_Kept_Copy_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Read_Only_Survives_Copy_And_Move (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_Keeps_Trash_Until_Synced (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Name_Too_Long_Is_Reported (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -283,6 +284,10 @@ package body Files_Suite.Operations is
    procedure Test_Failed_Move_Rollback (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Search_Input_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Search_Read_Errors (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Content_Search_Utf8_Cut (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Search_Skips_Unreadable_Folder (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Search_Match_Cap (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Name_Search_No_Matches (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Info_Selection_Completion (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    --  Saves XDG_DATA_HOME, HOME and FILES_TRASH_BACKEND, resets Root and the
@@ -341,6 +346,8 @@ package body Files_Suite.Operations is
    procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Thumbnail_Cache_Prune_Past_Cap (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Thumbnail_Listing_Counts_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Stage_Markers_Outlast_Failed_Delete (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Decode_Emoji_Png_From_Font (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Image_Header_Bytes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Oversized_Image_File_Refused (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -854,6 +861,12 @@ package body Files_Suite.Operations is
         (T, Test_Thumbnail_Cache_Prune_Past_Cap'Access,
          "a thumbnail cache holding more than the prune cap is still pruned, back under the cap and the budget");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Thumbnail_Listing_Counts_Thumbnails'Access,
+         "a thumbnail cache listing counts only thumbnails against its cap");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Stage_Markers_Outlast_Failed_Delete'Access,
+         "a stage whose delete fails partway keeps its owner file and markers for the sweep");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Quick_Look_Decodes_Off_Thread'Access,
          "Quick Look decodes its image off the UI thread and drops what is no longer previewed");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1220,7 +1233,20 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Search_Input_Snapshot'Access, "search input is modal and stale outcomes are discarded");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Search_Read_Errors'Access, "unreadable searches fail without replacing the listing");
+        (T, Test_Search_Read_Errors'Access,
+         "an unreadable search root fails without replacing the listing; unreadable parts below it do not");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Content_Search_Utf8_Cut'Access,
+         "content search cuts its read back to a whole character and still folds non-Latin case");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Search_Skips_Unreadable_Folder'Access,
+         "an unreadable folder below the root leaves the other matches shown as incomplete");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Search_Match_Cap'Access,
+         "the match cap shows the first matches with the truncated notice");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Name_Search_No_Matches'Access,
+         "a name search with no match shows the no-matches notice");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Info_Selection_Completion'Access, "keyboard selection and completed refresh populate info metadata");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1262,6 +1288,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Move_Keeps_Source_Until_Copy_Synced'Access,
          "cross-device moves remove the source only after the copy is synced");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Failed_Move_Kept_Copy_Undo'Access,
+         "undo of a failed move's kept copy deletes the copy and leaves the source that stayed");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Read_Only_Survives_Copy_And_Move'Access,
          "read-only files stay read-only when copied and moved across devices");
@@ -1357,7 +1386,7 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Empty_Trash_Hidden'Access, "Empty Trash purges hidden payloads regardless of display preferences");
       AUnit.Test_Cases.Registration.Register_Routine
-        (T, Test_Search_Limit_Errors'Access, "search limits fail without presenting incomplete or empty results");
+        (T, Test_Search_Limit_Errors'Access, "search limits show what was found with the truncated notice");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Io_Error_Classifier'Access,
          "each errno a user can act on names its cause; others keep the generic key");
@@ -1531,6 +1560,9 @@ package body Files_Suite.Operations is
    procedure Test_Thumbnail_Cache_Is_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Thumbnail_Cache_Prune_Past_Cap (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Thumbnail_Listing_Counts_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Stage_Markers_Outlast_Failed_Delete (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Thumbnail_Cache_Is_Per_User (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -1738,6 +1770,8 @@ package body Files_Suite.Operations is
 
    procedure Test_Move_Keeps_Source_Until_Copy_Synced (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
+   procedure Test_Failed_Move_Kept_Copy_Undo (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
    procedure Test_Read_Only_Survives_Copy_And_Move (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Restore_Keeps_Trash_Until_Synced (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
@@ -1811,6 +1845,14 @@ package body Files_Suite.Operations is
    procedure Test_Search_Input_Snapshot (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Search_Read_Errors (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Content_Search_Utf8_Cut (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Search_Skips_Unreadable_Folder (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Search_Match_Cap (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Name_Search_No_Matches (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Info_Selection_Completion (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
