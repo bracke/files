@@ -148,7 +148,7 @@ separate (Files.Commands.Status)
                  Require
                    (Files.Model.Rename.Is_Enabled (Model) or else Files.Model.Rename.Is_Active (Model),
                     Rename_Unavailable_Reason));
-         when Close_Command_Palette_Command =>
+         when Close_Overlay_Command =>
             --  Nothing open to close: Escape just does nothing.
             declare
                Overlay : Files.Model.Input_Overlay;

@@ -87,11 +87,9 @@ begin
          end if;
 
          Result :=
-           (Kind             => Item_Click_Input_Action,
-            Item_Index       => Item_Index,
-            Activate         => Activate,
-            Toggle_Item      => Modifiers (Guikit.Input.Control_Key) and then not Modifiers (Guikit.Input.Shift_Key),
-            Range_Selection  => Modifiers (Guikit.Input.Shift_Key));
+           (Kind       => Item_Click_Input_Action,
+            Item_Index => Item_Index,
+            Activate   => Activate);
          return;
       end if;
    end;

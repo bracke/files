@@ -10,11 +10,11 @@ separate (Files_Suite.Commands)
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "controller opens the settings pane");
       Result := Files.Controller.Execute_Non_Settings_Command
-        (Files.Commands.Close_Command_Palette_Command, Model, Settings);
+        (Files.Commands.Close_Overlay_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status, Files.Controller.Controller_Command_Executed, "the close command runs over the settings pane");
       Files_Suite.Support.Assert_Equal
-        (Result.Command, Files.Commands.Close_Command_Palette_Command, "the close command reports itself");
+        (Result.Command, Files.Commands.Close_Overlay_Command, "the close command reports itself");
       Assert
         (not Files.Model.Settings_Pane.Is_Open (Model),
          "the close command closes the settings pane rather than only dropping focus");

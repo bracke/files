@@ -4,7 +4,7 @@ separate (Files.Controller)
       Text  : String)
       return Controller_Result
    is
-      Old_Text : constant String := Focused_Text (Model);
+      Old_Text : constant String := Files.Model.Focused_Text (Model);
       Cursor   : constant Natural := Files.Model.Text_Cursor_Position (Model);
       New_Text : Unbounded_String;
    begin

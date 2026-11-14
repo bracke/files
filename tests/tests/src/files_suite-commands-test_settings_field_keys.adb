@@ -44,8 +44,8 @@ separate (Files_Suite.Commands)
          "control+s routes settings save command");
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Controller.Controller_Command_Executed,
-         "control+s reports settings save command execution for runtime persistence");
+         Files.Controller.Controller_Needs_Settings_Path,
+         "control+s reports the settings save for the caller to apply with the path");
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_N, Ctrl);
       Files_Suite.Support.Assert_Equal
         (Result.Status,

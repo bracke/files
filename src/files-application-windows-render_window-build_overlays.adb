@@ -5,7 +5,7 @@ separate (Files.Application.Windows.Render_Window)
       Snapshot    : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Runtime.View.Drawn_Slot);
       Line_Height : constant Positive := Files.Rendering.Cell_Height_For (Runtime.Font_Pixel_Size);
    begin
-      if Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Command_Palette_Overlay) then
+      if Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Types.Command_Palette_Overlay) then
          declare
             Layout : constant Files.Rendering.Layout_Metrics :=
               Files.Rendering.Layouts.Calculate_Layout (Snapshot, Natural (Width), Natural (Height), Line_Height);
@@ -28,7 +28,7 @@ separate (Files.Application.Windows.Render_Window)
                Accessibility => Palette.Accessibility);
          end;
       end if;
-      if Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Model.Settings_Pane_Overlay) then
+      if Files.Model.Window_Overlay_Shown (Runtime.Model, Files.Types.Settings_Pane_Overlay) then
          declare
             Layout : constant Files.Rendering.Layout_Metrics :=
               Files.Rendering.Layouts.Calculate_Layout (Snapshot, Natural (Width), Natural (Height), Line_Height);

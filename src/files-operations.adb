@@ -636,6 +636,63 @@ package body Files.Operations is
 
    procedure Release_History (Model : in out Files.Model.Window_Model) is separate;
 
+   function Launch_Open_Actions
+     (Model   : in out Files.Model.Window_Model;
+      Actions : Files.Desktop_Applications.Open_Action_Vectors.Vector;
+      Paths   : Files.Types.String_Vectors.Vector)
+      return Operation_Result
+   is separate;
+
+   function Launch_Application
+     (Model   : in out Files.Model.Window_Model;
+      App     : Files.Desktop_Applications.Application;
+      Targets : Files.Types.String_Vectors.Vector)
+      return Operation_Result
+   is separate;
+
+   procedure Begin_Open_With (Model : in out Files.Model.Window_Model) is separate;
+
+   procedure Begin_Create_Item
+     (Model  : in out Files.Model.Window_Model;
+      Folder : Boolean)
+   is separate;
+
+   function Root_Entries_With_Favorites
+     (Settings : Files.Settings.Settings_Model)
+      return Files.File_System.Root_Entry_Vectors.Vector
+   is separate;
+
+   procedure Seed_Tree
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+   is separate;
+
+   procedure Load_Tree_Children
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Node_Index : Positive)
+   is separate;
+
+   function Classify_Favorite (Path : String) return Favorite_Target is separate;
+
+   function Navigate_And_Select
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Path     : String)
+      return Operation_Result
+   is separate;
+
+   procedure Focus_Ownership_Input
+     (Model         : in out Files.Model.Window_Model;
+      Editing_Group : Boolean)
+   is separate;
+
+   function Commit_Ownership_Input
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result
+   is separate;
+
    function Prepare_Quick_Look
      (Item : Files.Items.Directory_Item)
       return Files.Quick_Look.Quick_Look_Content

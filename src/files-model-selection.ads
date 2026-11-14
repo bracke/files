@@ -1,3 +1,5 @@
+with Guikit.Item_Grid;
+
 --  The selection over the visible rows: single, multi and range selection,
 --  keyboard movement, type-ahead, and queries of what is selected.
 package Files.Model.Selection is
@@ -37,9 +39,11 @@ package Files.Model.Selection is
      (Model         : in out Window_Model;
       Visible_Index : Positive);
 
-   --  Visible indexes, in the order they are taken. On the heap: a marquee
-   --  over a large folder names thousands, too many for a stack array.
-   package Visible_Index_Lists is new Ada.Containers.Vectors (Positive, Positive);
+   --  Visible indexes, in the order they are taken: the vector the item
+   --  grid's hit tests (a marquee's) answer with, so they pass straight in.
+   --  On the heap: a marquee over a large folder names thousands, too many
+   --  for a stack array.
+   package Visible_Index_Lists renames Guikit.Item_Grid.Visible_Index_Vectors;
 
    subtype Visible_Index_List is Visible_Index_Lists.Vector;
 
@@ -267,6 +271,15 @@ package Files.Model.Selection is
    procedure For_Each_Selected_Item
      (Model : Window_Model;
       Visit : not null access procedure (Item : Files.Items.Directory_Item));
+
+   --  The full paths of the selected items, in the order Selected_Items
+   --  lists them: what Copy, Cut, Open With, Copy to... and a label act on.
+   --
+   --  @param Model Model to inspect.
+   --  @return The selected loaded items' full paths.
+   function Selected_Paths
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector;
 
    --  Restore the loaded, visible items present in a previous selection. Item
    --  paths provide identity across sorting and reloads; Primary_Path restores

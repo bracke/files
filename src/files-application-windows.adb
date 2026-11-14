@@ -817,26 +817,12 @@ package body Files.Application.Windows is
       Item    : A11ykit.Provider.Request)
    is separate;
 
-   function Selected_File_Paths
-     (Model : Files.Model.Window_Model)
-      return Files.Types.String_Vectors.Vector
-   is
-      Items  : constant Files.Items.Item_Vectors.Vector := Files.Model.Selection.Selected_Items (Model);
-      Result : Files.Types.String_Vectors.Vector;
-   begin
-      for Item of Items loop
-         Result.Append (Item.Full_Path);
-      end loop;
-
-      return Result;
-   end Selected_File_Paths;
-
    procedure Handle_Item_Drop
      (Runtime      : in out Runtime_Window;
       Target_Index : Natural;
       Modifiers    : Guikit.Input.Modifier_Set)
    is
-      Sources : constant Files.Types.String_Vectors.Vector := Selected_File_Paths (Runtime.Model);
+      Sources : constant Files.Types.String_Vectors.Vector := Files.Model.Selection.Selected_Paths (Runtime.Model);
       Mode    : constant Files.File_System.Drop_Import_Mode :=
         (if Modifiers (Guikit.Input.Control_Key) then Files.File_System.Drop_Copy else Files.File_System.Drop_Move);
       Result  : Files.Operations.Operation_Result;
@@ -1097,7 +1083,7 @@ package body Files.Application.Windows is
         Files.Model.Tree_Panel.Pick_Is_Active (Runtime.Model)
         and then Files.Model.Tree_Panel.Is_Open (Runtime.Model)
         and then Runtime.Scrollbar_Drag_Target = Files.Events.Scroll_Tree_Panel
-        and then not Files.Model.Other_Input_Owning_Overlay_Is_Open (Runtime.Model, Files.Model.Tree_Pick_Overlay);
+        and then not Files.Model.Other_Input_Owning_Overlay_Is_Open (Runtime.Model, Files.Types.Tree_Pick_Overlay);
    begin
       if not Files.Model.Input_Owning_Overlay_Is_Open (Runtime.Model) then
          return;

@@ -569,6 +569,21 @@ package body Files.Model.Selection is
       Files.Model.Support.For_Each_Selected_Item (Model, Visit);
    end For_Each_Selected_Item;
 
+   function Selected_Paths
+     (Model : Window_Model)
+      return Files.Types.String_Vectors.Vector
+   is
+      Paths : Files.Types.String_Vectors.Vector;
+
+      procedure Note (Item : Files.Items.Directory_Item) is
+      begin
+         Paths.Append (Item.Full_Path);
+      end Note;
+   begin
+      Files.Model.Support.For_Each_Selected_Item (Model, Note'Access);
+      return Paths;
+   end Selected_Paths;
+
    procedure Restore
      (Model        : in out Window_Model;
       Items        : Files.Items.Item_Vectors.Vector;

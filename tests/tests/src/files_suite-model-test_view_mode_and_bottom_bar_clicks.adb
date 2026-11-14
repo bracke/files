@@ -44,14 +44,16 @@ separate (Files_Suite.Model)
 
       --  The info pane can always be toggled, even with no selection: the click
       --  now closes the currently open pane rather than being ignored.
-      Result := Files.Controller.Handle_Command_Click (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
+      Result :=
+        Files.Controller.Execute_Non_Settings_Command (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Toggle_Info_Pane_Command,
          "info-pane click routes command with no selection");
       Assert (not Files.Model.Info_Pane_Is_Open (Model), "info-pane click closes the pane with no selection");
       Files.Model.Selection.Select_Visible (Model, 1);
-      Result := Files.Controller.Handle_Command_Click (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
+      Result :=
+        Files.Controller.Execute_Non_Settings_Command (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Toggle_Info_Pane_Command,
@@ -59,10 +61,11 @@ separate (Files_Suite.Model)
       Assert (Files.Model.Info_Pane_Is_Open (Model), "info-pane click toggles open");
       --  Restore the closed state expected by the following command click
       --  checks.
-      Result := Files.Controller.Handle_Command_Click (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
+      Result :=
+        Files.Controller.Execute_Non_Settings_Command (Files.Commands.Toggle_Info_Pane_Command, Model, Settings);
       Assert (not Files.Model.Info_Pane_Is_Open (Model), "a second info-pane click closes the pane again");
 
-      Result := Files.Controller.Handle_Command_Click (Files.Commands.Select_Details_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Details_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
          Files.Commands.Select_Details_Command,
@@ -72,7 +75,7 @@ separate (Files_Suite.Model)
          Files.Types.Details,
          "details click changes view mode");
 
-      Result := Files.Controller.Handle_Command_Click (Files.Commands.No_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.No_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,

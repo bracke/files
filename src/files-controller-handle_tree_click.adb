@@ -9,7 +9,7 @@ separate (Files.Controller)
       --  The destination picker is the tree itself, so it does not block
       --  tree clicks; every other input-owning overlay does.
       if not Files.Model.Tree_Panel.Is_Open (Model)
-        or else Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Model.Tree_Pick_Overlay)
+        or else Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Types.Tree_Pick_Overlay)
         or else Node_Index = 0
         or else Node_Index > Files.Model.Tree_Panel.Node_Count (Model)
       then
@@ -22,7 +22,7 @@ separate (Files.Controller)
       begin
          if Toggle then
             if not Files.Model.Tree_Panel.Node_Is_Expanded (Model, Index) then
-               Load_Tree_Children (Model, Settings, Index, Node_Path);
+               Files.Operations.Load_Tree_Children (Model, Settings, Index);
             end if;
             Files.Model.Tree_Panel.Toggle_Expanded (Model, Index);
             return Make_Result
@@ -41,7 +41,7 @@ separate (Files.Controller)
          end if;
 
          if not Files.Model.Tree_Panel.Node_Is_Expanded (Model, Index) then
-            Load_Tree_Children (Model, Settings, Index, Node_Path);
+            Files.Operations.Load_Tree_Children (Model, Settings, Index);
          end if;
          Files.Model.Tree_Panel.Set_Expanded (Model, Index, True);
 

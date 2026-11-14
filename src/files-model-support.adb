@@ -162,6 +162,8 @@ package body Files.Model.Support is
               then Model.Visible_Items (Visible_Index) else 0);
    end Visible_To_Item_Index;
 
+   --  Map an item-list index to its 1-based visible-row index, or zero when
+   --  the item is hidden by the current filter.
    function Item_To_Visible_Index
      (Model      : Window_Model;
       Item_Index : Positive)
@@ -638,6 +640,37 @@ package body Files.Model.Support is
       Touch (Model);
       Model.Context_Menu := (others => <>);
    end Close_Context_Menu;
+
+   procedure Close_Quick_Look
+     (Model : in out Window_Model) is
+   begin
+      Touch (Model);
+      Reset_Quick_Look (Model);
+   end Close_Quick_Look;
+
+   procedure Close_Tree_Panel
+     (Model : in out Window_Model) is
+   begin
+      Touch (Model);
+      Model.Tree_Panel.Open := False;
+      --  Closing the sidebar also abandons any in-flight destination picker so
+      --  a later reopen starts clean. Whether the picker opened the sidebar is
+      --  kept for End_Tree_Pick, which reads it after closing.
+      Model.Tree_Pick := (Opened_Panel => Model.Tree_Pick.Opened_Panel, others => <>);
+      Model.Tree_Panel.Scroll := 0;
+      Model.Tree_Panel.Keyboard := False;
+   end Close_Tree_Panel;
+
+   procedure End_Tree_Pick
+     (Model : in out Window_Model) is
+   begin
+      if Model.Tree_Pick.Opened_Panel then
+         Close_Tree_Panel (Model);
+      else
+         Clear_Tree_Pick (Model);
+      end if;
+      Model.Tree_Pick.Opened_Panel := False;
+   end End_Tree_Pick;
 
    procedure Toggle_Settings_Pane
      (Model : in out Window_Model) is

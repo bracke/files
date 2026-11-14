@@ -23,11 +23,18 @@ begin
            and then (Runtime.Settings.Window_Width /= Natural (Window_W)
                      or else Runtime.Settings.Window_Height /= Natural (Window_H))
          then
-            Files.Controller.Commit_Settings
-              (Runtime.Model, Runtime.Settings,
-               (Runtime.Settings with delta Window_Width => Natural (Window_W),
-                                            Window_Height => Natural (Window_H)),
-               To_String (Runtime.Settings_Path));
+            declare
+               --  A window closing has no error line left to read it on.
+               Saved : constant Files.Settings.Settings_Write_Result :=
+                 Files.Controller.Commit_Settings
+                   (Runtime.Model, Runtime.Settings,
+                    (Runtime.Settings with delta Window_Width => Natural (Window_W),
+                                                 Window_Height => Natural (Window_H)),
+                    To_String (Runtime.Settings_Path));
+               pragma Unreferenced (Saved);
+            begin
+               null;
+            end;
          end if;
       end;
    end if;

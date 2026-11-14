@@ -16,12 +16,9 @@ separate (Files_Suite.Open_Actions)
             Targets.Append (To_Unbounded_String (Marker_Two));
             Files.Model.Initialize
               (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-            Files.Model.Command_Palette.Open (Model);
-            Files.Model.Command_Palette.Set_Open_With_Targets (Model, Targets);
             --  What the Open With command does: list the applications once.
-            Files.Model.Command_Palette.Set_Open_With_Applications
-              (Model, Files.Desktop_Applications.Available_Applications);
-            Files.Model.Command_Palette.Set_Mode (Model, Files.Model.Palette_Open_With);
+            Files.Model.Command_Palette.Open_With
+              (Model, Targets, Files.Desktop_Applications.Available_Applications);
             Files.Model.Command_Palette.Set_Query (Model, "Multi Target Marker");
             Files.Model.Command_Palette.Select_First (Model);
 
@@ -73,6 +70,15 @@ separate (Files_Suite.Open_Actions)
               (Ada.Directories.Exists (Marker_One)
                and then Ada.Directories.Exists (Marker_Two),
                "Open With executes one %f launch for every selected target");
+            declare
+               Opened : constant Files.Types.String_Vectors.Vector := Files.Model.Take_Recent_Opens (Model);
+            begin
+               Assert
+                 (Natural (Opened.Length) = 2
+                  and then To_String (Opened (1)) = Marker_One
+                  and then To_String (Opened (2)) = Marker_Two,
+                  "every target an Open With launched joins the recent list, as Open's do");
+            end;
          end;
 
          declare
@@ -83,12 +89,9 @@ separate (Files_Suite.Open_Actions)
             Files.Model.Initialize
               (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Targets.Append (To_Unbounded_String ("/tmp/a file.txt"));
-            Files.Model.Command_Palette.Open (Model);
-            Files.Model.Command_Palette.Set_Open_With_Targets (Model, Targets);
             --  What the Open With command does: list the applications once.
-            Files.Model.Command_Palette.Set_Open_With_Applications
-              (Model, Files.Desktop_Applications.Available_Applications);
-            Files.Model.Command_Palette.Set_Mode (Model, Files.Model.Palette_Open_With);
+            Files.Model.Command_Palette.Open_With
+              (Model, Targets, Files.Desktop_Applications.Available_Applications);
             Files.Model.Command_Palette.Select_Last (Model);
             Files_Suite.Support.Assert_Equal
               (Files.Model.Command_Palette.Selected_Id (Model),
@@ -115,6 +118,9 @@ separate (Files_Suite.Open_Actions)
                  "error.open_action.executable_missing"
                and then not Files.Model.Command_Palette.Is_Open (Model),
                "Open With exposes the diagnostic and closes the handled picker");
+            Assert
+              (Files.Model.Take_Recent_Opens (Model).Is_Empty,
+               "an Open With that launched nothing adds nothing to the recent list");
          end;
       end Check;
    begin

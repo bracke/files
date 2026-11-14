@@ -129,7 +129,9 @@ package body Files.Commands is
       Open_Command_Palette_Command =>
         (Identifier => +"palette.open", Primary => (True, GI.Key_P, Ctrl),
          With_Root_Selector | With_Settings_Pane | With_Text_Focus => True, others => <>),
-      Close_Command_Palette_Command =>
+      --  Escape: closes the top overlay or cancels an edit. The identifier
+      --  keeps its first name, so shortcuts saved under it still load.
+      Close_Overlay_Command =>
         (Identifier => +"palette.close", Primary => (True, GI.Key_Escape, None),
          With_Root_Selector | With_Settings_Pane | With_Text_Focus => True, others => <>),
       Select_Drive_Command =>

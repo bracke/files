@@ -15,11 +15,8 @@ package body Files.Model.Quick_Look is
    end Open;
 
    procedure Close
-     (Model : in out Window_Model) is
-   begin
-      Touch (Model);
-      Reset_Quick_Look (Model);
-   end Close;
+     (Model : in out Window_Model)
+     renames Files.Model.Support.Close_Quick_Look;
 
    procedure Set_Image
      (Model  : in out Window_Model;

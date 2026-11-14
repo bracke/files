@@ -1,36 +1,19 @@
 with Files.Commands.Execution;
-with Files.Commands.Status;
 with Files.Model.Clipboard;
 with Files.Model.Quick_Look;
 separate (Files.Controller)
-   function Execute_Non_Settings_Command
+   function Run_Command
      (Id        : Files.Commands.Command_Id;
       Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
-      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
+      Modifiers : Guikit.Input.Modifier_Set)
       return Controller_Result
    is
       Operation : Files.Operations.Operation_Result := Empty_Operation;
 
-      --  The full paths of the selected items, in selection order.
       function Selected_Paths return Files.Types.String_Vectors.Vector is
-         Paths : Files.Types.String_Vectors.Vector;
-      begin
-         for Item of Files.Model.Selection.Selected_Items (Model) loop
-            Paths.Append (Item.Full_Path);
-         end loop;
-         return Paths;
-      end Selected_Paths;
+        (Files.Model.Selection.Selected_Paths (Model));
    begin
-      if (Files.Model.Root_Selector.Is_Open (Model)
-          and then not Files.Commands.Allowed_With_Root_Selector (Id))
-        or else (Files.Model.Settings_Pane.Is_Open (Model)
-                 and then not Files.Commands.Allowed_With_Settings_Pane (Id))
-        or else not Files.Commands.Status.Is_Enabled (Id, Model)
-      then
-         return Refused_Command_Result (Id, Model);
-      end if;
-
       case Id is
          when Files.Commands.Navigate_Home_Command =>
             Operation := Files.Operations.Navigate_Home (Model, Settings);
@@ -55,19 +38,8 @@ separate (Files.Controller)
          when Files.Commands.Open_Selected_Items_Command =>
             Operation := Files.Operations.Open_Selected (Model, Settings, Modifiers);
          when Files.Commands.Open_With_Command =>
-            declare
-               Targets : constant Files.Types.String_Vectors.Vector := Selected_Paths;
-            begin
-               --  Command_Palette.Open resets palette mode and targets, so
-               --  capture the selection into the model only afterwards.
-               Files.Model.Command_Palette.Open (Model);
-               Files.Model.Command_Palette.Set_Open_With_Targets (Model, Targets);
-               Files.Model.Command_Palette.Set_Open_With_Applications
-                 (Model, Files.Desktop_Applications.Available_Applications);
-               Files.Model.Command_Palette.Set_Mode (Model, Files.Model.Palette_Open_With);
-               Files.Model.Set_Error (Model, "");
-               Operation.Status := Files.Operations.Operation_Success;
-            end;
+            Files.Operations.Begin_Open_With (Model);
+            Operation.Status := Files.Operations.Operation_Success;
          when Files.Commands.Delete_Selected_Items_Command =>
             Operation := Files.Operations.Delete_Selected (Model, Settings);
          when Files.Commands.Delete_Selected_Permanently_Command =>
@@ -138,20 +110,14 @@ separate (Files.Controller)
          when Files.Commands.Eject_Selected_Root_Command =>
             Operation := Files.Operations.Eject_Selected_Root (Model);
          when Files.Commands.Create_File_Command =>
-            Files.Model.Begin_Create_File
-              (Model,
-               Files.File_System.Next_Untitled_Name (Files.Model.Current_Path (Model)));
-            Files.Model.Set_Error (Model, "");
+            Files.Operations.Begin_Create_Item (Model, Folder => False);
          when Files.Commands.New_Folder_Command =>
-            Files.Model.Begin_Create_Folder
-              (Model,
-               Files.File_System.Next_Untitled_Name (Files.Model.Current_Path (Model)));
-            Files.Model.Set_Error (Model, "");
+            Files.Operations.Begin_Create_Item (Model, Folder => True);
          when Files.Commands.Select_Drive_Command =>
             if Files.Model.Root_Selector.Is_Open (Model) then
                Files.Model.Root_Selector.Close (Model);
             else
-               Files.Model.Root_Selector.Open (Model, Root_Entries_With_Favorites (Settings));
+               Files.Model.Root_Selector.Open (Model, Files.Operations.Root_Entries_With_Favorites (Settings));
             end if;
             Files.Model.Set_Error (Model, "");
          when Files.Commands.Toggle_Folder_Tree_Command =>
@@ -161,7 +127,7 @@ separate (Files.Controller)
             elsif Files.Model.Tree_Panel.Is_Open (Model) then
                Files.Model.Tree_Panel.Close (Model);
             else
-               Seed_Tree_If_Needed (Model, Settings);
+               Files.Operations.Seed_Tree (Model, Settings);
                Files.Model.Tree_Panel.Open (Model);
             end if;
             Files.Model.Set_Error (Model, "");
@@ -176,7 +142,7 @@ separate (Files.Controller)
             begin
                Files.Model.Tree_Panel.Begin_Pick
                  (Model, Mode, Selected_Paths, Files.Model.Current_Path (Model));
-               Seed_Tree_If_Needed (Model, Settings);
+               Files.Operations.Seed_Tree (Model, Settings);
                Files.Model.Tree_Panel.Open (Model);
                Files.Model.Set_Error (Model, "");
                Operation.Status := Files.Operations.Operation_Success;
@@ -193,7 +159,7 @@ separate (Files.Controller)
             end if;
             Files.Model.Set_Error (Model, "");
             Operation.Status := Files.Operations.Operation_Success;
-         when Files.Commands.Close_Command_Palette_Command =>
+         when Files.Commands.Close_Overlay_Command =>
             declare
                Overlay : Files.Model.Input_Overlay;
             begin
@@ -211,9 +177,8 @@ separate (Files.Controller)
             end if;
          when Files.Commands.Settings_Command_Id =>
             --  Reported, not applied: changing the settings file needs its
-            --  path, so the Settings_Path overload runs these through
-            --  Apply_Settings_Command instead of calling this one.
-            null;
+            --  path (Complete_Settings_Command applies it).
+            return Make_Result (Controller_Needs_Settings_Path, Id);
          when Files.Commands.Pure_Command_Id =>
             declare
                Had_Results : constant Boolean := Files.Model.Search_Results_Are_Active (Model);
@@ -229,10 +194,9 @@ separate (Files.Controller)
 
       if Operation.Status = Files.Operations.Operation_Disabled
         and then Length (Operation.Error_Key) = 0
-        and then not Files.Commands.Requires_Settings_Path (Id)
       then
          Operation.Status := Files.Operations.Operation_Success;
       end if;
 
       return Make_Result (Controller_Command_Executed, Id, Operation);
-   end Execute_Non_Settings_Command;
+   end Run_Command;

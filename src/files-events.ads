@@ -89,10 +89,10 @@ package Files.Events is
             Click_X : Integer := 0;
             Click_Y : Integer := 0;
          when Item_Click_Input_Action =>
+            --  Which modifiers toggle or extend the selection is the
+            --  controller's (Handle_Item_Click), read from the click's own.
             Item_Index      : Natural := 0;
             Activate        : Boolean := False;
-            Toggle_Item     : Boolean := False;
-            Range_Selection : Boolean := False;
          when Root_Click_Input_Action =>
             Root_Index : Natural := 0;
          when Breadcrumb_Click_Input_Action =>

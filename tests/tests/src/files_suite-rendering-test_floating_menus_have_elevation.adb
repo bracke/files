@@ -77,7 +77,7 @@ separate (Files_Suite.Rendering)
                "the sort menu uses the shared banded shadow");
             Assert
               (Dismiss.Kind = Files.Events.Command_Input_Action
-               and then Dismiss.Command = Files.Commands.Close_Command_Palette_Command,
+               and then Dismiss.Command = Files.Commands.Close_Overlay_Command,
                "a click outside the sort menu dismisses it without activating the background");
             for Node of Frame.Accessibility loop
                A11y_Count := A11y_Count + 1;

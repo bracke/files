@@ -125,38 +125,26 @@ package body Files.Model.Command_Palette is
       return Palette_Mode is
      (Model.Command_Palette.Mode);
 
-   procedure Set_Mode
-     (Model : in out Window_Model;
-      Mode  : Palette_Mode) is
+   procedure Open_With
+     (Model        : in out Window_Model;
+      Targets      : Files.Types.String_Vectors.Vector;
+      Applications : Files.Desktop_Applications.Application_Vectors.Vector) is
    begin
-      Touch (Model);
-      Model.Command_Palette.Mode := Mode;
+      --  Open resets the mode and the stored lists: set them after it.
+      Open (Model);
+      Model.Command_Palette.Mode := Palette_Open_With;
+      Model.Command_Palette.Open_With_Targets := Targets;
+      Model.Command_Palette.Open_With_Applications := Applications;
       --  The command list is mode-specific; reload it and reset the query.
       Guikit.Command_Palette.Reset (Model.Command_Palette.View);
       Guikit.Command_Palette.Set_Commands
         (Model.Command_Palette.View, Files.Command_Palette.Commands (Model));
-   end Set_Mode;
-
-   procedure Set_Open_With_Targets
-     (Model   : in out Window_Model;
-      Targets : Files.Types.String_Vectors.Vector) is
-   begin
-      Touch (Model);
-      Model.Command_Palette.Open_With_Targets := Targets;
-   end Set_Open_With_Targets;
+   end Open_With;
 
    function Open_With_Targets
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector is
      (Model.Command_Palette.Open_With_Targets);
-
-   procedure Set_Open_With_Applications
-     (Model        : in out Window_Model;
-      Applications : Files.Desktop_Applications.Application_Vectors.Vector) is
-   begin
-      Touch (Model);
-      Model.Command_Palette.Open_With_Applications := Applications;
-   end Set_Open_With_Applications;
 
    function Open_With_Applications
      (Model : Window_Model)

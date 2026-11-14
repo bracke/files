@@ -32,7 +32,7 @@ separate (Files_Suite.Commands)
         (Files.Model.View_Mode_Of (Model),
          Files.Types.Small_Icons,
          "command execution respects root-selector modal disablement");
-      Files_Suite.Support.Run_Command (Files.Commands.Close_Command_Palette_Command, Model);
+      Files_Suite.Support.Run_Command (Files.Commands.Close_Overlay_Command, Model);
       Assert
         (not Files.Model.Root_Selector.Is_Open (Model),
          "context cancel can close root selector");
@@ -61,7 +61,7 @@ separate (Files_Suite.Commands)
          "rename enabled with one selected item");
       Files_Suite.Support.Run_Command (Files.Commands.Rename_Selected_Items_Command, Model);
       Assert
-        (Files.Commands.Status.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Close_Overlay_Command, Model),
          "context cancel enabled while rename is active");
       Files.Model.Cancel_Focus_Or_Edit (Model);
    end Test_Pure_Command_Execution;

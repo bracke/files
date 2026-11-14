@@ -5,7 +5,7 @@ separate (Files.Controller)
       By_Word   : Boolean)
       return Controller_Result
    is
-      Text       : constant String := Focused_Text (Model);
+      Text       : constant String := Files.Model.Focused_Text (Model);
       Cursor     : constant Natural := Files.Model.Text_Cursor_Position (Model);
       New_Text   : Unbounded_String;
       New_Cursor : Natural;

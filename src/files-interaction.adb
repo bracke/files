@@ -1,18 +1,15 @@
 with Files.Window_Polls;
 with Files.Items;
-with Files.Commands.Status;
 with Ada.Strings.Unbounded;
 
 with Guikit.Layout;
 with Guikit.Settings_Panel;
 
-with Files.Command_Palette;
 with Files.Operations;
 with Files.Model.Command_Palette;
 with Files.Model.Context_Menu;
 with Files.Model.Label_Picker;
 with Files.Model.Settings_Pane;
-with Files.Model.Selection;
 
 package body Files.Interaction is
 
@@ -36,23 +33,23 @@ package body Files.Interaction is
          return True;
       end if;
       case Overlay is
-         when Files.Model.Foreground_Job_Overlay | Files.Model.Paste_Conflict_Overlay =>
+         when Files.Types.Foreground_Job_Overlay | Files.Types.Paste_Conflict_Overlay =>
             return False;
-         when Files.Model.Quick_Look_Overlay =>
+         when Files.Types.Quick_Look_Overlay =>
             return Command = Files.Commands.Toggle_Quick_Look_Command;
-         when Files.Model.Label_Picker_Overlay
-            | Files.Model.Command_Palette_Overlay
-            | Files.Model.Context_Menu_Overlay =>
-            return Command = Files.Commands.Close_Command_Palette_Command;
-         when Files.Model.Settings_Pane_Overlay =>
+         when Files.Types.Label_Picker_Overlay
+            | Files.Types.Command_Palette_Overlay
+            | Files.Types.Context_Menu_Overlay =>
+            return Command = Files.Commands.Close_Overlay_Command;
+         when Files.Types.Settings_Pane_Overlay =>
             return Command = Files.Commands.Toggle_Settings_Pane_Command;
-         when Files.Model.Root_Selector_Overlay =>
+         when Files.Types.Root_Selector_Overlay =>
             return Command in Files.Commands.Select_Drive_Command
-                              | Files.Commands.Close_Command_Palette_Command;
-         when Files.Model.Sort_Menu_Overlay =>
+                              | Files.Commands.Close_Overlay_Command;
+         when Files.Types.Sort_Menu_Overlay =>
             return Command in Files.Commands.Sort_Command_Id
-                              | Files.Commands.Close_Command_Palette_Command;
-         when Files.Model.Tree_Pick_Overlay =>
+                              | Files.Commands.Close_Overlay_Command;
+         when Files.Types.Tree_Pick_Overlay =>
             return Command = Files.Commands.Toggle_Folder_Tree_Command;
       end case;
    end Command_Action_Is_Current;
@@ -118,16 +115,9 @@ package body Files.Interaction is
       Label         : Files.Types.Color_Label;
       Result        : in out Interaction_Result)
    is
-      Selected : constant Files.Items.Item_Vectors.Vector :=
-        Files.Model.Selection.Selected_Items (Model);
-      Paths    : Files.Settings.String_Vectors.Vector;
-      Updated  : Files.Settings.Settings_Model := Settings;
+      Updated : Files.Settings.Settings_Model := Settings;
    begin
-      Paths.Reserve_Capacity (Selected.Length);
-      for Item of Selected loop
-         Paths.Append (Item.Full_Path);
-      end loop;
-      Files.Settings.Set_Labels (Updated, Paths, Label);
+      Files.Settings.Set_Labels (Updated, Files.Model.Selection.Selected_Paths (Model), Label);
       Files.Model.Label_Picker.Close (Model);
       Files.Controller.Commit_Settings (Model, Settings, Updated, Settings_Path, Accepted => Result.Settings_Changed);
    end Apply_Label;
@@ -351,6 +341,28 @@ package body Files.Interaction is
       Refresh_Open_Pane (Model, Before, Settings);
    end Finish_Settings_Command;
 
+   --  Finish what a controller entry answered: a settings command it only
+   --  reported is applied with the path (Controller.Complete_Settings_Command),
+   --  the result is observed, and the settings follow-ups run
+   --  (Finish_Settings_Command). Ran says whether a settings command ran.
+   procedure Conclude
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String;
+      Reported      : Files.Controller.Controller_Result;
+      Before        : Files.Settings.Settings_Model;
+      Result        : in out Interaction_Result;
+      Ran           : out Boolean)
+   is
+      Outcome : constant Files.Controller.Controller_Result :=
+        Files.Controller.Complete_Settings_Command (Reported, Model, Settings, Settings_Path);
+   begin
+      Ran := Ran_Settings_Command (Outcome.Command, Outcome, Before, Settings);
+      Observe_Controller_Outcome (Outcome, Result);
+      Finish_Settings_Command
+        (Model, Settings, Settings_Path, Outcome.Command, Before, Observe => Ran, Result => Result);
+   end Conclude;
+
    procedure Execute_Command
      (Model             : in out Files.Model.Window_Model;
       Settings          : in out Files.Settings.Settings_Model;
@@ -359,30 +371,16 @@ package body Files.Interaction is
       Modifiers         : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Result            : out Interaction_Result)
    is
-      Outcome : Files.Controller.Controller_Result;
+      Before : constant Files.Settings.Settings_Model := Settings;
+      Ran    : Boolean;
    begin
       Result := (others => <>);
+      --  The controller refuses a disabled command (it reports why) and
+      --  applies a settings command with the path.
+      Conclude
+        (Model, Settings, Settings_Path,
+         Files.Controller.Execute_Command (Command, Model, Settings, Settings_Path, Modifiers), Before, Result, Ran);
       Result.Command := Command;
-
-      --  A disabled command never enters the execute path: it only reports
-      --  why it cannot run.
-      if not Files.Commands.Status.Is_Enabled (Command, Model) then
-         Outcome := Files.Controller.Refused_Command_Result (Command, Model);
-         Result.Status := Outcome.Status;
-         return;
-      end if;
-
-      declare
-         Before : constant Files.Settings.Settings_Model := Settings;
-      begin
-         Outcome := Files.Controller.Execute_Command (Command, Model, Settings, Settings_Path, Modifiers);
-         Finish_Settings_Command
-           (Model, Settings, Settings_Path, Command, Before,
-            Observe => Ran_Settings_Command (Command, Outcome, Before, Settings),
-            Result  => Result);
-      end;
-
-      Result.Status := Outcome.Status;
    end Execute_Command;
 
    --  What every key and action dispatch ends with: any item opened folded
@@ -485,7 +483,7 @@ package body Files.Interaction is
       --  should be unreachable. An open context menu does not count:
       --  right-clicking elsewhere replaces it with a new menu.
       Overlay_Open : constant Boolean :=
-        Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Model.Context_Menu_Overlay);
+        Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Types.Context_Menu_Overlay);
    begin
       Result := (others => <>);
       if On_Context_Menu and then Files.Model.Context_Menu.Is_Open (Model) then
@@ -611,9 +609,9 @@ package body Files.Interaction is
 
    function Selected_Visible_Indices
      (Model : Files.Model.Window_Model)
-      return Files.Rendering.Visible_Index_Vectors.Vector
+      return Files.Model.Selection.Visible_Index_List
    is
-      Result   : Files.Rendering.Visible_Index_Vectors.Vector;
+      Result   : Files.Model.Selection.Visible_Index_List;
       Position : Natural := 0;
 
       procedure Note (Item : Files.Items.Directory_Item; Item_Index : Natural; Selected : Boolean) is
@@ -632,23 +630,15 @@ package body Files.Interaction is
 
    procedure Apply_Marquee_Selection
      (Model    : in out Files.Model.Window_Model;
-      Hits     : Files.Rendering.Visible_Index_Vectors.Vector;
+      Hits     : Files.Model.Selection.Visible_Index_List;
       Additive : Boolean;
-      Base     : Files.Rendering.Visible_Index_Vectors.Vector)
+      Base     : Files.Model.Selection.Visible_Index_List)
    is
+      use type Files.Model.Selection.Visible_Index_List;
+   begin
       --  The base (when additive), then the hits; the model drops repeats and
       --  indexes a stale base names past the listing's end.
-      Combined : Files.Model.Selection.Visible_Index_List;
-   begin
-      if Additive then
-         for Index of Base loop
-            Combined.Append (Index);
-         end loop;
-      end if;
-      for Index of Hits loop
-         Combined.Append (Index);
-      end loop;
-      Files.Model.Selection.Select_Visible_Set (Model, Combined);
+      Files.Model.Selection.Select_Visible_Set (Model, (if Additive then Base & Hits else Hits));
    end Apply_Marquee_Selection;
 
 end Files.Interaction;

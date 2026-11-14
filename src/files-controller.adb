@@ -1,12 +1,7 @@
 with Files.Window_Polls;
-with Files.File_System.Permissions;
 with Files.Foreground_Jobs;
-with Hostkit.Process;
-with Files.Fs_Primitives;
-with Files.Diagnostics;
 with Files.Items;
 with Files.Commands.Status;
-with Ada.Strings.Fixed;
 with Ada.Strings.Unbounded;
 
 with Guikit.Settings_Panel;
@@ -15,7 +10,6 @@ with Files.Desktop_Applications;
 with Files.Breadcrumbs;
 with Files.Command_Palette;
 with Files.Folder_Tree;
-with Files.Root_Labels;
 with Files.Settings_Form;
 with Guikit.Utf8.Editing;
 with Files.Model.Command_Palette;
@@ -36,7 +30,6 @@ package body Files.Controller is
    use type Files.Model.Tree_Pick_Mode;
    use type Files.Operations.Operation_Status;
    use type Files.Types.Focus_Target;
-   use type Files.Types.Item_Kind;
    use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;
    use type Guikit.Input.Navigation_Direction;
@@ -69,59 +62,6 @@ package body Files.Controller is
          others    => <>);
    end Empty_Operation;
 
-   --  The filesystem roots followed by the user's favorites: what the root
-   --  selector lists and the folder tree is seeded with. A favorite is
-   --  labelled by its base name after the star, not by its full path.
-   function Root_Entries_With_Favorites
-     (Settings : Files.Settings.Settings_Model)
-      return Files.File_System.Root_Entry_Vectors.Vector
-   is
-      Roots : Files.File_System.Root_Entry_Vectors.Vector := Files.File_System.Available_Root_Entries;
-   begin
-      for Path of Settings.Favorite_Paths loop
-         Roots.Append
-           (Files.File_System.Root_Entry'
-              (Path        => Path,
-               Label       =>
-                 To_Unbounded_String
-                   (Files.File_System.Root_Label (To_String (Path), Files.File_System.Root_Favorite)),
-               Name        =>
-                 To_Unbounded_String
-                   (Files.File_System.Root_Name (To_String (Path), Files.File_System.Root_Favorite)),
-               Detail      => Null_Unbounded_String,
-               Kind        => Files.File_System.Root_Favorite,
-               Volume_Name => Null_Unbounded_String,
-               Ready       => Files.File_System.Root_Ready,
-               Removable   => False));
-      end loop;
-      return Roots;
-   end Root_Entries_With_Favorites;
-
-   --  Seed the folder tree's root nodes from Root_Entries_With_Favorites,
-   --  again whenever they changed (a favorite added, a volume mounted) since
-   --  the tree was seeded. Used by the tree toggle command
-   --  and the Copy to.../Move to... destination picker so both open onto the
-   --  same populated tree. A root is named as the selector names it; a
-   --  favorite by its path, which the tree has room for.
-   procedure Seed_Tree_If_Needed
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model) is
-      Seeds : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
-   begin
-      for Root of Root_Entries_With_Favorites (Settings) loop
-         Seeds.Append
-           (Files.Folder_Tree.Entry_Seed'
-              (Path => Root.Path,
-               Name =>
-                 (if Root.Kind /= Files.File_System.Root_Favorite
-                  then To_Unbounded_String (Files.Root_Labels.Display_Label (Root))
-                  else Root.Path)));
-      end loop;
-      if not Files.Model.Tree_Panel.Is_Seeded (Model) or else not Files.Model.Tree_Panel.Roots_Match (Model, Seeds) then
-         Files.Model.Tree_Panel.Seed (Model, Seeds);
-      end if;
-   end Seed_Tree_If_Needed;
-
    procedure Follow_Favorites
      (Model    : in out Files.Model.Window_Model;
       Before   : Files.Settings.Settings_Model;
@@ -133,7 +73,7 @@ package body Files.Controller is
       if Files.Model.Tree_Panel.Is_Seeded (Model)
         and then Before.Favorite_Paths /= Settings.Favorite_Paths
       then
-         Seed_Tree_If_Needed (Model, Settings);
+         Files.Operations.Seed_Tree (Model, Settings);
       end if;
    end Follow_Favorites;
 
@@ -251,18 +191,6 @@ package body Files.Controller is
      (Model         : in out Files.Model.Window_Model;
       Settings      : in out Files.Settings.Settings_Model;
       Updated       : Files.Settings.Settings_Model;
-      Settings_Path : String)
-   is
-      Outcome : constant Commit_Outcome := Commit (Model, Settings, Updated, Settings_Path);
-      pragma Unreferenced (Outcome);
-   begin
-      null;
-   end Commit_Settings;
-
-   procedure Commit_Settings
-     (Model         : in out Files.Model.Window_Model;
-      Settings      : in out Files.Settings.Settings_Model;
-      Updated       : Files.Settings.Settings_Model;
       Settings_Path : String;
       Accepted      : out Boolean) is
    begin
@@ -289,7 +217,8 @@ package body Files.Controller is
       return
         (Status    => Status,
          Command   => Command,
-         Operation => Operation);
+         Operation => Operation,
+         others    => <>);
    end Make_Result;
 
    --  The result of an action that may have left the model as it was:
@@ -385,12 +314,6 @@ package body Files.Controller is
       return Controller_Result
  is separate;
 
-   function Refused_Command_Result
-     (Id    : Files.Commands.Command_Id;
-      Model : in out Files.Model.Window_Model)
-      return Controller_Result
- is separate;
-
    procedure Scroll_Palette_Selection
      (Model : in out Files.Model.Window_Model;
       Lines : Integer) is
@@ -428,28 +351,6 @@ package body Files.Controller is
       end case;
    end Replace_Focused_Text;
 
-   function Focused_Text
-     (Model : Files.Model.Window_Model)
-      return String is
-   begin
-      case Files.Model.Focus (Model) is
-         when Files.Types.Focus_Path_Input =>
-            return Files.Model.Path_Input_Text (Model);
-         when Files.Types.Focus_Filter_Input =>
-            return Files.Model.Filter_Text (Model);
-         when Files.Types.Focus_Rename_Input =>
-            return Files.Model.Rename.Text (Model);
-         when Files.Types.Focus_Command_Palette =>
-            return Files.Model.Command_Palette.Query (Model);
-         when Files.Types.Focus_Settings_Input =>
-            return Files.Model.Settings_Pane.Focused_Value (Model);
-         when Files.Types.Focus_Ownership_Input =>
-            return Files.Model.Ownership_Input_Text (Model);
-         when Files.Types.Focus_None =>
-            return "";
-      end case;
-   end Focused_Text;
-
    function Append_Focused_Text
      (Model : in out Files.Model.Window_Model;
       Text  : String)
@@ -480,13 +381,31 @@ package body Files.Controller is
       Settings : Files.Settings.Settings_Model)
       return Controller_Result;
 
+   --  Run an enabled command that needs no settings path: the one table
+   --  of what each command does. Its callers have checked enablement.
+   function Run_Command
+     (Id        : Files.Commands.Command_Id;
+      Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Modifiers : Guikit.Input.Modifier_Set)
+      return Controller_Result
+ is separate;
+
    function Execute_Non_Settings_Command
      (Id        : Files.Commands.Command_Id;
       Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
-      return Controller_Result
- is separate;
+      return Controller_Result is
+   begin
+      if not Files.Commands.Status.Is_Enabled (Id, Model) then
+         return Disabled_Command_Result (Id, Model);
+      elsif Files.Commands.Requires_Settings_Path (Id) then
+         --  Reported, not applied: changing the settings file needs its path.
+         return Make_Result (Controller_Needs_Settings_Path, Id);
+      end if;
+      return Run_Command (Id, Model, Settings, Modifiers);
+   end Execute_Non_Settings_Command;
 
    --  Capture the live Files.Commands override table into the settings model so a
    --  save persists the current keymap. The [shortcuts] section is thus always a
@@ -598,20 +517,6 @@ package body Files.Controller is
       return Controller_Result
  is separate;
 
-   function Handle_Command_Click
-     (Id        : Files.Commands.Command_Id;
-      Model     : in out Files.Model.Window_Model;
-      Settings  : Files.Settings.Settings_Model;
-      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
-      return Controller_Result is
-   begin
-      if Id = Files.Commands.No_Command then
-         return Make_Result (Controller_Ignored);
-      end if;
-
-      return Execute_Non_Settings_Command (Id, Model, Settings, Modifiers);
-   end Handle_Command_Click;
-
    function Apply_Settings_Command
      (Id            : Files.Commands.Settings_Command_Id;
       Model         : in out Files.Model.Window_Model;
@@ -628,45 +533,32 @@ package body Files.Controller is
       Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result is
    begin
-      if Files.Commands.Requires_Settings_Path (Id) and then Files.Commands.Status.Is_Enabled (Id, Model) then
+      if not Files.Commands.Status.Is_Enabled (Id, Model) then
+         return Disabled_Command_Result (Id, Model);
+      elsif Files.Commands.Requires_Settings_Path (Id) then
          return Apply_Settings_Command (Id, Model, Settings, Settings_Path);
       end if;
-      return Execute_Non_Settings_Command (Id, Model, Settings, Modifiers);
+      return Run_Command (Id, Model, Settings, Modifiers);
    end Execute_Command;
+
+   function Complete_Settings_Command
+     (Reported      : Controller_Result;
+      Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String)
+      return Controller_Result is
+   begin
+      if Reported.Status = Controller_Needs_Settings_Path then
+         return Apply_Settings_Command (Reported.Command, Model, Settings, Settings_Path);
+      end if;
+      return Reported;
+   end Complete_Settings_Command;
 
    function Handle_Search_Scope_Toggle
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Controller_Result
  is separate;
-
-   --  Open the info-pane ownership editor for the single selected item,
-   --  prefilled with the owner's (or group's) resolved account name. Does
-   --  nothing on a platform without chown support, or when the model refuses
-   --  (see Files.Model.Focus_Ownership_Input).
-   --
-   --  @param Model Window model to update.
-   --  @param Editing_Group True to edit the group, False to edit the owner.
-   procedure Focus_Ownership_Input
-     (Model         : in out Files.Model.Window_Model;
-      Editing_Group : Boolean) is
-   begin
-      if not Files.File_System.Permissions.Supports_Ownership
-        or else Files.Model.Selection.Selected_Count (Model) /= 1
-      then
-         return;
-      end if;
-      declare
-         Item : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
-      begin
-         Files.Model.Focus_Ownership_Input
-           (Model,
-            Editing_Group,
-            (if Editing_Group
-             then Files.File_System.Permissions.Group_Name_For_Id (Item.Group_Id)
-             else Files.File_System.Permissions.User_Name_For_Id (Item.Owner_Id)));
-      end;
-   end Focus_Ownership_Input;
 
    function Handle_Permission_Toggle
      (Model    : in out Files.Model.Window_Model;
@@ -695,7 +587,7 @@ package body Files.Controller is
       then
          return Make_Result (Controller_Ignored);
       end if;
-      Focus_Ownership_Input (Model, Editing_Group => Group);
+      Files.Operations.Focus_Ownership_Input (Model, Editing_Group => Group);
       return Make_Result (Controller_Text_Updated);
    end Handle_Ownership_Edit;
 
@@ -754,67 +646,17 @@ package body Files.Controller is
       return Make_Result (Controller_Command_Executed, Files.Commands.Select_Drive_Command, Operation);
    end Select_Root;
 
-   --  Classify a favorite path as a live folder, a live file, or a stale entry
-   --  whose target no longer exists. Any lookup failure is treated as stale so a
-   --  broken favorite click degrades to a no-op rather than raising.
-   type Favorite_Target is (Favorite_Folder, Favorite_File, Favorite_Stale);
-
-   function Classify_Favorite (Path : String) return Favorite_Target is
-   begin
-      if Path = "" or else not Files.Fs_Primitives.Exists (Path) then
-         return Favorite_Stale;
-      elsif Files.Fs_Primitives.Directory_Exists (Path) then
-         return Favorite_Folder;
-      end if;
-      return Favorite_File;
-   exception
-      when Failure : others =>
-         Files.Diagnostics.Note (Failure, "Files.Controller");
-         return Favorite_Stale;
-   end Classify_Favorite;
-
-   --  Open a favorite that points at a file: navigate to its parent directory
-   --  and select the file there, so the folder opens with the item highlighted.
-   function Open_File_Favorite
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model;
-      Path     : String)
-      return Controller_Result
-   is
-      Parent : constant String := Files.File_System.Parent_Directory (Path);
-   begin
-      if Parent = "" then
-         return Make_Result (Controller_Ignored);
-      end if;
-
-      declare
-         Operation : constant Files.Operations.Operation_Result :=
-           Files.Operations.Select_Root (Model, Settings, Parent);
-      begin
-         if Operation.Status = Files.Operations.Operation_Navigated then
-            declare
-               Selected : constant Boolean :=
-                 Files.Model.Selection.Select_By_Name (Model, Files.Fs_Primitives.Leaf_Text (Path));
-               pragma Unreferenced (Selected);
-            begin
-               null;
-            end;
-         end if;
-         return Make_Result (Controller_Command_Executed, Files.Commands.Open_Selected_Root_Command, Operation);
-      end;
-   end Open_File_Favorite;
-
    --  Reveal the single selected item by navigating to its parent directory and
-   --  selecting it there, mirroring the file-favorite click behaviour. When the
-   --  parent is empty or already the current directory the reveal is a safe
-   --  no-op that reports success without navigating.
+   --  selecting it there, as a file favorite's click does. When the parent is
+   --  empty or already the current directory the reveal is a safe no-op that
+   --  reports success without navigating.
    function Reveal_Selected_Item
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Controller_Result
    is
       Items : constant Files.Items.Item_Vectors.Vector :=
-        Files.Model.Selection.Selected_Items (Model);
+        Files.Model.Selection.Selected_Items (Model, Limit => 2);
    begin
       if Natural (Items.Length) /= 1 then
          return Make_Result (Controller_Ignored, Files.Commands.Open_Containing_Folder_Command);
@@ -828,23 +670,10 @@ package body Files.Controller is
             --  Already in the containing folder (or no parent): nothing to do.
             return Make_Result (Controller_Command_Executed, Files.Commands.Open_Containing_Folder_Command);
          end if;
-
-         declare
-            Operation : constant Files.Operations.Operation_Result :=
-              Files.Operations.Select_Root (Model, Settings, Parent);
-         begin
-            if Operation.Status = Files.Operations.Operation_Navigated then
-               declare
-                  Selected : constant Boolean :=
-                    Files.Model.Selection.Select_By_Name (Model, Files.Fs_Primitives.Leaf_Text (Path));
-                  pragma Unreferenced (Selected);
-               begin
-                  null;
-               end;
-            end if;
-            return Make_Result
-              (Controller_Command_Executed, Files.Commands.Open_Containing_Folder_Command, Operation);
-         end;
+         return Make_Result
+           (Controller_Command_Executed,
+            Files.Commands.Open_Containing_Folder_Command,
+            Files.Operations.Navigate_And_Select (Model, Settings, Path));
       end;
    end Reveal_Selected_Item;
 
@@ -863,14 +692,25 @@ package body Files.Controller is
          --  A favorite may target a file or a stale path; ordinary roots are
          --  always directories and take the direct navigation path.
          if Kind = Files.File_System.Root_Favorite then
-            case Classify_Favorite (Path) is
-               when Favorite_Stale =>
+            case Files.Operations.Classify_Favorite (Path) is
+               when Files.Operations.Favorite_Stale =>
                   --  Broken favorite: skip the click without raising so a stale
                   --  entry can never crash the selector.
                   return Make_Result (Controller_Ignored);
-               when Favorite_File =>
-                  return Open_File_Favorite (Model, Settings, Path);
-               when Favorite_Folder =>
+               when Files.Operations.Favorite_File =>
+                  --  The folder opens with the file selected.
+                  declare
+                     Operation : constant Files.Operations.Operation_Result :=
+                       Files.Operations.Navigate_And_Select (Model, Settings, Path);
+                  begin
+                     return Make_Result
+                       ((if Operation.Status = Files.Operations.Operation_Disabled
+                         then Controller_Ignored
+                         else Controller_Command_Executed),
+                        Files.Commands.Open_Selected_Root_Command,
+                        Operation);
+                  end;
+               when Files.Operations.Favorite_Folder =>
                   null;
             end case;
          end if;
@@ -891,7 +731,7 @@ package body Files.Controller is
       return Controller_Result is
    begin
       if not Files.Model.Root_Selector.Is_Open (Model)
-        or else Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Model.Root_Selector_Overlay)
+        or else Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Types.Root_Selector_Overlay)
         or else Root_Index = 0
         or else Root_Index > Files.Model.Root_Selector.Count (Model)
       then
@@ -934,38 +774,6 @@ package body Files.Controller is
       end;
    end Handle_Breadcrumb_Click;
 
-   --  Load a tree node's direct subdirectories and attach them in place of
-   --  any it had, honouring the hidden-files setting. Run on every expand, so
-   --  a folder made, renamed or removed since shows as it is now. An empty
-   --  directory marks the node loaded, with no children; a read that fails
-   --  (a permission change, a share that dropped out) keeps the children it
-   --  had and reports why, rather than passing the folder off as empty.
-   procedure Load_Tree_Children
-     (Model      : in out Files.Model.Window_Model;
-      Settings   : Files.Settings.Settings_Model;
-      Node_Index : Positive;
-      Node_Path  : String)
-   is
-      --  The tree shows folders only, read lean: this runs on the UI thread.
-      Load     : constant Files.File_System.Directory_Load_Result :=
-        Files.File_System.Load_Subdirectories (Node_Path, Settings, Files.Settings.Listing_Options_Of (Settings));
-      Children : Files.Folder_Tree.Entry_Seed_Vectors.Vector;
-   begin
-      if not Load.Success then
-         Files.Model.Set_Error (Model, To_String (Load.Error_Key));
-         return;
-      end if;
-      for Item of Load.Items loop
-         if Item.Kind = Files.Types.Directory_Item then
-            Children.Append
-              (Files.Folder_Tree.Entry_Seed'
-                 (Path => Item.Full_Path,
-                  Name => Item.Name));
-         end if;
-      end loop;
-      Files.Model.Tree_Panel.Set_Children (Model, Node_Index, Children);
-   end Load_Tree_Children;
-
    function Handle_Tree_Click
      (Model      : in out Files.Model.Window_Model;
       Settings   : Files.Settings.Settings_Model;
@@ -975,7 +783,7 @@ package body Files.Controller is
 
    --  Launch the chosen "Open With" application on the stored target paths, then
    --  close the palette. A detached launch has no application exit status, but
-   --  preflight and process creation are still observable and must be reported.
+   --  preflight and process creation are still observable and are reported.
    function Launch_Application_Result
      (Model : in out Files.Model.Window_Model;
       App   : Files.Desktop_Applications.Application)
@@ -983,61 +791,12 @@ package body Files.Controller is
    is
       Targets : constant Files.Types.String_Vectors.Vector :=
         Files.Model.Command_Palette.Open_With_Targets (Model);
-      --  An application that runs in a terminal (Terminal=true) is started
-      --  inside the one Open Terminal would open.
-      Actions : constant Files.Desktop_Applications.Open_Action_Vectors.Vector :=
-        Files.Desktop_Applications.Launch_Actions
-          (App, Targets, (if App.Terminal then Hostkit.Process.Default_Terminal else ""));
-      Action : constant Files.Settings.Open_Action :=
-        (if Actions.Is_Empty then (others => <>) else Actions.First_Element);
-      Operation   : Files.Operations.Operation_Result := Empty_Operation;
-      Exit_Status : Integer := 0;
-      Failure_Key : Unbounded_String;
-      Target_Path : constant Unbounded_String :=
-        (if Targets.Is_Empty then Null_Unbounded_String else Targets.First_Element);
    begin
       Files.Model.Command_Palette.Close (Model);
-      Operation.Path := Target_Path;
-      Operation.Action := Action;
-
-      if Actions.Is_Empty then
-         Operation.Status := Files.Operations.Operation_Failed;
-         Operation.Error_Key := To_Unbounded_String ("error.terminal.unavailable");
-         Files.Model.Set_Error (Model, "error.terminal.unavailable");
-         return Make_Result (Controller_Command_Executed, Files.Commands.Open_With_Command, Operation);
-      end if;
-      for Candidate of Actions loop
-         if not Files.Operations.Open_Action_Executable_Is_Available (Candidate) then
-            Operation.Status := Files.Operations.Operation_Failed;
-            Operation.Error_Key := To_Unbounded_String ("error.open_action.executable_missing");
-            Files.Model.Set_Error (Model, "error.open_action.executable_missing");
-            return Make_Result
-              (Controller_Command_Executed, Files.Commands.Open_With_Command, Operation);
-         end if;
-      end loop;
-
-      Operation.Execution.Attempted := True;
-      Operation.Execution.Executable_Found := True;
-      for Candidate of Actions loop
-         if not Files.Operations.Execute_Open_Action
-           (Candidate, Exit_Status, Failure_Key, Detach => True)
-         then
-            --  "Path too long" when that is why, not "failed to execute".
-            Operation.Status := Files.Operations.Operation_Failed;
-            Operation.Error_Key :=
-              (if Length (Failure_Key) > 0 then Failure_Key
-               else To_Unbounded_String ("error.open_action.execution"));
-            Operation.Execution.Exit_Status := Exit_Status;
-            Files.Model.Set_Error (Model, To_String (Operation.Error_Key));
-            return Make_Result
-              (Controller_Command_Executed, Files.Commands.Open_With_Command, Operation);
-         end if;
-      end loop;
-
-      Operation.Status := Files.Operations.Operation_Action_Executed;
-      Operation.Execution.Exit_Status := Exit_Status;
-      Files.Model.Set_Error (Model, "");
-      return Make_Result (Controller_Command_Executed, Files.Commands.Open_With_Command, Operation);
+      return Make_Result
+        (Controller_Command_Executed,
+         Files.Commands.Open_With_Command,
+         Files.Operations.Launch_Application (Model, App, Targets));
    end Launch_Application_Result;
 
    --  Act on the palette's highlighted command (from Command_Palette.Selected_Id):
@@ -1225,14 +984,15 @@ package body Files.Controller is
  is separate;
 
    --  Drain the settings panel's emitted change into the draft. A value change to
-   --  a toggle/choice/number or an add/remove auto-saves (persist + refresh);
-   --  text edits are applied but saved on commit.
+   --  a toggle/choice/number or an add/remove auto-saves (persist + refresh),
+   --  which needs the settings path (Complete_Settings_Command); text edits
+   --  are applied but saved on commit.
    function Applied_Settings_Change
      (Model : in out Files.Model.Window_Model)
       return Controller_Result is
    begin
       if Files.Settings_Form.Apply (Model, Files.Model.Settings_Pane.Take_Change (Model)) then
-         return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command);
+         return Make_Result (Controller_Needs_Settings_Path, Files.Commands.Save_Settings_Command);
       else
          return Make_Result (Controller_Text_Updated);
       end if;
@@ -1271,7 +1031,7 @@ package body Files.Controller is
       return Controller_Result is
    begin
       if not Files.Model.Settings_Pane.Is_Open (Model)
-        or else Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Model.Settings_Pane_Overlay)
+        or else Files.Model.Other_Input_Owning_Overlay_Is_Open (Model, Except => Files.Types.Settings_Pane_Overlay)
         or else not Files.Model.Settings_Pane.Click (Model, X, Y)
       then
          return Make_Result (Controller_Ignored);
@@ -1307,6 +1067,17 @@ package body Files.Controller is
       Files.Model.Root_Selector.Set_Selected_Index (Model, Index);
       return Changed_Result (Old_Index, Files.Model.Root_Selector.Selected_Index (Model), Controller_Selection_Moved);
    end Root_Jump_Result;
+
+   function Step_Selection_Result
+     (Model     : in out Files.Model.Window_Model;
+      Direction : Guikit.Input.Navigation_Direction)
+      return Controller_Result
+   is
+      Old_Index : constant Natural := Files.Model.Selection.Selected_Index (Model);
+   begin
+      Files.Model.Selection.Move (Model, Direction);
+      return Changed_Result (Old_Index, Files.Model.Selection.Selected_Index (Model), Controller_Selection_Moved);
+   end Step_Selection_Result;
 
    function First_Selection_Result
      (Model : in out Files.Model.Window_Model)
@@ -1357,17 +1128,12 @@ package body Files.Controller is
       Tree_Page_Rows : Natural := 0)
       return Controller_Result
    is
-      Reported : constant Controller_Result := Handle_Key (Model, Settings, Key, Modifiers, Tree_Page_Rows);
    begin
       --  Every route a key takes to a settings command (a shortcut, Enter in
-      --  the palette, Return in the settings pane) ends in the read-only
-      --  Execute_Command, which only reports it; apply it here, once.
-      if Reported.Status = Controller_Command_Executed
-        and then Files.Commands.Requires_Settings_Path (Reported.Command)
-      then
-         return Execute_Command (Reported.Command, Model, Settings, Settings_Path, Modifiers);
-      end if;
-      return Reported;
+      --  the palette, a change in the settings pane) only reports it; it is
+      --  applied here, once.
+      return Complete_Settings_Command
+        (Handle_Key (Model, Settings, Key, Modifiers, Tree_Page_Rows), Model, Settings, Settings_Path);
    end Handle_Key;
 
 end Files.Controller;

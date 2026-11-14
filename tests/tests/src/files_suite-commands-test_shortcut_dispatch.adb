@@ -133,7 +133,7 @@ separate (Files_Suite.Commands)
          "F2 dispatches rename command");
       Files_Suite.Support.Assert_Equal
         (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Escape, Guikit.Input.No_Modifiers),
-         Files.Commands.Close_Command_Palette_Command,
+         Files.Commands.Close_Overlay_Command,
          "escape dispatches context-cancel command");
       Files_Suite.Support.Assert_Equal
         (Files.Commands.Find_By_Shortcut (Guikit.Input.Key_Return, Guikit.Input.No_Modifiers),

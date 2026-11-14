@@ -74,17 +74,6 @@ private package Files.Model.Support is
       Visible_Index : Positive)
       return Natural;
 
-   --  Map an item-list index to its 1-based visible-row index, or zero when the
-   --  item is hidden by the current filter.
-   --
-   --  @param Model Model providing the filtered view.
-   --  @param Item_Index 1-based item-list index.
-   --  @return Visible row index, or 0 when the item is filtered out.
-   function Item_To_Visible_Index
-     (Model      : Window_Model;
-      Item_Index : Positive)
-      return Natural;
-
    --  Whether Item_Index is part of the current multi-selection.
    --
    --  @param Model Model to inspect.
@@ -250,6 +239,25 @@ private package Files.Model.Support is
    --
    --  @param Model Model to update.
    procedure Close_Context_Menu
+     (Model : in out Window_Model);
+
+   --  Close the Quick Look overlay and drop its previewed content.
+   --
+   --  @param Model Model to update.
+   procedure Close_Quick_Look
+     (Model : in out Window_Model);
+
+   --  Close the folder-tree sidebar, abandoning any destination pick.
+   --
+   --  @param Model Model to update.
+   procedure Close_Tree_Panel
+     (Model : in out Window_Model);
+
+   --  Finish the destination picker: close the folder tree when the picker
+   --  opened it, or else leave the tree as the user had it.
+   --
+   --  @param Model Model to update.
+   procedure End_Tree_Pick
      (Model : in out Window_Model);
 
    --  Toggle settings pane visibility.

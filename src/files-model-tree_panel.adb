@@ -59,17 +59,8 @@ package body Files.Model.Tree_Panel is
    end Open;
 
    procedure Close
-     (Model : in out Window_Model) is
-   begin
-      Touch (Model);
-      Model.Tree_Panel.Open := False;
-      --  Closing the sidebar also abandons any in-flight destination picker so
-      --  a later reopen starts clean. Whether the picker opened the sidebar is
-      --  kept for End_Pick, which reads it after closing.
-      Model.Tree_Pick := (Opened_Panel => Model.Tree_Pick.Opened_Panel, others => <>);
-      Model.Tree_Panel.Scroll := 0;
-      Model.Tree_Panel.Keyboard := False;
-   end Close;
+     (Model : in out Window_Model)
+     renames Files.Model.Support.Close_Tree_Panel;
 
    function Is_Open
      (Model : Window_Model)
@@ -326,15 +317,8 @@ package body Files.Model.Tree_Panel is
       Model.Tree_Pick.Target := To_Unbounded_String (Target);
    end Set_Pick_Target;
 
-   procedure End_Pick (Model : in out Window_Model) is
-   begin
-      if Model.Tree_Pick.Opened_Panel then
-         Close (Model);
-      else
-         Clear_Tree_Pick (Model);
-      end if;
-      Model.Tree_Pick.Opened_Panel := False;
-   end End_Pick;
+   procedure End_Pick (Model : in out Window_Model)
+     renames Files.Model.Support.End_Tree_Pick;
 
    function Pick_Mode_Of
      (Model : Window_Model)

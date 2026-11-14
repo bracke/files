@@ -1,4 +1,5 @@
 with Ada.Real_Time;
+with Files.Desktop_Applications;
 with Files.Items;
 with Files.File_System;
 with Files.Model;
@@ -655,6 +656,142 @@ package Files.Operations is
    function Prepare_Quick_Look
      (Item : Files.Items.Directory_Item)
       return Files.Quick_Look.Quick_Look_Content;
+
+   --  Start every launch of one open, all or nothing: each action's
+   --  executable is checked before any starts, then each is started
+   --  detached (started and let go, so no exit status is known). Once all
+   --  have started, every path of Paths joins the recent list -- the same
+   --  rule whether the open came from Open or from Open With. The first
+   --  failure is reported on the error line and stops the rest.
+   --
+   --  @param Model Window model whose error line and recent list follow.
+   --  @param Actions The launches, in order; not empty.
+   --  @param Paths The paths the open opens: Paths (I) is the one Actions (I)
+   --    opens when there are as many, otherwise the first stands for all.
+   --  @return Action_Executed for the first launch; Failed with the launch
+   --    and path that failed and why.
+   function Launch_Open_Actions
+     (Model   : in out Files.Model.Window_Model;
+      Actions : Files.Desktop_Applications.Open_Action_Vectors.Vector;
+      Paths   : Files.Types.String_Vectors.Vector)
+      return Operation_Result;
+
+   --  Open Targets with App (Open With) through Launch_Open_Actions; an App
+   --  that runs in a terminal (Terminal=true) is started inside the one Open
+   --  Terminal would open, and fails when there is none.
+   --
+   --  @param Model Window model whose error line and recent list follow.
+   --  @param App The application chosen.
+   --  @param Targets The paths to open.
+   --  @return As Launch_Open_Actions; Failed with "error.terminal.unavailable"
+   --    when App needs a terminal no host one can run.
+   function Launch_Application
+     (Model   : in out Files.Model.Window_Model;
+      App     : Files.Desktop_Applications.Application;
+      Targets : Files.Types.String_Vectors.Vector)
+      return Operation_Result;
+
+   --  Open the command palette as the Open With picker for the selection,
+   --  listing the applications installed now.
+   --
+   --  @param Model Window model to update.
+   procedure Begin_Open_With (Model : in out Files.Model.Window_Model);
+
+   --  Begin creating a file (or, Folder, a folder) in the current directory,
+   --  named with the next free untitled name.
+   --
+   --  @param Model Window model to update.
+   --  @param Folder True for a folder, False for a file.
+   procedure Begin_Create_Item
+     (Model  : in out Files.Model.Window_Model;
+      Folder : Boolean);
+
+   --  The filesystem roots followed by the user's favorites: what the root
+   --  selector lists and the folder tree is seeded with. A favorite is
+   --  labelled by its base name after the star, not by its full path.
+   --
+   --  @param Settings Settings holding the favorites.
+   --  @return The roots, then the favorites.
+   function Root_Entries_With_Favorites
+     (Settings : Files.Settings.Settings_Model)
+      return Files.File_System.Root_Entry_Vectors.Vector;
+
+   --  Seed the folder tree's root nodes from Root_Entries_With_Favorites,
+   --  again whenever they changed (a favorite added, a volume mounted) since
+   --  the tree was seeded. A root is named as the selector names it; a
+   --  favorite by its path, which the tree has room for.
+   --
+   --  @param Model Window model whose tree is seeded.
+   --  @param Settings Settings holding the favorites.
+   procedure Seed_Tree
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model);
+
+   --  Load a tree node's direct subdirectories and attach them in place of
+   --  any it had, honouring the hidden-files setting. Run on every expand, so
+   --  a folder made, renamed or removed since shows as it is now. An empty
+   --  directory marks the node loaded, with no children; a read that fails
+   --  (a permission change, a share that dropped out) keeps the children it
+   --  had and reports why, rather than passing the folder off as empty.
+   --
+   --  @param Model Window model whose tree node is loaded.
+   --  @param Settings Settings for the listing options.
+   --  @param Node_Index The tree node to load.
+   procedure Load_Tree_Children
+     (Model      : in out Files.Model.Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Node_Index : Positive);
+
+   --  What a favorite points at now.
+   type Favorite_Target is (Favorite_Folder, Favorite_File, Favorite_Stale);
+
+   --  Classify a favorite path as a live folder, a live file, or a stale entry
+   --  whose target no longer exists. Any lookup failure is treated as stale so a
+   --  broken favorite click degrades to a no-op rather than raising.
+   --
+   --  @param Path The favorite's path.
+   --  @return What it points at.
+   function Classify_Favorite (Path : String) return Favorite_Target;
+
+   --  Go to the folder that holds Path and select Path's item there: a file
+   --  favorite's click and Open Containing Folder.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used for directory classification.
+   --  @param Path The item to show.
+   --  @return The navigation's result (Navigated when the folder loaded);
+   --    Disabled with no error when Path has no parent.
+   function Navigate_And_Select
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model;
+      Path     : String)
+      return Operation_Result;
+
+   --  Open the info-pane ownership editor for the single selected item,
+   --  prefilled with the owner's (or group's) resolved account name. Does
+   --  nothing on a platform without chown support, or when the model refuses
+   --  (see Files.Model.Focus_Ownership_Input).
+   --
+   --  @param Model Window model to update.
+   --  @param Editing_Group True to edit the group, False to edit the owner.
+   procedure Focus_Ownership_Input
+     (Model         : in out Files.Model.Window_Model;
+      Editing_Group : Boolean);
+
+   --  Commit the info-pane ownership editor: the typed account (a name, or
+   --  all digits for an id) becomes the selected item's owner or group, and
+   --  the editor closes. A name that resolves to no account fails with
+   --  "error.ownership.invalid_name"; the id the item already has changes
+   --  nothing -- no chown, which even with the ids a file has clears its
+   --  set-user-id and set-group-id bits on Linux and macOS, and no Undo.
+   --
+   --  @param Model Window model to update.
+   --  @param Settings Settings model used by the change.
+   --  @return The change's result.
+   function Commit_Ownership_Input
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Operation_Result;
 
 private
 

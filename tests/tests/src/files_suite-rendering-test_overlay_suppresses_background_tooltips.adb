@@ -43,29 +43,69 @@ separate (Files_Suite.Rendering)
          end loop;
       end;
 
-      --  Every input-owning overlay counts, each on its own. The case names
-      --  them all, so a new overlay does not compile here until its flag is
-      --  listed -- and then this fails until Files.Rendering.Testing.Any_Overlay_Open lists it too.
-      for Overlay in Files.Model.Input_Overlay loop
-         declare
-            One : View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      --  Every input-owning overlay counts, each on its own; with two open,
+      --  the one higher in Files.Types.Overlay_Stack is the snapshot's top --
+      --  the overlay the model, the keyboard and the pointer take as on top.
+      --  The case names them all, so a new overlay does not compile here
+      --  until its flag is listed.
+      declare
+         procedure Open (Snapshot : in out View_Snapshot; Overlay : Files.Types.Input_Overlay) is
          begin
-            Assert (not Files.Rendering.Testing.Any_Overlay_Open (One), "the sample has no overlay open");
             case Overlay is
-               when Files.Model.Settings_Pane_Overlay   => One.Settings_Pane_Open := True;
-               when Files.Model.Command_Palette_Overlay => One.Command_Palette_Open := True;
-               when Files.Model.Root_Selector_Overlay   => One.Root_Selector_Open := True;
-               when Files.Model.Sort_Menu_Overlay       => One.Sort_Menu_Open := True;
-               when Files.Model.Context_Menu_Overlay    => One.Context_Menu_Open := True;
-               when Files.Model.Label_Picker_Overlay    => One.Label_Picker_Open := True;
-               when Files.Model.Quick_Look_Overlay      => One.Quick_Look.Open := True;
-               when Files.Model.Tree_Pick_Overlay       => One.Tree_Pick_Active := True;
-               when Files.Model.Paste_Conflict_Overlay  => One.Paste_Conflict_Open := True;
-               when Files.Model.Foreground_Job_Overlay => One.Paste_Progress.Open := True;
+               when Files.Types.Settings_Pane_Overlay   => Snapshot.Settings_Pane_Open := True;
+               when Files.Types.Command_Palette_Overlay => Snapshot.Command_Palette_Open := True;
+               when Files.Types.Root_Selector_Overlay   => Snapshot.Root_Selector_Open := True;
+               when Files.Types.Sort_Menu_Overlay       => Snapshot.Sort_Menu_Open := True;
+               when Files.Types.Context_Menu_Overlay    => Snapshot.Context_Menu_Open := True;
+               when Files.Types.Label_Picker_Overlay    => Snapshot.Label_Picker_Open := True;
+               when Files.Types.Quick_Look_Overlay      => Snapshot.Quick_Look.Open := True;
+               when Files.Types.Tree_Pick_Overlay       => Snapshot.Tree_Pick_Active := True;
+               when Files.Types.Paste_Conflict_Overlay  => Snapshot.Paste_Conflict_Open := True;
+               when Files.Types.Foreground_Job_Overlay  => Snapshot.Paste_Progress.Open := True;
             end case;
+         end Open;
+
+         use type Files.Types.Input_Overlay;
+         Stack : Files.Types.Overlay_Order renames Files.Types.Overlay_Stack;
+         Base  : constant View_Snapshot := Sample_Snapshot (6, Files.Types.Details);
+      begin
+         Assert (not Files.Rendering.Testing.Any_Overlay_Open (Base), "the sample has no overlay open");
+         Files_Suite.Support.Assert_Equal
+           (Files.Rendering.Topmost_Overlay_Position (Base), 0, "no overlay is on top of the sample");
+         for Upper in Stack'Range loop
+            declare
+               One : View_Snapshot := Base;
+            begin
+               Open (One, Stack (Upper));
+               Assert
+                 (Files.Rendering.Testing.Any_Overlay_Open (One)
+                    and then Files.Rendering.Overlay_Open (One, Stack (Upper)),
+                  Files.Types.Input_Overlay'Image (Stack (Upper)) & " hides covered tooltips");
+               Files_Suite.Support.Assert_Equal
+                 (Files.Rendering.Topmost_Overlay_Position (One), Upper,
+                  Files.Types.Input_Overlay'Image (Stack (Upper)) & " alone is on top");
+            end;
+            for Lower in Upper + 1 .. Stack'Last loop
+               declare
+                  Two : View_Snapshot := Base;
+               begin
+                  Open (Two, Stack (Lower));
+                  Open (Two, Stack (Upper));
+                  Files_Suite.Support.Assert_Equal
+                    (Files.Rendering.Topmost_Overlay_Position (Two), Upper,
+                     Files.Types.Input_Overlay'Image (Stack (Upper)) & " is above "
+                     & Files.Types.Input_Overlay'Image (Stack (Lower)));
+               end;
+            end loop;
+         end loop;
+         --  The stack names every overlay exactly once.
+         for Overlay in Files.Types.Input_Overlay loop
             Assert
-              (Files.Rendering.Testing.Any_Overlay_Open (One),
-               Files.Model.Input_Overlay'Image (Overlay) & " hides covered tooltips");
-         end;
-      end loop;
+              ((for some Index in Stack'Range => Stack (Index) = Overlay),
+               Files.Types.Input_Overlay'Image (Overlay) & " is in the overlay stack");
+         end loop;
+         Files_Suite.Support.Assert_Equal
+           (Integer (Stack'Length), Files.Types.Input_Overlay'Pos (Files.Types.Input_Overlay'Last) + 1,
+            "the overlay stack names each overlay once");
+      end;
    end Test_Overlay_Suppresses_Background_Tooltips;

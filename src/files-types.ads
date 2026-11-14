@@ -282,6 +282,35 @@ package Files.Types is
       Focus_Settings_Input,
       Focus_Ownership_Input);
 
+   --  The transient surfaces that own window input while open. A new overlay
+   --  is added here, to Overlay_Stack, to Files.Model.Overlay_Is_Open and to
+   --  Files.Rendering.Overlay_Open (the snapshot's view of the same flags);
+   --  the compiler then asks for it in every case over this type.
+   type Input_Overlay is
+     (Settings_Pane_Overlay,
+      Command_Palette_Overlay,
+      Root_Selector_Overlay,
+      Sort_Menu_Overlay,
+      Context_Menu_Overlay,
+      Label_Picker_Overlay,
+      Quick_Look_Overlay,
+      Tree_Pick_Overlay,
+      Paste_Conflict_Overlay,
+      Foreground_Job_Overlay);
+
+   --  Overlays listed in some order.
+   type Overlay_Order is array (Positive range <>) of Input_Overlay;
+
+   --  Every overlay, top to bottom as they stack: the paste dialogs over
+   --  everything, then the window layer's palette over its settings pane,
+   --  then the frame's popups in the reverse of their drawing order, and the
+   --  tree pick, which is part of the frame itself. The one order the model
+   --  (Files.Model.Topmost_Overlay), the keyboard and the pointer all follow.
+   Overlay_Stack : constant Overlay_Order :=
+     [Foreground_Job_Overlay, Paste_Conflict_Overlay, Command_Palette_Overlay, Settings_Pane_Overlay,
+      Context_Menu_Overlay, Root_Selector_Overlay, Sort_Menu_Overlay, Label_Picker_Overlay,
+      Quick_Look_Overlay, Tree_Pick_Overlay];
+
    --  Scope the shared filter-bar query applies to. Filter_Here live-filters the
    --  current directory by name (the default), Search_Names replaces the view
    --  with a recursive name search of the subtree, and Search_Contents replaces

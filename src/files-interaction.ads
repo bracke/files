@@ -2,7 +2,7 @@ with Files.Commands;
 with Files.Controller;
 with Files.Events;
 with Files.Model;
-with Files.Rendering;
+with Files.Model.Selection;
 with Files.Settings;
 with Guikit.Input;
 with Files.Types;
@@ -270,7 +270,7 @@ package Files.Interaction is
    --  @return Ascending visible indices currently selected.
    function Selected_Visible_Indices
      (Model : Files.Model.Window_Model)
-      return Files.Rendering.Visible_Index_Vectors.Vector;
+      return Files.Model.Selection.Visible_Index_List;
 
    --  Apply a rubber-band marquee's per-frame selection to the model. The
    --  selection is cleared and rebuilt from Hits (the items the marquee touches);
@@ -284,8 +284,8 @@ package Files.Interaction is
    --  @param Base Selection snapshot captured at the marquee's press.
    procedure Apply_Marquee_Selection
      (Model    : in out Files.Model.Window_Model;
-      Hits     : Files.Rendering.Visible_Index_Vectors.Vector;
+      Hits     : Files.Model.Selection.Visible_Index_List;
       Additive : Boolean;
-      Base     : Files.Rendering.Visible_Index_Vectors.Vector);
+      Base     : Files.Model.Selection.Visible_Index_List);
 
 end Files.Interaction;

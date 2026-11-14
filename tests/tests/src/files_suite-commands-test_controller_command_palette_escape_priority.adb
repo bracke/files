@@ -30,7 +30,7 @@ separate (Files_Suite.Commands)
          "Escape first updates palette state");
       Files_Suite.Support.Assert_Equal
         (Result.Command,
-         Files.Commands.Close_Command_Palette_Command,
+         Files.Commands.Close_Overlay_Command,
          "Escape first closes palette");
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "Escape closes the open palette");
       Assert (Files.Model.Rename.Is_Active (Model), "Escape does not cancel rename while palette is open");
@@ -42,7 +42,7 @@ separate (Files_Suite.Commands)
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
-         Files.Commands.Close_Command_Palette_Command,
+         Files.Commands.Close_Overlay_Command,
          "second Escape routes context cancel");
       Assert (not Files.Model.Rename.Is_Active (Model), "second Escape cancels pending rename");
       Files_Suite.Support.Assert_Equal
@@ -66,6 +66,6 @@ separate (Files_Suite.Commands)
       Files_Suite.Support.Assert_Equal (Result.Status, Files.Controller.Controller_Ignored, "idle Escape is ignored");
       Files_Suite.Support.Assert_Equal
         (Result.Command,
-         Files.Commands.Close_Command_Palette_Command,
+         Files.Commands.Close_Overlay_Command,
          "idle Escape still reports context command");
    end Test_Controller_Command_Palette_Escape_Priority;

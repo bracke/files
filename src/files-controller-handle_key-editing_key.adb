@@ -28,10 +28,10 @@ procedure Editing_Key (Handled : out Boolean; Result : out Controller_Result) is
       case Move is
          when Word_Left =>
             Files.Model.Set_Text_Cursor_Position
-              (Model, Guikit.Utf8.Editing.Previous_Word_Boundary (Focused_Text (Model), Old_Position));
+              (Model, Guikit.Utf8.Editing.Previous_Word_Boundary (Files.Model.Focused_Text (Model), Old_Position));
          when Word_Right =>
             Files.Model.Set_Text_Cursor_Position
-              (Model, Guikit.Utf8.Editing.Next_Word_Boundary (Focused_Text (Model), Old_Position));
+              (Model, Guikit.Utf8.Editing.Next_Word_Boundary (Files.Model.Focused_Text (Model), Old_Position));
          when Char_Left =>
             Files.Model.Move_Text_Cursor (Model, Guikit.Input.Move_Left);
          when Char_Right =>
@@ -39,7 +39,7 @@ procedure Editing_Key (Handled : out Boolean; Result : out Controller_Result) is
          when To_Home =>
             Files.Model.Set_Text_Cursor_Position (Model, 0);
          when To_End =>
-            Files.Model.Set_Text_Cursor_Position (Model, Focused_Text (Model)'Length);
+            Files.Model.Set_Text_Cursor_Position (Model, Files.Model.Focused_Text (Model)'Length);
       end case;
       return Changed_Result (Old_Position, Files.Model.Text_Cursor_Position (Model), Controller_Text_Updated);
    end Move_Caret;
@@ -162,21 +162,17 @@ begin
          return;
       end if;
    elsif Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
+      --  An open overlay took Escape already (Top_Overlay_Key): here it
+      --  cancels a focus or an edit, and is otherwise nothing to do.
       if Files.Model.Focus (Model) = Files.Types.Focus_None
         and then not Files.Model.Rename.Is_Active (Model)
         and then not Files.Model.Temporary_Item_Is_Active (Model)
       then
-         if Files.Model.Settings_Pane.Is_Open (Model) then
-            Files.Model.Settings_Pane.Toggle (Model);
-            Result := Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
-            return;
-         else
-            Result := Make_Result (Controller_Ignored, Files.Commands.Close_Command_Palette_Command);
-            return;
-         end if;
+         Result := Make_Result (Controller_Ignored, Files.Commands.Close_Overlay_Command);
+         return;
       else
          Files.Model.Cancel_Focus_Or_Edit (Model);
-         Result := Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
+         Result := Successful_Command_Result (Files.Commands.Close_Overlay_Command);
          return;
       end if;
    end if;

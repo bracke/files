@@ -18,7 +18,7 @@ separate (Files_Suite.Commands)
         (Files.Commands.Allowed_With_Root_Selector (Files.Commands.Open_Command_Palette_Command),
          "palette open is allowed while root selector is open");
       Assert
-        (Files.Commands.Allowed_With_Root_Selector (Files.Commands.Close_Command_Palette_Command),
+        (Files.Commands.Allowed_With_Root_Selector (Files.Commands.Close_Overlay_Command),
          "palette close is allowed while root selector is open");
       Assert
         (not Files.Commands.Allowed_With_Root_Selector (Files.Commands.Toggle_Settings_Pane_Command),
@@ -33,7 +33,7 @@ separate (Files_Suite.Commands)
         (Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Open_Command_Palette_Command),
          "palette open is allowed while settings pane is open");
       Assert
-        (Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Close_Command_Palette_Command),
+        (Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Close_Overlay_Command),
          "palette close is allowed while settings pane is open");
       Assert
         (not Files.Commands.Allowed_With_Settings_Pane (Files.Commands.Select_Drive_Command),

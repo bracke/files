@@ -45,7 +45,7 @@ separate (Files_Suite.Commands)
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
-         Files.Commands.Close_Command_Palette_Command,
+         Files.Commands.Close_Overlay_Command,
          "Escape closes palette after filter shortcut");
       Assert (not Files.Model.Command_Palette.Is_Open (Model), "palette closes before filter editing resumes");
    end Test_Filter_Focus_And_Palette;

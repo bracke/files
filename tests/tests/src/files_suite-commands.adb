@@ -83,6 +83,7 @@ package body Files_Suite.Commands is
    procedure Test_Context_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Tab_Focus_Ring (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Disabled_Command_Reasons (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Controller_Leaves_Completion_To_Caller (T : in out AUnit.Test_Cases.Test_Case'Class);
 
    overriding function Name (T : Command_Test_Case) return AUnit.Message_String is
       pragma Unreferenced (T);
@@ -184,6 +185,9 @@ package body Files_Suite.Commands is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Disabled_Command_Reasons'Access,
          "a disabled command reports the reason its enablement rule gives");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Controller_Leaves_Completion_To_Caller'Access,
+         "the controller answers a settings command or an overlay's Enter for its caller to complete");
    end Register_Tests;
 
    function Same_Shortcut
@@ -268,6 +272,8 @@ package body Files_Suite.Commands is
    procedure Test_Tab_Focus_Ring (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Disabled_Command_Reasons (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Controller_Leaves_Completion_To_Caller (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Context_Menu_Keyboard (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

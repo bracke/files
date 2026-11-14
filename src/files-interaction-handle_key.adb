@@ -20,13 +20,6 @@ separate (Files.Interaction)
                         | Guikit.Input.Key_0;
       Zoom_Allowed  : constant Boolean :=
         not Files.Model.Input_Owning_Overlay_Is_Open (Model);
-      --  Post-controller work must belong to the overlay that owned this key
-      --  when dispatch began.  A command executed by one overlay can open a
-      --  different overlay, which must not consume the same keypress again.
-      Label_Picker_At_Entry : constant Boolean :=
-        Files.Model.Label_Picker.Is_Open (Model);
-      Context_Menu_At_Entry : constant Boolean :=
-        Files.Model.Context_Menu.Is_Open (Model);
    begin
       --  Start from a clean result so no flag leaks from a previous call when a
       --  caller reuses the same Result object across keystrokes.
@@ -58,71 +51,33 @@ separate (Files.Interaction)
 
       declare
          Before  : constant Files.Settings.Settings_Model := Settings;
+         Ran     : Boolean;
          Outcome : constant Files.Controller.Controller_Result :=
            Files.Controller.Handle_Key
              (Model          => Model,
               Settings       => Settings,
-              Settings_Path  => Settings_Path,
               Key            => Key,
               Modifiers      => Modifiers,
               Tree_Page_Rows => Tree_Page_Rows);
       begin
-         Observe_Controller_Outcome (Outcome, Result);
-         declare
-            Ran : constant Boolean := Ran_Settings_Command (Outcome.Command, Outcome, Before, Settings);
-         begin
-            --  A view / info-pane change from the keyboard (Ctrl+1..4) has
-            --  already run inside Handle_Key; the tail writes it back.
-            Finish_Settings_Command
-              (Model, Settings, Settings_Path, Outcome.Command, Before,
-               Observe => Ran,
-               Result  => Result);
-            --  The controller applied a settings shortcut (or Enter in the
-            --  palette); the shell drops any parallel character event.
-            if Ran then
-               Result.Clear_Pending_Text := True;
-            end if;
-         end;
+         case Outcome.Activation is
+            --  Enter on an overlay's highlighted control: completed by the
+            --  routine a click on that control runs, so both report the
+            --  settings change, and run a menu row's command, the same way.
+            when Files.Controller.Choose_Label =>
+               Apply_Label (Model, Settings, Settings_Path, Outcome.Label, Result);
+            when Files.Controller.Run_Menu_Row =>
+               Apply_Context_Menu_Command (Model, Settings, Settings_Path, Outcome.Command, Modifiers, Result);
+            when Files.Controller.No_Activation =>
+               --  A view / info-pane change from the keyboard (Ctrl+1..4) has
+               --  already run inside Handle_Key; Conclude writes it back, and
+               --  applies a settings shortcut (or Enter in the palette).
+               Conclude (Model, Settings, Settings_Path, Outcome, Before, Result, Ran);
+               --  A settings shortcut (or Enter in the palette) ran; the
+               --  shell drops any parallel character event.
+               Result.Clear_Pending_Text := Ran;
+         end case;
       end;
-
-      --  A keyboard Enter on the open label picker applies the highlighted
-      --  swatch to the selection through Apply_Label, the routine the mouse
-      --  Label_Picker_Choice_Input_Action uses, so both report the settings change
-      --  the same way.
-      if Label_Picker_At_Entry
-        and then Files.Model.Label_Picker.Is_Open (Model)
-        and then Key = Guikit.Input.Key_Return
-      then
-         Apply_Label (Model, Settings, Settings_Path, Files.Model.Label_Picker.Highlight_Color (Model), Result);
-      end if;
-
-      --  A keyboard Enter on the open context menu runs the highlighted command
-      --  through Apply_Context_Menu_Command, exactly as clicking that row does
-      --  (it also carries the zoom and settings follow-ups only this layer
-      --  reports).
-      if Context_Menu_At_Entry
-        and then Files.Model.Context_Menu.Is_Open (Model)
-        and then Key = Guikit.Input.Key_Return
-      then
-         declare
-            use type Files.Commands.Context_Menu_Row_Kind;
-            Rows      : constant Files.Commands.Context_Menu_Rows :=
-              Files.Commands.Context_Menu_Rows_For (Files.Model.Context_Menu.Target_Of (Model));
-            Highlight : constant Natural := Files.Model.Context_Menu.Highlight (Model);
-         begin
-            if Highlight in 1 .. Rows.Count
-              and then Rows.Rows (Highlight).Kind = Files.Commands.Menu_Command
-            then
-               Apply_Context_Menu_Command
-                 (Model, Settings, Settings_Path, Rows.Rows (Highlight).Command,
-                  Modifiers, Result);
-            else
-               --  Nothing highlighted (a mouse-opened menu not yet arrowed): a
-               --  bare Enter just dismisses it.
-               Files.Model.Context_Menu.Close (Model);
-            end if;
-         end;
-      end if;
 
       --  Space is a reserved grid shortcut (Quick Look), not a type-ahead
       --  character: when the grid owns the keyboard, drop the parallel space

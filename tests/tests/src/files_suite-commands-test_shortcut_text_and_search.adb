@@ -52,7 +52,7 @@ separate (Files_Suite.Commands)
          "command shortcut search text includes option shortcut alias");
       Assert
         (Ada.Strings.Fixed.Index
-           (Files.Commands.Shortcut_Search_Text (Files.Commands.Close_Command_Palette_Command),
+           (Files.Commands.Shortcut_Search_Text (Files.Commands.Close_Overlay_Command),
             "esc") > 0,
          "command shortcut search text includes escape shortcut alias");
       Assert

@@ -96,10 +96,10 @@ separate (Files.Controller)
          return Make_Result (Controller_Selection_Moved);
       end Move_Tree_Highlight;
 
-      --  The keyboard owners, in priority order. Each sets Handled when the key
-      --  is its own -- an open overlay takes every key, a focused field takes
-      --  editing keys -- and Result is then the whole answer; a key no owner
-      --  takes falls through to the command it is bound to.
+      --  The keyboard owners. Each sets Handled when the key is its own -- an
+      --  open overlay takes every key, a focused field takes editing keys --
+      --  and Result is then the whole answer; a key no owner takes falls
+      --  through to the command it is bound to.
       procedure Paste_Progress_Key (Handled : out Boolean; Result : out Controller_Result) is separate;
       procedure Paste_Conflict_Key (Handled : out Boolean; Result : out Controller_Result) is separate;
       procedure Quick_Look_Key (Handled : out Boolean; Result : out Controller_Result) is separate;
@@ -115,18 +115,51 @@ separate (Files.Controller)
       procedure Settings_Input_Key (Handled : out Boolean; Result : out Controller_Result) is separate;
       procedure Editing_Key (Handled : out Boolean; Result : out Controller_Result) is separate;
 
+      --  The key, offered to the overlay on top (Files.Model.Topmost_Overlay):
+      --  only it owns the keyboard, in the order the pointer and the drawing
+      --  follow too. Escape closes any overlay Escape closes, in one place;
+      --  a shortcut being captured in the settings pane takes it first.
+      procedure Top_Overlay_Key (Handled : out Boolean; Result : out Controller_Result) is
+         use type Files.Types.Input_Overlay;
+         Top : Files.Model.Input_Overlay;
+      begin
+         Handled := False;
+         Result := Make_Result (Controller_Ignored);
+         if not Files.Model.Topmost_Overlay (Model, Top) then
+            return;
+         elsif Key = Guikit.Input.Key_Escape
+           and then Modifiers = Guikit.Input.No_Modifiers
+           and then Top in Files.Model.Escape_Closable_Overlay
+           and then not (Top = Files.Types.Settings_Pane_Overlay
+                         and then Files.Model.Settings_Pane.Is_Capturing (Model))
+         then
+            Files.Model.Close_Overlay (Model, Top);
+            Handled := True;
+            Result :=
+              (if Top = Files.Types.Command_Palette_Overlay
+               then Make_Result (Controller_Palette_Updated, Files.Commands.Close_Overlay_Command)
+               else Successful_Command_Result (Files.Commands.Close_Overlay_Command));
+            return;
+         end if;
+         case Top is
+            when Files.Types.Foreground_Job_Overlay  => Paste_Progress_Key (Handled, Result);
+            when Files.Types.Paste_Conflict_Overlay  => Paste_Conflict_Key (Handled, Result);
+            when Files.Types.Command_Palette_Overlay => Palette_Key (Handled, Result);
+            when Files.Types.Context_Menu_Overlay    => Context_Menu_Key (Handled, Result);
+            when Files.Types.Root_Selector_Overlay   => Root_Selector_Key (Handled, Result);
+            when Files.Types.Sort_Menu_Overlay       => Sort_Menu_Key (Handled, Result);
+            when Files.Types.Label_Picker_Overlay    => Label_Picker_Key (Handled, Result);
+            when Files.Types.Quick_Look_Overlay      => Quick_Look_Key (Handled, Result);
+            when Files.Types.Tree_Pick_Overlay       => Tree_Pick_Key (Handled, Result);
+            --  The pane's keys are its focused field's (Settings_Input_Key).
+            when Files.Types.Settings_Pane_Overlay   => null;
+         end case;
+      end Top_Overlay_Key;
+
       type Key_Owner is access procedure (Handled : out Boolean; Result : out Controller_Result);
 
       Owners : constant array (Positive range <>) of Key_Owner :=
-        [Paste_Progress_Key'Access,
-         Paste_Conflict_Key'Access,
-         Quick_Look_Key'Access,
-         Palette_Key'Access,
-         Root_Selector_Key'Access,
-         Label_Picker_Key'Access,
-         Context_Menu_Key'Access,
-         Sort_Menu_Key'Access,
-         Tree_Pick_Key'Access,
+        [Top_Overlay_Key'Access,
          Tree_Keyboard_Key'Access,
          Menu_Key'Access,
          Focus_Ring_Key'Access,

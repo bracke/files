@@ -1,206 +1,154 @@
 with Files.Rendering.Layouts;
 separate (Files.Events.Translate_Click)
---  The modal overlays, top-most first: each takes a click it can use and swallows the rest.
+--  The overlay on top (Files.Rendering.Topmost_Overlay_Position, the order
+--  the keyboard and the drawing follow too) takes a click it can use and
+--  swallows the rest, so nothing behind it reacts. The context menu, the
+--  sort menu and the tree pick have regions of their own further on.
 procedure Overlay_Click (Handled : out Boolean; Result : out Input_Action) is
-begin
-   Handled := True;
+
    --  The paste-progress overlay is a modal-lite top-most panel: while a long
-   --  copy/move runs, a click either hits its Cancel button or is swallowed so
-   --  nothing behind it reacts.
-   if Snapshot.Paste_Progress.Open then
-      declare
-         use type Files.Rendering.Conflict_Hit_Kind;
-         Hit : constant Files.Rendering.Conflict_Hit_Region :=
-           Files.Rendering.Hit.Conflict_Hit_At (Frame, X, Y);
-      begin
-         if Hit.Kind = Files.Rendering.Conflict_Hit_Progress_Cancel then
-            Result := Paste_Cancel_Action;
-            return;
-         end if;
-         Result := No_Action;
-         return;
-      end;
-   end if;
+   --  copy/move runs, a click either hits its Cancel button or is swallowed.
+   function Progress_Click return Input_Action is
+      use type Files.Rendering.Conflict_Hit_Kind;
+   begin
+      if Files.Rendering.Hit.Conflict_Hit_At (Frame, X, Y).Kind = Files.Rendering.Conflict_Hit_Progress_Cancel then
+         return Paste_Cancel_Action;
+      end if;
+      return No_Action;
+   end Progress_Click;
 
-   --  The paste-conflict dialog is a top-most modal: while it is open it
-   --  consumes every click, either resolving to one of its controls or being
-   --  swallowed so nothing behind it reacts.
-   if Snapshot.Paste_Conflict_Open then
-      declare
-         use type Files.Rendering.Conflict_Hit_Kind;
-         Hit    : constant Files.Rendering.Conflict_Hit_Region :=
-           Files.Rendering.Hit.Conflict_Hit_At (Frame, X, Y);
-         Dialog : constant Files.Rendering.Layouts.Conflict_Dialog_Layout :=
-           Files.Rendering.Layouts.Calculate_Conflict_Dialog_Layout (Layout, Line_Height);
-      begin
-         case Hit.Kind is
-            when Files.Rendering.Conflict_Hit_Replace =>
-               Result := Conflict_Action (Conflict_Button_Replace);
-               return;
-            when Files.Rendering.Conflict_Hit_Skip =>
-               Result := Conflict_Action (Conflict_Button_Skip);
-               return;
-            when Files.Rendering.Conflict_Hit_Rename =>
-               Result := Conflict_Action (Conflict_Button_Rename);
-               return;
-            when Files.Rendering.Conflict_Hit_Cancel =>
-               Result := Conflict_Action (Conflict_Button_Cancel);
-               return;
-            when Files.Rendering.Conflict_Hit_Apply_All =>
-               Result := Conflict_Action (Conflict_Button_Apply_All);
-               return;
-            when Files.Rendering.Conflict_Hit_None
-               | Files.Rendering.Conflict_Hit_Progress_Cancel =>
-               if Close_Button_Hit (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height) then
-                  Result := Conflict_Action (Conflict_Button_Cancel);
-                  return;
-               end if;
-               Result := No_Action;
-               return;
-         end case;
-      end;
-   end if;
+   --  The paste-conflict dialog consumes every click, either resolving to one
+   --  of its controls or being swallowed.
+   function Conflict_Click return Input_Action is
+      Dialog : constant Files.Rendering.Layouts.Conflict_Dialog_Layout :=
+        Files.Rendering.Layouts.Calculate_Conflict_Dialog_Layout (Layout, Line_Height);
+   begin
+      case Files.Rendering.Hit.Conflict_Hit_At (Frame, X, Y).Kind is
+         when Files.Rendering.Conflict_Hit_Replace =>
+            return Conflict_Action (Conflict_Button_Replace);
+         when Files.Rendering.Conflict_Hit_Skip =>
+            return Conflict_Action (Conflict_Button_Skip);
+         when Files.Rendering.Conflict_Hit_Rename =>
+            return Conflict_Action (Conflict_Button_Rename);
+         when Files.Rendering.Conflict_Hit_Cancel =>
+            return Conflict_Action (Conflict_Button_Cancel);
+         when Files.Rendering.Conflict_Hit_Apply_All =>
+            return Conflict_Action (Conflict_Button_Apply_All);
+         when Files.Rendering.Conflict_Hit_None
+            | Files.Rendering.Conflict_Hit_Progress_Cancel =>
+            if Close_Button_Hit (Dialog.X, Dialog.Y, Dialog.Width, Dialog.Height) then
+               return Conflict_Action (Conflict_Button_Cancel);
+            end if;
+            return No_Action;
+      end case;
+   end Conflict_Click;
 
-   --  The Quick Look overlay is a modal-lite top-most panel: a click on its
-   --  close button or anywhere outside the panel toggles it shut, and a click
-   --  inside the panel body is swallowed so nothing behind it reacts.
-   if Snapshot.Quick_Look.Open then
-      declare
-         QL : constant Files.Rendering.Layouts.Quick_Look_Layout :=
-           Files.Rendering.Layouts.Calculate_Quick_Look_Layout (Layout, Line_Height);
-      begin
-         if Close_Button_Hit (QL.X, QL.Y, QL.Width, QL.Height)
-           or else not (Within (X, QL.X, QL.Width) and then Within (Y, QL.Y, QL.Height))
-         then
-            Result := Command_Action (Files.Commands.Toggle_Quick_Look_Command);
-            return;
-         end if;
-         Result := No_Action;
-         return;
-      end;
-   end if;
+   --  Quick Look: a click on its close button or anywhere outside the panel
+   --  toggles it shut, and a click inside the panel body is swallowed.
+   function Quick_Look_Click return Input_Action is
+      QL : constant Files.Rendering.Layouts.Quick_Look_Layout :=
+        Files.Rendering.Layouts.Calculate_Quick_Look_Layout (Layout, Line_Height);
+   begin
+      if Close_Button_Hit (QL.X, QL.Y, QL.Width, QL.Height)
+        or else not (Within (X, QL.X, QL.Width) and then Within (Y, QL.Y, QL.Height))
+      then
+         return Command_Action (Files.Commands.Toggle_Quick_Look_Command);
+      end if;
+      return No_Action;
+   end Quick_Look_Click;
 
-   --  The color-label picker is a modal-lite top-most panel: a swatch click
-   --  chooses that label, the close button or a click outside the panel closes
-   --  it, and a click inside the body is swallowed.
-   if Snapshot.Label_Picker_Open then
-      declare
-         Picker : constant Files.Rendering.Layouts.Label_Picker_Layout :=
-           Files.Rendering.Layouts.Calculate_Label_Picker_Layout (Layout, Line_Height);
-      begin
-         for Index in Picker.Swatches'Range loop
-            declare
-               Swatch : constant Files.Rendering.Layouts.Label_Swatch_Bounds :=
-                 Picker.Swatches (Index);
-            begin
-               if Within (X, Swatch.X, Swatch.Width)
-                 and then Within (Y, Swatch.Y, Swatch.Height)
-               then
-                  Result := Label_Choice_Action (Files.Rendering.Layouts.Label_For_Swatch (Index));
-                  return;
-               end if;
-            end;
-         end loop;
-         if Close_Button_Hit (Picker.X, Picker.Y, Picker.Width, Picker.Height)
-           or else not (Within (X, Picker.X, Picker.Width)
-                        and then Within (Y, Picker.Y, Picker.Height))
-         then
-            Result := Command_Action (Files.Commands.Close_Command_Palette_Command);
-            return;
-         end if;
-         Result := No_Action;
-         return;
-      end;
-   end if;
+   --  The color-label picker: a swatch click chooses that label, the close
+   --  button or a click outside the panel closes it, and a click inside the
+   --  body is swallowed.
+   function Label_Picker_Click return Input_Action is
+      Picker : constant Files.Rendering.Layouts.Label_Picker_Layout :=
+        Files.Rendering.Layouts.Calculate_Label_Picker_Layout (Layout, Line_Height);
+   begin
+      for Index in Picker.Swatches'Range loop
+         declare
+            Swatch : constant Files.Rendering.Layouts.Label_Swatch_Bounds := Picker.Swatches (Index);
+         begin
+            if Within (X, Swatch.X, Swatch.Width) and then Within (Y, Swatch.Y, Swatch.Height) then
+               return Label_Choice_Action (Files.Rendering.Layouts.Label_For_Swatch (Index));
+            end if;
+         end;
+      end loop;
+      if Close_Button_Hit (Picker.X, Picker.Y, Picker.Width, Picker.Height)
+        or else not (Within (X, Picker.X, Picker.Width) and then Within (Y, Picker.Y, Picker.Height))
+      then
+         return Command_Action (Files.Commands.Close_Overlay_Command);
+      end if;
+      return No_Action;
+   end Label_Picker_Click;
 
-   --  Route and contain panels in visual ownership order. A modal overlay
-   --  must get first refusal before any lower panel's close button, rows, or
-   --  chrome are tested; otherwise a click can mutate a surface behind it.
-   if Snapshot.Command_Palette_Open
-     and then Close_Button_Hit
-       (Palette_Layout.X, Palette_Layout.Y, Palette_Layout.Width, Palette_Layout.Height)
-   then
-      Result := Command_Action (Files.Commands.Close_Command_Palette_Command);
-      return;
-   end if;
-
-   --  Any click inside the open palette becomes a palette click carrying the
-   --  coordinates; Guikit.Command_Palette hit-tests it (a search-box or gap
-   --  click resolves to no row). Clicks outside dismiss nothing here.
-   if Snapshot.Command_Palette_Open then
-      if Within (X, Palette_Layout.X, Palette_Layout.Width)
+   --  The palette: its close button closes it; any other click inside it
+   --  becomes a palette click carrying the coordinates, which
+   --  Guikit.Command_Palette hit-tests (a search-box or gap click resolves to
+   --  no row). Clicks outside dismiss nothing.
+   function Palette_Click return Input_Action is
+   begin
+      if Close_Button_Hit (Palette_Layout.X, Palette_Layout.Y, Palette_Layout.Width, Palette_Layout.Height) then
+         return Command_Action (Files.Commands.Close_Overlay_Command);
+      elsif Within (X, Palette_Layout.X, Palette_Layout.Width)
         and then Within (Y, Palette_Layout.Y, Palette_Layout.Height)
       then
-         Result :=
-           (Kind    => Command_Result_Click_Input_Action,
-            Click_X => X,
-            Click_Y => Y);
-         return;
-      else
-         Result := No_Action;
-         return;
+         return (Kind => Command_Result_Click_Input_Action, Click_X => X, Click_Y => Y);
       end if;
-   end if;
+      return No_Action;
+   end Palette_Click;
 
-   if Snapshot.Settings_Pane_Open
-     and then Close_Button_Hit
-       (Settings_Pane.X, Settings_Pane.Y, Settings_Pane.Width, Settings_Pane.Height)
-   then
-      Result := Command_Action (Files.Commands.Toggle_Settings_Pane_Command);
-      return;
-   end if;
-
-   declare
-      Hit : constant Input_Action := Settings_Click_Hit;
+   --  The settings pane: its close button closes it; a click inside it is
+   --  the panel's to hit-test (Settings_Click_Hit); one outside is swallowed.
+   function Settings_Pane_Click return Input_Action is
    begin
-      if Hit.Kind /= No_Input_Action then
-         Result := Hit;
-         return;
-      elsif Snapshot.Settings_Pane_Open then
-         Result := No_Action;
-         return;
+      if Close_Button_Hit (Settings_Pane.X, Settings_Pane.Y, Settings_Pane.Width, Settings_Pane.Height) then
+         return Command_Action (Files.Commands.Toggle_Settings_Pane_Command);
       end if;
-   end;
+      return Settings_Click_Hit;
+   end Settings_Pane_Click;
 
-   declare
+   --  The root selector: its close button closes it, a row opens that root,
+   --  the toolbar's drive button toggles it, a click elsewhere inside it is
+   --  swallowed, and one outside it closes it.
+   function Root_Selector_Click return Input_Action is
       Root_Layout : constant Files.Rendering.Layouts.Root_Selector_Layout :=
         Files.Rendering.Layouts.Calculate_Root_Selector_Layout (Snapshot, Layout, Line_Height);
       Root_Index  : constant Natural :=
         Files.Rendering.Hit.Root_Path_At
           (Files.Rendering.Layouts.Calculate_Root_Path_Layout (Snapshot, Root_Layout), X, Y);
    begin
-      if Snapshot.Root_Selector_Open
-        and then Close_Button_Hit
-          (Root_Layout.X, Root_Layout.Y, Root_Layout.Width, Root_Layout.Height)
+      if Close_Button_Hit (Root_Layout.X, Root_Layout.Y, Root_Layout.Width, Root_Layout.Height) then
+         return Command_Action (Files.Commands.Close_Overlay_Command);
+      elsif Root_Index /= 0 then
+         return (Kind => Root_Click_Input_Action, Root_Index => Root_Index);
+      elsif Files.Rendering.Hit.Toolbar_Command_At (X, Y, Width, Line_Height)
+        = Files.Commands.Select_Drive_Command
       then
-         Result := Command_Action (Files.Commands.Close_Command_Palette_Command);
-         return;
+         return Command_Action (Files.Commands.Select_Drive_Command);
+      elsif Within (X, Root_Layout.X, Root_Layout.Width) and then Within (Y, Root_Layout.Y, Root_Layout.Height) then
+         return No_Action;
       end if;
+      return Command_Action (Files.Commands.Close_Overlay_Command);
+   end Root_Selector_Click;
 
-      if Root_Index /= 0 then
-         Result :=
-           (Kind       => Root_Click_Input_Action,
-            Root_Index => Root_Index);
-         return;
-      elsif Snapshot.Root_Selector_Open then
-         declare
-            Root_Command : constant Files.Commands.Command_Id :=
-              Files.Rendering.Hit.Toolbar_Command_At (X, Y, Width, Line_Height);
-         begin
-            if Root_Command = Files.Commands.Select_Drive_Command then
-               Result := Command_Action (Root_Command);
-               return;
-            elsif Within (X, Root_Layout.X, Root_Layout.Width)
-              and then Within (Y, Root_Layout.Y, Root_Layout.Height)
-            then
-               Result := No_Action;
-               return;
-            end if;
-         end;
-         Result := Command_Action (Files.Commands.Close_Command_Palette_Command);
-         return;
-      end if;
-   end;
-   Handled := False;
+   Position : constant Natural := Files.Rendering.Topmost_Overlay_Position (Snapshot);
+begin
+   Handled := Position /= 0;
    Result := No_Action;
+   if not Handled then
+      return;
+   end if;
+   case Files.Types.Overlay_Stack (Position) is
+      when Files.Types.Foreground_Job_Overlay  => Result := Progress_Click;
+      when Files.Types.Paste_Conflict_Overlay  => Result := Conflict_Click;
+      when Files.Types.Command_Palette_Overlay => Result := Palette_Click;
+      when Files.Types.Settings_Pane_Overlay   => Result := Settings_Pane_Click;
+      when Files.Types.Root_Selector_Overlay   => Result := Root_Selector_Click;
+      when Files.Types.Label_Picker_Overlay    => Result := Label_Picker_Click;
+      when Files.Types.Quick_Look_Overlay      => Result := Quick_Look_Click;
+      when Files.Types.Context_Menu_Overlay
+         | Files.Types.Sort_Menu_Overlay
+         | Files.Types.Tree_Pick_Overlay       =>
+         Handled := False;
+   end case;
 end Overlay_Click;

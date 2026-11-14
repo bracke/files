@@ -168,35 +168,21 @@ package Files.Model is
      (Model : Window_Model)
       return Boolean;
 
-   --  The transient surfaces that own window input while open. A new overlay
-   --  is added here and to Overlay_Is_Open; every model query reads this
-   --  list. The snapshot carries one flag per overlay, so the renderer's
-   --  Files.Rendering.Any_Overlay_Open lists them again: its test walks this
-   --  type and fails until a new overlay is listed there too.
-   type Input_Overlay is
-     (Settings_Pane_Overlay,
-      Command_Palette_Overlay,
-      Root_Selector_Overlay,
-      Sort_Menu_Overlay,
-      Context_Menu_Overlay,
-      Label_Picker_Overlay,
-      Quick_Look_Overlay,
-      Tree_Pick_Overlay,
-      Paste_Conflict_Overlay,
-      Foreground_Job_Overlay);
+   --  The transient surfaces that own window input while open
+   --  (Files.Types.Input_Overlay); every model query reads that list.
+   subtype Input_Overlay is Files.Types.Input_Overlay;
+   use all type Files.Types.Input_Overlay;
 
    --  The overlays with their own text-entry surface.
    subtype Text_Input_Overlay is Input_Overlay range Settings_Pane_Overlay .. Command_Palette_Overlay;
 
-   --  The overlays Escape (the close command) closes; the others have their
-   --  own way out.
-   subtype Escape_Closable_Overlay is Input_Overlay range Settings_Pane_Overlay .. Label_Picker_Overlay;
+   --  The overlays Escape (the close command) closes; the paste dialogs have
+   --  their own way out.
+   subtype Escape_Closable_Overlay is Input_Overlay range Settings_Pane_Overlay .. Tree_Pick_Overlay;
 
-   --  The open overlay on top: the one whose own controls alone still act,
-   --  and the one drawn on top (a paste in progress first, then the command
-   --  palette, the settings pane, the context menu, the root selector, the
-   --  sort menu, the label picker, Quick Look, a tree pick). Escape and the
-   --  window's drawing follow the same order.
+   --  The open overlay on top (the first open one of Files.Types.Overlay_Stack):
+   --  the one whose own controls alone still act, and the one drawn on top.
+   --  Escape, the keyboard, the pointer and the window's drawing follow it.
    --
    --  @param Model Model to inspect.
    --  @param Overlay Set to the top-most open overlay when one is open.
@@ -214,10 +200,9 @@ package Files.Model is
    function Window_Overlay_Shown (Model : Window_Model; Overlay : Text_Input_Overlay) return Boolean;
 
    --  The overlay Escape (the close command) closes: the top-most one
-   --  (Topmost_Overlay), when it is one Escape closes -- the label picker,
-   --  the context menu, the command palette, the root selector, the sort
-   --  menu or the settings pane. The others have their own way out, and an
-   --  overlay below one of them is not closed past it.
+   --  (Topmost_Overlay), when it is one Escape closes -- any but the paste
+   --  dialogs, which have their own way out; an overlay below one of those
+   --  is not closed past it.
    --
    --  @param Model Model to inspect.
    --  @param Overlay Set to that overlay when one is open.
@@ -762,6 +747,15 @@ package Files.Model is
    function Focus
      (Model : Window_Model)
       return Files.Types.Focus_Target;
+
+   --  Return the text of the currently focused text input: the path, filter,
+   --  rename, palette query, settings value or ownership field.
+   --
+   --  @param Model Model to inspect.
+   --  @return The focused field's text, or "" when no text input is focused.
+   function Focused_Text
+     (Model : Window_Model)
+      return String;
 
    --  Return the cursor position of the currently focused text input.
    --

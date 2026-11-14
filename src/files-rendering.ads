@@ -385,6 +385,37 @@ package Files.Rendering is
       Conflict_Hits : Conflict_Hit_Region_Vectors.Vector;
    end record;
 
+   --  Whether Snapshot shows Overlay open: the snapshot's own flag for each
+   --  Files.Types.Input_Overlay.
+   --
+   --  @param Snapshot Snapshot to inspect.
+   --  @param Overlay The overlay asked about.
+   --  @return True when the snapshot has Overlay open.
+   function Overlay_Open
+     (Snapshot : View_Snapshot;
+      Overlay  : Files.Types.Input_Overlay)
+      return Boolean is
+     (case Overlay is
+         when Files.Types.Settings_Pane_Overlay   => Snapshot.Settings_Pane_Open,
+         when Files.Types.Command_Palette_Overlay => Snapshot.Command_Palette_Open,
+         when Files.Types.Root_Selector_Overlay   => Snapshot.Root_Selector_Open,
+         when Files.Types.Sort_Menu_Overlay       => Snapshot.Sort_Menu_Open,
+         when Files.Types.Context_Menu_Overlay    => Snapshot.Context_Menu_Open,
+         when Files.Types.Label_Picker_Overlay    => Snapshot.Label_Picker_Open,
+         when Files.Types.Quick_Look_Overlay      => Snapshot.Quick_Look.Open,
+         when Files.Types.Tree_Pick_Overlay       => Snapshot.Tree_Pick_Active,
+         when Files.Types.Paste_Conflict_Overlay  => Snapshot.Paste_Conflict_Open,
+         when Files.Types.Foreground_Job_Overlay  => Snapshot.Paste_Progress.Open);
+
+   --  Where the open overlay on top in Snapshot stands in
+   --  Files.Types.Overlay_Stack: the first open one, as
+   --  Files.Model.Topmost_Overlay finds it in the model the snapshot was
+   --  built from.
+   --
+   --  @param Snapshot Snapshot to inspect.
+   --  @return Its index in Files.Types.Overlay_Stack, or 0 when none is open.
+   function Topmost_Overlay_Position (Snapshot : View_Snapshot) return Natural;
+
    --  How many selected items the info pane lists in detail. Past a hundred
    --  the list is unreadable anyway; the selection count shows the extent.
    Max_Info_Items : constant := 100;
@@ -504,5 +535,21 @@ package Files.Rendering is
    --  @return Text cell width in pixels.
    function Cell_Width_For (Size : Positive) return Positive is
      (Guikit.Layout.Caret_Advance_Width (Cell_Height_For (Size)));
+
+private
+
+   --  The index of the first overlay of Files.Types.Overlay_Stack open in
+   --  Snapshot, looking from From down.
+   --
+   --  @param Snapshot Snapshot to inspect.
+   --  @param From Index in Files.Types.Overlay_Stack to start at.
+   --  @return The index found, or 0 when none from From is open.
+   function First_Open_Overlay (Snapshot : View_Snapshot; From : Positive) return Natural is
+     (if From > Files.Types.Overlay_Stack'Last then 0
+      elsif Overlay_Open (Snapshot, Files.Types.Overlay_Stack (From)) then From
+      else First_Open_Overlay (Snapshot, From + 1));
+
+   function Topmost_Overlay_Position (Snapshot : View_Snapshot) return Natural is
+     (First_Open_Overlay (Snapshot, Files.Types.Overlay_Stack'First));
 
 end Files.Rendering;

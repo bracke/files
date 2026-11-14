@@ -66,7 +66,7 @@ separate (Files_Suite.Model)
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
-         Files.Commands.Close_Command_Palette_Command,
+         Files.Commands.Close_Overlay_Command,
          "Escape routes context cancel");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,

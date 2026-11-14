@@ -43,7 +43,7 @@ package Files.Commands is
       Generate_Thumbnails_Command,
       Focus_Filter_Input_Command,
       Open_Command_Palette_Command,
-      Close_Command_Palette_Command,
+      Close_Overlay_Command,
       Select_Drive_Command,
       Open_Selected_Root_Command,
       Eject_Selected_Root_Command,

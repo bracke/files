@@ -3,7 +3,8 @@ with Files.Model.Quick_Look;
 with Files.Model.Settings_Pane;
 separate (Files_Suite.Operations)
    --  One order of overlays: the one drawn on top owns the input and is the
-   --  one Escape closes; Escape does not reach past one with its own way out.
+   --  one Escape closes -- Quick Look too -- and Escape does not reach past a
+   --  paste dialog, which has its own way out.
    procedure Test_Overlay_Order_Is_Drawing_Order (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       use type Files.Model.Input_Overlay;
@@ -18,16 +19,17 @@ separate (Files_Suite.Operations)
       Assert (Files.Model.Selection.Select_By_Name (Model, "look.txt"), "an item to look at");
       Files.Model.Quick_Look.Open
         (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
-      Assert (Files.Model.Topmost_Overlay (Model, Overlay) and then Overlay = Files.Model.Quick_Look_Overlay,
+      Assert (Files.Model.Topmost_Overlay (Model, Overlay) and then Overlay = Files.Types.Quick_Look_Overlay,
               "Quick Look alone is on top");
-      Assert (not Files.Model.Escape_Overlay (Model, Overlay), "Escape's close command does not reach below it");
+      Assert (Files.Model.Escape_Overlay (Model, Overlay) and then Overlay = Files.Types.Quick_Look_Overlay,
+              "Escape closes Quick Look, by the rule every overlay but a paste dialog follows");
 
       Files.Model.Command_Palette.Open (Model);
-      Assert (Files.Model.Topmost_Overlay (Model, Overlay) and then Overlay = Files.Model.Command_Palette_Overlay,
+      Assert (Files.Model.Topmost_Overlay (Model, Overlay) and then Overlay = Files.Types.Command_Palette_Overlay,
               "the palette, drawn over Quick Look, is on top of it");
-      Assert (Files.Model.Escape_Overlay (Model, Overlay) and then Overlay = Files.Model.Command_Palette_Overlay,
+      Assert (Files.Model.Escape_Overlay (Model, Overlay) and then Overlay = Files.Types.Command_Palette_Overlay,
               "and Escape closes it first");
-      Assert (Files.Model.Window_Overlay_Shown (Model, Files.Model.Command_Palette_Overlay),
+      Assert (Files.Model.Window_Overlay_Shown (Model, Files.Types.Command_Palette_Overlay),
               "the window layer draws it");
       --  The pane under the palette is not drawn, and the frame leaves no
       --  hole for it.

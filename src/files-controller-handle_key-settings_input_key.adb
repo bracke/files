@@ -8,10 +8,6 @@ begin
          --  navigation or shortcut, until the capture ends.
          Result := Capture_Settings_Shortcut (Model, Key, Modifiers);
          return;
-      elsif Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
-         Files.Model.Settings_Pane.Toggle (Model);
-         Result := Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
-         return;
       elsif Key = Guikit.Input.Key_Up and then Modifiers = Guikit.Input.No_Modifiers then
          Files.Model.Settings_Pane.Move_Focus (Model, -1);
          Result := Make_Result (Controller_Text_Updated, Files.Commands.Toggle_Settings_Pane_Command);

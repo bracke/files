@@ -113,7 +113,7 @@ separate (Check_All)
       --  one added without its count moving here, fails.
       Require_Tests ("settings", 35);
       Require_Tests ("startup", 32);
-      Require_Tests ("commands", 39);
+      Require_Tests ("commands", 40);
       Require_Tests ("model", 55);
       Require_Tests ("interaction", 34);
       Require_Tests ("context_menu", 21);

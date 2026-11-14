@@ -1,49 +1,33 @@
 separate (Files.Controller.Handle_Key)
---  The command palette may intentionally be stacked above the root
---  selector.  In that state the palette remains the keyboard owner so
---  its general text-editing paths (Backspace, Delete, word deletion)
---  below are reachable; command execution is still constrained by the
---  root-selector allowlist in Execute_Command.
+--  The root selector on top: Enter opens the highlighted root, the arrows,
+--  Home and End move the highlight, and every other key is consumed --
+--  except the palette's shortcut, which may open the palette over it.
 procedure Root_Selector_Key (Handled : out Boolean; Result : out Controller_Result) is
 begin
    Handled := True;
-   if Files.Model.Root_Selector.Is_Open (Model)
-     and then not Files.Model.Command_Palette.Is_Open (Model)
-   then
-      if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
-         Files.Model.Root_Selector.Close (Model);
-         Result := Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
-         return;
-      elsif Key = Guikit.Input.Key_Return and then Modifiers = Guikit.Input.No_Modifiers then
-         Result := Handle_Root_Click (Model, Settings, Files.Model.Root_Selector.Selected_Index (Model));
-         return;
-      elsif Key = Guikit.Input.Key_Left and then Modifiers = Guikit.Input.No_Modifiers then
-         Result := Root_Selection_Result (Model, Guikit.Input.Move_Left);
-         return;
-      elsif Key = Guikit.Input.Key_Right and then Modifiers = Guikit.Input.No_Modifiers then
-         Result := Root_Selection_Result (Model, Guikit.Input.Move_Right);
-         return;
-      elsif Key = Guikit.Input.Key_Up and then Modifiers = Guikit.Input.No_Modifiers then
-         Result := Root_Selection_Result (Model, Guikit.Input.Move_Up);
-         return;
-      elsif Key = Guikit.Input.Key_Down and then Modifiers = Guikit.Input.No_Modifiers then
-         Result := Root_Selection_Result (Model, Guikit.Input.Move_Down);
-         return;
-      elsif Key = Guikit.Input.Key_Home and then Modifiers = Guikit.Input.No_Modifiers then
-         Result := Root_Jump_Result (Model, 1);
-         return;
-      elsif Key = Guikit.Input.Key_End and then Modifiers = Guikit.Input.No_Modifiers then
-         Result := Root_Jump_Result (Model, Files.Model.Root_Selector.Count (Model));
-         return;
-      elsif Action.Kind = Files.Events.Command_Input_Action
-        and then Action.Command = Files.Commands.Open_Command_Palette_Command
-      then
-         null;
-      else
-         Result := Make_Result (Controller_Ignored);
-         return;
-      end if;
-   end if;
-   Handled := False;
    Result := Make_Result (Controller_Ignored);
+   if Modifiers = Guikit.Input.No_Modifiers then
+      case Key is
+         when Guikit.Input.Key_Return =>
+            Result := Handle_Root_Click (Model, Settings, Files.Model.Root_Selector.Selected_Index (Model));
+         when Guikit.Input.Key_Left =>
+            Result := Root_Selection_Result (Model, Guikit.Input.Move_Left);
+         when Guikit.Input.Key_Right =>
+            Result := Root_Selection_Result (Model, Guikit.Input.Move_Right);
+         when Guikit.Input.Key_Up =>
+            Result := Root_Selection_Result (Model, Guikit.Input.Move_Up);
+         when Guikit.Input.Key_Down =>
+            Result := Root_Selection_Result (Model, Guikit.Input.Move_Down);
+         when Guikit.Input.Key_Home =>
+            Result := Root_Jump_Result (Model, 1);
+         when Guikit.Input.Key_End =>
+            Result := Root_Jump_Result (Model, Files.Model.Root_Selector.Count (Model));
+         when others =>
+            null;
+      end case;
+   elsif Action.Kind = Files.Events.Command_Input_Action
+     and then Action.Command = Files.Commands.Open_Command_Palette_Command
+   then
+      Handled := False;
+   end if;
 end Root_Selector_Key;

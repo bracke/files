@@ -20,7 +20,7 @@ begin
          Result := No_Action;
          return;
       else
-         Result := Command_Action (Files.Commands.Close_Command_Palette_Command);
+         Result := Command_Action (Files.Commands.Close_Overlay_Command);
          return;
       end if;
    end if;

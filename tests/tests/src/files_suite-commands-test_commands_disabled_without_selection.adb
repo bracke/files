@@ -26,7 +26,7 @@ separate (Files_Suite.Commands)
         (Files.Model.Last_Error_Key (Model),
          "error.history.back_unavailable",
          "disabled back records error");
-      Result := Files.Controller.Handle_Command_Click (Files.Commands.Navigate_Back_Command, Model, Settings);
+      Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
          Files.Controller.Controller_Ignored,
@@ -110,11 +110,11 @@ separate (Files_Suite.Commands)
          "error.rename.disabled",
          "disabled rename records error");
       Assert
-        (not Files.Commands.Status.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
+        (not Files.Commands.Status.Is_Enabled (Files.Commands.Close_Overlay_Command, Model),
          "context cancel disabled with no transient state");
       Files.Model.Focus_Path_Input (Model);
       Assert
-        (Files.Commands.Status.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Close_Overlay_Command, Model),
          "context cancel enabled while path input has focus");
       Files.Model.Cancel_Focus_Or_Edit (Model);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
@@ -131,7 +131,7 @@ separate (Files_Suite.Commands)
          "",
          "drive selector clears stale error state");
       Assert
-        (Files.Commands.Status.Is_Enabled (Files.Commands.Close_Command_Palette_Command, Model),
+        (Files.Commands.Status.Is_Enabled (Files.Commands.Close_Overlay_Command, Model),
          "context cancel enabled while root selector is open");
       Files.Model.Cancel_Focus_Or_Edit (Model);
    end Test_Commands_Disabled_Without_Selection;

@@ -23,6 +23,8 @@ separate (Files_Suite.Commands)
 
       Result := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Toggle_Settings_Pane_Command, Model, Settings);
+      Files_Suite.Support.Assert_Equal
+        (Result.Command, Files.Commands.Toggle_Settings_Pane_Command, "the settings command ran");
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "the settings pane opens with an editable draft");
 
       --  Edit the draft to a different view, sort field, and direction.

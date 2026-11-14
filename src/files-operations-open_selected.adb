@@ -1,5 +1,3 @@
-with Ada.Containers.Vectors;
-
 separate (Files.Operations)
 function Open_Selected
   (Model     : in out Files.Model.Window_Model;
@@ -8,8 +6,6 @@ function Open_Selected
    return Operation_Result
 is
    Items : constant Files.Items.Item_Vectors.Vector := Files.Model.Selection.Selected_Items (Model);
-   package Action_Vectors is new Ada.Containers.Vectors
-     (Index_Type => Positive, Element_Type => Files.Settings.Open_Action, "=" => Files.Settings."=");
 begin
    if Files.Model.Selection.Selected_Count (Model) = 0
      or else Files.Model.Selection.Includes_Temporary (Model)
@@ -21,82 +17,20 @@ begin
          --  type, no unsafe placeholder) are Prepare's, which also reports
          --  the first refusal.
          Prepared : constant Operation_Result := Prepare_Open_Selected_Action (Model, Settings, Modifiers);
-         Actions  : Action_Vectors.Vector;
-         First_Exit_Status : Integer := 0;
+         Actions  : Files.Desktop_Applications.Open_Action_Vectors.Vector;
+         Paths    : Files.Types.String_Vectors.Vector;
       begin
          if Prepared.Status /= Operation_Success then
             return Prepared;
          end if;
-
-         --  Every executable is checked before any is started.
          for Item of Items loop
-            declare
-               Action : constant Files.Settings.Open_Action :=
-                 Files.Settings.Expand_Placeholders
-                   (Files.Settings.Lookup_Open_Action (Settings, To_String (Item.Filetype), Modifiers).Action,
-                    To_String (Item.Full_Path));
-            begin
-               if not Open_Action_Executable_Is_Available (Action) then
-                  Files.Model.Set_Error (Model, "error.open_action.executable_missing");
-                  return
-                    Make_Result
-                      (Operation_Failed,
-                       "error.open_action.executable_missing",
-                       To_String (Item.Full_Path),
-                       Action,
-                       Attempted => False,
-                       Found     => False);
-               end if;
-               Actions.Append (Action);
-            end;
+            Actions.Append
+              (Files.Settings.Expand_Placeholders
+                 (Files.Settings.Lookup_Open_Action (Settings, To_String (Item.Filetype), Modifiers).Action,
+                  To_String (Item.Full_Path)));
+            Paths.Append (Item.Full_Path);
          end loop;
-
-         for Index in Items.First_Index .. Items.Last_Index loop
-            declare
-               Path        : constant String := To_String (Items (Index).Full_Path);
-               Exit_Status : Integer := 0;
-               Failure_Key : Unbounded_String;
-               Spawn_OK    : constant Boolean :=
-                 Execute_Open_Action (Actions (Index), Exit_Status, Failure_Key, Detach => True);
-               Error_Key   : constant String :=
-                 (if Length (Failure_Key) > 0 then To_String (Failure_Key) else "error.open_action.execution");
-            begin
-               --  System-fallback handlers (xdg-open / open / cmd start)
-               --  are launched detached: Spawn_OK reflects whether the
-               --  fork+exec succeeded, not the handler's own exit code.
-               if not Spawn_OK then
-                  Files.Model.Set_Error (Model, Error_Key);
-                  return
-                    Make_Result
-                      (Operation_Failed,
-                       Error_Key,
-                       Path,
-                       Actions (Index),
-                       Attempted => True,
-                       Found     => True,
-                       Exit_Known => False,
-                       Exit_Status => Exit_Status);
-               end if;
-
-               --  Each launched file joins the recent list, freshest last.
-               Files.Model.Note_Recent_Open (Model, Path);
-               if Index = Items.First_Index then
-                  First_Exit_Status := Exit_Status;
-               end if;
-            end;
-         end loop;
-
-         Files.Model.Set_Error (Model, "");
-         return
-           Make_Result
-             (Operation_Action_Executed,
-              Path      => To_String (Prepared.Path),
-              Action    => Prepared.Action,
-              Attempted => True,
-              Found     => True,
-              --  Detached: started and let go, so there is no exit status.
-              Exit_Known => False,
-              Exit_Status => First_Exit_Status);
+         return Launch_Open_Actions (Model, Actions, Paths);
       end;
    end if;
 
@@ -125,57 +59,11 @@ begin
             Support.Generate_Missing_Thumbnails (Model, Settings, Load.Items);
             return Make_Result (Operation_Navigated, Path => To_String (Load.Path));
          end;
-      elsif not Open_Action_Executable_Is_Available (Prepared.Action) then
-         Files.Model.Set_Error (Model, "error.open_action.executable_missing");
-         return
-           Make_Result
-             (Operation_Failed,
-              "error.open_action.executable_missing",
-              To_String (Prepared.Path),
-              Prepared.Action,
-              Attempted => False,
-              Found     => False);
-      else
-         declare
-            Exit_Status : Integer := 0;
-            Failure_Key : Unbounded_String;
-            Spawn_OK    : constant Boolean :=
-              Execute_Open_Action
-                (Prepared.Action, Exit_Status, Failure_Key, Detach => True);
-            Error_Key   : constant String :=
-              (if Length (Failure_Key) > 0 then To_String (Failure_Key) else "error.open_action.execution");
-         begin
-            --  Open actions are always detached: the launched application
-            --  is fire-and-forget and inherits no Files-side FDs / signal
-            --  mask. Spawn_OK reflects whether the wrapper shell ran, not
-            --  the application's own exit code.
-            if Spawn_OK then
-               --  The opened file joins the recent list.
-               Files.Model.Note_Recent_Open (Model, To_String (Prepared.Path));
-               Files.Model.Set_Error (Model, "");
-               return
-                 Make_Result
-                   (Operation_Action_Executed,
-                    Path   => To_String (Prepared.Path),
-                    Action => Prepared.Action,
-                    Attempted => True,
-                    Found  => True,
-                    Exit_Known => False,
-                    Exit_Status => Exit_Status);
-            end if;
-
-            Files.Model.Set_Error (Model, Error_Key);
-            return
-              Make_Result
-                (Operation_Failed,
-                 Error_Key,
-                 To_String (Prepared.Path),
-                 Prepared.Action,
-                 Attempted => True,
-                 Found     => True,
-                 Exit_Known => False,
-                 Exit_Status => Exit_Status);
-         end;
       end if;
+      return
+        Launch_Open_Actions
+          (Model,
+           Files.Desktop_Applications.Open_Action_Vectors.To_Vector (Prepared.Action, 1),
+           Files.Types.String_Vectors.To_Vector (Prepared.Path, 1));
    end;
 end Open_Selected;

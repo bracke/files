@@ -7,7 +7,7 @@ separate (Files.Rendering.Build_Snapshot_Into)
       --  (Guikit.Command_Palette, merged at the window layer); the snapshot only
       --  records that it is open, for overlay hit-testing.
       Snapshot.Command_Palette_Open :=
-        Files.Model.Window_Overlay_Shown (Model, Files.Model.Command_Palette_Overlay);
+        Files.Model.Window_Overlay_Shown (Model, Files.Types.Command_Palette_Overlay);
       --  The root selector remains logically open while the palette temporarily
       --  takes focus, but must not be painted underneath it: overlay rectangles
       --  and overlay text are separate GPU passes, so its text would otherwise

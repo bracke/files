@@ -211,33 +211,17 @@ package body Files.Model is
       end case;
    end Overlay_Is_Open;
 
-   type Overlay_Order is array (Positive range <>) of Input_Overlay;
-
-   --  The first open overlay of Order.
-   function First_Open (Model : Window_Model; Order : Overlay_Order; Overlay : out Input_Overlay) return Boolean is
+   function Topmost_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean is
    begin
-      for Candidate of Order loop
+      for Candidate of Files.Types.Overlay_Stack loop
          if Overlay_Is_Open (Model, Candidate) then
             Overlay := Candidate;
             return True;
          end if;
       end loop;
-      Overlay := Order (Order'First);
+      Overlay := Files.Types.Overlay_Stack (Files.Types.Overlay_Stack'First);
       return False;
-   end First_Open;
-
-   --  Top to bottom as they are drawn: the paste dialogs over everything (the
-   --  window layer gives way to them, Window_Overlay_Shown), then the window
-   --  layer's palette over its settings pane, then the frame's popups in the
-   --  reverse of their drawing order, and the tree pick, which is part of the
-   --  frame itself.
-   function Topmost_Overlay (Model : Window_Model; Overlay : out Input_Overlay) return Boolean is
-     (First_Open
-        (Model,
-         [Foreground_Job_Overlay, Paste_Conflict_Overlay, Command_Palette_Overlay, Settings_Pane_Overlay,
-          Context_Menu_Overlay, Root_Selector_Overlay, Sort_Menu_Overlay, Label_Picker_Overlay,
-          Quick_Look_Overlay, Tree_Pick_Overlay],
-         Overlay));
+   end Topmost_Overlay;
 
    function Window_Overlay_Shown (Model : Window_Model; Overlay : Text_Input_Overlay) return Boolean is
      (Overlay_Is_Open (Model, Overlay)
@@ -256,6 +240,9 @@ package body Files.Model is
          when Command_Palette_Overlay => Close_Command_Palette (Model);
          when Root_Selector_Overlay   => Close_Root_Selector (Model);
          when Sort_Menu_Overlay       => Close_Sort_Menu (Model);
+         when Quick_Look_Overlay      => Close_Quick_Look (Model);
+         --  Cancels the pick, closing the tree when the pick opened it.
+         when Tree_Pick_Overlay       => End_Tree_Pick (Model);
          --  Closed the way Escape in the pane closes it; reopening starts a fresh draft.
          when Settings_Pane_Overlay   => Toggle_Settings_Pane (Model);
       end case;
@@ -833,9 +820,7 @@ package body Files.Model is
       end case;
    end Focused_Field;
 
-   --  The value of the currently focused text input (Focused_Field's text),
-   --  or "" when none is focused.
-   function Focused_Text_Value
+   function Focused_Text
      (Model : Window_Model)
       return String is
      (To_String (Focused_Field (Model).Text));
@@ -854,7 +839,7 @@ package body Files.Model is
       Position : Natural)
    is
       Clamped : constant Natural :=
-        Guikit.Utf8.Editing.Boundary_At_Or_Before (Focused_Text_Value (Model), Position);
+        Guikit.Utf8.Editing.Boundary_At_Or_Before (Focused_Text (Model), Position);
    begin
       Support.Touch (Model);
       case Model.Focus_Value is
@@ -889,7 +874,7 @@ package body Files.Model is
       Direction : Guikit.Input.Navigation_Direction)
    is
       Cursor : constant Natural := Text_Cursor_Position (Model);
-      Text   : constant String := Focused_Text_Value (Model);
+      Text   : constant String := Focused_Text (Model);
    begin
       Support.Touch (Model);
       if Direction = Guikit.Input.Move_Left or else Direction = Guikit.Input.Move_Up then

@@ -9,6 +9,19 @@ package Files.Model.Command_Palette is
    procedure Open
      (Model : in out Window_Model);
 
+   --  Open the command palette as the "Open With" picker: Applications are
+   --  listed for the user to choose the one that opens Targets. The list is
+   --  stored once, here, so the list drawn and the one a choice is resolved
+   --  against are the same however the installed set changes.
+   --
+   --  @param Model Model to update.
+   --  @param Targets Full paths the chosen application should open.
+   --  @param Applications Installed applications, in picker order.
+   procedure Open_With
+     (Model        : in out Window_Model;
+      Targets      : Files.Types.String_Vectors.Vector;
+      Applications : Files.Desktop_Applications.Application_Vectors.Vector);
+
    --  Close the command palette.
    --
    --  @param Model Model to update.
@@ -96,22 +109,6 @@ package Files.Model.Command_Palette is
      (Model : Window_Model)
       return Palette_Mode;
 
-   --  Set the active command-palette mode.
-   --
-   --  @param Model Model to update.
-   --  @param Mode New palette mode.
-   procedure Set_Mode
-     (Model : in out Window_Model;
-      Mode  : Palette_Mode);
-
-   --  Replace the stored "Open With" target paths.
-   --
-   --  @param Model Model to update.
-   --  @param Targets Full paths the chosen application should open.
-   procedure Set_Open_With_Targets
-     (Model   : in out Window_Model;
-      Targets : Files.Types.String_Vectors.Vector);
-
    --  Return the stored "Open With" target paths.
    --
    --  @param Model Model to inspect.
@@ -119,16 +116,6 @@ package Files.Model.Command_Palette is
    function Open_With_Targets
      (Model : Window_Model)
       return Files.Types.String_Vectors.Vector;
-
-   --  Store the applications the "Open With" picker lists. The caller scans
-   --  once when the picker opens; the list drawn and the one a choice is
-   --  resolved against are then the same, however the installed set changes.
-   --
-   --  @param Model Model to update.
-   --  @param Applications Installed applications, in picker order.
-   procedure Set_Open_With_Applications
-     (Model        : in out Window_Model;
-      Applications : Files.Desktop_Applications.Application_Vectors.Vector);
 
    --  Return the applications the "Open With" picker lists.
    --

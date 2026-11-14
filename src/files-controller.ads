@@ -11,17 +11,32 @@ with Files.Types;
 --  Focus-aware input controller for command, text, palette, and filesystem operations.
 package Files.Controller is
 
+   --  What a controller entry did. Two answers ask the caller to finish the
+   --  work: Controller_Needs_Settings_Path, for a settings command (Command)
+   --  reached without the settings file's path, which
+   --  Complete_Settings_Command then applies; Controller_Activation_Requested,
+   --  for an overlay's Enter (Activation says which), which the interaction
+   --  layer completes as a click on the same control does.
    type Controller_Status is
      (Controller_Ignored,
       Controller_Command_Executed,
       Controller_Selection_Moved,
       Controller_Text_Updated,
-      Controller_Palette_Updated);
+      Controller_Palette_Updated,
+      Controller_Needs_Settings_Path,
+      Controller_Activation_Requested);
+
+   --  An overlay's Enter, for the caller to complete: Choose_Label gives the
+   --  selection the label picker's highlighted Label; Run_Menu_Row runs the
+   --  context menu's highlighted row (Command).
+   type Overlay_Activation is (No_Activation, Choose_Label, Run_Menu_Row);
 
    type Controller_Result is record
-      Status    : Controller_Status := Controller_Ignored;
-      Command   : Files.Commands.Command_Id := Files.Commands.No_Command;
-      Operation : Files.Operations.Operation_Result;
+      Status     : Controller_Status := Controller_Ignored;
+      Command    : Files.Commands.Command_Id := Files.Commands.No_Command;
+      Operation  : Files.Operations.Operation_Result;
+      Activation : Overlay_Activation := No_Activation;
+      Label      : Files.Types.Color_Label := Files.Types.No_Label;
    end record;
 
    --  Append text to the currently focused text input.
@@ -35,9 +50,10 @@ package Files.Controller is
       return Controller_Result;
 
    --  Execute a command through the controller's filesystem-aware routing,
-   --  without the settings file: a command that changes settings
-   --  (Files.Commands.Requires_Settings_Path) is reported, not applied. The
-   --  window runs commands through Execute_Command, which applies those.
+   --  without the settings file: a disabled command is refused (with its
+   --  reason on the error line), and a command that changes settings
+   --  (Files.Commands.Requires_Settings_Path) is not applied but answered
+   --  with Controller_Needs_Settings_Path, for Complete_Settings_Command.
    --
    --  @param Id Command identifier.
    --  @param Model Window model to update.
@@ -51,22 +67,26 @@ package Files.Controller is
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result;
 
-   --  What a command reports when it may not run now, without running it:
-   --  ignored while the root selector or the settings pane is open and the
-   --  command is not allowed over it; otherwise, for a command
-   --  Files.Commands.Status does not enable, ignored with the reason in
-   --  Model's error line. Execute_Non_Settings_Command refuses through it.
+   --  Finish what a controller entry without the settings path left to its
+   --  caller: a Controller_Needs_Settings_Path result's settings command is
+   --  applied and persisted (its enablement was checked when it was
+   --  reported); any other result is returned as it is.
    --
-   --  @param Id Command identifier, one that may not run now.
-   --  @param Model Window model whose error line takes the reason.
-   --  @return Controller result describing the refusal.
-   function Refused_Command_Result
-     (Id    : Files.Commands.Command_Id;
-      Model : in out Files.Model.Window_Model)
+   --  @param Reported The result an entry returned.
+   --  @param Model Window model to update.
+   --  @param Settings Live settings model, replaced by a settings command.
+   --  @param Settings_Path Central settings file path (empty disables persistence).
+   --  @return The applied command's result, or Reported.
+   function Complete_Settings_Command
+     (Reported      : Controller_Result;
+      Model         : in out Files.Model.Window_Model;
+      Settings      : in out Files.Settings.Settings_Model;
+      Settings_Path : String)
       return Controller_Result;
 
    --  Execute a command, applying and persisting the ones that change settings
    --  (Files.Commands.Requires_Settings_Path) instead of only reporting them.
+   --  A disabled command is refused, with its reason on the error line.
    --
    --  @param Id Command identifier.
    --  @param Model Window model to update.
@@ -132,19 +152,6 @@ package Files.Controller is
       Settings_Path : String)
       return Files.Settings.Settings_Write_Result;
 
-   --  Commit_Settings, for a caller the result tells nothing more than the
-   --  error line does.
-   --
-   --  @param Model Window whose error line reports a refused change or a failed write.
-   --  @param Settings Live settings model, replaced by Updated when it is accepted.
-   --  @param Updated The settings with the change made.
-   --  @param Settings_Path Central settings file path (empty disables persistence).
-   procedure Commit_Settings
-     (Model         : in out Files.Model.Window_Model;
-      Settings      : in out Files.Settings.Settings_Model;
-      Updated       : Files.Settings.Settings_Model;
-      Settings_Path : String);
-
    --  Commit_Settings, saying whether the change took.
    --
    --  @param Model Window whose error line reports a refused change or a failed write.
@@ -160,20 +167,6 @@ package Files.Controller is
       Updated       : Files.Settings.Settings_Model;
       Settings_Path : String;
       Accepted      : out Boolean);
-
-   --  Execute a command produced by a toolbar or bottom-bar hit test.
-   --
-   --  @param Id Command identifier from the clicked UI control.
-   --  @param Model Window model to update.
-   --  @param Settings Settings model used by operations.
-   --  @param Modifiers Active modifier keys.
-   --  @return Controller result with command or operation details.
-   function Handle_Command_Click
-     (Id        : Files.Commands.Command_Id;
-      Model     : in out Files.Model.Window_Model;
-      Settings  : Files.Settings.Settings_Model;
-      Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
-      return Controller_Result;
 
    --  Cycle the filter-bar search scope one step forward and re-run the shared
    --  query in the new scope. Filter_Here restores the live-filtered directory,
@@ -320,10 +313,12 @@ package Files.Controller is
       Toggle     : Boolean)
       return Controller_Result;
 
-   --  Act on the command palette's highlighted command (from Command_Palette.Selected_Id):
-   --  launch the chosen application in Open-With mode, otherwise execute the
-   --  command. Application preflight and spawn failures are returned as failed
-   --  operations; handled selections close the palette.
+   --  Act on the command palette's highlighted command (from Command_Palette.Selected_Id),
+   --  the one activation a click on a row and Enter share: launch the chosen
+   --  application in Open-With mode, otherwise execute the command
+   --  (Execute_Non_Settings_Command, so a settings command comes back for
+   --  Complete_Settings_Command). Application preflight and spawn failures
+   --  are returned as failed operations; handled selections close the palette.
    --
    --  @param Model Window model to update.
    --  @param Settings Settings model used by operations.
@@ -428,7 +423,11 @@ package Files.Controller is
       Y     : Integer)
       return Controller_Result;
 
-   --  Handle one key press using focus-aware command routing.
+   --  Handle one key press using focus-aware command routing. The overlay on
+   --  top (Files.Model.Topmost_Overlay) alone owns the keyboard, and Escape
+   --  closes it. A settings command the key resolves to is answered with
+   --  Controller_Needs_Settings_Path, and Enter on the label picker or the
+   --  context menu with Controller_Activation_Requested.
    --
    --  @param Model Window model to update.
    --  @param Settings Settings model used by operations.

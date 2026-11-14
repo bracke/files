@@ -546,23 +546,15 @@ private package Files.Rendering.Geometry is
      (Label : Files.Types.Color_Label)
       return Guikit.Draw.Render_Color;
 
-   --  Whether a popup or modal panel is open, owning the pointer: one per
-   --  Files.Model.Input_Overlay. Tooltips of the controls it covers are not
-   --  drawn then, or one could be painted over the popup.
+   --  Whether a popup or modal panel is open, owning the pointer
+   --  (Files.Rendering.Overlay_Open of any Files.Types.Input_Overlay).
+   --  Tooltips of the controls it covers are not drawn then, or one could be
+   --  painted over the popup.
    --
    --  @param Snapshot Snapshot to inspect.
    --  @return True when any input-owning overlay is open.
    function Any_Overlay_Open (Snapshot : View_Snapshot) return Boolean is
-     (Snapshot.Root_Selector_Open
-      or else Snapshot.Context_Menu_Open
-      or else Snapshot.Paste_Conflict_Open
-      or else Snapshot.Paste_Progress.Open
-      or else Snapshot.Quick_Look.Open
-      or else Snapshot.Label_Picker_Open
-      or else Snapshot.Sort_Menu_Open
-      or else Snapshot.Tree_Pick_Active
-      or else Snapshot.Command_Palette_Open
-      or else Snapshot.Settings_Pane_Open);
+     (Topmost_Overlay_Position (Snapshot) /= 0);
 
    --  Return the top Y coordinate of a menu row, accounting for the smaller
    --  height of any separator rows above it. Rows have variable heights, so a

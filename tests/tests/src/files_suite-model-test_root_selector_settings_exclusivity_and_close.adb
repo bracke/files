@@ -64,7 +64,7 @@ separate (Files_Suite.Model)
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Escape);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
-         Files.Commands.Close_Command_Palette_Command,
+         Files.Commands.Close_Overlay_Command,
          "Escape routes root selector close");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
@@ -83,10 +83,10 @@ separate (Files_Suite.Model)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Select_Drive_Command, Model, Settings);
       Assert (Files.Model.Root_Selector.Is_Open (Model), "drive selector can reopen after Escape");
       Result := Files.Controller.Execute_Non_Settings_Command
-        (Files.Commands.Close_Command_Palette_Command, Model, Settings);
+        (Files.Commands.Close_Overlay_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Command,
-         Files.Commands.Close_Command_Palette_Command,
+         Files.Commands.Close_Overlay_Command,
          "close command routes root selector close");
       Assert (not Files.Model.Root_Selector.Is_Open (Model), "close command closes root selector");
       Files_Suite.Support.Assert_Equal

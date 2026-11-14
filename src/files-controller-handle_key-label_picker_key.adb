@@ -1,37 +1,30 @@
 with Files.Model.Label_Picker;
 separate (Files.Controller.Handle_Key)
---  The label picker owns the keyboard while open: Escape closes it, the
---  arrows move its highlight, Enter applies the highlighted swatch (on the
---  Interaction seam), and every other key is consumed so it does not leak
---  through to move the selection on the grid behind.
+--  The label picker on top owns the keyboard: the arrows move its
+--  highlight, Enter asks for the highlighted swatch to be applied (as a
+--  click on it is, by the interaction layer, which holds the settings
+--  path), and every other key is consumed so it does not leak through to
+--  move the selection on the grid behind.
 procedure Label_Picker_Key (Handled : out Boolean; Result : out Controller_Result) is
 begin
    Handled := True;
-   if Files.Model.Label_Picker.Is_Open (Model) then
-      if Key = Guikit.Input.Key_Escape and then Modifiers = Guikit.Input.No_Modifiers then
-         Files.Model.Label_Picker.Close (Model);
-         Result := Successful_Command_Result (Files.Commands.Close_Command_Palette_Command);
-         return;
-      elsif (Key = Guikit.Input.Key_Left or else Key = Guikit.Input.Key_Up)
-        and then Modifiers = Guikit.Input.No_Modifiers
-      then
+   Result := Make_Result (Controller_Ignored);
+   if Modifiers /= Guikit.Input.No_Modifiers then
+      return;
+   end if;
+   case Key is
+      when Guikit.Input.Key_Left | Guikit.Input.Key_Up =>
          Files.Model.Label_Picker.Move_Highlight (Model, -1);
          Result := Make_Result (Controller_Selection_Moved);
-         return;
-      elsif (Key = Guikit.Input.Key_Right or else Key = Guikit.Input.Key_Down)
-        and then Modifiers = Guikit.Input.No_Modifiers
-      then
+      when Guikit.Input.Key_Right | Guikit.Input.Key_Down =>
          Files.Model.Label_Picker.Move_Highlight (Model, 1);
          Result := Make_Result (Controller_Selection_Moved);
-         return;
-      else
-         --  Enter is applied on the Interaction seam, by the routine a click on
-         --  a swatch uses; every other key is consumed so the grid behind the
-         --  picker stays put.
-         Result := Make_Result (Controller_Ignored);
-         return;
-      end if;
-   end if;
-   Handled := False;
-   Result := Make_Result (Controller_Ignored);
+      when Guikit.Input.Key_Return =>
+         Result :=
+           (Make_Result (Controller_Activation_Requested) with delta
+              Activation => Choose_Label,
+              Label      => Files.Model.Label_Picker.Highlight_Color (Model));
+      when others =>
+         null;
+   end case;
 end Label_Picker_Key;
