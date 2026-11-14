@@ -70,6 +70,8 @@ package body Files_Suite.History is
    procedure Test_History_Save_Replaces_Leftover (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_History_Journal_Fits_Large_Actions (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Unjournaled_List_Pruned (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Journal_Cap_Retires_Dropped (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Replace_Move_References (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Symlink_Creation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Set_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Permission_Undo_Restores_Access (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -112,6 +114,12 @@ package body Files_Suite.History is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Unjournaled_List_Pruned'Access,
          "a history's left-out list is pruned when restored and truncated, not refused, past its cap");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Journal_Cap_Retires_Dropped'Access,
+         "entries the journal's left-out cap dropped are retired on merge, their originals released");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Replace_Move_References'Access,
+         "a replace-move leaves one label, favorite and recent entry per path, and its undo restores both");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Redo_Symlink_Creation'Access, "a created symlink undoes and redoes symmetrically");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -221,6 +229,10 @@ package body Files_Suite.History is
    procedure Test_History_Journal_Fits_Large_Actions (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Unjournaled_List_Pruned (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Journal_Cap_Retires_Dropped (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Replace_Move_References (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Partial_Redo_Creation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -32,7 +32,11 @@ package Files.Model.History is
    --  the window's own instead of replacing it: an entry the journal does
    --  not hold stays when the journal lists it as unjournaled (it left the
    --  journal only to fit it, or the helper never saw it) and goes when the
-   --  helper retired it (the helper released its payloads). Redo entries the
+   --  helper retired it (the helper released its payloads), unless the
+   --  journal names it as dropped by the cap on its left-out list: such an
+   --  entry is retired here, its originals released to the system trash
+   --  (as one past the depth cap), or discarded with a redo stack the
+   --  helper retired. Redo entries the
    --  helper never saw are retired here when its new record retired its redo
    --  stack, and the merged undo stack keeps the depth cap; payloads of what
    --  is retired here are queued for Take_Retired_History.

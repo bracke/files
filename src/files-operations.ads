@@ -554,8 +554,12 @@ package Files.Operations is
    --  set a different owner fails with error.ownership.denied.
    --
    --  @param Model Window model whose selected item's ownership is changed.
-   --  @param User_Id New owning user id to apply.
-   --  @param Group_Id New owning group id to apply.
+   --  Hostkit.Metadata.Keep_Id for User_Id or Group_Id leaves that id as
+   --  the file has it: an edit of one asks for that one only. The entry
+   --  recorded for undo and redo holds the ids the file had and has.
+   --
+   --  @param User_Id New owning user id to apply, or Keep_Id.
+   --  @param Group_Id New owning group id to apply, or Keep_Id.
    --  @param Settings Settings model used for directory reload classification.
    --  @return Structured operation result.
    function Set_Ownership_For

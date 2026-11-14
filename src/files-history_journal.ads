@@ -8,7 +8,9 @@ package Files.History_Journal is
    --  stack only when it does not fit even alone. Each one left out is
    --  listed in the journal ("not journaled") by its Sequence, together with
    --  those State already lists, so a window merging the journal back keeps
-   --  its own copy (Merge).
+   --  its own copy (Merge). That list has a cap: a Sequence past it is
+   --  listed instead as dropped, and the window merging the journal retires
+   --  that entry, releasing the originals it preserved to the system trash.
    --  @param Directory Absolute private helper transport directory.
    --  @param Undo Undo stack to persist.
    --  @param Redo Redo stack to persist.

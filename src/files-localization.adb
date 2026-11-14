@@ -9,7 +9,6 @@ with Ada.Strings.Hash;
 
 with Messages.Arguments;
 with Messages.Result;
-with Messages.Runtime;
 
 with Files.Environment;
 with Files.Capped_Files;
@@ -84,6 +83,36 @@ package body Files.Localization is
       Raw    : constant String := Ada.Strings.Fixed.Trim (Value, Ada.Strings.Both);
       Last   : Natural := Raw'Last;
       Result : Unbounded_String;
+      --  The language's length in Result, and whether a script follows it.
+      Language_Length : Natural := 0;
+      Has_Script      : Boolean := False;
+
+      --  The @modifier (sr_RS.UTF-8@latin), lower case, or "".
+      function Modifier return String is
+      begin
+         for At_Sign in Raw'Range loop
+            if Raw (At_Sign) = '@' then
+               for Index in At_Sign + 1 .. Raw'Last loop
+                  if Raw (Index) = '.' then
+                     return Ada.Characters.Handling.To_Lower (Raw (At_Sign + 1 .. Index - 1));
+                  end if;
+               end loop;
+               return Ada.Characters.Handling.To_Lower (Raw (At_Sign + 1 .. Raw'Last));
+            end if;
+         end loop;
+         return "";
+      end Modifier;
+
+      --  The script subtag a well-known glibc modifier names, or "".
+      function Modifier_Script return String is
+        (if Modifier = "latin" then "Latn"
+         elsif Modifier = "cyrillic" then "Cyrl"
+         elsif Modifier = "devanagari" then "Deva"
+         else "");
+
+      --  The variant subtag a well-known glibc modifier names, or "".
+      function Modifier_Variant return String is
+        (if Modifier = "valencia" then "valencia" else "");
 
       function Is_Ascii_Alphanumeric (Item : Character) return Boolean is
         (Item in 'a' .. 'z' or else Item in 'A' .. 'Z' or else Item in '0' .. '9');
@@ -115,6 +144,9 @@ package body Files.Localization is
             Append (Result, '-');
          end if;
 
+         if Is_Script then
+            Has_Script := True;
+         end if;
          for Index in Component'Range loop
             if Is_Script and then Index = Component'First then
                Append (Result, Ada.Characters.Handling.To_Upper (Component (Index)));
@@ -124,6 +156,9 @@ package body Files.Localization is
                Append (Result, Ada.Characters.Handling.To_Lower (Component (Index)));
             end if;
          end loop;
+         if First then
+            Language_Length := Length (Result);
+         end if;
       end Append_Component;
    begin
       --  The normalized value is retained and is also embedded in a locale
@@ -179,6 +214,21 @@ package body Files.Localization is
       if Length (Result) = 0 then
          return "en";
       end if;
+
+      --  A modifier naming a script or a variant is kept, as the catalogs
+      --  spell it (sr_RS@latin is sr-Latn-RS, ca_ES@valencia ca-ES-valencia);
+      --  the others (euro, say) say nothing a catalog differs by.
+      declare
+         Script  : constant String := Modifier_Script;
+         Variant : constant String := Modifier_Variant;
+      begin
+         if Script /= "" and then not Has_Script then
+            Insert (Result, Language_Length + 1, "-" & Script);
+         end if;
+         if Variant /= "" then
+            Append (Result, "-" & Variant);
+         end if;
+      end;
 
       return To_String (Result);
    end Normalize_Locale;
@@ -556,6 +606,24 @@ package body Files.Localization is
       return False;
    end Locale_Loaded;
 
+   function Load_Locale_Shard
+     (Item : in out Messages.Runtime.Runtime;
+      Path : String)
+      return Boolean
+   is
+      use type Messages.Runtime.Load_Status;
+      Shard : Messages.Runtime.Load_Result;
+   begin
+      --  Not Load: a strict load that fails leaves the whole runtime invalid.
+      Messages.Runtime.Load_File (Item, Path, Shard);
+      if Shard.Status /= Messages.Runtime.Loaded then
+         Files.Diagnostics.Trace
+           ("Files.Localization", "locale_catalog_skipped=" & Path & ",status=" & Shard.Status'Image);
+         return False;
+      end if;
+      return True;
+   end Load_Locale_Shard;
+
    procedure Load_Locale (Locale : String) is
       Normalized : constant String := Normalize_Locale (Locale);
       Path       : constant String := Locale_Catalog_Path (Normalized);
@@ -565,8 +633,12 @@ package body Files.Localization is
       end if;
 
       if Files.Fs_Primitives.Exists (Path) then
-         Messages.Runtime.Load (Runtime, Path);
-         Available := Messages.Runtime.Is_Valid (Runtime);
+         declare
+            Loaded : constant Boolean := Load_Locale_Shard (Runtime, Path);
+            pragma Unreferenced (Loaded);
+         begin
+            null;
+         end;
       end if;
       --  humanize's phrases in this locale's language too, beside its defaults.
       if Humanize_Loaded then
@@ -581,7 +653,9 @@ package body Files.Localization is
       --  The new catalog may answer what an earlier render fell back on.
       Text_Cache.Clear;
 
-      for Index in Normalized'Range loop
+      --  Then its parent, one subtag less (sr-Latn-RS, sr-Latn, sr), as the
+      --  runtime falls back when it renders.
+      for Index in reverse Normalized'Range loop
          if Normalized (Index) = '-' then
             Load_Locale (Normalized (Normalized'First .. Index - 1));
             exit;

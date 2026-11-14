@@ -553,22 +553,22 @@ package body Files.Settings is
      (Settings : in out Settings_Model;
       Path     : String)
    is
-      To_Remove : Natural := 0;
+      Removed : Boolean := False;
    begin
       if not Persistent_Path_Is_Valid (Path) then
          return;
       end if;
-      for Index in
+      --  Every entry for Path goes: one left behind (a settings file with a
+      --  repeat) would keep it a favorite after it was taken off.
+      for Index in reverse
         Settings.Favorite_Paths.First_Index .. Settings.Favorite_Paths.Last_Index
       loop
          if To_String (Settings.Favorite_Paths.Element (Index)) = Path then
-            To_Remove := Index;
-            exit;
+            Settings.Favorite_Paths.Delete (Index);
+            Removed := True;
          end if;
       end loop;
-      if To_Remove /= 0 then
-         Settings.Favorite_Paths.Delete (To_Remove);
-      else
+      if not Removed then
          Settings.Favorite_Paths.Append (To_Unbounded_String (Path));
       end if;
    end Toggle_Favorite_Path;
@@ -682,7 +682,12 @@ package body Files.Settings is
       --  Path moved along with From: From itself or an entry inside it.
       function Moved (Path : String) return String is (Hostkit.Fs.Rebase (Path, From, To));
 
+      --  Each entry moved with From is rewritten. An entry that then repeats
+      --  one listed before it goes (the earlier one stays): a path is a
+      --  favorite, or recent, once.
       procedure Rewrite (Paths : in out String_Vectors.Vector) is
+         Rewritten, Seen : Path_Sets.Set;
+         Kept            : String_Vectors.Vector;
       begin
          for Index in Paths.First_Index .. Paths.Last_Index loop
             declare
@@ -691,11 +696,28 @@ package body Files.Settings is
             begin
                if New_Path /= Old_Path then
                   Paths.Replace_Element (Index, To_Unbounded_String (New_Path));
+                  Rewritten.Include (New_Path);
                   Changed := True;
                end if;
             end;
          end loop;
+         if Rewritten.Is_Empty then
+            return;
+         end if;
+         for Path of Paths loop
+            if not Rewritten.Contains (To_String (Path)) or else not Seen.Contains (To_String (Path)) then
+               Kept.Append (Path);
+               Seen.Include (To_String (Path));
+            end if;
+         end loop;
+         Paths := Kept;
       end Rewrite;
+
+      --  The labels' new paths, and the labels that moved there.
+      Label_Targets : Path_Sets.Set;
+      Label_Moved   : array (Settings.Labels.First_Index .. Settings.Labels.Last_Index) of Boolean :=
+        [others => False];
+      Kept_Labels   : Path_Label_Vectors.Vector;
    begin
       Changed := False;
       if From = "" or else To = "" or else From = To then
@@ -711,10 +733,22 @@ package body Files.Settings is
             if New_Path /= Old_Path then
                Settings.Labels.Replace_Element
                  (Index, (Path => To_Unbounded_String (New_Path), Label => Settings.Labels (Index).Label));
+               Label_Targets.Include (New_Path);
+               Label_Moved (Index) := True;
                Changed := True;
             end if;
          end;
       end loop;
+      --  A label left at a path a labelled entry moved onto belonged to what
+      --  was there before: the moved entry's label is the one that holds.
+      if not Label_Targets.Is_Empty then
+         for Index in Settings.Labels.First_Index .. Settings.Labels.Last_Index loop
+            if Label_Moved (Index) or else not Label_Targets.Contains (To_String (Settings.Labels (Index).Path)) then
+               Kept_Labels.Append (Settings.Labels (Index));
+            end if;
+         end loop;
+         Settings.Labels := Kept_Labels;
+      end if;
    end Move_Path_References;
 
    procedure Forget_Path_References

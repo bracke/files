@@ -25,8 +25,8 @@ separate (Files_Suite.Open_Actions)
          else
             Files_Suite.Support.Assert_Equal
               (Hostkit.Shell.Executable,
-               "/bin/custom-sh",
-               "explicit shell uses SHELL fallback");
+               "/bin/sh",
+               "a command files quoted for sh runs under /bin/sh, whatever SHELL names");
             Files_Suite.Support.Assert_Equal
               (Hostkit.Shell.Command_Option,
                "-c",
@@ -47,7 +47,7 @@ separate (Files_Suite.Open_Actions)
             --  switch a POSIX host to cmd and its quoting.
             Files_Suite.Support.Assert_Equal
               (Hostkit.Shell.Executable,
-               "/bin/custom-sh",
+               "/bin/sh",
                "a COMSPEC in a POSIX environment does not replace the POSIX shell");
             Files_Suite.Support.Assert_Equal
               (Hostkit.Shell.Command_Option,
@@ -79,23 +79,34 @@ separate (Files_Suite.Open_Actions)
             Files.Settings.Make_Action ("cd", Files.Settings.String_Vectors.Empty_Vector, Use_Shell => True));
          Files.Model.Selection.Select_Visible (Missing_Shell_Model, 1);
          Missing_Shell_Action := Files.Operations.Open_Selected (Missing_Shell_Model, Missing_Shell_Settings);
-         Files_Suite.Support.Assert_Equal
-           (Missing_Shell_Action.Status,
-            Files.Operations.Operation_Failed,
-            "explicit shell action fails preflight when shell executable is missing");
-         Assert
-           (not Missing_Shell_Action.Execution.Attempted,
-            "missing shell executable is rejected before spawn");
-         Assert
-           (not Missing_Shell_Action.Execution.Executable_Found,
-            "missing shell executable records failed executable lookup");
-         Files_Suite.Support.Assert_Equal
-           (To_String (Missing_Shell_Action.Error_Key),
-            "error.open_action.executable_missing",
-            "missing shell executable reports executable diagnostic");
-         Files_Suite.Support.Assert_Equal
-           (Files.Model.Last_Error_Key (Missing_Shell_Model),
-            "error.open_action.executable_missing",
-            "missing shell executable records model diagnostic");
+         if Hostkit.Host.Current = Hostkit.Host.Windows then
+            Files_Suite.Support.Assert_Equal
+              (Missing_Shell_Action.Status,
+               Files.Operations.Operation_Failed,
+               "explicit shell action fails preflight when shell executable is missing");
+            Assert
+              (not Missing_Shell_Action.Execution.Attempted,
+               "missing shell executable is rejected before spawn");
+            Assert
+              (not Missing_Shell_Action.Execution.Executable_Found,
+               "missing shell executable records failed executable lookup");
+            Files_Suite.Support.Assert_Equal
+              (To_String (Missing_Shell_Action.Error_Key),
+               "error.open_action.executable_missing",
+               "missing shell executable reports executable diagnostic");
+         else
+            --  A POSIX host runs the commands files quotes for sh under
+            --  /bin/sh whatever SHELL names, so a SHELL that names nothing
+            --  does not stop the action.
+            Assert
+              (Missing_Shell_Action.Execution.Attempted,
+               "a SHELL that names nothing does not stop a POSIX shell action");
+         end if;
+         if Hostkit.Host.Current = Hostkit.Host.Windows then
+            Files_Suite.Support.Assert_Equal
+              (Files.Model.Last_Error_Key (Missing_Shell_Model),
+               "error.open_action.executable_missing",
+               "missing shell executable records model diagnostic");
+         end if;
       end;
    end Test_Open_Shell_Environment;

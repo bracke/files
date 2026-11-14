@@ -31,8 +31,11 @@ package body Files.Grouping is
       Large        => new String'("details.group.size_large"),
       Unknown_Size => new String'("details.group.size_unknown")];
 
-   --  "This week": the six days before today.
-   This_Week_Span : constant Duration := 6.0 * 86_400.0;
+   --  "This week": the six days before today, from the midnight that starts
+   --  the first of them. Six calendar days: across a daylight-saving change
+   --  one of them is 23 or 25 hours long, and six times 86,400 seconds back
+   --  from midnight lands an hour off it.
+   This_Week_Days : constant := 6;
    Small_Size_Limit  : constant Long_Long_Integer := 1024 * 1024;
    Medium_Size_Limit : constant Long_Long_Integer := 1024 * 1024 * 1024;
 
@@ -53,6 +56,12 @@ package body Files.Grouping is
       Ada.Calendar.Split (Value, Year, Month, Day, Seconds);
       return Ada.Calendar.Time_Of (Year, Month, Day);
    end Day_Start;
+
+   --  The midnight starting the day Days calendar days before Day's: snapped
+   --  from noon of that day, which a 23- or 25-hour day moves by an hour
+   --  only, never across midnight.
+   function Days_Before (Day : Ada.Calendar.Time; Days : Natural) return Ada.Calendar.Time is
+     (Day_Start (Day - Duration (Days) * 86_400.0 + 43_200.0));
 
    function Band_Of
      (Mode               : Files.Types.Group_Mode;
@@ -106,7 +115,7 @@ package body Files.Grouping is
             --  Today -- and a time past it (a skewed clock, a camera's), which
             --  is no older than now.
             return Today_Band;
-         elsif Modified_Time > Today - This_Week_Span then
+         elsif Modified_Time >= Days_Before (Day_Start (Today), This_Week_Days) then
             return This_Week;
          else
             return Earlier;

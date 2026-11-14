@@ -25,8 +25,11 @@ package body Files.History_Journal is
 
    --  Version 2 adds, before the stacks, the next entry Sequence, whether
    --  redo was retired and the Sequences left out; and to each entry its
-   --  kept copies and Sequence. Version 1 journals still read, without them.
-   Journal_Header : constant String := "files-history-2";
+   --  kept copies and Sequence. Version 3 adds, after the Sequences left
+   --  out, those the cap on that list dropped. Version 1 and 2 journals
+   --  still read, without what they lack.
+   Journal_Header : constant String := "files-history-3";
+   Version_2_Header : constant String := "files-history-2";
    Version_1_Header : constant String := "files-history-1";
    Max_Journal_Bytes : constant := 64 * 1024 * 1024;
    Max_History_Entries : constant := 200;
@@ -319,13 +322,16 @@ package body Files.History_Journal is
 
    --  Left_Out pruned to what it can still mean: each Sequence once, none
    --  the written stacks hold (those are journaled), none at or past Next
-   --  (never handed out). Past Max_Unjournaled the oldest markers go -- the
-   --  window then retires those entries on merge -- rather than failing the
-   --  save, which a job's start and its checkpoints require.
+   --  (never handed out). Past Max_Unjournaled the oldest markers go, rather
+   --  than failing the save, which a job's start and its checkpoints
+   --  require: each one gone is added to Dropped, which the journal carries
+   --  so the window retires those entries on merge, releasing what they
+   --  preserved (Files.Model.History.Merge_History).
    function Pruned_Left_Out
      (Left_Out   : Files.Model.Sequence_Vectors.Vector;
       Undo, Redo : Files.Model.Undo_Entry_Vectors.Vector;
-      Next       : Positive) return Files.Model.Sequence_Vectors.Vector
+      Next       : Positive;
+      Dropped    : in out Files.Model.Sequence_Vectors.Vector) return Files.Model.Sequence_Vectors.Vector
    is
       package Sequence_Sets is new Ada.Containers.Ordered_Sets (Element_Type => Positive);
       package Sequence_Sorting is new Files.Model.Sequence_Vectors.Generic_Sorting;
@@ -350,15 +356,61 @@ package body Files.History_Journal is
       end loop;
       if Natural (Result.Length) > Max_Unjournaled then
          declare
-            Dropped : constant Natural := Natural (Result.Length) - Max_Unjournaled;
+            Gone : constant Natural := Natural (Result.Length) - Max_Unjournaled;
          begin
-            Files.Diagnostics.Trace ("Files.History_Journal", "unjournaled_dropped=" & Natural'Image (Dropped));
+            Files.Diagnostics.Trace ("Files.History_Journal", "unjournaled_dropped=" & Natural'Image (Gone));
             Sequence_Sorting.Sort (Result);
-            Result.Delete_First (Ada.Containers.Count_Type (Dropped));
+            for Index in Result.First_Index .. Result.First_Index + Gone - 1 loop
+               Dropped.Append (Result (Index));
+            end loop;
+            Result.Delete_First (Ada.Containers.Count_Type (Gone));
          end;
       end if;
       return Result;
    end Pruned_Left_Out;
+
+   --  Dropped pruned as Left_Out is, and of every Sequence Left_Out lists
+   --  (that entry is listed after all); past Max_Unjournaled -- more than
+   --  any history holds -- the oldest go, with a trace.
+   function Pruned_Dropped
+     (Dropped    : Files.Model.Sequence_Vectors.Vector;
+      Left_Out   : Files.Model.Sequence_Vectors.Vector;
+      Undo, Redo : Files.Model.Undo_Entry_Vectors.Vector;
+      Next       : Positive) return Files.Model.Sequence_Vectors.Vector
+   is
+      package Sequence_Sets is new Ada.Containers.Ordered_Sets (Element_Type => Positive);
+      package Sequence_Sorting is new Files.Model.Sequence_Vectors.Generic_Sorting;
+      Excluded : Sequence_Sets.Set;
+      Result   : Files.Model.Sequence_Vectors.Vector;
+   begin
+      for Action of Undo loop
+         if Action.Sequence > 0 then
+            Excluded.Include (Action.Sequence);
+         end if;
+      end loop;
+      for Action of Redo loop
+         if Action.Sequence > 0 then
+            Excluded.Include (Action.Sequence);
+         end if;
+      end loop;
+      for Sequence of Left_Out loop
+         Excluded.Include (Sequence);
+      end loop;
+      for Sequence of Dropped loop
+         if Sequence < Next and then not Excluded.Contains (Sequence) then
+            Excluded.Include (Sequence);
+            Result.Append (Sequence);
+         end if;
+      end loop;
+      if Natural (Result.Length) > Max_Unjournaled then
+         Files.Diagnostics.Trace
+           ("Files.History_Journal",
+            "dropped_forgotten=" & Natural'Image (Natural (Result.Length) - Max_Unjournaled));
+         Sequence_Sorting.Sort (Result);
+         Result.Delete_First (Result.Length - Ada.Containers.Count_Type (Max_Unjournaled));
+      end if;
+      return Result;
+   end Pruned_Dropped;
 
    function Journals_Newest (Model : Files.Model.Window_Model; Redo : Boolean) return Boolean is
       Undo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.History.Undo_History (Model);
@@ -408,19 +460,26 @@ package body Files.History_Journal is
 
       procedure Write_Journal (Output : not null access Ada.Streams.Root_Stream_Type'Class) is
          Next     : constant Positive := Sequence_Bound;
+         Dropped  : Files.Model.Sequence_Vectors.Vector := State.Dropped;
          --  Pruned before Fit too, so stale markers cost no entry its place.
-         Left_Out : Files.Model.Sequence_Vectors.Vector := Pruned_Left_Out (State.Unjournaled, Undo, Redo, Next);
+         Left_Out : Files.Model.Sequence_Vectors.Vector :=
+           Pruned_Left_Out (State.Unjournaled, Undo, Redo, Next, Dropped);
       begin
          String'Output (Output, Journal_Header);
          Fit (Kept_Undo, Kept_Redo, Total, Left_Out);
-         Left_Out := Pruned_Left_Out (Left_Out, Kept_Undo, Kept_Redo, Next);
+         Left_Out := Pruned_Left_Out (Left_Out, Kept_Undo, Kept_Redo, Next, Dropped);
+         Dropped := Pruned_Dropped (Dropped, Left_Out, Kept_Undo, Kept_Redo, Next);
          Natural'Output (Output, State.Next_Sequence);
          Boolean'Output (Output, State.Redo_Retired);
          Natural'Output (Output, Natural (Left_Out.Length));
          for Sequence of Left_Out loop
             Positive'Output (Output, Sequence);
          end loop;
-         Total := Total + 16 * (Natural (Left_Out.Length) + 2);
+         Natural'Output (Output, Natural (Dropped.Length));
+         for Sequence of Dropped loop
+            Positive'Output (Output, Sequence);
+         end loop;
+         Total := Total + 16 * (Natural (Left_Out.Length) + Natural (Dropped.Length) + 3);
          Write_Stack (Output, Kept_Undo, Total, Fields);
          Write_Stack (Output, Kept_Redo, Total, Fields);
       end Write_Journal;
@@ -536,23 +595,30 @@ package body Files.History_Journal is
       declare
          Header : constant String := Files.Bounded_Streams.Input_String (Input'Access, Journal_Header'Length);
          Version_1 : constant Boolean := Header = Version_1_Header;
+         Version_2 : constant Boolean := Header = Version_2_Header;
+
+         --  A list of at most Max_Unjournaled Sequences.
+         procedure Read_Sequences (Into : in out Files.Model.Sequence_Vectors.Vector) is
+            Count : constant Natural := Natural'Input (Input'Access);
+         begin
+            if Count > Max_Unjournaled then
+               raise Ada.IO_Exceptions.Data_Error;
+            end if;
+            for Index in 1 .. Count loop
+               Into.Append (Positive'Input (Input'Access));
+            end loop;
+         end Read_Sequences;
       begin
-         if Header /= Journal_Header and then not Version_1 then
+         if Header /= Journal_Header and then not Version_1 and then not Version_2 then
             raise Ada.IO_Exceptions.Data_Error;
          end if;
          if not Version_1 then
             State.Next_Sequence := Positive'Max (1, Natural'Input (Input'Access));
             State.Redo_Retired := Boolean'Input (Input'Access);
-            declare
-               Count : constant Natural := Natural'Input (Input'Access);
-            begin
-               if Count > Max_Unjournaled then
-                  raise Ada.IO_Exceptions.Data_Error;
-               end if;
-               for Index in 1 .. Count loop
-                  State.Unjournaled.Append (Positive'Input (Input'Access));
-               end loop;
-            end;
+            Read_Sequences (State.Unjournaled);
+            if not Version_2 then
+               Read_Sequences (State.Dropped);
+            end if;
          end if;
          Undo := Read_Stack (Input'Access, Fields, Version_1);
          Redo := Read_Stack (Input'Access, Fields, Version_1);

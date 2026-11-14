@@ -45,7 +45,9 @@ separate (Files_Suite.Model)
         (Dated (True, Today + 3.0 * Day),
          1,
          "a time past now counts as today, not as earlier");
-      Assert (Dated (True, Today - 1.0) = 2 and then Dated (True, Today - 6.0 * Day + 60.0) = 2,
+      --  Two hours into the sixth day back, whether or not a daylight-saving
+      --  change made one of the six days an hour shorter or longer.
+      Assert (Dated (True, Today - 1.0) = 2 and then Dated (True, Today - 6.0 * Day + 7_200.0) = 2,
               "the six days before today");
       Files_Suite.Support.Assert_Equal (Dated (True, Today - 7.0 * Day), 3, "older than that");
       Files_Suite.Support.Assert_Equal (Dated (False, Today), 4, "an unknown time last");

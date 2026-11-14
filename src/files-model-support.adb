@@ -125,8 +125,13 @@ package body Files.Model.Support is
       return Boolean
    is
    begin
+      --  Search results show every match, but for hidden ones while the
+      --  hidden-files setting hides them.
+      if Model.Search_Results_Active then
+         return not (Model.Results_Hide_Hidden and then Item.Hidden);
+      end if;
       --  No filter (the common case): no copy of it, nor of the name.
-      return Model.Search_Results_Active or else Length (Model.Filter.Text) = 0
+      return Length (Model.Filter.Text) = 0
         or else Files.Types.Contains_Case_Insensitive (To_String (Item.Name), To_String (Model.Filter.Text));
    end Item_Is_Visible;
 

@@ -20,8 +20,28 @@ separate (Files_Suite.Startup)
          "locale normalization preserves numeric region subtags");
       Files_Suite.Support.Assert_Equal
         (Files.Localization.Normalize_Locale ("sr_RS.UTF-8@latin"),
-         "sr-RS",
-         "locale normalization removes locale modifiers");
+         "sr-Latn-RS",
+         "a script modifier becomes the script subtag, after the language");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("uz_UZ@cyrillic"),
+         "uz-Cyrl-UZ",
+         "a Cyrillic modifier names the Cyrl script");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("ca_ES.UTF-8@valencia"),
+         "ca-ES-valencia",
+         "the Valencian modifier becomes a variant subtag");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("sr@latin"),
+         "sr-Latn",
+         "a script modifier without a region");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("sr_Latn_RS@latin"),
+         "sr-Latn-RS",
+         "a script already given is not given twice");
+      Files_Suite.Support.Assert_Equal
+        (Files.Localization.Normalize_Locale ("de_DE.UTF-8@euro"),
+         "de-DE",
+         "other modifiers are dropped");
       Files_Suite.Support.Assert_Equal
         (Files.Localization.Normalize_Locale ("C"),
          "en",

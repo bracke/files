@@ -77,6 +77,7 @@ package body Files_Suite.Startup is
    procedure Test_Localization_Pane_Labels (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Localization_Error_And_Command_Keys (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Locale_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Malformed_Locale_Catalog_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Locale_Variable_Precedence (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Detected_Locale_Catalogs (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Host_Locale_Fallbacks (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -147,6 +148,9 @@ package body Files_Suite.Startup is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Locale_Normalization'Access, "locale names normalize, and hostile ones fall back to English");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Malformed_Locale_Catalog_Skipped'Access,
+         "a malformed locale catalog is skipped instead of leaving every text a raw key");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Locale_Variable_Precedence'Access, "locale environment variables apply in POSIX precedence");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Detected_Locale_Catalogs'Access, "a detected locale loads its translated and date/time catalogs");
@@ -216,6 +220,7 @@ package body Files_Suite.Startup is
    procedure Test_Localization_Error_And_Command_Keys (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Locale_Normalization (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Malformed_Locale_Catalog_Skipped (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Locale_Variable_Precedence (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

@@ -549,12 +549,14 @@ package Files.Model is
      (Model : in out Window_Model);
 
    --  Apply changed listing settings to the items in view, in place, for a
-   --  view that cannot be read again (search results): hidden items go when
-   --  Settings hides them, and with Reclassify each item's type and icon are
-   --  worked out afresh from Settings' mappings (its details with them). The
-   --  items are ordered by the model's sort; the selection and the scroll
-   --  stay, and the view still holds search results. Hidden items a search
-   --  left out cannot come back without searching again.
+   --  view that cannot be read again (search results): hidden items leave
+   --  the view when Settings hides them and come back when it shows them
+   --  (the results keep them), and with Reclassify each item's type and icon
+   --  are worked out afresh from Settings' mappings (its details with them).
+   --  The items are ordered by the model's sort; the selection, the scroll
+   --  and the info pane's scroll stay, and the view still holds search
+   --  results. Hidden items the search itself left out cannot come back
+   --  without searching again.
    --
    --  @param Model Model to update.
    --  @param Settings The settings now in force.
@@ -1172,6 +1174,11 @@ package Files.Model is
       --  Whether a new record retired the redo stack since the history was
       --  loaded: redo entries the loader never saw are retired with it.
       Redo_Retired  : Boolean := False;
+      --  Sequences of entries still in the history but neither in the journal
+      --  nor listed in Unjournaled: the journal's cap on that list left them
+      --  out. A window merging the journal retires them, releasing what they
+      --  preserved, rather than taking them for entries a helper retired.
+      Dropped       : Sequence_Vectors.Vector;
    end record;
 
    --  The replace-or-skip prompt shown when a paste meets existing names.
@@ -1637,6 +1644,11 @@ private
       --  plain directory listing. Both reset on navigation and on Clear_Filter.
       Search_Scope_Value    : Files.Types.Search_Scope := Files.Types.Filter_Here;
       Search_Results_Active : Boolean := False;
+      --  Whether search results leave out their hidden items: the setting
+      --  applies when the rows are worked out (Item_Is_Visible), so the
+      --  results keep the hidden matches the search found, and showing
+      --  hidden files again brings them back. Reset with the search state.
+      Results_Hide_Hidden   : Boolean := False;
       --  Paths opened since the last drain, awaiting fold into the persisted
       --  recent list by the interaction layer (see Note_Recent_Open).
       Recent_Open_Queue    : Files.Types.String_Vectors.Vector;

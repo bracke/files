@@ -129,6 +129,7 @@ package body Files_Suite.Recovery is
    procedure Test_Transport_Cleanup_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Stage_Owner_Marker_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Stage_Record_Cleanup (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Foreground_Forgets_Removed_Stage (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Private_Record_Writes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Helper_Mode_Flags (T : in out AUnit.Test_Cases.Test_Case'Class);
 
@@ -262,6 +263,9 @@ package body Files_Suite.Recovery is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Stage_Record_Cleanup'Access, "cleanup deletes only staging directories owned by its job");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Foreground_Forgets_Removed_Stage'Access,
+         "a foreground stage removed from outside does not keep the foreground cleanup from running");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Private_Record_Writes'Access, "private records are owner-only, never over an entry, never left half");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Helper_Mode_Flags'Access, "every helper flag reads back as its mode, and only those do");
@@ -364,6 +368,8 @@ package body Files_Suite.Recovery is
    procedure Test_Stage_Owner_Marker_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Stage_Record_Cleanup (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+
+   procedure Test_Foreground_Forgets_Removed_Stage (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    function Suite return AUnit.Test_Suites.Access_Test_Suite is
       Result : constant AUnit.Test_Suites.Access_Test_Suite := new AUnit.Test_Suites.Test_Suite;

@@ -108,6 +108,7 @@ package body Files_Suite.Operations is
    procedure Test_Set_Ownership_Denied (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Ownership_Name_Resolution (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Ownership_Edit_Through_Reducer (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Ownership_Enter_Asks_Only_Changes (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Fifo_Never_Blocks (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Host_Hidden_Flag_Hides (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Registry_Changes_Wait_For_Its_Lock (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -190,6 +191,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Ownership_Edit_Through_Reducer'Access,
          "info-pane ownership click focuses the editor and Enter commits the identity change");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Ownership_Enter_Asks_Only_Changes'Access,
+         "Enter on an unchanged owner or group asks nothing of the host; an edit of one keeps the other");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Fifo_Never_Blocks'Access,
          "a FIFO lists, searches, previews, thumbnails and copies without blocking anything");
@@ -298,6 +302,7 @@ package body Files_Suite.Operations is
    procedure Test_Ownership_Name_Resolution (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Ownership_Edit_Through_Reducer (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Ownership_Enter_Asks_Only_Changes (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    --  A FIFO opened for reading blocks until a writer arrives, so every path
    --  that reads a listed entry must refuse it or open it without waiting.

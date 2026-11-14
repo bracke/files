@@ -111,6 +111,7 @@ package body Files_Suite.Model is
    procedure Test_Quick_Look_Model_State (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Group_By_Label_Bands (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Grouping_Band_Edges (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Grouping_Week_Across_Dst (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Snapshot_Labels_And_Favorites_At_Scale (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Snapshot_Owner_Names_From_Model (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Overlay_Queries (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -243,6 +244,9 @@ package body Files_Suite.Model is
         (T, Test_Grouping_Band_Edges'Access,
          "type, modified and size grouping put each edge value in its band");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Grouping_Week_Across_Dst'Access,
+         "this week starts at the midnight six days back, across a daylight-saving change too");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Snapshot_Labels_And_Favorites_At_Scale'Access,
          "a snapshot of many items marks exactly the stored favorites and labels, matched as the settings match them");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -364,6 +368,7 @@ package body Files_Suite.Model is
    procedure Test_Quick_Look_Model_State (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Grouping_Band_Edges (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Grouping_Week_Across_Dst (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Group_By_Label_Bands (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

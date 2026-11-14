@@ -69,6 +69,17 @@ is
          else Files.Types.String_Vectors.Empty_Vector),
       others                   => <>);
 begin
+   --  Each item a Replace overwrote went to its recovery stage before the
+   --  pasted item took its path: its labels, favorite and recent entry go
+   --  with it (and come back with it on Undo, Apply_Reverse), noted before
+   --  the moves recorded below, so the item now at the path does not end
+   --  up with two of each.
+   for Index in Replaced_Trash.First_Index .. Replaced_Trash.Last_Index loop
+      if Index <= Exec.Replaced_Targets.Last_Index then
+         Files.Model.Note_Path_Move
+           (Model, To_String (Exec.Replaced_Targets (Index)), To_String (Replaced_Trash (Index)));
+      end if;
+   end loop;
    if not Undo_From.Is_Empty or else Has_Kept then
       if Mode = Files.File_System.Drop_Move then
          --  With no moved member, the kept copies alone are recorded (as the

@@ -4,15 +4,16 @@ separate (Files.Application.Windows)
       X      : Glfw.Input.Mouse.Coordinate;
       Y      : Glfw.Input.Mouse.Coordinate)
    is
-      Delta_X : constant Glfw.Input.Mouse.Coordinate := X - Object.Drag_Start_X;
-      Delta_Y : constant Glfw.Input.Mouse.Coordinate := Y - Object.Drag_Start_Y;
       Drag_Threshold : constant Glfw.Input.Mouse.Coordinate := 6.0;
    begin
       Object.Last_Mouse_X := X;
       Object.Last_Mouse_Y := Y;
 
+      --  Worked out inside the handler: what an initial value raises would
+      --  escape it into GLFW.
       if Object.Left_Mouse_Down
-        and then (abs Delta_X >= Drag_Threshold or else abs Delta_Y >= Drag_Threshold)
+        and then (abs (X - Object.Drag_Start_X) >= Drag_Threshold
+                  or else abs (Y - Object.Drag_Start_Y) >= Drag_Threshold)
       then
          Object.Drag_Moved := True;
       end if;

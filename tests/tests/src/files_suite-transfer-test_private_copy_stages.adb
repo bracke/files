@@ -46,12 +46,8 @@ separate (Files_Suite.Transfer)
          Assert
            (File_Has_Bytes (Join (Stage, "unrelated"), "untouched"),
             "exclusive private staging does not change existing directories: existing stage untouched");
-         --  Removed from outside, not discarded: the job context must forget
-         --  a stage that is gone, or its foreground cleanup never runs again
-         --  for a later stage of this process (Test_Stage_Record_Cleanup,
-         --  run after this one, waits for exactly that cleanup).
-         Mutation := Files.File_System.Delete_Permanently (New_Stage);
-         Assert (Mutation.Success, "remove the new empty stage");
+         Assert (Files.Job_Context.Discard_Stage (New_Stage) and then not Ada.Directories.Exists (New_Stage),
+                 "discard the new empty stage");
       end;
       Mutation := Files.File_System.Delete_Permanently (Stage);
       Assert (Mutation.Success, "remove our collision fixture");

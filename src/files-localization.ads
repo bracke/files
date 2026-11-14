@@ -1,10 +1,14 @@
 with Ada.Strings.Unbounded;
 with Humanize.Contexts;
+private with Messages.Runtime;
 
 --  Default localization facade for files.
 package Files.Localization is
 
    --  Normalize an operating-system locale name to the catalog locale form.
+   --  A glibc modifier naming a script (@latin, @cyrillic, @devanagari)
+   --  becomes the script subtag after the language, and @valencia the
+   --  variant at the end: sr_RS@latin is sr-Latn-RS. Other modifiers go.
    --
    --  @param Value Locale text such as da_DK.UTF-8.
    --  @return Normalized locale such as da-DK, or en for empty, C, or POSIX.
@@ -135,5 +139,18 @@ private
       Section : String;
       Key     : String)
       return String;
+
+   --  Add the locale catalog shard at Path to Item without risking it: one
+   --  that does not load -- malformed, or repeating a key already loaded --
+   --  is skipped with a trace (Files.Diagnostics), and Item stays as it was,
+   --  rather than one bad shard making every text render as its raw key.
+   --
+   --  @param Item The runtime, already holding the base catalog.
+   --  @param Path The locale catalog to add.
+   --  @return True when the shard was loaded.
+   function Load_Locale_Shard
+     (Item : in out Messages.Runtime.Runtime;
+      Path : String)
+      return Boolean;
 
 end Files.Localization;

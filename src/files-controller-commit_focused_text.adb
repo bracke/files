@@ -1,3 +1,4 @@
+with Hostkit.Metadata;
 separate (Files.Controller)
    function Commit_Focused_Text
      (Model     : in out Files.Model.Window_Model;
@@ -51,6 +52,7 @@ separate (Files.Controller)
                  Operation);
          when Files.Types.Focus_Ownership_Input =>
             declare
+               use type Files.Types.Account_Id;
                Raw   : constant String :=
                  Ada.Strings.Fixed.Trim (Files.Model.Ownership_Input_Text (Model), Ada.Strings.Both);
                Group : constant Boolean := Files.Model.Ownership_Editing_Group (Model);
@@ -83,12 +85,26 @@ separate (Files.Controller)
                   return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);
                end if;
 
+               --  Enter on the id the item already has changes nothing: no
+               --  chown -- which, even with the ids a file has, clears its
+               --  set-user-id and set-group-id bits on Linux and macOS, and
+               --  its capabilities on Linux -- and no Undo for it.
+               if Item.Ownership_Available
+                 and then Resolved = (if Group then Item.Group_Id else Item.Owner_Id)
+               then
+                  Files.Model.Cancel_Focus_Or_Edit (Model);
+                  Operation.Status := Files.Operations.Operation_Success;
+                  return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);
+               end if;
+
+               --  Only the id edited is asked for: the other, as listed, may
+               --  no longer be the file's, and is left as it is.
                if Group then
                   Operation :=
-                    Files.Operations.Set_Ownership_For (Model, Item.Owner_Id, Resolved, Settings);
+                    Files.Operations.Set_Ownership_For (Model, Hostkit.Metadata.Keep_Id, Resolved, Settings);
                else
                   Operation :=
-                    Files.Operations.Set_Ownership_For (Model, Resolved, Item.Group_Id, Settings);
+                    Files.Operations.Set_Ownership_For (Model, Resolved, Hostkit.Metadata.Keep_Id, Settings);
                end if;
                Files.Model.Cancel_Focus_Or_Edit (Model);
                return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);

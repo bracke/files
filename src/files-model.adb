@@ -303,6 +303,7 @@ package body Files.Model is
       Model.Recent_View_Active := False;
       Model.Search_Scope_Value := Files.Types.Filter_Here;
       Model.Search_Results_Active := False;
+      Model.Results_Hide_Hidden := False;
       Support.Invalidate_Visible (Model);
       Model.Recent_Open_Queue.Clear;
       Model.Focus_Value := Files.Types.Focus_None;
@@ -583,6 +584,7 @@ package body Files.Model is
       Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
       Model.Search_Scope_Value := Files.Types.Filter_Here;
       Model.Search_Results_Active := False;
+      Model.Results_Hide_Hidden := False;
       Support.Invalidate_Visible (Model);
       Set_Current_Path (Model, New_Path);
       Model.Path_Input := (Edit => (Text => New_Path, Cursor => Length (New_Path)), others => <>);

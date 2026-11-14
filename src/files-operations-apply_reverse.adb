@@ -189,6 +189,11 @@ begin
       then
          Succeeded := False;
       else
+         --  Its labels, favorite and recent entry come back with it.
+         if Index <= Action.Restore_Targets.Last_Index then
+            Files.Model.Note_Path_Move
+              (Model, To_String (Action.Restore_Trash (Index)), To_String (Action.Restore_Targets (Index)));
+         end if;
          Action.Restores_Completed.Append (Action.Restore_Trash.Element (Index));
          Restored.Include (To_String (Action.Restore_Trash.Element (Index)));
          Files.History_Journal.Checkpoint

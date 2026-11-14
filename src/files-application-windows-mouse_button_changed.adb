@@ -6,7 +6,12 @@ separate (Files.Application.Windows)
       Mods   : Glfw.Input.Keys.Modifiers)
    is
       use type Guikit.Input.Mouse_Buttons.Button_Kind;
-      Event   : Guikit.Input.Mouse_Buttons.Button_Event :=
+      --  Filled in below, inside the handler: what an initial value raises
+      --  would escape it into GLFW.
+      Event   : Guikit.Input.Mouse_Buttons.Button_Event;
+      Bounced : Boolean;
+   begin
+      Event :=
         (Button    => Guikit.Input.Mouse_Buttons.Left_Mouse_Button,
          Pressed   => State = Glfw.Input.Pressed,
          X         => Object.Last_Mouse_X,
@@ -14,8 +19,6 @@ separate (Files.Application.Windows)
          Modifiers => Glfw.Input.Keys.Codes.To_Modifiers (Mods),
          Dragged   => False,
          At_Time   => Ada.Real_Time.Clock);
-      Bounced : Boolean;
-   begin
       if Button = Glfw.Input.Mouse.Right_Button then
          --  A right-click acts on the press, where it went down.
          if State /= Glfw.Input.Pressed then

@@ -384,8 +384,8 @@ package Files.Settings is
       Path     : String)
       return Boolean;
 
-   --  Toggle Path in the favorites list, adding it when absent and removing it
-   --  when present. The empty path is ignored.
+   --  Toggle Path in the favorites list, adding it when absent and removing
+   --  every entry for it when present. The empty path is ignored.
    --
    --  @param Settings Settings model updated in place.
    --  @param Path Full item or folder path to add or remove.
@@ -509,7 +509,9 @@ package Files.Settings is
    --  Follow a rename or move: every label, favorite and recent path that is
    --  From, or lies inside the folder From, is rewritten to the same place
    --  under To, so a label stays with its item and a new item at the old path
-   --  does not inherit it.
+   --  does not inherit it. A rewritten favorite or recent path already listed
+   --  is not listed twice, and a label left at a path a labelled entry moved
+   --  onto goes: the moved entry's label holds there.
    --
    --  @param Settings Settings model updated in place.
    --  @param From Old full path of the moved item.

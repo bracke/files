@@ -285,8 +285,8 @@ package body Files.Model.History is
       package Sequence_Sets is new Ada.Containers.Ordered_Sets (Element_Type => Positive);
       Sanitized_Undo, Sanitized_Redo : Undo_Entry_Vectors.Vector;
       Next : Positive := State.Next_Sequence;
-      Held, Listed : Sequence_Sets.Set;
-      Left_Out : Sequence_Vectors.Vector;
+      Held, Listed, Retiring : Sequence_Sets.Set;
+      Left_Out, Dropped : Sequence_Vectors.Vector;
    begin
       Sanitize_History (Undo, Redo, Next, Sanitized_Undo, Sanitized_Redo);
       for Action of Sanitized_Undo loop
@@ -304,10 +304,22 @@ package body Files.Model.History is
             Left_Out.Append (Sequence);
          end if;
       end loop;
+      --  The entries the journal's cap left out of that list stay named, so
+      --  the next journal tells the window to retire them (Merge_History).
+      for Sequence of State.Dropped loop
+         if Sequence < Next
+           and then not Held.Contains (Sequence)
+           and then not Listed.Contains (Sequence)
+           and then not Retiring.Contains (Sequence)
+         then
+            Retiring.Include (Sequence);
+            Dropped.Append (Sequence);
+         end if;
+      end loop;
       Model.History.Undo_Stack := Sanitized_Undo;
       Model.History.Redo_Stack := Sanitized_Redo;
       Model.History.Journal :=
-        (Next_Sequence => Next, Unjournaled => Left_Out, Redo_Retired => False);
+        (Next_Sequence => Next, Unjournaled => Left_Out, Redo_Retired => False, Dropped => Dropped);
       Support.Touch (Model);
    end Set_History;
 
@@ -323,7 +335,7 @@ package body Files.Model.History is
       Next : Positive := Positive'Max (State.Next_Sequence, Model.History.Journal.Next_Sequence);
       Journal_Undo, Journal_Redo : Undo_Entry_Vectors.Vector;
       Merged_Undo, Merged_Redo : Undo_Entry_Vectors.Vector;
-      Journaled, Unjournaled : Sequence_Sets.Set;
+      Journaled, Unjournaled, Dropped : Sequence_Sets.Set;
 
       --  Whether the window's Action is still in the history although the
       --  journal does not hold it: the journal lists it as left out.
@@ -331,6 +343,15 @@ package body Files.Model.History is
         (Action.Sequence > 0
          and then not Journaled.Contains (Action.Sequence)
          and then Unjournaled.Contains (Action.Sequence));
+
+      --  Whether the window's Action is still in the history although the
+      --  journal neither holds nor lists it: the cap on the journal's list
+      --  left it out, and no helper released what it preserved.
+      function Cap_Dropped (Action : Undo_Entry) return Boolean is
+        (Action.Sequence > 0
+         and then not Journaled.Contains (Action.Sequence)
+         and then not Unjournaled.Contains (Action.Sequence)
+         and then Dropped.Contains (Action.Sequence));
 
       --  The entry of Stack whose Sequence is Sequence, if any.
       function Index_Of (Stack : Undo_Entry_Vectors.Vector; Sequence : Natural) return Natural is
@@ -345,9 +366,11 @@ package body Files.Model.History is
 
       --  Merge one stack: the window's entries in their order, each as the
       --  journal now has it, kept as they are when left out of the journal
-      --  (Keep_Left_Out False retires those instead), dropped when the helper
-      --  retired them; then the journal's entries the window's stack did not
-      --  hold (new records, or entries undone or redone onto this stack).
+      --  (Keep_Left_Out False retires those instead), retired with their
+      --  originals released when the journal's cap dropped them, dropped when
+      --  the helper retired them; then the journal's entries the window's
+      --  stack did not hold (new records, or entries undone or redone onto
+      --  this stack).
       procedure Merge_Stack
         (Window, Journal : Undo_Entry_Vectors.Vector;
          Keep_Left_Out   : Boolean;
@@ -362,11 +385,20 @@ package body Files.Model.History is
                   Merged.Append (Journal (Index));
                elsif Left_Out (Action) and then Keep_Left_Out then
                   Merged.Append (Action);
-               elsif Left_Out (Action) then
+               elsif Left_Out (Action)
+                 or else (Cap_Dropped (Action) and then not Keep_Left_Out)
+               then
                   --  The helper's new record retired the redo stack, and this
                   --  entry, which it never held, with it.
                   for Payload of Action.Restore_Trash loop
                      Model.History.Retired_Discards.Append (Payload);
+                  end loop;
+               elsif Cap_Dropped (Action) then
+                  --  Still undoable (or redoable) when the journal had to
+                  --  forget it: as an entry past the depth cap, its
+                  --  originals go to the system trash, not to deletion.
+                  for Payload of Action.Restore_Trash loop
+                     Model.History.Retired_Releases.Append (Payload);
                   end loop;
                end if;
             end;
@@ -388,9 +420,13 @@ package body Files.Model.History is
       for Sequence of State.Unjournaled loop
          Unjournaled.Include (Sequence);
       end loop;
+      for Sequence of State.Dropped loop
+         Dropped.Include (Sequence);
+      end loop;
 
       --  An entry the journal neither holds nor lists the helper retired,
-      --  payloads and all; one it lists stays where the window had it.
+      --  payloads and all, unless the journal names it as dropped by its
+      --  cap; one it lists stays where the window had it.
       Merge_Stack (Model.History.Undo_Stack, Journal_Undo, True, Merged_Undo);
       Merge_Stack (Model.History.Redo_Stack, Journal_Redo, not State.Redo_Retired, Merged_Redo);
 
@@ -408,7 +444,8 @@ package body Files.Model.History is
       Model.History.Journal :=
         (Next_Sequence => Next,
          Unjournaled   => Sequence_Vectors.Empty_Vector,
-         Redo_Retired  => Model.History.Journal.Redo_Retired or else State.Redo_Retired);
+         Redo_Retired  => Model.History.Journal.Redo_Retired or else State.Redo_Retired,
+         Dropped       => Sequence_Vectors.Empty_Vector);
       Model.History.Journal_Dirty := True;
       Support.Touch (Model);
    end Merge_History;

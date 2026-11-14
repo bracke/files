@@ -1213,6 +1213,17 @@ private
    Refuse_Creation_Match : Restore_Hook := null
      with Atomic;
 
+   --  What an ownership change calls with the path and the ids it asks
+   --  for, before it asks the host.
+   type Ownership_Hook is access procedure (Path : String; User_Id, Group_Id : Files.Types.Account_Id);
+
+   --  Set only by the test suite (Files.File_System.Testing.Watch_Ownership_Changes):
+   --  it counts the ownership changes asked for and keeps the last one's
+   --  ids, so the suite can show which ones are asked for, and that none
+   --  is for an edit that changes nothing. The application never sets it.
+   Before_Ownership_Change : Ownership_Hook := null
+     with Atomic;
+
    --  What a recovery-registry sweep calls with each registered payload just
    --  before it works on it, after it has let the registry lock go.
    type Sweep_Hook is access procedure (Payload : String);
