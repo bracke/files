@@ -389,7 +389,8 @@ package body Files.Transfer_Jobs is
       Batch : Files.Copy_Context.Session;
       Batch_Directory : Files.Types.UString;
 
-      function Cancelled return Boolean is (Files.Process_Jobs.Cancellation_Requested (Directory));
+      --  The helper's one cancellation check: Import_Replacing stops for it too.
+      function Cancelled return Boolean renames Files.Job_Context.Cancelled;
 
       procedure Save is
          procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
@@ -461,7 +462,6 @@ package body Files.Transfer_Jobs is
                     Created_Identity      => Created_Identity,
                     Created_Tree_Revision => Created_Tree_Revision,
                     Preserved             => Checkpoint'Access,
-                    Cancel                => Cancelled'Unrestricted_Access,
                     Batch                 => Batch);
             begin
                Result.Mutation := Mutation;

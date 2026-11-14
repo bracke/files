@@ -27,8 +27,6 @@ separate (Files.Interaction)
         Files.Model.Label_Picker.Is_Open (Model);
       Context_Menu_At_Entry : constant Boolean :=
         Files.Model.Context_Menu.Is_Open (Model);
-      Tree_Pick_At_Entry : constant Boolean :=
-        Files.Model.Tree_Panel.Pick_Is_Active (Model);
    begin
       --  Start from a clean result so no flag leaks from a previous call when a
       --  caller reuses the same Result object across keystrokes.
@@ -124,16 +122,6 @@ separate (Files.Interaction)
                Files.Model.Context_Menu.Close (Model);
             end if;
          end;
-      end if;
-
-      --  A keyboard Enter with the destination-pick tree active confirms it: copy
-      --  or move the captured sources into the highlighted directory, then close
-      --  the sidebar, through the routine the picker's Confirm button uses.
-      if Tree_Pick_At_Entry
-        and then Files.Model.Tree_Panel.Pick_Is_Active (Model)
-        and then Key = Guikit.Input.Key_Return
-      then
-         Confirm_Tree_Pick (Model, Settings);
       end if;
 
       --  Space is a reserved grid shortcut (Quick Look), not a type-ahead

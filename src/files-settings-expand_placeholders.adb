@@ -1,5 +1,5 @@
 with Hostkit.Path_Text;
-with Files.File_Types;
+with Files.Types;
 
 separate (Files.Settings)
    function Expand_Placeholders
@@ -7,29 +7,6 @@ separate (Files.Settings)
       Path   : String)
       return Open_Action
    is
-      function Last_Extension_Dot (Name : String) return Natural is
-      begin
-         for Index in reverse Name'Range loop
-            if Name (Index) = '.' then
-               return Index;
-            end if;
-         end loop;
-
-         return 0;
-      end Last_Extension_Dot;
-
-      function Stem_Of (Name : String) return String is
-         Dot : constant Natural := Last_Extension_Dot (Name);
-      begin
-         if Dot = 0 or else Dot = Name'First then
-            return Name;
-         elsif Dot = Name'Last then
-            return Name;
-         end if;
-
-         return Name (Name'First .. Dot - 1);
-      end Stem_Of;
-
       Result    : Open_Action := Action;
       --  Read as the whole path is (Hostkit.Path_Text): its separators,
       --  drive and share root the same on any host, a long name whole.
@@ -42,8 +19,10 @@ separate (Files.Settings)
          --  A name alone lies in the current directory.
          elsif Up = "" then "."
          else Up);
-      Extension : constant String := Files.File_Types.Extension_Of (Name);
-      Stem      : constant String := Stem_Of (Name);
+      --  As the name spells them (Files.Types' one rule): "{extension}" of
+      --  "Photo.JPG" is "JPG", as "{stem}" is "Photo".
+      Extension : constant String := Files.Types.Extension_Of (Name);
+      Stem      : constant String := Files.Types.Stem_Of (Name);
    begin
       Result.Arguments.Clear;
       for Argument of Action.Arguments loop

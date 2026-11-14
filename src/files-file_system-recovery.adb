@@ -897,7 +897,7 @@ package body Files.File_System.Recovery is
       Fallback_Key        : String;
       Identity, Revision  : out Files.Types.UString;
       Copy_Kept           : out Boolean;
-      Cancel              : Cancellation_Check := null;
+      Cancel              : Cancellation_Check := Job_Cancelled;
       Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result
    is

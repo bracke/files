@@ -78,12 +78,10 @@ separate (Files.Interaction)
                 (Model, Settings, Action.Tree_Node, Action.Expander);
             Observe_Controller_Outcome (Outcome, Result);
          when Files.Events.Tree_Pick_Confirm_Input_Action =>
-            --  Confirm the destination picker: copy or move the captured sources
-            --  into the highlighted directory through the same engine paste path,
-            --  then close only after it starts successfully. Begin_Paste_To
-            --  surfaces a localized error key (e.g. drop-into-self) on the model
-            --  while the shared helper leaves the picker open for correction.
-            Confirm_Tree_Pick (Model, Settings);
+            --  As Enter in the picker does: a paste that does not start leaves
+            --  its error on the error line and the picker open for correction.
+            Outcome := Files.Controller.Confirm_Tree_Pick (Model, Settings);
+            Observe_Controller_Outcome (Outcome, Result);
          when Files.Events.Command_Result_Click_Input_Action =>
             --  The palette hit-tests the click and selects the row; a command
             --  that changes settings runs through this layer's Execute_Command,

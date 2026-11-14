@@ -6,13 +6,11 @@ with Guikit.Layout;
 with Guikit.Settings_Panel;
 
 with Files.Command_Palette;
-with Files.File_System;
 with Files.Operations;
 with Files.Model.Command_Palette;
 with Files.Model.Context_Menu;
 with Files.Model.Label_Picker;
 with Files.Model.Settings_Pane;
-with Files.Model.Tree_Panel;
 with Files.Model.Selection;
 
 package body Files.Interaction is
@@ -20,7 +18,6 @@ package body Files.Interaction is
    use Ada.Strings.Unbounded;
    use type Files.Commands.Command_Id;
    use type Files.Controller.Controller_Status;
-   use type Files.Model.Tree_Pick_Mode;
    use type Files.Operations.Operation_Status;
    use type Files.Types.Focus_Target;
    use type Guikit.Input.Key_Code;
@@ -280,6 +277,7 @@ package body Files.Interaction is
    begin
       Settings := Shared;
       Refresh_Open_Pane (Model, Before, Settings);
+      Files.Controller.Follow_Favorites (Model, Before, Settings);
       --  Items carry the hidden filter, the order and the type and icon they
       --  were classified with when the folder was read.
       if Files.Settings.Listing_Options_Of (Before) = Files.Settings.Listing_Options_Of (Settings)
@@ -385,47 +383,6 @@ package body Files.Interaction is
 
       Result.Status := Outcome.Status;
    end Execute_Command;
-
-   --  Confirm the modal copy/move destination picker.  Both keyboard Enter and
-   --  the Choose button route here so stale click actions cannot close an
-   --  ordinary tree panel, and a validation failure leaves the picker open for
-   --  the user to select a different destination.
-   procedure Confirm_Tree_Pick
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
-   is
-   begin
-      if not Files.Model.Tree_Panel.Pick_Is_Active (Model) then
-         return;
-      end if;
-
-      declare
-         Mode    : constant Files.Model.Tree_Pick_Mode :=
-           Files.Model.Tree_Panel.Pick_Mode_Of (Model);
-         Sources : constant Files.Types.String_Vectors.Vector :=
-           Files.Model.Tree_Panel.Pick_Sources (Model);
-         Target  : constant String := Files.Model.Tree_Panel.Pick_Target (Model);
-      begin
-         --  An empty target can occur while a newly seeded tree has no visible
-         --  rows.  Keep the modal open instead of turning Choose into Cancel.
-         if Mode = Files.Model.Pick_None or else Target = "" then
-            return;
-         end if;
-
-         declare
-            Op : constant Files.Operations.Operation_Result :=
-              Files.Operations.Begin_Paste_To
-                (Model, Settings, Sources, Target,
-                 (if Mode = Files.Model.Pick_Move
-                  then Files.File_System.Drop_Move
-                  else Files.File_System.Drop_Copy));
-         begin
-            if Op.Status = Files.Operations.Operation_Success then
-               Files.Model.Tree_Panel.End_Pick (Model);
-            end if;
-         end;
-      end;
-   end Confirm_Tree_Pick;
 
    --  What every key and action dispatch ends with: any item opened folded
    --  into the recent list, the

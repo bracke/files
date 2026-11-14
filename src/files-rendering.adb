@@ -708,16 +708,16 @@ package body Files.Rendering is
       Line_Height : Positive)
       return Command_Palette_Layout is
    begin
-      --  The palette always carries a title, so reserve the same title band the
-      --  component renders (guikit-command_palette.adb: LH + Palette_Padding) or
-      --  clicks on results would be offset from the drawn rows.
+      --  The palette always carries a title, so reserve the title band the
+      --  component renders, or clicks on results would be offset from the
+      --  drawn rows.
       return Guikit.Layout.Calculate_Palette_Layout
         (Command_X      => Layout.Command_X,
          Command_Y      => Layout.Command_Y,
          Command_Width  => Layout.Command_Width,
          Command_Height => Layout.Command_Height,
          Line_Height    => Line_Height,
-         Title_Height   => Guikit.Layout.Saturating_Add (Line_Height, Command_Palette_Padding (Line_Height)));
+         Title_Height   => Guikit.Layout.Palette_Title_Height (Line_Height));
    end Calculate_Command_Palette_Layout;
 
    function Calculate_Quick_Look_Layout
@@ -1280,30 +1280,6 @@ package body Files.Rendering is
       Line_Height : Positive)
       return Info_Pane_Layout
  is separate;
-
-   function Panel_Close_Button
-     (Panel_X      : Natural;
-      Panel_Y      : Natural;
-      Panel_Width  : Natural;
-      Panel_Height : Natural;
-      Line_Height  : Positive)
-      return Close_Button_Layout
-   is
-      Inset   : constant Natural := Natural'Max (Guikit.Layout.Scaled (4, Line_Height), Line_Height / 4);
-      Reserve : constant Natural := Guikit.Layout.Saturating_Add (Saturating_Multiply (Inset, 2), Line_Height);
-   begin
-      --  Need room for the inset on both sides plus the square itself.
-      if Panel_Width < Reserve or else Panel_Height < Reserve then
-         return (others => <>);
-      end if;
-
-      return
-        (Visible => True,
-         X       => Guikit.Layout.Saturating_Add (Panel_X, Panel_Width - Inset - Line_Height),
-         Y       => Guikit.Layout.Saturating_Add (Panel_Y, Inset),
-         Width   => Line_Height,
-         Height  => Line_Height);
-   end Panel_Close_Button;
 
    function Build_Frame_Commands
      (Snapshot    : View_Snapshot;

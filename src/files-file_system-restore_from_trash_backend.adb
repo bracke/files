@@ -123,7 +123,7 @@ begin
             begin
                Support.Copy_To_New_Path
                  (Trashed_Path, To_String (Original), Identity, Revision,
-                  Preserve_Ownership => True, Check_Job_Cancellation => False, Durable => True);
+                  Cancel => null, Preserve_Ownership => True, Durable => True);
             exception
                when Swallowed : others =>
                   Files.Diagnostics.Note (Swallowed, "Files.File_System");

@@ -1,3 +1,6 @@
+with Files.Interaction;
+with Files.Events;
+with Guikit.Input;
 with Files.Commands.Status;
 with Files.Model.Tree_Panel;
 separate (Files_Suite.Transfer)
@@ -45,7 +48,17 @@ separate (Files_Suite.Transfer)
          "the picker captured both selected sources");
 
       Files.Model.Tree_Panel.Set_Pick_Target (Model, Dest_Dir);
-      Confirm_Pick (Model, Settings);
+      declare
+         Confirmed : Files.Interaction.Interaction_Result;
+      begin
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, "", (Kind => Files.Events.Tree_Pick_Confirm_Input_Action),
+            Guikit.Input.No_Modifiers, Confirmed);
+         Files_Suite.Support.Assert_Equal
+           (Confirmed.Status, Files.Controller.Controller_Command_Executed,
+            "a confirmed pick reports the copy it started");
+         Assert (Confirmed.Command = Files.Commands.Copy_To_Command, "a confirmed pick reports Copy to");
+      end;
 
       Assert (Ada.Directories.Exists (A_Dest), "a.txt is copied to the destination");
       Assert (Ada.Directories.Exists (B_Dest), "b.txt is copied to the destination");

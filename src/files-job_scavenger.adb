@@ -618,7 +618,7 @@ package body Files.Job_Scavenger is
                         if Outcome = Files.Job_Transports.Claim_Acquired then
                            declare
                               Removed : constant Boolean :=
-                                Files.File_System.Delete_Staging_Entry
+                                Files.File_System.Delete_Transport_Entry
                                   (Directory, To_String (Incomplete_Identity)).Success;
                            begin
                               if not Removed

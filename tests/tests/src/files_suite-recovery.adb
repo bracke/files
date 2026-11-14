@@ -115,6 +115,8 @@ package body Files_Suite.Recovery is
    procedure Test_Cleanup_Retry_Bound (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Reserve_Exception_Safety (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transport_Cleanup_Retry (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Released_Job_Leaves_Registry_Alone (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Job_Cancellation_Latches (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Helper_Lease_Survives_Parent (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Exclusive_Stream_Hardlink (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transport_Stream_Blocks (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -223,6 +225,12 @@ package body Files_Suite.Recovery is
          "failed job reservation leaves no active state and a later reservation succeeds");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Transport_Cleanup_Retry'Access, "failed ordinary transport cleanup retries while idle");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Released_Job_Leaves_Registry_Alone'Access,
+         "releasing a job removes its transport off the caller's task, without the recovery registry");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Job_Cancellation_Latches'Access,
+         "a helper sees its cancellation within a check interval, and once seen it stays seen");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Helper_Lease_Survives_Parent'Access,
          "a helper keeps recovery out after parent exit and fails closed if recovery wins");
@@ -342,6 +350,8 @@ package body Files_Suite.Recovery is
    procedure Test_Reserve_Exception_Safety (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Transport_Cleanup_Retry (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Released_Job_Leaves_Registry_Alone (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Job_Cancellation_Latches (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Helper_Lease_Survives_Parent (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

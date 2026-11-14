@@ -28,7 +28,6 @@ with Files.File_System.Recovery;
 with Files.File_Identities;
 with Files.Private_Directories;
 with Ada.Characters;
-with Files.Job_Context;
 with Files.Io_Errors;
 with Hostkit.Trash;
 with Files.Bounded_Text_IO;
@@ -1196,7 +1195,7 @@ package body Files.File_System is
 
    function Execute_Drop_Import
      (Plans  : Drop_Import_Plan_Vectors.Vector;
-      Cancel : Cancellation_Check := null;
+      Cancel : Cancellation_Check := Job_Cancelled;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result
    is
@@ -1208,7 +1207,7 @@ package body Files.File_System is
    function Execute_Drop_Import
      (Plans  : Drop_Import_Plan_Vectors.Vector;
       Created_Identities, Created_Tree_Revisions : out Files.Types.String_Vectors.Vector;
-      Cancel : Cancellation_Check := null;
+      Cancel : Cancellation_Check := Job_Cancelled;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result
    is separate;
@@ -1222,7 +1221,7 @@ package body Files.File_System is
       Created_Identity      : out Files.Types.UString;
       Created_Tree_Revision : out Files.Types.UString;
       Preserved             : access procedure (Backup, Backup_Identity : String) := null;
-      Cancel                : Cancellation_Check := null;
+      Cancel                : Cancellation_Check := Job_Cancelled;
       Batch                 : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result
    is separate;
@@ -1323,6 +1322,29 @@ package body Files.File_System is
       return Delete_Verified_Entry
         (Path, Expected_Identity, "", Verify_Tree => False);
    end Delete_Staging_Entry;
+
+   function Delete_Transport_Entry
+     (Path : String; Expected_Identity : String) return Mutation_Result
+   is
+      Failed : constant Mutation_Result :=
+        (Success => False, Error_Key => To_Unbounded_String ("error.undo.failed"));
+   begin
+      if Expected_Identity = ""
+        or else Hostkit.Fs.Is_Link (Path)
+        or else Files.File_Identities.Token (Path) /= Expected_Identity
+      then
+         return Failed;
+      end if;
+      Support.Delete_Owned_Tree (Path);
+      if Files.Fs_Primitives.Entry_Exists (Path) then
+         return Failed;
+      end if;
+      return (Success => True, Error_Key => Null_Unbounded_String);
+   exception
+      when Swallowed : others =>
+         Files.Diagnostics.Note (Swallowed, "Files.File_System");
+         return Failed;
+   end Delete_Transport_Entry;
 
    function Tree_Revision (Path : String) return String is
    begin

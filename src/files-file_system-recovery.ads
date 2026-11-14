@@ -70,7 +70,7 @@ private package Files.File_System.Recovery is
    --  @param Revision The copy's tree revision.
    --  @param Copy_Kept Set when, after a failure, the copy is still at
    --    Destination: its removal was refused, or the source was set aside.
-   --  @param Cancel Optional cooperative cancellation.
+   --  @param Cancel What stops it: the job's cancellation unless given another, null for none.
    --  @param Batch Shared hard-link journal of a multi-item job.
    --  @return Success when Destination holds the item and Source is gone;
    --    otherwise Source is where it was (unless set aside, see Copy_Kept).
@@ -79,7 +79,7 @@ private package Files.File_System.Recovery is
       Fallback_Key        : String;
       Identity, Revision  : out Files.Types.UString;
       Copy_Kept           : out Boolean;
-      Cancel              : Cancellation_Check := null;
+      Cancel              : Cancellation_Check := Job_Cancelled;
       Batch               : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result;
 end Files.File_System.Recovery;

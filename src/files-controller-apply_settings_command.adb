@@ -89,14 +89,8 @@ begin
                end;
             end if;
             --  Too many favorites to load again: refused whole (Commit_Settings).
-            return Result : constant Controller_Result :=
-              Apply_Settings_Change (Id, Model, Settings, Updated, Settings_Path)
-            do
-               --  Favorites are tree roots: a tree already shown follows.
-               if Files.Model.Tree_Panel.Is_Seeded (Model) then
-                  Seed_Tree_If_Needed (Model, Settings);
-               end if;
-            end return;
+            --  Favorites are tree roots: the commit has a tree shown follow.
+            return Apply_Settings_Change (Id, Model, Settings, Updated, Settings_Path);
          end;
       when Files.Commands.Toggle_Column_Modified_Command
          | Files.Commands.Toggle_Column_Size_Command

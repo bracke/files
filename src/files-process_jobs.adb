@@ -401,7 +401,7 @@ package body Files.Process_Jobs is
       begin
          if Files.Job_Transports.Matches
            (To_String (Item.Directory), To_String (Item.Identity))
-           and then Files.File_System.Delete_Staging_Entry
+           and then Files.File_System.Delete_Transport_Entry
              (To_String (Item.Directory), To_String (Item.Identity)).Success
          then
             Destroy (Item);
@@ -528,14 +528,14 @@ package body Files.Process_Jobs is
          if Job.Shared.References > 1 then
             Job.Shared.References := Job.Shared.References - 1;
          else
+            --  The reaper stops a running helper and removes the transport:
+            --  releasing a session does no filesystem work on this task.
             Inspect (Job.Shared);
             if Job.Shared.Started and then not Job.Shared.Finished then
                Stop (Job.Shared);
-               Ensure_Reaper;
-               Submit_Or_Abandon (Job.Shared);
-            else
-               Dispose (Job.Shared);
             end if;
+            Ensure_Reaper;
+            Submit_Or_Abandon (Job.Shared);
          end if;
          Job.Shared := null;
       end if;
@@ -668,23 +668,6 @@ package body Files.Process_Jobs is
    begin
       Finalize (Job);
    end Reset;
-
-   procedure Release_For_Shutdown (Job : in out Session) is
-   begin
-      if Job.Shared = null then
-         return;
-      end if;
-      if Job.Shared.References > 1 then
-         Job.Shared.References := Job.Shared.References - 1;
-      else
-         if Job.Shared.Started and then not Job.Shared.Finished then
-            Stop (Job.Shared);
-         end if;
-         Ensure_Reaper;
-         Submit_Or_Abandon (Job.Shared);
-      end if;
-      Job.Shared := null;
-   end Release_For_Shutdown;
 
    procedure Shutdown (Stopped : out Boolean) is
    begin

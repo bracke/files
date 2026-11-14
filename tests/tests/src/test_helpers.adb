@@ -443,7 +443,7 @@ package body Test_Helpers is
          if Stopped then
             Hostkit.Process.End_Now (1);
          end if;
-         Files.Process_Jobs.Release_For_Shutdown (Job);
+         Files.Process_Jobs.Reset (Job);
          Files.Process_Jobs.Shutdown (Stopped);
          Hostkit.Process.End_Now
            (if Stopped and then not Ada.Directories.Exists

@@ -53,7 +53,11 @@ separate (Files_Suite.Transfer)
          Assert
            (File_Has_Bytes (Files.Process_Jobs.Path (Job, "request"), "private request"),
             "the private transport's payload is usable");
+         --  The orphan reaper removes a released transport.
          Files.Process_Jobs.Reset (Job);
+         for Attempt in Files_Suite.Support.Polling loop
+            exit when not Ada.Directories.Exists (To_String (Transport));
+         end loop;
          Assert (not Ada.Directories.Exists (To_String (Transport)), "the private transport is cleaned up");
          Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Parent));
          Assert (Is_Owner_Only (To_String (Stage)), "private staging is owner-only");
@@ -177,7 +181,11 @@ separate (Files_Suite.Transfer)
                      Assert
                        (File_Has_Bytes (Files.Process_Jobs.Path (Job, "request"), "private request"),
                         "private transport payload remains usable after removing the inherited ACL");
+                     --  The orphan reaper removes a released transport.
                      Files.Process_Jobs.Reset (Job);
+                     for Attempt in Files_Suite.Support.Polling loop
+                        exit when not Ada.Directories.Exists (To_String (Transport));
+                     end loop;
                      Assert
                        (not Ada.Directories.Exists (To_String (Transport)),
                         "private transport remains eligible for guarded cleanup");

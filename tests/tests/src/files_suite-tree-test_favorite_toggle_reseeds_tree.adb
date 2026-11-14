@@ -38,4 +38,43 @@ separate (Files_Suite.Tree)
 
       Run (Files.Commands.Toggle_Favorite_Command);
       Assert (not Tree_Has_Root (Item), "unstarring it takes it out again");
+
+      --  Every other way the favorites change has the shown tree follow too:
+      --  the path bar's star, ...
+      declare
+         Current : constant String := Files.Model.Current_Path (Model);
+      begin
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, Path, (Kind => Files.Events.Path_Favorite_Toggle_Input_Action),
+            Guikit.Input.No_Modifiers, Result);
+         Assert (Tree_Has_Root (Current), "the path bar's star adds the folder to the shown tree's roots");
+         Files.Interaction.Apply_Input_Action
+           (Model, Settings, Path, (Kind => Files.Events.Path_Favorite_Toggle_Input_Action),
+            Guikit.Input.No_Modifiers, Result);
+         Assert (not Tree_Has_Root (Current), "the path bar's star takes it out again");
+      end;
+
+      --  ... a favorite moved or renamed, ...
+      declare
+         Moved    : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "Moved.txt");
+         Followed : Boolean;
+      begin
+         Files_Suite.Support.Select_Name (Model, "Alpha.txt");
+         Run (Files.Commands.Toggle_Favorite_Command);
+         Assert (Tree_Has_Root (Item), "the file is a tree root again");
+         Files.Model.Note_Path_Move (Model, Item, Moved);
+         Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, Path);
+         Assert (Followed, "the favorite follows the move");
+         Assert (Tree_Has_Root (Moved) and then not Tree_Has_Root (Item),
+                 "the shown tree's root follows the moved favorite");
+      end;
+
+      --  ... and favorites changed in another window.
+      declare
+         Shared : Files.Settings.Settings_Model := Settings;
+      begin
+         Files.Settings.Toggle_Favorite_Path (Shared, Item);
+         Files.Interaction.Adopt_Shared_Settings (Model, Settings, Shared);
+         Assert (Tree_Has_Root (Item), "a favorite another window added is a root of the shown tree");
+      end;
    end Test_Favorite_Toggle_Reseeds_Tree;

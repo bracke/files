@@ -17,6 +17,7 @@ with Hostkit.Lease_Files;
 with Files.File_Identities;
 with Files.Lease_Streams;
 with Files.Path_Checks;
+with Ada.Real_Time;
 
 package body Files.Job_Context is
    use Ada.Strings.Unbounded;
@@ -38,6 +39,50 @@ package body Files.Job_Context is
    Max_Append_Bytes : constant :=
      2 * Max_Record_Path_Length + 2 * Max_Record_Token_Length
        + Max_Record_Header_Length + 5 * Encoded_String_Overhead;
+   --  How often a helper reads its cancellation marker: often enough that a
+   --  cancel stops the work at once to a person, seldom enough that a copy
+   --  checking every chunk does not open a file every chunk.
+   Cancel_Check_Interval : constant Ada.Real_Time.Time_Span := Ada.Real_Time.Milliseconds (100);
+
+   --  What the marker said last, and when it is read again. A cancel is
+   --  never taken back, so once seen it stays.
+   protected Cancellation is
+      --  Due is True for the one caller that is to read the marker now; the
+      --  next read is then Cancel_Check_Interval later.
+      procedure Claim (Now : Ada.Real_Time.Time; Due : out Boolean);
+      procedure Latch;
+      function Latched return Boolean;
+      --  A new job directory: nothing seen, read at once.
+      procedure Forget;
+   private
+      Seen       : Boolean := False;
+      Next_Check : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
+   end Cancellation;
+
+   protected body Cancellation is
+      procedure Claim (Now : Ada.Real_Time.Time; Due : out Boolean) is
+         use type Ada.Real_Time.Time;
+      begin
+         Due := not Seen and then Now >= Next_Check;
+         if Due then
+            Next_Check := Now + Cancel_Check_Interval;
+         end if;
+      end Claim;
+
+      procedure Latch is
+      begin
+         Seen := True;
+      end Latch;
+
+      function Latched return Boolean is (Seen);
+
+      procedure Forget is
+      begin
+         Seen := False;
+         Next_Check := Ada.Real_Time.Time_First;
+      end Forget;
+   end Cancellation;
+
    Foreground_Job : Files.Process_Jobs.Session;
    Foreground_Paths : Files.Types.String_Vectors.Vector;
    Foreground_Records : Files.Types.String_Vectors.Vector;
@@ -211,11 +256,12 @@ package body Files.Job_Context is
          raise Ada.Directories.Use_Error;
       end if;
       Current := To_Unbounded_String (Directory);
+      Cancellation.Forget;
    end Initialize;
 
    procedure Shutdown is
    begin
-      Files.Process_Jobs.Release_For_Shutdown (Foreground_Job);
+      Files.Process_Jobs.Reset (Foreground_Job);
       Foreground_Paths.Clear;
       Foreground_Records.Clear;
    end Shutdown;
@@ -223,7 +269,20 @@ package body Files.Job_Context is
    function Directory return String is (To_String (Current));
 
    function Cancelled return Boolean is
-     (Files.Process_Jobs.Cancellation_Requested (To_String (Current)));
+      Due : Boolean;
+   begin
+      if Length (Current) = 0 then
+         return False;
+      elsif Cancellation.Latched then
+         return True;
+      end if;
+      Cancellation.Claim (Ada.Real_Time.Clock, Due);
+      if Due and then Files.Process_Jobs.Cancellation_Requested (To_String (Current)) then
+         Cancellation.Latch;
+         return True;
+      end if;
+      return False;
+   end Cancelled;
 
    function Stage_Owner_Directory return String is
    begin

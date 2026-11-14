@@ -1155,21 +1155,13 @@ package Files.Rendering is
       Line_Height : Positive)
       return Info_Pane_Layout;
 
-   type Close_Button_Layout is record
-      Visible : Boolean := False;
-      X       : Natural := 0;
-      Y       : Natural := 0;
-      Width   : Natural := 0;
-      Height  : Natural := 0;
-   end record;
+   --  A panel's top-right close (X) button: Guikit's, which every panel --
+   --  files' and guikit's own -- draws and hit-tests by.
+   subtype Close_Button_Layout is Guikit.Layout.Close_Button_Layout;
 
-   --  Calculate the top-right close (X) button rectangle for an overlay panel.
-   --
-   --  The button is a single line-height square inset from the panel's
-   --  top-right corner, clamped inside the panel bounds. Visible is False when
-   --  the panel is too small to host the button. Both the renderer and the
-   --  click hit-test derive the button from this one function so they stay in
-   --  sync.
+   --  Calculate the top-right close (X) button rectangle for an overlay panel
+   --  (Guikit.Layout.Panel_Close_Button): Visible is False when the panel is
+   --  too small to host the button, which is then neither drawn nor hit.
    --
    --  @param Panel_X Panel left edge in pixels.
    --  @param Panel_Y Panel top edge in pixels.
@@ -1183,7 +1175,7 @@ package Files.Rendering is
       Panel_Width  : Natural;
       Panel_Height : Natural;
       Line_Height  : Positive)
-      return Close_Button_Layout;
+      return Close_Button_Layout renames Guikit.Layout.Panel_Close_Button;
 
    --  Where the pointer is and what it is doing, as a frame draws it: the
    --  hover highlight and tooltips, the pressed control, a dragged item's

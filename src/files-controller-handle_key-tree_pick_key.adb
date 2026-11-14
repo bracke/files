@@ -16,9 +16,12 @@ begin
       then
          Result := Move_Tree_Highlight (Pick => True);
          return;
+      elsif Key = Guikit.Input.Key_Return and then Modifiers = Guikit.Input.No_Modifiers then
+         --  As the picker's Choose button does.
+         Result := Confirm_Tree_Pick (Model, Settings);
+         return;
       else
-         --  Enter confirms the pick on the Interaction seam (running the copy or
-         --  move needs the settings path); every other key is consumed.
+         --  Every other key is consumed.
          Result := Make_Result (Controller_Ignored);
          return;
       end if;

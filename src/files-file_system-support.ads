@@ -111,25 +111,25 @@ private package Files.File_System.Support is
    --  Copy privately and publish atomically without replacing an existing entry.
    --  @param Source_Path Source file, directory, or symbolic link.
    --  @param Destination_Path New destination pathname.
-   --  @param Cancel Optional cooperative cancellation callback.
+   --  @param Cancel What stops it: the job's cancellation unless given another, null for none.
    --  @param Preserve_Ownership Require original ownership before publishing a move.
    --  @param Batch Shared journal for hard links across copied roots.
    procedure Copy_To_New_Path
-     (Source_Path : String; Destination_Path : String; Cancel : Cancellation_Check := null;
+     (Source_Path : String; Destination_Path : String; Cancel : Cancellation_Check := Job_Cancelled;
       Preserve_Ownership : Boolean := False;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);
 
    --  @param Source_Path Source file, directory, or symbolic link.
    --  @param Destination_Path New destination pathname.
    --  @param Identity Identity captured before publishing the new destination.
-   --  @param Cancel Optional cooperative cancellation callback.
+   --  @param Cancel What stops it: the job's cancellation unless given another, null for none.
    --  @param Preserve_Ownership Require original ownership before publishing a move.
    --  @param Batch Shared journal for hard links across copied roots.
    --  @param Times Source times captured before a move's verification traversal.
    procedure Copy_To_New_Path
      (Source_Path, Destination_Path : String;
       Identity : out Files.Types.UString;
-      Cancel : Cancellation_Check := null;
+      Cancel : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
       Preserve_Ownership : Boolean := False;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);
@@ -139,25 +139,23 @@ private package Files.File_System.Support is
    --  @param Destination_Path New destination pathname.
    --  @param Identity Identity captured in private staging before publication.
    --  @param Tree_Revision_Value Stable revision captured before publication; empty for links.
-   --  @param Cancel Optional cooperative cancellation callback.
+   --  @param Cancel What stops it: the job's cancellation unless given another, null for none.
    --  @param Times Source times captured before verification reads the source.
    --  @param Preserve_Ownership Require original ownership before publishing a move.
    --  @param Batch Shared journal for hard links across copied roots.
    --  @param Root_Digest When given, set to the SHA-256 of the bytes copied
    --    for a regular-file root, as read during the copy; empty otherwise.
-   --  @param Check_Job_Cancellation False for recovery that must finish after cancellation.
    --  @param Durable Flush each copied file to the device as it is written
    --    (a move, which removes its source afterwards); Sync_Copy then needs
    --    only the folders.
    procedure Copy_To_New_Path
      (Source_Path, Destination_Path : String;
       Identity, Tree_Revision_Value : out Files.Types.UString;
-      Cancel : Cancellation_Check := null;
+      Cancel : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
       Preserve_Ownership : Boolean := False;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
       Root_Digest : access Files.Types.UString := null;
-      Check_Job_Cancellation : Boolean := True;
       Durable : Boolean := False);
 
    --  Whether the change times of the filesystem holding Path cannot pin an
@@ -194,13 +192,14 @@ private package Files.File_System.Support is
    --    full one, or With_Root_Content.
    --  @return Sorted identities, revisions, and the root file's content
    --    digest, raising if any entry cannot be verified.
-   --  @param Check_Job_Cancellation False for recovery that must finish after cancellation.
+   --  @param Cancel What stops it (Job_Cancelled), or null for recovery that
+   --    must finish once the job is cancelled.
    --  @param Change_Times Decide whether change times are weak from Path,
    --    or take another snapshot by an earlier one's rule (Trust_Of).
    function Snapshot
      (Path                   : String;
       Content                : Boolean := True;
-      Check_Job_Cancellation : Boolean := True;
+      Cancel                 : Cancellation_Check := Job_Cancelled;
       Change_Times           : Change_Time_Trust := Decide_Change_Times)
       return Source_Snapshot;
 
@@ -240,8 +239,8 @@ private package Files.File_System.Support is
    --  @param Source_Path Source file or directory.
    --  @param Destination_Path Destination path to create.
    --  @param Depth Current recursion depth (0 at the top).
-   --  @param Cancel Optional callback checked between entries and file chunks.
-   --  @param Check_Job_Cancellation False for recovery that must finish after cancellation.
+   --  @param Cancel Checked between entries and file chunks: the job's
+   --    cancellation unless given another, null for none.
    --  @param Times Optional times captured before verification reads the source.
    --  @param Preserve_Ownership Require original ownership for a copy-based move.
    --  @param Batch Shared journal for hard links across copied roots.
@@ -249,8 +248,7 @@ private package Files.File_System.Support is
      (Source_Path      : String;
       Destination_Path : String;
       Depth            : Natural := 0;
-      Cancel           : Cancellation_Check := null;
-      Check_Job_Cancellation : Boolean := True;
+      Cancel           : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
       Preserve_Ownership : Boolean := False;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session);

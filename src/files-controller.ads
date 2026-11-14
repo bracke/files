@@ -82,6 +82,19 @@ package Files.Controller is
       Modifiers     : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers)
       return Controller_Result;
 
+   --  Favorites are folder tree roots: a tree already seeded is seeded again
+   --  when the favorites list differs between Before and Settings. Every
+   --  settings commit does this; a caller that replaces the settings another
+   --  way (adopting another window's) calls it.
+   --
+   --  @param Model Window whose folder tree follows.
+   --  @param Before The settings before the change.
+   --  @param Settings The settings now live.
+   procedure Follow_Favorites
+     (Model    : in out Files.Model.Window_Model;
+      Before   : Files.Settings.Settings_Model;
+      Settings : Files.Settings.Settings_Model);
+
    --  Persist the already-applied settings model to the central settings file:
    --  for a scalar applied as the user drags or scrolls (a column width, the
    --  zoom by wheel, the window's size), which cannot make the file too big.
@@ -269,6 +282,23 @@ package Files.Controller is
      (Model         : in out Files.Model.Window_Model;
       Settings      : Files.Settings.Settings_Model;
       Segment_Index : Natural)
+      return Controller_Result;
+
+   --  Confirm the modal Copy to.../Move to... destination picker: copy or
+   --  move the captured sources into the highlighted directory, and end the
+   --  pick once that has started. Enter and the picker's Choose button both
+   --  come here. A pick with no target yet (a newly seeded tree with no
+   --  visible rows) or a paste that does not start (its error on the error
+   --  line) leaves the picker open for another choice.
+   --
+   --  @param Model Window model whose pick is confirmed.
+   --  @param Settings Settings model the paste reads.
+   --  @return Executed (Copy_To_Command or Move_To_Command, with the paste's
+   --    result) when the copy or move started; Ignored, with the paste's
+   --    result when there was one, otherwise.
+   function Confirm_Tree_Pick
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
       return Controller_Result;
 
    --  Toggle a folder-tree node's expansion or navigate to it.

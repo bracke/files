@@ -42,13 +42,11 @@ package Files.Process_Jobs is
    --  @param Job Reserved session holding the matching transport lease.
    procedure Clean_Stages (Job : Session);
 
-   --  @param Job Session to release; the last owner stops the helper without waiting.
+   --  Release a reference. The last one stops the helper without waiting and
+   --  hands the transport to the orphan reaper, which removes it: releasing a
+   --  session does no filesystem work on the caller's task.
+   --  @param Job Session to release.
    procedure Reset (Job : in out Session);
-
-   --  Hand the last session reference to the orphan reaper during executable
-   --  shutdown, including sessions that only own a staging transport.
-   --  @param Job Session to release without doing filesystem cleanup here.
-   procedure Release_For_Shutdown (Job : in out Session);
 
    --  Request poller shutdown and wait at most about two seconds for its task
    --  to terminate. The caller must exit explicitly if Stopped is False,

@@ -1,3 +1,4 @@
+private with Files.Job_Context;
 with Files.Copy_Context;
 with Files.Extra_Info;
 with Ada.Calendar;
@@ -898,6 +899,19 @@ package Files.File_System is
    function Delete_Staging_Entry
      (Path : String; Expected_Identity : String) return Mutation_Result;
 
+   --  Remove a helper transport (Files.Job_Transports) by the identity
+   --  captured when it was created: no quarantine, recovery record or flush.
+   --  A transport is an owner-only folder of protocol files under the user's
+   --  temporary directory, holding no user data, and the removal never
+   --  follows a link and takes its marker and lease last: one cut short
+   --  leaves a transport the scavenger still recognizes and finishes. A
+   --  folder that is not the one created (another identity) is left alone.
+   --  @param Path Transport directory to remove.
+   --  @param Expected_Identity Identity captured when the transport was created.
+   --  @return Success only when the transport is gone.
+   function Delete_Transport_Entry
+     (Path : String; Expected_Identity : String) return Mutation_Result;
+
    --  @param Path Existing entry to inspect without following symbolic links.
    --  @return SHA-256 of a directory's recursive metadata and file contents,
    --    a regular-file metadata and content revision, or empty for a link or
@@ -963,15 +977,20 @@ package Files.File_System is
    --  Optional cooperative cancellation, checked between copy chunks and entries.
    type Cancellation_Check is access function return Boolean;
 
+   --  The job's own cancellation (Files.Job_Context.Cancelled): what a copy
+   --  or a check stops for unless it is handed another check, or null for
+   --  none -- recovery, which must finish once the job is cancelled.
+   Job_Cancelled : constant Cancellation_Check;
+
    --  Execute a validated drag-and-drop import plan.
    --
    --  @param Plans Plans produced by Plan_Drop_Import.
-   --  @param Cancel Optional callback requesting cancellation before source deletion.
+   --  @param Cancel Checked before source deletion: the job's cancellation unless given another, null for none.
    --  @param Batch Shared hard-link journal, created automatically for multiple plans.
    --  @return Mutation result with a localized error key on failure.
    function Execute_Drop_Import
      (Plans  : Drop_Import_Plan_Vectors.Vector;
-      Cancel : Cancellation_Check := null;
+      Cancel : Cancellation_Check := Job_Cancelled;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result;
 
@@ -982,13 +1001,13 @@ package Files.File_System is
    --  @param Plans Validated copy or move plans.
    --  @param Created_Identities Entry identities parallel to completed plans.
    --  @param Created_Tree_Revisions Recursive directory revisions parallel to completed plans.
-   --  @param Cancel Optional cooperative cancellation callback.
+   --  @param Cancel What stops it: the job's cancellation unless given another, null for none.
    --  @param Batch Shared hard-link journal.
    --  @return Mutation result with a localized error key on failure.
    function Execute_Drop_Import
      (Plans  : Drop_Import_Plan_Vectors.Vector;
       Created_Identities, Created_Tree_Revisions : out Files.Types.String_Vectors.Vector;
-      Cancel : Cancellation_Check := null;
+      Cancel : Cancellation_Check := Job_Cancelled;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result;
 
@@ -1012,7 +1031,7 @@ package Files.File_System is
    --    identity), before the import starts -- also when preserving failed
    --    yet left the original there; an exception from it fails the action
    --    and the original is put back.
-   --  @param Cancel Optional cooperative cancellation callback.
+   --  @param Cancel What stops it: the job's cancellation unless given another, null for none.
    --  @param Batch Shared hard-link journal.
    --  @return Success when Destination holds the imported entry; otherwise
    --    the preserving, import, or restoring failure. A cross-device move
@@ -1029,7 +1048,7 @@ package Files.File_System is
       Created_Identity      : out Files.Types.UString;
       Created_Tree_Revision : out Files.Types.UString;
       Preserved             : access procedure (Backup, Backup_Identity : String) := null;
-      Cancel                : Cancellation_Check := null;
+      Cancel                : Cancellation_Check := Job_Cancelled;
       Batch                 : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result;
 
@@ -1073,6 +1092,8 @@ package Files.File_System is
    function Read_Preview_Text
      (Path : String; Max_Bytes : Natural; Success, Complete : out Boolean) return String;
 private
+
+   Job_Cancelled : constant Cancellation_Check := Files.Job_Context.Cancelled'Access;
 
    --  Rolling checksums (directory signatures, thumbnail cache names) all
    --  reduce by this prime, so each fits a Natural.

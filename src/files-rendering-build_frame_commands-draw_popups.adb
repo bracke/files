@@ -14,8 +14,7 @@ separate (Files.Rendering.Build_Frame_Commands)
             Margin  : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
             Title_X : constant Natural := Guikit.Layout.Saturating_Add (Picker.X, Margin);
             Title_Y : constant Natural :=
-              Guikit.Layout.Saturating_Add
-                (Picker.Y, Natural'Max (Guikit.Layout.Scaled (4, Line_Height), Line_Height / 4));
+              Guikit.Layout.Saturating_Add (Picker.Y, Guikit.Layout.Panel_Edge_Inset (Line_Height));
             --  The accent band along the panel's top edge.
             Accent_H : constant Natural := Natural'Min (Guikit.Layout.Scaled (3, Line_Height), Picker.Height);
             --  The keyboard highlight's second ring sits this far inside a swatch.

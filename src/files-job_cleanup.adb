@@ -82,7 +82,7 @@ package body Files.Job_Cleanup is
                   Have_Claim := False;
                   declare
                      Removed : constant Files.File_System.Mutation_Result :=
-                       Files.File_System.Delete_Staging_Entry (Directory, Expected_Identity);
+                       Files.File_System.Delete_Transport_Entry (Directory, Expected_Identity);
                   begin
                      if Removed.Success and then Directory_Gone then
                         return Cleanup_Removed;

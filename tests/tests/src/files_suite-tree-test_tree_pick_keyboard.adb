@@ -114,6 +114,8 @@ separate (Files_Suite.Tree)
         (Model, Settings, "", Guikit.Input.Key_Return, Guikit.Input.No_Modifiers, Result);
       Assert (not Files.Model.Tree_Panel.Pick_Is_Active (Model) and then Files.Model.Tree_Panel.Is_Open (Model),
               "Enter ends the pick and keeps the sidebar that was open before it");
+      Files_Suite.Support.Assert_Equal
+        (Result.Status, Files.Controller.Controller_Command_Executed, "Enter reports the copy it started");
       Assert
         (Ada.Directories.Exists (Files_Suite.Support.Join (Alpha, "src.txt")),
          "Enter copies the source into the highlighted destination");

@@ -84,6 +84,12 @@ separate (Files_Suite.Settings)
         (To_String (Expanded.Arguments.Element (4)),
          "txt",
          "relative path extension expands");
+      --  The extension as the name spells it, as the stem is.
+      Expanded := Files.Settings.Expand_Placeholders (Lookup.Action, "/tmp/example/Photo.JPG");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (3)), "Photo", "an upper-case stem keeps its case");
+      Files_Suite.Support.Assert_Equal
+        (To_String (Expanded.Arguments.Element (4)), "JPG", "an upper-case extension keeps its case");
       if Hostkit.Host.Current /= Hostkit.Host.Windows then
          Expanded := Files.Settings.Expand_Placeholders
            (Lookup.Action, "/tmp/example/a\b.txt");

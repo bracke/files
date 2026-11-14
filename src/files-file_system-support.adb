@@ -37,9 +37,10 @@ package body Files.File_System.Support is
    --  cancellation.
    --
    --  @param Path Existing entry to inspect without following symbolic links.
-   --  @param Check_Job_Cancellation False to keep going once the job is cancelled.
+   --  @param Cancel What stops it (Job_Cancelled), or null to keep going once
+   --    the job is cancelled.
    --  @return As Tree_Revision.
-   function Tree_Revision_Of (Path : String; Check_Job_Cancellation : Boolean) return String;
+   function Tree_Revision_Of (Path : String; Cancel : Cancellation_Check) return String;
 
    --  The most entries one directory may list before it counts as hostile.
    Max_Directory_Entries : constant := 1_000_000;
@@ -137,9 +138,8 @@ package body Files.File_System.Support is
    end "=";
 
    function Regular_File_Digest
-     (Path                   : String;
-      Cancel                 : Cancellation_Check := null;
-      Check_Job_Cancellation : Boolean := True) return String;
+     (Path   : String;
+      Cancel : Cancellation_Check := Job_Cancelled) return String;
 
    function Same_Shape (Left, Right : Source_Snapshot) return Boolean is
       use type Files.Types.String_Vectors.Vector;
@@ -194,7 +194,7 @@ package body Files.File_System.Support is
    function Snapshot
      (Path                   : String;
       Content                : Boolean := True;
-      Check_Job_Cancellation : Boolean := True;
+      Cancel                 : Cancellation_Check := Job_Cancelled;
       Change_Times           : Change_Time_Trust := Decide_Change_Times)
       return Source_Snapshot
    is
@@ -225,7 +225,7 @@ package body Files.File_System.Support is
       begin
          if Identity = "" or else Revision = "" or else Depth > 1_024
            or else Natural (Result.Entries.Length) >= Max_Directory_Entries
-           or else (Check_Job_Cancellation and then Files.Job_Context.Cancelled)
+           or else (Cancel /= null and then Cancel.all)
          then
             raise Ada.Directories.Use_Error;
          end if;
@@ -236,7 +236,7 @@ package body Files.File_System.Support is
          declare
             Digest : constant String :=
               (if Is_Regular_File
-               then Regular_File_Digest (Full_Path, Check_Job_Cancellation => Check_Job_Cancellation)
+               then Regular_File_Digest (Full_Path, Cancel)
                else "");
          begin
             if Is_Regular_File
@@ -319,9 +319,8 @@ package body Files.File_System.Support is
    end With_Root_Content;
 
    function Regular_File_Digest
-     (Path                   : String;
-      Cancel                 : Cancellation_Check := null;
-      Check_Job_Cancellation : Boolean := True) return String
+     (Path   : String;
+      Cancel : Cancellation_Check := Job_Cancelled) return String
    is
       use Ada.Streams;
       use type GNAT.OS_Lib.File_Descriptor;
@@ -345,10 +344,7 @@ package body Files.File_System.Support is
       end if;
       begin
          loop
-            if (Cancel /= null and then Cancel.all)
-              or else
-                (Check_Job_Cancellation and then Files.Job_Context.Cancelled)
-            then
+            if Cancel /= null and then Cancel.all then
                raise Ada.Directories.Use_Error;
             end if;
             Bytes_Read := GNAT.OS_Lib.Read (Descriptor, Buffer'Address, Integer (Buffer'Length));
@@ -376,9 +372,9 @@ package body Files.File_System.Support is
          raise;
    end Regular_File_Digest;
 
-   function Tree_Revision (Path : String) return String is (Tree_Revision_Of (Path, Check_Job_Cancellation => True));
+   function Tree_Revision (Path : String) return String is (Tree_Revision_Of (Path, Job_Cancelled));
 
-   function Tree_Revision_Of (Path : String; Check_Job_Cancellation : Boolean) return String is
+   function Tree_Revision_Of (Path : String; Cancel : Cancellation_Check) return String is
       use Ada.Streams;
       State : Source_Snapshot;
       Context : CryptoLib.Hashes.SHA256_Context;
@@ -445,7 +441,7 @@ package body Files.File_System.Support is
             end if;
             declare
                Digest : constant String :=
-                 Regular_File_Digest (Path, Check_Job_Cancellation => Check_Job_Cancellation);
+                 Regular_File_Digest (Path, Cancel);
             begin
                if Files.File_Identities.Token (Path) /= Identity
                  or else Files.File_Identities.Revision (Path) /= Full_Revision
@@ -458,7 +454,7 @@ package body Files.File_System.Support is
       elsif Files.Fs_Primitives.Kind (Path) /= Ada.Directories.Directory then
          return "";
       end if;
-      State := Snapshot (Path, Check_Job_Cancellation => Check_Job_Cancellation);
+      State := Snapshot (Path, Cancel => Cancel);
       CryptoLib.Hashes.Initialize_SHA256 (Context);
       for Item of State.Entries loop
          declare
@@ -619,8 +615,7 @@ package body Files.File_System.Support is
    --  What one copy walk carries through every level of the tree: how it
    --  is stopped, what it keeps, what it shares, and what it reports.
    type Copy_Walk is limited record
-      Cancel                 : Cancellation_Check := null;
-      Check_Job_Cancellation : Boolean := True;
+      Cancel                 : Cancellation_Check := Job_Cancelled;
       Times                  : Source_Time_Maps.Map;
       Preserve_Ownership     : Boolean := False;
       --  Files already copied, by source identity: hard links stay links.
@@ -658,7 +653,7 @@ package body Files.File_System.Support is
    end Copy_Node_Deep;
 
    procedure Copy_To_New_Path
-     (Source_Path : String; Destination_Path : String; Cancel : Cancellation_Check := null;
+     (Source_Path : String; Destination_Path : String; Cancel : Cancellation_Check := Job_Cancelled;
       Preserve_Ownership : Boolean := False;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session) is
       Identity : Files.Types.UString;
@@ -670,7 +665,7 @@ package body Files.File_System.Support is
    procedure Copy_To_New_Path
      (Source_Path, Destination_Path : String;
       Identity : out Files.Types.UString;
-      Cancel : Cancellation_Check := null;
+      Cancel : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
       Preserve_Ownership : Boolean := False;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
@@ -710,7 +705,7 @@ package body Files.File_System.Support is
         and then Files.Fs_Primitives.Kind (Path) = Ada.Directories.Directory
       then
          declare
-            Fresh : constant String := Tree_Revision_Of (Path, Check_Job_Cancellation => False);
+            Fresh : constant String := Tree_Revision_Of (Path, Cancel => null);
          begin
             if Fresh /= "" then
                Revision := To_Unbounded_String (Fresh);
@@ -728,18 +723,16 @@ package body Files.File_System.Support is
    procedure Copy_To_New_Path
      (Source_Path, Destination_Path : String;
       Identity, Tree_Revision_Value : out Files.Types.UString;
-      Cancel : Cancellation_Check := null;
+      Cancel : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
       Preserve_Ownership : Boolean := False;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session;
       Root_Digest : access Files.Types.UString := null;
-      Check_Job_Cancellation : Boolean := True;
       Durable : Boolean := False)
    is
       Stage : UString;
       Walk  : Copy_Walk :=
         (Cancel                 => Cancel,
-         Check_Job_Cancellation => Check_Job_Cancellation,
          Times                  => Times,
          Preserve_Ownership     => Preserve_Ownership,
          Copied_Files           => Load_Links (Batch),
@@ -776,7 +769,7 @@ package body Files.File_System.Support is
                end if;
             end;
          else
-            Tree_Revision_Value := To_Unbounded_String (Tree_Revision_Of (Payload, Check_Job_Cancellation));
+            Tree_Revision_Value := To_Unbounded_String (Tree_Revision_Of (Payload, Cancel));
          end if;
       end;
       --  Never publish an unidentifiable payload: Undo and crash recovery
@@ -828,9 +821,7 @@ package body Files.File_System.Support is
    --  Stop a copy the user or the job cancelled.
    procedure Check_Cancelled (Walk : Copy_Walk) is
    begin
-      if (Walk.Cancel /= null and then Walk.Cancel.all)
-        or else (Walk.Check_Job_Cancellation and then Files.Job_Context.Cancelled)
-      then
+      if Walk.Cancel /= null and then Walk.Cancel.all then
          raise Program_Error;
       end if;
    end Check_Cancelled;
@@ -886,7 +877,7 @@ package body Files.File_System.Support is
          --  pathname open after the classification above could otherwise
          --  follow a replacement symlink or block on a replacement FIFO.
          return Regular_File_Digest
-           (Path, Walk.Cancel, Walk.Check_Job_Cancellation);
+           (Path, Walk.Cancel);
       end if;
       Digest := CryptoLib.Hashes.Finalize (Context);
       for Index in Digest'Range loop
@@ -1314,14 +1305,12 @@ package body Files.File_System.Support is
      (Source_Path : String;
       Destination_Path : String;
       Depth : Natural := 0;
-      Cancel : Cancellation_Check := null;
-      Check_Job_Cancellation : Boolean := True;
+      Cancel : Cancellation_Check := Job_Cancelled;
       Times : Source_Time_Maps.Map := Source_Time_Maps.Empty_Map;
       Preserve_Ownership : Boolean := False;
       Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session) is
       Walk : Copy_Walk :=
         (Cancel                 => Cancel,
-         Check_Job_Cancellation => Check_Job_Cancellation,
          Times                  => Times,
          Preserve_Ownership     => Preserve_Ownership,
          Copied_Files           => Load_Links (Batch),

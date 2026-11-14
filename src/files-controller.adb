@@ -30,6 +30,7 @@ package body Files.Controller is
    use type Files.Events.Scroll_Target;
    use type Files.File_System.Root_Kind;
    use type Files.Model.Palette_Mode;
+   use type Files.Model.Tree_Pick_Mode;
    use type Files.Operations.Operation_Status;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;
@@ -117,6 +118,21 @@ package body Files.Controller is
          Files.Model.Tree_Panel.Seed (Model, Seeds);
       end if;
    end Seed_Tree_If_Needed;
+
+   procedure Follow_Favorites
+     (Model    : in out Files.Model.Window_Model;
+      Before   : Files.Settings.Settings_Model;
+      Settings : Files.Settings.Settings_Model)
+   is
+      use type Files.Settings.String_Vectors.Vector;
+   begin
+      --  Seeding reads the volumes: only for a changed favorites list.
+      if Files.Model.Tree_Panel.Is_Seeded (Model)
+        and then Before.Favorite_Paths /= Settings.Favorite_Paths
+      then
+         Seed_Tree_If_Needed (Model, Settings);
+      end if;
+   end Follow_Favorites;
 
    --  The one place settings are written. An empty path turns persistence
    --  off (smoke runs, tests): the settings apply in memory and count as saved.
@@ -208,8 +224,13 @@ package body Files.Controller is
                Error_Key => To_Unbounded_String ("error.settings.full")),
             Accepted => False);
       end if;
-      Settings := Updated;
-      Files.Model.Note_Settings_Changed (Model);
+      declare
+         Before : constant Files.Settings.Settings_Model := Settings;
+      begin
+         Settings := Updated;
+         Files.Model.Note_Settings_Changed (Model);
+         Follow_Favorites (Model, Before, Settings);
+      end;
       return (Saved => Persisted (Model, Settings, Settings_Path), Accepted => True);
    end Commit;
 
@@ -293,6 +314,38 @@ package body Files.Controller is
       Operation.Status := Files.Operations.Operation_Success;
       return Make_Result (Controller_Command_Executed, Command, Operation);
    end Successful_Command_Result;
+
+   function Confirm_Tree_Pick
+     (Model    : in out Files.Model.Window_Model;
+      Settings : Files.Settings.Settings_Model)
+      return Controller_Result
+   is
+      Mode : constant Files.Model.Tree_Pick_Mode := Files.Model.Tree_Panel.Pick_Mode_Of (Model);
+   begin
+      --  An empty target can occur while a newly seeded tree has no visible
+      --  rows: the picker stays open rather than turning Choose into Cancel.
+      if not Files.Model.Tree_Panel.Pick_Is_Active (Model)
+        or else Mode = Files.Model.Pick_None
+        or else Files.Model.Tree_Panel.Pick_Target (Model) = ""
+      then
+         return Make_Result (Controller_Ignored);
+      end if;
+      declare
+         Command : constant Files.Commands.Command_Id :=
+           (if Mode = Files.Model.Pick_Move then Files.Commands.Move_To_Command else Files.Commands.Copy_To_Command);
+         Op      : constant Files.Operations.Operation_Result :=
+           Files.Operations.Begin_Paste_To
+             (Model, Settings, Files.Model.Tree_Panel.Pick_Sources (Model),
+              Files.Model.Tree_Panel.Pick_Target (Model),
+              (if Mode = Files.Model.Pick_Move then Files.File_System.Drop_Move else Files.File_System.Drop_Copy));
+      begin
+         if Op.Status /= Files.Operations.Operation_Success then
+            return Make_Result (Controller_Ignored, Command, Op);
+         end if;
+         Files.Model.Tree_Panel.End_Pick (Model);
+         return Make_Result (Controller_Command_Executed, Command, Op);
+      end;
+   end Confirm_Tree_Pick;
 
    function Settings_Closed_Result
      (Id    : Files.Commands.Command_Id;

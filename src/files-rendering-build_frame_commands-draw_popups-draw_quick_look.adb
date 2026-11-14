@@ -5,7 +5,7 @@ separate (Files.Rendering.Build_Frame_Commands.Draw_Popups)
       Margin  : constant Natural := Natural'Max (Command_Palette_Padding (Line_Height), Line_Height / 2);
       Title_X : constant Natural := Guikit.Layout.Saturating_Add (QL.X, Margin);
       Title_Y : constant Natural :=
-        Guikit.Layout.Saturating_Add (QL.Y, Natural'Max (Guikit.Layout.Scaled (4, Line_Height), Line_Height / 4));
+        Guikit.Layout.Saturating_Add (QL.Y, Guikit.Layout.Panel_Edge_Inset (Line_Height));
       --  The accent band along the panel's top edge.
       Accent_H : constant Natural := Natural'Min (Guikit.Layout.Scaled (3, Line_Height), QL.Height);
       Title_W : constant Natural :=

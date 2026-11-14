@@ -24,7 +24,11 @@ package Files.Job_Context is
    --  @return Private transport directory, or empty outside a helper.
    function Directory return String;
 
-   --  @return True when this helper's parent requested cancellation.
+   --  Whether this helper's parent requested cancellation: the one check
+   --  every helper's work stops for (Files.File_System.Job_Cancelled). Cheap
+   --  enough to ask for every chunk copied: the marker is read at most every
+   --  100 ms, and once seen a cancel stays seen.
+   --  @return True once this helper's parent requested cancellation.
    function Cancelled return Boolean;
 
    --  @param Parent Absolute destination filesystem directory.
