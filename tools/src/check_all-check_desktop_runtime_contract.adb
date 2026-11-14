@@ -149,12 +149,12 @@ separate (Check_All)
          Fail (Jobs_Body & ": a background job's finish must merge the helper's history "
                & "(Files.History_Journal.Merge) on its success and its failure path");
       end if;
-      if Count_Names (Job_Finish, "Files.Operations.Settle_History") < 2 then
+      if Count_Names (Job_Finish, "Files.Undo_Recording.Settle_History") < 2 then
          Fail (Jobs_Body & ": a background job's finish must settle the merged history "
-               & "(Files.Operations.Settle_History) on its success and its failure path");
+               & "(Files.Undo_Recording.Settle_History) on its success and its failure path");
       end if;
       if Ada.Strings.Fixed.Index (Job_Finish, "Files.History_Journal.Merge")
-        > Ada.Strings.Fixed.Index (Job_Finish, "Files.Operations.Settle_History")
+        > Ada.Strings.Fixed.Index (Job_Finish, "Files.Undo_Recording.Settle_History")
       then
          Fail (Jobs_Body & ": a background job's finish must settle the history after merging it, not before");
       end if;

@@ -1,3 +1,5 @@
+with Files.Undo_Recording;
+with Files.Window_Polls;
 with Files.Diagnostics;
 with Hostkit.Process;
 with Ada.Strings.Unbounded;
@@ -13,6 +15,7 @@ with Files.Model.History;
 with Files.Model.Selection;
 
 package body Files.Operations.Support is
+   use type Files.Operation_Results.Operation_Status;
    use Ada.Strings.Unbounded;
 
    function First_Free_Name
@@ -160,7 +163,7 @@ package body Files.Operations.Support is
                  (Model, Previous_Selection, Previous_Primary);
             end if;
             Files.Model.Set_Error (Model, "");
-            Files.Operations.Ensure_Selected_Item_Extra (Model);
+            Files.Window_Polls.Ensure_Selected_Item_Extra (Model);
             --  A reload runs after every operation, so it must not decode each
             --  new image in the folder while the UI waits: as on navigation, the
             --  missing thumbnails are left to a background listing, which the
@@ -256,22 +259,20 @@ package body Files.Operations.Support is
       --  Counted before the record, which may raise: a failed attempt is
       --  not retried until the next interval either.
       Progress.Attempted := True;
-      Progress.Attempted_Count := Natural (Progress.From.Length);
+      Progress.Attempted_Count := Natural (Progress.Items.Length);
       Progress.Last_Checkpoint := Now;
-      Progress.Recorded := Try_Record_Undo
-        (Model, Progress.Kind, Progress.From, Progress.To,
-         Forward     => Progress.Forward,
+      Progress.Recorded := Files.Undo_Recording.Try_Record_Undo
+        (Model, Progress.Kind, Progress.Items,
          Create_Kind => Progress.Create_Kind,
          Redoable    => Progress.Redoable,
          Provenance  =>
-           (Identities           => Progress.Identities,
-            Tree_Revisions       => Progress.Tree_Revisions,
+           (Published_Main       => Natural (Progress.Items.Length),
             Retain_Verified_Main => Progress.Verified_Count,
             others               => <>));
       if Progress.Recorded
-        and then Natural (Files.Model.History.Undo_From_Paths (Model).Length) = Natural (Progress.From.Length)
+        and then Natural (Files.Model.History.Undo_From_Paths (Model).Length) = Natural (Progress.Items.Length)
       then
-         Progress.Verified_Count := Natural (Progress.From.Length);
+         Progress.Verified_Count := Natural (Progress.Items.Length);
       end if;
       if Progress.Durable then
          Files.History_Journal.Save (Model, Required => True);
@@ -297,10 +298,10 @@ package body Files.Operations.Support is
      (Model    : in out Files.Model.Window_Model;
       Progress : in out Progressive_Undo) return Undo_Outcome is
    begin
-      if Natural (Progress.From.Length) /= Progress.Attempted_Count then
+      if Natural (Progress.Items.Length) /= Progress.Attempted_Count then
          Record_Progress (Model, Progress, Checkpoint_Now);
       end if;
-      return (if Progress.From.Is_Empty or else Progress.Recorded then Undo_Covered else Undo_Unavailable);
+      return (if Progress.Items.Is_Empty or else Progress.Recorded then Undo_Covered else Undo_Unavailable);
    end Finish_Undo;
 
    procedure Note_Undo_Outcome

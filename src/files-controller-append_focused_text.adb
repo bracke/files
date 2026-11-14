@@ -29,7 +29,7 @@ separate (Files.Controller)
          begin
             Files.Model.Selection.Type_Ahead_Input (Model, Text, Matched);
             if Matched then
-               Files.Operations.Ensure_Selected_Item_Extra (Model);
+               Files.Window_Polls.Ensure_Selected_Item_Extra (Model);
             end if;
             return Make_Result (if Matched then Controller_Selection_Moved else Controller_Ignored);
          end;

@@ -30,9 +30,8 @@ separate (Files_Suite.History)
                Files.Operations.Clear_Undo (Model);
                Prior.Clear;
                Prior.Append (To_Unbounded_String (Join (Root, "prior")));
-               Files.Operations.Record_Undo
-                 (Model, Files.Model.Undo_Delete_Created, Prior, Files.Types.String_Vectors.Empty_Vector,
-                  Redoable => False);
+               Files.Undo_Recording.Record_Undo
+                 (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Undo_Items (Prior), Redoable => False);
                Files.Model.Set_Filter (Model, (if Extracting then ".zip" else ".txt"));
                Files.Model.Selection.Select_All_Visible (Model);
                Files.Model.Set_Background_Transfers (Model, Background);

@@ -120,8 +120,8 @@ separate (Files_Suite.Trash)
          end;
          Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
          Paths.Append (To_Unbounded_String (Link));
-         Files.Operations.Record_Undo
-           (Model, Files.Model.Undo_Delete_Created, Paths, Files.Types.String_Vectors.Empty_Vector, Redoable => False);
+         Files.Undo_Recording.Record_Undo
+           (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Undo_Items (Paths), Redoable => False);
          Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
          Assert (Step.Status = Files.Operations.Operation_Success and then not Hostkit.Fs.Is_Link (Link),

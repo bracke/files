@@ -14,11 +14,9 @@ is
 
    First_Created : Unbounded_String;
    Created_Any   : Boolean := False;
-   Undo_From     : Files.Types.String_Vectors.Vector;
-   Undo_To       : Files.Types.String_Vectors.Vector;
-   Undo_Sources  : Files.Types.String_Vectors.Vector;
-   Identities    : Files.Types.String_Vectors.Vector;
-   Tree_Revisions : Files.Types.String_Vectors.Vector;
+   --  Each link made: where it is, its source (what Redo links again), and
+   --  its identity and revision as made.
+   Made          : Files.Model.Undo_Item_Vectors.Vector;
    Undo_Recorded : Boolean := False;
 
    --  Record one undo entry for every link created so far, exactly once,
@@ -26,19 +24,18 @@ is
    --  undone by deleting it and redone by re-creating it from its source.
    procedure Record_Created is
    begin
-      if Undo_Recorded or else Undo_From.Is_Empty then
+      if Undo_Recorded or else Made.Is_Empty then
          return;
       end if;
       Undo_Recorded := True;
       declare
          Recorded : constant Boolean := Try_Record_Undo
-           (Model, Files.Model.Undo_Delete_Created, Undo_From, Undo_To,
-            Forward     => Undo_Sources,
+           (Model, Files.Model.Undo_Delete_Created, Made,
             Create_Kind =>
               (if Hard
                then Files.Model.Create_Hard_Link
                else Files.Model.Create_Symbolic_Link),
-            Provenance => (Identities => Identities, Tree_Revisions => Tree_Revisions, others => <>));
+            Provenance  => (Published_Main => Natural (Made.Length), others => <>));
          pragma Unreferenced (Recorded);
       begin
          null;
@@ -48,7 +45,7 @@ is
    function Failed (Error_Key : String) return Operation_Result is
    begin
       Record_Created;
-      return Batch_Failed (Model, Settings, Error_Key, Directory, Wrote_Some => not Undo_From.Is_Empty);
+      return Batch_Failed (Model, Settings, Error_Key, Directory, Wrote_Some => not Made.Is_Empty);
    end Failed;
 
    --  Build the " (link)" / " (link N)" marker. The fragments are kept
@@ -103,13 +100,13 @@ begin
             return Failed (To_String (Mutation.Error_Key));
          end if;
 
-         Undo_From.Append (To_Unbounded_String (Dest_Path));
-         Undo_To.Append (To_Unbounded_String (Dest_Path));
-         Undo_Sources.Append (To_Unbounded_String (Source));
-         Identities.Append
-           (To_Unbounded_String (Files.File_Identities.Token (Dest_Path)));
-         Tree_Revisions.Append
-           (To_Unbounded_String (Files.File_System.Tree_Revision (Dest_Path)));
+         Made.Append
+           (Files.Model.Undo_Item'
+              (From          => To_Unbounded_String (Dest_Path),
+               Forward       => To_Unbounded_String (Source),
+               Identity      => To_Unbounded_String (Files.File_Identities.Token (Dest_Path)),
+               Tree_Revision => To_Unbounded_String (Files.File_System.Tree_Revision (Dest_Path)),
+               others        => <>));
          if not Created_Any then
             First_Created := To_Unbounded_String (Dest_Name);
             Created_Any := True;

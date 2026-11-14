@@ -1014,4 +1014,38 @@ package body Files_Suite.Support is
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
    end Arm_Numbered_Paste;
 
+   function Undo_Items
+     (From           : Files.Types.String_Vectors.Vector;
+      To             : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
+      Forward        : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
+      Identities     : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
+      Tree_Revisions : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector)
+      return Files.Model.Undo_Item_Vectors.Vector
+   is
+      function At_Index (Values : Files.Types.String_Vectors.Vector; Index : Positive) return Unbounded_String is
+        (if Index <= Values.Last_Index then Values (Index) else Null_Unbounded_String);
+   begin
+      return Items : Files.Model.Undo_Item_Vectors.Vector do
+         for Index in From.First_Index .. From.Last_Index loop
+            Items.Append
+              (Files.Model.Undo_Item'
+                 (From          => From (Index),
+                  To            => At_Index (To, Index),
+                  Forward       => At_Index (Forward, Index),
+                  Identity      => At_Index (Identities, Index),
+                  Tree_Revision => At_Index (Tree_Revisions, Index)));
+         end loop;
+      end return;
+   end Undo_Items;
+
+   function Replaced_Originals
+     (Trash : Files.Types.String_Vectors.Vector) return Files.Model.Replaced_Original_Vectors.Vector is
+   begin
+      return Originals : Files.Model.Replaced_Original_Vectors.Vector do
+         for Path of Trash loop
+            Originals.Append (Files.Model.Replaced_Original'(Trash => Path, others => <>));
+         end loop;
+      end return;
+   end Replaced_Originals;
+
 end Files_Suite.Support;

@@ -2,6 +2,7 @@ with Ada.Real_Time;
 with Files.Items;
 with Files.File_System;
 with Files.Model;
+with Files.Operation_Results;
 with Files.Paste;
 with Files.Quick_Look;
 with Files.Settings;
@@ -12,32 +13,38 @@ with Files.Types;
 package Files.Operations is
    subtype UString is Files.Types.UString;
 
-   type Operation_Status is
-     (Operation_Success,
-      Operation_Disabled,
-      Operation_Invalid_Name,
-      Operation_Failed,
-      Operation_Action_Executed,
-      Operation_Navigated,
-      Operation_Missing_Open_Action);
+   --  Files.Operation_Results, as every operation here reports it.
+   subtype Operation_Status is Files.Operation_Results.Operation_Status;
+   subtype Execution_Outcome is Files.Operation_Results.Execution_Outcome;
+   subtype Operation_Result is Files.Operation_Results.Operation_Result;
 
-   --  What running an open action did: whether a process start was tried,
-   --  whether its executable was found, and its exit status when one was
-   --  awaited (a detached launch has none).
-   type Execution_Outcome is record
-      Attempted         : Boolean := False;
-      Executable_Found  : Boolean := False;
-      Exit_Status_Known : Boolean := False;
-      Exit_Status       : Integer := 0;
-   end record;
+   --  @return Files.Operation_Results.Operation_Success.
+   function Operation_Success return Operation_Status
+     renames Files.Operation_Results.Operation_Success;
 
-   type Operation_Result is record
-      Status    : Operation_Status := Operation_Disabled;
-      Error_Key : UString;
-      Path      : UString;
-      Action    : Files.Settings.Open_Action;
-      Execution : Execution_Outcome;
-   end record;
+   --  @return Files.Operation_Results.Operation_Disabled.
+   function Operation_Disabled return Operation_Status
+     renames Files.Operation_Results.Operation_Disabled;
+
+   --  @return Files.Operation_Results.Operation_Invalid_Name.
+   function Operation_Invalid_Name return Operation_Status
+     renames Files.Operation_Results.Operation_Invalid_Name;
+
+   --  @return Files.Operation_Results.Operation_Failed.
+   function Operation_Failed return Operation_Status
+     renames Files.Operation_Results.Operation_Failed;
+
+   --  @return Files.Operation_Results.Operation_Action_Executed.
+   function Operation_Action_Executed return Operation_Status
+     renames Files.Operation_Results.Operation_Action_Executed;
+
+   --  @return Files.Operation_Results.Operation_Navigated.
+   function Operation_Navigated return Operation_Status
+     renames Files.Operation_Results.Operation_Navigated;
+
+   --  @return Files.Operation_Results.Operation_Missing_Open_Action.
+   function Operation_Missing_Open_Action return Operation_Status
+     renames Files.Operation_Results.Operation_Missing_Open_Action;
 
    --  Check an open action's effective executable using the same host-aware
    --  PATH and executable-file policy used immediately before spawning it.
@@ -577,22 +584,6 @@ package Files.Operations is
    procedure Settle_Current_Is_Trash
      (Model : in out Files.Model.Window_Model);
 
-   --  Compute and cache the selected item's "extra info" (folder child count,
-   --  document counts, symlink target) when the info pane wants it and it has
-   --  not been computed yet. Called after input so the info pane can show the
-   --  detail without every item paying for it on load. A no-op when the info
-   --  pane is closed, nothing is selected, or the value is already cached --
-   --  and in a window (Background_Transfers), whose loop reads it off the UI
-   --  thread through Poll_Selected_Item_Extra instead.
-   --
-   --  @param Model Window model whose selected item is updated in place.
-   --  @param Show_Hidden Whether the listing shows hidden entries
-   --    (Settings.Show_Hidden_Files): a folder's count includes them only
-   --    then. True, for a caller without settings, counts every entry.
-   procedure Ensure_Selected_Item_Extra
-     (Model       : in out Files.Model.Window_Model;
-      Show_Hidden : Boolean := True);
-
    --  The size and modification time of Item as a preview remembers them
    --  (Quick_Look_Content.Source_Stamp).
    --
@@ -626,27 +617,6 @@ package Files.Operations is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
 
-   --  What an undo entry's members are known by, captured when the action
-   --  ran: kept together so the vectors that run parallel to From, and those
-   --  that run parallel to Restore_Trash, cannot be passed out of step.
-   type Undo_Provenance is record
-      --  Publication identity of each From entry.
-      Identities         : Files.Types.String_Vectors.Vector;
-      --  Recursive revision of each From entry that is a created directory.
-      Tree_Revisions     : Files.Types.String_Vectors.Vector;
-      --  Identity and destination of each Restore_Trash entry.
-      Restore_Identities : Files.Types.String_Vectors.Vector;
-      Restore_Targets    : Files.Types.String_Vectors.Vector;
-      --  How many leading From and Restore_Trash snapshots were validated
-      --  before and may survive a later pathname replacement.
-      Retain_Verified_Main     : Natural := 0;
-      Retain_Verified_Restores : Natural := 0;
-      --  Copies a failed move kept beside their still present sources; for
-      --  an Undo_Move only, which then deletes them first and is never
-      --  redoable.
-      Kept : Files.Model.Kept_Copy_Vectors.Vector;
-   end record;
-
    --  Arm a paste (Files.Model.Pasting.Begin_Execution) with the copy context
    --  its writes share when there is more than one: a batch transport, so
    --  made here and not by the model.
@@ -660,39 +630,6 @@ package Files.Operations is
       Actions         : Files.Paste.Resolved_Action_Vectors.Vector;
       Mode            : Files.File_System.Drop_Import_Mode;
       Clear_Clipboard : Boolean := True);
-
-   --  Try_Record_Undo for callers that do not need to know whether an entry
-   --  was added.
-   --
-   --  @param Model Model whose history is updated.
-   --  @param Kind Kind of action that can be undone.
-   --  @param From Current locations to undo from.
-   --  @param To Restore targets or old values parallel to From.
-   --  @param Forward Redo sources or new values parallel to From.
-   --  @param Create_Kind Creation operation used by Redo.
-   --  @param Redoable Whether a successful Undo may enter Redo history.
-   --  @param Restore_Trash Preserved replacement originals to restore.
-   --  @param Provenance What identifies the entries From and Restore_Trash name.
-   procedure Record_Undo
-     (Model       : in out Files.Model.Window_Model;
-      Kind        : Files.Model.Undo_Action_Kind;
-      From        : Files.Types.String_Vectors.Vector;
-      To          : Files.Types.String_Vectors.Vector;
-      Forward     : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
-      Redoable    : Boolean := True;
-      Restore_Trash : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Provenance  : Undo_Provenance := (others => <>));
-
-   --  Carry out the filesystem work model history mutations queued: delete
-   --  the recovery payloads of retired entries, release those of an ended
-   --  history to the system trash, and save the history journal when the
-   --  history changed. Call it right after each model history mutation.
-   --
-   --  @param Model Model whose queued history work to perform.
-   procedure Settle_History (Model : in out Files.Model.Window_Model);
 
    --  Forget the entire undo and redo history, then delete the recovery
    --  payloads it retained and save the history journal.
@@ -806,51 +743,6 @@ private
       New_Mode : Natural;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
-
-   --  Record a performed action in the undo history, keeping only members
-   --  whose publication identity still matches the live entry. Created
-   --  directories also require a matching recursive revision, and every
-   --  payload needed by Undo and Redo must be complete and valid. Replacement
-   --  actions are recorded only when every created and preserved entry is
-   --  verifiable, since their reverse steps are inseparable. Identities,
-   --  revisions and trash origins not supplied are captured here, before the
-   --  model records the entry; payloads the record retires are then deleted
-   --  and the history journal saved (Settle_History). A move's kept copies
-   --  (Provenance) stay in its entry, which is then undo-only, while they
-   --  verify; with no moved member left they are recorded alone as created
-   --  entries, and one that does not verify on a path an original returns to
-   --  makes the whole action unrecordable.
-   --
-   --  @param Model Model whose history is updated.
-   --  @param Kind Kind of action that can be undone.
-   --  @param From Current locations to undo from.
-   --  @param To Restore targets or old values parallel to From.
-   --  @param Forward Redo sources or new values parallel to From.
-   --  @param Create_Kind Creation operation used by Redo.
-   --  @param Redoable Whether a successful Undo may enter Redo history.
-   --  @param Restore_Trash Preserved replacement originals to restore.
-   --  @param Provenance What identifies the entries From and Restore_Trash name.
-   --  @return True when a usable history entry was added.
-   function Try_Record_Undo
-     (Model       : in out Files.Model.Window_Model;
-      Kind        : Files.Model.Undo_Action_Kind;
-      From        : Files.Types.String_Vectors.Vector;
-      To          : Files.Types.String_Vectors.Vector;
-      Forward     : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
-      Redoable    : Boolean := True;
-      Restore_Trash : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Provenance  : Undo_Provenance := (others => <>)) return Boolean;
-
-   --  What Try_Record_Undo calls on each attempt to record an entry.
-   type Record_Hook is access procedure;
-
-   --  Set only by the test suite (Files.Operations.Testing), to count the
-   --  records a batch makes. The application never sets it.
-   Undo_Record_Attempted : Record_Hook := null
-     with Atomic;
 
    --  The clock a batch's Undo throttle (Checkpoint_Undo) reads.
    type Clock_Hook is access function return Ada.Real_Time.Time;

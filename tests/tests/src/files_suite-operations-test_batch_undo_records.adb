@@ -1,3 +1,5 @@
+with Files.Undo_Recording;
+with Files.Undo_Recording.Testing;
 with Ada.Exceptions;
 with Files.File_System.Testing;
 separate (Files_Suite.Operations)
@@ -25,7 +27,7 @@ separate (Files_Suite.Operations)
       procedure Cleanup is
       begin
          Files.Operations.Testing.Fake_Checkpoint_Clock (False);
-         Files.Operations.Testing.Count_Undo_Records (False);
+         Files.Undo_Recording.Testing.Count_Undo_Records (False);
          Files.File_System.Testing.Refuse_Creation_Matches (False);
          Project_Tools.Files.Delete_Tree (Trash_Home);
       exception
@@ -58,7 +60,7 @@ separate (Files_Suite.Operations)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Operations.Clear_Undo (Model);
          Files.Model.Selection.Select_All_Visible (Model);
-         Files.Operations.Testing.Count_Undo_Records (True);
+         Files.Undo_Recording.Testing.Count_Undo_Records (True);
          Files.Operations.Testing.Fake_Checkpoint_Clock (True, Advance_At);
       end Prepare;
 
@@ -85,7 +87,7 @@ separate (Files_Suite.Operations)
       Files_Suite.Support.Assert_Equal (Copies_Present, Count, "every item is duplicated");
       Assert_Clock_Read ("the duplicate");
       Files_Suite.Support.Assert_Equal
-        (Files.Operations.Testing.Undo_Records, 2,
+        (Files.Undo_Recording.Testing.Undo_Records, 2,
          "the duplicate records its entry at its first item and at its end, not once per item");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "the duplicate is one Undo entry");
@@ -104,7 +106,7 @@ separate (Files_Suite.Operations)
       Files_Suite.Support.Assert_Equal (Copies_Present, Count, "every item is duplicated again");
       Assert_Clock_Read ("the slower duplicate");
       Files_Suite.Support.Assert_Equal
-        (Files.Operations.Testing.Undo_Records, 3,
+        (Files.Undo_Recording.Testing.Undo_Records, 3,
          "a second passing mid-batch adds exactly one record");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "the slower duplicate is one Undo entry");
@@ -126,7 +128,7 @@ separate (Files_Suite.Operations)
       end loop;
       Assert_Clock_Read ("the trash batch");
       Files_Suite.Support.Assert_Equal
-        (Files.Operations.Testing.Undo_Records, 2,
+        (Files.Undo_Recording.Testing.Undo_Records, 2,
          "the trash batch records its entry at its first item and at its end");
       Files_Suite.Support.Assert_Equal
         (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "the trash batch is one Undo entry");
@@ -150,7 +152,7 @@ separate (Files_Suite.Operations)
               "the missing Undo is reported, not passed over: " & Files.Model.Last_Error_Key (Model));
       Assert_Clock_Read ("the unverifiable duplicate");
       Files_Suite.Support.Assert_Equal
-        (Files.Operations.Testing.Undo_Records, 2,
+        (Files.Undo_Recording.Testing.Undo_Records, 2,
          "a refused record is tried at the first item and retried only at the end");
       Cleanup;
       Reset_Root;

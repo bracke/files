@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Undo_Recording;
 with Files.Foreground_Jobs;
 with Files.File_System.Trash;
 with Files.File_System.Permissions;
@@ -50,7 +52,6 @@ with Files.Model.History;
 with Files.Model.Pasting;
 with Files.Operation_Jobs.Testing;
 with Files.Operations;
-with Files.Operations.Testing;
 with Files.Paste;
 with Hostkit.Fs;
 with Hostkit.Metadata;

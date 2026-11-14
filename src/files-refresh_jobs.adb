@@ -1,3 +1,4 @@
+with Files.Window_Polls;
 with Files.Protocol_Names;
 with Files.Quick_Look;
 with Files.Helper_Modes;
@@ -420,7 +421,7 @@ package body Files.Refresh_Jobs is
          Files.Model.Set_Error (Model, To_String (Work.Error_Key));
       end if;
       Files.Model.Set_Directory_Signature (Model, Done.Signature);
-      Files.Operations.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
+      Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
       return Done.Reloaded;
    exception
       when Swallowed : others =>

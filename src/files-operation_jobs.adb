@@ -1,11 +1,11 @@
+with Files.Undo_Recording;
+with Files.Window_Polls;
 with Files.Helper_Modes;
-with Files.Items;
 with Ada.Containers.Indefinite_Hashed_Maps;
 with Ada.Strings.Hash;
 with Files.Diagnostics;
 with Ada.Directories;
 with Ada.IO_Exceptions;
-with Ada.Streams;
 with Ada.Strings.Unbounded;
 
 with Files.Job_Context;
@@ -13,10 +13,7 @@ with Files.Job_Records;
 with Files.Lease_Streams;
 with Files.History_Journal;
 with Files.Refresh_Jobs;
-with Files.File_System;
-with Files.Types;
 with Files.Process_Jobs;
-with Hostkit.Fs;
 with Files.Path_Checks;
 with Files.Model.Pasting;
 with Files.Model.History;
@@ -24,7 +21,7 @@ with Files.Model.Selection;
 
 package body Files.Operation_Jobs is
    use Ada.Strings.Unbounded;
-   use type Files.Operations.Operation_Status;
+   use type Files.Operation_Results.Operation_Status;
    use type Files.Model.Undo_Action_Kind;
 
    Request_Header : constant String := "files-operation-request-3";
@@ -34,30 +31,6 @@ package body Files.Operation_Jobs is
    --  Version 3 carries the path moves as one list of (kind, from, to)
    --  records instead of two parallel path lists.
    Result_Header : constant String := "files-operation-result-3";
-
-   type Request is record
-      Kind     : Operation_Kind;
-      Root     : Files.Types.UString;
-      Recent   : Boolean;
-      Query    : Files.Types.UString;
-      Selected : Files.Items.Item_Vectors.Vector;
-      Settings : Files.Settings.Settings_Model;
-      Context_Revision : Natural;
-      View_Incarnation : Natural;
-   end record;
-
-   type Outcome is record
-      Kind      : Operation_Kind;
-      Recent    : Boolean := False;
-      Result    : Files.Operations.Operation_Result;
-      Items     : Files.Items.Item_Vectors.Vector;
-      Selection : Files.Types.UString;
-      Visible_Error : Files.Types.UString;
-      Signature : Files.File_System.Directory_Signature;
-      --  The renames, moves and removals the helper made (Note_Path_Move),
-      --  for the window's labels and favorites to follow.
-      Moves     : Files.Types.Path_Move_Vectors.Vector;
-   end record;
 
    package Index_Maps is new Ada.Containers.Indefinite_Hashed_Maps
      (Key_Type        => String,
@@ -180,7 +153,7 @@ package body Files.Operation_Jobs is
    function Start
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Kind : Operation_Kind) return Files.Operations.Operation_Result
+      Kind : Operation_Kind) return Files.Operation_Results.Operation_Result
    is
       Job  : Files.Process_Jobs.Session;
       Work : Request :=
@@ -191,18 +164,18 @@ package body Files.Operation_Jobs is
          View_Incarnation => Files.Model.View_Incarnation (Model));
    begin
       if Files.Model.Foreground_Job_Is_Active (Model) or else Files.Model.Pasting.Conflict_Is_Active (Model) then
-         return (Status => Files.Operations.Operation_Disabled, others => <>);
+         return (Status => Files.Operation_Results.Operation_Disabled, others => <>);
       end if;
       if Kind in Search_Names | Search_Contents and then Length (Work.Query) = 0 then
          Files.Model.Set_Error (Model, "error.filter.empty");
-         return (Status => Files.Operations.Operation_Disabled,
+         return (Status => Files.Operation_Results.Operation_Disabled,
                  Error_Key => To_Unbounded_String ("error.filter.empty"), others => <>);
       end if;
       if (Kind = Undo and then Files.Model.History.Undo_Entries (Model).Is_Empty)
         or else (Kind = Redo and then Files.Model.History.Redo_Entries (Model).Is_Empty)
       then
          Files.Model.Set_Error (Model, "error.undo.failed");
-         return (Status => Files.Operations.Operation_Failed,
+         return (Status => Files.Operation_Results.Operation_Failed,
                  Error_Key => To_Unbounded_String ("error.undo.failed"), others => <>);
       end if;
       if Kind not in Search_Names | Search_Contents | Undo | Redo | Empty_Trash
@@ -218,7 +191,9 @@ package body Files.Operation_Jobs is
                   when others => "error.search.failed");
          begin
             Files.Model.Set_Error (Model, Key);
-            return (Status => Files.Operations.Operation_Failed, Error_Key => To_Unbounded_String (Key), others => <>);
+            return (Status    => Files.Operation_Results.Operation_Failed,
+                    Error_Key => To_Unbounded_String (Key),
+                    others    => <>);
          end;
       end if;
       --  Clearing an earlier diagnostic is itself listing-visible state. Capture
@@ -251,13 +226,13 @@ package body Files.Operation_Jobs is
              when Empty_Trash => "command.trash.empty",
              when Undo => "command.edit.undo",
              when Redo => "command.edit.redo"));
-      return (Status => Files.Operations.Operation_Success, Path => Work.Root, others => <>);
+      return (Status => Files.Operation_Results.Operation_Success, Path => Work.Root, others => <>);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Operation_Jobs");
          Files.Process_Jobs.Reset (Job);
          Files.Model.Set_Error (Model, "error.drop.failed");
-         return (Status => Files.Operations.Operation_Failed,
+         return (Status => Files.Operation_Results.Operation_Failed,
                  Error_Key => To_Unbounded_String ("error.drop.failed"), others => <>);
    end Start;
 
@@ -312,7 +287,7 @@ package body Files.Operation_Jobs is
      (Model   : in out Files.Model.Window_Model;
       Created : Files.Job_Context.Journal_Entry_Vectors.Vector)
    is
-      Untracked, Untracked_Identities, Untracked_Tree_Revisions : Files.Types.String_Vectors.Vector;
+      Untracked : Files.Model.Undo_Item_Vectors.Vector;
       --  Every path the undo history already records as created.
       Recorded : Files.Settings.Path_Sets.Set;
    begin
@@ -323,20 +298,21 @@ package body Files.Operation_Jobs is
       end loop;
       for Published of Created loop
          if not Recorded.Contains (To_String (Published.Destination)) then
-            Untracked.Append (Published.Destination);
-            Untracked_Identities.Append (Published.Identity);
-            Untracked_Tree_Revisions.Append (Published.Tree_Revision);
+            Untracked.Append
+              (Files.Model.Undo_Item'
+                 (From          => Published.Destination,
+                  Identity      => Published.Identity,
+                  Tree_Revision => Published.Tree_Revision,
+                  others        => <>));
          end if;
       end loop;
       if not Untracked.Is_Empty then
-         Files.Operations.Record_Undo
-           (Model, Files.Model.Undo_Delete_Created, Untracked,
-            Files.Types.String_Vectors.Empty_Vector, Redoable => False,
+         Files.Undo_Recording.Record_Undo
+           (Model, Files.Model.Undo_Delete_Created, Untracked, Redoable => False,
             Provenance =>
-              (Identities => Untracked_Identities,
-               Tree_Revisions => Untracked_Tree_Revisions,
+              (Published_Main       => Natural (Untracked.Length),
                Retain_Verified_Main => Natural (Untracked.Length),
-               others => <>));
+               others               => <>));
       end if;
    end Record_Untracked_Creations;
 
@@ -371,7 +347,7 @@ package body Files.Operation_Jobs is
 
    function Advance
      (Model : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model) return Files.Operations.Operation_Result
+      Settings : Files.Settings.Settings_Model) return Files.Operation_Results.Operation_Result
    is
       Job       : constant Files.Process_Jobs.Session := Files.Model.Background_Operation (Model);
       Finished  : Boolean;
@@ -406,7 +382,7 @@ package body Files.Operation_Jobs is
            Files.Model.Listing_Revision (Model));
 
       procedure Reload_Current_View (Select_Name : String := "") is
-         Reload : constant Files.Operations.Operation_Result :=
+         Reload : constant Files.Operation_Results.Operation_Result :=
            Files.Refresh_Jobs.Start (Model, Settings, True, Select_Name);
          pragma Unreferenced (Reload);
       begin
@@ -414,12 +390,12 @@ package body Files.Operation_Jobs is
       end Reload_Current_View;
 
       --  What the operation reports: nothing, when it was cancelled.
-      function Reported return Files.Operations.Operation_Result is
-        (if Cancelled then (Status => Files.Operations.Operation_Success, others => <>) else Done.Result);
+      function Reported return Files.Operation_Results.Operation_Result is
+        (if Cancelled then (Status => Files.Operation_Results.Operation_Success, others => <>) else Done.Result);
 
       function Choose return Disposition is
          Succeeded : constant Boolean :=
-           not Cancelled and then Done.Result.Status = Files.Operations.Operation_Success;
+           not Cancelled and then Done.Result.Status = Files.Operation_Results.Operation_Success;
       begin
          if Done.Kind in Search_Names | Search_Contents
            and then (not Matches_Current_Context (Work) or else Work.Query /= Files.Model.Filter_Text (Model))
@@ -467,20 +443,20 @@ package body Files.Operation_Jobs is
 
       --  The operation's diagnostic in the view it ran in; a cancelled one
       --  clears it.
-      function Report_In_View return Files.Operations.Operation_Result is
+      function Report_In_View return Files.Operation_Results.Operation_Result is
       begin
          if Cancelled then
             Files.Model.Set_Error (Model, "");
             return Reported;
          end if;
          Files.Model.Set_Error (Model, To_String (Done.Visible_Error));
-         Files.Operations.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
+         Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
          return Done.Result;
       end Report_In_View;
    begin
       Files.Process_Jobs.Poll (Job, Finished, Cancelled);
       if not Finished then
-         return (Status => Files.Operations.Operation_Success, others => <>);
+         return (Status => Files.Operation_Results.Operation_Success, others => <>);
       end if;
       Done := Read_Outcome (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Result_File));
       Work := Read_Request (Files.Process_Jobs.Path (Job, Files.Process_Jobs.Request_File));
@@ -504,21 +480,21 @@ package body Files.Operation_Jobs is
       then
          raise Ada.IO_Exceptions.Data_Error;
       end if;
-      Files.Operations.Settle_History (Model);
+      Files.Undo_Recording.Settle_History (Model);
       Same_View := Matches_Current_View (Work);
       declare
          Choice : constant Disposition := Choose;
       begin
          Files.Model.End_Foreground_Job (Model);
          if Choice = Discard then
-            return (Status => Files.Operations.Operation_Success, others => <>);
+            return (Status => Files.Operation_Results.Operation_Success, others => <>);
          end if;
-         if Done.Result.Status /= Files.Operations.Operation_Success then
+         if Done.Result.Status /= Files.Operation_Results.Operation_Success then
             Recover_Undo (Model, Job);
          end if;
          case Choice is
             when Discard =>
-               return (Status => Files.Operations.Operation_Success, others => <>);
+               return (Status => Files.Operation_Results.Operation_Success, others => <>);
             when Reload_View =>
                if Same_View then
                   --  Finalize error/history before the refresh captures this
@@ -543,7 +519,7 @@ package body Files.Operation_Jobs is
                --  once the diagnostic it must preserve is final.
                Files.Model.Set_Error (Model, To_String (Done.Visible_Error));
                Reload_Current_View (To_String (Done.Selection));
-               Files.Operations.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
+               Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
                return Done.Result;
             when Report =>
                return Report_In_View;
@@ -570,7 +546,7 @@ package body Files.Operation_Jobs is
               Files.History_Journal.Merge (Files.Process_Jobs.Path (Job, ""), Model);
             pragma Unreferenced (Restored);
          begin
-            Files.Operations.Settle_History (Model);
+            Files.Undo_Recording.Settle_History (Model);
          end;
          Recover_Undo (Model, Job);
          --  Even an interrupted destructive operation may have changed its
@@ -581,64 +557,9 @@ package body Files.Operation_Jobs is
             Reload_Current_View;
          end if;
          if Cancelled then
-            return (Status => Files.Operations.Operation_Success, others => <>);
+            return (Status => Files.Operation_Results.Operation_Success, others => <>);
          end if;
-         return (Status => Files.Operations.Operation_Failed,
+         return (Status => Files.Operation_Results.Operation_Failed,
                  Error_Key => To_Unbounded_String (Failed_Key), others => <>);
    end Advance;
-
-   procedure Run_Helper (Directory : String) is
-      Work  : Request;
-      Done  : Outcome;
-      Model : Files.Model.Window_Model;
-
-      procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
-      begin
-         Write_Outcome (Stream, Done);
-      end Write;
-   begin
-      Work := Read_Request (Hostkit.Fs.Join (Directory, Files.Process_Jobs.Request_File));
-      Done.Kind := Work.Kind;
-      Files.Model.Initialize (Model, To_String (Work.Root), Work.Selected, Hostkit.Fs.Home_Directory);
-      if Work.Recent then
-         Files.Model.Navigate_Recent (Model, Work.Selected);
-      end if;
-      if not Files.History_Journal.Restore (Directory, Model) then
-         raise Ada.IO_Exceptions.Data_Error;
-      end if;
-      Files.History_Journal.Save (Model, Required => Work.Kind in Trash | Undo | Redo);
-      if Work.Kind in Search_Names | Search_Contents then
-         Files.Model.Set_Filter (Model, To_String (Work.Query));
-      else
-         Files.Model.Selection.Select_All_Visible (Model);
-      end if;
-      Done.Result :=
-        (case Work.Kind is
-            when Duplicate => Files.Operations.Duplicate_Selected (Model, Work.Settings),
-            when Compress_Zip =>
-              Files.Operations.Compress_Selected (Model, Work.Settings, Files.Operations.Zip_Archive),
-            when Compress_Seven_Zip =>
-              Files.Operations.Compress_Selected (Model, Work.Settings, Files.Operations.Seven_Zip_Archive),
-            when Extract => Files.Operations.Extract_Selected (Model, Work.Settings),
-            when Search_Names => Files.Operations.Run_Search (Model, Work.Settings, Files.Types.Search_Names),
-            when Search_Contents => Files.Operations.Run_Search (Model, Work.Settings, Files.Types.Search_Contents),
-            when Trash => Files.Operations.Delete_Selected (Model, Work.Settings),
-            when Delete_Permanently => Files.Operations.Delete_Selected_Permanently (Model, Work.Settings),
-            when Restore => Files.Operations.Restore_Selected_From_Trash (Model, Work.Settings),
-            when Empty_Trash => Files.Operations.Empty_Trash (Model, Work.Settings),
-            when Undo => Files.Operations.Undo_Last (Model, Work.Settings),
-            when Redo => Files.Operations.Redo_Last (Model, Work.Settings));
-      Files.History_Journal.Save (Model);
-      Done.Visible_Error := To_Unbounded_String
-        (if Files.Model.Last_Error_Key (Model) = "" then To_String (Done.Result.Error_Key)
-         else Files.Model.Last_Error_Key (Model));
-      Done.Recent := Files.Model.In_Recent_View (Model);
-      Done.Selection := To_Unbounded_String (Files.Model.Selection.Selected_Name (Model));
-      for Row of Files.Model.Visible_Rows (Model) loop
-         Done.Items.Append (Row.Item);
-      end loop;
-      Done.Signature := Files.Model.Directory_Signature_Of (Model);
-      Done.Moves := Files.Model.Take_Path_Moves (Model);
-      Files.Job_Records.Publish_Result (Directory, Write'Access);
-   end Run_Helper;
 end Files.Operation_Jobs;

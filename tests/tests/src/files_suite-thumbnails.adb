@@ -43,7 +43,6 @@ package body Files_Suite.Thumbnails is
    use type Hostkit.Host.Kind;
    use type Files.Commands.Command_Id;
    use type Files.File_System.Thumbnails.Thumbnail_Status;
-   use type Files.Operations.Operation_Status;
    use type Interfaces.Unsigned_8;
    use type Textrender.Fonts.Load_Result;
    use type Files.Types.View_Mode;

@@ -16,10 +16,11 @@ separate (Files_Suite.History)
               "rename b to c, then a to b");
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, Root, Load.Items, Root);
-      Files.Operations.Record_Undo
+      Files.Undo_Recording.Record_Undo
         (Model, Files.Model.Undo_Rename,
-         From => [To_Unbounded_String (C), To_Unbounded_String (B)],
-         To   => [To_Unbounded_String (B), To_Unbounded_String (A)]);
+         Files_Suite.Support.Undo_Items
+           (From => [To_Unbounded_String (C), To_Unbounded_String (B)],
+            To   => [To_Unbounded_String (B), To_Unbounded_String (A)]));
       Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,

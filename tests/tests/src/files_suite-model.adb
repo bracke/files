@@ -1,3 +1,4 @@
+with Files.Undo_Recording;
 with Files.Items;
 with Files.Model.Testing;
 with Ada.Calendar;

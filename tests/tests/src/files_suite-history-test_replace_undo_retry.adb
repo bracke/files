@@ -44,15 +44,17 @@ separate (Files_Suite.History)
                end if;
                Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
                if Scenario = Recovery_Only then
-                  Files.Operations.Record_Undo
-                    (Model, Files.Model.Undo_Restore_Trash, Backups, To_Paths, Redoable => False);
+                  Files.Undo_Recording.Record_Undo
+                    (Model, Files.Model.Undo_Restore_Trash, Files_Suite.Support.Undo_Items (Backups, To => To_Paths),
+                     Redoable => False);
                else
-                  Files.Operations.Record_Undo
+                  Files.Undo_Recording.Record_Undo
                     (Model,
                      (case Scenario is
                          when Move_Replace => Files.Model.Undo_Move,
                          when Copy_Replace | Recovery_Only => Files.Model.Undo_Delete_Created),
-                     From_Paths, To_Paths, Redoable => False, Restore_Trash => Backups);
+                     Files_Suite.Support.Undo_Items (From_Paths, To => To_Paths), Redoable => False,
+                     Replaced => Files_Suite.Support.Replaced_Originals (Backups));
                end if;
                declare
                   Held : constant String := Join (Ada.Directories.Containing_Directory (To_String (Back_B)),

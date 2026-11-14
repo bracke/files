@@ -28,7 +28,6 @@ package body Files_Suite.Operations_Support is
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;
    use type Files.Events.Input_Action_Kind;
-   use type Files.Operations.Operation_Status;
    use Files_Suite.Support;
 
    function Complete_Operation

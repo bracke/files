@@ -1,4 +1,4 @@
-separate (Files.Operations)
+separate (Files.Undo_Recording)
 procedure Settle_History (Model : in out Files.Model.Window_Model) is
    Discarded, Released : Files.Types.String_Vectors.Vector;
    Journal_Dirty : Boolean;

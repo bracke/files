@@ -4,7 +4,7 @@ with Files.Job_Cleanup;
 with Files.Job_Context;
 with Files.Job_Scavenger;
 with Files.Job_Transports;
-with Files.Operation_Jobs;
+with Files.Operation_Jobs.Helper;
 with Files.Transfer_Jobs;
 with Files.Refresh_Jobs;
 with Files.Folder_Size;
@@ -62,7 +62,7 @@ package body Files.Job_Helpers is
                Files.Job_Context.Initialize (Directory);
                case Mode is
                   when Transfer => Files.Transfer_Jobs.Run_Helper (Directory);
-                  when Operation => Files.Operation_Jobs.Run_Helper (Directory);
+                  when Operation => Files.Operation_Jobs.Helper.Run (Directory);
                   when Refresh => Files.Refresh_Jobs.Run_Helper (Directory);
                   when Files.Helper_Modes.Folder_Size => Files.Folder_Size.Run_Helper (Directory);
                   when Watch =>

@@ -31,7 +31,7 @@ separate (Files_Suite.Recovery)
         (Natural (Decoded.Action.Arguments.Length), 1, "a decoded result keeps its action's arguments");
       Files_Suite.Support.Assert_Equal (Decoded.Action.Use_Shell, True, "a decoded result keeps its shell flag");
       Assert
-        (Files.Operations."=" (Decoded.Execution, Result.Execution),
+        (Files.Operation_Results."=" (Decoded.Execution, Result.Execution),
          "a decoded result keeps its execution outcome: attempted="
          & Boolean'Image (Decoded.Execution.Attempted)
          & " found=" & Boolean'Image (Decoded.Execution.Executable_Found)

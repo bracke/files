@@ -35,8 +35,9 @@ separate (Files_Suite.Recovery)
          Sources.Clear;
          Paths.Append (To_Unbounded_String (Join (Root, "victim.txt")));
          if Job_Kind = Undo_Job then
-            Files.Operations.Record_Undo
-              (Model, Files.Model.Undo_Delete_Created, Paths, Sources, Redoable => False);
+            Files.Undo_Recording.Record_Undo
+              (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Undo_Items (Paths, To => Sources),
+               Redoable => False);
          elsif Job_Kind = Redo_Job then
             Sources := Paths;
             Paths.Clear;
@@ -47,7 +48,7 @@ separate (Files_Suite.Recovery)
                  (Files.Model.Undo_Item'(From => Paths (Index), Forward => Sources (Index), others => <>));
             end loop;
             Files.Model.History.Push_Redo (Model, Action);
-            Files.Operations.Testing.Settle_History (Model);
+            Files.Undo_Recording.Settle_History (Model);
          end if;
          Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", "1");
          Before := Now;
@@ -178,8 +179,10 @@ separate (Files_Suite.Recovery)
       Paths.Clear;
       Sources.Clear;
       Paths.Append (To_Unbounded_String (Join (Root, "checkpoint-target")));
-      Files.Operations.Record_Undo
-        (Model, Files.Model.Undo_Delete_Created, Paths, Sources, Redoable => False);
+
+      Files.Undo_Recording.Record_Undo
+        (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Undo_Items (Paths, To => Sources),
+         Redoable => False);
       Write_Binary_File (Join (Root, "blocked-transport"), "a file cannot hold a checkpoint");
       Files.Job_Context.Initialize (Join (Root, "blocked-transport"));
       Step := Files.Operations.Undo_Last (Model, Settings);

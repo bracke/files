@@ -2,6 +2,7 @@ with Ada.Real_Time;
 with Ada.Strings.Unbounded;
 
 package body Files.Operations.Testing is
+   use type Files.Operation_Results.Operation_Status;
 
    use Ada.Strings.Unbounded;
 
@@ -62,40 +63,6 @@ package body Files.Operations.Testing is
       Settings : Files.Settings.Settings_Model)
       return Operation_Result
      renames Files.Operations.Set_Permissions_For;
-
-   function Try_Record_Undo
-     (Model       : in out Files.Model.Window_Model;
-      Kind        : Files.Model.Undo_Action_Kind;
-      From        : Files.Types.String_Vectors.Vector;
-      To          : Files.Types.String_Vectors.Vector;
-      Forward     : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
-      Redoable    : Boolean := True;
-      Restore_Trash : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Provenance  : Undo_Provenance := (others => <>)) return Boolean
-     renames Files.Operations.Try_Record_Undo;
-
-   procedure Settle_History (Model : in out Files.Model.Window_Model)
-     renames Files.Operations.Settle_History;
-
-   --  What Count_Undo_Records counted.
-   Records : Natural := 0;
-
-   --  The Undo_Record_Attempted hook Count_Undo_Records installs.
-   procedure Note_Record is
-   begin
-      Records := Records + 1;
-   end Note_Record;
-
-   procedure Count_Undo_Records (Count : Boolean) is
-   begin
-      Records := 0;
-      Undo_Record_Attempted := (if Count then Note_Record'Access else null);
-   end Count_Undo_Records;
-
-   function Undo_Records return Natural is (Records);
 
    --  The fake throttle clock: an instant well inside the clock's range,
    --  how often it was read, and the reading that moves it a second on.

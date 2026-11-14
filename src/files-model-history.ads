@@ -52,18 +52,17 @@ package Files.Model.History is
 
    --  Start recording a performed action: advance the model revision and, for
    --  a completed rename or move, note each path move whether or not the
-   --  action ends up undoable. Undo_None or an empty From only advances the
+   --  action ends up undoable. Undo_None or no items only advances the
    --  revision. Touches no filesystem; Commit_Undo_Record finishes the record.
    --
    --  @param Model Model to update.
    --  @param Kind  Kind of the performed action.
-   --  @param From  Current (new) locations of the action's items.
-   --  @param To    Old locations, parallel to From.
+   --  @param Items Its items: each From its current (new) location, and for a
+   --    rename or move its To the old one.
    procedure Begin_Undo_Record
      (Model : in out Window_Model;
       Kind  : Undo_Action_Kind;
-      From  : Files.Types.String_Vectors.Vector;
-      To    : Files.Types.String_Vectors.Vector);
+      Items : Undo_Item_Vectors.Vector);
 
    --  Finish recording an action whose members the operations layer has
    --  already verified against the filesystem: the redo stack is retired (a

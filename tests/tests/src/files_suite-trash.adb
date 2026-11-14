@@ -1,3 +1,4 @@
+with Files.Undo_Recording;
 with Files.File_System.Trash;
 with Files.File_System.Permissions;
 with Files.Protocol_Names;

@@ -77,10 +77,12 @@ begin
             Reload_With_Error (Model, Settings, To_String (Mutation.Error_Key));
             return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
          end if;
-         Progress.From.Append (Trashed);
-         Progress.To.Append (Item.Full_Path);
-         Progress.Identities.Append
-           (To_Unbounded_String (Files.File_Identities.Token (To_String (Trashed))));
+         Progress.Items.Append
+           (Files.Model.Undo_Item'
+              (From     => Trashed,
+               To       => Item.Full_Path,
+               Identity => To_Unbounded_String (Files.File_Identities.Token (To_String (Trashed))),
+               others   => <>));
          --  Labels go into the trash with the item and come back with it,
          --  so a new file at the old path inherits none. A native trash
          --  that does not say where the item went keeps them in place.

@@ -172,10 +172,9 @@ private package Files.Operations.Support is
       --  (Files.History_Journal.Save, Required), stopping a helper that
       --  cannot.
       Durable : Boolean := False;
-      --  The batch appends to these, parallel to one another, as for
-      --  Try_Record_Undo and its Provenance.
-      From, To, Forward          : Files.Types.String_Vectors.Vector;
-      Identities, Tree_Revisions : Files.Types.String_Vectors.Vector;
+      --  The batch appends an item for each entry it made, as for
+      --  Try_Record_Undo.
+      Items : Files.Model.Undo_Item_Vectors.Vector;
       --  Kept by Checkpoint_Undo and Finish_Undo: whether the top Undo entry
       --  is this batch's, whether a record was attempted, how many From
       --  members the last attempt covered, how many of those were verified

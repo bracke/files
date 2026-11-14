@@ -3,7 +3,7 @@ with Ada.Streams;
 with Files.Bounded_Streams;
 
 with Files.File_System;
-with Files.Operations;
+with Files.Operation_Results;
 with Files.Process_Jobs;
 with Files.Settings;
 with Files.Types;
@@ -125,14 +125,14 @@ package Files.Job_Records is
    --  @param Value Result to encode.
    procedure Write_Operation_Result
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Value : Files.Operations.Operation_Result);
+      Value : Files.Operation_Results.Operation_Result);
 
    --  Decode a bounded background operation result.
    --  @param Stream Source stream.
    --  @return Decoded result.
    function Read_Operation_Result
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
-      return Files.Operations.Operation_Result;
+      return Files.Operation_Results.Operation_Result;
    --  Drop the thumbnails past Max_Thumbnail_Transport_Bytes, in order: the
    --  items keep their icons, and the transport stays inside its bound
    --  instead of failing the whole read of a large photo folder.

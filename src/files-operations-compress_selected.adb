@@ -188,7 +188,6 @@ begin
       Status       : Zlib.Status_Code;
       Stage        : constant String := Files.Job_Context.Create_Stage (Directory);
       Staged       : constant String := Hostkit.Fs.Join (Stage, Archive_Name);
-      Created      : Files.Types.String_Vectors.Vector;
       Identities   : Files.Types.String_Vectors.Vector;
       Tree_Revisions : Files.Types.String_Vectors.Vector;
 
@@ -242,11 +241,15 @@ begin
       Files.Job_Context.Record_Created
         (Output_Path, "", To_String (Identities.First_Element), To_String (Tree_Revisions.First_Element));
       Discard_Stage;
-      Created.Append (To_Unbounded_String (Output_Path));
       Record_Undo
-        (Model, Files.Model.Undo_Delete_Created, Created,
-         Files.Types.String_Vectors.Empty_Vector, Redoable => False,
-         Provenance => (Identities => Identities, Tree_Revisions => Tree_Revisions, others => <>));
+        (Model, Files.Model.Undo_Delete_Created,
+         Files.Model.Undo_Item_Vectors.To_Vector
+           ((From          => To_Unbounded_String (Output_Path),
+             Identity      => Identities.First_Element,
+             Tree_Revision => Tree_Revisions.First_Element,
+             others        => <>), 1),
+         Redoable   => False,
+         Provenance => (Published_Main => 1, others => <>));
 
       --  Reload so the new archive appears, and select it.
       declare

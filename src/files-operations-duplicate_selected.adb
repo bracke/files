@@ -40,7 +40,7 @@ is
    begin
       Finish_Failed_Undo (Model, Progress);
       return Batch_Failed
-        (Model, Settings, "error.duplicate.failed", Directory, Wrote_Some => not Progress.From.Is_Empty);
+        (Model, Settings, "error.duplicate.failed", Directory, Wrote_Some => not Progress.Items.Is_Empty);
    end Failed;
 begin
    if Files.Model.Selection.Includes_Temporary (Model) then
@@ -87,10 +87,13 @@ begin
                return Failed;
             end if;
 
-            Progress.From.Append (To_Unbounded_String (Dest_Path));
-            Progress.Forward.Append (To_Unbounded_String (Source));
-            Progress.Identities.Append (Identity);
-            Progress.Tree_Revisions.Append (Revision);
+            Progress.Items.Append
+              (Files.Model.Undo_Item'
+                 (From          => To_Unbounded_String (Dest_Path),
+                  Forward       => To_Unbounded_String (Source),
+                  Identity      => Identity,
+                  Tree_Revision => Revision,
+                  others        => <>));
             Checkpoint_Undo (Model, Progress);
             if not Created_Any then
                First_Created := To_Unbounded_String (Dest_Name);

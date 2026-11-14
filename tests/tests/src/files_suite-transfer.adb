@@ -1,3 +1,4 @@
+with Files.Undo_Recording;
 with Files.Foreground_Jobs;
 with Files.File_System.Trash;
 with Files.File_System.Permissions;

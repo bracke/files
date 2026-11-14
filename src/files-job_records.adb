@@ -484,10 +484,10 @@ package body Files.Job_Records is
 
    procedure Write_Operation_Result
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-      Value : Files.Operations.Operation_Result)
+      Value : Files.Operation_Results.Operation_Result)
    is
    begin
-      Files.Operations.Operation_Status'Output (Stream, Value.Status);
+      Files.Operation_Results.Operation_Status'Output (Stream, Value.Status);
       Write_String (Stream, To_String (Value.Error_Key), Max_Error_Length);
       Write_String (Stream, To_String (Value.Path), Max_Path_Length);
       Write_String (Stream, To_String (Value.Action.Executable), Max_Path_Length);
@@ -501,11 +501,11 @@ package body Files.Job_Records is
 
    function Read_Operation_Result
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class)
-      return Files.Operations.Operation_Result
+      return Files.Operation_Results.Operation_Result
    is
-      Result : Files.Operations.Operation_Result;
+      Result : Files.Operation_Results.Operation_Result;
    begin
-      Result.Status := Files.Operations.Operation_Status'Input (Stream);
+      Result.Status := Files.Operation_Results.Operation_Status'Input (Stream);
       Result.Error_Key := To_Unbounded_String (Read_String (Stream, Max_Error_Length));
       Result.Path := To_Unbounded_String (Read_String (Stream, Max_Path_Length));
       Result.Action.Executable := To_Unbounded_String (Read_String (Stream, Max_Path_Length));

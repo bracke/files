@@ -35,9 +35,9 @@ separate (Check_All)
          Pair ("file_system", "pause_sweep_work", "resume_sweep_work"),
          Pair ("file_system", "watch_ownership_changes", "stop_watching_ownership_changes"),
          Pair ("folder_size", "fail_result_reads", "fail_result_reads", Off => "0"),
-         Pair ("operations", "count_undo_records", "count_undo_records", Off => "false"),
          Pair ("operations", "fake_checkpoint_clock", "fake_checkpoint_clock", Off => "false"),
-         Pair ("process_jobs", "refuse_next_launch", "clear_refusal")];
+         Pair ("process_jobs", "refuse_next_launch", "clear_refusal"),
+         Pair ("undo_recording", "count_undo_records", "count_undo_records", Off => "false")];
 
       --  How a Testing procedure that arms something is named: one of these
       --  starts its name.
@@ -601,9 +601,9 @@ separate (Check_All)
                Flagged => False),
          Make ("procedure Test is" & LF
                & "   procedure Cleanup is" & LF & "   begin" & LF
-               & "      Files.Operations.Testing.Count_Undo_Records (False);" & LF & "   end Cleanup;" & LF
+               & "      Files.Undo_Recording.Testing.Count_Undo_Records (False);" & LF & "   end Cleanup;" & LF
                & "   procedure Prepare is" & LF & "   begin" & LF
-               & "      Files.Operations.Testing.Count_Undo_Records (True);" & LF & "   end Prepare;" & LF
+               & "      Files.Undo_Recording.Testing.Count_Undo_Records (True);" & LF & "   end Prepare;" & LF
                & "begin" & LF & "   Prepare;" & LF & "   if Ready then" & LF & "      Check;" & LF & "   end if;" & LF
                & "   Cleanup;" & LF
                & "exception" & LF & "   when others =>" & LF & "      Cleanup;" & LF & "      raise;" & LF

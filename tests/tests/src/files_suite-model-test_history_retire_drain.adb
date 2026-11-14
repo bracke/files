@@ -1,5 +1,5 @@
+with Files.Undo_Recording;
 with Files.File_System.Trash;
-with Files.Operations.Testing;
 with Project_Tools.Files;
 separate (Files_Suite.Model)
    procedure Test_History_Retire_Drain (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -70,7 +70,7 @@ separate (Files_Suite.Model)
       --  The trimmed entry could still have been undone and the rejected one
       --  never could be: neither original is deleted, both go to the trash.
       Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
-      Files.Operations.Testing.Settle_History (Model);
+      Files.Undo_Recording.Settle_History (Model);
       Assert (not Ada.Directories.Exists (To_String (Backup)),
               "settling the history moves the payload its retired entry held");
       Assert (not Ada.Directories.Exists (To_String (Rejected)),

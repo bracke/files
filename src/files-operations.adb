@@ -32,6 +32,7 @@ with Ada.Strings.Hash;
 with Ada.Unchecked_Deallocation;
 with Files.File_Identities;
 with Files.History_Journal;
+with Files.Undo_Recording;
 with Files.Archive_Writing;
 with Files.Model.Pasting;
 with Files.Model.Folder_Sizes;
@@ -40,6 +41,7 @@ with Files.Model.Rename;
 with Files.Model.Selection;
 
 package body Files.Operations is
+   use type Files.Operation_Results.Operation_Status;
    use Ada.Strings.Unbounded;
    use type Files.File_System.Thumbnails.Thumbnail_Status;
    use type Files.Types.Item_Kind;
@@ -50,6 +52,34 @@ package body Files.Operations is
    use type Zlib.Status_Code;
 
    use Files.Operations.Support;
+
+   --  The undo history is recorded by Files.Undo_Recording; these name it
+   --  here for the bodies that record.
+   subtype Undo_Provenance is Files.Undo_Recording.Undo_Provenance;
+
+   function Try_Record_Undo
+     (Model       : in out Files.Model.Window_Model;
+      Kind        : Files.Model.Undo_Action_Kind;
+      Items       : Files.Model.Undo_Item_Vectors.Vector;
+      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
+      Redoable    : Boolean := True;
+      Replaced    : Files.Model.Replaced_Original_Vectors.Vector :=
+        Files.Model.Replaced_Original_Vectors.Empty_Vector;
+      Provenance  : Undo_Provenance := (others => <>)) return Boolean
+     renames Files.Undo_Recording.Try_Record_Undo;
+
+   procedure Record_Undo
+     (Model       : in out Files.Model.Window_Model;
+      Kind        : Files.Model.Undo_Action_Kind;
+      Items       : Files.Model.Undo_Item_Vectors.Vector;
+      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
+      Redoable    : Boolean := True;
+      Replaced    : Files.Model.Replaced_Original_Vectors.Vector :=
+        Files.Model.Replaced_Original_Vectors.Empty_Vector;
+      Provenance  : Undo_Provenance := (others => <>))
+     renames Files.Undo_Recording.Record_Undo;
+
+   procedure Settle_History (Model : in out Files.Model.Window_Model) renames Files.Undo_Recording.Settle_History;
 
    function Unsafe_Open_Action
      (Model : in out Files.Model.Window_Model;
@@ -434,16 +464,16 @@ package body Files.Operations is
       New_Text : String)
       return Operation_Result
    is
-      Undo_From, Undo_To, Undo_Forward, Identities : Files.Types.String_Vectors.Vector;
    begin
-      Identities.Append (Identity);
-      Undo_From.Append (To_Unbounded_String (Path));
-      Undo_To.Append (To_Unbounded_String (Old_Text));
-      Undo_Forward.Append (To_Unbounded_String (New_Text));
       Record_Undo
-        (Model, Kind, Undo_From, Undo_To,
-         Forward => Undo_Forward,
-         Provenance => (Identities => Identities, others => <>));
+        (Model, Kind,
+         Files.Model.Undo_Item_Vectors.To_Vector
+           ((From          => To_Unbounded_String (Path),
+             To            => To_Unbounded_String (Old_Text),
+             Forward       => To_Unbounded_String (New_Text),
+             Identity      => Identity,
+             Tree_Revision => Null_Unbounded_String), 1),
+         Provenance => (Published_Main => 1, others => <>));
       declare
          Reload : constant Operation_Result :=
            Reload_Current_Directory (Model, Settings, Files.Model.Selection.Selected_Name (Model));
@@ -488,24 +518,6 @@ package body Files.Operations is
    begin
       Files.Model.Set_Current_Is_Trash (Model, Is_Trash_Directory (Files.Model.Current_Path (Model)));
    end Settle_Current_Is_Trash;
-
-   procedure Ensure_Selected_Item_Extra
-     (Model       : in out Files.Model.Window_Model;
-      Show_Hidden : Boolean := True) is
-   begin
-      if not Files.Model.Background_Transfers (Model)
-        and then Files.Model.Selected_Item_Needs_Extra (Model)
-      then
-         declare
-            Item : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
-         begin
-            Files.Model.Set_Selected_Item_Extra
-              (Model,
-               Files.File_System.Extra_Info_Of
-                 (To_String (Item.Full_Path), Item.Kind, To_String (Item.Filetype), Show_Hidden));
-         end;
-      end if;
-   end Ensure_Selected_Item_Extra;
 
    use type Files.Model.Undo_Create_Kind;
 
@@ -620,38 +632,9 @@ package body Files.Operations is
       return Operation_Result
    is (Replay (Model, Settings, Replay_Redo));
 
-   function Try_Record_Undo
-     (Model       : in out Files.Model.Window_Model;
-      Kind        : Files.Model.Undo_Action_Kind;
-      From        : Files.Types.String_Vectors.Vector;
-      To          : Files.Types.String_Vectors.Vector;
-      Forward     : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
-      Redoable    : Boolean := True;
-      Restore_Trash : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Provenance  : Undo_Provenance := (others => <>)) return Boolean is separate;
-
-   procedure Record_Undo
-     (Model       : in out Files.Model.Window_Model;
-      Kind        : Files.Model.Undo_Action_Kind;
-      From        : Files.Types.String_Vectors.Vector;
-      To          : Files.Types.String_Vectors.Vector;
-      Forward     : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
-      Redoable    : Boolean := True;
-      Restore_Trash : Files.Types.String_Vectors.Vector :=
-        Files.Types.String_Vectors.Empty_Vector;
-      Provenance  : Undo_Provenance := (others => <>))
-   is separate;
-
    procedure Clear_Undo (Model : in out Files.Model.Window_Model) is separate;
 
    procedure Release_History (Model : in out Files.Model.Window_Model) is separate;
-
-   procedure Settle_History (Model : in out Files.Model.Window_Model) is separate;
 
    function Prepare_Quick_Look
      (Item : Files.Items.Directory_Item)

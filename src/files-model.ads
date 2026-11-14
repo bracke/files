@@ -852,7 +852,7 @@ package Files.Model is
    --  Return whether the selected item's "extra info" (folder child count,
    --  document counts, symlink target) is wanted and not computed yet: the info
    --  pane is open, no paste or listing is in flight, and the value is not
-   --  cached. Files.Operations.Ensure_Selected_Item_Extra computes it.
+   --  cached. Files.Window_Polls.Ensure_Selected_Item_Extra computes it.
    --
    --  @param Model Model to inspect.
    --  @return True when the selected item's extra info should be computed.
@@ -1190,17 +1190,13 @@ package Files.Model is
       Clears_Clipboard        : Boolean := True;
       Current                 : UString;
       First_Dest              : UString;
-      Undo_From               : Files.Types.String_Vectors.Vector;
-      Undo_To                 : Files.Types.String_Vectors.Vector;
-      Identities              : Files.Types.String_Vectors.Vector;
-      Tree_Revisions          : Files.Types.String_Vectors.Vector;
+      --  Each write: the destination (From), its source (To), and the
+      --  identity and tree revision it was published with.
+      Written                 : Undo_Item_Vectors.Vector;
       Verified_Created_Count  : Natural := 0;
-      --  Trash locations of destinations overwritten by a Replace during this
-      --  paste, so the undo entry can restore them (each is restored to its
-      --  own recorded original path).
-      Replaced_Trash          : Files.Types.String_Vectors.Vector;
-      Replaced_Identities     : Files.Types.String_Vectors.Vector;
-      Replaced_Targets        : Files.Types.String_Vectors.Vector;
+      --  Destinations a Replace overwrote during this paste, preserved so the
+      --  undo entry can restore each to its own recorded original path.
+      Replaced                : Replaced_Original_Vectors.Vector;
       Verified_Replaced_Count : Natural := 0;
    end record;
 

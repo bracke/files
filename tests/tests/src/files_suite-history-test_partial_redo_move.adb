@@ -23,12 +23,12 @@ separate (Files_Suite.History)
             Sources.Append (To_Unbounded_String (Source_A));
             Sources.Append (To_Unbounded_String (Source_B));
             Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-            Files.Operations.Record_Undo
+            Files.Undo_Recording.Record_Undo
               (Model,
                (case Scenario is
                    when Move_Action   => Files.Model.Undo_Move,
                    when Rename_Action => Files.Model.Undo_Rename),
-               Destinations, Sources);
+               Files_Suite.Support.Undo_Items (Destinations, To => Sources));
             Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal

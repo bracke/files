@@ -2,11 +2,28 @@ with Files.Extra_Info_Reader;
 with Files.Model;
 with Files.Preview_Decoder;
 
---  What the window loop asks for each pass, beside its input: details,
---  folder sizes and Quick Look images read off the UI thread, handed to the
---  model once they are in. Driven by Files.Application.Windows; nothing here
---  is an operation the user started.
+--  What the shown window needs read for it beside its input: details,
+--  folder sizes and Quick Look images, read off the UI thread and handed to
+--  the model once they are in (or, with no helpers, read at once). Driven by
+--  the window loop and by what changes the selection; nothing here is an
+--  operation the user started.
 package Files.Window_Polls is
+
+   --  Compute and cache the selected item's "extra info" (folder child count,
+   --  document counts, symlink target) when the info pane wants it and it has
+   --  not been computed yet. Called after input so the info pane can show the
+   --  detail without every item paying for it on load. A no-op when the info
+   --  pane is closed, nothing is selected, or the value is already cached --
+   --  and in a window (Background_Transfers), whose loop reads it off the UI
+   --  thread through Poll_Selected_Item_Extra instead.
+   --
+   --  @param Model Window model whose selected item is updated in place.
+   --  @param Show_Hidden Whether the listing shows hidden entries
+   --    (Settings.Show_Hidden_Files): a folder's count includes them only
+   --    then. True, for a caller without settings, counts every entry.
+   procedure Ensure_Selected_Item_Extra
+     (Model       : in out Files.Model.Window_Model;
+      Show_Hidden : Boolean := True);
 
    --  Ensure_Selected_Item_Extra for a window: the details are read by
    --  Files.Extra_Info_Reader's worker, asked for here and taken on a later

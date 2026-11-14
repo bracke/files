@@ -1,3 +1,4 @@
+with Files.Undo_Recording;
 with Files.Model.Quick_Look;
 separate (Files_Suite.Model)
    --  Going back or forward leaves the view as navigating does: Quick Look
@@ -17,9 +18,7 @@ separate (Files_Suite.Model)
       declare
          Before : constant Natural := Files.Model.Revision (Model);
       begin
-         Files.Operations.Record_Undo
-           (Model, Files.Model.Undo_Move,
-            Files.Types.String_Vectors.Empty_Vector, Files.Types.String_Vectors.Empty_Vector);
+         Files.Undo_Recording.Record_Undo (Model, Files.Model.Undo_Move, Files.Model.Undo_Item_Vectors.Empty_Vector);
          Assert (Files.Model.Revision (Model) /= Before, "recording an Undo step is a change the view redraws");
       end;
    end Test_History_Move_Leaves_View;

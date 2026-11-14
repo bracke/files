@@ -6,9 +6,8 @@ function Commit_Rename
 is
    Targets     : constant Files.Model.Rename.Target_Vectors.Vector := Files.Model.Rename.Targets (Model);
    Current_Dir : constant String := Files.Model.Current_Path (Model);
-   From_V      : Files.Types.String_Vectors.Vector;
-   To_V        : Files.Types.String_Vectors.Vector;
-   Identities  : Files.Types.String_Vectors.Vector;
+   --  Each rename done: the new path, the old one, and the identity there.
+   Renamed     : Files.Model.Undo_Item_Vectors.Vector;
    Success     : Natural := 0;
    Failure     : Natural := 0;
    Need_Reload : Boolean := False;
@@ -84,9 +83,12 @@ begin
                if Mutation.Success then
                   Success := Success + 1;
                   Need_Reload := True;
-                  From_V.Append (To_Unbounded_String (New_Path));
-                  To_V.Append (Target.Old_Full_Path);
-                  Identities.Append (To_Unbounded_String (Files.File_Identities.Token (New_Path)));
+                  Renamed.Append
+                    (Files.Model.Undo_Item'
+                       (From     => To_Unbounded_String (New_Path),
+                        To       => Target.Old_Full_Path,
+                        Identity => To_Unbounded_String (Files.File_Identities.Token (New_Path)),
+                        others   => <>));
                   if Focus_Name = Null_Unbounded_String then
                      Focus_Name := Target.New_Name;
                      Focus_Path := To_Unbounded_String (New_Path);
@@ -141,10 +143,10 @@ begin
    --  At least one rename succeeded; leave rename-edit mode even if the
    --  refresh fails, rather than stranding the model in it.
    Files.Model.Clear_Edit_State (Model);
-   if not From_V.Is_Empty then
+   if not Renamed.Is_Empty then
       Record_Undo
-        (Model, Files.Model.Undo_Rename, From_V, To_V,
-      Provenance => (Identities => Identities, others => <>));
+        (Model, Files.Model.Undo_Rename, Renamed,
+         Provenance => (Published_Main => Natural (Renamed.Length), others => <>));
    end if;
 
    if Need_Reload then

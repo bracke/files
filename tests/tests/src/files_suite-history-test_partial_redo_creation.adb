@@ -37,9 +37,10 @@ separate (Files_Suite.History)
                Sources.Append (To_Unbounded_String (Source_A));
                Sources.Append (To_Unbounded_String (Source_B));
                Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
-               Files.Operations.Record_Undo
-                 (Model, Files.Model.Undo_Delete_Created, Destinations,
-                  Files.Types.String_Vectors.Empty_Vector, Forward => Sources, Create_Kind => Kind);
+               Files.Undo_Recording.Record_Undo
+                 (Model, Files.Model.Undo_Delete_Created,
+                  Files_Suite.Support.Undo_Items (Destinations, Forward => Sources),
+                  Create_Kind => Kind);
                Step := Complete_Operation
                        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal

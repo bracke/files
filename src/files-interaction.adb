@@ -397,7 +397,7 @@ package body Files.Interaction is
    begin
       Persist_Recent_Opens (Model, Settings, Settings_Path, Result);
       Files.Window_Polls.Update_Folder_Size (Model);
-      Files.Operations.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
+      Files.Window_Polls.Ensure_Selected_Item_Extra (Model, Settings.Show_Hidden_Files);
    end Finish_Dispatch;
 
    procedure Handle_Key

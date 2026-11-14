@@ -22,7 +22,7 @@ is
    begin
       Finish_Failed_Undo (Model, Progress);
       return Batch_Failed
-        (Model, Settings, "error.extract.failed", Directory, Wrote_Some => not Progress.From.Is_Empty);
+        (Model, Settings, "error.extract.failed", Directory, Wrote_Some => not Progress.Items.Is_Empty);
    end Failed;
 begin
    if Files.Model.Selection.Includes_Temporary (Model) then
@@ -133,9 +133,12 @@ begin
                   end;
                end;
                Discard_Stage;
-               Progress.From.Append (To_Unbounded_String (Dest_Dir));
-               Progress.Identities.Append (Made_Identity);
-               Progress.Tree_Revisions.Append (Made_Revision);
+               Progress.Items.Append
+                 (Files.Model.Undo_Item'
+                    (From          => To_Unbounded_String (Dest_Dir),
+                     Identity      => Made_Identity,
+                     Tree_Revision => Made_Revision,
+                     others        => <>));
                Checkpoint_Undo (Model, Progress);
                if not Extracted_Any then
                   First_Created := To_Unbounded_String (Dest_Name);

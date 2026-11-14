@@ -2,6 +2,7 @@ with Ada.Real_Time;
 with Ada.Strings.Unbounded;
 with Guikit.Shared_Bytes;
 with Files.Extra_Info;
+with Files.File_System;
 with Files.Folder_Size;
 with Files.Images;
 with Files.Items;
@@ -15,6 +16,24 @@ with Files.Types;
 package body Files.Window_Polls is
    use Ada.Strings.Unbounded;
    use type Files.Types.Item_Kind;
+
+   procedure Ensure_Selected_Item_Extra
+     (Model       : in out Files.Model.Window_Model;
+      Show_Hidden : Boolean := True) is
+   begin
+      if not Files.Model.Background_Transfers (Model)
+        and then Files.Model.Selected_Item_Needs_Extra (Model)
+      then
+         declare
+            Item : constant Files.Items.Directory_Item := Files.Model.Selection.Selected_Item (Model);
+         begin
+            Files.Model.Set_Selected_Item_Extra
+              (Model,
+               Files.File_System.Extra_Info_Of
+                 (To_String (Item.Full_Path), Item.Kind, To_String (Item.Filetype), Show_Hidden));
+         end;
+      end if;
+   end Ensure_Selected_Item_Extra;
 
    --  A size result changes the render revision, and a listing read in
    --  flight (or a paste) must see the revision it was started at. While one

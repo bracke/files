@@ -2,7 +2,6 @@ with Files.Model.Label_Picker;
 separate (Files_Suite.Interaction)
    procedure Test_Labels_Follow_Moves_And_Stay_Loadable (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
-      use type Files.Operations.Operation_Status;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Result   : Files.Interaction.Interaction_Result;
       Dir      : constant String := Files_Suite.Support.Join (Files_Suite.Support.Root, "label-moves");
