@@ -12,9 +12,9 @@ function Import_Replacing
    Batch                 : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
    return Mutation_Result
 is
-   Plans                      : Drop_Import_Plan_Vectors.Vector;
-   Identities, Tree_Revisions : Files.Types.String_Vectors.Vector;
-   Result                     : Mutation_Result;
+   Plans   : Drop_Import_Plan_Vectors.Vector;
+   Created : Created_Entry_Vectors.Vector;
+   Result  : Mutation_Result;
 
    --  The import failed after the original was preserved: put it back, so a
    --  failed replace never loses the entry it was to replace. A failed
@@ -51,15 +51,15 @@ begin
          Mode             => Mode,
          Valid            => True,
          Error_Key        => Null_Unbounded_String));
-   Result := Execute_Drop_Import (Plans, Identities, Tree_Revisions, Cancel, Batch);
-   if not Identities.Is_Empty then
-      Created_Identity := Identities.First_Element;
-      Created_Tree_Revision := Tree_Revisions.First_Element;
+   Result := Execute_Drop_Import (Plans, Created, Cancel, Batch);
+   if not Created.Is_Empty then
+      Created_Identity := Created.First_Element.Identity;
+      Created_Tree_Revision := Created.First_Element.Tree_Revision;
    end if;
    --  A failure that still published a copy (a cross-device move that had
    --  to keep it) holds Destination: the original cannot go back there, and
    --  stays held at Replaced for the caller to record beside the copy.
-   if not Result.Success and then Identities.Is_Empty then
+   if not Result.Success and then Created.Is_Empty then
       Roll_Back;
    end if;
    return Result;

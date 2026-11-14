@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Undo_Same_Size_Edits (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -7,7 +9,7 @@ separate (Files_Suite.History)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Source : constant String := Join (Root, "original");
       Dest : constant String := Join (Root, "original (copy)");
       Old_Token : Unbounded_String;
@@ -22,9 +24,9 @@ separate (Files_Suite.History)
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Select_Name (Model, "original");
-         Step := Complete_Operation (Model, Settings, Files.Operations.Duplicate_Selected (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Duplicate_Selected (Model, Settings));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Success
+         Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then Files.File_System.Tree_Revision (Dest) /= "",
                  "a copied regular file has a recorded revision");
          Old_Token := To_Unbounded_String (Files.File_Identities.Token (Dest));
@@ -48,11 +50,11 @@ separate (Files_Suite.History)
               (Files.File_System.Tree_Revision (Dest) /= Snapshot,
                "a same-size edit with restored mtime keeps its old metadata but changes its content digest"
                & ": content digest changed");
-            Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Failed,
+               Files.Operation_Results.Operation_Failed,
                "Undo retains a same-size edited copy and its retryable action: status");
             Assert
               (Files.Model.History.Undo_Available (Model),
@@ -71,11 +73,11 @@ separate (Files_Suite.History)
          Files.Operations.Clear_Undo (Model);
          Files.Model.Set_Background_Transfers (Model, Background);
          Select_Name (Model, "original");
-         Step := Complete_Operation (Model, Settings, Files.Operations.Duplicate_Selected (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Duplicate_Selected (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "duplicate a directory containing a regular file");
          declare
             Child : constant String := Join (Dest, "child");
@@ -88,11 +90,11 @@ separate (Files_Suite.History)
             Assert (Files.File_Identities.Revision (Child, False) = Metadata
                     and then Files.File_System.Tree_Revision (Dest) /= Snapshot,
                     "a copied directory revision tracks same-size edits to a child");
-            Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Failed,
+               Files.Operation_Results.Operation_Failed,
                "Undo retains a copied directory whose child bytes changed: status");
             Assert
               (Files.Model.History.Undo_Available (Model),

@@ -1090,6 +1090,34 @@ package Files.Model is
    package Kept_Copy_Vectors is new Ada.Containers.Vectors
      (Index_Type => Positive, Element_Type => Kept_Copy);
 
+   --  How an action's record knows an item or a replaced original beyond
+   --  what it carries (Files.Undo_Recording.Try_Record_Undo). Captured: its
+   --  identity -- and a creation's tree revision, an original's target -- is
+   --  read when the record is made. Published: they are as the action
+   --  published them, even when empty, and an empty one never verifies.
+   --  Verified: published and checked against the live entry then, so it is
+   --  trusted without a fresh check and may survive a later pathname
+   --  replacement.
+   type Item_Provenance is (Captured, Published, Verified);
+
+   --  An item as an action hands it to the record, with its provenance.
+   type Recorded_Item is record
+      Item       : Undo_Item;
+      Provenance : Item_Provenance := Captured;
+   end record;
+
+   package Recorded_Item_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Recorded_Item);
+
+   --  A replaced original as an action hands it to the record.
+   type Recorded_Original is record
+      Original   : Replaced_Original;
+      Provenance : Item_Provenance := Captured;
+   end record;
+
+   package Recorded_Original_Vectors is new Ada.Containers.Vectors
+     (Index_Type => Positive, Element_Type => Recorded_Original);
+
    --  A single reversible/re-applicable action.
    type Undo_Entry is record
       Kind        : Undo_Action_Kind := Undo_None;
@@ -1185,13 +1213,12 @@ package Files.Model is
       Current                 : UString;
       First_Dest              : UString;
       --  Each write: the destination (From), its source (To), and the
-      --  identity and tree revision it was published with.
-      Written                 : Undo_Item_Vectors.Vector;
-      Verified_Created_Count  : Natural := 0;
+      --  identity and tree revision it was published with, Verified when
+      --  the published entry was checked.
+      Written                 : Recorded_Item_Vectors.Vector;
       --  Destinations a Replace overwrote during this paste, preserved so the
       --  undo entry can restore each to its own recorded original path.
-      Replaced                : Replaced_Original_Vectors.Vector;
-      Verified_Replaced_Count : Natural := 0;
+      Replaced                : Recorded_Original_Vectors.Vector;
    end record;
 
    --  Select helper execution for a live window; headless callers can step synchronously.

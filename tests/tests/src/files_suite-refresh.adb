@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Foreground_Jobs;
 with Files.Items;
 with Files.Model.Testing;
@@ -38,7 +39,7 @@ package body Files_Suite.Refresh is
    use type Files.Commands.Command_Id;
    use type Files.Events.Input_Action_Kind;
    use type Files.File_System.Drop_Import_Mode;
-   use type Files.Operations.Operation_Status;
+   use type Files.Operation_Results.Operation_Status;
    use type Files.Operations.Archive_Format;
    use type Files.Types.Focus_Target;
    use type Files.Types.Item_Kind;

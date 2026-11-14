@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files_Suite.Keyboard)
    procedure Test_Descending_Grid_Arrows_Follow_Display
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -35,10 +36,10 @@ separate (Files_Suite.Keyboard)
       --  case. The loaded item order must be re-sorted to match the display, or
       --  arrow navigation walks the raw load order and moves the wrong way.
       declare
-         Reload : constant Files.Operations.Operation_Result := Files.Operations.Refresh (Model, Settings);
+         Reload : constant Files.Operation_Results.Operation_Result := Files.Operations.Refresh (Model, Settings);
       begin
          Files_Suite.Support.Assert_Equal
-           (Reload.Status, Files.Operations.Operation_Success, "the descending directory reloads");
+           (Reload.Status, Files.Operation_Results.Operation_Success, "the descending directory reloads");
       end;
       --  Two-column grid: Down should move down a row (two display positions).
       Files.Model.Selection.Set_Grid_Columns (Model, 2);

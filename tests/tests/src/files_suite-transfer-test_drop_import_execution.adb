@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.File_System.Testing;
 separate (Files_Suite.Transfer)
    procedure Test_Drop_Import_Execution (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -22,7 +24,7 @@ separate (Files_Suite.Transfer)
       Plans := Files.File_System.Plan_Drop_Import (Sources, Drop_Target);
       Assert (Plans.Success, "drop import planning accepts valid dropped paths");
       Files_Suite.Support.Assert_Equal (Natural (Plans.Plans.Length), 2, "drop import plans every source path");
-      Mutation := Files.File_System.Execute_Drop_Import (Plans.Plans);
+      Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
       Assert (Mutation.Success, "drop import copy executes");
       Assert (Ada.Directories.Exists (Join (Drop_Target, "drop-source.txt")), "drop import copies files");
       Assert
@@ -39,7 +41,7 @@ separate (Files_Suite.Transfer)
       Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "controller drop import succeeds");
       Assert
         (Files.Model.Pasting.Conflict_Is_Active (Model),
@@ -77,7 +79,7 @@ separate (Files_Suite.Transfer)
            From_Clipboard => False);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "item drag import can target a specific directory");
       Assert
         (not Files.Model.Pasting.Conflict_Is_Active (Model),
@@ -97,7 +99,7 @@ separate (Files_Suite.Transfer)
       Write_File (Join (Root, "move-source.txt"), "move");
       Sources.Append (To_Unbounded_String (Join (Root, "move-source.txt")));
       Plans := Files.File_System.Plan_Drop_Import (Sources, Drop_Target, Files.File_System.Drop_Move);
-      Mutation := Files.File_System.Execute_Drop_Import (Plans.Plans);
+      Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
       Assert (Mutation.Success, "drop import move executes");
       Assert (Ada.Directories.Exists (Join (Drop_Target, "move-source.txt")), "drop move creates destination");
       Assert (not Ada.Directories.Exists (Join (Root, "move-source.txt")), "drop move removes source");

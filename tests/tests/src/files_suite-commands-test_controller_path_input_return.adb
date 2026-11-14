@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Model.Command_Palette;
 separate (Files_Suite.Commands)
@@ -74,7 +75,7 @@ separate (Files_Suite.Commands)
          "invalid path input Return reports path command");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "invalid path input returns failure");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),
@@ -135,7 +136,7 @@ separate (Files_Suite.Commands)
          "path input Return reports path command");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Navigated,
+         Files.Operation_Results.Operation_Navigated,
          "Return commits path input");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),
@@ -167,7 +168,7 @@ separate (Files_Suite.Commands)
          "file path input Return executes path command");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Navigated,
+         Files.Operation_Results.Operation_Navigated,
          "file path input navigates to parent directory");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),

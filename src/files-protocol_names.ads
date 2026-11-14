@@ -29,6 +29,11 @@ package Files.Protocol_Names is
    --  The file in a recovery stage that names whose it is.
    Recovery_Owner : constant String := ".files-recovery-owner";
 
+   --  The file in a job's work stage that names the job directory owning it,
+   --  and the header that record starts with.
+   Stage_Owner_File   : constant String := ".files-owner";
+   Stage_Owner_Header : constant String := "files-stage-owner-1";
+
    --  A recovery stage's marker that a restore is moving its payload out;
    --  a stage with it and no payload is finished by removing it.
    Recovery_Vacated : constant String := "vacated";
@@ -39,7 +44,8 @@ package Files.Protocol_Names is
 
    --  The files of a helper job's private directory, besides its request and
    --  result (Files.Process_Jobs.Request_File, Result_File). A ".tmp" name is
-   --  the staged copy, published whole by renaming it to the plain one.
+   --  the staged copy (Files.Process_Jobs.Staged_Name), published whole by
+   --  renaming it to the plain one.
 
    --  The window's request that the helper stop.
    Cancel_File : constant String := "cancel";
@@ -48,12 +54,10 @@ package Files.Protocol_Names is
    Stages_Directory : constant String := "stages";
 
    --  A transfer's outcome once every item is done.
-   Completed_File        : constant String := "completed";
-   Staged_Completed_File : constant String := "completed.tmp";
+   Completed_File : constant String := "completed";
 
    --  A transfer's checkpoint of the items it replaced so far.
-   Replaced_File        : constant String := "replaced";
-   Staged_Replaced_File : constant String := "replaced.tmp";
+   Replaced_File : constant String := "replaced";
 
    --  A watch helper's word that it reports every change itself (natively).
    Native_Watch_File : constant String := "native";

@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Commands.Status;
 separate (Files_Suite.Search)
    procedure Test_Recursive_Search (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -47,7 +48,7 @@ separate (Files_Suite.Search)
          "recursive search routes through command registry");
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "recursive search command succeeds");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),
@@ -61,7 +62,7 @@ separate (Files_Suite.Search)
         (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "refresh restores direct listing");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),

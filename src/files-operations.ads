@@ -14,38 +14,10 @@ with Files.Types;
 package Files.Operations is
    subtype UString is Files.Types.UString;
 
-   --  Files.Operation_Results, as every operation here reports it.
-   subtype Operation_Status is Files.Operation_Results.Operation_Status;
-   subtype Execution_Outcome is Files.Operation_Results.Execution_Outcome;
-   subtype Operation_Result is Files.Operation_Results.Operation_Result;
-
-   --  @return Files.Operation_Results.Operation_Success.
-   function Operation_Success return Operation_Status
-     renames Files.Operation_Results.Operation_Success;
-
-   --  @return Files.Operation_Results.Operation_Disabled.
-   function Operation_Disabled return Operation_Status
-     renames Files.Operation_Results.Operation_Disabled;
-
-   --  @return Files.Operation_Results.Operation_Invalid_Name.
-   function Operation_Invalid_Name return Operation_Status
-     renames Files.Operation_Results.Operation_Invalid_Name;
-
-   --  @return Files.Operation_Results.Operation_Failed.
-   function Operation_Failed return Operation_Status
-     renames Files.Operation_Results.Operation_Failed;
-
-   --  @return Files.Operation_Results.Operation_Action_Executed.
-   function Operation_Action_Executed return Operation_Status
-     renames Files.Operation_Results.Operation_Action_Executed;
-
-   --  @return Files.Operation_Results.Operation_Navigated.
-   function Operation_Navigated return Operation_Status
-     renames Files.Operation_Results.Operation_Navigated;
-
-   --  @return Files.Operation_Results.Operation_Missing_Open_Action.
-   function Operation_Missing_Open_Action return Operation_Status
-     renames Files.Operation_Results.Operation_Missing_Open_Action;
+   --  Every operation here reports a Files.Operation_Results.Operation_Result,
+   --  named unqualified within this package and its children; a client names
+   --  Files.Operation_Results itself.
+   use Files.Operation_Results;
 
    --  Check an open action's effective executable using the same host-aware
    --  PATH and executable-file policy used immediately before spawning it.
@@ -129,6 +101,33 @@ package Files.Operations is
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model)
       return Operation_Result;
+
+   --  What a command checks before it runs anywhere -- in process here, or
+   --  in a helper job (Files.Operation_Commands, which asks these first):
+   --  Disabled, with its error noted on Model, when the window refuses it;
+   --  otherwise Operation_Success.
+
+   --  A recursive search: a query, and a listed folder to search under.
+   --
+   --  @param Model Window model holding the query and current folder.
+   --  @return Disabled or Operation_Success.
+   function Search_Refusal (Model : in out Files.Model.Window_Model) return Operation_Result;
+
+   --  Moving the selection to the trash: not from the trash itself.
+   --
+   --  @param Model Window model holding the current folder.
+   --  @return Disabled or Operation_Success.
+   function Trash_Refusal (Model : in out Files.Model.Window_Model) return Operation_Result;
+
+   --  Making new entries beside the selection (duplicate, compress,
+   --  extract): no pending new entry selected, and not in the trash.
+   --
+   --  @param Model Window model holding the selection and current folder.
+   --  @param Failure_Key The command's error key, for the trash refusal.
+   --  @return Disabled or Operation_Success.
+   function Creation_Refusal
+     (Model       : in out Files.Model.Window_Model;
+      Failure_Key : String) return Operation_Result;
 
    --  Archive container format produced by Compress_Selected.
    type Archive_Format is (Zip_Archive, Seven_Zip_Archive);
@@ -226,8 +225,9 @@ package Files.Operations is
    --  a folder below the root could not be read (or, by content, a file, or
    --  a text file longer than is read with no match in what was); no match
    --  shows the "search.no_matches" notice. Only a root that cannot be
-   --  searched fails, keeping the listing. With background transfers on, the
-   --  search runs in a helper and applies the same way.
+   --  searched fails, keeping the listing. This runs the search in process;
+   --  Files.Operation_Commands.Run_Search runs it in a helper instead when
+   --  the window has background transfers on, applied the same way.
    --
    --  @param Model Window model containing the current path and filter query.
    --  @param Settings Settings model used for directory classification.

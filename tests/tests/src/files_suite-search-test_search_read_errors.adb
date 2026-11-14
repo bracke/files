@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Search)
    procedure Test_Search_Read_Errors (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -7,7 +9,7 @@ separate (Files_Suite.Search)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Denied : Unbounded_String;
       Read_Ok : Boolean;
@@ -30,15 +32,16 @@ separate (Files_Suite.Search)
                    when others => Join (Root, "needle.txt")));
                Mutation := Files.File_System.Permissions.Set_Permissions (To_String (Denied), 0);
                Assert (Mutation.Success, "make the search input unreadable");
-               Step := (if Contents then Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents)
-                        else Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names));
+               Step :=
+                 (if Contents then Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Contents)
+                  else Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Names));
                Step := Complete_Operation (Model, Settings, Step);
                Mutation := Files.File_System.Permissions.Set_Permissions (To_String (Denied), 8#755#);
                if Case_Id = 1 then
                   --  Nothing can be searched: the search fails and keeps the listing.
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
-                     Files.Operations.Operation_Failed,
+                     Files.Operation_Results.Operation_Failed,
                      "an unreadable root preserves the listing and reports an error: status");
                   Files_Suite.Support.Assert_Equal
                     (Files.Model.Item_Count (Model),
@@ -56,7 +59,7 @@ separate (Files_Suite.Search)
                   --  shown, with the notice that the answer is incomplete.
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
-                     Files.Operations.Operation_Success,
+                     Files.Operation_Results.Operation_Success,
                      "an unreadable folder or file below the root still shows the other match: status");
                   Assert
                     (Files.Model.Search_Results_Are_Active (Model),

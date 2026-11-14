@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Foreground_Jobs;
 with Files.Process_Jobs.Testing;
 with Files_Suite.Support.Guards;
@@ -15,7 +16,7 @@ separate (Files_Suite.Transfer)
       Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Dest_Dir);
@@ -32,7 +33,7 @@ separate (Files_Suite.Transfer)
       Files.Process_Jobs.Testing.Clear_Refusal;
       Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the paste ends instead of staying armed");
       Files_Suite.Support.Assert_Equal
-        (Step.Status, Files.Operations.Operation_Failed, "and reports the failure");
+        (Step.Status, Files.Operation_Results.Operation_Failed, "and reports the failure");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model), "error.drop.failed", "with an error the window shows");
       Assert (not Ada.Directories.Exists (Join (Dest_Dir, "refused-source")), "nothing was written");

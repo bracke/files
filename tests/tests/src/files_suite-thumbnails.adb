@@ -1,3 +1,4 @@
+with Files.Operations;
 with Files.File_System.Thumbnails;
 with Files.Items;
 with Files.File_Identities.Testing;
@@ -25,7 +26,6 @@ with Files.Controller;
 with Files.File_System;
 with Files.Model;
 with Files.Model.Selection;
-with Files.Operations;
 with Hostkit.Fs;
 with Hostkit.Metadata;
 with Files.Rendering;

@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Fs_Primitives;
 separate (Files_Suite.Names)
    --  A name longer than the destination filesystem stores (255 bytes, or
@@ -13,7 +14,7 @@ separate (Files_Suite.Names)
       Result    : Files.File_System.Mutation_Result;
       Settings  : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model     : Files.Model.Window_Model;
-      Committed : Files.Operations.Operation_Result;
+      Committed : Files.Operation_Results.Operation_Result;
 
       procedure Expect_Refused (What : String) is
       begin
@@ -45,7 +46,8 @@ separate (Files_Suite.Names)
       Files.Model.Rename.Toggle (Model);
       Assert (Files.Model.Rename.Insert_At_Carets (Model, [1 .. 300 => 'n']), "the typed name is entered");
       Committed := Files.Operations.Commit_Rename (Model, Settings);
-      Assert (Committed.Status /= Files.Operations.Operation_Success, "inline rename: a 300-byte name is refused");
+      Assert (Committed.Status /= Files.Operation_Results.Operation_Success,
+              "inline rename: a 300-byte name is refused");
       Files_Suite.Support.Assert_Equal
         (To_String (Committed.Error_Key), "error.io.name_too_long", "inline rename: the refusal says why");
       Files_Suite.Support.Assert_Equal

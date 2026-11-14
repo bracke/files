@@ -29,7 +29,7 @@ package body Files.Controller is
    use type Files.File_System.Root_Kind;
    use type Files.Model.Palette_Mode;
    use type Files.Model.Tree_Pick_Mode;
-   use type Files.Operations.Operation_Status;
+   use type Files.Operation_Results.Operation_Status;
    use type Files.Types.Focus_Target;
    use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;
@@ -53,10 +53,10 @@ package body Files.Controller is
       else
          False);
 
-   function Empty_Operation return Files.Operations.Operation_Result is
+   function Empty_Operation return Files.Operation_Results.Operation_Result is
    begin
       return
-        (Status    => Files.Operations.Operation_Disabled,
+        (Status    => Files.Operation_Results.Operation_Disabled,
          Error_Key => Null_Unbounded_String,
          Path      => Null_Unbounded_String,
          Action    => Files.Settings.Open_Actions.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
@@ -212,7 +212,7 @@ package body Files.Controller is
    function Make_Result
      (Status    : Controller_Status;
       Command   : Files.Commands.Command_Id := Files.Commands.No_Command;
-      Operation : Files.Operations.Operation_Result := Empty_Operation)
+      Operation : Files.Operation_Results.Operation_Result := Empty_Operation)
       return Controller_Result is
    begin
       return
@@ -242,9 +242,9 @@ package body Files.Controller is
      (Command : Files.Commands.Command_Id)
       return Controller_Result
    is
-      Operation : Files.Operations.Operation_Result := Empty_Operation;
+      Operation : Files.Operation_Results.Operation_Result := Empty_Operation;
    begin
-      Operation.Status := Files.Operations.Operation_Success;
+      Operation.Status := Files.Operation_Results.Operation_Success;
       return Make_Result (Controller_Command_Executed, Command, Operation);
    end Successful_Command_Result;
 
@@ -266,13 +266,13 @@ package body Files.Controller is
       declare
          Command : constant Files.Commands.Command_Id :=
            (if Mode = Files.Model.Pick_Move then Files.Commands.Move_To_Command else Files.Commands.Copy_To_Command);
-         Op      : constant Files.Operations.Operation_Result :=
+         Op      : constant Files.Operation_Results.Operation_Result :=
            Files.Operations.Begin_Paste_To
              (Model, Settings, Files.Model.Tree_Panel.Pick_Sources (Model),
               Files.Model.Tree_Panel.Pick_Target (Model),
               (if Mode = Files.Model.Pick_Move then Files.File_System.Drop_Move else Files.File_System.Drop_Copy));
       begin
-         if Op.Status /= Files.Operations.Operation_Success then
+         if Op.Status /= Files.Operation_Results.Operation_Success then
             return Make_Result (Controller_Ignored, Command, Op);
          end if;
          Files.Model.Tree_Panel.End_Pick (Model);
@@ -293,7 +293,7 @@ package body Files.Controller is
         Make_Result
           (Controller_Ignored,
            Id,
-           (Status    => Files.Operations.Operation_Disabled,
+           (Status    => Files.Operation_Results.Operation_Disabled,
             Error_Key => To_Unbounded_String (Error_Key),
             Path      => To_Unbounded_String (Path),
             Action    => Files.Settings.Open_Actions.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),
@@ -449,7 +449,7 @@ package body Files.Controller is
       Reload        : Boolean := False)
       return Controller_Result
    is
-      Operation : Files.Operations.Operation_Result := Empty_Operation;
+      Operation : Files.Operation_Results.Operation_Result := Empty_Operation;
       Outcome   : constant Commit_Outcome := Commit (Model, Settings, Updated, Settings_Path);
       Saved     : Files.Settings.Settings_Write_Result renames Outcome.Saved;
    begin
@@ -458,7 +458,7 @@ package body Files.Controller is
       if Reload and then Outcome.Accepted then
          Operation := Files.Operations.Refresh (Model, Settings);
       end if;
-      if Operation.Status = Files.Operations.Operation_Failed then
+      if Operation.Status = Files.Operation_Results.Operation_Failed then
          return Make_Result (Controller_Command_Executed, Id, Operation);
       end if;
 
@@ -469,7 +469,7 @@ package body Files.Controller is
          Files.Model.Set_Error (Model, "");
       end if;
       Operation.Status :=
-        (if Saved.Success then Files.Operations.Operation_Success else Files.Operations.Operation_Failed);
+        (if Saved.Success then Files.Operation_Results.Operation_Success else Files.Operation_Results.Operation_Failed);
       Operation.Path := To_Unbounded_String (Settings_Path);
       Operation.Error_Key := Saved.Error_Key;
       return Make_Result (Controller_Command_Executed, Id, Operation);
@@ -641,7 +641,7 @@ package body Files.Controller is
       Root_Path : String)
       return Controller_Result
    is
-      Operation : constant Files.Operations.Operation_Result :=
+      Operation : constant Files.Operation_Results.Operation_Result :=
         Files.Operations.Select_Root (Model, Settings, Root_Path);
    begin
       return Make_Result (Controller_Command_Executed, Files.Commands.Select_Drive_Command, Operation);
@@ -701,11 +701,11 @@ package body Files.Controller is
                when Files.Operations.Favorite_File =>
                   --  The folder opens with the file selected.
                   declare
-                     Operation : constant Files.Operations.Operation_Result :=
+                     Operation : constant Files.Operation_Results.Operation_Result :=
                        Files.Operations.Navigate_And_Select (Model, Settings, Path);
                   begin
                      return Make_Result
-                       ((if Operation.Status = Files.Operations.Operation_Disabled
+                       ((if Operation.Status = Files.Operation_Results.Operation_Disabled
                          then Controller_Ignored
                          else Controller_Command_Executed),
                         Files.Commands.Open_Selected_Root_Command,
@@ -717,7 +717,7 @@ package body Files.Controller is
          end if;
 
          declare
-            Operation : constant Files.Operations.Operation_Result :=
+            Operation : constant Files.Operation_Results.Operation_Result :=
               Files.Operations.Select_Root (Model, Settings, Path);
          begin
             return Make_Result (Controller_Command_Executed, Files.Commands.Open_Selected_Root_Command, Operation);
@@ -767,7 +767,7 @@ package body Files.Controller is
          end if;
 
          declare
-            Operation : constant Files.Operations.Operation_Result :=
+            Operation : constant Files.Operation_Results.Operation_Result :=
               Files.Operations.Select_Root (Model, Settings, Target);
          begin
             return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);
@@ -866,7 +866,7 @@ package body Files.Controller is
       --  same conflict dialog and resumable progress/cancel overlay as clipboard
       --  paste. From_Clipboard => False keeps a dropped move from clearing an
       --  unrelated clipboard selection on finalize.
-      Operation : Files.Operations.Operation_Result;
+      Operation : Files.Operation_Results.Operation_Result;
    begin
       if not Accepts_Drop_Import (Model) then
          return Make_Result (Controller_Ignored);

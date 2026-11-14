@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Model)
@@ -7,7 +9,7 @@ separate (Files_Suite.Model)
       Model    : Files.Model.Window_Model;
       Items    : Files.Items.Item_Vectors.Vector;
       Result   : Files.Controller.Controller_Result;
-      Operation : Files.Operations.Operation_Result;
+      Operation : Files.Operation_Results.Operation_Result;
    begin
       Reset_Root;
       Write_File (Join (Root, "untitled.txt"));
@@ -18,7 +20,7 @@ separate (Files_Suite.Model)
       Ada.Directories.Delete_File (Join (Root, "untitled 2.txt"));
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
-        (Result.Operation.Status, Files.Operations.Operation_Success,
+        (Result.Operation.Status, Files.Operation_Results.Operation_Success,
          "create command opens a temporary item at the first name gap (status)");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Temporary_Item_Name (Model),
@@ -56,16 +58,16 @@ separate (Files_Suite.Model)
       Operation := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Operation.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "temporary item cannot be opened directly");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
          "error.selection.empty",
          "temporary open records disabled state");
-      Operation := Files.Operations.Delete_Selected (Model, Settings);
+      Operation := Files.Operation_Commands.Delete_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Operation.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "temporary item cannot be deleted directly");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -74,7 +76,7 @@ separate (Files_Suite.Model)
       Operation := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Operation.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "temporary item cannot be renamed directly");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),

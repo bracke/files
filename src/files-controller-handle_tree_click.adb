@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files.Controller)
    function Handle_Tree_Click
      (Model      : in out Files.Model.Window_Model;
@@ -46,7 +47,7 @@ separate (Files.Controller)
          Files.Model.Tree_Panel.Set_Expanded (Model, Index, True);
 
          declare
-            Operation : constant Files.Operations.Operation_Result :=
+            Operation : constant Files.Operation_Results.Operation_Result :=
               Files.Operations.Select_Root (Model, Settings, Node_Path);
          begin
             return Make_Result (Controller_Command_Executed, Files.Commands.No_Command, Operation);

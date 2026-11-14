@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Settings.Path_References;
 separate (Files_Suite.Operations)
    --  Every settings change has one policy: what the file cannot hold is
@@ -24,9 +25,10 @@ separate (Files_Suite.Operations)
 
       Outcome :=
         Files.Controller.Execute_Command (Files.Commands.Toggle_Column_Size_Command, Model, Settings, Unwritable);
-      Assert (Outcome.Operation.Status = Files.Operations.Operation_Failed, "a column toggle whose save fails says so");
+      Assert (Outcome.Operation.Status = Files.Operation_Results.Operation_Failed,
+              "a column toggle whose save fails says so");
       Outcome := Files.Controller.Execute_Command (Files.Commands.Cycle_Group_By_Command, Model, Settings, Unwritable);
-      Assert (Outcome.Operation.Status = Files.Operations.Operation_Failed, "so does cycling the grouping");
+      Assert (Outcome.Operation.Status = Files.Operation_Results.Operation_Failed, "so does cycling the grouping");
       Assert (Settings.Group_By /= Files.Settings.Default_Settings.Group_By,
               "and the change is kept for the session");
 

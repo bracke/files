@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
@@ -8,7 +10,7 @@ separate (Files_Suite.Recovery)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       Other    : constant String := Join (Root, "other-view");
 
       procedure Finish is
@@ -28,7 +30,7 @@ separate (Files_Suite.Recovery)
       Select_Name (Model, "a.txt");
       Ada.Directories.Create_Directory (Other);
       Write_Binary_File (Join (Other, "other.txt"), "other");
-      Step := Files.Operations.Duplicate_Selected (Model, Settings);
+      Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
       declare
          Job : constant Files.Process_Jobs.Session :=
            Files.Model.Background_Operation (Model);
@@ -61,7 +63,7 @@ separate (Files_Suite.Recovery)
          and then Files.Model.History.Undo_Available (Model),
          "the stale-view duplicate still publishes its file and recoverable history");
       Step := Complete_Operation
-        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Await_View (Model, Settings);
       Assert
         (not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
@@ -78,7 +80,7 @@ separate (Files_Suite.Recovery)
       Files.Model.Navigate_To (Model, Root, Load.Items);
 
       Select_Name (Model, "a.txt");
-      Step := Files.Operations.Duplicate_Selected (Model, Settings);
+      Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
       declare
          Job : constant Files.Process_Jobs.Session :=
            Files.Model.Background_Operation (Model);
@@ -115,14 +117,14 @@ separate (Files_Suite.Recovery)
          "the round-trip stale result retains its file and Undo history");
       Files.Model.Testing.Cancel_Create_File (Model);
       Step := Complete_Operation
-        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Await_View (Model, Settings);
       Assert
         (not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
          "the round-trip stale operation remains safely undoable");
 
       Select_Name (Model, "a.txt");
-      Step := Files.Operations.Delete_Selected (Model, Settings);
+      Step := Files.Operation_Commands.Delete_Selected (Model, Settings);
       declare
          Job : constant Files.Process_Jobs.Session :=
            Files.Model.Background_Operation (Model);
@@ -160,7 +162,7 @@ separate (Files_Suite.Recovery)
          "the stale-view destructive result retains its mutation and Undo history");
       Files.Model.Testing.Cancel_Create_File (Model);
       Step := Complete_Operation
-        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Await_View (Model, Settings);
       Assert
         (Ada.Directories.Exists (Join (Root, "a.txt")),

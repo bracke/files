@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Model.Root_Selector;
 separate (Files_Suite.Model)
@@ -26,7 +27,7 @@ separate (Files_Suite.Model)
          "Return activates selected root row");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Navigated,
+         Files.Operation_Results.Operation_Navigated,
          "Return root activation navigates");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
@@ -47,7 +48,7 @@ separate (Files_Suite.Model)
          "root row click reports root activation command");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Navigated,
+         Files.Operation_Results.Operation_Navigated,
          "root row click navigates");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),

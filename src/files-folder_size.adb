@@ -301,7 +301,9 @@ package body Files.Folder_Size is
    end Collect;
 
    procedure Step (Scan : in out Session) is
-      Finished, Cancelled, Waiting : Boolean;
+      Finished, Waiting : Boolean;
+      --  Poll's cancelled state, which a scan has no use for (below).
+      Discarded_Cancelled : Boolean;
    begin
       if not Files.Process_Jobs.Active (Scan.Job) then
          --  A batch whose helper could not start was answered unmeasured;
@@ -312,10 +314,10 @@ package body Files.Folder_Size is
          end if;
          return;
       end if;
-      Files.Process_Jobs.Poll (Scan.Job, Finished, Cancelled);
-      if Cancelled then
-         return;
-      end if;
+      --  A scan is stopped by Reset (Cancel), never by Process_Jobs.Cancel, so
+      --  the cancelled state carries nothing here: a finished helper is
+      --  collected and the next batch started either way.
+      Files.Process_Jobs.Poll (Scan.Job, Finished, Discarded_Cancelled);
       Collect (Scan, Finished, Waiting);
       if not Finished or else Waiting then
          return;

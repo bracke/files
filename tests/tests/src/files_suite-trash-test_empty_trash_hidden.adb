@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    procedure Test_Empty_Trash_Hidden (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -6,7 +8,7 @@ separate (Files_Suite.Trash)
       Model : aliased Files.Model.Window_Model;
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Hidden, Visible : Unbounded_String;
       --  Restores what the test changes, on failure too.
@@ -28,11 +30,11 @@ separate (Files_Suite.Trash)
             Files.Model.Initialize (Model, Root, Files.Items.Item_Vectors.Empty_Vector, Root);
             Files.Model.Set_Background_Transfers (Model, Background);
             Settings.Show_Hidden_Files := Show_Hidden;
-            Step := Complete_Operation (Model, Settings, Files.Operations.Empty_Trash (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Empty_Trash (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "Empty Trash purges hidden and visible payloads and hidden restore metadata: status");
             Assert (not Ada.Directories.Exists (To_String (Hidden)),
                     "Empty Trash purges hidden and visible payloads and hidden restore metadata: hidden payload");

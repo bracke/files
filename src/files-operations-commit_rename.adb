@@ -144,9 +144,7 @@ begin
    --  refresh fails, rather than stranding the model in it.
    Files.Model.Clear_Edit_State (Model);
    if not Renamed.Is_Empty then
-      Record_Undo
-        (Model, Files.Model.Undo_Rename, Renamed,
-         Provenance => (Published_Main => Natural (Renamed.Length), others => <>));
+      Record_Undo (Model, Files.Model.Undo_Rename, Published (Renamed));
    end if;
 
    if Need_Reload then

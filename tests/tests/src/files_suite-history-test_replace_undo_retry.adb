@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Replace_Undo_Retry (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -22,7 +24,7 @@ separate (Files_Suite.History)
                Back_A, Back_B : Files.Types.UString;
                From_Paths, To_Paths, Backups : Files.Types.String_Vectors.Vector;
                Model : Files.Model.Window_Model;
-               Step : Files.Operations.Operation_Result;
+               Step : Files.Operation_Results.Operation_Result;
                Mutation : Files.File_System.Mutation_Result;
             begin
                Write_Binary_File (Dest_A, "original A");
@@ -65,8 +67,8 @@ separate (Files_Suite.History)
                   Assert (Hostkit.Fs.Move_No_Replace (To_String (Back_B), Held), "temporarily block one restore");
                   for Attempt in 1 .. 2 loop
                      Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-                     Assert (Step.Status = Files.Operations.Operation_Failed
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                     Assert (Step.Status = Files.Operation_Results.Operation_Failed
                              and then Files.Model.History.Undo_Available (Model),
                              "an unfinished restore stays available for another Undo attempt");
                      Assert (File_Is (Dest_A, "original A"),
@@ -79,10 +81,10 @@ separate (Files_Suite.History)
                   end loop;
                   Assert (Hostkit.Fs.Move_No_Replace (Held, To_String (Back_B)), "unblock the remaining restore");
                   Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
-                     Files.Operations.Operation_Success,
+                     Files.Operation_Results.Operation_Success,
                      "Undo completes after the remaining original becomes available");
                   Assert (File_Is (Dest_A, "original A") and then File_Is (Dest_B, "original B"),
                           "all originals survive the successful retry");

@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.History)
@@ -8,7 +10,7 @@ separate (Files_Suite.History)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
    begin
       for Mode in Files.File_System.Drop_Import_Mode loop
@@ -44,11 +46,11 @@ separate (Files_Suite.History)
                Write_Binary_File (A, "unrelated a");
                Step := Complete_Operation (Model, Settings, Step);
                Await_View (Model, Settings);
-               Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Failed,
+                  Files.Operation_Results.Operation_Failed,
                   "later paste steps cannot recapture a replacement as an owned entry: status");
                Assert
                  (File_Is (A, "unrelated a"),
@@ -60,11 +62,11 @@ separate (Files_Suite.History)
                Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Saved_A, A),
                        "restore the owned first entry");
                Write_Binary_File (B, "unrelated b");
-               Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Success,
+                  Files.Operation_Results.Operation_Success,
                   "partial Undo retries preserve unrelated entries at already reversed paths: status");
                Assert
                  (not Ada.Directories.Exists (A),

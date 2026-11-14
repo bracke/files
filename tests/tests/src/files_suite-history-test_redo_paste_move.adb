@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Redo_Paste_Move (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -12,7 +14,7 @@ separate (Files_Suite.History)
       Model    : aliased Files.Model.Window_Model;
       Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Src_Dir);
@@ -29,7 +31,8 @@ separate (Files_Suite.History)
       Files.Model.Initialize (Model, Dest_Dir, Load.Items, Root);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
       Step := Files.Foreground_Jobs.Advance (Model, Settings, 8);
-      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "the move paste succeeds");
+      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
+                                        "the move paste succeeds");
       Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the move paste finalizes");
       Assert
         (Ada.Directories.Exists (Dest) and then not Ada.Directories.Exists (Source),
@@ -39,16 +42,18 @@ separate (Files_Suite.History)
          "a move paste records an Undo_Move entry");
 
       Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "undo of the move succeeds");
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
+                                        "undo of the move succeeds");
       Assert
         (Ada.Directories.Exists (Source) and then not Ada.Directories.Exists (Dest),
          "undo moves the file back to its source");
       Assert (Files.Model.History.Redo_Available (Model), "a move is redoable");
 
       Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "redo of the move succeeds");
+                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
+                                        "redo of the move succeeds");
       Assert
         (Ada.Directories.Exists (Dest) and then not Ada.Directories.Exists (Source),
          "redo re-applies the move to the destination");

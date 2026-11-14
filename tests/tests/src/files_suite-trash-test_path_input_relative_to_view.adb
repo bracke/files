@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Items;
 separate (Files_Suite.Trash)
    --  A relative path typed into the path bar is taken from the folder on
@@ -7,7 +8,7 @@ separate (Files_Suite.Trash)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Shown    : constant String := Join (Root, "shown");
       Model    : Files.Model.Window_Model;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Join (Shown, "inner"));
@@ -16,7 +17,7 @@ separate (Files_Suite.Trash)
       Files.Model.Set_Path_Input_Text (Model, "inner");
       Result := Files.Operations.Commit_Path_Input (Model, Settings);
       Files_Suite.Support.Assert_Equal
-        (Result.Status, Files.Operations.Operation_Navigated, "a relative child path is opened");
+        (Result.Status, Files.Operation_Results.Operation_Navigated, "a relative child path is opened");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
          Ada.Directories.Full_Name (Join (Shown, "inner")),
@@ -24,7 +25,7 @@ separate (Files_Suite.Trash)
       Files.Model.Set_Path_Input_Text (Model, Join ("..", Join ("..", "beside")));
       Result := Files.Operations.Commit_Path_Input (Model, Settings);
       Files_Suite.Support.Assert_Equal
-        (Result.Status, Files.Operations.Operation_Navigated, "a path through .. is opened");
+        (Result.Status, Files.Operation_Results.Operation_Navigated, "a path through .. is opened");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
          Ada.Directories.Full_Name (Join (Root, "beside")),

@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Protocol_Names;
 with Files.Items;
 with Files.File_Identities.Testing;
@@ -33,7 +34,7 @@ package body Files_Suite.Archives is
    use AUnit.Assertions;
    use type Ada.Directories.File_Kind;
    use type Hostkit.Host.Kind;
-   use type Files.Operations.Operation_Status;
+   use type Files.Operation_Results.Operation_Status;
    use type Files.Operations.Archive_Format;
    use type Files.Types.Item_Kind;
    use type Files.Types.Search_Scope;

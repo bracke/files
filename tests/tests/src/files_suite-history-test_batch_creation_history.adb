@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Batch_Creation_History (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -8,7 +10,7 @@ separate (Files_Suite.History)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Status : Zlib.Status_Code;
       Prior : Files.Types.String_Vectors.Vector;
       Created : Files.Types.String_Vectors.Vector;
@@ -44,13 +46,14 @@ separate (Files_Suite.History)
                   end if;
                end if;
                Step := Complete_Operation
-                 (Model, Settings, (if Extracting then Files.Operations.Extract_Selected (Model, Settings)
-                                    else Files.Operations.Duplicate_Selected (Model, Settings)));
+                 (Model, Settings, (if Extracting then Files.Operation_Commands.Extract_Selected (Model, Settings)
+                                    else Files.Operation_Commands.Duplicate_Selected (Model, Settings)));
                Await_View (Model, Settings);
                Created := Files.Model.History.Undo_From_Paths (Model);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  (if Partial then Files.Operations.Operation_Failed else Files.Operations.Operation_Success),
+                  (if Partial then Files.Operation_Results.Operation_Failed
+                   else Files.Operation_Results.Operation_Success),
                   "successful and partial batches add one action without replacing prior history: status");
                Files_Suite.Support.Assert_Equal
                  (Natural (Files.Model.History.Undo_Entries (Model).Length),
@@ -81,7 +84,7 @@ separate (Files_Suite.History)
                         "partial batches refresh committed outputs and retain their diagnostic");
                   end;
                end if;
-               Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                for Path of Created loop
                   Assert (not Ada.Directories.Exists (To_String (Path)),
@@ -95,11 +98,11 @@ separate (Files_Suite.History)
                      Ada.Directories.Create_Directory (Replacement);
                   end if;
                   Write_Binary_File (Keep, "unrelated replacement");
-                  Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                  Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                   Await_View (Model, Settings);
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
-                     Files.Operations.Operation_Success,
+                     Files.Operation_Results.Operation_Success,
                      "the next Undo reaches the prior action and never touches a recreated batch path: status");
                   Assert (not Files.Model.History.Undo_Available (Model),
                           "the next Undo reaches the prior action and never touches a recreated batch path: "

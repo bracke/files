@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    --  A window that closes ends its history: an original a paste replaced,
@@ -14,7 +15,7 @@ separate (Files_Suite.History)
       Model       : aliased Files.Model.Window_Model;
       Paste       : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
-      Step        : Files.Operations.Operation_Result;
+      Step        : Files.Operation_Results.Operation_Result;
       Environment : Files_Suite.Support.Guards.Environment_Guard;
       In_Trash    : Boolean := False;
    begin
@@ -38,7 +39,8 @@ separate (Files_Suite.History)
         (Model, Dest_Dir, Files.File_System.Load_Directory (Dest_Dir, Settings).Items, Root);
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
       Step := Files.Foreground_Jobs.Advance (Model, Settings, 8);
-      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "the replacing paste runs");
+      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
+                                        "the replacing paste runs");
       Assert (Files.Model.History.Undo_Available (Model), "and can be undone");
 
       Files.Operations.Release_History (Model);

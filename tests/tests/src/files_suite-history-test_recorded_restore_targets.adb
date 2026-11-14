@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Recorded_Restore_Targets (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -8,7 +10,7 @@ separate (Files_Suite.History)
       Model : aliased Files.Model.Window_Model;
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Paths : Files.Types.String_Vectors.Vector;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       Selected : Boolean;
@@ -35,7 +37,8 @@ separate (Files_Suite.History)
                if Scenario = 1 then
                   Selected := Files.Model.Selection.Select_By_Name (Model, "entry");
                   Assert (Selected, "select the trash restore fixture");
-                  Step := Complete_Operation (Model, Settings, Files.Operations.Delete_Selected (Model, Settings));
+                  Step := Complete_Operation
+                    (Model, Settings, Files.Operation_Commands.Delete_Selected (Model, Settings));
                   Await_View (Model, Settings);
                   Paths := Files.Model.History.Undo_From_Paths (Model);
                   Assert (Files.Model.Testing.Undo_To_Paths (Model).First_Element = To_Unbounded_String (Source),
@@ -54,7 +57,7 @@ separate (Files_Suite.History)
                   Assert (Files.Model.History.Undo_Entries (Model).Last_Element.Replaced.First_Element.Target
                           = To_Unbounded_String (Source), "paste history retains the preserved original destination");
                end if;
-               Assert (Step.Status = Files.Operations.Operation_Success and then not Paths.Is_Empty,
+               Assert (Step.Status = Files.Operation_Results.Operation_Success and then not Paths.Is_Empty,
                        "record successful trash or replacement history");
                declare
                   Sidecar : constant String :=
@@ -77,11 +80,11 @@ separate (Files_Suite.History)
                   else
                      Ada.Directories.Delete_File (Sidecar);
                   end if;
-                  Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                  Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                   Await_View (Model, Settings);
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
-                     Files.Operations.Operation_Success,
+                     Files.Operation_Results.Operation_Success,
                      "Undo restores to its recorded destination despite changed, truncated or missing sidecars"
                      & ": status");
                   Assert

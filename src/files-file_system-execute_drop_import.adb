@@ -1,15 +1,14 @@
 separate (Files.File_System)
 function Execute_Drop_Import
-  (Plans  : Drop_Import_Plan_Vectors.Vector;
-   Created_Identities, Created_Tree_Revisions : out Files.Types.String_Vectors.Vector;
-   Cancel : Cancellation_Check := Job_Cancelled;
-   Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+  (Plans   : Drop_Import_Plan_Vectors.Vector;
+   Created : out Created_Entry_Vectors.Vector;
+   Cancel  : Cancellation_Check := Job_Cancelled;
+   Batch   : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
    return Mutation_Result
 is
    Context : Files.Copy_Context.Session := Batch;
 begin
-   Created_Identities.Clear;
-   Created_Tree_Revisions.Clear;
+   Created.Clear;
    if Natural (Plans.Length) > 1 and then Files.Copy_Context.Directory (Context) = "" then
       Context := Files.Copy_Context.Create;
    end if;
@@ -94,8 +93,8 @@ begin
                                  Files.Job_Context.Record_Moved
                                    (Destination_Path, Source_Path, To_String (Copied_Identity));
                               end if;
-                              Created_Identities.Append (Copied_Identity);
-                              Created_Tree_Revisions.Append (Copied_Tree_Revision);
+                              Created.Append
+                                (Created_Entry'(Identity => Copied_Identity, Tree_Revision => Copied_Tree_Revision));
                            end if;
                            --  Otherwise nothing is at the destination and the
                            --  source stays canonical, so paste-replace can
@@ -118,8 +117,7 @@ begin
               (Source_Path, Destination_Path, Published_Identity, Published_Tree_Revision,
                Cancel => Cancel, Batch => Context);
          end if;
-         Created_Identities.Append (Published_Identity);
-         Created_Tree_Revisions.Append (Published_Tree_Revision);
+         Created.Append (Created_Entry'(Identity => Published_Identity, Tree_Revision => Published_Tree_Revision));
       exception
          when Swallowed : others =>
             Files.Diagnostics.Note (Swallowed, "Files.File_System");

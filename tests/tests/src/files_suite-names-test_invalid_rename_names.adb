@@ -1,10 +1,11 @@
+with Files.Operation_Results;
 separate (Files_Suite.Names)
    procedure Test_Invalid_Rename_Names (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
    begin
       Reset_Root;
       Write_File (Join (Root, "old.txt"));
@@ -16,28 +17,28 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "rename rejects empty names");
 
       Files.Model.Rename.Set_Text (Model, ".");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "rename rejects dot names");
 
       Files.Model.Rename.Set_Text (Model, "..");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "rename rejects parent-directory names");
 
       Files.Model.Rename.Set_Text (Model, "bad/name.txt");
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "rename rejects path separator names");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Error_Key),
@@ -62,7 +63,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "rename rejects trailing-space names");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "trailing-space rename leaves source in place");
       Assert (not Ada.Directories.Exists (Join (Root, "renamed ")), "invalid trailing-space rename writes no file");
@@ -71,7 +72,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "rename rejects ideographic-space-only names");
       Assert
         (Ada.Directories.Exists (Join (Root, "old.txt")),
@@ -81,7 +82,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "rename rejects trailing NBSP names");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "trailing NBSP rename leaves source in place");
       Assert
@@ -92,7 +93,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "rename rejects trailing ideographic-space names");
       Assert
         (Ada.Directories.Exists (Join (Root, "old.txt")),
@@ -105,7 +106,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "rename rejects embedded NUL names");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Error_Key),
@@ -121,7 +122,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "rename rejects control-character names");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "control-character rename leaves source in place");
 
@@ -129,7 +130,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "rename rejects C1 control-character names");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "C1 control-character rename leaves source in place");
 
@@ -137,7 +138,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "rename rejects UTF-8 encoded C1 control-character names");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "encoded C1 rename leaves source in place");
 
@@ -145,7 +146,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "rename rejects truncated UTF-8 names");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "truncated UTF-8 rename leaves source in place");
 
@@ -153,7 +154,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "rename rejects overlong UTF-8 names");
       Assert (Ada.Directories.Exists (Join (Root, "old.txt")), "overlong UTF-8 rename leaves source in place");
    end Test_Invalid_Rename_Names;

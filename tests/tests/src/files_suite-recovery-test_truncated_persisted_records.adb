@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files_Suite.Recovery)
    procedure Test_Truncated_Persisted_Records
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -9,8 +10,8 @@ separate (Files_Suite.Recovery)
       History_Directory : constant String := Join (Root, "prefix-history");
       History_Path     : constant String := Join (History_Directory, "history");
       File             : Ada.Streams.Stream_IO.File_Type;
-      Written_Result   : Files.Operations.Operation_Result;
-      Read_Result      : Files.Operations.Operation_Result;
+      Written_Result   : Files.Operation_Results.Operation_Result;
+      Read_Result      : Files.Operation_Results.Operation_Result;
       Model            : Files.Model.Window_Model;
 
       function Read_All

@@ -1,3 +1,6 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
+with Files.File_System.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Copy_Destination_Revalidation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -11,7 +14,7 @@ separate (Files_Suite.Transfer)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Paths : Files.Types.String_Vectors.Vector;
       Plans : Files.File_System.Drop_Import_Result;
@@ -43,10 +46,11 @@ separate (Files_Suite.Transfer)
          Step := Complete_Operation
            (Model, Settings, Files.Operations.Begin_Paste_To (Model, Settings, Paths, Parent));
          Await_View (Model, Settings);
-         Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "make the original copy");
-         Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+         Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
+                                           "make the original copy");
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
-         Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "Undo the copy");
+         Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success, "Undo the copy");
          Ada.Directories.Delete_Directory (Parent);
          Assert (Hostkit.Fs.Create_Link (Child, Parent), "redirect the destination parent into the source");
          Paths.Clear;
@@ -76,7 +80,7 @@ separate (Files_Suite.Transfer)
               (To_String (Plans.Plans.First_Element.Destination_Path),
                Stay,
                "a move through an alias to the same directory is planned as a no-op: destination");
-            Mutation := Files.File_System.Execute_Drop_Import (Plans.Plans);
+            Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
             Assert
               (Mutation.Success, "the aliased same-directory move keeps the original name and bytes: succeeds");
             Assert
@@ -89,16 +93,17 @@ separate (Files_Suite.Transfer)
          end;
          Mutation := Files.File_System.Copy_Tree (Source, Dest);
          Assert (not Mutation.Success, "direct copies resolve destination-parent aliases");
-         Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Failed and then Files.Model.History.Redo_Available (Model),
+         Assert (Step.Status = Files.Operation_Results.Operation_Failed
+                 and then Files.Model.History.Redo_Available (Model),
                  "Redo refuses a newly redirected descendant and retains retryable history");
          Check_Source;
          Assert (Hostkit.Fs.Delete_Link (Parent), "remove the destination alias");
          Ada.Directories.Create_Directory (Parent);
-         Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Success
+         Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then File_Has_Bytes (Join (Dest, "original"), "original bytes"),
                  "Redo can be retried after repairing the destination");
       end loop;

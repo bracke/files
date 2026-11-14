@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Rendering.Text;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Thumbnails)
@@ -34,7 +35,7 @@ separate (Files_Suite.Thumbnails)
          "thumbnail generation routes through command registry");
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "thumbnail command succeeds");
       Assert
         (Ada.Directories.Exists (To_String (Routed.Operation.Path)),

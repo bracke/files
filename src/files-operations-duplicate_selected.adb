@@ -43,13 +43,13 @@ is
         (Model, Settings, "error.duplicate.failed", Directory, Wrote_Some => not Progress.Items.Is_Empty);
    end Failed;
 begin
-   if Files.Model.Selection.Includes_Temporary (Model) then
-      return Disabled (Model, "error.create.pending");
-   elsif Is_Trash_Directory (Directory) then
-      return Disabled (Model, "error.duplicate.failed");
-   elsif Files.Model.Background_Transfers (Model) then
-      return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Duplicate);
-   end if;
+   declare
+      Refusal : constant Operation_Result := Creation_Refusal (Model, "error.duplicate.failed");
+   begin
+      if Refusal.Status /= Operation_Success then
+         return Refusal;
+      end if;
+   end;
    if Items.Is_Empty or else (Directory = "" and then not Files.Model.In_Recent_View (Model)) then
       return Failed;
    end if;
@@ -88,12 +88,14 @@ begin
             end if;
 
             Progress.Items.Append
-              (Files.Model.Undo_Item'
-                 (From          => To_Unbounded_String (Dest_Path),
-                  Forward       => To_Unbounded_String (Source),
-                  Identity      => Identity,
-                  Tree_Revision => Revision,
-                  others        => <>));
+              (Files.Model.Recorded_Item'
+                 (Item       =>
+                    (From          => To_Unbounded_String (Dest_Path),
+                     Forward       => To_Unbounded_String (Source),
+                     Identity      => Identity,
+                     Tree_Revision => Revision,
+                     others        => <>),
+                  Provenance => Files.Model.Published));
             Checkpoint_Undo (Model, Progress);
             if not Created_Any then
                First_Created := To_Unbounded_String (Dest_Name);

@@ -914,21 +914,10 @@ package body Files.File_System is
    is separate;
 
    function Execute_Drop_Import
-     (Plans  : Drop_Import_Plan_Vectors.Vector;
-      Cancel : Cancellation_Check := Job_Cancelled;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
-      return Mutation_Result
-   is
-      Identities, Tree_Revisions : Files.Types.String_Vectors.Vector;
-   begin
-      return Execute_Drop_Import (Plans, Identities, Tree_Revisions, Cancel, Batch);
-   end Execute_Drop_Import;
-
-   function Execute_Drop_Import
-     (Plans  : Drop_Import_Plan_Vectors.Vector;
-      Created_Identities, Created_Tree_Revisions : out Files.Types.String_Vectors.Vector;
-      Cancel : Cancellation_Check := Job_Cancelled;
-      Batch : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+     (Plans   : Drop_Import_Plan_Vectors.Vector;
+      Created : out Created_Entry_Vectors.Vector;
+      Cancel  : Cancellation_Check := Job_Cancelled;
+      Batch   : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
       return Mutation_Result
    is separate;
 

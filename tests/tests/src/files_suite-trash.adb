@@ -1,3 +1,5 @@
+with Files.Operations;
+with Files.Operation_Results;
 with Files.Undo_Recording;
 with Files.File_System.Trash;
 with Files.File_System.Permissions;
@@ -27,7 +29,6 @@ with Files.Interaction;
 with Files.Model;
 with Files.Model.Selection;
 with Files.Model.History;
-with Files.Operations;
 with Hostkit.Fs;
 with Hostkit.Metadata;
 with Files.Settings;
@@ -43,7 +44,7 @@ package body Files_Suite.Trash is
    use type Hostkit.Host.Kind;
    use type Files.Commands.Command_Id;
    use type Files.File_System.Trash_Backend;
-   use type Files.Operations.Operation_Status;
+   use type Files.Operation_Results.Operation_Status;
    use type Files.Model.Undo_Action_Kind;
    use type Files.Types.Item_Kind;
    use Files_Suite.Support;

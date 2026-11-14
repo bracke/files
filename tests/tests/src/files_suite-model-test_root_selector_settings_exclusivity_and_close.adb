@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.File_System.Testing;
 with Files.Model.Command_Palette;
@@ -68,7 +69,7 @@ separate (Files_Suite.Model)
          "Escape routes root selector close");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "root selector Escape reports successful state-only close");
       Assert (not Files.Model.Root_Selector.Is_Open (Model), "Escape closes root selector");
       Files_Suite.Support.Assert_Equal

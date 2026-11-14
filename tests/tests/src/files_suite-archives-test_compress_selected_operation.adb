@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Commands.Status;
 separate (Files_Suite.Archives)
    procedure Test_Compress_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -41,7 +42,7 @@ separate (Files_Suite.Archives)
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Compress_Zip_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "compress to zip succeeds");
       Assert (Ada.Directories.Exists (Zip_Path), "zip archive is created next to the first item");
       Files_Suite.Support.Assert_Equal
@@ -53,7 +54,7 @@ separate (Files_Suite.Archives)
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Compress_7z_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "compress to 7z succeeds");
       Assert (Ada.Directories.Exists (Sz_Path), "7z archive is created next to the first item");
       Files_Suite.Support.Assert_Equal (First_Bytes (Sz_Path, 6), Sz_Magic, "7z archive begins with the 7z signature");
@@ -70,7 +71,7 @@ separate (Files_Suite.Archives)
             raise;
       end;
       Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Failed
+        (Routed.Operation.Status = Files.Operation_Results.Operation_Failed
          and then not Ada.Directories.Exists (Join (Dir, "notes.zip")),
          "compression does not publish an archive without a verifiable identity");
    end Test_Compress_Selected_Operation;

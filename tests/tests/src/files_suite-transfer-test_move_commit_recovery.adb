@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Foreground_Jobs;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
@@ -10,7 +12,7 @@ separate (Files_Suite.Transfer)
       Model : aliased Files.Model.Window_Model;
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       procedure Cleanup is
@@ -64,23 +66,23 @@ separate (Files_Suite.Transfer)
                      Committed : constant String :=
                        "a committed move retains Undo despite lost results and a recreated source pathname: "
                        & Boolean'Image (Cross_Device) & Boolean'Image (Replace)
-                       & " status=" & Files.Operations.Operation_Status'Image (Step.Status)
+                       & " status=" & Files.Operation_Results.Operation_Status'Image (Step.Status)
                        & " error=" & To_String (Step.Error_Key)
                        & " undo=" & Boolean'Image (Files.Model.History.Undo_Available (Model))
                        & " source=" & Boolean'Image (File_Has_Bytes (Source, "unrelated replacement"))
                        & " dest=" & Boolean'Image (File_Has_Bytes (Dest, "owned original"));
                   begin
-                     Assert (Step.Status = Files.Operations.Operation_Failed, Committed & " (the move fails)");
+                     Assert (Step.Status = Files.Operation_Results.Operation_Failed, Committed & " (the move fails)");
                      Assert (Files.Model.History.Undo_Available (Model), Committed & " (Undo retained)");
                      Assert (File_Has_Bytes (Source, "unrelated replacement"),
                              Committed & " (source replacement kept)");
                      Assert (File_Has_Bytes (Dest, "owned original"), Committed & " (destination holds the original)");
                   end;
-                  Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                  Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                   Await_View (Model, Settings);
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
-                     Files.Operations.Operation_Failed,
+                     Files.Operation_Results.Operation_Failed,
                      "recovered Undo preserves the new source occupant and remains retryable: the Undo fails");
                   Assert (Files.Model.History.Undo_Available (Model),
                           "recovered Undo preserves the new source occupant and remains retryable: Undo retained");
@@ -90,9 +92,9 @@ separate (Files_Suite.Transfer)
                           "recovered Undo preserves the new source occupant and remains retryable: destination kept");
                   Mutation := Files.File_System.Delete_Permanently (Source);
                   Assert (Mutation.Success, "vacate our replacement fixture");
-                  Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                  Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                   Await_View (Model, Settings);
-                  Assert (Step.Status = Files.Operations.Operation_Success
+                  Assert (Step.Status = Files.Operation_Results.Operation_Success
                           and then File_Is (Source, "owned original"),
                           "retry reverses the journaled committed move");
                   Assert ((if Replace then File_Is (Dest, "original destination")

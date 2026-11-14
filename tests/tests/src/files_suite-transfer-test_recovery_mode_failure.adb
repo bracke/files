@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Foreground_Jobs;
 with Files.File_System.Trash;
 with Files.File_System.Permissions;
@@ -103,7 +105,7 @@ separate (Files_Suite.Transfer)
             Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
             pragma Unreferenced (Paste);
             Actions : Files.Paste.Resolved_Action_Vectors.Vector;
-            Step : Files.Operations.Operation_Result;
+            Step : Files.Operation_Results.Operation_Result;
             Copy_Source : constant String := Join (Root, "copy-source");
          begin
             Reset_Root;
@@ -127,17 +129,18 @@ separate (Files_Suite.Transfer)
             Step := Complete_Operation
               (Model, Settings, Files.Foreground_Jobs.Advance (Model, Settings, 1));
             Await_View (Model, Settings);
-            Assert (Step.Status = Files.Operations.Operation_Failed and then Files.Model.History.Undo_Available (Model),
+            Assert (Step.Status = Files.Operation_Results.Operation_Failed
+                    and then Files.Model.History.Undo_Available (Model),
                     "failed replacement retains guarded recovery history in foreground and background");
             Files.File_System.Testing.Stop_Failing_Directory_Restore;
             Ada.Environment_Variables.Clear ("FILES_TEST_DIRECTORY_RESTORE_FAULT");
             Ada.Environment_Variables.Clear ("FILES_TEST_DIRECTORY_RESTORE_BLOCK");
             Assert (Files.File_System.Delete_Permanently (Source).Success, "remove the test rollback obstruction");
-            Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "Undo recovers the retained original and mode: status");
             Assert
               (File_Has_Bytes (Join (Source, "child"), "original bytes"),

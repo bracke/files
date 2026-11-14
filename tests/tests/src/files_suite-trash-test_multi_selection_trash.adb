@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files_Suite.Trash)
    procedure Test_Multi_Selection_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -22,7 +23,7 @@ separate (Files_Suite.Trash)
            (Files.Commands.Refresh_Directory_Command, Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "refresh loads multi-delete targets");
          Files.Model.Set_Filter (Model, "multi-");
          Files.Model.Selection.Select_Visible (Model, 1);
@@ -30,7 +31,7 @@ separate (Files_Suite.Trash)
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "multi-selection delete succeeds");
          Assert (Ada.Directories.Exists (Join (Trash_File, "multi-a.txt")), "multi-delete moves first file");
          Assert (Ada.Directories.Exists (Join (Trash_File, "multi-b.txt")), "multi-delete moves second file");
@@ -43,7 +44,7 @@ separate (Files_Suite.Trash)
            (Files.Commands.Refresh_Directory_Command, Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "refresh loads partial-delete targets");
          Files.Model.Set_Filter (Model, "partial-");
          Files.Model.Selection.Select_Visible (Model, 1);
@@ -52,7 +53,7 @@ separate (Files_Suite.Trash)
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
-            Files.Operations.Operation_Failed,
+            Files.Operation_Results.Operation_Failed,
             "partial multi-delete reports failure");
          Files_Suite.Support.Assert_Equal
            (To_String (Result.Operation.Error_Key),

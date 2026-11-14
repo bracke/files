@@ -2,12 +2,13 @@ separate (Files.Undo_Recording)
 function Try_Record_Undo
   (Model       : in out Files.Model.Window_Model;
    Kind        : Files.Model.Undo_Action_Kind;
-   Items       : Files.Model.Undo_Item_Vectors.Vector;
+   Items       : Files.Model.Recorded_Item_Vectors.Vector;
    Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
    Redoable    : Boolean := True;
-   Replaced    : Files.Model.Replaced_Original_Vectors.Vector :=
-     Files.Model.Replaced_Original_Vectors.Empty_Vector;
-   Provenance  : Undo_Provenance := (others => <>)) return Boolean
+   Replaced    : Files.Model.Recorded_Original_Vectors.Vector :=
+     Files.Model.Recorded_Original_Vectors.Empty_Vector;
+   Kept        : Files.Model.Kept_Copy_Vectors.Vector := Files.Model.Kept_Copy_Vectors.Empty_Vector)
+   return Boolean
 is
    function Identity_Matches (Path, Expected : String) return Boolean
      renames Files.File_System.Entry_Identity_Matches;
@@ -20,15 +21,17 @@ is
    function Valid_Ownership_Image (Value : Unbounded_String) return Boolean is
      (Files.Undo_Payloads.Is_Ownership_Text (To_String (Value)));
 
+   use type Files.Model.Item_Provenance;
+
    --  The items and originals as given, completed with what was not.
-   Captured : Files.Model.Undo_Item_Vectors.Vector := Items;
-   Restores : Files.Model.Replaced_Original_Vectors.Vector := Replaced;
+   Completed : Files.Model.Undo_Item_Vectors.Vector;
+   Restores : Files.Model.Replaced_Original_Vectors.Vector;
    --  What the entry keeps: each verified item and kept copy.
    Kept_Items  : Files.Model.Undo_Item_Vectors.Vector;
    Kept_Copies : Files.Model.Kept_Copy_Vectors.Vector;
    --  An entry that deletes kept copies first is undo-only: redoing the move
    --  would collide with the sources the failed move left in place.
-   Entry_Redoable : constant Boolean := Redoable and then Provenance.Kept.Is_Empty;
+   Entry_Redoable : constant Boolean := Redoable and then Kept.Is_Empty;
    Entry_Kind : Files.Model.Undo_Action_Kind := Kind;
    Invalid_Main : Boolean := False;
    Invalid_Restore : Boolean := False;
@@ -45,13 +48,13 @@ is
          return "";
    end Tree_Revision_Or_Empty;
 
-   --  An item given as published, among the leading verified ones, is
-   --  trusted without a fresh check.
+   --  An item or original verified at publication is trusted without a
+   --  fresh check.
    function Main_Was_Verified (Index : Positive) return Boolean is
-     (Index <= Provenance.Retain_Verified_Main and then Index <= Provenance.Published_Main);
+     (Items (Index).Provenance = Files.Model.Verified);
 
    function Restore_Was_Verified (Index : Positive) return Boolean is
-     (Index <= Provenance.Retain_Verified_Restores and then Index <= Provenance.Published_Restores);
+     (Replaced (Index).Provenance = Files.Model.Verified);
 
    function Payload_Is_Complete (Item : Files.Model.Undo_Item) return Boolean is
    begin
@@ -76,19 +79,25 @@ begin
    --  The model advances its revision and notes completed renames and moves;
    --  everything that reads the filesystem happens here, before the model
    --  commits the entry.
-   Files.Model.History.Begin_Undo_Record (Model, Kind, Items);
-   if Kind = Files.Model.Undo_None or else (Items.Is_Empty and then Provenance.Kept.Is_Empty) then
+   for Given of Items loop
+      Completed.Append (Given.Item);
+   end loop;
+   for Given of Replaced loop
+      Restores.Append (Given.Original);
+   end loop;
+   Files.Model.History.Begin_Undo_Record (Model, Kind, Completed);
+   if Kind = Files.Model.Undo_None or else (Items.Is_Empty and then Kept.Is_Empty) then
       return False;
    end if;
    if Undo_Record_Attempted /= null then
       Undo_Record_Attempted.all;
    end if;
 
-   for Index in Captured.First_Index .. Captured.Last_Index loop
+   for Index in Completed.First_Index .. Completed.Last_Index loop
       declare
-         Item : Files.Model.Undo_Item renames Captured (Index);
+         Item : Files.Model.Undo_Item renames Completed (Index);
       begin
-         if Index > Provenance.Published_Main then
+         if Items (Index).Provenance = Files.Model.Captured then
             Item.Identity := To_Unbounded_String (Files.File_Identities.Token (To_String (Item.From)));
             Item.Tree_Revision :=
               (if Kind = Files.Model.Undo_Delete_Created
@@ -102,7 +111,7 @@ begin
    end loop;
 
    for Index in Restores.First_Index .. Restores.Last_Index loop
-      if Index > Provenance.Published_Restores then
+      if Replaced (Index).Provenance = Files.Model.Captured then
          declare
             Original : Files.Model.Replaced_Original renames Restores (Index);
          begin
@@ -127,9 +136,9 @@ begin
       end if;
    end loop;
 
-   for Index in Captured.First_Index .. Captured.Last_Index loop
+   for Index in Completed.First_Index .. Completed.Last_Index loop
       declare
-         Item  : Files.Model.Undo_Item := Captured (Index);
+         Item  : Files.Model.Undo_Item := Completed (Index);
          Valid : constant Boolean :=
            Payload_Is_Complete (Item)
            and then
@@ -163,7 +172,7 @@ begin
    --  failed move published. One that cannot be verified is left out -- but
    --  not when an original a replace preserved goes back to its path: that
    --  restore would meet the unverified copy, so nothing is recorded.
-   for Copy of Provenance.Kept loop
+   for Copy of Kept loop
       if Kind = Files.Model.Undo_Move
         and then Length (Copy.Identity) > 0
         and then Creation_Snapshot_Matches

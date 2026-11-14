@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Ada.Characters.Handling;
 with Files.Items;
 with Files.Model.Testing;
@@ -22,7 +23,6 @@ with Files.Localization;
 with Files.Model;
 with Files.Model.Selection;
 with Files.Model.Rename;
-with Files.Operations;
 with Files.Settings;
 with Guikit.Command_Palette;
 with Guikit.Input;
@@ -34,7 +34,7 @@ package body Files_Suite.Commands is
 
    use Ada.Strings.Unbounded;
    use AUnit.Assertions;
-   use type Files.Operations.Operation_Status;
+   use type Files.Operation_Results.Operation_Status;
    use type Guikit.Input.Key_Code;
    use type Guikit.Input.Modifier_Set;
    use Files_Suite.Support;

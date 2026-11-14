@@ -3,27 +3,35 @@ with Files.Model;
 --  Recording what an action did in the window's undo history: the one way
 --  operations (Files.Operations) and the helper jobs that run them
 --  (Files.Operation_Jobs) add an entry, and settle what the history then
---  retires. Its own unit so neither depends on the other for it.
+--  retires. Its own unit so Files.Operation_Jobs records what a helper did
+--  without depending on Files.Operations.
 package Files.Undo_Recording is
 
-   --  What an action's records are known by beyond what they carry.
-   type Undo_Provenance is record
-      --  How many leading items carry their identity and tree revision, and
-      --  how many leading replaced originals their identity and target, as
-      --  they were published, even when empty: an empty one published never
-      --  verifies. The rest have them captured here.
-      Published_Main     : Natural := 0;
-      Published_Restores : Natural := 0;
-      --  How many leading items, and leading replaced originals, were
-      --  verified when published, and may survive a later pathname
-      --  replacement.
-      Retain_Verified_Main     : Natural := 0;
-      Retain_Verified_Restores : Natural := 0;
-      --  Copies a failed move kept beside their still present sources; for
-      --  an Undo_Move only, which then deletes them first and is never
-      --  redoable.
-      Kept : Files.Model.Kept_Copy_Vectors.Vector;
-   end record;
+   --  Items or originals whose identities are all read when recorded.
+   --
+   --  @param Items What the action changed.
+   --  @return Them, each Captured.
+   function Captured
+     (Items : Files.Model.Undo_Item_Vectors.Vector) return Files.Model.Recorded_Item_Vectors.Vector;
+
+   --  @param Originals Originals a replace preserved.
+   --  @return Them, each Captured.
+   function Captured
+     (Originals : Files.Model.Replaced_Original_Vectors.Vector) return Files.Model.Recorded_Original_Vectors.Vector;
+
+   --  Items carrying what the action published, unverified.
+   --
+   --  @param Items What the action changed.
+   --  @return Them, each Published.
+   function Published
+     (Items : Files.Model.Undo_Item_Vectors.Vector) return Files.Model.Recorded_Item_Vectors.Vector;
+
+   --  Items carrying what the action published and checked at publication.
+   --
+   --  @param Items What the action changed.
+   --  @return Them, each Verified.
+   function Verified
+     (Items : Files.Model.Undo_Item_Vectors.Vector) return Files.Model.Recorded_Item_Vectors.Vector;
 
    --  Record a performed action in the undo history, keeping only items
    --  whose publication identity still matches the live entry. Created
@@ -32,14 +40,14 @@ package Files.Undo_Recording is
    --  actions are recorded only when every created and preserved entry is
    --  verifiable, since their reverse steps are inseparable.
    --
-   --  Each item is as the action left it (Files.Model.Undo_Item). An item
-   --  past Provenance.Published_Main has its identity, and a creation its
-   --  tree revision, captured here; a trash restoration without a To has its
-   --  trash origin read. A replaced original past Published_Restores has its
+   --  Each item is as the action left it (Files.Model.Undo_Item), with its
+   --  provenance (Files.Model.Item_Provenance): a Captured item has its
+   --  identity, and a creation its tree revision, captured here; a Verified
+   --  one is trusted without a fresh check. A trash restoration without a To
+   --  has its trash origin read. A Captured replaced original has its
    --  identity and target captured likewise. Then the model records the
-   --  entry, and the
-   --  payloads the record retires are deleted and the history journal saved
-   --  (Settle_History). A move's kept copies (Provenance) stay in its entry,
+   --  entry, and the payloads the record retires are deleted and the history
+   --  journal saved (Settle_History). A move's kept copies (Kept) stay in its entry,
    --  which is then undo-only, while they verify; with no moved item left
    --  they are recorded alone as created entries, and one that does not
    --  verify on a path an original returns to makes the whole action
@@ -51,17 +59,19 @@ package Files.Undo_Recording is
    --  @param Create_Kind Creation operation used by Redo.
    --  @param Redoable Whether a successful Undo may enter Redo history.
    --  @param Replaced Originals a replace preserved, to restore.
-   --  @param Provenance What was verified, and the kept copies.
+   --  @param Kept Copies a failed move kept beside their still present
+   --    sources; for an Undo_Move only, which then deletes them first and is
+   --    never redoable.
    --  @return True when a usable history entry was added.
    function Try_Record_Undo
      (Model       : in out Files.Model.Window_Model;
       Kind        : Files.Model.Undo_Action_Kind;
-      Items       : Files.Model.Undo_Item_Vectors.Vector;
+      Items       : Files.Model.Recorded_Item_Vectors.Vector;
       Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
       Redoable    : Boolean := True;
-      Replaced    : Files.Model.Replaced_Original_Vectors.Vector :=
-        Files.Model.Replaced_Original_Vectors.Empty_Vector;
-      Provenance  : Undo_Provenance := (others => <>)) return Boolean;
+      Replaced    : Files.Model.Recorded_Original_Vectors.Vector :=
+        Files.Model.Recorded_Original_Vectors.Empty_Vector;
+      Kept        : Files.Model.Kept_Copy_Vectors.Vector := Files.Model.Kept_Copy_Vectors.Empty_Vector) return Boolean;
 
    --  Try_Record_Undo for callers that do not need to know whether an entry
    --  was added.
@@ -72,16 +82,18 @@ package Files.Undo_Recording is
    --  @param Create_Kind Creation operation used by Redo.
    --  @param Redoable Whether a successful Undo may enter Redo history.
    --  @param Replaced Originals a replace preserved, to restore.
-   --  @param Provenance What was verified, and the kept copies.
+   --  @param Kept Copies a failed move kept beside their still present
+   --    sources; for an Undo_Move only, which then deletes them first and is
+   --    never redoable.
    procedure Record_Undo
      (Model       : in out Files.Model.Window_Model;
       Kind        : Files.Model.Undo_Action_Kind;
-      Items       : Files.Model.Undo_Item_Vectors.Vector;
+      Items       : Files.Model.Recorded_Item_Vectors.Vector;
       Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
       Redoable    : Boolean := True;
-      Replaced    : Files.Model.Replaced_Original_Vectors.Vector :=
-        Files.Model.Replaced_Original_Vectors.Empty_Vector;
-      Provenance  : Undo_Provenance := (others => <>));
+      Replaced    : Files.Model.Recorded_Original_Vectors.Vector :=
+        Files.Model.Recorded_Original_Vectors.Empty_Vector;
+      Kept        : Files.Model.Kept_Copy_Vectors.Vector := Files.Model.Kept_Copy_Vectors.Empty_Vector);
 
    --  Carry out the filesystem work model history mutations queued: delete
    --  the recovery payloads of retired entries, release those of an ended

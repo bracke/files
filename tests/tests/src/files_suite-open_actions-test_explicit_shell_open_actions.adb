@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Settings.Testing;
 with Files.Settings.Open_Actions;
 separate (Files_Suite.Open_Actions)
@@ -13,7 +14,7 @@ separate (Files_Suite.Open_Actions)
          then "&"
          else ";");
       Model     : Files.Model.Window_Model := Sample_Model;
-      Result    : Files.Operations.Operation_Result;
+      Result    : Files.Operation_Results.Operation_Result;
    begin
       --  Keep the configured-action contracts deterministic; the host opener
       --  fallback would otherwise resolve unmapped lookups in this environment.
@@ -37,7 +38,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "unmodified action fallback can be prepared");
       Assert (Result.Action.Use_Shell, "prepared fallback action preserves explicit shell execution");
       Files_Suite.Support.Assert_Equal
@@ -47,7 +48,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Action_Executed,
+         Files.Operation_Results.Operation_Action_Executed,
          "file open quotes explicit shell arguments before execution");
       Assert (Result.Action.Use_Shell, "explicit shell action remains explicit after execution");
       Assert (Result.Execution.Attempted, "executed shell action records process attempt");
@@ -76,7 +77,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Action_Executed,
+         Files.Operation_Results.Operation_Action_Executed,
          "explicit shell action can execute shell builtins");
       Assert (Result.Action.Use_Shell, "shell builtin action preserves explicit shell execution");
       Assert (Result.Execution.Attempted, "shell builtin action records shell execution attempt");
@@ -98,7 +99,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Action_Executed,
+         Files.Operation_Results.Operation_Action_Executed,
          "detached explicit shell builtin launches fire-and-forget");
       Assert
         (Result.Execution.Attempted,

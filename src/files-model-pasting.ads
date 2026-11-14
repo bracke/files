@@ -217,14 +217,6 @@ package Files.Model.Pasting is
    --  @return Shared private hard-link journal, or an empty session.
    function Execution_Copy_Context (Model : Window_Model) return Files.Copy_Context.Session;
 
-   --  Whether a preserved original recorded next would extend the verified
-   --  prefix, i.e. every original recorded so far was verified. Only then
-   --  does the operations layer check the live entry before recording.
-   --  @param Model Window owning the current paste batch.
-   --  @return True when all recorded originals are verified.
-   function Replaced_Extends_Verified
-     (Model : Window_Model) return Boolean;
-
    --  Record a preserved original and its identity for the paste's Undo.
    --  The operations layer resolves the original destination and checks the
    --  live entry first; this touches no filesystem.
@@ -232,8 +224,7 @@ package Files.Model.Pasting is
    --  @param Trash_Path The overwritten original's location inside the trash.
    --  @param Identity Snapshot captured when the original was preserved.
    --  @param Original_Path Original destination of the preserved entry.
-   --  @param Verified True when the live entry at Trash_Path matched Identity
-   --    while the verified prefix could still be extended.
+   --  @param Verified True when the live entry at Trash_Path matched Identity.
    procedure Record_Replaced_Trash
      (Model : in out Window_Model; Trash_Path : Files.Types.UString; Identity : String;
       Original_Path : String; Verified : Boolean);
@@ -255,7 +246,7 @@ package Files.Model.Pasting is
    --  @param Tree_Revision Directory or regular-file revision captured before publication.
    --  @param Verified True when the publication snapshot was verified (by a
    --    recovery checkpoint or against the live entry by the operations
-   --    layer) while the verified prefix could still be extended.
+   --    layer).
    procedure Record_Write
      (Model       : in out Window_Model;
       Dest_Path   : Files.Types.UString;
@@ -264,14 +255,6 @@ package Files.Model.Pasting is
       Identity    : String;
       Tree_Revision : String;
       Verified    : Boolean);
-
-   --  Whether a write recorded next would extend the verified prefix, i.e.
-   --  every write recorded so far was verified. Only then does the operations
-   --  layer check the published entry before recording.
-   --  @param Model Window owning the current paste batch.
-   --  @return True when all recorded writes are verified.
-   function Write_Extends_Verified
-     (Model : Window_Model) return Boolean;
 
    --  Record how a cancellation of the armed execution went: when every
    --  helper was told (Files.Operations.Cancel_Paste_Execution tells them),

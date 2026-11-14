@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.File_System.Trash;
 with Files.File_System.Permissions;
 with Files.File_System.Testing;
@@ -55,7 +56,7 @@ separate (Files_Suite.Trash)
             "Delete routes through command registry");
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "available trash moves selected item");
          Files_Suite.Support.Assert_Equal
            (To_String (Result.Operation.Path),

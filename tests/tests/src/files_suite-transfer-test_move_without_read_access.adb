@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Move_Without_Read_Access (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -7,7 +9,7 @@ separate (Files_Suite.Transfer)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Source : constant String := Join (Root, "source");
       Destination : constant String := Join (Root, "destination");
@@ -40,10 +42,10 @@ separate (Files_Suite.Transfer)
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "same-device paste moves an unreadable entry and retains Undo: status, "
             & To_String (Step.Error_Key)
-            & (if Step.Status = Files.Operations.Operation_Success then ""
+            & (if Step.Status = Files.Operation_Results.Operation_Success then ""
                else Files_Suite.Support.Access_Report (Source, Tree => True)));
          Assert (not Ada.Directories.Exists (Source),
                  "same-device paste moves an unreadable entry and retains Undo: source moved");
@@ -51,14 +53,14 @@ separate (Files_Suite.Transfer)
                  "same-device paste moves an unreadable entry and retains Undo: destination exists");
          Assert (Files.Model.History.Undo_Available (Model),
                  "same-device paste moves an unreadable entry and retains Undo: Undo recorded");
-         Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Success
+         Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then Ada.Directories.Exists (Source),
                  "Undo returns the unreadable entry by identity");
-         Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Success
+         Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then Ada.Directories.Exists (Destination),
                  "Redo moves the unreadable entry by identity");
          Mutation := Files.File_System.Permissions.Set_Permissions

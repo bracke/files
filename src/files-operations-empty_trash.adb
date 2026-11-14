@@ -11,9 +11,6 @@ is
    Failed      : Natural := 0;
    First_Error : Unbounded_String;
 begin
-   if Files.Model.Background_Transfers (Model) then
-      return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Empty_Trash);
-   end if;
    if Trash_Dir = "" then
       return Disabled (Model, "error.trash.unavailable");
    end if;

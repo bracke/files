@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Settings.Path_References;
 separate (Files_Suite.Operations)
    procedure Test_Labels_Forget_Deleted_And_Follow_Background (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -11,7 +13,7 @@ separate (Files_Suite.Operations)
       Renamed  : constant String := Join (Root, "renamed.txt");
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       Followed : Boolean;
 
       function Mode (Background : Boolean) return String is
@@ -38,10 +40,11 @@ separate (Files_Suite.Operations)
 
          Show_Root (Background);
          Select_Name (Model, "gone.txt");
-         Step := Complete_Operation (Model, Settings, Files.Operations.Delete_Selected_Permanently (Model, Settings));
+         Step := Complete_Operation
+           (Model, Settings, Files.Operation_Commands.Delete_Selected_Permanently (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "deleting the file permanently succeeds" & Mode (Background));
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "deleting a labeled file changes the stored labels" & Mode (Background));
@@ -56,10 +59,11 @@ separate (Files_Suite.Operations)
 
          Show_Root (Background);
          Select_Name (Model, "folder");
-         Step := Complete_Operation (Model, Settings, Files.Operations.Delete_Selected_Permanently (Model, Settings));
+         Step := Complete_Operation
+           (Model, Settings, Files.Operation_Commands.Delete_Selected_Permanently (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "deleting the folder permanently succeeds" & Mode (Background));
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "deleting a labeled folder changes the stored labels" & Mode (Background));
@@ -76,7 +80,8 @@ separate (Files_Suite.Operations)
          Files.Model.Rename.Toggle (Model);
          Files.Model.Rename.Set_Text (Model, "renamed.txt");
          Step := Files.Operations.Commit_Rename (Model, Settings);
-         Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "the rename succeeds");
+         Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
+                                           "the rename succeeds");
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "the rename moves the stored label");
          Files_Suite.Support.Assert_Equal
@@ -84,9 +89,9 @@ separate (Files_Suite.Operations)
             Files.Types.Green,
             "the label follows the rename");
          Files.Model.Set_Background_Transfers (Model, Background);
-         Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
          Files_Suite.Support.Assert_Equal
-           (Step.Status, Files.Operations.Operation_Success, "undoing the rename succeeds" & Mode (Background));
+           (Step.Status, Files.Operation_Results.Operation_Success, "undoing the rename succeeds" & Mode (Background));
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
          Assert (Followed, "undoing the rename moves the stored label" & Mode (Background));
          Files_Suite.Support.Assert_Equal

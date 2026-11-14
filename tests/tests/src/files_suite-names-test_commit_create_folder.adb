@@ -1,10 +1,11 @@
+with Files.Operation_Results;
 separate (Files_Suite.Names)
    procedure Test_Commit_Create_Folder (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model    : Files.Model.Window_Model;
       Items    : Files.Items.Item_Vectors.Vector;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
    begin
       Reset_Root;
       Files.Model.Initialize (Model, Root, Items, Root);
@@ -14,7 +15,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "create-folder commit succeeds");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Path),

@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Settings.Testing;
 with Files.Settings.Open_Actions;
 separate (Files_Suite.Open_Actions)
@@ -6,7 +7,7 @@ separate (Files_Suite.Open_Actions)
       Settings  : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Arguments : Files.Settings.String_Vectors.Vector;
       Model     : Files.Model.Window_Model := Sample_Model;
-      Result    : Files.Operations.Operation_Result;
+      Result    : Files.Operation_Results.Operation_Result;
       Lookup    : Files.Settings.Open_Actions.Action_Lookup_Result;
    begin
       --  Keep the configured-action contracts deterministic; the host opener
@@ -24,7 +25,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Action_Executed,
+         Files.Operation_Results.Operation_Action_Executed,
          "detached open action launches without surfacing app exit codes");
       Assert (Result.Execution.Attempted, "detached process result records execution attempt");
       Assert (Result.Execution.Executable_Found, "detached process result records executable discovery");
@@ -53,7 +54,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "missing open executable is represented");
       Assert (not Result.Execution.Attempted, "missing executable result does not attempt execution");
       Assert (not Result.Execution.Executable_Found, "missing executable result records failed lookup");
@@ -77,7 +78,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "directory open executable is represented");
       Assert (not Result.Execution.Attempted, "directory executable result does not attempt execution");
       Assert (not Result.Execution.Executable_Found, "directory executable result records failed lookup");

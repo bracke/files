@@ -16,11 +16,13 @@ is
    Progress   : Progressive_Undo :=
      (Kind => Files.Model.Undo_Restore_Trash, Redoable => False, Durable => True, others => <>);
 begin
-   if Is_Trash_Directory (Files.Model.Current_Path (Model)) then
-      return Disabled (Model, "error.trash.failed");
-   elsif Files.Model.Background_Transfers (Model) then
-      return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Trash);
-   end if;
+   declare
+      Refusal : constant Operation_Result := Trash_Refusal (Model);
+   begin
+      if Refusal.Status /= Operation_Success then
+         return Refusal;
+      end if;
+   end;
    if Files.Model.Selection.Selected_Count (Model) = 0
      or else Files.Model.Selection.Includes_Temporary (Model)
    then
@@ -78,11 +80,13 @@ begin
             return Make_Result (Operation_Failed, To_String (Mutation.Error_Key), To_String (Item.Full_Path));
          end if;
          Progress.Items.Append
-           (Files.Model.Undo_Item'
-              (From     => Trashed,
-               To       => Item.Full_Path,
-               Identity => To_Unbounded_String (Files.File_Identities.Token (To_String (Trashed))),
-               others   => <>));
+           (Files.Model.Recorded_Item'
+              (Item       =>
+                 (From     => Trashed,
+                  To       => Item.Full_Path,
+                  Identity => To_Unbounded_String (Files.File_Identities.Token (To_String (Trashed))),
+                  others   => <>),
+               Provenance => Files.Model.Published));
          --  Labels go into the trash with the item and come back with it,
          --  so a new file at the old path inherits none. A native trash
          --  that does not say where the item went keeps them in place.

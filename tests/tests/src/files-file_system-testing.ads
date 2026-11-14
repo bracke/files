@@ -208,4 +208,17 @@ package Files.File_System.Testing is
      (Value : Ada.Calendar.Time)
       return String;
 
+   --  Execute validated drag-and-drop import plans; production imports one
+   --  plan at a time through Import_Replacing, the suite drives several.
+   --
+   --  @param Plans Plans produced by Plan_Drop_Import.
+   --  @param Cancel Checked before source deletion: the job's cancellation unless given another, null for none.
+   --  @param Batch Shared hard-link journal, created automatically for multiple plans.
+   --  @return Mutation result with a localized error key on failure.
+   function Execute_Drop_Import
+     (Plans  : Drop_Import_Plan_Vectors.Vector;
+      Cancel : Cancellation_Check := Job_Cancelled;
+      Batch  : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      return Mutation_Result;
+
 end Files.File_System.Testing;

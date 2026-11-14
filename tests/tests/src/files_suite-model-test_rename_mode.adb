@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.File_System.Testing;
 with Files.Model.Command_Palette;
 with Files.Model.Root_Selector;
@@ -89,7 +90,7 @@ separate (Files_Suite.Model)
          "Escape routes context cancel");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "rename Escape reports successful state-only cancel");
       Assert (not Files.Model.Rename.Is_Active (Model), "Escape cancels focused rename mode");
 

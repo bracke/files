@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Items;
 with Files.Model.Pasting;
 with Files.Operations.Testing;
@@ -15,7 +16,7 @@ separate (Files_Suite.History)
       Dest     : constant String := Join (Root, "kept-notice-destination");
       Model    : Files.Model.Window_Model;
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
    begin
       Actions.Append (Files.Paste.Resolved_Action'
                         (To_Unbounded_String (Source), To_Unbounded_String (Dest), False, False));
@@ -32,7 +33,8 @@ separate (Files_Suite.History)
          --  The copy's recorded identity no longer matches what is at Dest.
          Result := Files.Operations.Testing.Finalize_Paste_With_Kept_Copy
            (Model, Settings, (if Cancelled then "" else "error.drop.failed"), Dest, Source, "0:changed", "rev");
-         Assert (Result.Status = Files.Operations.Operation_Failed, "the paste fails, cancelled " & Cancelled'Image);
+         Assert (Result.Status = Files.Operation_Results.Operation_Failed, "the paste fails, cancelled "
+                 & Cancelled'Image);
          if Cancelled then
             Files_Suite.Support.Assert_Equal
               (To_String (Result.Error_Key), "error.paste.undo_unavailable",

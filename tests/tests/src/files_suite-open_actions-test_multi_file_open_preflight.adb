@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Settings.Testing;
 with Files.Settings.Open_Actions;
 separate (Files_Suite.Open_Actions)
@@ -9,7 +10,7 @@ separate (Files_Suite.Open_Actions)
          Preflight_Model    : Files.Model.Window_Model := Sample_Model;
          Preflight_Args     : Files.Settings.String_Vectors.Vector;
          Marker_Path        : constant String := Join (Root, "multi-open-preflight-marker");
-         Preflight_Result   : Files.Operations.Operation_Result;
+         Preflight_Result   : Files.Operation_Results.Operation_Result;
       begin
          if Ada.Directories.Exists (Marker_Path) then
             Ada.Directories.Delete_File (Marker_Path);
@@ -35,7 +36,7 @@ separate (Files_Suite.Open_Actions)
            Files.Operations.Testing.Prepare_Open_Selected_Action (Preflight_Model, Preflight_Settings);
          Files_Suite.Support.Assert_Equal
            (Preflight_Result.Status,
-            Files.Operations.Operation_Missing_Open_Action,
+            Files.Operation_Results.Operation_Missing_Open_Action,
             "multi-file open preparation preflights all actions");
          Assert
            (not Preflight_Result.Execution.Attempted,
@@ -47,7 +48,7 @@ separate (Files_Suite.Open_Actions)
          Preflight_Result := Files.Operations.Open_Selected (Preflight_Model, Preflight_Settings);
          Files_Suite.Support.Assert_Equal
            (Preflight_Result.Status,
-            Files.Operations.Operation_Missing_Open_Action,
+            Files.Operation_Results.Operation_Missing_Open_Action,
             "multi-file open preflights all actions before spawning");
          Assert
            (not Ada.Directories.Exists (Marker_Path),
@@ -60,7 +61,7 @@ separate (Files_Suite.Open_Actions)
          Preflight_Args     : Files.Settings.String_Vectors.Vector;
          Marker_Path        : constant String := Join (Root, "multi-open-executable-marker");
          Missing_Executable : constant String := Join (Root, "missing-open-executable");
-         Preflight_Result   : Files.Operations.Operation_Result;
+         Preflight_Result   : Files.Operation_Results.Operation_Result;
       begin
          if Ada.Directories.Exists (Marker_Path) then
             Ada.Directories.Delete_File (Marker_Path);
@@ -86,7 +87,7 @@ separate (Files_Suite.Open_Actions)
          Preflight_Result := Files.Operations.Open_Selected (Preflight_Model, Preflight_Settings);
          Files_Suite.Support.Assert_Equal
            (Preflight_Result.Status,
-            Files.Operations.Operation_Failed,
+            Files.Operation_Results.Operation_Failed,
             "multi-file open preflights missing executables before spawning");
          Files_Suite.Support.Assert_Equal
            (To_String (Preflight_Result.Error_Key),
@@ -103,7 +104,7 @@ separate (Files_Suite.Open_Actions)
       declare
          Detached_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Detached_Model    : Files.Model.Window_Model := Sample_Model;
-         Detached_Result   : Files.Operations.Operation_Result;
+         Detached_Result   : Files.Operation_Results.Operation_Result;
       begin
          --  Open actions are now launched detached (fire-and-forget) through a
          --  backgrounding shell wrapper, so a launched application's own exit
@@ -122,7 +123,7 @@ separate (Files_Suite.Open_Actions)
          Detached_Result := Files.Operations.Open_Selected (Detached_Model, Detached_Settings);
          Files_Suite.Support.Assert_Equal
            (Detached_Result.Status,
-            Files.Operations.Operation_Action_Executed,
+            Files.Operation_Results.Operation_Action_Executed,
             "multi-file detached open succeeds without surfacing app exit codes");
          Files_Suite.Support.Assert_Equal
            (To_String (Detached_Result.Path),

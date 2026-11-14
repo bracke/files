@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Info)
@@ -6,7 +7,7 @@ separate (Files_Suite.Info)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model, Other : Files.Model.Window_Model;
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       pragma Unreferenced (Step);
       Before : Instant;
       Folder : constant String := Join (Root, "folder");

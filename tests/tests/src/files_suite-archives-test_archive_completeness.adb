@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Archives)
@@ -8,7 +10,7 @@ separate (Files_Suite.Archives)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
    begin
       for Background in Boolean loop
          Reset_Root;
@@ -21,12 +23,14 @@ separate (Files_Suite.Archives)
          Files.Model.Set_Background_Transfers (Model, Background);
          Ada.Directories.Delete_File (Join (Root, "b.txt"));
          Step := Complete_Operation
-           (Model, Settings, Files.Operations.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+           (Model, Settings,
+            Files.Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
          declare
             Context : constant String :=
               "a missing selected source cannot produce a successful incomplete archive or Undo entry";
          begin
-            Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Failed, Context & ": status");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status, Files.Operation_Results.Operation_Failed, Context & ": status");
             Files_Suite.Support.Assert_Equal
               (To_String (Step.Error_Key), "error.compress.failed", Context & ": result error key");
             Files_Suite.Support.Assert_Equal
@@ -51,11 +55,12 @@ separate (Files_Suite.Archives)
          Step := Files.Operations.Navigate_Recent (Model, Settings);
          Files.Model.Selection.Select_All_Visible (Model);
          Step := Complete_Operation
-           (Model, Settings, Files.Operations.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+           (Model, Settings,
+            Files.Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
          --  Two inputs with one name are both kept: the second as "same 2.txt",
          --  so neither overwrites nor silently replaces the other.
          Files_Suite.Support.Assert_Equal
-           (Step.Status, Files.Operations.Operation_Success, "two inputs sharing a name are archived together");
+           (Step.Status, Files.Operation_Results.Operation_Success, "two inputs sharing a name are archived together");
          declare
             --  Beside the first selected input: Recent lists the newest first.
             Archive : constant String :=
@@ -94,8 +99,9 @@ separate (Files_Suite.Archives)
          Select_Name (Model, "bag");
          Files.Model.Set_Background_Transfers (Model, Background);
          Step := Complete_Operation
-           (Model, Settings, Files.Operations.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
-         Assert (Step.Status = Files.Operations.Operation_Success
+           (Model, Settings,
+            Files.Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+         Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then Ada.Directories.Exists (Join (Root, "bag.zip")),
                  "a folder holding a link still compresses");
          Files_Suite.Support.Assert_Equal
@@ -118,13 +124,13 @@ separate (Files_Suite.Archives)
                Files.Model.Set_Background_Transfers (Model, Background);
                Select_Name (Model, "bag");
                Step := Complete_Operation
-                 (Model, Settings, Files.Operations.Compress_Selected (Model, Settings, Format));
+                 (Model, Settings, Files.Operation_Commands.Compress_Selected (Model, Settings, Format));
                declare
                   Context : constant String :=
                     "a name an archive cannot store is reported as such, not as a generic failure";
                begin
                   Files_Suite.Support.Assert_Equal
-                    (Step.Status, Files.Operations.Operation_Failed, Context & ": status");
+                    (Step.Status, Files.Operation_Results.Operation_Failed, Context & ": status");
                   Files_Suite.Support.Assert_Equal
                     (To_String (Step.Error_Key), "error.compress.unportable_name", Context & ": result error key");
                   Files_Suite.Support.Assert_Equal

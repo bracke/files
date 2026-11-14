@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.File_System.Testing;
 with Files.Model.Root_Selector;
@@ -39,7 +40,7 @@ separate (Files_Suite.Refresh)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "back operation reloads target");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),
@@ -59,7 +60,7 @@ separate (Files_Suite.Refresh)
         (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "forward operation reloads target");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),
@@ -82,7 +83,7 @@ separate (Files_Suite.Refresh)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "failed back reload is reported");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),
@@ -106,7 +107,7 @@ separate (Files_Suite.Refresh)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "second back operation succeeds");
       Project_Tools.Files.Delete_Tree (Second);
       Files.Model.Selection.Select_Visible (Model, 1);
@@ -116,7 +117,7 @@ separate (Files_Suite.Refresh)
         (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "failed forward preserves rename result");
       Assert (Files.Model.Rename.Is_Active (Model), "failed forward preserves normal rename state");
       Files_Suite.Support.Assert_Equal
@@ -133,7 +134,7 @@ separate (Files_Suite.Refresh)
         (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "failed forward reload is reported");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),
@@ -158,7 +159,7 @@ separate (Files_Suite.Refresh)
         (Files.Commands.Navigate_Forward_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "second forward operation succeeds");
       Project_Tools.Files.Delete_Tree (First);
       Files.Model.Selection.Select_Visible (Model, 1);
@@ -167,7 +168,7 @@ separate (Files_Suite.Refresh)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Back_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "failed back preserves rename result");
       Assert (Files.Model.Rename.Is_Active (Model), "failed back preserves normal rename state");
       Files_Suite.Support.Assert_Equal
@@ -192,7 +193,7 @@ separate (Files_Suite.Refresh)
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Navigated,
+         Files.Operation_Results.Operation_Navigated,
          "path input navigates to branch");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),

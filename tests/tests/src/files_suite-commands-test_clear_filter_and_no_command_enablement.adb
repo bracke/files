@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Clear_Filter_And_No_Command_Enablement (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -22,7 +23,7 @@ separate (Files_Suite.Commands)
          "disabled clear-filter command is ignored");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "disabled clear-filter returns operation data");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -39,7 +40,7 @@ separate (Files_Suite.Commands)
          "clear-filter command is reported");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "enabled clear-filter reports successful state-only operation");
       Files_Suite.Support.Assert_Equal (Files.Model.Filter_Text (Model), "", "clear-filter command clears filter text");
       Model := Sample_Model;

@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.File_System.Testing;
 with Files.File_System.Trash;
 with Files.Fs_Primitives;
 separate (Files_Suite.Operations)
@@ -91,7 +93,9 @@ separate (Files_Suite.Operations)
          Plan := Files.File_System.Plan_Drop_Import (Sources, Destination, Mode);
          Assert (Plan.Success and then Natural (Plan.Plans.Length) = 1 and then Plan.Plans.First_Element.Valid,
                  "an import into the deep folder is planned");
-         Assert (Files.File_System.Execute_Drop_Import (Plan.Plans).Success, "the import into the deep folder runs");
+         Assert
+           (Files.File_System.Testing.Execute_Drop_Import (Plan.Plans).Success,
+            "the import into the deep folder runs");
       end Import;
 
       procedure Check is
@@ -154,7 +158,8 @@ separate (Files_Suite.Operations)
          Show (Model, "note.txt");
          Routed := Files.Controller.Execute_Non_Settings_Command
            (Files.Commands.Duplicate_Selected_Command, Model, Settings);
-         Assert_Equal (Routed.Operation.Status, Files.Operations.Operation_Success, "the deep file is duplicated");
+         Assert_Equal (Routed.Operation.Status, Files.Operation_Results.Operation_Success,
+                       "the deep file is duplicated");
          Assert_Equal
            (Got (Join (Deep, "note (copy).txt")), "long path note", "the duplicate holds the original's bytes");
 
@@ -201,7 +206,8 @@ separate (Files_Suite.Operations)
          Show (Model, "moved");
          Routed := Files.Controller.Execute_Non_Settings_Command
            (Files.Commands.Compress_Zip_Command, Model, Settings);
-         Assert_Equal (Routed.Operation.Status, Files.Operations.Operation_Success, "the deep folder is compressed");
+         Assert_Equal (Routed.Operation.Status, Files.Operation_Results.Operation_Success,
+                       "the deep folder is compressed");
          declare
             Archive : constant String := Got (Join (Deep, "moved.zip"));
          begin
@@ -215,7 +221,7 @@ separate (Files_Suite.Operations)
          Routed := Files.Controller.Execute_Non_Settings_Command
            (Files.Commands.Extract_Archive_Command, Model, Settings);
          Assert_Equal
-           (Routed.Operation.Status, Files.Operations.Operation_Success,
+           (Routed.Operation.Status, Files.Operation_Results.Operation_Success,
             "the deep archive is extracted: " & To_String (Routed.Operation.Error_Key));
          Assert_Equal (Got (Join (Join (Join (Join (Moved, "moved"), "tree"), "sub"), "leaf.txt")), "leaf bytes",
                        "the extracted tree holds its deepest file");

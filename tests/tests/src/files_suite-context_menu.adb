@@ -1,3 +1,4 @@
+with Files.Operations;
 with Files.File_System.Trash;
 with Files.Rendering.Testing;
 with Files.Items;
@@ -18,7 +19,6 @@ with Files.Model;
 with Files.Model.Selection;
 with Files.Model.Rename;
 with Files.Model.History;
-with Files.Operations;
 with Files.Paste;
 with Files.Rendering;
 with Files.Rendering.Hit;

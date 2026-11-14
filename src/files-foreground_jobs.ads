@@ -1,5 +1,5 @@
+with Files.Operation_Results;
 with Files.Model;
-with Files.Operations;
 with Files.Settings;
 
 --  Driving the window's modal job, whichever it is (Files.Model.Foreground_Job):
@@ -21,7 +21,7 @@ package Files.Foreground_Jobs is
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Max_Items : Positive)
-      return Files.Operations.Operation_Result;
+      return Files.Operation_Results.Operation_Result;
 
    --  Ask the modal job to stop. What it finished is kept; the next Advance
    --  finishes over that. Nothing with no job.

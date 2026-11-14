@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 separate (Files_Suite.History)
    procedure Test_Multi_Item_Undo_Recompletes (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,7 +10,7 @@ separate (Files_Suite.History)
       Moved_B  : constant String := Join (Root, "recomplete-moved-b.txt");
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
       From_V   : Files.Types.String_Vectors.Vector;
       To_V     : Files.Types.String_Vectors.Vector;
    begin
@@ -31,10 +33,10 @@ separate (Files_Suite.History)
       --  Occupy the second item's destination so its move-back cannot apply yet.
       Write_File (Orig_B, "occupied");
 
-      Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "a partially-blocked multi-item undo reports failure");
       Assert
         (Ada.Directories.Exists (Orig_A) and then not Ada.Directories.Exists (Moved_A),
@@ -48,10 +50,10 @@ separate (Files_Suite.History)
       --  already-restored item (Moved_A now gone) used to force failure forever,
       --  so the entry could never re-complete; it now counts as already-undone.
       Ada.Directories.Delete_File (Orig_B);
-      Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "re-running the undo completes the previously-blocked item");
       Assert
         (Ada.Directories.Exists (Orig_B) and then not Ada.Directories.Exists (Moved_B),
@@ -60,15 +62,15 @@ separate (Files_Suite.History)
       Assert
         (not Files.Model.History.Undo_Available (Model),
          "the fully-applied entry finally leaves the undo stack");
-      Result := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "a retried Undo retains the full action for Redo");
-      Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "Undo after Redo reverses both items in a fresh cycle: status");
       Assert (Ada.Directories.Exists (Orig_A), "Undo after Redo reverses both items in a fresh cycle: a restored");
       Assert (Ada.Directories.Exists (Orig_B), "Undo after Redo reverses both items in a fresh cycle: b restored");

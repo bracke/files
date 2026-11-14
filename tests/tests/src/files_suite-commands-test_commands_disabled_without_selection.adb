@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Commands.Status;
 separate (Files_Suite.Commands)
    procedure Test_Commands_Disabled_Without_Selection (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -20,7 +21,7 @@ separate (Files_Suite.Commands)
          "disabled back command is ignored");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "disabled back returns operation data");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -37,7 +38,7 @@ separate (Files_Suite.Commands)
          "disabled back click reports command");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "disabled back click returns operation data");
       Assert
         (not Files.Commands.Status.Is_Enabled (Files.Commands.Delete_Selected_Items_Command, Model),
@@ -89,7 +90,7 @@ separate (Files_Suite.Commands)
          "disabled delete command is ignored");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "disabled delete returns operation data");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -103,7 +104,7 @@ separate (Files_Suite.Commands)
          "disabled rename command is ignored");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "disabled rename returns operation data");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -124,7 +125,7 @@ separate (Files_Suite.Commands)
          "drive selector command is controller-routed");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "drive selector reports successful state-only operation");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),

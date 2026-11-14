@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files.Controller)
    function Commit_Focused_Text
      (Model     : in out Files.Model.Window_Model;
@@ -5,7 +6,7 @@ separate (Files.Controller)
       Modifiers : Guikit.Input.Modifier_Set)
       return Controller_Result
    is
-      Operation : Files.Operations.Operation_Result := Empty_Operation;
+      Operation : Files.Operation_Results.Operation_Result := Empty_Operation;
    begin
       case Files.Model.Focus (Model) is
          when Files.Types.Focus_Path_Input =>
@@ -13,7 +14,7 @@ separate (Files.Controller)
             return Make_Result (Controller_Command_Executed, Files.Commands.Focus_Path_Input_Command, Operation);
          when Files.Types.Focus_Filter_Input =>
             Files.Model.Cancel_Focus_Or_Edit (Model);
-            Operation.Status := Files.Operations.Operation_Success;
+            Operation.Status := Files.Operation_Results.Operation_Success;
             return Make_Result (Controller_Command_Executed, Files.Commands.Focus_Filter_Input_Command, Operation);
          when Files.Types.Focus_Rename_Input =>
             if Files.Model.Temporary_Item_Is_Active (Model) then
@@ -34,12 +35,12 @@ separate (Files.Controller)
                   Draft.Valid := True;
                   Draft.Error_Key := Null_Unbounded_String;
                   Files.Model.Set_Error (Model, "");
-                  Operation.Status := Files.Operations.Operation_Success;
+                  Operation.Status := Files.Operation_Results.Operation_Success;
                else
                   Draft.Valid := False;
                   Draft.Error_Key := Parsed.Error_Key;
                   Files.Model.Set_Error (Model, To_String (Parsed.Error_Key));
-                  Operation.Status := Files.Operations.Operation_Failed;
+                  Operation.Status := Files.Operation_Results.Operation_Failed;
                   Operation.Error_Key := Parsed.Error_Key;
                end if;
                Files.Model.Settings_Pane.Set_Draft (Model, Draft);

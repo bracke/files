@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Settings.Path_References;
 separate (Files_Suite.History)
    procedure Test_History_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -17,7 +19,7 @@ separate (Files_Suite.History)
                   Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
                   Model : Files.Model.Window_Model;
                   Load : Files.File_System.Directory_Load_Result;
-                  Step : Files.Operations.Operation_Result;
+                  Step : Files.Operation_Results.Operation_Result;
                   Sources, Destinations : Files.Types.String_Vectors.Vector;
 
                   function Listed (Path : String) return Boolean is
@@ -75,11 +77,11 @@ separate (Files_Suite.History)
                     (Model, Files.Model.Undo_Move, Files_Suite.Support.Undo_Items (Destinations, To => Sources));
                   Files.Model.Set_Background_Transfers (Model, Background);
                   Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                   if Blocked then
                      Files_Suite.Support.Assert_Equal
                        (Step.Status,
-                        Files.Operations.Operation_Failed,
+                        Files.Operation_Results.Operation_Failed,
                         "the blocked Undo reports partial failure");
                      Check_Refresh ("error.undo.failed");
                      Assert ((if Recent then Listed (Source_A) and then Listed (Source_B)
@@ -89,11 +91,11 @@ separate (Files_Suite.History)
                              "the blocked Undo preserves the occupying source");
                      Ada.Directories.Delete_File (Source_B);
                      Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                   end if;
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
-                     Files.Operations.Operation_Success,
+                     Files.Operation_Results.Operation_Success,
                      "the full Undo succeeds");
                   Check_Refresh ("");
                   Assert ((if Recent then Listed (Source_A) and then Listed (Source_B)
@@ -103,11 +105,11 @@ separate (Files_Suite.History)
                      Write_Binary_File (Dest_B, "unrelated destination collision");
                   end if;
                   Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
                   if Blocked then
                      Files_Suite.Support.Assert_Equal
                        (Step.Status,
-                        Files.Operations.Operation_Failed,
+                        Files.Operation_Results.Operation_Failed,
                         "the blocked Redo reports partial failure");
                      Check_Refresh ("error.undo.failed");
                      Assert ((if Recent then not Listed (Source_A) and then Listed (Source_B)
@@ -117,21 +119,21 @@ separate (Files_Suite.History)
                              "the blocked Redo preserves the occupying destination");
                      Ada.Directories.Delete_File (Dest_B);
                      Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
                   end if;
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
-                     Files.Operations.Operation_Success,
+                     Files.Operation_Results.Operation_Success,
                      "the full Redo succeeds");
                   Check_Refresh ("");
                   Assert ((if Recent then Files.Model.Item_Count (Model) = 0
                            else Listed (Dest_A) and then Listed (Dest_B)),
                           "Redo removes moved Recent paths or relists the full destination directory");
                   Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
-                     Files.Operations.Operation_Success,
+                     Files.Operation_Results.Operation_Success,
                      "Undo works again after the refreshed Redo");
                   Check_Refresh ("");
                   Assert (File_Has_Bytes (Source_A, "original a") and then File_Has_Bytes (Source_B, "original b"),

@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Interaction;
 with Files.Events;
 with Guikit.Input;
@@ -16,7 +18,7 @@ separate (Files_Suite.Transfer)
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
       Routed   : Files.Controller.Controller_Result;
-      Undone   : Files.Operations.Operation_Result;
+      Undone   : Files.Operation_Results.Operation_Result;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Src_Dir);
@@ -35,7 +37,7 @@ separate (Files_Suite.Transfer)
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Copy_To_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "copy-to command starts the picker");
       Assert (Files.Model.Tree_Panel.Is_Open (Model), "copy-to opens the folder tree");
       Assert (Files.Model.Tree_Panel.Pick_Is_Active (Model), "the destination picker is active");
@@ -67,8 +69,9 @@ separate (Files_Suite.Transfer)
       Assert (not Files.Model.Tree_Panel.Pick_Is_Active (Model), "confirming clears the picker");
       Assert (not Files.Model.Tree_Panel.Is_Open (Model), "confirming closes the folder tree");
 
-      Undone := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Files_Suite.Support.Assert_Equal (Undone.Status, Files.Operations.Operation_Success, "the copy is undoable");
+      Undone := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal (Undone.Status, Files.Operation_Results.Operation_Success,
+                                        "the copy is undoable");
       Assert (not Ada.Directories.Exists (A_Dest), "undo removes the a.txt copy");
       Assert (not Ada.Directories.Exists (B_Dest), "undo removes the b.txt copy");
       Assert (Ada.Directories.Exists (A_Src), "undo keeps the a.txt original");

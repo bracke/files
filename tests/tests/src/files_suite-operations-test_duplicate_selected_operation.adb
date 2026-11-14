@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Duplicate_Selected_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -27,7 +28,7 @@ separate (Files_Suite.Operations)
         (Files.Commands.Duplicate_Selected_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "duplicate succeeds");
       Assert (Ada.Directories.Exists (Source), "original item still exists after duplicating");
       Assert (Ada.Directories.Exists (Copy_Path), "duplicate is created with a distinct name");

@@ -67,7 +67,7 @@ package Files.Process_Jobs is
    --  @param Job Session to release.
    procedure Reset (Job : in out Session);
 
-   --  Request poller shutdown and wait at most about two seconds for its task
+   --  Request the orphan reaper's shutdown and wait at most about two seconds for its task
    --  to terminate. The caller must exit explicitly if Stopped is False,
    --  because Ada task finalization would otherwise wait without a bound.
    --  @param Stopped True only when the reaper task completed normally.

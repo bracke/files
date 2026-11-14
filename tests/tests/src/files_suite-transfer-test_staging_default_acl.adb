@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Foreground_Jobs;
 with Files.Fs_Primitives;
 with Files_Suite.Support.Guards;
@@ -18,7 +20,7 @@ separate (Files_Suite.Transfer)
       Model : aliased Files.Model.Window_Model;
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
 
@@ -125,15 +127,15 @@ separate (Files_Suite.Transfer)
            (Model, Settings, Files.Operations.Begin_Paste_To (Model, Settings, Paths, Parent));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
-           (Step.Status, Files.Operations.Operation_Success, "copy a folder into it in the background");
+           (Step.Status, Files.Operation_Results.Operation_Success, "copy a folder into it in the background");
          Assert
            (Inherits (Join (Parent, "folder")) and then Inherits (Join (Parent, "folder/child"))
               and then File_Has_Bytes (Join (Parent, "folder/child"), "child bytes"),
             "the copied folder and what it holds take the folder's ACE, not the stage's");
-         Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
-           (Step.Status, Files.Operations.Operation_Success,
+           (Step.Status, Files.Operation_Results.Operation_Success,
             "Undo the folder copy: its recorded revision is the one inheriting left");
          Assert (not Ada.Directories.Exists (Join (Parent, "folder")), "Undo removed the copied folder");
          Cleanup;
@@ -219,7 +221,7 @@ separate (Files_Suite.Transfer)
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Success,
+                  Files.Operation_Results.Operation_Success,
                   "background copy through a restrictive default ACL");
             else
                Mutation := Files.File_System.Copy_Tree (Source, Dest);

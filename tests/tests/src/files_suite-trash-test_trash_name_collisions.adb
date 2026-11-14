@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files_Suite.Trash)
    procedure Test_Trash_Name_Collisions (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -32,13 +33,13 @@ separate (Files_Suite.Trash)
            (Files.Commands.Refresh_Directory_Command, Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "refresh loads collision target");
          Select_Name (Model, "doomed.txt");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "second same-name delete succeeds");
          Assert (Ada.Directories.Exists (Join (Trash_File, "doomed.txt.2")), "trash collision chooses suffix");
          Assert

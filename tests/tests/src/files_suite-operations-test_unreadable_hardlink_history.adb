@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 separate (Files_Suite.Operations)
    procedure Test_Unreadable_Hardlink_History
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -10,7 +12,7 @@ separate (Files_Suite.Operations)
       Load : Files.File_System.Directory_Load_Result;
       Model : Files.Model.Window_Model;
       Routed : Files.Controller.Controller_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
    begin
       --  Mode 0 is an empty DACL on Windows, which binds an elevated process
       --  too: nothing reads the file, and CreateHardLinkW, which must write
@@ -25,29 +27,29 @@ separate (Files_Suite.Operations)
         (Files.Commands.Create_Hardlink_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "readable hard link is created");
-      Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "hard link is removed before Redo");
       Assert (Files.File_System.Permissions.Set_Permissions (Source, 0).Success,
               "source permissions can be removed");
 
-      Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "Redo refuses an unreadable hard link before publication");
       Assert (not Ada.Directories.Exists (Link_Path),
               "failed Redo leaves no hard link behind");
       Assert (Files.File_System.Permissions.Set_Permissions (Source, 8#644#).Success,
               "source permissions can be restored");
-      Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "Redo can retry after the source becomes readable");
       Assert (Ada.Directories.Exists (Link_Path), "retry publishes the hard link");
 
@@ -65,7 +67,7 @@ separate (Files_Suite.Operations)
       if Hostkit.Metadata.Mode_Bits_Are_Native then
          Files_Suite.Support.Assert_Equal
            (Routed.Operation.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "creating an unreadable hard link reports success");
          Assert (Ada.Directories.Exists (Link_Path),
                  "unreadable hard link is actually published");
@@ -73,7 +75,7 @@ separate (Files_Suite.Operations)
          --  POSIX links a file it cannot read; Windows refuses it a name.
          Files_Suite.Support.Assert_Equal
            (Routed.Operation.Status,
-            Files.Operations.Operation_Failed,
+            Files.Operation_Results.Operation_Failed,
             "Windows refuses a hard link to a file whose DACL grants nothing");
          Assert (not Ada.Directories.Exists (Link_Path),
                  "the refused hard link leaves nothing behind");

@@ -11,7 +11,6 @@ with GNAT.OS_Lib;
 with Files.Fs_Primitives;
 with Files.Undo_Payloads;
 with Files.Transfer_Jobs;
-with Files.Operation_Jobs;
 with Files.Job_Context;
 with Hostkit.Metadata;
 
@@ -41,7 +40,6 @@ with Files.Model.Rename;
 with Files.Model.Selection;
 
 package body Files.Operations is
-   use type Files.Operation_Results.Operation_Status;
    use Ada.Strings.Unbounded;
    use type Files.File_System.Thumbnails.Thumbnail_Status;
    use type Files.Types.Item_Kind;
@@ -55,29 +53,33 @@ package body Files.Operations is
 
    --  The undo history is recorded by Files.Undo_Recording; these name it
    --  here for the bodies that record.
-   subtype Undo_Provenance is Files.Undo_Recording.Undo_Provenance;
-
    function Try_Record_Undo
      (Model       : in out Files.Model.Window_Model;
       Kind        : Files.Model.Undo_Action_Kind;
-      Items       : Files.Model.Undo_Item_Vectors.Vector;
+      Items       : Files.Model.Recorded_Item_Vectors.Vector;
       Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
       Redoable    : Boolean := True;
-      Replaced    : Files.Model.Replaced_Original_Vectors.Vector :=
-        Files.Model.Replaced_Original_Vectors.Empty_Vector;
-      Provenance  : Undo_Provenance := (others => <>)) return Boolean
+      Replaced    : Files.Model.Recorded_Original_Vectors.Vector :=
+        Files.Model.Recorded_Original_Vectors.Empty_Vector;
+      Kept        : Files.Model.Kept_Copy_Vectors.Vector := Files.Model.Kept_Copy_Vectors.Empty_Vector)
+      return Boolean
      renames Files.Undo_Recording.Try_Record_Undo;
 
    procedure Record_Undo
      (Model       : in out Files.Model.Window_Model;
       Kind        : Files.Model.Undo_Action_Kind;
-      Items       : Files.Model.Undo_Item_Vectors.Vector;
+      Items       : Files.Model.Recorded_Item_Vectors.Vector;
       Create_Kind : Files.Model.Undo_Create_Kind := Files.Model.Create_None;
       Redoable    : Boolean := True;
-      Replaced    : Files.Model.Replaced_Original_Vectors.Vector :=
-        Files.Model.Replaced_Original_Vectors.Empty_Vector;
-      Provenance  : Undo_Provenance := (others => <>))
+      Replaced    : Files.Model.Recorded_Original_Vectors.Vector :=
+        Files.Model.Recorded_Original_Vectors.Empty_Vector;
+      Kept        : Files.Model.Kept_Copy_Vectors.Vector := Files.Model.Kept_Copy_Vectors.Empty_Vector)
      renames Files.Undo_Recording.Record_Undo;
+
+   --  Items an action published (Files.Undo_Recording.Published).
+   function Published
+     (Items : Files.Model.Undo_Item_Vectors.Vector) return Files.Model.Recorded_Item_Vectors.Vector
+     renames Files.Undo_Recording.Published;
 
    procedure Settle_History (Model : in out Files.Model.Window_Model) renames Files.Undo_Recording.Settle_History;
 
@@ -248,6 +250,33 @@ package body Files.Operations is
      renames Files.File_System.Trash.Is_Trash_Files_Directory;
 
    function Is_Trash_Child (Path : String) return Boolean is separate;
+
+   function Search_Refusal (Model : in out Files.Model.Window_Model) return Operation_Result is
+   begin
+      if Files.Model.Filter_Text (Model) = "" then
+         return Disabled (Model, "error.filter.empty");
+      elsif Files.Model.Current_Path (Model) = "" or else Files.Model.In_Recent_View (Model) then
+         return Disabled (Model, "error.directory.load");
+      end if;
+      return (Status => Operation_Success, others => <>);
+   end Search_Refusal;
+
+   function Trash_Refusal (Model : in out Files.Model.Window_Model) return Operation_Result is
+     (if Is_Trash_Directory (Files.Model.Current_Path (Model))
+      then Disabled (Model, "error.trash.failed")
+      else (Status => Operation_Success, others => <>));
+
+   function Creation_Refusal
+     (Model       : in out Files.Model.Window_Model;
+      Failure_Key : String) return Operation_Result is
+   begin
+      if Files.Model.Selection.Includes_Temporary (Model) then
+         return Disabled (Model, "error.create.pending");
+      elsif Is_Trash_Directory (Files.Model.Current_Path (Model)) then
+         return Disabled (Model, Failure_Key);
+      end if;
+      return (Status => Operation_Success, others => <>);
+   end Creation_Refusal;
 
    function Compress_Selected
      (Model    : in out Files.Model.Window_Model;
@@ -467,13 +496,13 @@ package body Files.Operations is
    begin
       Record_Undo
         (Model, Kind,
-         Files.Model.Undo_Item_Vectors.To_Vector
-           ((From          => To_Unbounded_String (Path),
-             To            => To_Unbounded_String (Old_Text),
-             Forward       => To_Unbounded_String (New_Text),
-             Identity      => Identity,
-             Tree_Revision => Null_Unbounded_String), 1),
-         Provenance => (Published_Main => 1, others => <>));
+         Published
+           (Files.Model.Undo_Item_Vectors.To_Vector
+              ((From          => To_Unbounded_String (Path),
+                To            => To_Unbounded_String (Old_Text),
+                Forward       => To_Unbounded_String (New_Text),
+                Identity      => Identity,
+                Tree_Revision => Null_Unbounded_String), 1)));
       declare
          Reload : constant Operation_Result :=
            Reload_Current_Directory (Model, Settings, Files.Model.Selection.Selected_Name (Model));

@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 separate (Files_Suite.History)
    procedure Test_Undo_Redo_History (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -11,10 +13,10 @@ separate (Files_Suite.History)
       C1     : constant String := Join (Root, "c1.txt");
       Load   : Files.File_System.Directory_Load_Result;
       Model  : Files.Model.Window_Model;
-      Result : Files.Operations.Operation_Result;
+      Result : Files.Operation_Results.Operation_Result;
 
       procedure Rename (From_Name, To_Name : String) is
-         Step : Files.Operations.Operation_Result;
+         Step : Files.Operation_Results.Operation_Result;
       begin
          Select_Name (Model, From_Name);
          Files.Model.Rename.Toggle (Model);
@@ -22,7 +24,7 @@ separate (Files_Suite.History)
          Step := Files.Operations.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "rename " & From_Name & " to " & To_Name & " commits");
       end Rename;
    begin
@@ -42,21 +44,24 @@ separate (Files_Suite.History)
       Assert (not Files.Model.History.Redo_Available (Model), "no redo is pending before undoing");
 
       --  Undo unwinds last-in-first-out: C, then B, then A.
-      Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "first undo succeeds");
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
+                                        "first undo succeeds");
       Assert
         (Ada.Directories.Exists (C0) and then not Ada.Directories.Exists (C1),
          "the first undo reverses the most recent rename (C)");
       Assert (Ada.Directories.Exists (B1), "earlier renames stay applied after one undo");
 
-      Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "second undo succeeds");
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
+                                        "second undo succeeds");
       Assert
         (Ada.Directories.Exists (B0) and then not Ada.Directories.Exists (B1),
          "the second undo reverses B");
 
-      Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "third undo succeeds");
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
+                                        "third undo succeeds");
       Assert
         (Ada.Directories.Exists (A0) and then not Ada.Directories.Exists (A1),
          "the third undo reverses A");
@@ -64,30 +69,35 @@ separate (Files_Suite.History)
       Assert (Files.Model.History.Redo_Available (Model), "redo becomes available after undoing");
 
       --  Redo re-applies forward across all levels: A, then B, then C.
-      Result := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "first redo succeeds");
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
+                                        "first redo succeeds");
       Assert
         (Ada.Directories.Exists (A1) and then not Ada.Directories.Exists (A0),
          "the first redo re-applies A");
-      Result := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "second redo succeeds");
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
+                                        "second redo succeeds");
       Assert (Ada.Directories.Exists (B1), "the second redo re-applies B");
-      Result := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "third redo succeeds");
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
+                                        "third redo succeeds");
       Assert (Ada.Directories.Exists (C1), "the third redo re-applies C");
       Assert (not Files.Model.History.Redo_Available (Model), "the redo stack empties after re-applying all three");
       Assert (Files.Model.History.Undo_Available (Model), "undo is available again after redoing");
 
       --  undo -> redo -> undo round-trips the current top action.
-      Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "round-trip undo succeeds");
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
+                                        "round-trip undo succeeds");
       Assert (Ada.Directories.Exists (C0), "round-trip: undo returns C to its original name");
-      Result := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "round-trip redo succeeds");
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
+                                        "round-trip redo succeeds");
       Assert (Ada.Directories.Exists (C1), "round-trip: redo re-applies C");
-      Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
-        (Result.Status, Files.Operations.Operation_Success, "round-trip undo again succeeds");
+        (Result.Status, Files.Operation_Results.Operation_Success, "round-trip undo again succeeds");
       Assert (Ada.Directories.Exists (C0), "round-trip: undo again returns C");
 
       --  A new undoable operation clears the pending redo history.

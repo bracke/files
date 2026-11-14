@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files.Controller)
    function Save_Settings
      (Model         : in out Files.Model.Window_Model;
@@ -9,7 +10,7 @@ separate (Files.Controller)
         Files.Settings.Apply_Draft (Settings, Files.Model.Settings_Pane.Draft_Of (Model));
       Final     : Files.Settings.Settings_Model;
       Saved     : Files.Settings.Settings_Write_Result;
-      Operation : Files.Operations.Operation_Result := Empty_Operation;
+      Operation : Files.Operation_Results.Operation_Result := Empty_Operation;
    begin
       if not Files.Model.Settings_Pane.Is_Open (Model) then
          return Settings_Closed_Result (Files.Commands.Save_Settings_Command, Model, Settings_Path);
@@ -22,7 +23,7 @@ separate (Files.Controller)
             Files.Model.Settings_Pane.Set_Draft (Model, Draft);
          end;
          Files.Model.Set_Error (Model, To_String (Applied.Error_Key));
-         Operation.Status := Files.Operations.Operation_Failed;
+         Operation.Status := Files.Operation_Results.Operation_Failed;
          Operation.Error_Key := Applied.Error_Key;
          Operation.Path := To_Unbounded_String (Settings_Path);
          return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
@@ -41,7 +42,7 @@ separate (Files.Controller)
          then Persisted (Model, Settings, Settings_Path)
          else Commit_Settings (Model, Settings, Final, Settings_Path));
       if not Files.Settings.Same_Content (Settings, Final) then
-         Operation.Status := Files.Operations.Operation_Failed;
+         Operation.Status := Files.Operation_Results.Operation_Failed;
          Operation.Error_Key := Saved.Error_Key;
          Operation.Path := To_Unbounded_String (Settings_Path);
          return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
@@ -54,7 +55,7 @@ separate (Files.Controller)
 
       Operation := Files.Operations.Refresh (Model, Settings);
       Files.Model.Settings_Pane.Set_Draft (Model, Files.Settings.Make_Draft (Settings));
-      if Operation.Status = Files.Operations.Operation_Failed then
+      if Operation.Status = Files.Operation_Results.Operation_Failed then
          return Make_Result (Controller_Command_Executed, Files.Commands.Save_Settings_Command, Operation);
       end if;
 
@@ -62,7 +63,7 @@ separate (Files.Controller)
          Files.Model.Set_Error (Model, "");
       end if;
       Operation.Status :=
-        (if Saved.Success then Files.Operations.Operation_Success else Files.Operations.Operation_Failed);
+        (if Saved.Success then Files.Operation_Results.Operation_Success else Files.Operation_Results.Operation_Failed);
       Operation.Path := To_Unbounded_String (Settings_Path);
       Operation.Error_Key := Saved.Error_Key;
 

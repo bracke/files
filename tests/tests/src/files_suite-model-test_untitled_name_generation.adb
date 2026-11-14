@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files_Suite.Model)
    procedure Test_Untitled_Name_Generation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -31,7 +32,7 @@ separate (Files_Suite.Model)
       Files.Model.Initialize (Model, Root, Items, Root);
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
-        (Result.Operation.Status, Files.Operations.Operation_Success,
+        (Result.Operation.Status, Files.Operation_Results.Operation_Success,
          "untitled name generation creates its first temporary item (status)");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Temporary_Item_Name (Model),
@@ -55,7 +56,7 @@ separate (Files_Suite.Model)
       end;
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_File_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
-        (Result.Operation.Status, Files.Operations.Operation_Success,
+        (Result.Operation.Status, Files.Operation_Results.Operation_Success,
          "untitled name generation creates its next temporary item (status)");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Temporary_Item_Name (Model),

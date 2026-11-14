@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
    --  A folder moved off another volume, a child edited during the copy to
@@ -39,7 +40,7 @@ separate (Files_Suite.Transfer)
          Plans.Append (Files.File_System.Drop_Import_Plan'
            (Source, To_Unbounded_String (Join (Root, "moved")), Files.File_System.Drop_Move, True,
             Null_Unbounded_String));
-         Mutation := Files.File_System.Execute_Drop_Import (Plans, Edit_Child'Unrestricted_Access);
+         Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans, Edit_Child'Unrestricted_Access);
          Assert (Checks >= 5, "the copy reached the point where the child changes");
          Files_Suite.Support.Assert_Equal
            (To_String (Mutation.Error_Key), "error.move.source_changed",

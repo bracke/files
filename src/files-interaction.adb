@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Window_Polls;
 with Files.Items;
 with Ada.Strings.Unbounded;
@@ -17,7 +18,7 @@ package body Files.Interaction is
    use Ada.Strings.Unbounded;
    use type Files.Commands.Command_Id;
    use type Files.Controller.Controller_Status;
-   use type Files.Operations.Operation_Status;
+   use type Files.Operation_Results.Operation_Status;
    use type Files.Types.Focus_Target;
    use type Guikit.Input.Key_Code;
 
@@ -295,7 +296,7 @@ package body Files.Interaction is
             --  A reload that fails says so in the window's error line. The
             --  folder sizes stay: only a refresh the user asks for measures
             --  them again.
-            Reloaded : constant Files.Operations.Operation_Result :=
+            Reloaded : constant Files.Operation_Results.Operation_Result :=
               Files.Operations.Refresh (Model, Settings, Measure_Again => False);
             pragma Unreferenced (Reloaded);
          begin
@@ -315,7 +316,7 @@ package body Files.Interaction is
       return Boolean is
      (Files.Commands.Requires_Settings_Path (Command)
       and then Outcome.Status = Files.Controller.Controller_Command_Executed
-      and then (Outcome.Operation.Status /= Files.Operations.Operation_Disabled
+      and then (Outcome.Operation.Status /= Files.Operation_Results.Operation_Disabled
                 or else not Files.Settings.Same_Content (Before, Settings)));
 
    --  What a command that may have changed the settings ends with: its own

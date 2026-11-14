@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Settings.Path_References;
 separate (Files_Suite.Operations)
    --  The recent view refreshes in place, and a move back from it that fails
@@ -8,7 +9,7 @@ separate (Files_Suite.Operations)
       Item     : constant String := Join (Folder, "opened.txt");
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Folder);
@@ -29,7 +30,7 @@ separate (Files_Suite.Operations)
       --  The folder it came from is gone: Back fails and stays in Recent.
       Project_Tools.Files.Delete_Tree (Folder);
       Step := Files.Operations.Navigate_Back (Model, Settings);
-      Assert (Step.Status /= Files.Operations.Operation_Success, "back to a folder that is gone fails");
+      Assert (Step.Status /= Files.Operation_Results.Operation_Success, "back to a folder that is gone fails");
       Assert (Files.Model.In_Recent_View (Model), "the failed move returns to the recent view");
       Files_Suite.Support.Assert_Equal (Files.Model.Current_Path (Model), "", "with the recent view's empty path");
       Assert (Files.Model.Can_Go_Back (Model), "and the history it had");

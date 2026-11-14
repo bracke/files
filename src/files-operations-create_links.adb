@@ -30,12 +30,11 @@ is
       Undo_Recorded := True;
       declare
          Recorded : constant Boolean := Try_Record_Undo
-           (Model, Files.Model.Undo_Delete_Created, Made,
+           (Model, Files.Model.Undo_Delete_Created, Published (Made),
             Create_Kind =>
               (if Hard
                then Files.Model.Create_Hard_Link
-               else Files.Model.Create_Symbolic_Link),
-            Provenance  => (Published_Main => Natural (Made.Length), others => <>));
+               else Files.Model.Create_Symbolic_Link));
          pragma Unreferenced (Recorded);
       begin
          null;

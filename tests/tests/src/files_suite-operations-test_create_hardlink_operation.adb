@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Create_Hardlink_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -26,7 +27,7 @@ separate (Files_Suite.Operations)
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_Hardlink_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "create-hard-link succeeds");
       Assert (Ada.Directories.Exists (Source), "original file still exists after linking");
       Assert (Ada.Directories.Exists (Link_Path), "a hard link is created next to the source");
@@ -40,7 +41,7 @@ separate (Files_Suite.Operations)
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Undo_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "undo of a created hard link succeeds");
       Assert (not Ada.Directories.Exists (Link_Path), "undo removes the created hard link");
       Assert (Ada.Directories.Exists (Source), "undo keeps the original file");
@@ -61,7 +62,7 @@ separate (Files_Suite.Operations)
         (Files.Commands.Create_Hardlink_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "a partial link batch refreshes and retains one undoable committed link: status");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -80,7 +81,7 @@ separate (Files_Suite.Operations)
       Routed := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Undo_Command, Model, Settings);
       Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Success
+        (Routed.Operation.Status = Files.Operation_Results.Operation_Success
          and then not Ada.Directories.Exists (Join (Dir, "a (link).txt")),
          "Undo removes the committed prefix of a partial link batch");
    end Test_Create_Hardlink_Operation;

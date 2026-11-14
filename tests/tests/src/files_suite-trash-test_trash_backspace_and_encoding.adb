@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files_Suite.Trash)
    procedure Test_Trash_Backspace_And_Encoding (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -22,7 +23,7 @@ separate (Files_Suite.Trash)
            (Files.Commands.Refresh_Directory_Command, Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "refresh loads second delete target");
          Select_Name (Model, "doomed2.txt");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Backspace);
@@ -32,7 +33,7 @@ separate (Files_Suite.Trash)
             "Backspace routes through same delete command");
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "Backspace delete uses trash operation");
          Assert (Ada.Directories.Exists (Join (Trash_File, "doomed2.txt")), "Backspace moves file to trash");
 
@@ -41,13 +42,13 @@ separate (Files_Suite.Trash)
            (Files.Commands.Refresh_Directory_Command, Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "refresh loads encoded trash target");
          Select_Name (Model, "space % file.txt");
          Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Delete);
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "encoded trash target moves to trash");
          --  What this is about is the encoding of the awkward characters, and that is
          --  host-independent. The absolute path in front of them is not: it was spelled

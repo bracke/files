@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Commands.Status;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
@@ -33,7 +34,7 @@ separate (Files_Suite.Trash)
         (Files.Commands.Delete_Selected_Items_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "undo-safe setup trashes the item");
       Assert (Files.Model.History.Undo_Available (Model), "trashing records an undo entry");
 
@@ -42,7 +43,7 @@ separate (Files_Suite.Trash)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Trash_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Navigated,
+         Files.Operation_Results.Operation_Navigated,
          "undo-safe setup opens the trash view");
       Assert
         (Files.Commands.Status.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
@@ -50,14 +51,14 @@ separate (Files_Suite.Trash)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "empty trash succeeds");
       Assert (Files.Model.History.Undo_Available (Model), "the dangling restore undo entry is still present");
 
       --  Undoing the restore whose source was emptied must fail safely, not crash.
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Undo_Command, Model, Settings);
       Assert
-        (Result.Operation.Status /= Files.Operations.Operation_Success,
+        (Result.Operation.Status /= Files.Operation_Results.Operation_Success,
          "undoing a restore whose trashed source was emptied fails safely");
       Assert (not Ada.Directories.Exists (Source_Path), "the failed undo does not resurrect the emptied item");
 

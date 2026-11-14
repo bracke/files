@@ -603,13 +603,14 @@ package body Files.Job_Context is
    procedure Register_Stage_Internal
      (Path, Identity, Record_Directory : String)
    is
-      Owner : constant String := Hostkit.Fs.Join (Path, ".files-owner");
-      Owner_Temp : constant String := Hostkit.Fs.Join (Path, ".files-owner.tmp");
+      Owner : constant String := Hostkit.Fs.Join (Path, Files.Protocol_Names.Stage_Owner_File);
+      Owner_Temp : constant String :=
+        Hostkit.Fs.Join (Path, Files.Process_Jobs.Staged_Name (Files.Protocol_Names.Stage_Owner_File));
       Owner_Directory : constant String := Stage_Owner_Directory;
       procedure Write
         (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
       begin
-         String'Output (Stream, "files-stage-owner-1");
+         String'Output (Stream, Files.Protocol_Names.Stage_Owner_Header);
          String'Output (Stream, Owner_Directory);
          String'Output (Stream, Identity);
       end Write;
@@ -625,43 +626,47 @@ package body Files.Job_Context is
       Write_Stage_Record (Record_Directory, Path, Identity);
    end Register_Stage_Internal;
 
+   --  A work stage's owner record: the job directory and its identity.
+   type Owner_Record is record
+      Directory, Identity : Files.Types.UString;
+   end record;
+
+   procedure Read_Owner_Body
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Value  : out Owner_Record) is
+   begin
+      Value.Directory := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Record_Path_Length));
+      Value.Identity := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Record_Token_Length));
+   end Read_Owner_Body;
+
+   function Owner_Is_Valid (Value : Owner_Record) return Boolean is
+     (Length (Value.Identity) > 0
+      and then Valid_Absolute_Path (To_String (Value.Directory))
+      and then Nul_Free (To_String (Value.Identity)));
+
+   function Read_Owner_Record is new Files.Lease_Streams.Read_Record
+     (Item => Owner_Record, Read_Body => Read_Owner_Body, Is_Consistent => Owner_Is_Valid);
+
    procedure Read_Owner
      (Path : String;
       Directory, Identity : out Files.Types.UString;
       Valid : out Boolean)
    is
-      Input : aliased Files.Lease_Streams.Input_Stream;
-      Owner : constant String := Hostkit.Fs.Join (Path, ".files-owner");
+      Value : Owner_Record;
    begin
       Directory := Null_Unbounded_String;
       Identity := Null_Unbounded_String;
       Valid := False;
-      if Files.Lease_Streams.Open (Owner, Input) /= Hostkit.Lease_Files.Opened
-        or else Files.Lease_Streams.Size (Input) > Max_Stage_Metadata_Bytes
-      then
-         Files.Lease_Streams.Release (Input);
-         return;
-      end if;
-      if Files.Bounded_Streams.Input_String
-        (Input'Access, Max_Record_Header_Length) =
-          "files-stage-owner-1"
-      then
-         Directory := To_Unbounded_String
-           (Files.Bounded_Streams.Input_String
-              (Input'Access, Max_Record_Path_Length));
-         Identity := To_Unbounded_String
-           (Files.Bounded_Streams.Input_String
-              (Input'Access, Max_Record_Token_Length));
-         Valid := Length (Identity) > 0
-           and then Valid_Absolute_Path (To_String (Directory))
-           and then Nul_Free (To_String (Identity))
-           and then Files.Lease_Streams.End_Of_Stream (Input);
-      end if;
-      Files.Lease_Streams.Release (Input);
+      Value := Read_Owner_Record
+        (Hostkit.Fs.Join (Path, Files.Protocol_Names.Stage_Owner_File),
+         Files.Protocol_Names.Stage_Owner_Header,
+         Max_Stage_Metadata_Bytes);
+      Directory := Value.Directory;
+      Identity := Value.Identity;
+      Valid := True;
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Job_Context");
-         Files.Lease_Streams.Release (Input);
          Directory := Null_Unbounded_String;
          Identity := Null_Unbounded_String;
          Valid := False;

@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Ada.Unchecked_Deallocation;
 with Files.Commands.Status;
 separate (Files_Suite.Archives)
@@ -216,7 +217,7 @@ separate (Files_Suite.Archives)
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Extract_Archive_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "extract succeeds");
       Assert (Ada.Directories.Exists (Dest_Dir), "destination folder is created from the archive base name");
       Assert (Ada.Directories.Exists (Out_Report), "first archived file is extracted");
@@ -242,7 +243,7 @@ separate (Files_Suite.Archives)
             raise;
       end;
       Assert
-        (Routed.Operation.Status = Files.Operations.Operation_Failed
+        (Routed.Operation.Status = Files.Operation_Results.Operation_Failed
          and then not Ada.Directories.Exists (Join (Dir, "bundle (1)")),
          "extraction does not publish a tree without a verifiable identity");
       Assert (No_Stage_Left, "and leaves no staging folder behind");
@@ -263,14 +264,14 @@ separate (Files_Suite.Archives)
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Extract_Archive_Command, Model, Settings);
       if Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Linux) then
          Files_Suite.Support.Assert_Equal
-           (Routed.Operation.Status, Files.Operations.Operation_Success,
+           (Routed.Operation.Status, Files.Operation_Results.Operation_Success,
             "a case-sensitive destination takes both names");
          Assert (Ada.Directories.Exists (Join (Join (Dir, "cases"), "Makefile"))
                  and then Ada.Directories.Exists (Join (Join (Dir, "cases"), "makefile")),
                  "and both members are there");
       else
          Files_Suite.Support.Assert_Equal
-           (Routed.Operation.Status, Files.Operations.Operation_Failed,
+           (Routed.Operation.Status, Files.Operation_Results.Operation_Failed,
             "a case-insensitive destination refuses names that fold together");
          Assert (not Ada.Directories.Exists (Join (Dir, "cases")), "no folder is made for it");
          Assert (No_Stage_Left, "and no staging folder is left behind");

@@ -18,13 +18,14 @@ separate (Files_Suite.Recovery)
       function Owner_Of (Stage : String) return String is
          File : Ada.Streams.Stream_IO.File_Type;
       begin
-         Ada.Streams.Stream_IO.Open (File, Ada.Streams.Stream_IO.In_File, Join (Stage, ".files-owner"));
+         Ada.Streams.Stream_IO.Open
+           (File, Ada.Streams.Stream_IO.In_File, Join (Stage, Files.Protocol_Names.Stage_Owner_File));
          declare
             Header : constant String := String'Input (Ada.Streams.Stream_IO.Stream (File));
             Owner  : constant String := String'Input (Ada.Streams.Stream_IO.Stream (File));
          begin
             Ada.Streams.Stream_IO.Close (File);
-            Assert (Header = "files-stage-owner-1", "a foreground stage names its owner");
+            Assert (Header = Files.Protocol_Names.Stage_Owner_Header, "a foreground stage names its owner");
             return Owner;
          end;
       end Owner_Of;

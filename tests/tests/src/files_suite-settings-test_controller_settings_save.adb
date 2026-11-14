@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Model.Settings_Pane;
 with Files.Settings.Open_Actions;
@@ -67,7 +68,7 @@ separate (Files_Suite.Settings)
          Controller_Result := Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
          Files_Suite.Support.Assert_Equal
            (Controller_Result.Operation.Status,
-            Files.Operations.Operation_Failed,
+            Files.Operation_Results.Operation_Failed,
             "controller rejects invalid settings draft");
          Files_Suite.Support.Assert_Equal
            (To_String (Controller_Result.Operation.Error_Key),
@@ -104,7 +105,7 @@ separate (Files_Suite.Settings)
            Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Join (Root, "settings-dir"));
          Files_Suite.Support.Assert_Equal
            (Controller_Result.Operation.Status,
-            Files.Operations.Operation_Failed,
+            Files.Operation_Results.Operation_Failed,
             "controller settings save rejects directory path");
          Files_Suite.Support.Assert_Equal
            (To_String (Controller_Result.Operation.Error_Key),
@@ -117,7 +118,7 @@ separate (Files_Suite.Settings)
          Controller_Result := Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
          Files_Suite.Support.Assert_Equal
            (Controller_Result.Operation.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "controller saves edited settings draft");
          Files_Suite.Support.Assert_Equal
            (Draft_Settings.Default_View,
@@ -183,7 +184,7 @@ separate (Files_Suite.Settings)
             Missing_Result := Files.Controller.Testing.Save_Settings (Missing_Model, Missing_Settings, Draft_Path);
             Files_Suite.Support.Assert_Equal
               (Missing_Result.Operation.Status,
-               Files.Operations.Operation_Failed,
+               Files.Operation_Results.Operation_Failed,
                "controller settings save reports post-save refresh failure");
             Assert
               (To_String (Missing_Result.Operation.Error_Key) /= "",

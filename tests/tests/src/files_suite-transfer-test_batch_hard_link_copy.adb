@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Batch_Hard_Link_Copy (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -10,7 +12,7 @@ separate (Files_Suite.Transfer)
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
       Paths : Files.Types.String_Vectors.Vector;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       First_Stamp : GNAT.OS_Lib.OS_Time;
       First_Revision : Unbounded_String;
       procedure Check is
@@ -48,7 +50,7 @@ separate (Files_Suite.Transfer)
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "copy a hard-link family as separate roots");
          Check;
          Write_Binary_File (Join (Parent, "first"), "copied edit");
@@ -58,10 +60,11 @@ separate (Files_Suite.Transfer)
                  "editing a copied alias affects only its copied family: the source is untouched");
          Assert (File_Has_Bytes (Join (Parent, "third"), "shared bytes"),
                  "editing a copied alias affects only its copied family: the other copied family is untouched");
-         Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
-           (Step.Status, Files.Operations.Operation_Failed, "Undo keeps an edited copied hard-link family: status");
+           (Step.Status, Files.Operation_Results.Operation_Failed,
+            "Undo keeps an edited copied hard-link family: status");
          Assert (File_Has_Bytes (Join (Parent, "first"), "copied edit"),
                  "Undo keeps an edited copied hard-link family: the edit is kept");
          Assert
@@ -69,43 +72,43 @@ separate (Files_Suite.Transfer)
          Write_Binary_File (Join (Parent, "first"), "shared bytes");
          GNAT.OS_Lib.Set_File_Last_Modify_Time_Stamp
            (Join (Parent, "first"), GNAT.OS_Lib.File_Time_Stamp (Join (Source, "first")));
-         Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "restoring copied bytes permits the hard-link batch Undo");
-         Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "Redo the copied hard-link batch");
          Check;
-         Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Write_Binary_File (Join (Parent, "second"), "unrelated replacement");
-         Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Failed
+         Assert (Step.Status = Files.Operation_Results.Operation_Failed
                  and then File_Has_Bytes (Join (Parent, "second"), "unrelated replacement"),
                  "partial Redo retains completed copies and refuses unrelated replacements");
          Ada.Directories.Delete_File (Join (Parent, "second"));
-         Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "retry a partially completed hard-link Redo");
          Check;
-         Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Write_Binary_File (Join (Parent, "second"), "retry obstruction");
-         Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Failed,
+            Files.Operation_Results.Operation_Failed,
             "prepare another partially completed hard-link Redo");
          First_Stamp := GNAT.OS_Lib.File_Time_Stamp (Join (Parent, "first"));
          First_Revision := To_Unbounded_String
@@ -117,11 +120,11 @@ separate (Files_Suite.Transfer)
             To_String (First_Revision),
             "the regression edit preserves every field in the metadata-only revision");
          Ada.Directories.Delete_File (Join (Parent, "second"));
-         Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Failed,
+            Files.Operation_Results.Operation_Failed,
             "a retry refuses a same-size edited copy even when its modification time is restored: status");
          Assert (File_Has_Bytes (Join (Parent, "first"), "altered byte"),
                  "a retry refuses a same-size edited copy even when its modification time is restored: edit kept");

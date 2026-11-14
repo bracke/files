@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Move_Entry_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -7,7 +9,7 @@ separate (Files_Suite.History)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Source : constant String := Join (Root, "original");
       Dest : constant String := Join (Root, "renamed");
@@ -20,10 +22,10 @@ separate (Files_Suite.History)
          Assert (Hostkit.Fs.Move_No_Replace (Path, Saved), "retain the owned history entry");
          Write_Binary_File (Path, "unrelated replacement");
          Step := Complete_Operation (Model, Settings,
-           (if Forward then Files.Operations.Redo_Last (Model, Settings)
-            else Files.Operations.Undo_Last (Model, Settings)));
+           (if Forward then Files.Operation_Commands.Redo_Last (Model, Settings)
+            else Files.Operation_Commands.Undo_Last (Model, Settings)));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Failed
+         Assert (Step.Status = Files.Operation_Results.Operation_Failed
                  and then File_Is (Path, "unrelated replacement"), "history refuses to move a replacement");
          Mutation := Files.File_System.Delete_Permanently (Path);
          Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Saved, Path), "restore the owned history entry");
@@ -65,31 +67,31 @@ separate (Files_Suite.History)
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Success,
+                  Files.Operation_Results.Operation_Success,
                   "the initial history move succeeds");
                Replace_And_Refuse (Dest, False);
-               Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Success,
+                  Files.Operation_Results.Operation_Success,
                   "Undo can retry the restored entry");
                Replace_And_Refuse (Source, True);
-               Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Success,
+                  Files.Operation_Results.Operation_Success,
                   "Redo can retry the restored entry");
                --  A vanished source and an unrelated target are not evidence
                --  that the history transition already completed.
                Assert (Hostkit.Fs.Move_No_Replace (Dest, Saved), "remove the owned source pathname");
                Write_Binary_File (Source, "unrelated target");
-               Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Failed,
+                  Files.Operation_Results.Operation_Failed,
                   "history cannot mark an unrelated existing target as already moved: status");
                Assert (Files.Model.History.Undo_Available (Model),
                        "history cannot mark an unrelated existing target as already moved: Undo retained");

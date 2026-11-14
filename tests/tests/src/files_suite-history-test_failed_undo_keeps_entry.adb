@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 separate (Files_Suite.History)
    procedure Test_Failed_Undo_Keeps_Entry (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5,7 +7,7 @@ separate (Files_Suite.History)
       Target   : constant String := Join (Root, "vanishing.txt");
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
    begin
       if not Files.File_System.Permissions.Supports_Permissions then
          Files_Suite.Support.Skip ("Test_Failed_Undo_Keeps_Entry", "this host has no POSIX permissions to set");
@@ -25,7 +27,7 @@ separate (Files_Suite.History)
       Result := Files.Operations.Testing.Set_Permissions_For (Model, 8#600#, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "set-permissions operation succeeds");
       Assert (Files.Model.History.Undo_Available (Model), "chmod records an undo entry");
 
@@ -34,10 +36,10 @@ separate (Files_Suite.History)
       --  and the operation silently vanished from history.
       Ada.Directories.Delete_File (Target);
 
-      Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "undo reports failure when the reverse cannot be applied");
       Assert
         (Files.Model.History.Undo_Available (Model),

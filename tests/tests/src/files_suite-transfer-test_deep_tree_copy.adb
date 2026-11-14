@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 with Files_Suite.Volumes;
 separate (Files_Suite.Transfer)
    procedure Test_Deep_Tree_Copy (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -78,7 +79,7 @@ separate (Files_Suite.Transfer)
             Write_Long_Path_File (Join (To_String (Leaf), "child"), "deep bytes");
             Paths.Append (To_Unbounded_String (Source));
             Plans := Files.File_System.Plan_Drop_Import (Paths, Remote.Path, Files.File_System.Drop_Move);
-            Moved := Files.File_System.Execute_Drop_Import (Plans.Plans);
+            Moved := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
             Assert (Moved.Success and then not Ada.Directories.Exists (Source),
                     "a 1000-level tree moves across devices");
          end;

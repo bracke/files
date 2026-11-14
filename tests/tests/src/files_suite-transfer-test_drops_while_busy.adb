@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Transfer)
@@ -8,7 +10,7 @@ separate (Files_Suite.Transfer)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Outcome : Files.Controller.Controller_Result;
       Sources : Files.Types.String_Vectors.Vector;
       Finished, Cancelled : Boolean;
@@ -23,7 +25,7 @@ separate (Files_Suite.Transfer)
          Files.Operations.Clear_Undo (Model);
          Select_Name (Model, "original.txt");
          Files.Model.Set_Background_Transfers (Model, True);
-         Step := Files.Operations.Duplicate_Selected (Model, Settings);
+         Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
          declare
             Job : constant Files.Process_Jobs.Session := Files.Model.Background_Operation (Model);
             Revision : constant Natural := Files.Model.Revision (Model);
@@ -46,7 +48,7 @@ separate (Files_Suite.Transfer)
                Files_Suite.Support.Assert_Equal
                  (Outcome.Status, Files.Controller.Controller_Ignored, Context & ": controller drop ignored");
                Files_Suite.Support.Assert_Equal
-                 (Step.Status, Files.Operations.Operation_Disabled, Context & ": direct paste disabled");
+                 (Step.Status, Files.Operation_Results.Operation_Disabled, Context & ": direct paste disabled");
                Files_Suite.Support.Assert_Equal (Files.Model.Revision (Model), Revision, Context & ": revision");
                Files_Suite.Support.Assert_Equal
                  (Files.Process_Jobs.Path (Files.Model.Background_Operation (Model), ""),
@@ -58,7 +60,7 @@ separate (Files_Suite.Transfer)
          Assert (Files.Model.History.Undo_Available (Model)
                  and then not Ada.Directories.Exists (Join (Root, "incoming.txt")),
                  "blocked drops leave the original job's committed history intact");
-         Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Assert (not Ada.Directories.Exists (Join (Root, "original (copy).txt"))
                  and then File_Has_Bytes (Join (Root, "original.txt"), "original"),
@@ -78,7 +80,7 @@ separate (Files_Suite.Transfer)
             "a second drop cannot reset an unresolved collision dialog: controller drop ignored");
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Disabled,
+            Files.Operation_Results.Operation_Disabled,
             "a second drop cannot reset an unresolved collision dialog: direct paste disabled");
          Files_Suite.Support.Assert_Equal
            (Files.Model.Revision (Model),

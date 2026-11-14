@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Thumbnails)
    procedure Test_Navigation_Defers_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -6,7 +7,7 @@ separate (Files_Suite.Thumbnails)
       Photos   : constant String := Join (Root, "photos");
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
 
@@ -40,7 +41,7 @@ separate (Files_Suite.Thumbnails)
       Select_Name (Model, "photos");
       Step := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
-        (Step.Status, Files.Operations.Operation_Navigated, "opening the folder navigates into it");
+        (Step.Status, Files.Operation_Results.Operation_Navigated, "opening the folder navigates into it");
       Assert (Files.Model.Current_Path (Model) = Photos and then not Photo_Has_Thumbnail,
               "opening the folder shows it at once, before its thumbnail exists");
       Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),

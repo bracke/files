@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Publication_Journal_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -19,7 +21,7 @@ separate (Files_Suite.Transfer)
                   Model : aliased Files.Model.Window_Model;
                   Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
                   pragma Unreferenced (Paste);
-                  Step : Files.Operations.Operation_Result;
+                  Step : Files.Operation_Results.Operation_Result;
                   Outcome : Files.Transfer_Jobs.Job_Result;
                begin
                   Write_Binary_File (Source, "source bytes");
@@ -60,7 +62,7 @@ separate (Files_Suite.Transfer)
                      Step := Files.Foreground_Jobs.Advance (Model, Settings, 1);
                      Files_Suite.Support.Assert_Equal
                        (Step.Status,
-                        Files.Operations.Operation_Success,
+                        Files.Operation_Results.Operation_Success,
                         "paste completion reports the committed mutation accurately: status");
                      Assert
                        (not Files.Model.Foreground_Job_Is_Active (Model),
@@ -84,8 +86,8 @@ separate (Files_Suite.Transfer)
                   Files.Job_Context.Initialize ("");
                   if not Via_Helper then
                      Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-                     Assert (Step.Status = Files.Operations.Operation_Success
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+                     Assert (Step.Status = Files.Operation_Results.Operation_Success
                              and then File_Is (Source, "source bytes"),
                              "Undo reverses the committed operation without losing the source bytes");
                      if Replaced then

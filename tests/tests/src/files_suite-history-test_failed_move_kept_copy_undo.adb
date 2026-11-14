@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Durability.Testing;
 with Files.Items;
 with Files_Suite.Volumes;
@@ -23,7 +25,7 @@ separate (Files_Suite.History)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
       Mixed_Actions : Files.Paste.Resolved_Action_Vectors.Vector;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
 
       procedure Cleanup is
       begin
@@ -65,7 +67,7 @@ separate (Files_Suite.History)
               (Model, (if Mixed then Mixed_Actions else Actions), Files.File_System.Drop_Move);
             Step := Files_Suite.Support.Finish_Paste (Model, Settings);
             Cleanup;
-            Assert (Step.Status = Files.Operations.Operation_Failed,
+            Assert (Step.Status = Files.Operation_Results.Operation_Failed,
                     "the move fails, background " & Background'Image);
             Assert (File_Has_Bytes (Source, "the bytes"), "the source stays, background " & Background'Image);
             Assert (File_Has_Bytes (Dest, "the bytes"), "the copy is kept, background " & Background'Image);
@@ -80,8 +82,8 @@ separate (Files_Suite.History)
                        "the first item moved, background " & Background'Image);
             end if;
 
-            Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-            Assert (Step.Status = Files.Operations.Operation_Success,
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Assert (Step.Status = Files.Operation_Results.Operation_Success,
                     "undoing the kept copy succeeds, background " & Background'Image);
             Assert (not Ada.Directories.Exists (Dest), "undo deletes the copy, background " & Background'Image);
             Assert (File_Has_Bytes (Source, "the bytes"),

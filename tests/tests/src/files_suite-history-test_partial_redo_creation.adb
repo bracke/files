@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 separate (Files_Suite.History)
    procedure Test_Partial_Redo_Creation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -16,7 +18,7 @@ separate (Files_Suite.History)
             Reset_Root;
             declare
                Model : Files.Model.Window_Model;
-               Step : Files.Operations.Operation_Result;
+               Step : Files.Operation_Results.Operation_Result;
                Destinations, Sources : Files.Types.String_Vectors.Vector;
 
                function Create (Source, Dest : String) return Boolean is
@@ -42,10 +44,10 @@ separate (Files_Suite.History)
                   Files_Suite.Support.Undo_Items (Destinations, Forward => Sources),
                   Create_Kind => Kind);
                Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Success,
+                  Files.Operation_Results.Operation_Success,
                   "Undo removes both creations before Redo");
                if Missing_Source then
                   Ada.Directories.Rename (Source_B, Held_B);
@@ -54,10 +56,10 @@ separate (Files_Suite.History)
                end if;
                for Attempt in 1 .. 2 loop
                   Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
-                     Files.Operations.Operation_Failed,
+                     Files.Operation_Results.Operation_Failed,
                      "partial Redo retains completed A and the pending action across repeated failures: status");
                   Assert
                     (File_Has_Bytes (Dest_A, "original a"),
@@ -77,10 +79,10 @@ separate (Files_Suite.History)
                end loop;
                Ada.Directories.Delete_File (Dest_A);
                Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Failed,
+                  Files.Operation_Results.Operation_Failed,
                   "a partial Redo recreates an output missing behind its completion marker: status");
                Assert
                  (File_Has_Bytes (Dest_A, "original a"),
@@ -98,10 +100,10 @@ separate (Files_Suite.History)
                end if;
                Write_Binary_File (Dest_A, "unrelated replacement");
                Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Failed,
+                  Files.Operation_Results.Operation_Failed,
                   "a stale completion marker does not claim or overwrite a replacement: status");
                Assert
                  (File_Is (Dest_A, "unrelated replacement"),
@@ -119,10 +121,10 @@ separate (Files_Suite.History)
                      "restoring a completed symbolic link preserves the link");
                end if;
                Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Failed,
+                  Files.Operation_Results.Operation_Failed,
                   "restoring the verified output makes the invalidated marker retryable: status");
                Assert
                  (File_Has_Bytes (Dest_A, "original a"),
@@ -138,14 +140,14 @@ separate (Files_Suite.History)
                --  Completed A no longer needs its source to finish B.
                Ada.Directories.Rename (Source_A, Held_A);
                Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Success,
+                  Files.Operation_Results.Operation_Success,
                   "unblocking B completes Redo despite A's now-missing source and returns it to Undo history: "
                   & Files.Model.Undo_Create_Kind'Image (Kind)
                   & " missing=" & Boolean'Image (Missing_Source)
-                  & " status=" & Files.Operations.Operation_Status'Image (Step.Status)
+                  & " status=" & Files.Operation_Results.Operation_Status'Image (Step.Status)
                   & " redo=" & Boolean'Image (Files.Model.History.Redo_Available (Model))
                   & " undo=" & Boolean'Image (Files.Model.History.Undo_Available (Model))
                   & " b=" & Boolean'Image (File_Has_Bytes (Dest_B, "original b")) & ": status");
@@ -154,7 +156,7 @@ separate (Files_Suite.History)
                   "unblocking B completes Redo despite A's now-missing source and returns it to Undo history: "
                   & Files.Model.Undo_Create_Kind'Image (Kind)
                   & " missing=" & Boolean'Image (Missing_Source)
-                  & " status=" & Files.Operations.Operation_Status'Image (Step.Status)
+                  & " status=" & Files.Operation_Results.Operation_Status'Image (Step.Status)
                   & " redo=" & Boolean'Image (Files.Model.History.Redo_Available (Model))
                   & " undo=" & Boolean'Image (Files.Model.History.Undo_Available (Model))
                   & " b=" & Boolean'Image (File_Has_Bytes (Dest_B, "original b")) & ": redo consumed");
@@ -163,7 +165,7 @@ separate (Files_Suite.History)
                   "unblocking B completes Redo despite A's now-missing source and returns it to Undo history: "
                   & Files.Model.Undo_Create_Kind'Image (Kind)
                   & " missing=" & Boolean'Image (Missing_Source)
-                  & " status=" & Files.Operations.Operation_Status'Image (Step.Status)
+                  & " status=" & Files.Operation_Results.Operation_Status'Image (Step.Status)
                   & " redo=" & Boolean'Image (Files.Model.History.Redo_Available (Model))
                   & " undo=" & Boolean'Image (Files.Model.History.Undo_Available (Model))
                   & " b=" & Boolean'Image (File_Has_Bytes (Dest_B, "original b")) & ": undo available");
@@ -172,17 +174,17 @@ separate (Files_Suite.History)
                   "unblocking B completes Redo despite A's now-missing source and returns it to Undo history: "
                   & Files.Model.Undo_Create_Kind'Image (Kind)
                   & " missing=" & Boolean'Image (Missing_Source)
-                  & " status=" & Files.Operations.Operation_Status'Image (Step.Status)
+                  & " status=" & Files.Operation_Results.Operation_Status'Image (Step.Status)
                   & " redo=" & Boolean'Image (Files.Model.History.Redo_Available (Model))
                   & " undo=" & Boolean'Image (Files.Model.History.Undo_Available (Model))
                   & " b=" & Boolean'Image (File_Has_Bytes (Dest_B, "original b")) & ": B created");
                Ada.Directories.Rename (Held_A, Source_A);
                Assert (File_Has_Bytes (Dest_A, "original a"), "completed A retains its original bytes");
                Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Success,
+                  Files.Operation_Results.Operation_Success,
                   "Undo reverses the entire recovered action: status");
                Assert
                  (not Ada.Directories.Exists (Dest_A) and then not Hostkit.Fs.Is_Link (Dest_A),
@@ -191,10 +193,10 @@ separate (Files_Suite.History)
                  (not Ada.Directories.Exists (Dest_B) and then not Hostkit.Fs.Is_Link (Dest_B),
                   "Undo reverses the entire recovered action: B removed");
                Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Success,
+                  Files.Operation_Results.Operation_Success,
                   "a new Redo cycle re-creates both items instead of reusing stale progress: status");
                Assert
                  (File_Has_Bytes (Dest_A, "original a"),
@@ -203,10 +205,10 @@ separate (Files_Suite.History)
                  (File_Has_Bytes (Dest_B, "original b"),
                   "a new Redo cycle re-creates both items instead of reusing stale progress: B created");
                Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Success,
+                  Files.Operation_Results.Operation_Success,
                   "the second full Redo also records a usable Undo action");
             end;
          end loop;

@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Foreground_Jobs;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
@@ -17,7 +19,7 @@ separate (Files_Suite.Transfer)
       Model : aliased Files.Model.Window_Model;
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       procedure Cleanup is
       begin
@@ -72,26 +74,26 @@ separate (Files_Suite.Transfer)
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "move the ownership tree across filesystems");
          for Cycle in 1 .. 2 loop
             Check (Join (Remote.Path, "source"));
             Check (Join (Remote.Path, "source/child"));
             Check (Join (Remote.Path, "source/link"));
-            Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "Undo the ownership-preserving move");
             Check (Source);
             Check (Join (Source, "child"));
             Check (Join (Source, "link"));
-            Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "Redo the ownership-preserving move");
          end loop;
          Project_Tools.Files.Delete_Tree (Join (Remote.Path, "source"));

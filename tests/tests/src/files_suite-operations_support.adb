@@ -37,7 +37,7 @@ package body Files_Suite.Operations_Support is
    function Complete_Operation
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Started : Files.Operations.Operation_Result) return Files.Operations.Operation_Result is
+      Started : Files.Operation_Results.Operation_Result) return Files.Operation_Results.Operation_Result is
      (if Files.Model.Foreground_Job_Is_Active (Model) then Finish_Paste (Model, Settings) else Started);
 
    procedure Await_Item_Details (Model : in out Files.Model.Window_Model) is
@@ -193,7 +193,7 @@ package body Files_Suite.Operations_Support is
    procedure Finish_Background_Operation
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Step     : in out Files.Operations.Operation_Result) is
+      Step     : in out Files.Operation_Results.Operation_Result) is
    begin
       Assert (Files.Model.Foreground_Job_Is_Active (Model),
               "a long operation returns with its progress overlay open");
@@ -202,7 +202,7 @@ package body Files_Suite.Operations_Support is
               "the UI collects the helper result without blocking");
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "the background operation completes successfully");
    end Finish_Background_Operation;
 

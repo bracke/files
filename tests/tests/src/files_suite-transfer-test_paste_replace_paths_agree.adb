@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    --  The in-process paste and the transfer helper run one replace routine:
@@ -12,7 +13,7 @@ separate (Files_Suite.Transfer)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
 
       procedure Run
         (Actions    : Files.Paste.Resolved_Action_Vectors.Vector;
@@ -39,7 +40,7 @@ separate (Files_Suite.Transfer)
             Actions.Append (Files.Paste.Resolved_Action'
                               (To_Unbounded_String (Source), To_Unbounded_String (Dest), False, True));
             Run (Actions, Files.File_System.Drop_Copy, Background);
-            Assert (Step.Status /= Files.Operations.Operation_Failed,
+            Assert (Step.Status /= Files.Operation_Results.Operation_Failed,
                     Where & ": a vanished replace target does not fail the paste");
             Assert (File_Is (Dest, "new"), Where & ": the paste writes the vanished target's path");
 
@@ -48,7 +49,7 @@ separate (Files_Suite.Transfer)
                Actions.Append (Files.Paste.Resolved_Action'
                                  (To_Unbounded_String (Source), To_Unbounded_String (Source), False, Replace));
                Run (Actions, Files.File_System.Drop_Move, Background);
-               Assert (Step.Status /= Files.Operations.Operation_Failed,
+               Assert (Step.Status /= Files.Operation_Results.Operation_Failed,
                        Where & ": a move onto its own path succeeds");
                Assert (File_Is (Source, "new"), Where & ": a move onto its own path leaves the entry alone");
             end loop;

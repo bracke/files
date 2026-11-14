@@ -1,3 +1,5 @@
+with Files.Operations;
+with Files.Operation_Results;
 with Files.Undo_Recording;
 with Files.Foreground_Jobs;
 with Files.File_System.Trash;
@@ -28,7 +30,6 @@ with Files.Model;
 with Files.Model.Selection;
 with Files.Model.Rename;
 with Files.Model.History;
-with Files.Operations;
 with Files.Operations.Testing;
 with Files.Paste;
 with Hostkit.Fs;
@@ -45,7 +46,7 @@ package body Files_Suite.History is
    use type Hostkit.Host.Kind;
    use type Files.Commands.Command_Id;
    use type Files.File_System.Drop_Import_Mode;
-   use type Files.Operations.Operation_Status;
+   use type Files.Operation_Results.Operation_Status;
    use type Files.Model.Undo_Action_Kind;
    use Files_Suite.Support;
    use Files_Suite.Operations_Support;

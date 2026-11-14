@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files_Suite.Info)
    procedure Test_Info_Selection_Completion (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5,7 +6,7 @@ separate (Files_Suite.Info)
       Model : Files.Model.Window_Model;
       Load : Files.File_System.Directory_Load_Result;
       Routed : Files.Interaction.Interaction_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       pragma Unreferenced (Step);
       Revision : Natural;
    begin

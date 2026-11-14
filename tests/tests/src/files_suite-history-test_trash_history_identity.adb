@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Trash_History_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -8,7 +10,7 @@ separate (Files_Suite.History)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Paths : Files.Types.String_Vectors.Vector;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
@@ -36,11 +38,11 @@ separate (Files_Suite.History)
             else
                Selected := Files.Model.Selection.Select_By_Name (Model, "entry");
                Assert (Selected, "select the trash fixture");
-               Step := Complete_Operation (Model, Settings, Files.Operations.Delete_Selected (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Delete_Selected (Model, Settings));
                Await_View (Model, Settings);
                Paths := Files.Model.History.Undo_From_Paths (Model);
             end if;
-            Assert (Step.Status = Files.Operations.Operation_Success and then not Paths.Is_Empty,
+            Assert (Step.Status = Files.Operation_Results.Operation_Success and then not Paths.Is_Empty,
                     "trash or paste-replace records recoverable history");
             declare
                Payload : constant String := To_String (Paths.First_Element);
@@ -48,11 +50,11 @@ separate (Files_Suite.History)
             begin
                Assert (Hostkit.Fs.Move_No_Replace (Payload, Saved), "hold the owned trash payload");
                Write_Binary_File (Payload, "unrelated replacement");
-               Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Failed,
+                  Files.Operation_Results.Operation_Failed,
                   "Undo refuses to restore an unrelated trash payload and retains retryable history: status");
                Assert
                  (Files.Model.History.Undo_Available (Model),
@@ -67,9 +69,9 @@ separate (Files_Suite.History)
                Mutation := Files.File_System.Delete_Permanently (Payload);
                Assert (Mutation.Success and then Hostkit.Fs.Move_No_Replace (Saved, Payload),
                        "put the original trash payload back");
-               Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Success
+               Assert (Step.Status = Files.Operation_Results.Operation_Success
                        and then File_Is (Source, "original destination"),
                        "retry restores the original without repeating completed paste removal");
             end;

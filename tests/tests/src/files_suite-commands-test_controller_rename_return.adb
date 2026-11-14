@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Controller.Testing;
 separate (Files_Suite.Commands)
    procedure Test_Controller_Rename_Return (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -98,7 +99,7 @@ separate (Files_Suite.Commands)
          "rename Return reports rename command");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "Return commits rename");
       Assert (Ada.Directories.Exists (Join (Root, "new.txt")), "rename file exists after Return");
       Assert (not Files.Model.Rename.Is_Active (Model), "rename Return clears rename mode");

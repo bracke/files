@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Model.Context_Menu;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Guards;
@@ -6,7 +7,7 @@ separate (Files_Suite.Refresh)
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model : Files.Model.Window_Model;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Load : Files.File_System.Directory_Load_Result;
       Routed : Files.Interaction.Interaction_Result;
       Fault_Name : constant String := "FILES_TEST_REFRESH_RESULT_INCONSISTENT";
@@ -37,7 +38,7 @@ separate (Files_Suite.Refresh)
       Step := Files.Operations.Refresh_If_Changed (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "watch polling schedules a read while retaining the displayed items: status");
       Assert (Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)),
               "watch polling schedules a read while retaining the displayed items: read scheduled");

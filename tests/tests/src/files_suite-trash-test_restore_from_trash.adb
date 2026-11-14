@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    procedure Test_Restore_From_Trash (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -48,7 +49,7 @@ separate (Files_Suite.Trash)
         Files.Controller.Execute_Non_Settings_Command (Files.Commands.Restore_From_Trash_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "restore command returns success");
       Assert (Ada.Directories.Exists (Source_Path), "restore returns the file to its original path");
       Assert
@@ -76,7 +77,7 @@ separate (Files_Suite.Trash)
           (Files.Commands.Delete_Selected_Permanently_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "permanent delete succeeds for a selected trash entry");
       Assert
         (not Ada.Directories.Exists (Join (Trash_File, "restore-me.txt"))

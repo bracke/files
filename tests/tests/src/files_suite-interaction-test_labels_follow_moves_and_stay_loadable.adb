@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Model.Label_Picker;
 with Files.Settings.Path_References;
 separate (Files_Suite.Interaction)
@@ -13,7 +15,7 @@ separate (Files_Suite.Interaction)
       Sub_Two  : constant String := Files_Suite.Support.Join (Dir, "sub2");
       Sibling  : constant String := Files_Suite.Support.Join (Files_Suite.Support.Join (Dir, "sub-other"), "x");
       Model    : Files.Model.Window_Model;
-      Op       : Files.Operations.Operation_Result;
+      Op       : Files.Operation_Results.Operation_Result;
       Followed : Boolean;
 
       procedure Rename (Name, New_Name : String) is
@@ -24,7 +26,7 @@ separate (Files_Suite.Interaction)
          Op := Files.Operations.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Op.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "rename " & Name & " to " & New_Name);
          Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
       end Rename;
@@ -59,7 +61,7 @@ separate (Files_Suite.Interaction)
          Files.Types.Red,
          "a path that only shares the folder's name as a prefix is left alone");
 
-      Op := Files.Operations.Undo_Last (Model, Settings);
+      Op := Files.Operation_Commands.Undo_Last (Model, Settings);
       Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
       Assert (Files.Settings.Path_References.Label_Of (Settings, Inner) = Files.Types.Blue
               and then Files.Settings.Path_References.Is_Favorite (Settings, Sub),

@@ -25,13 +25,13 @@ is
         (Model, Settings, "error.extract.failed", Directory, Wrote_Some => not Progress.Items.Is_Empty);
    end Failed;
 begin
-   if Files.Model.Selection.Includes_Temporary (Model) then
-      return Disabled (Model, "error.create.pending");
-   elsif Is_Trash_Directory (Directory) then
-      return Disabled (Model, "error.extract.failed");
-   elsif Files.Model.Background_Transfers (Model) then
-      return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Extract);
-   end if;
+   declare
+      Refusal : constant Operation_Result := Creation_Refusal (Model, "error.extract.failed");
+   begin
+      if Refusal.Status /= Operation_Success then
+         return Refusal;
+      end if;
+   end;
    if Items.Is_Empty then
       return Failed;
    end if;
@@ -134,11 +134,13 @@ begin
                end;
                Discard_Stage;
                Progress.Items.Append
-                 (Files.Model.Undo_Item'
-                    (From          => To_Unbounded_String (Dest_Dir),
-                     Identity      => Made_Identity,
-                     Tree_Revision => Made_Revision,
-                     others        => <>));
+                 (Files.Model.Recorded_Item'
+                    (Item       =>
+                       (From          => To_Unbounded_String (Dest_Dir),
+                        Identity      => Made_Identity,
+                        Tree_Revision => Made_Revision,
+                        others        => <>),
+                     Provenance => Files.Model.Published));
                Checkpoint_Undo (Model, Progress);
                if not Extracted_Any then
                   First_Created := To_Unbounded_String (Dest_Name);

@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.File_System.Permissions;
 with Files.Controller.Testing;
 with Hostkit.Metadata;
@@ -110,7 +111,7 @@ separate (Files_Suite.Operations)
 
            (Routed.Operation.Status,
 
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
 
             "committing the identity ownership edit through the reducer seam succeeds");
          Files_Suite.Support.Assert_Equal

@@ -1,3 +1,4 @@
+with Files.Operations;
 with Files.Items;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
@@ -15,7 +16,6 @@ with Files.Model;
 with Files.Model.Selection;
 with Files.Model.Rename;
 with Files.Model.Folder_Sizes;
-with Files.Operations;
 with Guikit.Draw;
 with Files.Rendering;
 with Files.Settings;

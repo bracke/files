@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    --  A background helper hands its history back through a journal that may
@@ -161,19 +163,19 @@ separate (Files_Suite.Operations)
          --  Ends the job when the block is left, on failure too.
          Paste      : Files_Suite.Support.Guards.Paste_Guard (Job_Window'Access);
          pragma Unreferenced (Paste);
-         Step       : Files.Operations.Operation_Result;
+         Step       : Files.Operation_Results.Operation_Result;
       begin
          Files.Model.Initialize (Job_Window, Root, Load.Items, Root);
          Files.Model.History.Restore (Job_Window, Stack (Item ("a", Large => True), Item ("b")), Empty);
          Files.Model.Set_Background_Transfers (Job_Window, True);
          Files.Model.Selection.Select_All_Visible (Job_Window);
-         Step := Files.Operations.Duplicate_Selected (Job_Window, Settings);
+         Step := Files.Operation_Commands.Duplicate_Selected (Job_Window, Settings);
          Files_Suite.Support.Assert_Equal
-           (Step.Status, Files.Operations.Operation_Success, "the background duplicate starts");
+           (Step.Status, Files.Operation_Results.Operation_Success, "the background duplicate starts");
          Assert (Files.Model.Foreground_Job_Is_Active (Job_Window), "the duplicate runs as a background job");
          Step := Files_Suite.Support.Finish_Paste (Job_Window, Settings);
          Files_Suite.Support.Assert_Equal
-           (Step.Status, Files.Operations.Operation_Success, "the background duplicate completes");
+           (Step.Status, Files.Operation_Results.Operation_Success, "the background duplicate completes");
          Assert (Names (Files.Model.History.Undo_Entries (Job_Window)) = "a,b,item (copy).txt",
                  "the job's finish merges the helper's history, keeping what the journal left out: "
                  & Names (Files.Model.History.Undo_Entries (Job_Window)));

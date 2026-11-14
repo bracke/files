@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Foreground_Jobs;
 with Files.Model.Clipboard;
 separate (Files_Suite.Transfer)
@@ -56,7 +58,7 @@ separate (Files_Suite.Transfer)
          --  Replace writes over the existing entry under its own name, and
          --  Undo brings the original back under that name too.
          declare
-            Step : Files.Operations.Operation_Result :=
+            Step : Files.Operation_Results.Operation_Result :=
               Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
             pragma Unreferenced (Step);
 
@@ -76,7 +78,7 @@ separate (Files_Suite.Transfer)
                Step := Files.Foreground_Jobs.Advance (Model, Settings, 8);
             end loop;
             Expect ("SRC", Script & " replace");
-            Step := Files.Operations.Undo_Last (Model, Settings);
+            Step := Files.Operation_Commands.Undo_Last (Model, Settings);
             Expect ("DEST", Script & " undo");
          end;
       end Check;

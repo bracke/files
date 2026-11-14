@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Model.Tree_Panel;
 separate (Files_Suite.Transfer)
    procedure Test_Move_To_Picker_Flow (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -10,7 +12,7 @@ separate (Files_Suite.Transfer)
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
       Routed   : Files.Controller.Controller_Result;
-      Undone   : Files.Operations.Operation_Result;
+      Undone   : Files.Operation_Results.Operation_Result;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Src_Dir);
@@ -24,7 +26,7 @@ separate (Files_Suite.Transfer)
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Move_To_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "move-to command starts the picker");
       Assert
         (Files.Model.Tree_Panel.Pick_Mode_Of (Model) = Files.Model.Pick_Move,
@@ -36,8 +38,9 @@ separate (Files_Suite.Transfer)
       Assert (Ada.Directories.Exists (A_Dest), "a.txt is moved to the destination");
       Assert (not Ada.Directories.Exists (A_Src), "a.txt is removed from the source");
 
-      Undone := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Files_Suite.Support.Assert_Equal (Undone.Status, Files.Operations.Operation_Success, "the move is undoable");
+      Undone := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal (Undone.Status, Files.Operation_Results.Operation_Success,
+                                        "the move is undoable");
       Assert (Ada.Directories.Exists (A_Src), "undo returns a.txt to the source");
       Assert (not Ada.Directories.Exists (A_Dest), "undo removes a.txt from the destination");
    end Test_Move_To_Picker_Flow;

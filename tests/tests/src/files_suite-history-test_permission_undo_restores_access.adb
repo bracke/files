@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 separate (Files_Suite.History)
    --  A permission edit through the editor's path changes only what its bits
    --  concern, and its undo and redo put back the entry's whole access, not
@@ -14,7 +16,7 @@ separate (Files_Suite.History)
       Windows  : constant Boolean := Hostkit.Host."=" (Hostkit.Host.Current, Hostkit.Host.Windows);
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
 
       --  The entry's access record as the editor's path reports it: a change
       --  to the mode it already has, which edits nothing.
@@ -64,9 +66,9 @@ separate (Files_Suite.History)
          Result := Files.Operations.Testing.Set_Permissions_For (Model, Edited, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "the edit succeeds, " & To_String (Result.Error_Key)
-            & (if Result.Status = Files.Operations.Operation_Success then ""
+            & (if Result.Status = Files.Operation_Results.Operation_Success then ""
                else Files_Suite.Support.Access_Report (Target)));
          Files_Suite.Support.Assert_Equal (Mode_Of (Target), Edited, "the edit changes the one bit");
          declare
@@ -85,13 +87,15 @@ separate (Files_Suite.History)
                   & Original & " became " & Changed);
             end if;
 
-            Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-            Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "the undo succeeds");
+            Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
+                                              "the undo succeeds");
             Files_Suite.Support.Assert_Equal (Mode_Of (Target), Before, "the undo restores the mode");
             Assert (Access_Of (Target) = Original, "and the access the edit replaced, exactly: " & Access_Of (Target));
 
-            Result := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-            Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "the redo succeeds");
+            Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+            Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
+                                              "the redo succeeds");
             Files_Suite.Support.Assert_Equal (Mode_Of (Target), Edited, "the redo re-applies the mode");
             Assert (Access_Of (Target) = Changed, "and the access the edit made, exactly: " & Access_Of (Target));
          end;

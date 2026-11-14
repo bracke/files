@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Model.Command_Palette;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Open_Actions)
@@ -27,9 +28,9 @@ separate (Files_Suite.Open_Actions)
               (Model, Files.Settings.Default_Settings);
             Files_Suite.Support.Assert_Equal
               (Routed.Operation.Status,
-               Files.Operations.Operation_Action_Executed,
+               Files.Operation_Results.Operation_Action_Executed,
                "Open With launches a single-target application for multiple selections: "
-               & "status=" & Files.Operations.Operation_Status'Image (Routed.Operation.Status)
+               & "status=" & Files.Operation_Results.Operation_Status'Image (Routed.Operation.Status)
                & " attempted=" & Boolean'Image (Routed.Operation.Execution.Attempted)
                & " found=" & Boolean'Image (Routed.Operation.Execution.Executable_Found)
                & " exit=" & Integer'Image (Routed.Operation.Execution.Exit_Status)
@@ -37,7 +38,7 @@ separate (Files_Suite.Open_Actions)
             Assert
               (Routed.Operation.Execution.Attempted,
                "Open With launches a single-target application for multiple selections: "
-               & "status=" & Files.Operations.Operation_Status'Image (Routed.Operation.Status)
+               & "status=" & Files.Operation_Results.Operation_Status'Image (Routed.Operation.Status)
                & " attempted=" & Boolean'Image (Routed.Operation.Execution.Attempted)
                & " found=" & Boolean'Image (Routed.Operation.Execution.Executable_Found)
                & " exit=" & Integer'Image (Routed.Operation.Execution.Exit_Status)
@@ -45,7 +46,7 @@ separate (Files_Suite.Open_Actions)
             Assert
               (Routed.Operation.Execution.Executable_Found,
                "Open With launches a single-target application for multiple selections: "
-               & "status=" & Files.Operations.Operation_Status'Image (Routed.Operation.Status)
+               & "status=" & Files.Operation_Results.Operation_Status'Image (Routed.Operation.Status)
                & " attempted=" & Boolean'Image (Routed.Operation.Execution.Attempted)
                & " found=" & Boolean'Image (Routed.Operation.Execution.Executable_Found)
                & " exit=" & Integer'Image (Routed.Operation.Execution.Exit_Status)
@@ -102,7 +103,7 @@ separate (Files_Suite.Open_Actions)
             Routed := Files.Controller.Activate_Palette_Command
               (Model, Files.Settings.Default_Settings);
             Assert
-              (Routed.Operation.Status = Files.Operations.Operation_Failed
+              (Routed.Operation.Status = Files.Operation_Results.Operation_Failed
                and then To_String (Routed.Operation.Error_Key) =
                  "error.open_action.executable_missing",
                "Open With reports a missing application executable as failure");

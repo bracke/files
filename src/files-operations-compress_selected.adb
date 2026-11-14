@@ -102,15 +102,13 @@ is
          return Make_Result (Operation_Failed, "error.compress.failed", Directory);
    end Failed;
 begin
-   if Files.Model.Selection.Includes_Temporary (Model) then
-      return Disabled (Model, "error.create.pending");
-   elsif Is_Trash_Directory (Files.Model.Current_Path (Model)) then
-      return Disabled (Model, "error.compress.failed");
-   elsif Files.Model.Background_Transfers (Model) then
-      return Files.Operation_Jobs.Start
-        (Model, Settings, (if Format = Zip_Archive then Files.Operation_Jobs.Compress_Zip
-         else Files.Operation_Jobs.Compress_Seven_Zip));
-   end if;
+   declare
+      Refusal : constant Operation_Result := Creation_Refusal (Model, "error.compress.failed");
+   begin
+      if Refusal.Status /= Operation_Success then
+         return Refusal;
+      end if;
+   end;
    if Items.Is_Empty or else Directory = "" then
       return Failed;
    end if;
@@ -243,13 +241,13 @@ begin
       Discard_Stage;
       Record_Undo
         (Model, Files.Model.Undo_Delete_Created,
-         Files.Model.Undo_Item_Vectors.To_Vector
-           ((From          => To_Unbounded_String (Output_Path),
-             Identity      => Identities.First_Element,
-             Tree_Revision => Tree_Revisions.First_Element,
-             others        => <>), 1),
-         Redoable   => False,
-         Provenance => (Published_Main => 1, others => <>));
+         Published
+           (Files.Model.Undo_Item_Vectors.To_Vector
+              ((From          => To_Unbounded_String (Output_Path),
+                Identity      => Identities.First_Element,
+                Tree_Revision => Tree_Revisions.First_Element,
+                others        => <>), 1)),
+         Redoable => False);
 
       --  Reload so the new archive appears, and select it.
       declare

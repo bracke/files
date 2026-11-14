@@ -46,7 +46,7 @@ separate (Files_Suite.Recovery)
       Stage := To_Unbounded_String (Files.Job_Context.Create_Stage (Root));
       Identity := To_Unbounded_String (Files.File_Identities.Token (To_String (Stage)));
       declare
-         Owner : constant String := Join (To_String (Stage), ".files-owner");
+         Owner : constant String := Join (To_String (Stage), Files.Protocol_Names.Stage_Owner_File);
          Owner_Alias : constant String := Join (Root, "stage-owner-hardlink");
          Owner_Linked : constant Boolean :=
            Hostkit.Fs.Create_Hard_Link (Owner, Owner_Alias);
@@ -64,7 +64,7 @@ separate (Files_Suite.Recovery)
          end if;
       end;
       declare
-         Owner : constant String := Join (To_String (Stage), ".files-owner");
+         Owner : constant String := Join (To_String (Stage), Files.Protocol_Names.Stage_Owner_File);
          Owner_Data : constant String := Project_Tools.Files.Read_Raw_File (Owner);
       begin
          Write_Binary_File (Owner, Owner_Data & "trailing");
@@ -77,8 +77,8 @@ separate (Files_Suite.Recovery)
       Ada.Directories.Rename (To_String (Stage), Saved);
       Ada.Directories.Create_Directory (To_String (Stage));
       Ada.Streams.Stream_IO.Create
-        (File, Ada.Streams.Stream_IO.Out_File, Join (To_String (Stage), ".files-owner"));
-      String'Output (Ada.Streams.Stream_IO.Stream (File), "files-stage-owner-1");
+        (File, Ada.Streams.Stream_IO.Out_File, Join (To_String (Stage), Files.Protocol_Names.Stage_Owner_File));
+      String'Output (Ada.Streams.Stream_IO.Stream (File), Files.Protocol_Names.Stage_Owner_Header);
       String'Output (Ada.Streams.Stream_IO.Stream (File), Transport);
       String'Output (Ada.Streams.Stream_IO.Stream (File), To_String (Identity));
       Ada.Streams.Stream_IO.Close (File);
@@ -92,7 +92,7 @@ separate (Files_Suite.Recovery)
       Assert
         (Ada.Directories.Exists (Join (Transport, "stages")),
          "cleanup preserves a replacement and retains its ownership record for retry: stages directory kept");
-      Ada.Directories.Delete_File (Join (To_String (Stage), ".files-owner"));
+      Ada.Directories.Delete_File (Join (To_String (Stage), Files.Protocol_Names.Stage_Owner_File));
       Ada.Directories.Delete_Directory (To_String (Stage));
       Ada.Directories.Rename (Saved, To_String (Stage));
       declare

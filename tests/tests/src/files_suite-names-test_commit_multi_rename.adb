@@ -1,10 +1,12 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 separate (Files_Suite.Names)
    procedure Test_Commit_Multi_Rename (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
       Changed  : Boolean;
    begin
       --  Two files renamed together: appending "Z" before each extension gives
@@ -27,7 +29,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "committing both renames reports success");
       Assert (Ada.Directories.Exists (Join (Root, "aaaZ.txt")), "the first item is renamed on disk");
       Assert (Ada.Directories.Exists (Join (Root, "bbbZ.txt")), "the second item is renamed on disk");
@@ -38,10 +40,10 @@ separate (Files_Suite.Names)
          2,
          "committing two renames records a two-entry undo");
 
-      Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "one undo reverses the whole multi-rename");
       Assert (Ada.Directories.Exists (Join (Root, "aaa.txt")), "undo restores the first original name");
       Assert (Ada.Directories.Exists (Join (Root, "bbb.txt")), "undo restores the second original name");
@@ -80,7 +82,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "a partial multi-rename still reports overall success");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Error_Key),

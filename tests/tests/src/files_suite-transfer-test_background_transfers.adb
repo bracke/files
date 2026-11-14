@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Transfer)
@@ -16,7 +18,7 @@ separate (Files_Suite.Transfer)
       Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Dest_Dir);
@@ -48,11 +50,11 @@ separate (Files_Suite.Transfer)
       Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the UI collects a completed background action");
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "background completion reports success");
       Assert (Files.Model.History.Undo_Available (Model), "background writes record undo on the UI thread");
       Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Assert (not Ada.Directories.Exists (Dest), "undo removes a background copy");
 
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);

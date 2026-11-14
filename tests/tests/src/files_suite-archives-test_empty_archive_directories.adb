@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Archives)
    procedure Test_Empty_Archive_Directories (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -8,7 +10,7 @@ separate (Files_Suite.Archives)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Status : Zlib.Status_Code;
       Archive : Unbounded_String;
       Verify : constant String := Join (Root, "verify");
@@ -28,10 +30,10 @@ separate (Files_Suite.Archives)
                Files.Model.Set_Background_Transfers (Model, Background);
                Select_Name (Model, "bag");
                Step := Complete_Operation
-                 (Model, Settings, Files.Operations.Compress_Selected (Model, Settings, Format));
+                 (Model, Settings, Files.Operation_Commands.Compress_Selected (Model, Settings, Format));
                Archive := To_Unbounded_String
                  (Join (Root, (if Format = Files.Operations.Zip_Archive then "bag.zip" else "bag.7z")));
-               Assert (Step.Status = Files.Operations.Operation_Success
+               Assert (Step.Status = Files.Operation_Results.Operation_Success
                        and then Ada.Directories.Exists (To_String (Archive)),
                        "mixed and directory-only selections produce successful ZIP and 7z archives");
                Ada.Directories.Create_Directory (Verify);
@@ -49,11 +51,11 @@ separate (Files_Suite.Archives)
                             File_Has_Bytes (Join (Join (Verify, "bag"), "data.txt"), "payload bytes"),
                           Context & ": file payload");
                end;
-               Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Success,
+                  Files.Operation_Results.Operation_Success,
                   "Undo removes the archive while preserving its source directories: status");
                Assert (not Ada.Directories.Exists (To_String (Archive)),
                        "Undo removes the archive while preserving its source directories: archive removed");

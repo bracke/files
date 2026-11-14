@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 separate (Files_Suite.History)
    procedure Test_Redo_Symlink_Creation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -8,7 +10,7 @@ separate (Files_Suite.History)
       Load      : Files.File_System.Directory_Load_Result;
       Model     : Files.Model.Window_Model;
       Routed    : Files.Controller.Controller_Result;
-      Result    : Files.Operations.Operation_Result;
+      Result    : Files.Operation_Results.Operation_Result;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Dir);
@@ -21,22 +23,22 @@ separate (Files_Suite.History)
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_Symlink_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "create-symlink succeeds");
       Assert (Hostkit.Fs.Is_Link (Link_Path), "the symbolic link is created");
 
-      Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "undo of a created link succeeds");
       Assert (not Ada.Directories.Exists (Link_Path), "undo removes the created link");
       Assert (Files.Model.History.Redo_Available (Model), "a created link is redoable");
 
-      Result := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "redo of a created link succeeds");
       Assert (Hostkit.Fs.Is_Link (Link_Path), "redo re-creates the symbolic link from its source");
       Assert (Ada.Directories.Exists (Source), "redo keeps the original source item");

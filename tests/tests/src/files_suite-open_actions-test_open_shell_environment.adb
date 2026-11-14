@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Settings.Testing;
 with Files.Settings.Open_Actions;
 with Files_Suite.Support.Guards;
@@ -63,7 +64,7 @@ separate (Files_Suite.Open_Actions)
          Environment : Files_Suite.Support.Guards.Environment_Guard;
          Missing_Shell_Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Missing_Shell_Model    : Files.Model.Window_Model := Sample_Model;
-         Missing_Shell_Action   : Files.Operations.Operation_Result;
+         Missing_Shell_Action   : Files.Operation_Results.Operation_Result;
       begin
          Files_Suite.Support.Guards.Save (Environment, "COMSPEC");
          Files_Suite.Support.Guards.Save (Environment, "SHELL");
@@ -85,7 +86,7 @@ separate (Files_Suite.Open_Actions)
          if Hostkit.Host.Current = Hostkit.Host.Windows then
             Files_Suite.Support.Assert_Equal
               (Missing_Shell_Action.Status,
-               Files.Operations.Operation_Failed,
+               Files.Operation_Results.Operation_Failed,
                "explicit shell action fails preflight when shell executable is missing");
             Assert
               (not Missing_Shell_Action.Execution.Attempted,

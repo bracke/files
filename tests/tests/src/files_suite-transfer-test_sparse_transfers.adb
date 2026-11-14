@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
@@ -15,7 +17,7 @@ separate (Files_Suite.Transfer)
       Model : aliased Files.Model.Window_Model;
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Paths : Files.Types.String_Vectors.Vector;
       procedure Cleanup is
@@ -57,14 +59,17 @@ separate (Files_Suite.Transfer)
             Step := Complete_Operation
               (Model, Settings, Files.Operations.Begin_Paste_To (Model, Settings, Paths, Parent));
             Await_View (Model, Settings);
-            Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "copy a sparse file");
+            Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
+                                              "copy a sparse file");
             Check (Dest, Mixed);
-            Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "Undo a sparse copy");
-            Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+            Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
+                                              "Undo a sparse copy");
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
-            Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "Redo a sparse copy");
+            Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
+                                              "Redo a sparse copy");
             Check (Dest, Mixed);
             Mutation := Files.File_System.Rename_Item (Dest, Join (Remote.Path, "moved"));
             Assert (Mutation.Success, "move a sparse file across filesystems");

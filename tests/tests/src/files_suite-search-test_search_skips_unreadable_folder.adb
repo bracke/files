@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 separate (Files_Suite.Search)
    --  A folder below the search root that cannot be read is skipped: the
    --  matches around it are shown, with the notice that some went unsearched.
@@ -8,7 +10,7 @@ separate (Files_Suite.Search)
       Later    : constant String := Join (Root, "zz-later");
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Search   : Files.File_System.Recursive_Search_Result;
    begin
@@ -41,9 +43,9 @@ separate (Files_Suite.Search)
          Files.Model.Initialize (Model, Root, Load.Items, Root);
          Files.Model.Set_Background_Transfers (Model, False);
          Files.Model.Set_Filter (Model, "needle");
-         Step := (if Contents then Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents)
-                  else Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names));
-         Assert (Step.Status = Files.Operations.Operation_Success
+         Step := (if Contents then Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Contents)
+                  else Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Names));
+         Assert (Step.Status = Files.Operation_Results.Operation_Success
                  and then Files.Model.Search_Results_Are_Active (Model)
                  and then Files.Model.Item_Count (Model) = 2,
                  "the view shows the other matches, contents " & Contents'Image);

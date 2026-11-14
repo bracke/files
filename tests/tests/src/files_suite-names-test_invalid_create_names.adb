@@ -1,10 +1,11 @@
+with Files.Operation_Results;
 separate (Files_Suite.Names)
    procedure Test_Invalid_Create_Names (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model    : Files.Model.Window_Model;
       Items    : Files.Items.Item_Vectors.Vector;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
    begin
       Reset_Root;
       Files.Model.Initialize (Model, Root, Items, Root);
@@ -12,7 +13,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "create rejects empty names");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -24,7 +25,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "create rejects dot names");
 
       Files.Model.Testing.Cancel_Create_File (Model);
@@ -32,7 +33,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "create rejects parent-directory names");
 
       Files.Model.Testing.Cancel_Create_File (Model);
@@ -40,7 +41,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "create rejects path separator names");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Error_Key),
@@ -63,7 +64,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "create rejects trailing-space names");
       Assert
         (not Ada.Directories.Exists (Join (Root, "trailing-space.txt ")),
@@ -74,7 +75,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "create rejects NBSP-only names");
       Assert (not Ada.Directories.Exists (Join (Root, NBSP_Name)), "invalid NBSP-only create writes no file");
 
@@ -83,7 +84,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "create rejects trailing NBSP names");
       Assert
         (not Ada.Directories.Exists (Join (Root, Trailing_NBSP_Name)),
@@ -94,7 +95,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "create rejects trailing ideographic-space names");
       Assert
         (not Ada.Directories.Exists (Join (Root, Trailing_Ideographic_Name)),
@@ -107,7 +108,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "create rejects embedded NUL names");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Error_Key),
@@ -123,7 +124,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "create rejects control-character names");
 
       Files.Model.Testing.Cancel_Create_File (Model);
@@ -131,7 +132,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "create rejects C1 control-character names");
 
       Files.Model.Testing.Cancel_Create_File (Model);
@@ -139,7 +140,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "create rejects UTF-8 encoded C1 control-character names");
 
       Files.Model.Testing.Cancel_Create_File (Model);
@@ -147,7 +148,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "create rejects truncated UTF-8 names");
 
       Files.Model.Testing.Cancel_Create_File (Model);
@@ -155,6 +156,6 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Invalid_Name,
+         Files.Operation_Results.Operation_Invalid_Name,
          "create rejects overlong UTF-8 names");
    end Test_Invalid_Create_Names;

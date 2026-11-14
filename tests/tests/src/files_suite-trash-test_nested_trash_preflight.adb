@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files_Suite.Trash)
    procedure Test_Nested_Trash_Preflight (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -45,7 +46,7 @@ separate (Files_Suite.Trash)
             Guard_Result := Files.Controller.Handle_Key (Guard_Model, Guard_Settings, Guikit.Input.Key_Delete);
             Files_Suite.Support.Assert_Equal
               (Guard_Result.Operation.Status,
-               Files.Operations.Operation_Failed,
+               Files.Operation_Results.Operation_Failed,
                "multi-delete preflights nested trash targets");
             Files_Suite.Support.Assert_Equal
               (To_String (Guard_Result.Operation.Error_Key),

@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Settings.Testing;
 with Files.Settings.Open_Actions;
 separate (Files_Suite.Open_Actions)
@@ -7,7 +8,7 @@ separate (Files_Suite.Open_Actions)
       Arguments : Files.Settings.String_Vectors.Vector;
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Model     : Files.Model.Window_Model := Sample_Model;
-      Result    : Files.Operations.Operation_Result;
+      Result    : Files.Operation_Results.Operation_Result;
    begin
       --  Exercise the configured-action and missing-action contracts
       --  deterministically; the host opener fallback would otherwise resolve
@@ -27,7 +28,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "file open action can be prepared without spawn");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Path),
@@ -63,9 +64,9 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Open_Selected (Model, Settings, Modifiers);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Action_Executed,
+         Files.Operation_Results.Operation_Action_Executed,
          "file open executes an action; got "
-         & Files.Operations.Operation_Status'Image (Result.Status)
+         & Files.Operation_Results.Operation_Status'Image (Result.Status)
          & " with executable " & To_String (Result.Action.Executable));
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Path),
@@ -122,7 +123,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Action_Executed,
+         Files.Operation_Results.Operation_Action_Executed,
          "zero-argument open action executes");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Action.Executable),
@@ -142,7 +143,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "multi-file open action can be prepared");
       Assert (not Result.Execution.Attempted, "multi-file open preparation does not execute actions");
       Files_Suite.Support.Assert_Equal
@@ -160,7 +161,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Open_Selected (Model, Settings, Modifiers);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Action_Executed,
+         Files.Operation_Results.Operation_Action_Executed,
          "multi-file open executes actions");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Path),

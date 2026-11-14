@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.File_System.Permissions;
 with Files.Controller.Testing;
 with Files.File_System.Testing;
@@ -51,10 +52,10 @@ separate (Files_Suite.Operations)
       --  Enter on the ids the file has, typed or as seeded.
       Commit (Group => False, Text => Files.Types.Account_Image (Uid));
       Files_Suite.Support.Assert_Equal
-        (Routed.Operation.Status, Files.Operations.Operation_Success, "an unchanged owner commits");
+        (Routed.Operation.Status, Files.Operation_Results.Operation_Success, "an unchanged owner commits");
       Commit (Group => True, Text => Files.Types.Account_Image (Gid));
       Files_Suite.Support.Assert_Equal
-        (Routed.Operation.Status, Files.Operations.Operation_Success, "an unchanged group commits");
+        (Routed.Operation.Status, Files.Operation_Results.Operation_Success, "an unchanged group commits");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model), Files.Types.Focus_None, "and the field is closed");
       Files_Suite.Support.Assert_Equal

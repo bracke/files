@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.File_System.Thumbnails;
 separate (Files_Suite.Operations)
    procedure Test_Fifo_Never_Blocks (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -10,7 +12,7 @@ separate (Files_Suite.Operations)
       Pipe     : constant String := Join (Dir, "pipe");
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       Made     : Boolean;
    begin
       if Hostkit.Host.Current = Hostkit.Host.Windows then
@@ -47,8 +49,8 @@ separate (Files_Suite.Operations)
       Files.Model.Initialize (Model, Dir, Load.Items, Root);
       Files.Model.Set_Filter (Model, "needle");
       Step := Complete_Operation
-        (Model, Settings, Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents));
-      Assert (Step.Status = Files.Operations.Operation_Success and then Files.Model.Item_Count (Model) = 1,
+        (Model, Settings, Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Contents));
+      Assert (Step.Status = Files.Operation_Results.Operation_Success and then Files.Model.Item_Count (Model) = 1,
               "content search reads the file and passes the FIFO by");
 
       declare

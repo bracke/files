@@ -1,10 +1,11 @@
+with Files.Operation_Results;
 separate (Files_Suite.Names)
    procedure Test_Create_File_Does_Not_Overwrite (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Result        : Files.Operations.Operation_Result;
+      Result        : Files.Operation_Results.Operation_Result;
       Existing_Path : constant String := Join (Root, "existing.txt");
       Direct_Path   : constant String := Join (Root, "direct-created.txt");
       Utf8_Two_Name   : constant String := "caf" & Byte (16#C3#) & Byte (16#A9#) & ".txt";
@@ -79,7 +80,7 @@ separate (Files_Suite.Names)
          Result := Files.Operations.Commit_Create_File (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Status,
-            Files.Operations.Operation_Failed,
+            Files.Operation_Results.Operation_Failed,
             "create refuses an existing destination");
          Files_Suite.Support.Assert_Equal
            (To_String (Result.Error_Key),
@@ -108,7 +109,7 @@ separate (Files_Suite.Names)
          Result := Files.Operations.Commit_Create_File (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Result.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "create retry after collision succeeds");
          Assert (Ada.Directories.Exists (Join (Root, "retry.txt")), "create retry writes renamed file");
          Files_Suite.Support.Assert_Equal
@@ -126,7 +127,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "create accepts two-byte UTF-8 names");
       Assert (Ada.Directories.Exists (Join (Root, Utf8_Two_Name)), "two-byte UTF-8 create writes file");
       Files_Suite.Support.Assert_Equal
@@ -138,7 +139,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "create accepts three-byte UTF-8 names");
       Assert (Ada.Directories.Exists (Join (Root, Utf8_Three_Name)), "three-byte UTF-8 create writes file");
       Files_Suite.Support.Assert_Equal
@@ -150,7 +151,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "create accepts four-byte UTF-8 names");
       Assert (Ada.Directories.Exists (Join (Root, Utf8_Four_Name)), "four-byte UTF-8 create writes file");
       Files_Suite.Support.Assert_Equal

@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Native_Replace_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -9,7 +11,7 @@ separate (Files_Suite.Transfer)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       Backup   : Files.Types.UString;
       Result   : Files.File_System.Mutation_Result;
       Paths    : Files.Types.String_Vectors.Vector;
@@ -77,22 +79,22 @@ separate (Files_Suite.Transfer)
             Step := Files_Suite.Support.Finish_Paste (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "Replace succeeds with a restorable native-backend backup");
             Files_Suite.Support.Assert_Equal
               (Project_Tools.Files.Read_Raw_File (Dest),
                "new",
                "Replace publishes the new copy");
             Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
             --  Failed once on CI (2026-10-22) with no publish error beside it:
             --  name the status and key, so the next failure says which.
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "native-backend Replace is undoable (" & To_String (Backend)
                & (if Background then ", background" else ", foreground") & "): "
-               & Files.Operations.Operation_Status'Image (Step.Status) & " " & To_String (Step.Error_Key));
+               & Files.Operation_Results.Operation_Status'Image (Step.Status) & " " & To_String (Step.Error_Key));
             Files_Suite.Support.Assert_Equal
               (Project_Tools.Files.Read_Raw_File (Dest),
                "original",
@@ -180,10 +182,10 @@ separate (Files_Suite.Transfer)
         (Model, Files.Model.Undo_Restore_Trash, Files_Suite.Support.Undo_Items (Paths), Redoable => False);
       Ada.Directories.Delete_File (Dest);
       Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "recovery Undo can retry after a rollback collision");
       Files_Suite.Support.Assert_Equal
         (Project_Tools.Files.Read_Raw_File (Dest),

@@ -9,16 +9,13 @@ is
    Query : constant String := Files.Model.Filter_Text (Model);
    Root  : constant String := Files.Model.Current_Path (Model);
 begin
-   if Query = "" then
-      return Disabled (Model, "error.filter.empty");
-   elsif Root = "" or else Files.Model.In_Recent_View (Model) then
-      return Disabled (Model, "error.directory.load");
-   elsif Files.Model.Background_Transfers (Model) then
-      return Files.Operation_Jobs.Start
-        (Model, Settings,
-         (if Scope = Files.Types.Search_Contents then Files.Operation_Jobs.Search_Contents
-          else Files.Operation_Jobs.Search_Names));
-   end if;
+   declare
+      Refusal : constant Operation_Result := Search_Refusal (Model);
+   begin
+      if Refusal.Status /= Operation_Success then
+         return Refusal;
+      end if;
+   end;
 
    declare
       Found : constant Files.File_System.Recursive_Search_Result :=

@@ -1,3 +1,4 @@
+with Files.Operations;
 with Files.Undo_Recording;
 with Files.Items;
 with Files.Model.Testing;
@@ -31,7 +32,6 @@ with Files.Model.Selection;
 with Files.Model.Rename;
 with Files.Model.History;
 with Files.Model.Folder_Sizes;
-with Files.Operations;
 with Files.Quick_Look;
 with Files.Rendering;
 with Files.Settings;

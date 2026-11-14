@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Settings.Path_References;
 separate (Files_Suite.Operations)
    procedure Test_Recent_View_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -8,7 +9,7 @@ separate (Files_Suite.Operations)
       Settings  : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Items     : Files.Items.Item_Vectors.Vector;
       Model     : Files.Model.Window_Model;
-      Result    : Files.Operations.Operation_Result;
+      Result    : Files.Operation_Results.Operation_Result;
       Dir_Index : Natural := 0;
 
       function Find_Visible (Name : String) return Natural is
@@ -38,7 +39,7 @@ separate (Files_Suite.Operations)
       Result := Files.Operations.Navigate_Recent (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Navigated,
+         Files.Operation_Results.Operation_Navigated,
          "entering the recent view navigates");
       Assert (Files.Model.In_Recent_View (Model), "the recent view is active after Navigate_Recent");
       Files_Suite.Support.Assert_Equal
@@ -58,7 +59,7 @@ separate (Files_Suite.Operations)
       begin
          Files_Suite.Support.Assert_Equal
            (Routed.Operation.Status,
-            Files.Operations.Operation_Navigated,
+            Files.Operation_Results.Operation_Navigated,
             "double-clicking a recent folder opens it");
          Assert (not Files.Model.In_Recent_View (Model), "opening a folder leaves the recent view");
          Files_Suite.Support.Assert_Equal

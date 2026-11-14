@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Items;
 with Files.Commands.Status;
 with Files.Model.Command_Palette;
@@ -37,7 +38,7 @@ separate (Files_Suite.Model)
          "eject command reports command");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "eject command reports unavailable native operation");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Error_Key),
@@ -70,7 +71,7 @@ separate (Files_Suite.Model)
          "root-open command reports root activation command");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Navigated,
+         Files.Operation_Results.Operation_Navigated,
          "root-open command navigates");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
@@ -85,7 +86,7 @@ separate (Files_Suite.Model)
         (Files.Commands.Open_Selected_Root_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Navigated,
+         Files.Operation_Results.Operation_Navigated,
          "root-open from the palette over the selector navigates");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),

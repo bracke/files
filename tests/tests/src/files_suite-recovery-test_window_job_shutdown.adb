@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
@@ -13,7 +14,7 @@ separate (Files_Suite.Recovery)
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       Started, Other_Started : Unbounded_String;
       Before : Instant;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Finished, Cancelled : Boolean;
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
@@ -65,7 +66,7 @@ separate (Files_Suite.Recovery)
             when Transfer_Job =>
                Files.Operations.Begin_Paste_Execution (Closing, Actions, Files.File_System.Drop_Copy);
                Step := Files.Foreground_Jobs.Advance (Closing, Settings, 1);
-               Assert (Step.Status = Files.Operations.Operation_Success
+               Assert (Step.Status = Files.Operation_Results.Operation_Success
                        and then Files.Model.Foreground_Job_Is_Active (Closing), "start the stalled transfer");
                Await_Started (Join (Root, "transfer-started"));
                declare

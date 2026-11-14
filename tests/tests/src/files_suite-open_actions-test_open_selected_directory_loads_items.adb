@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files_Suite.Open_Actions)
    procedure Test_Open_Selected_Directory_Loads_Items (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5,7 +6,7 @@ separate (Files_Suite.Open_Actions)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Items    : Files.Items.Item_Vectors.Vector;
       Model    : Files.Model.Window_Model;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
       Routed   : Files.Controller.Controller_Result;
    begin
       Reset_Root;
@@ -22,7 +23,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "pending create selection blocks direct open preparation");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Error_Key),
@@ -41,7 +42,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "pending create item cannot be opened directly");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),
@@ -55,7 +56,7 @@ separate (Files_Suite.Open_Actions)
          "double-click routes open command");
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Navigated,
+         Files.Operation_Results.Operation_Navigated,
          "double-click opens directory");
       Files_Suite.Support.Assert_Equal
         (To_String (Routed.Operation.Path),
@@ -90,7 +91,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "multi-directory open is rejected");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Error_Key),
@@ -113,7 +114,7 @@ separate (Files_Suite.Open_Actions)
          "double-click routes open command");
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Navigated,
+         Files.Operation_Results.Operation_Navigated,
          "double-click opens directory");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Current_Path (Model),

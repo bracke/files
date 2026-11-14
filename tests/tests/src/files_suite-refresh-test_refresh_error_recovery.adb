@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Settings.Path_References;
 separate (Files_Suite.Refresh)
    procedure Test_Refresh_Error_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -5,7 +6,7 @@ separate (Files_Suite.Refresh)
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model : Files.Model.Window_Model;
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       View : constant String := Join (Root, "view");
       Held : constant String := Join (Root, "held");
       Signature : Files.File_System.Directory_Signature;
@@ -46,7 +47,7 @@ separate (Files_Suite.Refresh)
                else
                   Files_Suite.Support.Assert_Equal
                     (Step.Status,
-                     Files.Operations.Operation_Failed,
+                     Files.Operation_Results.Operation_Failed,
                      "unavailable refresh fails synchronously");
                end if;
                Assert (Files.Model.Last_Error_Key (Model) = "error.directory.load"
@@ -66,7 +67,7 @@ separate (Files_Suite.Refresh)
             else
                Files_Suite.Support.Assert_Equal
                  (Step.Status,
-                  Files.Operations.Operation_Success,
+                  Files.Operation_Results.Operation_Success,
                   "the synchronous recovery succeeds");
             end if;
             Files_Suite.Support.Assert_Equal

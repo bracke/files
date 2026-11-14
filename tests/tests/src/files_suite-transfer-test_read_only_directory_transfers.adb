@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.File_System.Permissions;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
@@ -10,7 +12,7 @@ separate (Files_Suite.Transfer)
       Model : aliased Files.Model.Window_Model;
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Paths : Files.Types.String_Vectors.Vector;
       procedure Remove (Path : String) is
@@ -127,24 +129,24 @@ separate (Files_Suite.Transfer)
            (Model, Settings, Files.Operations.Begin_Paste_To
               (Model, Settings, Paths, Remote.Path, Files.File_System.Drop_Move));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Success and then not Ada.Directories.Exists (Source),
+         Assert (Step.Status = Files.Operation_Results.Operation_Success and then not Ada.Directories.Exists (Source),
                  "move a read-only root across filesystems");
          for Cycle in 1 .. 2 loop
             Check (Join (Remote.Path, "source"));
             Check_Backups (Root);
-            Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "Undo a read-only directory move");
             Check (Source);
             Check_Backups (Remote.Path);
-            Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "Redo a read-only directory move");
          end loop;
          Remove (Join (Remote.Path, "source"));

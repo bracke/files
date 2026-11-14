@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Undo_Paste_Replace (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -30,7 +32,7 @@ separate (Files_Suite.History)
          Model    : aliased Files.Model.Window_Model;
          Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
          pragma Unreferenced (Paste);
-         Step     : Files.Operations.Operation_Result;
+         Step     : Files.Operation_Results.Operation_Result;
       begin
          Ada.Directories.Create_Path (Src_Dir);
          Ada.Directories.Create_Path (Dest_Dir);
@@ -48,7 +50,7 @@ separate (Files_Suite.History)
          Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Copy);
          Step := Files.Foreground_Jobs.Advance (Model, Settings, 8);
          Files_Suite.Support.Assert_Equal
-           (Step.Status, Files.Operations.Operation_Success, "the copy-replace paste succeeds");
+           (Step.Status, Files.Operation_Results.Operation_Success, "the copy-replace paste succeeds");
          Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the copy-replace paste finalizes");
          Files_Suite.Support.Assert_Equal
            (Files.File_System.Read_Preview_Text (Dest, 3),
@@ -56,8 +58,8 @@ separate (Files_Suite.History)
             "the copy-replace overwrites the destination with the pasted content");
 
          Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-         if Step.Status = Files.Operations.Operation_Success then
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         if Step.Status = Files.Operation_Results.Operation_Success then
             Assert
               (Ada.Directories.Exists (Dest)
                  and then Files.File_System.Read_Preview_Text (Dest, 3) = "old",
@@ -80,7 +82,7 @@ separate (Files_Suite.History)
          Model    : aliased Files.Model.Window_Model;
          Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
          pragma Unreferenced (Paste);
-         Step     : Files.Operations.Operation_Result;
+         Step     : Files.Operation_Results.Operation_Result;
       begin
          Ada.Directories.Create_Path (Src_Dir);
          Ada.Directories.Create_Path (Dest_Dir);
@@ -98,7 +100,7 @@ separate (Files_Suite.History)
          Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
          Step := Files.Foreground_Jobs.Advance (Model, Settings, 8);
          Files_Suite.Support.Assert_Equal
-           (Step.Status, Files.Operations.Operation_Success, "the move-replace paste succeeds");
+           (Step.Status, Files.Operation_Results.Operation_Success, "the move-replace paste succeeds");
          Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the move-replace paste finalizes");
          Assert
            (Files.File_System.Read_Preview_Text (Dest, 3) = "new"
@@ -106,8 +108,8 @@ separate (Files_Suite.History)
             "the move-replace overwrites the destination and consumes the source");
 
          Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-         if Step.Status = Files.Operations.Operation_Success then
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         if Step.Status = Files.Operation_Results.Operation_Success then
             Assert
               (Ada.Directories.Exists (Source)
                  and then Files.File_System.Read_Preview_Text (Source, 3) = "new",

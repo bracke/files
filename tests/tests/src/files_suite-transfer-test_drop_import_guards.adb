@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 separate (Files_Suite.Transfer)
    procedure Test_Drop_Import_Guards (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -12,7 +13,7 @@ separate (Files_Suite.Transfer)
       Write_File (Join (Root, "stay.txt"), "stay");
       Sources.Append (To_Unbounded_String (Join (Root, "stay.txt")));
       Plans := Files.File_System.Plan_Drop_Import (Sources, Root, Files.File_System.Drop_Move);
-      Mutation := Files.File_System.Execute_Drop_Import (Plans.Plans);
+      Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
       Assert (Mutation.Success, "same-directory move succeeds");
       Assert (Ada.Directories.Exists (Join (Root, "stay.txt")), "same-directory move keeps the file in place");
       Assert
@@ -22,7 +23,7 @@ separate (Files_Suite.Transfer)
       Sources.Clear;
       Sources.Append (To_Unbounded_String (Join (Root, "stay.txt")));
       Plans := Files.File_System.Plan_Drop_Import (Sources, Root, Files.File_System.Drop_Copy);
-      Mutation := Files.File_System.Execute_Drop_Import (Plans.Plans);
+      Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
       Assert (Mutation.Success, "same-directory copy succeeds");
       Assert
         (Ada.Directories.Exists (Join (Root, "stay 2.txt")),
@@ -102,7 +103,7 @@ separate (Files_Suite.Transfer)
         (To_String (Plans.Plans.Element (1).Destination_Path)
            /= To_String (Plans.Plans.Element (2).Destination_Path),
          "same-name sources get distinct destinations within a batch");
-      Mutation := Files.File_System.Execute_Drop_Import (Plans.Plans);
+      Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans.Plans);
       Assert (Mutation.Success, "same-name batch copy executes");
       Assert
         (Ada.Directories.Exists (Join (Join (Root, "dup-dest"), "dup.txt")),

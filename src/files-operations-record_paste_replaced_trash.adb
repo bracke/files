@@ -8,10 +8,8 @@ is
    Original : constant String :=
      (if Original_Path /= "" then Original_Path
       else Files.File_System.Trash.Trash_Original_Path (To_String (Trash_Path)));
-   --  The live entry is checked only while every earlier original verified.
-   Verified : constant Boolean :=
-     Files.Model.Pasting.Replaced_Extends_Verified (Model)
-     and then Files.File_System.Entry_Identity_Matches (To_String (Trash_Path), Identity);
+   --  Each original is verified on its own, against the live entry.
+   Verified : constant Boolean := Files.File_System.Entry_Identity_Matches (To_String (Trash_Path), Identity);
 begin
    Files.Model.Pasting.Record_Replaced_Trash
      (Model, Trash_Path, Identity, Original, Verified);

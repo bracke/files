@@ -1,3 +1,4 @@
+with Files.Operations;
 with Ada.Directories;
 with Ada.Strings.Unbounded;
 with AUnit;
@@ -12,7 +13,6 @@ with Files.Model;
 with Files.Model.Selection;
 with Files.Model.Rename;
 with Files.Model.History;
-with Files.Operations;
 with Guikit.Draw;
 with Files.Rendering;
 with Files.Settings;

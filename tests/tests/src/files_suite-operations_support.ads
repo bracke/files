@@ -1,6 +1,6 @@
+with Files.Operation_Results;
 with Files.Desktop_Applications;
 with Files.Model;
-with Files.Operations;
 with Files.Settings;
 with Files.Types;
 
@@ -28,7 +28,7 @@ package Files_Suite.Operations_Support is
    function Complete_Operation
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Started  : Files.Operations.Operation_Result) return Files.Operations.Operation_Result;
+      Started  : Files.Operation_Results.Operation_Result) return Files.Operation_Results.Operation_Result;
 
    --  Bring the selected item's details in the way a window does, off the
    --  UI thread: asked of the reader and polled until read.
@@ -223,6 +223,6 @@ package Files_Suite.Operations_Support is
    procedure Finish_Background_Operation
      (Model    : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
-      Step     : in out Files.Operations.Operation_Result);
+      Step     : in out Files.Operation_Results.Operation_Result);
 
 end Files_Suite.Operations_Support;

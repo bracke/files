@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Settings.Path_References;
 separate (Files.Controller)
 function Apply_Settings_Command
@@ -132,7 +133,7 @@ begin
             if Files.Model.In_Recent_View (Model) then
                declare
                   Reported : constant String := Files.Model.Last_Error_Key (Model);
-                  Listed   : constant Files.Operations.Operation_Result :=
+                  Listed   : constant Files.Operation_Results.Operation_Result :=
                     Files.Operations.Navigate_Recent (Model, Settings);
                   pragma Unreferenced (Listed);
                begin

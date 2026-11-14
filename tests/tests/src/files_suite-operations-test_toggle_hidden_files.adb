@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Controller.Testing;
 separate (Files_Suite.Operations)
    procedure Test_Toggle_Hidden_Files (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -25,7 +26,7 @@ separate (Files_Suite.Operations)
       Result := Files.Controller.Testing.Toggle_Hidden_Files (Model, Settings, Settings_Path);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "toggle hidden files reports success");
       Assert
         (Settings.Show_Hidden_Files,

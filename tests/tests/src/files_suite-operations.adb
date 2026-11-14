@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.File_System.Trash;
 with Files.File_System.Permissions;
 with Files.File_System.Thumbnails;
@@ -62,7 +63,7 @@ package body Files_Suite.Operations is
    use type Files.Events.Input_Action_Kind;
    use type Files.File_System.Drop_Import_Mode;
    use type Files.File_System.Thumbnails.Thumbnail_Status;
-   use type Files.Operations.Operation_Status;
+   use type Files.Operation_Results.Operation_Status;
    use type Files.Operations.Archive_Format;
    use type Files.Model.Undo_Action_Kind;
    use type Files.Types.Focus_Target;

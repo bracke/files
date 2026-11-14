@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files_Suite.Transfer)
    procedure Test_Drop_Import_Progress (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -9,7 +10,7 @@ separate (Files_Suite.Transfer)
       Load     : Files.File_System.Directory_Load_Result;
       Sources  : Files.Types.String_Vectors.Vector;
       Routed   : Files.Controller.Controller_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
 
       function Src (N : Positive) return String is (Numbered_File (Src_Dir, N));
       function Dest (N : Positive) return String is (Numbered_File (Dest_Dir, N));
@@ -30,7 +31,7 @@ separate (Files_Suite.Transfer)
       Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "large drop import reports success");
       Assert (Files.Model.Foreground_Job_Is_Active (Model), "a large drop keeps the progress executor active");
       Files_Suite.Support.Assert_Equal
@@ -42,7 +43,7 @@ separate (Files_Suite.Transfer)
       Step := Files.Foreground_Jobs.Advance (Model, Settings, Count);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "advancing the drop executor reports success");
       Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the drop executor finalizes after the last batch");
 

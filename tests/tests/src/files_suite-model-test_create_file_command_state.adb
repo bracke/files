@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.File_System.Testing;
 with Files.Items;
 with Files.Commands.Status;
@@ -36,7 +37,7 @@ separate (Files_Suite.Model)
          "create command routes through controller");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "create command reports successful temporary-item operation");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -66,7 +67,7 @@ separate (Files_Suite.Model)
          "second create command is ignored");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "second create command reports disabled operation");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Error_Key),

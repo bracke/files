@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files_Suite.Model)
    procedure Test_Create_File_Cancellation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -70,7 +71,7 @@ separate (Files_Suite.Model)
          "Escape routes context cancel");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "create Escape reports successful state-only cancel");
       Assert (not Files.Model.Temporary_Item_Is_Active (Model), "Escape cancels temporary item");
       Assert (not Files.Model.Rename.Is_Active (Model), "Escape clears temporary rename state");
@@ -86,7 +87,7 @@ separate (Files_Suite.Model)
       Result := Files.Controller.Handle_Item_Click (Model, Settings, Visible_Index => 1);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "temporary-row item click reports successful context cancel");
       Assert
         (not Files.Model.Temporary_Item_Is_Active (Model),

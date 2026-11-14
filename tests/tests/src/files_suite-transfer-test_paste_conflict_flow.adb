@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Model.Clipboard;
 separate (Files_Suite.Transfer)
    procedure Test_Paste_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -42,7 +43,7 @@ separate (Files_Suite.Transfer)
       Two_File : Files.Types.String_Vectors.Vector;
       Model    : Files.Model.Window_Model;
       Routed   : Files.Controller.Controller_Result;
-      Resolved : Files.Operations.Operation_Result;
+      Resolved : Files.Operation_Results.Operation_Result;
    begin
       One_File.Append (To_Unbounded_String ("a.txt"));
       Two_File.Append (To_Unbounded_String ("a.txt"));
@@ -66,7 +67,7 @@ separate (Files_Suite.Transfer)
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
       Files_Suite.Support.Assert_Equal
         (Resolved.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "replace resolves successfully");
       Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "resolving clears the dialog");
       Files_Suite.Support.Assert_Equal
@@ -87,7 +88,7 @@ separate (Files_Suite.Transfer)
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Skip, False);
       Files_Suite.Support.Assert_Equal
         (Resolved.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "skip resolves successfully");
       Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "skip clears the dialog");
       Files_Suite.Support.Assert_Equal
@@ -108,7 +109,7 @@ separate (Files_Suite.Transfer)
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Rename, False);
       Files_Suite.Support.Assert_Equal
         (Resolved.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "rename resolves successfully");
       Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "rename clears the dialog");
       Files_Suite.Support.Assert_Equal
@@ -140,7 +141,7 @@ separate (Files_Suite.Transfer)
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, True);
       Files_Suite.Support.Assert_Equal
         (Resolved.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "apply-to-all resolves successfully");
       Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "apply-to-all resolves both without a second prompt");
       Files_Suite.Support.Assert_Equal
@@ -178,7 +179,7 @@ separate (Files_Suite.Transfer)
          Resolved :=
            Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
          Files_Suite.Support.Assert_Equal
-           (Resolved.Status, Files.Operations.Operation_Success, "the second choice finishes the paste");
+           (Resolved.Status, Files.Operation_Results.Operation_Success, "the second choice finishes the paste");
          Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "and closes the dialog");
          Files_Suite.Support.Assert_Equal (Read (Join (Dest_Dir, "a.txt")), "DESTA", "the skipped item is untouched");
          Files_Suite.Support.Assert_Equal (Read (Join (Dest_Dir, "b.txt")), "SRCB", "the replaced item is overwritten");
@@ -199,7 +200,7 @@ separate (Files_Suite.Transfer)
         Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Cancel, False);
       Files_Suite.Support.Assert_Equal
         (Resolved.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "cancel resolves successfully");
       Assert (not Files.Model.Pasting.Conflict_Is_Active (Model), "cancel clears the dialog");
       Files_Suite.Support.Assert_Equal
@@ -224,7 +225,7 @@ separate (Files_Suite.Transfer)
            Files.Operations.Resolve_Paste_Conflict (Model, Settings, Files.Operations.Choice_Replace, False);
          Files_Suite.Support.Assert_Equal
            (Resolved.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "replacing a dangling link resolves successfully");
          Assert (not Hostkit.Fs.Is_Link (Join (Dest_Dir, "a.txt")), "replace removes the dangling link");
          Files_Suite.Support.Assert_Equal

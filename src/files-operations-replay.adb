@@ -36,14 +36,6 @@ is
       end if;
    end Clear_Completed_Steps;
 begin
-   --  A helper replays only what its journal hands it: an entry too large
-   --  for the journal is replayed here instead.
-   if Files.Model.Background_Transfers (Model)
-     and then Files.History_Journal.Journals_Newest (Model, Redo => Redo)
-   then
-      return Files.Operation_Jobs.Start
-        (Model, Settings, (if Redo then Files.Operation_Jobs.Redo else Files.Operation_Jobs.Undo));
-   end if;
    if Redo then
       Files.Model.History.Take_Redo (Model, Action, Found);
    else

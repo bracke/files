@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Settings.Testing;
 with Files.Settings.Open_Actions;
 separate (Files_Suite.Open_Actions)
@@ -7,7 +8,7 @@ separate (Files_Suite.Open_Actions)
       Arguments : Files.Settings.String_Vectors.Vector;
       Modifiers : Guikit.Input.Modifier_Set := Guikit.Input.No_Modifiers;
       Model     : Files.Model.Window_Model := Sample_Model;
-      Result    : Files.Operations.Operation_Result;
+      Result    : Files.Operation_Results.Operation_Result;
       Routed    : Files.Controller.Controller_Result;
    begin
       --  Keep the configured-action contracts deterministic; the host opener
@@ -27,7 +28,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings, Modifiers);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "modifier-specific action can be prepared");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Action.Arguments.Element (2)),
@@ -40,7 +41,7 @@ separate (Files_Suite.Open_Actions)
          "Return routes file open command");
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Action_Executed,
+         Files.Operation_Results.Operation_Action_Executed,
          "Return executes configured open action");
       Files_Suite.Support.Assert_Equal
         (To_String (Routed.Operation.Action.Arguments.Element (2)),
@@ -58,7 +59,7 @@ separate (Files_Suite.Open_Actions)
          "double-click file routes open command");
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Action_Executed,
+         Files.Operation_Results.Operation_Action_Executed,
          "double-click file executes configured action");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Selection.Selected_Index (Model), 1, "double-click selects activated file");

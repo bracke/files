@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Settings.Open_Actions;
 separate (Files_Suite.Settings)
@@ -43,7 +44,7 @@ separate (Files_Suite.Settings)
          Controller_Result := Files.Controller.Testing.Save_Settings (Draft_Model, Draft_Settings, Draft_Path);
          Files_Suite.Support.Assert_Equal
            (Controller_Result.Operation.Status,
-            Files.Operations.Operation_Disabled,
+            Files.Operation_Results.Operation_Disabled,
             "closed settings pane cannot save settings");
          Files_Suite.Support.Assert_Equal
            (To_String (Controller_Result.Operation.Error_Key),

@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
@@ -22,7 +24,7 @@ separate (Files_Suite.Operations)
          declare
             Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
             Model : Files.Model.Window_Model;
-            Step : Files.Operations.Operation_Result;
+            Step : Files.Operation_Results.Operation_Result;
             Expected_Rows : Files.Types.String_Vectors.Vector;
 
             procedure Check_Recent is
@@ -105,17 +107,17 @@ separate (Files_Suite.Operations)
                "select files from two folders and one directory");
             Files.Model.Set_Background_Transfers (Model, Background);
             Ada.Directories.Set_Directory (Cwd);
-            Step := Files.Operations.Duplicate_Selected (Model, Settings);
+            Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "Recent Duplicate starts or completes successfully");
             if Background then
                Step := Files_Suite.Support.Finish_Paste (Model, Settings);
             end if;
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "Recent Duplicate reports success and records all created paths for Undo: status");
             Assert
               (not Files.Model.Foreground_Job_Is_Active (Model),
@@ -130,10 +132,10 @@ separate (Files_Suite.Operations)
             Check_Recent;
             Check_Copies;
             Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "Undo removes every adjacent copy from its source folder: status");
             Assert
               (not Ada.Directories.Exists (Copy_A),
@@ -148,10 +150,10 @@ separate (Files_Suite.Operations)
             Check_Recent;
             Assert (File_Is (Existing, "existing copy bytes"), "Undo preserves the pre-existing copy collision");
             Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "Redo re-creates the recorded adjacent destinations");
             Await_Refresh;
             Check_Recent;

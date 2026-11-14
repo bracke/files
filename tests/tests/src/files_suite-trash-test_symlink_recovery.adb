@@ -1,3 +1,6 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
+with Files.File_System.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    procedure Test_Symlink_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -10,7 +13,7 @@ separate (Files_Suite.Trash)
       Result   : Files.File_System.Mutation_Result;
       Paths    : Files.Types.String_Vectors.Vector;
       Model    : Files.Model.Window_Model;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
    begin
@@ -73,7 +76,7 @@ separate (Files_Suite.Trash)
             Planned := Files.File_System.Plan_Drop_Import (Sources, Output);
             Assert (Planned.Success and then Planned.Plans.First_Element.Valid,
                     "drop planning accepts a dangling source link");
-            Result := Files.File_System.Execute_Drop_Import (Planned.Plans);
+            Result := Files.File_System.Testing.Execute_Drop_Import (Planned.Plans);
             Assert (Result.Success and then Hostkit.Fs.Is_Link (Join (Output, "trash-link")),
                     "a dropped dangling link is copied as a link");
             declare
@@ -124,8 +127,8 @@ separate (Files_Suite.Trash)
          Files.Undo_Recording.Record_Undo
            (Model, Files.Model.Undo_Delete_Created, Files_Suite.Support.Undo_Items (Paths), Redoable => False);
          Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-         Assert (Step.Status = Files.Operations.Operation_Success and then not Hostkit.Fs.Is_Link (Link),
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+         Assert (Step.Status = Files.Operation_Results.Operation_Success and then not Hostkit.Fs.Is_Link (Link),
                  "Undo removes a created dangling link");
       else
          Files_Suite.Support.Link_Not_Made ("Test_Symlink_Recovery", Files_Suite.Support.Symbolic_Link);

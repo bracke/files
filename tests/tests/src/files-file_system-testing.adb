@@ -428,4 +428,15 @@ package body Files.File_System.Testing is
       return String
      renames Files.File_System.Trash_Deletion_Date;
 
+   function Execute_Drop_Import
+     (Plans  : Drop_Import_Plan_Vectors.Vector;
+      Cancel : Cancellation_Check := Job_Cancelled;
+      Batch  : Files.Copy_Context.Session := Files.Copy_Context.Empty_Session)
+      return Mutation_Result
+   is
+      Created : Created_Entry_Vectors.Vector;
+   begin
+      return Files.File_System.Execute_Drop_Import (Plans, Created, Cancel, Batch);
+   end Execute_Drop_Import;
+
 end Files.File_System.Testing;

@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.File_System.Permissions;
 with Hostkit.Metadata;
 with Files_Suite.Support.Guards;
@@ -10,7 +12,7 @@ separate (Files_Suite.History)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       use type Files.Types.Account_Id;
       Uid, Gid : Files.Types.Account_Id;
@@ -35,16 +37,16 @@ separate (Files_Suite.History)
             Assert (Mutation.Success, "simulate a permission change after the directory listing");
             Step := (if Toggle then Files.Operations.Toggle_Permission_Bit (Model, 8, Settings)
                      else Files.Operations.Testing.Set_Permissions_For (Model, 8#750#, Settings));
-            Assert (Step.Status = Files.Operations.Operation_Success
+            Assert (Step.Status = Files.Operation_Results.Operation_Success
                     and then Mode_Of (Source, With_Special_Bits => True) =
                       (if Hostkit.Metadata.Mode_Bits_Are_Native
                        then (if Toggle then 8#601# else 8#750#)
                        else (if Toggle then 8#600# else 8#640#)),
                     "permission changes and toggles use current mode bits");
-            Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Assert
-              (Step.Status = Files.Operations.Operation_Success
+              (Step.Status = Files.Operation_Results.Operation_Success
                and then Mode_Of (Source, With_Special_Bits => True) = 8#600#,
                "Undo restores the live previous mode instead of stale directory metadata");
          end loop;
@@ -68,7 +70,7 @@ separate (Files_Suite.History)
             Step := Files.Operations.Set_Ownership_For (Model, Uid, Gid, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "change ownership with a stale cached owner");
             Assert
               (Ada.Strings.Fixed.Index
@@ -77,13 +79,13 @@ separate (Files_Suite.History)
                   & Files.Types.Account_Image (Gid)
                   & String'(1 => Ada.Characters.Latin_1.NUL)) = 1,
                     "ownership history records the live ids rather than the stale item");
-            Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "Undo applies the live ownership snapshot: status="
-               & Files.Operations.Operation_Status'Image (Step.Status)
+               & Files.Operation_Results.Operation_Status'Image (Step.Status)
                & " uid=" & Files.Types.Account_Image (Uid)
                & " gid=" & Files.Types.Account_Image (Gid)
                & " background=" & Boolean'Image (Background));

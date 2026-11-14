@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Commands.Status;
 separate (Files_Suite.Operations)
    procedure Test_Create_Symlink_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -26,7 +27,7 @@ separate (Files_Suite.Operations)
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Create_Symlink_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "create-symlink succeeds");
       Assert (Ada.Directories.Exists (Source), "original item still exists after linking");
       Assert (Hostkit.Fs.Is_Link (Link_Path), "a symbolic link is created next to the source");
@@ -39,7 +40,7 @@ separate (Files_Suite.Operations)
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Undo_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "undo of a created symlink succeeds");
       Assert (not Ada.Directories.Exists (Link_Path), "undo removes the created symlink");
       Assert (not Hostkit.Fs.Is_Link (Link_Path), "undo leaves no dangling symlink entry");

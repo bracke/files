@@ -1,10 +1,11 @@
+with Files.Operation_Results;
 separate (Files_Suite.Names)
    procedure Test_Commit_Rename (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
       Taken    : constant String := Join (Root, "taken.txt");
       Direct_Source : constant String := Join (Root, "direct-source.txt");
       Direct_Target : constant String := Join (Root, "direct-target.txt");
@@ -119,7 +120,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "same-name rename succeeds without mutation");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Path),
@@ -141,7 +142,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "rename refuses an existing destination");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Error_Key),
@@ -174,7 +175,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "rename reports disappeared source");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Error_Key),
@@ -213,7 +214,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "same-name rename reports disappeared source");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Error_Key),
@@ -236,7 +237,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "rename succeeds after source is restored");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -259,7 +260,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "rename accepts UTF-8 names");
       Assert (Ada.Directories.Exists (Join (Root, Utf8_Target)), "UTF-8 rename creates new path");
       Assert (not Ada.Directories.Exists (Join (Root, "new.txt")), "UTF-8 rename removes old path");

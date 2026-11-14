@@ -1,3 +1,5 @@
+with Files.Operations;
+with Files.Operation_Results;
 with Files.Items;
 with Files.Model.Testing;
 with Files.Process_Jobs;
@@ -17,7 +19,6 @@ with Files.Model;
 with Files.Model.Selection;
 with Files.Model.Rename;
 with Files.Model.History;
-with Files.Operations;
 with Files.Paste;
 with Hostkit.Fs;
 with Files.Rendering;
@@ -33,7 +34,7 @@ package body Files_Suite.Names is
    use AUnit.Assertions;
    use type Ada.Directories.File_Kind;
    use type Hostkit.Host.Kind;
-   use type Files.Operations.Operation_Status;
+   use type Files.Operation_Results.Operation_Status;
    use type Files.Types.Search_Scope;
    use Files_Suite.Support;
    use Files_Suite.Support.Images;

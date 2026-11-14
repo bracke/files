@@ -1,16 +1,17 @@
+with Files.Operation_Results;
 separate (Files_Suite.Recovery)
    procedure Test_Operation_Result_Record_Validation (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Path     : constant String := Join (Root, "invalid-job-items");
       File     : Ada.Streams.Stream_IO.File_Type;
-      Result   : Files.Operations.Operation_Result;
-      Decoded  : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
+      Decoded  : Files.Operation_Results.Operation_Result;
       Rejected : Boolean := False;
    begin
       Reset_Root;
 
       --  A result round-trips with its action and its execution outcome.
-      Result.Status := Files.Operations.Operation_Action_Executed;
+      Result.Status := Files.Operation_Results.Operation_Action_Executed;
       Result.Path := To_Unbounded_String ("file.txt");
       Result.Action.Executable := To_Unbounded_String ("viewer");
       Result.Action.Arguments.Append (To_Unbounded_String ("file.txt"));
@@ -56,8 +57,8 @@ separate (Files_Suite.Recovery)
 
       --  ... and a record claiming that many is refused on the way in.
       Ada.Streams.Stream_IO.Create (File, Ada.Streams.Stream_IO.Out_File, Path);
-      Files.Operations.Operation_Status'Output
-        (Ada.Streams.Stream_IO.Stream (File), Files.Operations.Operation_Success);
+      Files.Operation_Results.Operation_Status'Output
+        (Ada.Streams.Stream_IO.Stream (File), Files.Operation_Results.Operation_Success);
       Files.Job_Records.Write_String
         (Ada.Streams.Stream_IO.Stream (File), "", Files.Job_Records.Max_Error_Length);
       Files.Job_Records.Write_String

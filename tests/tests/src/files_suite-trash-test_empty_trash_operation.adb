@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.File_System.Trash;
 with Files.Commands.Status;
 with Files_Suite.Support.Guards;
@@ -63,7 +64,7 @@ separate (Files_Suite.Trash)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "empty trash reports success");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),

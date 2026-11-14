@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files_Suite.Names)
    procedure Test_Case_Only_Rename_Flips_Case (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -83,7 +84,7 @@ separate (Files_Suite.Names)
          Folding : constant Boolean := Folds_Case (Folder);
          Model   : Files.Model.Window_Model;
          Load    : Files.File_System.Directory_Load_Result;
-         Step    : Files.Operations.Operation_Result;
+         Step    : Files.Operation_Results.Operation_Result;
          Names   : Files.Types.String_Vectors.Vector;
       begin
          Assert (Hostkit.Host.Current /= Hostkit.Host.MacOS or else Folding,
@@ -97,7 +98,7 @@ separate (Files_Suite.Names)
          Step := Files.Operations.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "the case-only rename succeeds" & (if Folding then " (case-insensitive volume)" else ""));
          Load := Files.File_System.Load_Directory (Folder, Settings);
          for Item of Load.Items loop
@@ -121,7 +122,7 @@ separate (Files_Suite.Names)
          Step := Files.Operations.Commit_Rename (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "the Cyrillic case-only rename succeeds" & (if Folding then " (case-insensitive volume)" else ""));
          Names.Clear;
          Load := Files.File_System.Load_Directory (Folder, Settings);

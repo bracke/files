@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Items;
 with Files.Commands.Status;
 separate (Files_Suite.Model)
@@ -6,7 +8,7 @@ separate (Files_Suite.Model)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Mixed_Model : Files.Model.Window_Model := Sample_Model;
       Mixed_Items : Files.Items.Item_Vectors.Vector;
-      Operation : Files.Operations.Operation_Result;
+      Operation : Files.Operation_Results.Operation_Result;
    begin
       Files.Model.Begin_Create_File (Mixed_Model, "pending.txt");
       Files.Model.Selection.Select_Visible_Range
@@ -37,16 +39,16 @@ separate (Files_Suite.Model)
       Operation := Files.Operations.Open_Selected (Mixed_Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Operation.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "mixed temporary selection cannot open");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Mixed_Model),
          "error.selection.empty",
          "mixed temporary open records disabled state");
-      Operation := Files.Operations.Delete_Selected (Mixed_Model, Settings);
+      Operation := Files.Operation_Commands.Delete_Selected (Mixed_Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Operation.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "mixed temporary selection cannot delete");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Mixed_Model),

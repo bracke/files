@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Private_Copy_Stages (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -55,7 +56,7 @@ separate (Files_Suite.Transfer)
       Plans.Append (Files.File_System.Drop_Import_Plan'
         (To_Unbounded_String (Source), To_Unbounded_String (Join (Parent, "copy")),
          Files.File_System.Drop_Copy, True, Null_Unbounded_String));
-      Mutation := Files.File_System.Execute_Drop_Import (Plans, Observe'Unrestricted_Access);
+      Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans, Observe'Unrestricted_Access);
       Assert
         (Mutation.Success,
          "a private directory remains protected throughout copying and after publication: copy succeeded");

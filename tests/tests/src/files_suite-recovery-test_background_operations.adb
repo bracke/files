@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Recovery)
@@ -8,7 +10,7 @@ separate (Files_Suite.Recovery)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
 
       procedure Finish is
       begin
@@ -23,7 +25,7 @@ separate (Files_Suite.Recovery)
       Files.Model.Initialize (Model, Root, Load.Items, Root);
       Files.Model.Set_Background_Transfers (Model, True);
       Select_Name (Model, "a.txt");
-      Step := Files.Operations.Duplicate_Selected (Model, Settings);
+      Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
       --  An operation is the window's modal job in its own right, not a paste.
       Assert (Files.Model."=" (Files.Model.Foreground_Job (Model), Files.Model.Operation_Job)
               and then not Files.Model.Pasting.Execution_Is_Active (Model),
@@ -37,13 +39,13 @@ separate (Files_Suite.Recovery)
          "needle",
          "background duplicate copies bytes");
       Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Step.Status = Files.Operations.Operation_Success and then not Ada.Directories.Exists (Join (Root,
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Assert (Step.Status = Files.Operation_Results.Operation_Success and then not Ada.Directories.Exists (Join (Root,
               "a (copy).txt")),
               "background duplicate records Undo on the owning window");
       for Format in Files.Operations.Archive_Format loop
          Select_Name (Model, "a.txt");
-         Step := Files.Operations.Compress_Selected (Model, Settings, Format);
+         Step := Files.Operation_Commands.Compress_Selected (Model, Settings, Format);
          Finish;
          declare
             Archive : constant String :=
@@ -52,33 +54,33 @@ separate (Files_Suite.Recovery)
             Assert (Ada.Directories.Exists (Join (Root, Archive)),
                     "background compression publishes a complete archive");
             Select_Name (Model, Archive);
-            Step := Files.Operations.Extract_Selected (Model, Settings);
+            Step := Files.Operation_Commands.Extract_Selected (Model, Settings);
             Finish;
             Files_Suite.Support.Assert_Equal
               (Project_Tools.Files.Read_Raw_File (Join (Join (Root, "a"), "a.txt")),
                "needle",
                "background extraction publishes the complete directory");
             Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-            Assert (Step.Status = Files.Operations.Operation_Success and then not Ada.Directories.Exists (Join (Root,
-                    "a")),
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Assert (Step.Status = Files.Operation_Results.Operation_Success
+                    and then not Ada.Directories.Exists (Join (Root, "a")),
                     "background extraction is undoable");
             Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-            Assert (Step.Status = Files.Operations.Operation_Success
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+            Assert (Step.Status = Files.Operation_Results.Operation_Success
                     and then not Ada.Directories.Exists (Join (Root, Archive)),
                     "background archive creation is undoable: " & Archive
-                    & " status=" & Files.Operations.Operation_Status'Image (Step.Status)
+                    & " status=" & Files.Operation_Results.Operation_Status'Image (Step.Status)
                     & " error=" & To_String (Step.Error_Key)
                     & " exists=" & Boolean'Image (Ada.Directories.Exists (Join (Root, Archive))));
          end;
       end loop;
       Files.Model.Set_Filter (Model, "needle");
-      Step := Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names);
+      Step := Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Names);
       Finish;
       Assert (Files.Model.Search_Results_Are_Active (Model) and then Files.Model.Item_Count (Model) = 1,
               "background name search returns recursive results");
-      Step := Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents);
+      Step := Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Contents);
       Finish;
       Assert (Files.Model.Search_Results_Are_Active (Model),
               "background content search returns matches regardless of filename: search results active");
@@ -100,7 +102,7 @@ separate (Files_Suite.Recovery)
       begin
          Files_Suite.Support.Guards.Save (Stall, "FILES_TEST_STALL_OPERATIONS");
          Ada.Environment_Variables.Set ("FILES_TEST_STALL_OPERATIONS", "1");
-         Step := Files.Operations.Duplicate_Selected (Model, Settings);
+         Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
          declare
             Job : constant Files.Process_Jobs.Session :=
               Files.Model.Background_Operation (Model);

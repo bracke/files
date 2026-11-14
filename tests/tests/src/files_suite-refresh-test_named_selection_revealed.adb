@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Rendering.Layouts;
 separate (Files_Suite.Refresh)
    --  The window scrolled the selection into view only after a key moved
@@ -11,7 +12,7 @@ separate (Files_Suite.Refresh)
       Model    : Files.Model.Window_Model;
       Items    : Files.Items.Item_Vectors.Vector;
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       Selected : Boolean;
       pragma Unreferenced (Step);
    begin

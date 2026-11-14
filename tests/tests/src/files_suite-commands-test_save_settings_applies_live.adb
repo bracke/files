@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Model.Settings_Pane;
 separate (Files_Suite.Commands)
@@ -42,7 +43,7 @@ separate (Files_Suite.Commands)
       Result := Files.Controller.Testing.Save_Settings (Model, Settings, Path);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "saving the settings succeeds");
 
       --  The change takes effect on the live model immediately, not only on the

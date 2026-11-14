@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    procedure Test_Copy_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -37,7 +38,7 @@ separate (Files_Suite.Operations)
                Mode             => Mode,
                Valid            => True,
                Error_Key        => Null_Unbounded_String));
-         Mutation := Files.File_System.Execute_Drop_Import (Plans);
+         Mutation := Files.File_System.Testing.Execute_Drop_Import (Plans);
          Assert_Equal
            (To_String (Mutation.Error_Key), "error.io.denied",
             Files.File_System.Drop_Import_Mode'Image (Mode) & " into a read-only folder says permission was denied");

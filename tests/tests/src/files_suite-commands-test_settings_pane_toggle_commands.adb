@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Commands.Status;
 with Files.Model.Command_Palette;
@@ -32,7 +33,7 @@ separate (Files_Suite.Commands)
       Assert (Files.Model.Settings_Pane.Is_Open (Model), "controller opens settings pane with editable draft");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "settings toggle reports successful state-only operation");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),
@@ -78,7 +79,7 @@ separate (Files_Suite.Commands)
          "reset settings command is reported");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "reset settings saves, so without the settings path it keeps the path-resolution sentinel");
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Save_Settings_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
@@ -87,6 +88,6 @@ separate (Files_Suite.Commands)
          "pure save settings command is reported");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "pure save settings command keeps runtime path-resolution sentinel");
    end Test_Settings_Pane_Toggle_Commands;

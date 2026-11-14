@@ -8,8 +8,6 @@ with Ada.Strings.Unbounded;
 with Files.Fs_Primitives;
 with Hostkit.Fs;
 with Files.Bounded_Streams;
-with Files.Exclusive_Streams;
-with Files.Durable_Writes;
 with Files.Job_Context;
 with Files.File_Identities;
 with Files.Lease_Streams;
@@ -372,14 +370,15 @@ package body Files.Transfer_Jobs is
    end Reset;
 
    procedure Run_Helper (Directory : String) is
-      File   : aliased Files.Exclusive_Streams.Output_Stream;
       Action : Files.Paste.Resolved_Action;
       Mode   : Files.File_System.Drop_Import_Mode;
       Result : Job_Result;
       Batch : Files.Copy_Context.Session;
       Batch_Directory : Files.Types.UString;
 
-      --  The helper's one cancellation check: Import_Replacing stops for it too.
+      --  The helper's one cancellation check. Import_Replacing is not handed
+      --  it, but stops for the same marker through its default Cancel
+      --  (Files.File_System.Job_Cancelled, which is this function).
       function Cancelled return Boolean renames Files.Job_Context.Cancelled;
 
       procedure Save is
@@ -395,32 +394,25 @@ package body Files.Transfer_Jobs is
       --  result checkpoints before the import starts, so recovery finds it
       --  even if this helper dies mid-write.
       procedure Checkpoint (Backup, Backup_Identity : String) is
+         procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
+         begin
+            Write_Replacement_Checkpoint (Stream, Backup, Backup_Identity);
+         end Write;
+
+         --  Whether anything, even a dangling link, holds Name in Directory.
+         function Taken (Name : String) return Boolean is
+           (not Files.Fs_Primitives.Entry_Is_Absent (Hostkit.Fs.Join (Directory, Name)));
       begin
          Result.Trashed := To_Unbounded_String (Backup);
          Result.Trashed_Identity := To_Unbounded_String (Backup_Identity);
-         if Hostkit.Fs.Is_Link (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Staged_Replaced_File))
-           or else Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Staged_Replaced_File))
-           or else Hostkit.Fs.Is_Link (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Replaced_File))
-           or else Files.Fs_Primitives.Exists (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Replaced_File))
+         --  One checkpoint per job: a second, or a stray staged copy, is refused.
+         if Taken (Files.Process_Jobs.Staged_Name (Files.Protocol_Names.Replaced_File))
+           or else Taken (Files.Protocol_Names.Replaced_File)
          then
             raise Ada.Directories.Use_Error;
          end if;
-         Files.Exclusive_Streams.Create
-           (File, Hostkit.Fs.Join (Directory, Files.Protocol_Names.Staged_Replaced_File));
-         Write_Replacement_Checkpoint (File'Access, Backup, Backup_Identity);
-         Files.Exclusive_Streams.Close (File);
-         if not Files.Durable_Writes.Published
-           (Files.Durable_Writes.Publish
-              (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Staged_Replaced_File),
-               Hostkit.Fs.Join (Directory, Files.Protocol_Names.Replaced_File)))
-         then
-            raise Ada.Directories.Use_Error;
-         end if;
+         Files.Job_Records.Publish_Result (Directory, Write'Access, Name => Files.Protocol_Names.Replaced_File);
          Save;
-      exception
-         when others =>
-            Files.Exclusive_Streams.Close_Safely (File);
-            raise;
       end Checkpoint;
 
    begin
@@ -477,23 +469,16 @@ package body Files.Transfer_Jobs is
       if Result.Mutation.Success then
          --  The result retains snapshots captured before publication even when
          --  the optional crash-recovery journal could not be extended.
-         begin
-            Files.Exclusive_Streams.Create
-              (File, Hostkit.Fs.Join (Directory, Files.Protocol_Names.Staged_Completed_File));
-            Write_Result (File'Access, Result);
-            Files.Exclusive_Streams.Close (File);
-            declare
-               Published : constant Files.Durable_Writes.Publication_Result := Files.Durable_Writes.Publish
-                 (Hostkit.Fs.Join (Directory, Files.Protocol_Names.Staged_Completed_File),
-                  Hostkit.Fs.Join (Directory, Files.Protocol_Names.Completed_File));
-               pragma Unreferenced (Published);
+         declare
+            procedure Write (Stream : not null access Ada.Streams.Root_Stream_Type'Class) is
             begin
-               null;
-            end;
+               Write_Result (Stream, Result);
+            end Write;
+         begin
+            Files.Job_Records.Publish_Result (Directory, Write'Access, Name => Files.Protocol_Names.Completed_File);
          exception
             when Swallowed : others =>
                Files.Diagnostics.Note (Swallowed, "Files.Transfer_Jobs");
-               Files.Exclusive_Streams.Close_Safely (File);
          end;
       end if;
       Save;

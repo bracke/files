@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Replace_Trash_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -11,7 +12,7 @@ separate (Files_Suite.Transfer)
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       Backup   : Files.Types.UString;
       Mutation : Files.File_System.Mutation_Result;
    begin
@@ -38,7 +39,7 @@ separate (Files_Suite.Transfer)
             Assert (not Files.Model.Foreground_Job_Is_Active (Model), "a failed Replace finishes its execution");
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Failed,
+               Files.Operation_Results.Operation_Failed,
                "a trash failure aborts Replace");
             Files_Suite.Support.Assert_Equal
               (Project_Tools.Files.Read_Raw_File (Dest),

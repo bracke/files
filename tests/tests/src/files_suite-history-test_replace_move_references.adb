@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Foreground_Jobs;
 with Files.Interaction;
 with Files.Settings.Path_References;
@@ -24,7 +26,7 @@ separate (Files_Suite.History)
       Model       : aliased Files.Model.Window_Model;
       Paste       : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
-      Step        : Files.Operations.Operation_Result;
+      Step        : Files.Operation_Results.Operation_Result;
       Followed    : Boolean;
 
       --  How often List holds Path.
@@ -92,7 +94,7 @@ separate (Files_Suite.History)
       Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move);
       Step := Files.Foreground_Jobs.Advance (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal
-        (Step.Status, Files.Operations.Operation_Success, "the move-replace paste succeeds");
+        (Step.Status, Files.Operation_Results.Operation_Success, "the move-replace paste succeeds");
       Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
       Assert (Followed, "the move changes the settings");
       Assert_Once (Dest, Files.Types.Blue, "the moved item at its new path");
@@ -103,9 +105,9 @@ separate (Files_Suite.History)
       Files_Suite.Support.Assert_Equal (Natural (Settings.Labels.Length), 2, "the replaced item keeps its label");
 
       --  Undo puts both back, each with its own.
-      Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
-        (Step.Status, Files.Operations.Operation_Success, "the move-replace is undone");
+        (Step.Status, Files.Operation_Results.Operation_Success, "the move-replace is undone");
       Followed := Files.Interaction.Follow_Path_Moves (Model, Settings, "");
       Assert (Followed, "the undo changes the settings");
       Assert_Once (Source, Files.Types.Blue, "the moved item back at its old path");

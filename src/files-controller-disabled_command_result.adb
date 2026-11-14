@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Commands.Status;
 with Files.Settings.Open_Actions;
 separate (Files.Controller)
@@ -21,7 +22,7 @@ separate (Files.Controller)
         Make_Result
           (Controller_Ignored,
            Id,
-           (Status    => Files.Operations.Operation_Disabled,
+           (Status    => Files.Operation_Results.Operation_Disabled,
             Error_Key => To_Unbounded_String (Error_Key),
             Path      => Null_Unbounded_String,
             Action    => Files.Settings.Open_Actions.Make_Action ("", Files.Settings.String_Vectors.Empty_Vector),

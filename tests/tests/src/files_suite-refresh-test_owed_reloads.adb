@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Refresh)
    procedure Test_Owed_Reloads (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -5,7 +7,7 @@ separate (Files_Suite.Refresh)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       Applied  : Boolean;
 
       procedure Await_Job (Job : Files.Process_Jobs.Session; What : String) is
@@ -27,11 +29,12 @@ separate (Files_Suite.Refresh)
       --  An operation that finishes after an edit in the same view (here a new
       --  diagnostic) cannot apply its old snapshot, but must still relist.
       Select_Name (Model, "a.txt");
-      Step := Files.Operations.Duplicate_Selected (Model, Settings);
+      Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
       Await_Job (Files.Model.Background_Operation (Model), "the duplicate helper finishes");
       Files.Model.Set_Error (Model, "error.undo.failed");
       Step := Files_Suite.Support.Finish_Paste (Model, Settings);
-      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "the duplicate completes");
+      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
+                                        "the duplicate completes");
       Await_View (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),

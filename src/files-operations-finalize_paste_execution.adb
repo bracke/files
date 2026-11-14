@@ -16,11 +16,11 @@ is
    Exec       : constant Files.Model.Paste_Execution_State := Files.Model.Pasting.Execution_Of (Model);
    Mode       : constant Files.File_System.Drop_Import_Mode :=
      Exec.Mode;
-   --  Each write: destination (From) and source (To).
-   Written    : Files.Model.Undo_Item_Vectors.Vector renames Exec.Written;
+   --  Each write: destination (From) and source (To), with its provenance.
+   Written    : Files.Model.Recorded_Item_Vectors.Vector renames Exec.Written;
    --  Destinations a Replace overwrote; undo restores them, and a paste that
    --  replaced anything is undo-only (redo is not attempted).
-   Replaced   : Files.Model.Replaced_Original_Vectors.Vector renames Exec.Replaced;
+   Replaced   : Files.Model.Recorded_Original_Vectors.Vector renames Exec.Replaced;
    --  A copy a failed move kept beside its source joins the paste's one
    --  undo entry, which deletes it before anything moves back or any
    --  original returns to its path; so does a paste that kept one, being
@@ -38,7 +38,7 @@ is
    --  paste reports it rather than letting the missing Undo pass unnoticed.
    Unsafe_Kept : constant Boolean :=
      Has_Kept
-     and then (for some Original of Replaced => Original.Target = Kept.Dest_Path)
+     and then (for some Given of Replaced => Given.Original.Target = Kept.Dest_Path)
      and then not Files.File_System.Creation_Matches
        (To_String (Kept.Dest_Path), To_String (Kept.Identity), To_String (Kept.Tree_Revision), False);
    --  The move's own failure stays the error; the missing Undo is reported
@@ -64,8 +64,8 @@ begin
    --  with it (and come back with it on Undo, Apply_Reverse), noted before
    --  the moves recorded below, so the item now at the path does not end
    --  up with two of each.
-   for Original of Replaced loop
-      Files.Model.Note_Path_Move (Model, To_String (Original.Target), To_String (Original.Trash));
+   for Given of Replaced loop
+      Files.Model.Note_Path_Move (Model, To_String (Given.Original.Target), To_String (Given.Original.Trash));
    end loop;
    if not Written.Is_Empty or else Has_Kept then
       if Mode = Files.File_System.Drop_Move then
@@ -73,35 +73,24 @@ begin
          --  creations they are, by Try_Record_Undo) with the originals.
          Record_Undo
            (Model, Files.Model.Undo_Move, Written,
-            Redoable   => Redoable,
-            Replaced   => Replaced,
-            Provenance =>
-              (Published_Main           => Natural (Written.Length),
-               Published_Restores       => Natural (Replaced.Length),
-               Retain_Verified_Main     => Exec.Verified_Created_Count,
-               Retain_Verified_Restores => Exec.Verified_Replaced_Count,
-               Kept                     => Kept_Copies));
+            Redoable => Redoable,
+            Replaced => Replaced,
+            Kept     => Kept_Copies);
       else
          --  A copy is reversed by deleting the created copies and redone by
          --  copying each source back to its destination.
          declare
-            Copies : Files.Model.Undo_Item_Vectors.Vector := Written;
+            Copies : Files.Model.Recorded_Item_Vectors.Vector := Written;
          begin
             for Copy of Copies loop
-               Copy.Forward := Copy.To;
-               Copy.To := Null_Unbounded_String;
+               Copy.Item.Forward := Copy.Item.To;
+               Copy.Item.To := Null_Unbounded_String;
             end loop;
             Record_Undo
               (Model, Files.Model.Undo_Delete_Created, Copies,
                Create_Kind => Files.Model.Create_Copy,
                Redoable    => Redoable,
-               Replaced    => Replaced,
-               Provenance  =>
-                 (Published_Main           => Natural (Written.Length),
-                  Published_Restores       => Natural (Replaced.Length),
-                  Retain_Verified_Main     => Exec.Verified_Created_Count,
-                  Retain_Verified_Restores => Exec.Verified_Replaced_Count,
-                  others                   => <>));
+               Replaced    => Replaced);
          end;
       end if;
 
@@ -121,19 +110,19 @@ begin
       --  Nothing was written but originals were preserved: they come back
       --  from the trash as a trash restoration does.
       declare
-         Trashed : Files.Model.Undo_Item_Vectors.Vector;
+         Trashed : Files.Model.Recorded_Item_Vectors.Vector;
       begin
-         for Original of Replaced loop
+         for Given of Replaced loop
             Trashed.Append
-              (Files.Model.Undo_Item'
-                 (From => Original.Trash, To => Original.Target, Identity => Original.Identity, others => <>));
+              (Files.Model.Recorded_Item'
+                 (Item       =>
+                    (From     => Given.Original.Trash,
+                     To       => Given.Original.Target,
+                     Identity => Given.Original.Identity,
+                     others   => <>),
+                  Provenance => Given.Provenance));
          end loop;
-         Record_Undo
-           (Model, Files.Model.Undo_Restore_Trash, Trashed, Redoable => False,
-            Provenance =>
-              (Published_Main       => Natural (Replaced.Length),
-               Retain_Verified_Main => Exec.Verified_Replaced_Count,
-               others               => <>));
+         Record_Undo (Model, Files.Model.Undo_Restore_Trash, Trashed, Redoable => False);
       end;
    end if;
    Files.Model.End_Foreground_Job (Model);

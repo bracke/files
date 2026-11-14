@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Paste_Execution_Small_Op (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -12,7 +13,7 @@ separate (Files_Suite.Transfer)
       Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
    begin
       Reset_Root;
       Ada.Directories.Create_Path (Src_Dir);
@@ -34,7 +35,7 @@ separate (Files_Suite.Transfer)
       Step := Files.Foreground_Jobs.Advance (Model, Settings, 8);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "the one-item paste reports success");
       Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the one-item paste clears its execution state");
       Assert (Ada.Directories.Exists (Dest), "the one item is copied to the destination");

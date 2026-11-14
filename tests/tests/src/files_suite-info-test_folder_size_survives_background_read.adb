@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Window_Polls;
 with Ada.Strings.Maps;
 with Files_Suite.Support.Guards;
@@ -12,7 +13,7 @@ separate (Files_Suite.Info)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       pragma Unreferenced (Step);
       Folder   : constant String := Join (Root, "folder");
       Marker   : constant String := Join (Root, "size-started");

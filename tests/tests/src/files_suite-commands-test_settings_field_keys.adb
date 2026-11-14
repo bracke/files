@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Model.Settings_Pane;
 separate (Files_Suite.Commands)
@@ -73,7 +74,7 @@ separate (Files_Suite.Commands)
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "invalid settings field Return reports validation failure");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Error_Key),
@@ -88,7 +89,7 @@ separate (Files_Suite.Commands)
       Result := Files.Controller.Handle_Key (Model, Settings, Guikit.Input.Key_Return);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "valid settings field Return reports validation success");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),

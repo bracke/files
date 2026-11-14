@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Ada.Calendar;
 with Files.Window_Polls;
 with Files.Foreground_Jobs;
@@ -484,7 +485,7 @@ package body Files.Application.Windows is
      (Runtime : in out Runtime_Window)
    is
       Now    : constant Ada.Real_Time.Time := Ada.Real_Time.Clock;
-      Result : Files.Operations.Operation_Result;
+      Result : Files.Operation_Results.Operation_Result;
       pragma Unreferenced (Result);
       Refreshed : Boolean;
       pragma Unreferenced (Refreshed);
@@ -825,7 +826,7 @@ package body Files.Application.Windows is
       Sources : constant Files.Types.String_Vectors.Vector := Files.Model.Selection.Selected_Paths (Runtime.Model);
       Mode    : constant Files.File_System.Drop_Import_Mode :=
         (if Modifiers (Guikit.Input.Control_Key) then Files.File_System.Drop_Copy else Files.File_System.Drop_Move);
-      Result  : Files.Operations.Operation_Result;
+      Result  : Files.Operation_Results.Operation_Result;
    begin
       if Target_Index = 0
         or else Target_Index > Files.Model.Visible_Count (Runtime.Model)

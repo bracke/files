@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Commands;
 with Files.Drop_Events;
 with Files.Events;
@@ -34,7 +35,7 @@ package Files.Controller is
    type Controller_Result is record
       Status     : Controller_Status := Controller_Ignored;
       Command    : Files.Commands.Command_Id := Files.Commands.No_Command;
-      Operation  : Files.Operations.Operation_Result;
+      Operation  : Files.Operation_Results.Operation_Result;
       Activation : Overlay_Activation := No_Activation;
       Label      : Files.Types.Color_Label := Files.Types.No_Label;
    end record;

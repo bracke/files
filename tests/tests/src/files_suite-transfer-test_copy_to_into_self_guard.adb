@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Model.Tree_Panel;
 separate (Files_Suite.Transfer)
    procedure Test_Copy_To_Into_Self_Guard (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -23,7 +24,7 @@ separate (Files_Suite.Transfer)
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Copy_To_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "copy-to command starts the picker");
 
       --  Target the selected directory itself: copying it into itself must fail.

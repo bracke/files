@@ -2,8 +2,10 @@ separate (Files.File_System)
 function Delete_Transport_Entry
   (Path : String; Expected_Identity : String) return Mutation_Result
 is
+   --  A transport is removed for good, never trashed: its failure is a
+   --  permanent delete that did not happen.
    Failed : constant Mutation_Result :=
-     (Success => False, Error_Key => To_Unbounded_String ("error.undo.failed"));
+     (Success => False, Error_Key => To_Unbounded_String ("error.permanent_delete.failed"));
 begin
    if Expected_Identity = ""
      or else Hostkit.Fs.Is_Link (Path)

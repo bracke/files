@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Recovery)
    procedure Test_Background_Result_Mismatch (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -7,7 +9,7 @@ separate (Files_Suite.Recovery)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
    begin
       Reset_Root;
       Write_Binary_File (Join (Root, "a.txt"), "needle");
@@ -27,7 +29,7 @@ separate (Files_Suite.Recovery)
          Files_Suite.Support.Guards.Save (Fault, "FILES_TEST_OPERATION_RESULT_KIND_MISMATCH");
          Ada.Environment_Variables.Set
            ("FILES_TEST_OPERATION_RESULT_KIND_MISMATCH", "1");
-         Step := Files.Operations.Duplicate_Selected (Model, Settings);
+         Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
          Step := Files_Suite.Support.Finish_Paste (Model, Settings);
       end;
       Assert
@@ -35,7 +37,7 @@ separate (Files_Suite.Recovery)
          "a helper result whose operation kind differs from its request is rejected: the execution ends");
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "a helper result whose operation kind differs from its request is rejected: status");
       Assert
         (not Files.Model.Search_Results_Are_Active (Model),
@@ -45,13 +47,13 @@ separate (Files_Suite.Recovery)
          and then Files.Model.History.Undo_Available (Model),
          "kind-mismatch recovery retains the committed duplicate and its Undo");
       Step := Complete_Operation
-        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       --  Flaked once on macOS Intel CI with nothing beside it: name what failed.
       Assert
-        (Step.Status = Files.Operations.Operation_Success
+        (Step.Status = Files.Operation_Results.Operation_Success
          and then not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
          "the recovered duplicate can still be undone safely: "
-         & Files.Operations.Operation_Status'Image (Step.Status) & " " & To_String (Step.Error_Key)
+         & Files.Operation_Results.Operation_Status'Image (Step.Status) & " " & To_String (Step.Error_Key)
          & (if Ada.Directories.Exists (Join (Root, "a (copy).txt")) then " copy-present" else " copy-gone"));
 
       Select_Name (Model, "a.txt");
@@ -63,7 +65,7 @@ separate (Files_Suite.Recovery)
          Files_Suite.Support.Guards.Save (Fault, "FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH");
          Ada.Environment_Variables.Set
            ("FILES_TEST_OPERATION_RESULT_RECENT_MISMATCH", "1");
-         Step := Files.Operations.Duplicate_Selected (Model, Settings);
+         Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
          Step := Files_Suite.Support.Finish_Paste (Model, Settings);
       end;
       Assert
@@ -71,7 +73,7 @@ separate (Files_Suite.Recovery)
          "a helper result whose Recent-view flag differs from its request is rejected: the execution ends");
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "a helper result whose Recent-view flag differs from its request is rejected: status");
       Assert
         (not Files.Model.In_Recent_View (Model),
@@ -81,9 +83,9 @@ separate (Files_Suite.Recovery)
          and then Files.Model.History.Undo_Available (Model),
          "Recent-mismatch recovery retains the committed duplicate and its Undo");
       Step := Complete_Operation
-        (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+        (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Assert
-        (Step.Status = Files.Operations.Operation_Success
+        (Step.Status = Files.Operation_Results.Operation_Success
          and then not Ada.Directories.Exists (Join (Root, "a (copy).txt")),
          "the duplicate recovered from a Recent mismatch remains safely undoable");
    end Test_Background_Result_Mismatch;

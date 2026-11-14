@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Items;
 with Files.Commands.Status;
 with Files.Settings.Path_References;
@@ -70,7 +71,7 @@ separate (Files_Suite.Context_Menu)
       Files.Settings.Path_References.Note_Recent
         (Settings, Files_Suite.Support.Join (Files_Suite.Support.Root, "missing-recent"));
       declare
-         Rebuilt : constant Files.Operations.Operation_Result :=
+         Rebuilt : constant Files.Operation_Results.Operation_Result :=
            Files.Operations.Navigate_Recent (Model, Settings);
          Clear_Action : constant Files.Events.Input_Action :=
            (Kind    => Files.Events.Command_Input_Action,

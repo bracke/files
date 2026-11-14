@@ -1,9 +1,11 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 separate (Files_Suite.Model)
    procedure Test_Error_State (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model := Sample_Model;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
       Item     : Files.Items.Directory_Item;
    begin
       Item := Files.Model.Selection.Selected_Item (Model);
@@ -15,7 +17,7 @@ separate (Files_Suite.Model)
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "empty open is represented as disabled");
       Files_Suite.Support.Assert_Equal (To_String (Result.Path), "", "disabled empty open has no target path");
       Files_Suite.Support.Assert_Equal
@@ -25,7 +27,7 @@ separate (Files_Suite.Model)
       Result := Files.Operations.Navigate_Back (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "empty back history is disabled");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -34,7 +36,7 @@ separate (Files_Suite.Model)
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "create commit without temporary item is disabled");
       Files_Suite.Support.Assert_Equal (To_String (Result.Path), "", "disabled create commit has no target path");
       Files_Suite.Support.Assert_Equal
@@ -44,7 +46,7 @@ separate (Files_Suite.Model)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "rename commit outside rename mode is disabled");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -52,10 +54,10 @@ separate (Files_Suite.Model)
          "disabled rename records an error");
 
       Files.Model.Selection.Select_Visible (Model, 1);
-      Result := Files.Operations.Delete_Selected (Model, Settings);
+      Result := Files.Operation_Commands.Delete_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "trash failure is represented as data");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Path),

@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Extra_Info;
 separate (Files_Suite.Refresh)
    --  A refresh the watch starts relists the folder, which used to reset the
@@ -12,7 +13,7 @@ separate (Files_Suite.Refresh)
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       pragma Unreferenced (Step);
       --  Details no read produces: still there, they were kept, not re-read.
       Marker   : constant Files.Extra_Info.Info :=

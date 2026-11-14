@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Foreground_Jobs;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
@@ -8,7 +10,7 @@ separate (Files_Suite.Transfer)
       Model : aliased Files.Model.Window_Model;
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Source : constant String := Join (Root, "source");
       Dest : constant String := Join (Root, "destination");
@@ -64,22 +66,22 @@ separate (Files_Suite.Transfer)
          Files.Operations.Begin_Paste_Execution (Model, Actions, Files.File_System.Drop_Move, False);
          Step := Complete_Operation (Model, Settings, Files.Foreground_Jobs.Advance (Model, Settings, 1));
          Await_View (Model, Settings);
-         Assert (Step.Status = Files.Operations.Operation_Success and then not Ada.Directories.Exists (Source),
+         Assert (Step.Status = Files.Operation_Results.Operation_Success and then not Ada.Directories.Exists (Source),
                  "cross-device move publishes a complete destination and removes its source");
          Assert_Times (Join (Remote.Path, "source"));
          for Cycle in 1 .. 2 loop
-            Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "cross-device Undo refreshes the moved identity");
             Assert_Times (Source);
-            Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Success,
+               Files.Operation_Results.Operation_Success,
                "cross-device Redo refreshes the moved identity");
             Assert_Times (Join (Remote.Path, "source"));
          end loop;

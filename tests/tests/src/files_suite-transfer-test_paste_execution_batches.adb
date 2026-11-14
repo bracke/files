@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Paste_Execution_Batches (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -9,7 +11,7 @@ separate (Files_Suite.Transfer)
       Model    : aliased Files.Model.Window_Model;
       Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
 
       function Src (N : Positive) return String is (Numbered_File (Src_Dir, N));
       function Dest (N : Positive) return String is (Numbered_File (Dest_Dir, N));
@@ -29,7 +31,7 @@ separate (Files_Suite.Transfer)
       Step := Files.Foreground_Jobs.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "the first batch reports success");
       Assert (Files.Model.Foreground_Job_Is_Active (Model), "the execution is still in progress after one batch");
       Files_Suite.Support.Assert_Equal
@@ -40,7 +42,7 @@ separate (Files_Suite.Transfer)
       Step := Files.Foreground_Jobs.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "the second batch reports success");
       Assert (Files.Model.Foreground_Job_Is_Active (Model), "the execution is still in progress after two batches");
       Files_Suite.Support.Assert_Equal
@@ -51,7 +53,7 @@ separate (Files_Suite.Transfer)
       Step := Files.Foreground_Jobs.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "the third batch reports success");
       Assert (not Files.Model.Foreground_Job_Is_Active (Model), "the third batch finalizes the execution");
 
@@ -70,8 +72,9 @@ separate (Files_Suite.Transfer)
          "one undo covers the whole completed set");
 
       Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Success, "undo of the paste succeeds");
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal (Step.Status, Files.Operation_Results.Operation_Success,
+                                        "undo of the paste succeeds");
       for N in 1 .. Count loop
          Assert (not Ada.Directories.Exists (Dest (N)), "undo removes each pasted copy");
       end loop;

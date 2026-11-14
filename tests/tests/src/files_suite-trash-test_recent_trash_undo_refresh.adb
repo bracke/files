@@ -1,10 +1,12 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Settings.Path_References;
 separate (Files_Suite.Trash)
    procedure Test_Recent_Trash_Undo_Refresh (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model : Files.Model.Window_Model;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Path : constant String := Join (Root, "recent-trash-undo.txt");
       Applied : Boolean := False;
    begin
@@ -15,10 +17,10 @@ separate (Files_Suite.Trash)
       Step := Files.Operations.Navigate_Recent (Model, Settings);
       Files.Model.Selection.Select_All_Visible (Model);
       Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Delete_Selected (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Delete_Selected (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "trashing the Recent item removes it from the view: status");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),
@@ -27,8 +29,8 @@ separate (Files_Suite.Trash)
       Assert (not Ada.Directories.Exists (Path), "trashing the Recent item removes it from the view: path trashed");
       Files.Model.Set_Background_Transfers (Model, True);
       Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Assert (Step.Status = Files.Operations.Operation_Success and then File_Is (Path, "original recent bytes"),
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Assert (Step.Status = Files.Operation_Results.Operation_Success and then File_Is (Path, "original recent bytes"),
               "Undo restores the trashed bytes before the asynchronous listing is ready");
       Await_View (Model, Settings, Applied);
       Assert

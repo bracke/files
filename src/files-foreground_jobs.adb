@@ -1,3 +1,4 @@
+with Files.Operations;
 with Ada.Strings.Unbounded;
 with Files.Diagnostics;
 with Files.Operation_Jobs;
@@ -9,7 +10,7 @@ package body Files.Foreground_Jobs is
      (Model     : in out Files.Model.Window_Model;
       Settings  : Files.Settings.Settings_Model;
       Max_Items : Positive)
-      return Files.Operations.Operation_Result is
+      return Files.Operation_Results.Operation_Result is
    begin
       case Files.Model.Foreground_Job (Model) is
          when Files.Model.Paste_Job =>
@@ -17,7 +18,7 @@ package body Files.Foreground_Jobs is
          when Files.Model.Operation_Job =>
             return Files.Operation_Jobs.Advance (Model, Settings);
          when Files.Model.No_Foreground_Job =>
-            return (Status => Files.Operations.Operation_Success,
+            return (Status => Files.Operation_Results.Operation_Success,
                     Path   => Ada.Strings.Unbounded.To_Unbounded_String (Files.Model.Current_Path (Model)),
                     others => <>);
       end case;

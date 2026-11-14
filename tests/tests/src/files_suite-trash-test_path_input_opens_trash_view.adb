@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.File_System.Trash;
 with Files.Items;
 with Files.Commands.Status;
@@ -11,7 +12,7 @@ separate (Files_Suite.Trash)
          Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
          Model    : Files.Model.Window_Model;
          Trashed  : Files.Types.UString;
-         Result   : Files.Operations.Operation_Result;
+         Result   : Files.Operation_Results.Operation_Result;
       begin
          Ada.Environment_Variables.Set ("FILES_TRASH_BACKEND", "xdg");
          Write_File (Join (Root, "path-input-trash.txt"));
@@ -21,7 +22,7 @@ separate (Files_Suite.Trash)
          Files.Model.Set_Path_Input_Text (Model, Files.File_System.Trash.Trash_Files_Directory);
          Result := Files.Operations.Commit_Path_Input (Model, Settings);
          Files_Suite.Support.Assert_Equal
-           (Result.Status, Files.Operations.Operation_Navigated, "the typed path is opened");
+           (Result.Status, Files.Operation_Results.Operation_Navigated, "the typed path is opened");
          Assert (Files.Model.Current_Is_Trash (Model), "the folder typed in is shown as the trash");
          Assert (Files.Commands.Status.Is_Enabled (Files.Commands.Empty_Trash_Command, Model),
                  "so Empty Trash is offered there");

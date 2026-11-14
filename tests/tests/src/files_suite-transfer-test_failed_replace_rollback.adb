@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.File_System.Permissions;
 with Files.Items;
 with Files_Suite.Volumes;
@@ -15,7 +16,7 @@ separate (Files_Suite.Transfer)
       Model    : aliased Files.Model.Window_Model;
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Actions  : Files.Paste.Resolved_Action_Vectors.Vector;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       Result   : Files.File_System.Mutation_Result;
 
       procedure Cleanup is
@@ -50,7 +51,7 @@ separate (Files_Suite.Transfer)
          Step := Files_Suite.Support.Finish_Paste (Model, Settings);
          Result := Files.File_System.Permissions.Set_Permissions (Root, 8#755#);
          Assert (not Files.Model.Foreground_Job_Is_Active (Model)
-                 and then Step.Status = Files.Operations.Operation_Failed,
+                 and then Step.Status = Files.Operation_Results.Operation_Failed,
                  "refused source removal completes as a failed replacement");
          Assert (not Files.Model.History.Undo_Available (Model),
                  "rollback restores the original, preserves the source and leaves no unusable history: no history");

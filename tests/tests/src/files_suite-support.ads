@@ -1,10 +1,10 @@
+with Files.Operation_Results;
 with Files.Extra_Info;
 with Files.Items;
 with Files.Commands;
 with Files.Controller;
 with Files.Events;
 with Files.Model;
-with Files.Operations;
 with Files.Rendering;
 with Files.Settings;
 with Guikit.Input;
@@ -123,7 +123,7 @@ package Files_Suite.Support is
       Model : in out Files.Model.Window_Model);
 
    --  Assert_Equal for the enumerations the suite compares most.
-   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Operations.Operation_Status);
+   procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Operation_Results.Operation_Status);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Commands.Command_Id);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Controller.Controller_Status);
    procedure Assert_Equal is new Files_Suite.Generic_Assert_Equal (Files.Types.Focus_Target);
@@ -145,7 +145,7 @@ package Files_Suite.Support is
    --  @return The result of the last advance.
    function Finish_Paste
      (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model) return Files.Operations.Operation_Result;
+      Settings : Files.Settings.Settings_Model) return Files.Operation_Results.Operation_Result;
 
    --  Drive every queued background folder-size walk of Model to completion,
    --  publishing each result as the frame loop's Poll_Window_Workers would,
@@ -424,16 +424,19 @@ package Files_Suite.Support is
    --  @param From Current locations.
    --  @param To Old locations or values.
    --  @param Forward Redo sources or new values.
-   --  @param Identities Identities as published ("" to capture).
+   --  @param Identities Identities as published.
    --  @param Tree_Revisions Tree revisions as published.
+   --  @param Provenance How the record knows each item: Captured reads its
+   --    identity afresh, ignoring Identities and Tree_Revisions.
    --  @return The items, in From's order.
    function Undo_Items
      (From           : Files.Types.String_Vectors.Vector;
       To             : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
       Forward        : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
       Identities     : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
-      Tree_Revisions : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector)
-      return Files.Model.Undo_Item_Vectors.Vector;
+      Tree_Revisions : Files.Types.String_Vectors.Vector := Files.Types.String_Vectors.Empty_Vector;
+      Provenance     : Files.Model.Item_Provenance := Files.Model.Captured)
+      return Files.Model.Recorded_Item_Vectors.Vector;
 
    --  Originals a replace preserved at Trash, their identities and targets
    --  to be captured.
@@ -441,6 +444,6 @@ package Files_Suite.Support is
    --  @param Trash Where each is preserved.
    --  @return The originals, in order.
    function Replaced_Originals
-     (Trash : Files.Types.String_Vectors.Vector) return Files.Model.Replaced_Original_Vectors.Vector;
+     (Trash : Files.Types.String_Vectors.Vector) return Files.Model.Recorded_Original_Vectors.Vector;
 
 end Files_Suite.Support;

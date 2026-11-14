@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files_Suite.Refresh)
    procedure Test_Directory_Change_Watcher (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -49,7 +50,7 @@ separate (Files_Suite.Refresh)
       Routed.Operation := Files.Operations.Refresh_If_Changed (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "unchanged directory watcher refresh succeeds");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),
@@ -59,7 +60,7 @@ separate (Files_Suite.Refresh)
       Routed.Operation := Files.Operations.Refresh_If_Changed (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "changed directory watcher refresh succeeds");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),
@@ -81,7 +82,7 @@ separate (Files_Suite.Refresh)
       Routed.Operation := Files.Operations.Refresh_If_Changed (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "same-count watcher refresh succeeds");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model),

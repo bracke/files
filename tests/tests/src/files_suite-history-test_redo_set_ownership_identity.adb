@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.File_System.Permissions;
 with Hostkit.Metadata;
 separate (Files_Suite.History)
@@ -8,7 +10,7 @@ separate (Files_Suite.History)
       Target   : constant String := Join (Root, "redo-owner.txt");
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
       Uid, Gid : Files.Types.Account_Id := 0;
       Avail    : Boolean := False;
    begin
@@ -30,17 +32,20 @@ separate (Files_Suite.History)
       --  An identity chown to the file's own uid/gid is permitted without root
       --  and exercises the undo/redo ownership plumbing.
       Result := Files.Operations.Set_Ownership_For (Model, Uid, Gid, Settings);
-      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "identity chown succeeds");
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
+                                        "identity chown succeeds");
       Assert
         (Files.Model.Testing.Undo_Kind_Of (Model) = Files.Model.Undo_Set_Ownership,
          "set-ownership records an ownership undo");
 
-      Result := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
-      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "undo of chown succeeds");
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
+                                        "undo of chown succeeds");
       Assert (Files.Model.History.Redo_Available (Model), "chown is redoable");
 
-      Result := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
-      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "redo of chown succeeds");
+      Result := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
+                                        "redo of chown succeeds");
       Assert (not Files.Model.History.Redo_Available (Model), "the redo stack empties after re-applying chown");
 
       declare

@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Model.Command_Palette;
 separate (Files_Suite.Refresh)
    procedure Test_Controller_Refresh_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -23,7 +24,7 @@ separate (Files_Suite.Refresh)
         (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "refresh operation succeeds");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),
@@ -50,7 +51,7 @@ separate (Files_Suite.Refresh)
         (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "second refresh operation succeeds");
       Files_Suite.Support.Assert_Equal (Files.Model.Item_Count (Model), 3, "second refresh loads later item");
       Assert
@@ -64,7 +65,7 @@ separate (Files_Suite.Refresh)
         (Files.Commands.Refresh_Directory_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "failed refresh is reported");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),

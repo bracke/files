@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.File_System.Permissions;
 with Hostkit.Metadata;
 separate (Files_Suite.Operations)
@@ -8,7 +9,7 @@ separate (Files_Suite.Operations)
       Target   : constant String := Join (Root, "denied.txt");
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
       Uid, Gid : Files.Types.Account_Id := 0;
       Avail    : Boolean := False;
    begin
@@ -30,7 +31,7 @@ separate (Files_Suite.Operations)
       --  error.ownership.denied; a root test process would instead succeed.
       --  Either way there must be no crash.
       Result := Files.Operations.Set_Ownership_For (Model, 0, 0, Settings);
-      if Result.Status = Files.Operations.Operation_Success then
+      if Result.Status = Files.Operation_Results.Operation_Success then
          Files_Suite.Support.Assert_Equal
            (Uid,
             0,
@@ -38,7 +39,7 @@ separate (Files_Suite.Operations)
       else
          Files_Suite.Support.Assert_Equal
            (Result.Status,
-            Files.Operations.Operation_Failed,
+            Files.Operation_Results.Operation_Failed,
             "chown to a different owner reports a failure");
          Files_Suite.Support.Assert_Equal
            (To_String (Result.Error_Key),

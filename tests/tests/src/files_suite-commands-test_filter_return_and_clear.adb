@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Controller.Testing;
 with Files.Commands.Status;
 separate (Files_Suite.Commands)
@@ -25,7 +26,7 @@ separate (Files_Suite.Commands)
          "Return commits filter input");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "filter Return reports successful state-only commit");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Focus (Model),

@@ -1,3 +1,4 @@
+with Files.Operations;
 with Files.Window_Polls;
 with Files.Protocol_Names;
 with Files.Quick_Look;
@@ -27,7 +28,7 @@ with Files.Settings.Path_References;
 package body Files.Refresh_Jobs is
    use Ada.Strings.Unbounded;
    use type Ada.Directories.File_Kind;
-   use type Files.Operations.Operation_Status;
+   use type Files.Operation_Results.Operation_Status;
 
    Max_Watch_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
    Request_Header : constant String := "files-refresh-request-1";
@@ -191,7 +192,7 @@ package body Files.Refresh_Jobs is
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
       Force : Boolean := False;
-      Select_Name : String := "") return Files.Operations.Operation_Result
+      Select_Name : String := "") return Files.Operation_Results.Operation_Result
    is
       Job : Files.Process_Jobs.Session;
       Previous_Error : constant String := Files.Model.Last_Error_Key (Model);
@@ -212,7 +213,7 @@ package body Files.Refresh_Jobs is
       if Files.Model.Foreground_Job_Is_Active (Model)
         or else (not Force and then (Work.Recent or else Files.Model.Search_Results_Are_Active (Model)))
       then
-         return (Status => Files.Operations.Operation_Success, others => <>);
+         return (Status => Files.Operation_Results.Operation_Success, others => <>);
       elsif not Force
         and then (Files.Model.Rename.Is_Active (Model) or else Files.Model.Temporary_Item_Is_Active (Model)
                   or else Files.Model.Command_Palette.Is_Open (Model))
@@ -220,10 +221,10 @@ package body Files.Refresh_Jobs is
          --  Replacing the items now would drop the edit or close the palette:
          --  the reload is owed, and Resume_Owed starts it once they are done.
          Files.Model.Note_Owed_Refresh (Model, Force => False, Select_Name => Select_Name);
-         return (Status => Files.Operations.Operation_Success, others => <>);
+         return (Status => Files.Operation_Results.Operation_Success, others => <>);
       end if;
       if not Force and then Files.Process_Jobs.Active (Files.Model.Background_Refresh (Model)) then
-         return (Status => Files.Operations.Operation_Success, others => <>);
+         return (Status => Files.Operation_Results.Operation_Success, others => <>);
       end if;
       Cancel (Model);
       Files.Process_Jobs.Reserve (Job);
@@ -238,14 +239,14 @@ package body Files.Refresh_Jobs is
       Files.Model.Set_Background_Refresh (Model, Job);
       --  This read covers the current view, so any reload owed to it is paid.
       Files.Model.Clear_Owed_Refresh (Model);
-      return (Status => Files.Operations.Operation_Success, Path => Work.Root, others => <>);
+      return (Status => Files.Operation_Results.Operation_Success, Path => Work.Root, others => <>);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.Refresh_Jobs");
          if Length (Work.Error_Key) = 0 then
             Files.Model.Set_Error (Model, "error.directory.load");
          end if;
-         return (Status => Files.Operations.Operation_Failed,
+         return (Status => Files.Operation_Results.Operation_Failed,
                  Error_Key => To_Unbounded_String (Files.Model.Last_Error_Key (Model)), others => <>);
    end Start;
 
@@ -261,14 +262,14 @@ package body Files.Refresh_Jobs is
       end if;
 
       declare
-         Retry : constant Files.Operations.Operation_Result :=
+         Retry : constant Files.Operation_Results.Operation_Result :=
            Start (Model, Settings,
                   Force       => Files.Model.Owed_Refresh_Force (Model),
                   Select_Name => Files.Model.Owed_Refresh_Selection (Model));
       begin
          --  A launch settles the debt inside Start. A launch failure has
          --  already reported its error; retrying it every poll would not help.
-         if Retry.Status = Files.Operations.Operation_Failed then
+         if Retry.Status = Files.Operation_Results.Operation_Failed then
             Files.Model.Clear_Owed_Refresh (Model);
          end if;
       end;

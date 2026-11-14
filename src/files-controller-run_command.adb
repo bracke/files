@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Commands.Execution;
 with Files.Model.Clipboard;
 with Files.Model.Quick_Look;
@@ -9,7 +11,7 @@ separate (Files.Controller)
       Modifiers : Guikit.Input.Modifier_Set)
       return Controller_Result
    is
-      Operation : Files.Operations.Operation_Result := Empty_Operation;
+      Operation : Files.Operation_Results.Operation_Result := Empty_Operation;
 
       function Selected_Paths return Files.Types.String_Vectors.Vector is
         (Files.Model.Selection.Selected_Paths (Model));
@@ -24,13 +26,13 @@ separate (Files.Controller)
          when Files.Commands.Navigate_Recent_Command =>
             Operation := Files.Operations.Navigate_Recent (Model, Settings);
          when Files.Commands.Restore_From_Trash_Command =>
-            Operation := Files.Operations.Restore_Selected_From_Trash (Model, Settings);
+            Operation := Files.Operation_Commands.Restore_Selected_From_Trash (Model, Settings);
          when Files.Commands.Empty_Trash_Command =>
-            Operation := Files.Operations.Empty_Trash (Model, Settings);
+            Operation := Files.Operation_Commands.Empty_Trash (Model, Settings);
          when Files.Commands.Undo_Command =>
-            Operation := Files.Operations.Undo_Last (Model, Settings);
+            Operation := Files.Operation_Commands.Undo_Last (Model, Settings);
          when Files.Commands.Redo_Command =>
-            Operation := Files.Operations.Redo_Last (Model, Settings);
+            Operation := Files.Operation_Commands.Redo_Last (Model, Settings);
          when Files.Commands.Navigate_Back_Command =>
             Operation := Files.Operations.Navigate_Back (Model, Settings);
          when Files.Commands.Navigate_Forward_Command =>
@@ -39,21 +41,21 @@ separate (Files.Controller)
             Operation := Files.Operations.Open_Selected (Model, Settings, Modifiers);
          when Files.Commands.Open_With_Command =>
             Files.Operations.Begin_Open_With (Model);
-            Operation.Status := Files.Operations.Operation_Success;
+            Operation.Status := Files.Operation_Results.Operation_Success;
          when Files.Commands.Delete_Selected_Items_Command =>
-            Operation := Files.Operations.Delete_Selected (Model, Settings);
+            Operation := Files.Operation_Commands.Delete_Selected (Model, Settings);
          when Files.Commands.Delete_Selected_Permanently_Command =>
-            Operation := Files.Operations.Delete_Selected_Permanently (Model, Settings);
+            Operation := Files.Operation_Commands.Delete_Selected_Permanently (Model, Settings);
          when Files.Commands.Copy_Selected_Items_Command =>
             Files.Model.Clipboard.Set (Model, Selected_Paths, Files.Model.Clipboard_Copy);
             Files.Model.Set_Error (Model, "");
-            Operation.Status := Files.Operations.Operation_Success;
+            Operation.Status := Files.Operation_Results.Operation_Success;
          when Files.Commands.Cut_Selected_Items_Command =>
             Files.Model.Clipboard.Set (Model, Selected_Paths, Files.Model.Clipboard_Cut);
             Files.Model.Set_Error (Model, "");
-            Operation.Status := Files.Operations.Operation_Success;
+            Operation.Status := Files.Operation_Results.Operation_Success;
          when Files.Commands.Duplicate_Selected_Command =>
-            Operation := Files.Operations.Duplicate_Selected (Model, Settings);
+            Operation := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
          when Files.Commands.Create_Symlink_Command =>
             Operation := Files.Operations.Create_Symlink_Selected (Model, Settings);
          when Files.Commands.Create_Hardlink_Command =>
@@ -62,14 +64,14 @@ separate (Files.Controller)
             Operation := Files.Operations.Open_Terminal (Model, Settings);
          when Files.Commands.Compress_Zip_Command =>
             Operation :=
-              Files.Operations.Compress_Selected
+              Files.Operation_Commands.Compress_Selected
                 (Model, Settings, Files.Operations.Zip_Archive);
          when Files.Commands.Compress_7z_Command =>
             Operation :=
-              Files.Operations.Compress_Selected
+              Files.Operation_Commands.Compress_Selected
                 (Model, Settings, Files.Operations.Seven_Zip_Archive);
          when Files.Commands.Extract_Archive_Command =>
-            Operation := Files.Operations.Extract_Selected (Model, Settings);
+            Operation := Files.Operation_Commands.Extract_Selected (Model, Settings);
          when Files.Commands.Paste_Items_Command =>
             declare
                use type Files.Model.Clipboard_Mode;
@@ -92,9 +94,9 @@ separate (Files.Controller)
          when Files.Commands.Generate_Thumbnails_Command =>
             Operation := Files.Operations.Generate_Selected_Thumbnails (Model, Settings);
          when Files.Commands.Search_Recursive_Command =>
-            Operation := Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names);
+            Operation := Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Names);
          when Files.Commands.Search_Contents_Command =>
-            Operation := Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents);
+            Operation := Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Contents);
          when Files.Commands.Refresh_Directory_Command =>
             Operation := Files.Operations.Refresh (Model, Settings);
          when Files.Commands.Open_Containing_Folder_Command =>
@@ -145,7 +147,7 @@ separate (Files.Controller)
                Files.Operations.Seed_Tree (Model, Settings);
                Files.Model.Tree_Panel.Open (Model);
                Files.Model.Set_Error (Model, "");
-               Operation.Status := Files.Operations.Operation_Success;
+               Operation.Status := Files.Operation_Results.Operation_Success;
             end;
          when Files.Commands.Toggle_Quick_Look_Command =>
             --  Toggle the Quick Look overlay. Opening reads the bounded preview
@@ -158,7 +160,7 @@ separate (Files.Controller)
                  (Model, Files.Operations.Prepare_Quick_Look (Files.Model.Selection.Selected_Item (Model)));
             end if;
             Files.Model.Set_Error (Model, "");
-            Operation.Status := Files.Operations.Operation_Success;
+            Operation.Status := Files.Operation_Results.Operation_Success;
          when Files.Commands.Close_Overlay_Command =>
             declare
                Overlay : Files.Model.Input_Overlay;
@@ -192,10 +194,10 @@ separate (Files.Controller)
             end;
       end case;
 
-      if Operation.Status = Files.Operations.Operation_Disabled
+      if Operation.Status = Files.Operation_Results.Operation_Disabled
         and then Length (Operation.Error_Key) = 0
       then
-         Operation.Status := Files.Operations.Operation_Success;
+         Operation.Status := Files.Operation_Results.Operation_Success;
       end if;
 
       return Make_Result (Controller_Command_Executed, Id, Operation);

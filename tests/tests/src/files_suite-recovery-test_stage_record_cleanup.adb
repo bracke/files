@@ -212,25 +212,25 @@ separate (Files_Suite.Recovery)
          Owner_Directory : Files.Types.UString;
       begin
          Ada.Streams.Stream_IO.Open
-           (File, Ada.Streams.Stream_IO.In_File, Join (To_String (Stage), ".files-owner"));
+           (File, Ada.Streams.Stream_IO.In_File, Join (To_String (Stage), Files.Protocol_Names.Stage_Owner_File));
          Files_Suite.Support.Assert_Equal
            (String'Input (Ada.Streams.Stream_IO.Stream (File)),
-            "files-stage-owner-1",
+            Files.Protocol_Names.Stage_Owner_Header,
             "foreground stage publishes its owner marker atomically");
          Owner_Directory := To_Unbounded_String (String'Input (Ada.Streams.Stream_IO.Stream (File)));
          Ada.Streams.Stream_IO.Close (File);
          Ada.Directories.Rename (To_String (Stage), Saved);
          Ada.Directories.Create_Directory (To_String (Stage));
          Ada.Streams.Stream_IO.Create
-           (File, Ada.Streams.Stream_IO.Out_File, Join (To_String (Stage), ".files-owner"));
-         String'Output (Ada.Streams.Stream_IO.Stream (File), "files-stage-owner-1");
+           (File, Ada.Streams.Stream_IO.Out_File, Join (To_String (Stage), Files.Protocol_Names.Stage_Owner_File));
+         String'Output (Ada.Streams.Stream_IO.Stream (File), Files.Protocol_Names.Stage_Owner_Header);
          String'Output (Ada.Streams.Stream_IO.Stream (File), To_String (Owner_Directory));
          String'Output (Ada.Streams.Stream_IO.Stream (File), To_String (Identity));
          Ada.Streams.Stream_IO.Close (File);
          Assert (not Files.Job_Context.Discard_Stage (To_String (Stage))
                  and then Ada.Directories.Exists (To_String (Stage)),
                  "foreground cleanup refuses a replacement and schedules its owned stage for retry");
-         Ada.Directories.Delete_File (Join (To_String (Stage), ".files-owner"));
+         Ada.Directories.Delete_File (Join (To_String (Stage), Files.Protocol_Names.Stage_Owner_File));
          Ada.Directories.Delete_Directory (To_String (Stage));
          Ada.Directories.Rename (Saved, To_String (Stage));
          for Attempt in Files_Suite.Support.Timing.Polling loop

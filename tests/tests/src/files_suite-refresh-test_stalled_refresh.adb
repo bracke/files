@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 with Files_Suite.Support.Timing;
 separate (Files_Suite.Refresh)
@@ -8,7 +9,7 @@ separate (Files_Suite.Refresh)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Watch : Files.Refresh_Jobs.Watch_Session;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       pragma Unreferenced (Step);
       Load : Files.File_System.Directory_Load_Result;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;

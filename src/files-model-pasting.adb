@@ -195,11 +195,6 @@ package body Files.Model.Pasting is
    function Execution_Copy_Context (Model : Window_Model) return Files.Copy_Context.Session is
      (Model.Paste_Exec.Copy_Context);
 
-   function Replaced_Extends_Verified
-     (Model : Window_Model) return Boolean is
-     (Model.Paste_Exec.Verified_Replaced_Count =
-       Natural (Model.Paste_Exec.Replaced.Length));
-
    procedure Record_Replaced_Trash
      (Model      : in out Window_Model;
       Trash_Path : Files.Types.UString;
@@ -209,17 +204,12 @@ package body Files.Model.Pasting is
    begin
       Touch (Model);
       Model.Paste_Exec.Replaced.Append
-        (Replaced_Original'
-           (Trash    => Trash_Path,
-            Identity => To_Unbounded_String (Identity),
-            Target   => To_Unbounded_String (Original_Path)));
-      if Model.Paste_Exec.Verified_Replaced_Count + 1 =
-           Natural (Model.Paste_Exec.Replaced.Length)
-        and then Verified
-      then
-         Model.Paste_Exec.Verified_Replaced_Count :=
-           Model.Paste_Exec.Verified_Replaced_Count + 1;
-      end if;
+        (Recorded_Original'
+           (Original   =>
+              (Trash    => Trash_Path,
+               Identity => To_Unbounded_String (Identity),
+               Target   => To_Unbounded_String (Original_Path)),
+            Provenance => (if Verified then Files.Model.Verified else Files.Model.Published)));
    end Record_Replaced_Trash;
 
    procedure Skip_Action
@@ -246,25 +236,15 @@ package body Files.Model.Pasting is
          Model.Paste_Exec.First_Dest := Dest_Path;
       end if;
       Model.Paste_Exec.Written.Append
-        (Undo_Item'
-           (From          => Dest_Path,
-            To            => Source_Path,
-            Identity      => To_Unbounded_String (Identity),
-            Tree_Revision => To_Unbounded_String (Tree_Revision),
-            others        => <>));
-      if Model.Paste_Exec.Verified_Created_Count + 1 =
-           Natural (Model.Paste_Exec.Written.Length)
-        and then Verified
-      then
-         Model.Paste_Exec.Verified_Created_Count :=
-           Model.Paste_Exec.Verified_Created_Count + 1;
-      end if;
+        (Recorded_Item'
+           (Item       =>
+              (From          => Dest_Path,
+               To            => Source_Path,
+               Identity      => To_Unbounded_String (Identity),
+               Tree_Revision => To_Unbounded_String (Tree_Revision),
+               others        => <>),
+            Provenance => (if Verified then Files.Model.Verified else Files.Model.Published)));
    end Record_Write;
-
-   function Write_Extends_Verified
-     (Model : Window_Model) return Boolean is
-     (Model.Paste_Exec.Verified_Created_Count =
-       Natural (Model.Paste_Exec.Written.Length));
 
    procedure Set_Cancelled
      (Model     : in out Window_Model;

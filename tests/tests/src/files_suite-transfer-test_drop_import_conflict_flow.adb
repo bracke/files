@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Model.Clipboard;
 separate (Files_Suite.Transfer)
    procedure Test_Drop_Import_Conflict_Flow (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -46,7 +48,7 @@ separate (Files_Suite.Transfer)
          Routed := Files.Controller.Handle_Drop_Import (Model, Settings, Sources);
          Files_Suite.Support.Assert_Equal
            (Routed.Operation.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "an armed drop conflict reports success without writing");
          Assert (Files.Model.Pasting.Conflict_Is_Active (Model), "a colliding drop arms the conflict dialog");
          Files_Suite.Support.Assert_Equal
@@ -92,7 +94,7 @@ separate (Files_Suite.Transfer)
            (Read (Join (Dest_Dir, "a 2.txt")),
             "SRC",
             "rename writes the dropped source under a unique name");
-         Routed.Operation := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+         Routed.Operation := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
          Assert
            (not Ada.Directories.Exists (Join (Dest_Dir, "a 2.txt")),
             "undo reverses a completed drag-and-drop import");
@@ -119,7 +121,7 @@ separate (Files_Suite.Transfer)
            Files.Controller.Handle_Drop_Import (Model, Settings, Sources, Files.File_System.Drop_Move);
          Files_Suite.Support.Assert_Equal
            (Routed.Operation.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "a collision-free dropped move succeeds");
          Assert
            (Ada.Directories.Exists (Join (Dest_Dir, "m.txt")),

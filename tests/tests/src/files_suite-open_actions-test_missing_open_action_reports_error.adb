@@ -1,9 +1,10 @@
+with Files.Operation_Results;
 separate (Files_Suite.Open_Actions)
    procedure Test_Missing_Open_Action_Reports_Error (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
       Model    : Files.Model.Window_Model := Sample_Model;
       Settings : Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
    begin
       --  Exercise the genuine missing-action contract deterministically by
       --  opting out of the host opener fallback that would otherwise resolve.
@@ -12,7 +13,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Testing.Prepare_Open_Selected_Action (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Missing_Open_Action,
+         Files.Operation_Results.Operation_Missing_Open_Action,
          "prepare reports missing action");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Path),
@@ -25,7 +26,7 @@ separate (Files_Suite.Open_Actions)
       Result := Files.Operations.Open_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Missing_Open_Action,
+         Files.Operation_Results.Operation_Missing_Open_Action,
          "missing action is reported");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Path),

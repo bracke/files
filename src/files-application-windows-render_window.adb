@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 separate (Files.Application.Windows)
    procedure Render_Window
      (Runtime : in out Runtime_Window)
@@ -50,7 +51,7 @@ separate (Files.Application.Windows)
       --  finished (in Begin_Paste / Resolve_Paste_Conflict) and never get here.
       if Files.Model.Foreground_Job_Is_Active (Runtime.Model) then
          declare
-            Progress : constant Files.Operations.Operation_Result :=
+            Progress : constant Files.Operation_Results.Operation_Result :=
               Files.Foreground_Jobs.Advance (Runtime.Model, Runtime.Settings, 8);
             pragma Unreferenced (Progress);
             --  A finished background move carries its labels along.

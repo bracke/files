@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Trash)
    procedure Test_Empty_Trash_Partial_Failure (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -62,7 +63,8 @@ separate (Files_Suite.Trash)
       --  Emptying must never crash; the ordinary file is always removed.
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Empty_Trash_Command, Model, Settings);
       Assert
-        (Result.Operation.Status in Files.Operations.Operation_Success | Files.Operations.Operation_Failed,
+        (Result.Operation.Status
+           in Files.Operation_Results.Operation_Success | Files.Operation_Results.Operation_Failed,
          "empty trash returns a defined status without crashing");
       Assert (not Ada.Directories.Exists (Join (Trash_File, "purge-me.txt")), "the removable payload is purged");
       Assert
@@ -74,7 +76,7 @@ separate (Files_Suite.Trash)
       if Ada.Directories.Exists (Trashed_Lock) then
          Files_Suite.Support.Assert_Equal
            (Result.Operation.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "a partial empty still reports success");
          Files_Suite.Support.Assert_Equal
            (Files.Model.Last_Error_Key (Model),

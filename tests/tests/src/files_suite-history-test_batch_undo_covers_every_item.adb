@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.History)
    procedure Test_Batch_Undo_Covers_Every_Item (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -8,7 +10,7 @@ separate (Files_Suite.History)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Status : Zlib.Status_Code;
       Created : Files.Types.String_Vectors.Vector;
       --  More items than one record a second covers in a batch this fast:
@@ -36,11 +38,11 @@ separate (Files_Suite.History)
          Files.Model.Selection.Select_All_Visible (Model);
          Files.Model.Set_Background_Transfers (Model, False);
          Step := Complete_Operation
-           (Model, Settings, (if Extracting then Files.Operations.Extract_Selected (Model, Settings)
-                              else Files.Operations.Duplicate_Selected (Model, Settings)));
+           (Model, Settings, (if Extracting then Files.Operation_Commands.Extract_Selected (Model, Settings)
+                              else Files.Operation_Commands.Duplicate_Selected (Model, Settings)));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
-           (Step.Status, Files.Operations.Operation_Success, "a large batch succeeds");
+           (Step.Status, Files.Operation_Results.Operation_Success, "a large batch succeeds");
          Files_Suite.Support.Assert_Equal
            (Natural (Files.Model.History.Undo_Entries (Model).Length), 1, "a large batch records one Undo entry");
          Created := Files.Model.History.Undo_From_Paths (Model);
@@ -49,10 +51,10 @@ separate (Files_Suite.History)
          for Path of Created loop
             Assert (Ada.Directories.Exists (To_String (Path)), "every recorded output exists");
          end loop;
-         Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
-           (Step.Status, Files.Operations.Operation_Success, "one Undo reverses a large batch");
+           (Step.Status, Files.Operation_Results.Operation_Success, "one Undo reverses a large batch");
          for Path of Created loop
             Assert (not Ada.Directories.Exists (To_String (Path)), "one Undo removes every batch output");
          end loop;

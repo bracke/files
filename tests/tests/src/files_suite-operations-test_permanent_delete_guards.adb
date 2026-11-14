@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Commands.Status;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
@@ -142,7 +143,7 @@ separate (Files_Suite.Operations)
          "permanent delete routes through command registry");
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "permanent delete command succeeds");
       Assert
         (not Ada.Directories.Exists (Join (Root, "command-delete.txt")),

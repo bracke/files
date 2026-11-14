@@ -1,3 +1,4 @@
+with Files.File_System.Testing;
 separate (Files_Suite.Transfer)
    procedure Test_Destination_Races (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -38,7 +39,7 @@ separate (Files_Suite.Transfer)
             Plans.Append (Files.File_System.Drop_Import_Plan'
                             (To_Unbounded_String (Source), To_Unbounded_String (Dest), Mode, True,
                              Null_Unbounded_String));
-            Result := Files.File_System.Execute_Drop_Import (Plans, Race'Unrestricted_Access);
+            Result := Files.File_System.Testing.Execute_Drop_Import (Plans, Race'Unrestricted_Access);
             if Created then
                Assert (not Result.Success, "a collision after validation fails without overwriting");
                case Kind is

@@ -309,11 +309,7 @@ package body Files.Operation_Jobs is
       end loop;
       if not Untracked.Is_Empty then
          Files.Undo_Recording.Record_Undo
-           (Model, Files.Model.Undo_Delete_Created, Untracked, Redoable => False,
-            Provenance =>
-              (Published_Main       => Natural (Untracked.Length),
-               Retain_Verified_Main => Natural (Untracked.Length),
-               others               => <>));
+           (Model, Files.Model.Undo_Delete_Created, Files.Undo_Recording.Verified (Untracked), Redoable => False);
       end if;
    end Record_Untracked_Creations;
 

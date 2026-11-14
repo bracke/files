@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Commands.Status;
 separate (Files_Suite.Search)
    procedure Test_Content_Search_Operation (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -57,7 +58,7 @@ separate (Files_Suite.Search)
          "content search routes through the command registry");
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "content search command succeeds");
       Assert
         (Files.Model.Search_Scope_Of (Model) = Files.Types.Search_Contents,
@@ -97,7 +98,7 @@ separate (Files_Suite.Search)
       Write_File (Join (Search_Root, "oversize.txt"), Big);
       Files.Model.Set_Filter (Model, "needle");
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Search_Contents_Command, Model, Settings);
-      Assert (Routed.Operation.Status = Files.Operations.Operation_Success
+      Assert (Routed.Operation.Status = Files.Operation_Results.Operation_Success
               and then Files.Model.Last_Error_Key (Model) = "search.incomplete"
               and then Files.Model.Item_Count (Model) = 2,
               "content search shows its matches and notes an oversized file it could not search in full");
@@ -107,7 +108,7 @@ separate (Files_Suite.Search)
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Search_Contents_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "an oversized file that matches within what is read does not fail the search");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Item_Count (Model), 3, "and it is listed with the other two matches");
@@ -118,6 +119,6 @@ separate (Files_Suite.Search)
         Files.Controller.Execute_Non_Settings_Command (Files.Commands.Search_Contents_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "an empty query performs no content search");
    end Test_Content_Search_Operation;

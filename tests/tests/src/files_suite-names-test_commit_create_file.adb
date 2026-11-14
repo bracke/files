@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 separate (Files_Suite.Names)
    procedure Test_Commit_Create_File (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -5,7 +7,7 @@ separate (Files_Suite.Names)
       Items    : Files.Items.Item_Vectors.Vector;
       Paths    : Files.Types.String_Vectors.Vector;
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
       Guard_Name : constant String := "files-aunit-recent-create-must-not-write-7f62b1";
    begin
       Reset_Root;
@@ -13,7 +15,8 @@ separate (Files_Suite.Names)
       Files.Model.Set_Error (Model, "error.file.create");
       Files.Model.Begin_Create_File (Model, "created.txt");
       Result := Files.Operations.Commit_Create_File (Model, Settings);
-      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operations.Operation_Success, "create commit succeeds");
+      Files_Suite.Support.Assert_Equal (Result.Status, Files.Operation_Results.Operation_Success,
+                                        "create commit succeeds");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Path),
          Join (Root, "created.txt"),
@@ -36,7 +39,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Open_Terminal (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "direct terminal launch is rejected before resolving an empty recent-view path");
       Files.Model.Selection.Select_Visible (Model, 1);
       Files.Model.Rename.Toggle (Model);
@@ -44,7 +47,7 @@ separate (Files_Suite.Names)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "direct recent-view rename cannot move an item into the process directory: status");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -60,7 +63,7 @@ separate (Files_Suite.Names)
       Files.Model.Begin_Create_File (Model, Guard_Name);
       Result := Files.Operations.Commit_Create_File (Model, Settings);
       Assert
-        (Result.Status = Files.Operations.Operation_Disabled
+        (Result.Status = Files.Operation_Results.Operation_Disabled
          and then Files.Model.Last_Error_Key (Model) = "error.file.parent_missing",
          "direct create commit rejects the virtual recent view");
       Assert
@@ -70,16 +73,16 @@ separate (Files_Suite.Names)
       Paths.Append (To_Unbounded_String (Join (Root, "created.txt")));
       Result := Files.Operations.Begin_Paste (Model, Settings, Paths);
       Assert
-        (Result.Status = Files.Operations.Operation_Disabled
+        (Result.Status = Files.Operation_Results.Operation_Disabled
          and then Files.Model.Last_Error_Key (Model) = "error.drop.invalid_destination",
          "direct paste rejects the virtual recent view's empty destination");
 
       Files.Model.Set_Filter (Model, "created");
       Files.Model.Set_Background_Transfers (Model, True);
-      Result := Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Names);
+      Result := Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Names);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "recent-view name search is rejected before a background helper starts: status");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),
@@ -88,10 +91,10 @@ separate (Files_Suite.Names)
       Assert
         (not Files.Process_Jobs.Active (Files.Model.Background_Operation (Model)),
          "recent-view name search is rejected before a background helper starts: no helper");
-      Result := Files.Operations.Run_Search (Model, Settings, Files.Types.Search_Contents);
+      Result := Files.Operation_Commands.Run_Search (Model, Settings, Files.Types.Search_Contents);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Disabled,
+         Files.Operation_Results.Operation_Disabled,
          "recent-view content search is rejected before a background helper starts: status");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Last_Error_Key (Model),

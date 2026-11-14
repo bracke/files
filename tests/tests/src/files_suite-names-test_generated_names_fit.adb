@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 separate (Files_Suite.Names)
    --  A duplicate of a name already at the filesystem's 255-byte limit is
    --  cut to fit, its "(copy)" marker and extension kept whole, rather than
@@ -6,7 +8,7 @@ separate (Files_Suite.Names)
       pragma Unreferenced (T);
       Settings : constant Files.Settings.Settings_Model := Files.Settings.Default_Settings;
       Model    : Files.Model.Window_Model;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       Load     : Files.File_System.Directory_Load_Result;
       Stem     : constant String (1 .. 251) := [others => 'n'];
       Name     : constant String := Stem & ".txt";
@@ -24,9 +26,9 @@ separate (Files_Suite.Names)
       Files.Operations.Clear_Undo (Model);
       Files.Model.Set_Background_Transfers (Model, False);
       Select_Name (Model, Name);
-      Step := Files.Operations.Duplicate_Selected (Model, Settings);
+      Step := Files.Operation_Commands.Duplicate_Selected (Model, Settings);
       Files_Suite.Support.Assert_Equal
-        (Step.Status, Files.Operations.Operation_Success, "a 255-byte name can be duplicated");
+        (Step.Status, Files.Operation_Results.Operation_Success, "a 255-byte name can be duplicated");
       Load := Files.File_System.Load_Directory (Root, Settings);
       for Item of Load.Items loop
          declare

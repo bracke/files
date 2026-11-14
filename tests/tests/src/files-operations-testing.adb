@@ -2,7 +2,6 @@ with Ada.Real_Time;
 with Ada.Strings.Unbounded;
 
 package body Files.Operations.Testing is
-   use type Files.Operation_Results.Operation_Status;
 
    use Ada.Strings.Unbounded;
 

@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 separate (Files_Suite.Operations)
    procedure Test_Hardlink_Dangling_Symlink
      (T : in out AUnit.Test_Cases.Test_Case'Class)
@@ -13,7 +15,7 @@ separate (Files_Suite.Operations)
       Load : Files.File_System.Directory_Load_Result;
       Model : Files.Model.Window_Model;
       Routed : Files.Controller.Controller_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Target : Unbounded_String;
    begin
       if Hostkit.Host.Current = Hostkit.Host.MacOS then
@@ -59,19 +61,20 @@ separate (Files_Suite.Operations)
       Select_Name (Model, "dangling");
       Routed := Files.Controller.Execute_Non_Settings_Command
         (Files.Commands.Create_Hardlink_Command, Model, Settings);
-      Assert (Routed.Operation.Status = Files.Operations.Operation_Success
+      Assert (Routed.Operation.Status = Files.Operation_Results.Operation_Success
                 and then Hostkit.Fs.Is_Link (Link_Path),
               "the selected dangling link can be hard-linked");
       Assert (Files.Model.History.Undo_Available (Model), "the created link has Undo history");
-      Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
-        (Step.Status, Files.Operations.Operation_Success, "Undo removes only the new symbolic link entry: status");
+        (Step.Status, Files.Operation_Results.Operation_Success,
+         "Undo removes only the new symbolic link entry: status");
       Assert (not Hostkit.Fs.Is_Link (Link_Path), "Undo removes only the new symbolic link entry: new link removed");
       Assert (Hostkit.Fs.Is_Link (Source), "Undo removes only the new symbolic link entry: source kept");
-      Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "Redo recreates a hard link to the same symbolic link inode: status");
       Assert (Hostkit.Fs.Is_Link (Link_Path), "Redo recreates a hard link to the same symbolic link inode: a link");
       Files_Suite.Support.Assert_Equal

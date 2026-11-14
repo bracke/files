@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.File_System.Testing;
 with Files.Model.Root_Selector;
 separate (Files_Suite.Model)
@@ -30,7 +31,7 @@ separate (Files_Suite.Model)
          "invalid root selection reports drive command");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "invalid root selection fails as data");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Error_Key),
@@ -65,7 +66,7 @@ separate (Files_Suite.Model)
          "root selection reports drive command");
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Navigated,
+         Files.Operation_Results.Operation_Navigated,
          "root selection navigates");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),

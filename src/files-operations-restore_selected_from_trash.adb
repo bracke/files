@@ -7,9 +7,6 @@ is
    Items      : constant Files.Items.Item_Vectors.Vector := Files.Model.Selection.Selected_Items (Model);
    First_Path : Unbounded_String;
 begin
-   if Files.Model.Background_Transfers (Model) then
-      return Files.Operation_Jobs.Start (Model, Settings, Files.Operation_Jobs.Restore);
-   end if;
    if Files.Model.Selection.Selected_Count (Model) = 0
      or else Files.Model.Selection.Includes_Temporary (Model)
    then

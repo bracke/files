@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files.Model.Command_Palette;
 separate (Files_Suite.Refresh)
    procedure Test_Controller_Home_Loading (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -19,7 +20,7 @@ separate (Files_Suite.Refresh)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Failed,
+         Files.Operation_Results.Operation_Failed,
          "failed home load is reported");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),
@@ -45,7 +46,7 @@ separate (Files_Suite.Refresh)
       Result := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Navigate_Home_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Operation.Status,
-         Files.Operations.Operation_Navigated,
+         Files.Operation_Results.Operation_Navigated,
          "home load succeeds");
       Files_Suite.Support.Assert_Equal
         (To_String (Result.Operation.Path),

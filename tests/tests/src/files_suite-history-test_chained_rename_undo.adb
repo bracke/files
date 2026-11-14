@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 separate (Files_Suite.History)
    procedure Test_Chained_Rename_Undo (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -7,7 +9,7 @@ separate (Files_Suite.History)
       C        : constant String := Join (Root, "c.txt");
       Model    : Files.Model.Window_Model;
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
    begin
       Reset_Root;
       Write_Binary_File (A, "A");
@@ -21,17 +23,17 @@ separate (Files_Suite.History)
          Files_Suite.Support.Undo_Items
            (From => [To_Unbounded_String (C), To_Unbounded_String (B)],
             To   => [To_Unbounded_String (B), To_Unbounded_String (A)]));
-      Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "one Undo reverses the chained batch");
       Files_Suite.Support.Assert_Equal (Project_Tools.Files.Read_Raw_File (A), "A", "both renames are undone: a");
       Files_Suite.Support.Assert_Equal (Project_Tools.Files.Read_Raw_File (B), "B", "both renames are undone: b");
       Assert (not Path_Exists (C), "both renames are undone: c is gone");
-      Step := Complete_Operation (Model, Settings, Files.Operations.Redo_Last (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Redo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
-        (Step.Status, Files.Operations.Operation_Success, "Redo replays the batch in its own order: status");
+        (Step.Status, Files.Operation_Results.Operation_Success, "Redo replays the batch in its own order: status");
       Files_Suite.Support.Assert_Equal
         (Project_Tools.Files.Read_Raw_File (C), "B", "Redo replays the batch in its own order: c");
       Files_Suite.Support.Assert_Equal

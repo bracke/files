@@ -1,3 +1,5 @@
+with Files.Operations;
+with Files.Operation_Results;
 with Files.Undo_Recording;
 with Files.Foreground_Jobs;
 with Files.File_System.Trash;
@@ -33,7 +35,6 @@ with Files.Folder_Tree;
 with Files.Model;
 with Files.Model.Selection;
 with Files.Model.History;
-with Files.Operations;
 with Files.Paste;
 with Hostkit.Fs;
 with Hostkit.Metadata;
@@ -57,7 +58,7 @@ package body Files_Suite.Transfer is
    use type Hostkit.Host.Kind;
    use type Files.Commands.Command_Id;
    use type Files.File_System.Drop_Import_Mode;
-   use type Files.Operations.Operation_Status;
+   use type Files.Operation_Results.Operation_Status;
    use type Interfaces.C.int;
    use type Interfaces.C.long_long;
    use type Files.Model.Tree_Pick_Mode;

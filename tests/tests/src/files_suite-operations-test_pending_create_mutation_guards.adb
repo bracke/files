@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    procedure Test_Pending_Create_Mutation_Guards
@@ -12,7 +14,7 @@ separate (Files_Suite.Operations)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Routed : Files.Controller.Controller_Result;
    begin
       for Background in Boolean loop
@@ -33,12 +35,12 @@ separate (Files_Suite.Operations)
             Step :=
               (case Kind is
                   when Duplicate_Item =>
-                    Files.Operations.Duplicate_Selected (Model, Settings),
+                    Files.Operation_Commands.Duplicate_Selected (Model, Settings),
                   when Compress_Item =>
-                    Files.Operations.Compress_Selected
+                    Files.Operation_Commands.Compress_Selected
                       (Model, Settings, Files.Operations.Zip_Archive),
                   when Extract_Item =>
-                    Files.Operations.Extract_Selected (Model, Settings),
+                    Files.Operation_Commands.Extract_Selected (Model, Settings),
                   when Create_Symbolic_Link =>
                     Files.Operations.Create_Symlink_Selected (Model, Settings),
                   when Create_Hard_Link =>
@@ -47,7 +49,7 @@ separate (Files_Suite.Operations)
                Context : constant String := "direct selection mutations preserve a pending inline creation";
             begin
                Files_Suite.Support.Assert_Equal
-                 (Step.Status, Files.Operations.Operation_Disabled, Context & ": status");
+                 (Step.Status, Files.Operation_Results.Operation_Disabled, Context & ": status");
                Files_Suite.Support.Assert_Equal
                  (Files.Model.Last_Error_Key (Model), "error.create.pending", Context & ": error key");
                Assert (Files.Model.Temporary_Item_Is_Active (Model), Context & ": the inline creation stays active");
@@ -70,7 +72,7 @@ separate (Files_Suite.Operations)
                   "the disabled command reports the pending edit instead of failing silently: controller status");
                Files_Suite.Support.Assert_Equal
                  (Routed.Operation.Status,
-                  Files.Operations.Operation_Disabled,
+                  Files.Operation_Results.Operation_Disabled,
                   "the disabled command reports the pending edit instead of failing silently: operation status");
                Files_Suite.Support.Assert_Equal
                  (To_String (Routed.Operation.Error_Key),
@@ -99,7 +101,8 @@ separate (Files_Suite.Operations)
          declare
             Context : constant String := "clipboard paste cannot write beneath a pending inline creation";
          begin
-            Files_Suite.Support.Assert_Equal (Step.Status, Files.Operations.Operation_Disabled, Context & ": status");
+            Files_Suite.Support.Assert_Equal
+              (Step.Status, Files.Operation_Results.Operation_Disabled, Context & ": status");
             Files_Suite.Support.Assert_Equal
               (To_String (Step.Error_Key), "error.create.pending", Context & ": error key");
             Assert (Files.Model.Temporary_Item_Is_Active (Model), Context & ": the inline creation stays active");
@@ -112,7 +115,7 @@ separate (Files_Suite.Operations)
            (Model, Settings, Sources);
          Files_Suite.Support.Assert_Equal
            (Outcome.Operation.Status,
-            Files.Operations.Operation_Disabled,
+            Files.Operation_Results.Operation_Disabled,
             "external drops share the pending-create paste guard: status");
          Files_Suite.Support.Assert_Equal
            (To_String (Outcome.Operation.Error_Key),
@@ -129,7 +132,7 @@ separate (Files_Suite.Operations)
             Files.File_System.Drop_Move, From_Clipboard => False);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Disabled,
+            Files.Operation_Results.Operation_Disabled,
             "targeted moves preserve both the pending editor and their source: status");
          Assert
            (Ada.Directories.Exists (Join (Join (Root, "inbox"), "incoming.txt")),

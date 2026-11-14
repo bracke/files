@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Transfer_Result_Recovery (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -9,7 +11,7 @@ separate (Files_Suite.Transfer)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Actions : Files.Paste.Resolved_Action_Vectors.Vector;
       --  Restores what the test changes, on failure too.
@@ -40,10 +42,12 @@ separate (Files_Suite.Transfer)
                  (Model, Settings, Files.Foreground_Jobs.Advance (Model, Settings, 1));
                Await_View (Model, Settings);
                Assert
-                 (Step.Status = Files.Operations.Operation_Failed and then Files.Model.History.Undo_Available (Model),
+                 (Step.Status = Files.Operation_Results.Operation_Failed
+                  and then Files.Model.History.Undo_Available (Model),
                        "an unavailable helper result reports failure but retains committed paste history: "
                        & Files.File_System.Drop_Import_Mode'Image (Mode) & Boolean'Image (Replaced)
-                       & Integer'Image (Fault) & " status=" & Files.Operations.Operation_Status'Image (Step.Status)
+                       & Integer'Image (Fault)
+                       & " status=" & Files.Operation_Results.Operation_Status'Image (Step.Status)
                        & " error=" & To_String (Step.Error_Key)
                        & " undo=" & Boolean'Image (Files.Model.History.Undo_Available (Model)));
                Files_Suite.Support.Assert_Equal
@@ -54,9 +58,9 @@ separate (Files_Suite.Transfer)
                   Assert (Files.Model.History.Undo_Entries (Model).Last_Element.Items.First_Element.Identity
                           = Files.File_Identities.Token (Dest & "-saved"),
                           "recovery retains the published identity without recapturing a replacement");
-                  Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                  Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                   Await_View (Model, Settings);
-                  Assert (Step.Status = Files.Operations.Operation_Failed
+                  Assert (Step.Status = Files.Operation_Results.Operation_Failed
                           and then File_Has_Bytes (Dest, "unrelated replacement"),
                           "recovered history preserves an unrelated destination replacement");
                   Mutation := Files.File_System.Delete_Permanently (Dest);
@@ -65,9 +69,9 @@ separate (Files_Suite.Transfer)
                end if;
                --  The fault is over: put the variable back now, not at scope exit.
                Files_Suite.Support.Guards.Finalize (Environment);
-               Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+               Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
                Await_View (Model, Settings);
-               Assert (Step.Status = Files.Operations.Operation_Success
+               Assert (Step.Status = Files.Operation_Results.Operation_Success
                        and then File_Is (Source, "source bytes"),
                        "Undo reverses a committed paste recovered without its final helper result");
                if Replaced then

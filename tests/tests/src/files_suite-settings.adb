@@ -21,7 +21,6 @@ with Files.Commands;
 with Files.Controller;
 with Files.File_System;
 with Files.Model;
-with Files.Operations;
 with Files.Icon_Themes;
 with Files.Settings;
 with Files.Settings_Form;

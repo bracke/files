@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.File_System.Testing;
 with Files_Suite.Volumes;
 with Files_Suite.Support.Guards;
@@ -13,7 +15,7 @@ separate (Files_Suite.Trash)
       Model : aliased Files.Model.Window_Model;
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       --  Restores what the test changes, on failure too.
       Environment : Files_Suite.Support.Guards.Environment_Guard;
       procedure Cleanup is
@@ -60,11 +62,11 @@ separate (Files_Suite.Trash)
             Files.Operations.Clear_Undo (Model);
             Files.Model.Set_Background_Transfers (Model, Background);
             Files.Model.Selection.Select_All_Visible (Model);
-            Step := Complete_Operation (Model, Settings, Files.Operations.Delete_Selected (Model, Settings));
+            Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Delete_Selected (Model, Settings));
             Await_View (Model, Settings);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Failed,
+               Files.Operation_Results.Operation_Failed,
                "trash refuses removal when its source changes after copying");
             Assert (File_Has_Bytes ((if Fault = 3 then Join (Source, "child") else Source), "new edits"),
                     "trash retains concurrent source edits or replacements");

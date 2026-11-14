@@ -202,7 +202,8 @@ package body Files.Operation_Jobs.Testing is
    begin
       Items.Append
         (Files.Model.Undo_Item'(From => Recorded_Path, others => <>));
-      Files.Undo_Recording.Record_Undo (Model, Files.Model.Undo_Delete_Created, Items, Redoable => False);
+      Files.Undo_Recording.Record_Undo
+        (Model, Files.Model.Undo_Delete_Created, Files.Undo_Recording.Captured (Items), Redoable => False);
    end Record_Then_Fail;
 
    procedure Fail_After_Merge (Recording : String) is

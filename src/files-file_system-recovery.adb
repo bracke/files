@@ -136,58 +136,57 @@ package body Files.File_System.Recovery is
          return "";
    end Registry_Root;
 
+   --  What an owner or registry record holds after its header.
+   type Path_Record is record
+      Path, Identity : UString;
+   end record;
+
+   procedure Read_Path_Record_Body
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Value  : out Path_Record) is
+   begin
+      Value.Path := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Path_Length));
+      Value.Identity := To_Unbounded_String (Files.Bounded_Streams.Input_String (Stream, Max_Identity_Length));
+   end Read_Path_Record_Body;
+
+   function Records_Absolute_Path (Value : Path_Record) return Boolean is
+     (Valid_Absolute_Path (To_String (Value.Path)));
+
+   function Read_Path_Record_File is new Files.Lease_Streams.Read_Record
+     (Item => Path_Record, Read_Body => Read_Path_Record_Body, Is_Consistent => Records_Absolute_Path);
+
    --  Read a record file -- its magic, a path and an identity token -- held
    --  as a lease while it is read: a plain file no larger than
-   --  Max_Record_Bytes, with nothing after the identity. Raises when it is
-   --  malformed; the caller's handler clears Path and Identity then.
+   --  Max_Record_Bytes, with nothing after the identity. Raises when it
+   --  cannot be read, carries another magic, is malformed or records no
+   --  absolute path; the caller's handler clears Path and Identity then.
    --
    --  @param Record_Path The record file.
    --  @param Magic The header the record must carry.
    --  @param Path The path it records.
    --  @param Identity The identity token it records, possibly empty.
-   --  @return Whether it was read, carries Magic and records an absolute path.
-   function Read_Record
+   --  @return False when Record_Path is not a plain file; True once read.
+   function Read_Path_Record
      (Record_Path, Magic : String; Path, Identity : out UString) return Boolean
    is
-      Input : aliased Files.Lease_Streams.Input_Stream;
-      Found : UString;
+      Value : Path_Record;
    begin
       Path := Null_Unbounded_String;
       Identity := Null_Unbounded_String;
       if not Record_Is_Regular (Record_Path) then
          return False;
       end if;
-      if Files.Lease_Streams.Open (Record_Path, Input) /=
-          Hostkit.Lease_Files.Opened
-        or else Files.Lease_Streams.Size (Input) > Max_Record_Bytes
-      then
-         Files.Lease_Streams.Release (Input);
-         return False;
-      end if;
-      Found := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
-           (Input'Access, Max_Header_Length));
-      Path := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
-           (Input'Access, Max_Path_Length));
-      Identity := To_Unbounded_String
-        (Files.Bounded_Streams.Input_String
-           (Input'Access, Max_Identity_Length));
-      if not Files.Lease_Streams.End_Of_Stream (Input) then
-         raise Ada.Directories.Use_Error;
-      end if;
-      Files.Lease_Streams.Release (Input);
-      return To_String (Found) = Magic
-        and then Valid_Absolute_Path (To_String (Path));
-   exception
-      when others => Files.Lease_Streams.Release (Input); raise;
-   end Read_Record;
+      Value := Read_Path_Record_File (Record_Path, Magic, Max_Record_Bytes);
+      Path := Value.Path;
+      Identity := Value.Identity;
+      return True;
+   end Read_Path_Record;
 
    function Read_Owner
      (Stage : String; Original, Identity : out UString) return Boolean
    is
    begin
-      return Read_Record (Hostkit.Fs.Join (Stage, Owner_Name), Owner_Magic, Original, Identity)
+      return Read_Path_Record (Hostkit.Fs.Join (Stage, Owner_Name), Owner_Magic, Original, Identity)
         and then
           (Length (Identity) = 0
            or else Files.File_Identities.Token (Stage) = To_String (Identity));
@@ -372,7 +371,7 @@ package body Files.File_System.Recovery is
          Identity := Null_Unbounded_String;
          return False;
       end if;
-      return Read_Record (Hostkit.Fs.Join (Directory, "record"), Registry_Magic, Payload, Identity);
+      return Read_Path_Record (Hostkit.Fs.Join (Directory, "record"), Registry_Magic, Payload, Identity);
    exception
       when Swallowed : others =>
          Files.Diagnostics.Note (Swallowed, "Files.File_System.Recovery");

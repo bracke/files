@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Failed_Move_Rollback (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -7,7 +8,7 @@ separate (Files_Suite.Transfer)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Sources : Files.Types.String_Vectors.Vector;
       Source_Parent : constant String := Join (Root, "source");
@@ -56,7 +57,7 @@ separate (Files_Suite.Transfer)
             Mutation := Files.File_System.Permissions.Set_Permissions (Source_Parent, 8#755#);
             Files_Suite.Support.Assert_Equal
               (Step.Status,
-               Files.Operations.Operation_Failed,
+               Files.Operation_Results.Operation_Failed,
                "a refused move leaves its source intact and no unusable Undo entry: the move fails");
             Assert (File_Has_Bytes (Join (Source_Parent, "item.txt"), "source bytes"),
                     "a refused move leaves its source intact and no unusable Undo entry: source intact");

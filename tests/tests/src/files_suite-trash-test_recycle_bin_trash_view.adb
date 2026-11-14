@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.File_System.Trash;
 with Ada.Characters.Handling;
 with Hostkit.Fs;
@@ -18,7 +20,7 @@ separate (Files_Suite.Trash)
       Environment : Files_Suite.Support.Guards.Environment_Guard;
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Trashed  : Files.Types.UString;
 
@@ -87,9 +89,9 @@ separate (Files_Suite.Trash)
       Load := Files.File_System.Load_Directory (Root, Settings);
       Files.Model.Initialize (Model, To_String (Load.Path), Load.Items, Root);
       Select_Name (Model, Name);
-      Step := Complete_Operation (Model, Settings, Files.Operations.Delete_Selected (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Delete_Selected (Model, Settings));
       Files_Suite.Support.Assert_Equal
-        (Step.Status, Files.Operations.Operation_Success, "Delete moves the item to the Recycle Bin");
+        (Step.Status, Files.Operation_Results.Operation_Success, "Delete moves the item to the Recycle Bin");
       Assert (not Path_Exists (Source), "the item is gone from its folder");
       Assert (Files.Model.History.Undo_Available (Model), "moving to the Recycle Bin records an Undo");
 
@@ -106,9 +108,9 @@ separate (Files_Suite.Trash)
          Assert (Files.File_System.Trash.Is_Volume_Trash_Item (Recycled), "and counts as an item of the trash");
 
          --  Undo puts it back from there.
-         Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
          Files_Suite.Support.Assert_Equal
-           (Step.Status, Files.Operations.Operation_Success, "Undo of the move to the Recycle Bin succeeds");
+           (Step.Status, Files.Operation_Results.Operation_Success, "Undo of the move to the Recycle Bin succeeds");
          Assert (File_Has_Bytes (Source, "recycled"), "Undo restores the item where it was");
          Assert (not Path_Exists (Recycled), "and it is no longer in the bin");
       end;
@@ -119,12 +121,13 @@ separate (Files_Suite.Trash)
       Assert (Path_Exists (To_String (Trashed)), "and the trashed path names it there");
       Step := Files.Operations.Navigate_Trash (Model, Settings);
       Files_Suite.Support.Assert_Equal
-        (Step.Status, Files.Operations.Operation_Navigated, "Go to Trash opens the Recycle Bin");
+        (Step.Status, Files.Operation_Results.Operation_Navigated, "Go to Trash opens the Recycle Bin");
       Assert (Files.Model.Current_Is_Trash (Model), "the view knows it is the trash");
       Select_Name (Model, Name);
-      Step := Complete_Operation (Model, Settings, Files.Operations.Restore_Selected_From_Trash (Model, Settings));
+      Step := Complete_Operation
+        (Model, Settings, Files.Operation_Commands.Restore_Selected_From_Trash (Model, Settings));
       Files_Suite.Support.Assert_Equal
-        (Step.Status, Files.Operations.Operation_Success, "Restore puts the selected item back");
+        (Step.Status, Files.Operation_Results.Operation_Success, "Restore puts the selected item back");
       Assert (File_Has_Bytes (Source, "recycled"), "restored where it was, as it was");
       Assert (not Path_Exists (To_String (Trashed)), "and gone from the bin");
 

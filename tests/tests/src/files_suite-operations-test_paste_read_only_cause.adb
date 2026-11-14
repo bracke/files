@@ -1,3 +1,4 @@
+with Files.Operation_Results;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Operations)
    procedure Test_Paste_Read_Only_Cause (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -8,7 +9,7 @@ separate (Files_Suite.Operations)
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load : Files.File_System.Directory_Load_Result;
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Sources : Files.Types.String_Vectors.Vector;
       Source : constant String := Join (Root, "source.txt");
       Locked : constant String := Join (Root, "locked");
@@ -35,7 +36,7 @@ separate (Files_Suite.Operations)
          Step := Complete_Operation (Model, Settings, Step);
          Await_View (Model, Settings);
          Unlock_Directory (Locked);
-         Assert (Step.Status = Files.Operations.Operation_Failed, "a paste into a read-only folder fails");
+         Assert (Step.Status = Files.Operation_Results.Operation_Failed, "a paste into a read-only folder fails");
          Assert_Equal
            (To_String (Step.Error_Key), "error.io.denied",
             (if Background then "a helper's" else "a foreground") & " refused paste says permission was denied");

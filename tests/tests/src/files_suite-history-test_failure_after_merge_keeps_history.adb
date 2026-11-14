@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 with Files.Operation_Jobs.Testing;
 separate (Files_Suite.History)
@@ -12,7 +14,7 @@ separate (Files_Suite.History)
       Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
       Load     : Files.File_System.Directory_Load_Result;
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
       Extra    : constant String := Join (Root, "recorded-after-merge");
       Recorded : Natural := 0;
       Has_Extra : Boolean := False;
@@ -28,7 +30,7 @@ separate (Files_Suite.History)
       --  A helper job, so the operation finishes through Operation_Jobs.Advance.
       Files.Model.Set_Background_Transfers (Model, True);
       Files.Operation_Jobs.Testing.Fail_After_Merge (Recording => Extra);
-      Step := Complete_Operation (Model, Settings, Files.Operations.Duplicate_Selected (Model, Settings));
+      Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Duplicate_Selected (Model, Settings));
       Files.Operation_Jobs.Testing.Stop_Failing_After_Merge;
       pragma Unreferenced (Step);
       for Action of Files.Model.History.Undo_Entries (Model) loop

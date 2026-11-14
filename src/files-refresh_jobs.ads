@@ -1,5 +1,5 @@
+with Files.Operation_Results;
 with Files.Model;
-with Files.Operations;
 with Files.Settings;
 with Files.Process_Jobs;
 with Files.Types;
@@ -17,7 +17,7 @@ package Files.Refresh_Jobs is
      (Model : in out Files.Model.Window_Model;
       Settings : Files.Settings.Settings_Model;
       Force : Boolean := False;
-      Select_Name : String := "") return Files.Operations.Operation_Result;
+      Select_Name : String := "") return Files.Operation_Results.Operation_Result;
 
    --  @param Model Window owning a pending read.
    --  @param Settings Current settings used to reject stale results.

@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Transfer)
    procedure Test_Paste_Execution_Cancel (T : in out AUnit.Test_Cases.Test_Case'Class) is
@@ -9,7 +11,7 @@ separate (Files_Suite.Transfer)
       Model    : aliased Files.Model.Window_Model;
       Paste    : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
-      Step     : Files.Operations.Operation_Result;
+      Step     : Files.Operation_Results.Operation_Result;
 
       function Src (N : Positive) return String is (Numbered_File (Src_Dir, N));
       function Dest (N : Positive) return String is (Numbered_File (Dest_Dir, N));
@@ -19,7 +21,7 @@ separate (Files_Suite.Transfer)
       Step := Files.Foreground_Jobs.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "the first batch reports success");
       Files_Suite.Support.Assert_Equal
         (Files.Model.Pasting.Execution_Done (Model),
@@ -30,7 +32,7 @@ separate (Files_Suite.Transfer)
       Step := Files.Foreground_Jobs.Advance (Model, Settings, 2);
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "a cancelled paste finalizes without an error");
       Assert (not Files.Model.Foreground_Job_Is_Active (Model), "a cancelled paste finalizes on the next advance");
 
@@ -50,10 +52,10 @@ separate (Files_Suite.Transfer)
          "the undo covers only the two completed writes");
 
       Step := Complete_Operation
-                       (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+                       (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
       Files_Suite.Support.Assert_Equal
         (Step.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "undo of the cancelled paste succeeds");
       Assert (not Ada.Directories.Exists (Dest (1)), "undo removes the first completed copy");
       Assert (not Ada.Directories.Exists (Dest (2)), "undo removes the second completed copy");

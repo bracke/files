@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 with Files.Settings.Path_References;
 with Files_Suite.Support.Guards;
 separate (Files_Suite.Archives)
@@ -9,7 +11,7 @@ separate (Files_Suite.Archives)
       Model : aliased Files.Model.Window_Model;
       Paste : Files_Suite.Support.Guards.Paste_Guard (Model'Access);
       pragma Unreferenced (Paste);
-      Step : Files.Operations.Operation_Result;
+      Step : Files.Operation_Results.Operation_Result;
       Mutation : Files.File_System.Mutation_Result;
       Archives : Files.Items.Item_Vectors.Vector;
       Loaded : Files.File_System.Item_Load_Result;
@@ -37,10 +39,11 @@ separate (Files_Suite.Archives)
          Files.Model.Selection.Select_All_Visible (Model);
          Ada.Directories.Set_Directory (Cwd);
          Step := Complete_Operation
-           (Model, Settings, Files.Operations.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
+           (Model, Settings,
+            Files.Operation_Commands.Compress_Selected (Model, Settings, Files.Operations.Zip_Archive));
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "Recent compression publishes beside the first selected source and preserves the complete view: status");
          Assert
            (Ada.Directories.Exists (Zip),
@@ -67,10 +70,10 @@ separate (Files_Suite.Archives)
          Archives.Append (Loaded.Item);
          Files.Model.Navigate_Recent (Model, Archives);
          Files.Model.Selection.Select_All_Visible (Model);
-         Step := Complete_Operation (Model, Settings, Files.Operations.Extract_Selected (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Extract_Selected (Model, Settings));
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "each Recent archive extracts beside itself with collision handling and leaves CWD intact: status");
          Assert
            (Files.Model.In_Recent_View (Model),
@@ -100,11 +103,11 @@ separate (Files_Suite.Archives)
            (File_Has_Bytes (Join (Cwd, "keep"), "working directory bytes"),
             "each Recent archive extracts beside itself with collision handling and leaves CWD intact"
             & ": CWD file intact");
-         Step := Complete_Operation (Model, Settings, Files.Operations.Undo_Last (Model, Settings));
+         Step := Complete_Operation (Model, Settings, Files.Operation_Commands.Undo_Last (Model, Settings));
          Await_View (Model, Settings);
          Files_Suite.Support.Assert_Equal
            (Step.Status,
-            Files.Operations.Operation_Success,
+            Files.Operation_Results.Operation_Success,
             "Undo removes only the newly extracted adjacent folders: status");
          Assert
            (not Ada.Directories.Exists (Join (Two, "note (1)")),

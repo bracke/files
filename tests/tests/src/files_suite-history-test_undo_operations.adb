@@ -1,3 +1,5 @@
+with Files.Operation_Results;
+with Files.Operation_Commands;
 separate (Files_Suite.History)
    procedure Test_Undo_Operations (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
@@ -6,7 +8,7 @@ separate (Files_Suite.History)
       Renamed  : constant String := Join (Root, "renamed.txt");
       Load     : Files.File_System.Directory_Load_Result;
       Model    : Files.Model.Window_Model;
-      Result   : Files.Operations.Operation_Result;
+      Result   : Files.Operation_Results.Operation_Result;
       Routed   : Files.Controller.Controller_Result;
    begin
       Reset_Root;
@@ -20,7 +22,7 @@ separate (Files_Suite.History)
       Result := Files.Operations.Commit_Rename (Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Result.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "rename commits before undo");
       Assert (Ada.Directories.Exists (Renamed), "rename produced the new name");
       Assert (not Ada.Directories.Exists (Original), "rename removed the old name");
@@ -29,7 +31,7 @@ separate (Files_Suite.History)
       Routed := Files.Controller.Execute_Non_Settings_Command (Files.Commands.Undo_Command, Model, Settings);
       Files_Suite.Support.Assert_Equal
         (Routed.Operation.Status,
-         Files.Operations.Operation_Success,
+         Files.Operation_Results.Operation_Success,
          "undo of a rename succeeds");
       Assert (Ada.Directories.Exists (Original), "undo restored the original name");
       Assert (not Ada.Directories.Exists (Renamed), "undo removed the renamed file");
@@ -37,15 +39,15 @@ separate (Files_Suite.History)
 
       Files.Operations.Clear_Undo (Model);
       Files.Model.Set_Error (Model, "error.directory.load");
-      Result := Files.Operations.Undo_Last (Model, Settings);
+      Result := Files.Operation_Commands.Undo_Last (Model, Settings);
       Assert
-        (Result.Status = Files.Operations.Operation_Failed
+        (Result.Status = Files.Operation_Results.Operation_Failed
          and then Files.Model.Last_Error_Key (Model) = "error.undo.failed",
          "a direct empty Undo replaces a stale diagnostic with its failure");
       Files.Model.Set_Error (Model, "error.directory.load");
-      Result := Files.Operations.Redo_Last (Model, Settings);
+      Result := Files.Operation_Commands.Redo_Last (Model, Settings);
       Assert
-        (Result.Status = Files.Operations.Operation_Failed
+        (Result.Status = Files.Operation_Results.Operation_Failed
          and then Files.Model.Last_Error_Key (Model) = "error.undo.failed",
          "a direct empty Redo replaces a stale diagnostic with its failure");
    end Test_Undo_Operations;

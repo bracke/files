@@ -172,17 +172,15 @@ private package Files.Operations.Support is
       --  (Files.History_Journal.Save, Required), stopping a helper that
       --  cannot.
       Durable : Boolean := False;
-      --  The batch appends an item for each entry it made, as for
-      --  Try_Record_Undo.
-      Items : Files.Model.Undo_Item_Vectors.Vector;
+      --  The batch appends an item for each entry it made, Published; once a
+      --  record admitted them all, they are Verified (Try_Record_Undo).
+      Items : Files.Model.Recorded_Item_Vectors.Vector;
       --  Kept by Checkpoint_Undo and Finish_Undo: whether the top Undo entry
       --  is this batch's, whether a record was attempted, how many From
-      --  members the last attempt covered, how many of those were verified
-      --  (Retain_Verified_Main), and when the last attempt was.
+      --  members the last attempt covered, and when the last attempt was.
       Recorded        : Boolean := False;
       Attempted       : Boolean := False;
       Attempted_Count : Natural := 0;
-      Verified_Count  : Natural := 0;
       Last_Checkpoint : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
    end record;
 

@@ -17,7 +17,6 @@ with Files.Settings.Path_References;
 with Files.Settings.Open_Actions;
 
 package body Files.Operations.Support is
-   use type Files.Operation_Results.Operation_Status;
    use Ada.Strings.Unbounded;
 
    function First_Free_Name
@@ -266,15 +265,15 @@ package body Files.Operations.Support is
       Progress.Recorded := Files.Undo_Recording.Try_Record_Undo
         (Model, Progress.Kind, Progress.Items,
          Create_Kind => Progress.Create_Kind,
-         Redoable    => Progress.Redoable,
-         Provenance  =>
-           (Published_Main       => Natural (Progress.Items.Length),
-            Retain_Verified_Main => Progress.Verified_Count,
-            others               => <>));
+         Redoable    => Progress.Redoable);
+      --  Every item a record admitted was verified then: a later checkpoint
+      --  trusts it, though its path has since been reused.
       if Progress.Recorded
         and then Natural (Files.Model.History.Undo_From_Paths (Model).Length) = Natural (Progress.Items.Length)
       then
-         Progress.Verified_Count := Natural (Progress.Items.Length);
+         for Item of Progress.Items loop
+            Item.Provenance := Files.Model.Verified;
+         end loop;
       end if;
       if Progress.Durable then
          Files.History_Journal.Save (Model, Required => True);

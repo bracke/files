@@ -1,3 +1,4 @@
+with Files.Operations;
 with Files.Window_Polls;
 with Files.File_System.Permissions;
 with Files.Items;
@@ -28,7 +29,6 @@ with Files.Localization;
 with Files.Model;
 with Files.Model.Selection;
 with Files.Model.Folder_Sizes;
-with Files.Operations;
 with Guikit.Draw;
 with Files.Rendering;
 with Files.Settings;

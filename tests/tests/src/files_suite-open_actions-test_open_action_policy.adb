@@ -1,11 +1,12 @@
+with Files.Operation_Results;
 with Files.Settings.Open_Actions;
 separate (Files_Suite.Open_Actions)
    procedure Test_Open_Action_Policy (T : in out AUnit.Test_Cases.Test_Case'Class) is
       pragma Unreferenced (T);
    begin
       declare
-         Generic_Failure : constant Files.Operations.Operation_Result :=
-           (Status              => Files.Operations.Operation_Failed,
+         Generic_Failure : constant Files.Operation_Results.Operation_Result :=
+           (Status              => Files.Operation_Results.Operation_Failed,
             Error_Key           => To_Unbounded_String ("error.directory.load"),
             Path                => To_Unbounded_String (Root),
             Action              =>
