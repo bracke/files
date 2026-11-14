@@ -1,6 +1,7 @@
 with Files.Diagnostics;
 with Ada.Real_Time;
 with Ada.Containers;
+with Ada.Containers.Ordered_Sets;
 with Ada.Streams;
 with Ada.Directories;
 with Ada.IO_Exceptions;
@@ -315,6 +316,49 @@ package body Files.History_Journal is
       end loop;
    end Fit;
 
+   --  Left_Out pruned to what it can still mean: each Sequence once, none
+   --  the written stacks hold (those are journaled), none at or past Next
+   --  (never handed out). Past Max_Unjournaled the oldest markers go -- the
+   --  window then retires those entries on merge -- rather than failing the
+   --  save, which a job's start and its checkpoints require.
+   function Pruned_Left_Out
+     (Left_Out   : Files.Model.Sequence_Vectors.Vector;
+      Undo, Redo : Files.Model.Undo_Entry_Vectors.Vector;
+      Next       : Positive) return Files.Model.Sequence_Vectors.Vector
+   is
+      package Sequence_Sets is new Ada.Containers.Ordered_Sets (Element_Type => Positive);
+      package Sequence_Sorting is new Files.Model.Sequence_Vectors.Generic_Sorting;
+      Held, Listed : Sequence_Sets.Set;
+      Result : Files.Model.Sequence_Vectors.Vector;
+   begin
+      for Action of Undo loop
+         if Action.Sequence > 0 then
+            Held.Include (Action.Sequence);
+         end if;
+      end loop;
+      for Action of Redo loop
+         if Action.Sequence > 0 then
+            Held.Include (Action.Sequence);
+         end if;
+      end loop;
+      for Sequence of Left_Out loop
+         if Sequence < Next and then not Held.Contains (Sequence) and then not Listed.Contains (Sequence) then
+            Listed.Include (Sequence);
+            Result.Append (Sequence);
+         end if;
+      end loop;
+      if Natural (Result.Length) > Max_Unjournaled then
+         declare
+            Dropped : constant Natural := Natural (Result.Length) - Max_Unjournaled;
+         begin
+            Files.Diagnostics.Trace ("Files.History_Journal", "unjournaled_dropped=" & Natural'Image (Dropped));
+            Sequence_Sorting.Sort (Result);
+            Result.Delete_First (Ada.Containers.Count_Type (Dropped));
+         end;
+      end if;
+      return Result;
+   end Pruned_Left_Out;
+
    function Journals_Newest (Model : Files.Model.Window_Model; Redo : Boolean) return Boolean is
       Undo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.Undo_History (Model);
       Redo_Stack : Files.Model.Undo_Entry_Vectors.Vector := Files.Model.Redo_History (Model);
@@ -347,14 +391,28 @@ package body Files.History_Journal is
       Target : constant String := Hostkit.Fs.Join (Directory, "history");
       Temporary_Identity : Unbounded_String;
 
+      --  Past every Sequence handed out: the journal's own count, or past
+      --  an entry an older journal numbered beyond it.
+      function Sequence_Bound return Positive is
+         Result : Positive := State.Next_Sequence;
+      begin
+         for Action of Undo loop
+            Result := Positive'Max (Result, Action.Sequence + 1);
+         end loop;
+         for Action of Redo loop
+            Result := Positive'Max (Result, Action.Sequence + 1);
+         end loop;
+         return Result;
+      end Sequence_Bound;
+
       procedure Write_Journal (Output : not null access Ada.Streams.Root_Stream_Type'Class) is
-         Left_Out : Files.Model.Sequence_Vectors.Vector := State.Unjournaled;
+         Next     : constant Positive := Sequence_Bound;
+         --  Pruned before Fit too, so stale markers cost no entry its place.
+         Left_Out : Files.Model.Sequence_Vectors.Vector := Pruned_Left_Out (State.Unjournaled, Undo, Redo, Next);
       begin
          String'Output (Output, Journal_Header);
          Fit (Kept_Undo, Kept_Redo, Total, Left_Out);
-         if Natural (Left_Out.Length) > Max_Unjournaled then
-            raise Ada.Directories.Use_Error;
-         end if;
+         Left_Out := Pruned_Left_Out (Left_Out, Kept_Undo, Kept_Redo, Next);
          Natural'Output (Output, State.Next_Sequence);
          Boolean'Output (Output, State.Redo_Retired);
          Natural'Output (Output, Natural (Left_Out.Length));

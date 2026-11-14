@@ -220,6 +220,6 @@ separate (Check_All)
       begin
          Require_At_Most ("files-rendering.adb", 1_454);
          Require_At_Most ("files-rendering-build_frame_commands.adb", 914);
-         Require_At_Most ("files-application-windows.adb", 1_619);
+         Require_At_Most ("files-application-windows.adb", 1_598);
       end;
    end Check_Rendering_Architecture;

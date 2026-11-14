@@ -273,6 +273,7 @@ package body Files.Interaction is
       Shared   : Files.Settings.Settings_Model)
    is
       use type Files.Types.Listing_Options;
+      use type Files.Types.Sort_Field;
       use type Files.Settings.String_Maps.Map;
       Before : constant Files.Settings.Settings_Model := Settings;
    begin
@@ -280,13 +281,31 @@ package body Files.Interaction is
       Refresh_Open_Pane (Model, Before, Settings);
       --  Items carry the hidden filter, the order and the type and icon they
       --  were classified with when the folder was read.
-      if Files.Settings.Listing_Options_Of (Before) /= Files.Settings.Listing_Options_Of (Settings)
-        or else Before.Extension_Filetypes /= Settings.Extension_Filetypes
-        or else Before.Icon_Mappings /= Settings.Icon_Mappings
+      if Files.Settings.Listing_Options_Of (Before) = Files.Settings.Listing_Options_Of (Settings)
+        and then Before.Extension_Filetypes = Settings.Extension_Filetypes
+        and then Before.Icon_Mappings = Settings.Icon_Mappings
       then
+         null;
+      elsif Files.Model.Search_Results_Are_Active (Model) then
+         --  Search results have no folder to read again (a reload would
+         --  replace them with the folder): the new settings apply to them in
+         --  place, a changed order with them.
+         if Before.Sort_Field_Value /= Settings.Sort_Field_Value
+           or else Before.Sort_Ascending /= Settings.Sort_Ascending
+         then
+            Files.Model.Apply_Sort (Model, Settings.Sort_Field_Value, Settings.Sort_Ascending);
+         end if;
+         Files.Model.Reapply_Listing_Settings
+           (Model, Settings,
+            Reclassify => Before.Extension_Filetypes /= Settings.Extension_Filetypes
+                          or else Before.Icon_Mappings /= Settings.Icon_Mappings);
+      else
          declare
-            --  A reload that fails says so in the window's error line.
-            Reloaded : constant Files.Operations.Operation_Result := Files.Operations.Refresh (Model, Settings);
+            --  A reload that fails says so in the window's error line. The
+            --  folder sizes stay: only a refresh the user asks for measures
+            --  them again.
+            Reloaded : constant Files.Operations.Operation_Result :=
+              Files.Operations.Refresh (Model, Settings, Measure_Again => False);
             pragma Unreferenced (Reloaded);
          begin
             null;

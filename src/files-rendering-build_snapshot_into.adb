@@ -125,6 +125,10 @@ separate (Files.Rendering)
          else To_Unbounded_String
              (Files.Localization.Text
                 (To_String (Snapshot.Last_Error_Key), "path", Files.Model.Last_Error_Path (Model))));
+      if Length (Snapshot.Last_Error_Key) > 0 and then Files.Model.Last_Error_Notice (Model) /= "" then
+         --  A second message the failure carries (Files.Model.Set_Error_Notice).
+         Append (Snapshot.Last_Error_Text, " " & Files.Localization.Text (Files.Model.Last_Error_Notice (Model)));
+      end if;
       Snapshot.Focus := Files.Model.Focus (Model);
       Snapshot.Text_Cursor_Position := Files.Model.Text_Cursor_Position (Model);
       Snapshot.Path_Input_Text := To_Unbounded_String (Files.Model.Path_Input_Text (Model));

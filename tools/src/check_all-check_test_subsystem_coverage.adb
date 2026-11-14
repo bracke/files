@@ -115,7 +115,7 @@ separate (Check_All)
       Require_Tests ("startup", 31);
       Require_Tests ("commands", 39);
       Require_Tests ("model", 54);
-      Require_Tests ("interaction", 94);
+      Require_Tests ("interaction", 95);
       Require_Tests ("rendering", 101);
-      Require_Tests ("operations", 324);
+      Require_Tests ("operations", 330);
    end Check_Test_Subsystem_Coverage;

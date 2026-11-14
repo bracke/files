@@ -419,30 +419,13 @@ package body Files.Application.Windows is
    end Dispatch_Text;
 
    --  Scroll the main view just far enough that the selected item is whole
-   --  in view, after a key or type-ahead moved the selection.
-   procedure Reveal_Selection (Runtime : in out Runtime_Window) is
-      Frame_W  : Glfw.Size := 0;
-      Frame_H  : Glfw.Size := 0;
-      Selected : constant Natural := Files.Model.Selected_Index (Runtime.Model);
-   begin
-      if Runtime.Handle = null or else Selected = 0 then
-         return;
-      end if;
-      Glfw.Windows.Get_Framebuffer_Size (As_Window (Runtime.Handle), Frame_W, Frame_H);
-      Refresh_Snapshot (Runtime);
-      declare
-         Line_Height : constant Positive := Cell_Height_For (Runtime.Font_Pixel_Size);
-         Snapshot    : Files.Rendering.View_Snapshot renames Runtime.View.Snapshots (Runtime.View.Current_Slot);
-         Layout      : constant Files.Rendering.Layout_Metrics :=
-           Files.Rendering.Calculate_Layout (Snapshot, Natural (Frame_W), Natural (Frame_H), Line_Height);
-         Lines       : constant Natural :=
-           Files.Rendering.Scroll_Lines_Revealing (Snapshot, Layout, Line_Height, Positive (Selected));
-      begin
-         if Lines /= Files.Model.Main_View_Scroll_Lines (Runtime.Model) then
-            Files.Model.Set_Main_View_Scroll_Lines (Runtime.Model, Lines);
-         end if;
-      end;
-   end Reveal_Selection;
+   --  in view, after a key or type-ahead moved the selection, or a step set
+   --  it by name (Files.Model.Reveal_Is_Pending, which this clears).
+   procedure Reveal_Selection (Runtime : in out Runtime_Window) is separate;
+
+   --  Reveal_Selection when a step since the last reveal set the selection
+   --  by name: a reload that named its item, a mouse or menu command.
+   procedure Reveal_Pending_Selection (Runtime : in out Runtime_Window) is separate;
 
    --  Run the window's key presses and typed text in the order they arrived.
    procedure Handle_Keyboard
@@ -499,7 +482,8 @@ package body Files.Application.Windows is
       --  The selection follows the keyboard into view.
       if Runtime.Handle /= null
         and then (Files.Model.Selected_Index (Runtime.Model) /= Selected_Before
-                  or else Files.Model.Current_Path (Runtime.Model) /= To_String (Path_Before))
+                  or else Files.Model.Current_Path (Runtime.Model) /= To_String (Path_Before)
+                  or else Files.Model.Reveal_Is_Pending (Runtime.Model))
       then
          Reveal_Selection (Runtime);
       end if;
@@ -651,6 +635,7 @@ package body Files.Application.Windows is
          return;
       end if;
       Refreshed := Files.Refresh_Jobs.Advance (Runtime.Model, Runtime.Settings);
+      Reveal_Pending_Selection (Runtime);
       Files.Refresh_Jobs.Resume_Owed (Runtime.Model, Runtime.Settings);
       --  The selected item's type details, read off the UI thread; this also
       --  serves selections deferred by a cancelled or failed refresh.

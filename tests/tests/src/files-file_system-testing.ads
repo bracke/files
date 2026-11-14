@@ -67,6 +67,17 @@ package Files.File_System.Testing is
    --  @param Refuse Whether every creation is refused.
    procedure Refuse_Creation_Matches (Refuse : Boolean);
 
+   --  From now on, hold every recovery-registry sweep just before it works
+   --  on a payload (after it has let the registry lock go), as a slow trash
+   --  move would, until Resume_Sweep_Work; at most 30 seconds each.
+   procedure Pause_Sweep_Work;
+
+   --  @return Whether a sweep has reached the pause since Pause_Sweep_Work.
+   function Sweep_Work_Paused return Boolean;
+
+   --  Let held sweeps go on, and hold none any more.
+   procedure Resume_Sweep_Work;
+
    --  Delete a folder of ours (a recovery stage, a transport) the way the
    --  program does.
    --

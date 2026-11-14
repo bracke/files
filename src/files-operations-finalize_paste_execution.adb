@@ -42,8 +42,23 @@ is
      and then Exec.Replaced_Targets.Contains (Kept.Dest_Path)
      and then not Files.File_System.Creation_Matches
        (To_String (Kept.Dest_Path), To_String (Kept.Identity), To_String (Kept.Tree_Revision), False);
+   --  The move's own failure stays the error; the missing Undo is reported
+   --  as the error only when nothing else failed (a cancelled paste), and
+   --  otherwise joins it as a second message.
+   Undo_Unavailable_Key : constant String := "error.paste.undo_unavailable";
    Reported_Key : constant String :=
-     (if Unsafe_Kept then "error.paste.undo_unavailable" else Error_Key);
+     (if Unsafe_Kept and then Error_Key = "" then Undo_Unavailable_Key else Error_Key);
+   Notice_Key : constant String :=
+     (if Unsafe_Kept and then Error_Key /= "" then Undo_Unavailable_Key else "");
+
+   --  Record Reported_Key as the window's error, with Notice_Key beside it.
+   procedure Report is
+   begin
+      Files.Model.Set_Error (Model, Reported_Key);
+      if Notice_Key /= "" then
+         Files.Model.Set_Error_Notice (Model, Notice_Key);
+      end if;
+   end Report;
    Kept_Provenance : constant Undo_Provenance :=
      (Kept_Copies              => Kept_Paths,
       Kept_Copy_Identities     =>
@@ -117,7 +132,7 @@ begin
 
    if Files.Model.Background_Transfers (Model) then
       --  Preserve mutation errors while a nonmodal helper refreshes the view.
-      Files.Model.Set_Error (Model, Reported_Key);
+      Report;
       declare
          Reload : constant Operation_Result := Reload_Current_Directory (Model, Settings);
       begin
@@ -135,7 +150,7 @@ begin
    begin
       if Reload.Status /= Operation_Success then
          if Reported_Key /= "" then
-            Files.Model.Set_Error (Model, Reported_Key);
+            Report;
             return Make_Result (Operation_Failed, Reported_Key, Files.Model.Current_Path (Model));
          end if;
          return Reload;
@@ -143,7 +158,7 @@ begin
    end;
 
    if Reported_Key /= "" then
-      Files.Model.Set_Error (Model, Reported_Key);
+      Report;
       return Make_Result (Operation_Failed, Reported_Key, Files.Model.Current_Path (Model));
    end if;
 

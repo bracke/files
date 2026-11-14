@@ -157,6 +157,69 @@ package body Files.File_System.Testing is
       Refuse_Creation_Match := (if Refuse then Refuse_Every_Creation'Access else null);
    end Refuse_Creation_Matches;
 
+   --  Where Pause_Sweep_Work holds a sweep.
+   protected Sweep_Gate is
+      procedure Close;
+      procedure Arrive;
+      procedure Open;
+      function Reached return Boolean;
+      entry Wait_Open;
+   private
+      Arrived : Boolean := False;
+      Opened  : Boolean := True;
+   end Sweep_Gate;
+
+   protected body Sweep_Gate is
+      procedure Close is
+      begin
+         Arrived := False;
+         Opened := False;
+      end Close;
+
+      procedure Arrive is
+      begin
+         Arrived := True;
+      end Arrive;
+
+      procedure Open is
+      begin
+         Opened := True;
+      end Open;
+
+      function Reached return Boolean is (Arrived);
+
+      entry Wait_Open when Opened is
+      begin
+         null;
+      end Wait_Open;
+   end Sweep_Gate;
+
+   --  The During_Sweep_Work hook Pause_Sweep_Work installs.
+   procedure Hold_Sweep (Payload : String) is
+      pragma Unreferenced (Payload);
+   begin
+      Sweep_Gate.Arrive;
+      select
+         Sweep_Gate.Wait_Open;
+      or
+         delay 30.0;
+      end select;
+   end Hold_Sweep;
+
+   procedure Pause_Sweep_Work is
+   begin
+      Sweep_Gate.Close;
+      During_Sweep_Work := Hold_Sweep'Access;
+   end Pause_Sweep_Work;
+
+   function Sweep_Work_Paused return Boolean is (Sweep_Gate.Reached);
+
+   procedure Resume_Sweep_Work is
+   begin
+      During_Sweep_Work := null;
+      Sweep_Gate.Open;
+   end Resume_Sweep_Work;
+
    procedure Delete_Owned_Tree (Path : String) is
    begin
       Files.File_System.Support.Delete_Owned_Tree (Path);

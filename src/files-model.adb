@@ -303,14 +303,32 @@ package body Files.Model is
       Undo, Redo : Undo_Entry_Vectors.Vector;
       State : History_Journal_State := (others => <>))
    is
+      package Sequence_Sets is new Ada.Containers.Ordered_Sets (Element_Type => Positive);
       Sanitized_Undo, Sanitized_Redo : Undo_Entry_Vectors.Vector;
       Next : Positive := State.Next_Sequence;
+      Held, Listed : Sequence_Sets.Set;
+      Left_Out : Sequence_Vectors.Vector;
    begin
       Sanitize_History (Undo, Redo, Next, Sanitized_Undo, Sanitized_Redo);
+      for Action of Sanitized_Undo loop
+         Held.Include (Action.Sequence);
+      end loop;
+      for Action of Sanitized_Redo loop
+         Held.Include (Action.Sequence);
+      end loop;
+      --  The journal's left-out list, pruned to what can still name an entry
+      --  the history left out: once each, never one this history holds (it
+      --  is journaled again), never one past the Sequences handed out.
+      for Sequence of State.Unjournaled loop
+         if Sequence < Next and then not Held.Contains (Sequence) and then not Listed.Contains (Sequence) then
+            Listed.Include (Sequence);
+            Left_Out.Append (Sequence);
+         end if;
+      end loop;
       Model.History.Undo_Stack := Sanitized_Undo;
       Model.History.Redo_Stack := Sanitized_Redo;
       Model.History.Journal :=
-        (Next_Sequence => Next, Unjournaled => State.Unjournaled, Redo_Retired => False);
+        (Next_Sequence => Next, Unjournaled => Left_Out, Redo_Retired => False);
       Support.Touch (Model);
    end Set_History;
 
@@ -618,6 +636,8 @@ package body Files.Model is
       Model.Temporary := (others => <>);
       Model.Last_Error := Null_Unbounded_String;
       Model.Last_Error_Path_Value := Null_Unbounded_String;
+      Model.Last_Error_Notice_Key := Null_Unbounded_String;
+      Model.Reveal_Pending := False;
    end Initialize;
 
    function Current_Path
@@ -971,6 +991,17 @@ package body Files.Model is
       Name  : String)
       return Boolean is separate;
 
+   function Reveal_Is_Pending
+     (Model : Window_Model)
+      return Boolean is
+     (Model.Reveal_Pending);
+
+   procedure Clear_Reveal
+     (Model : in out Window_Model) is
+   begin
+      Model.Reveal_Pending := False;
+   end Clear_Reveal;
+
    procedure Set_Selection_Page_Rows (Model : in out Window_Model; Rows : Positive) is
    begin
       Model.Selection_Page_Rows_Value := Rows;
@@ -991,6 +1022,11 @@ package body Files.Model is
      (Model  : in out Window_Model;
       Items  : Files.Items.Item_Vectors.Vector;
       Sorted : Boolean);
+
+   procedure Reapply_Listing_Settings
+     (Model      : in out Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Reclassify : Boolean) is separate;
 
    procedure Push_Back_History (Model : in out Window_Model) is
    begin
@@ -1445,6 +1481,12 @@ package body Files.Model is
      (Model : in out Window_Model;
       Lines : Natural) is separate;
 
+   procedure Keep_Info_Pane
+     (Model      : in out Window_Model;
+      Previous   : Files.Items.Directory_Item;
+      Scroll     : Natural;
+      Keep_Extra : Boolean) is separate;
+
    procedure Set_Main_View_Scroll_Lines
      (Model : in out Window_Model;
       Lines : Natural) is separate;
@@ -1580,6 +1622,18 @@ package body Files.Model is
      (Model : Window_Model)
       return String is (To_String (Model.Last_Error_Path_Value));
 
+   procedure Set_Error_Notice
+     (Model      : in out Window_Model;
+      Notice_Key : String) is
+   begin
+      Support.Touch (Model);
+      Model.Last_Error_Notice_Key := To_Unbounded_String (Notice_Key);
+   end Set_Error_Notice;
+
+   function Last_Error_Notice
+     (Model : Window_Model)
+      return String is (To_String (Model.Last_Error_Notice_Key));
+
    procedure Retire_Payloads
      (Pending : in out Files.Types.String_Vectors.Vector;
       Entries : Undo_Entry_Vectors.Vector);
@@ -1654,9 +1708,24 @@ package body Files.Model is
      (Model    : in out Window_Model;
       Measured : Files.Folder_Size.Measurement_Vectors.Vector)
    is
-      use type Files.Types.Item_Kind;
-      Selected : Files.Settings.Path_Sets.Set;
+      Ignored : Files.Folder_Size.Measurement_Vectors.Vector;
    begin
+      Note_Folder_Sizes (Model, Measured, Ignored);
+   end Note_Folder_Sizes;
+
+   procedure Note_Folder_Sizes
+     (Model    : in out Window_Model;
+      Measured : Files.Folder_Size.Measurement_Vectors.Vector;
+      Stale    : out Files.Folder_Size.Measurement_Vectors.Vector)
+   is
+      use type Files.Types.Item_Kind;
+      package Time_Maps is new Ada.Containers.Ordered_Maps
+        (Key_Type => UString, Element_Type => Ada.Calendar.Time, "<" => Ada.Strings.Unbounded."<",
+         "=" => Ada.Calendar."=");
+      --  Each selected directory, and when it was listed as it is now.
+      Selected : Time_Maps.Map;
+   begin
+      Stale.Clear;
       if Measured.Is_Empty then
          return;
       end if;
@@ -1664,12 +1733,22 @@ package body Files.Model is
          if Index in Model.Items.First_Index .. Model.Items.Last_Index
            and then Model.Items (Index).Kind = Files.Types.Directory_Item
          then
-            Selected.Include (To_String (Model.Items (Index).Full_Path));
+            Selected.Include (Model.Items (Index).Full_Path, Model.Items (Index).Modified_Time);
          end if;
       end loop;
       for Done of Measured loop
-         if Selected.Contains (To_String (Done.Path)) then
+         if not Selected.Contains (Done.Path) then
+            null;
+         elsif Ada.Calendar."=" (Done.Listed, Files.Types.Unknown_Time)
+           or else Ada.Calendar."=" (Done.Listed, Selected.Element (Done.Path))
+         then
             Model.Folder_Sizes.Include (Done.Path, Done.Result);
+         else
+            --  Measured as the folder was before it changed: dropped, and
+            --  handed back to be measured again as it is now.
+            Stale.Append
+              (Files.Folder_Size.Measurement'
+                 (Path => Done.Path, Result => Done.Result, Listed => Selected.Element (Done.Path)));
          end if;
       end loop;
       Support.Touch_Header (Model);

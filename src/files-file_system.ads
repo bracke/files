@@ -1173,4 +1173,15 @@ private
    Refuse_Creation_Match : Restore_Hook := null
      with Atomic;
 
+   --  What a recovery-registry sweep calls with each registered payload just
+   --  before it works on it, after it has let the registry lock go.
+   type Sweep_Hook is access procedure (Payload : String);
+
+   --  Set only by the test suite (Files.File_System.Testing.Pause_Sweep_Work):
+   --  it holds a sweep there, as a slow trash move would, so the suite can
+   --  show the registry stays open to Register meanwhile. The application
+   --  never sets it.
+   During_Sweep_Work : Sweep_Hook := null
+     with Atomic;
+
 end Files.File_System;

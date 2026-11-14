@@ -10,4 +10,5 @@ begin
    Model.Listing_Revision_Value := Model.Listing_Revision_Value + 1;
    Model.Last_Error := To_Unbounded_String (Error_Key);
    Model.Last_Error_Path_Value := To_Unbounded_String (Path);
+   Model.Last_Error_Notice_Key := Null_Unbounded_String;
 end Set_Error;

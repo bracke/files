@@ -412,8 +412,10 @@ package body Files.Refresh_Jobs is
          declare
             Previous_Selection : constant Files.Items.Item_Vectors.Vector :=
               Files.Model.Selected_Items (Model);
-            Previous_Primary : constant Files.Types.UString :=
-              Files.Model.Selected_Item (Model).Full_Path;
+            --  The primary item as the info pane shows it, details and all.
+            Previous_Item    : constant Files.Items.Directory_Item := Files.Model.Selected_Item (Model);
+            Previous_Primary : constant Files.Types.UString := Previous_Item.Full_Path;
+            Previous_Info    : constant Natural := Files.Model.Info_Pane_Scroll_Lines (Model);
             --  A refresh of the folder in view keeps where the user was: its
             --  scroll, and a Quick Look whose item is still there.
             Previous_Scroll  : constant Natural := Files.Model.Main_View_Scroll_Lines (Model);
@@ -443,6 +445,10 @@ package body Files.Refresh_Jobs is
             if not Work.Recent then
                Files.Model.Set_Main_View_Scroll_Lines (Model, Previous_Scroll);
             end if;
+            --  So does the info pane, on the same item: its scroll, and the
+            --  details read for it unless a forced reload (a settings change,
+            --  an explicit refresh) may have changed what they depend on.
+            Files.Model.Keep_Info_Pane (Model, Previous_Item, Previous_Info, Keep_Extra => not Work.Force);
             if Previewing
               and then Previewed /= ""
               and then To_String (Files.Model.Selected_Item (Model).Full_Path) = Previewed

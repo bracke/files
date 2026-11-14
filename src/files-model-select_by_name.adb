@@ -20,6 +20,7 @@ begin
             Add_Selected_Index (Model, Model.Selected_Item_Index);
             Model.Range_Anchor_Path := Model.Items (Index).Full_Path;
             Reconcile_Rename_With_Selection (Model);
+            Model.Reveal_Pending := True;
             return True;
          end if;
       end loop;

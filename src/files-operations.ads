@@ -103,10 +103,14 @@ package Files.Operations is
    --
    --  @param Model Window model to refresh.
    --  @param Settings Settings model used for directory classification.
+   --  @param Measure_Again Whether folder sizes are measured again too, as
+   --    for a refresh the user asked for; False keeps them (a reload for
+   --    settings another window changed).
    --  @return Structured operation result.
    function Refresh
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : Files.Settings.Settings_Model;
+      Measure_Again : Boolean := True)
       return Operation_Result;
 
    --  Poll the current directory and refresh only when its signature changed.
@@ -776,6 +780,34 @@ package Files.Operations is
       return Files.Quick_Look.Quick_Look_Content;
 
 private
+
+   --  A failed move's copy that had to stay at its destination while its
+   --  source is still where it was: nothing moved, so its undo deletes the
+   --  copy, as a copy's does, instead of moving it back onto the source.
+   type Kept_Copy is record
+      Dest_Path     : Files.Types.UString;
+      Source_Path   : Files.Types.UString;
+      Identity      : Files.Types.UString;
+      Tree_Revision : Files.Types.UString;
+   end record;
+
+   --  No copy kept.
+   No_Kept_Copy : constant Kept_Copy := (others => <>);
+
+   --  Finish an armed paste execution: record its one Undo, reload, and
+   --  report Error_Key (a mid-run failure) or the Undo it could not record.
+   --
+   --  @param Model Window whose paste finishes.
+   --  @param Settings Current settings.
+   --  @param Error_Key Mid-run failure, or "".
+   --  @param Kept A failed move's copy left beside its still present source.
+   --  @return The paste's result.
+   function Finalize_Paste_Execution
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Error_Key : String;
+      Kept      : Kept_Copy := No_Kept_Copy)
+      return Operation_Result;
 
    --  Return the terminal-emulator executable that Open_Terminal would launch.
    --

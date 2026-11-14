@@ -131,7 +131,9 @@ separate (Check_All)
              To_Unbounded_String ("Is_Active"),
              To_Unbounded_String ("Target_For_Test"),
              To_Unbounded_String ("Path_Vectors"),
-             --  Finished measurements handed to the model: data, not a job.
+             --  Finished measurements handed to the model, and the stale ones
+             --  it hands back: data, not a job.
+             To_Unbounded_String ("Measurement"),
              To_Unbounded_String ("Measurement_Vectors")],
             "the model drives no background job");
       end loop;
@@ -213,6 +215,7 @@ separate (Check_All)
             --  The info pane's extra line as data: the model only keeps it.
             To_Unbounded_String ("Files.Extra_Info"),
             To_Unbounded_String ("Files.File_System"),
+            To_Unbounded_String ("Files.File_Types"),
             To_Unbounded_String ("Files.Folder_Size"),
             To_Unbounded_String ("Files.Folder_Tree"),
             To_Unbounded_String ("Files.Grouping"),

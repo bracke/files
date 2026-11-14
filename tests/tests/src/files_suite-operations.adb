@@ -223,6 +223,8 @@ package body Files_Suite.Operations is
    procedure Test_Undo_Admits_Verified_Identities (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Paste_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Refresh_Keeps_Place (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Refresh_Keeps_Info_Pane (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Named_Selection_Revealed (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Navigation_Defers_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Plain_Listing_Makes_No_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Access_Bits (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -235,6 +237,7 @@ package body Files_Suite.Operations is
    procedure Test_Move_Source_Changes_Off_Volume (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Move_Keeps_Source_Until_Copy_Synced (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Failed_Move_Kept_Copy_Undo (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Kept_Copy_Undo_Notice (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Batch_Undo_Records (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Read_Only_Survives_Copy_And_Move (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_Keeps_Trash_Until_Synced (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -304,6 +307,7 @@ package body Files_Suite.Operations is
    procedure Test_Path_Input_Relative_To_View (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Trash_Long_Name (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Folder_Size_Survives_Background_Read (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Stale_Folder_Size_Dropped (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_User_Visible_Mount_Points (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_From_Trash (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Restore_From_Trash_Guards (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -415,6 +419,7 @@ package body Files_Suite.Operations is
    procedure Test_History_Save_Replaces_Leftover (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_History_Journal_Fits_Large_Actions (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_History_Merge_Keeps_Unjournaled (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Unjournaled_List_Pruned (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Symlink_Creation (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Redo_Set_Permissions (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Permission_Undo_Restores_Access (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -490,6 +495,7 @@ package body Files_Suite.Operations is
    procedure Test_Owed_Reloads (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Recovery_Registry_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Registry_Changes_Wait_For_Its_Lock (T : in out AUnit.Test_Cases.Test_Case'Class);
+   procedure Test_Sweep_Leaves_Registry_Open (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Helper_Shutdown (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Transport_Protocol_Gaps (T : in out AUnit.Test_Cases.Test_Case'Class);
    procedure Test_Copy_Journal_Validation (T : in out AUnit.Test_Cases.Test_Case'Class);
@@ -583,6 +589,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Registry_Changes_Wait_For_Its_Lock'Access,
          "a recovery registry change waits for the registry's lock and goes ahead once it is let go");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Sweep_Leaves_Registry_Open'Access,
+         "a registry sweep lets the lock go for its slow work, so a Register meanwhile does not wait");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Owed_Reloads'Access,
          "edits within a view discard stale background results but never the reload they owe");
@@ -778,6 +787,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Folder_Size_Survives_Background_Read'Access,
          "a background read neither restarts a folder measurement nor bumps the revision when nothing changed");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Stale_Folder_Size_Dropped'Access,
+         "a folder size measured before the folder changed is dropped and measured again");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_User_Visible_Mount_Points'Access,
          "the root list shows what is mounted under the mount containers, never the containers themselves");
@@ -1029,6 +1041,9 @@ package body Files_Suite.Operations is
         (T, Test_History_Merge_Keeps_Unjournaled'Access,
          "A background helper's history merges back without losing what its journal left out");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Unjournaled_List_Pruned'Access,
+         "a history's left-out list is pruned when restored and truncated, not refused, past its cap");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Redo_Symlink_Creation'Access, "a created symlink undoes and redoes symmetrically");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Redo_Set_Permissions'Access, "chmod undoes to the old mode and redoes to the new mode");
@@ -1267,6 +1282,12 @@ package body Files_Suite.Operations is
         (T, Test_Refresh_Keeps_Place'Access,
          "a refresh keeps the scroll and Quick Look, and waits while the palette is open");
       AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Refresh_Keeps_Info_Pane'Access,
+         "a watch refresh keeps the info pane's scroll and the details read for an unchanged item");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Named_Selection_Revealed'Access,
+         "a selection set by name, by a reload or a command, is marked to be scrolled into view");
+      AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Navigation_Defers_Thumbnails'Access,
          "opening a folder never waits on new thumbnails: a background listing makes them");
       AUnit.Test_Cases.Registration.Register_Routine
@@ -1296,6 +1317,9 @@ package body Files_Suite.Operations is
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Failed_Move_Kept_Copy_Undo'Access,
          "undo of a failed move's kept copy deletes the copy and leaves the source that stayed");
+      AUnit.Test_Cases.Registration.Register_Routine
+        (T, Test_Kept_Copy_Undo_Notice'Access,
+         "a failed move whose kept copy cannot be undone reports its own failure, the lost Undo beside it");
       AUnit.Test_Cases.Registration.Register_Routine
         (T, Test_Batch_Undo_Records'Access,
          "a batch records its Undo at most once a second, and reports a batch it cannot record for Undo");
@@ -1454,6 +1478,7 @@ package body Files_Suite.Operations is
    procedure Test_Path_Input_Relative_To_View (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Trash_Long_Name (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Folder_Size_Survives_Background_Read (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Stale_Folder_Size_Dropped (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_User_Visible_Mount_Points (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -1736,6 +1761,8 @@ package body Files_Suite.Operations is
    procedure Test_Plain_Listing_Makes_No_Thumbnails (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Refresh_Keeps_Place (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Refresh_Keeps_Info_Pane (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Named_Selection_Revealed (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Duplicate_Undo_Identity (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -1782,6 +1809,7 @@ package body Files_Suite.Operations is
    procedure Test_Move_Keeps_Source_Until_Copy_Synced (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Failed_Move_Kept_Copy_Undo (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Kept_Copy_Undo_Notice (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Batch_Undo_Records (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -2002,6 +2030,7 @@ package body Files_Suite.Operations is
    procedure Test_History_Journal_Fits_Large_Actions (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_History_Merge_Keeps_Unjournaled (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Unjournaled_List_Pruned (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Partial_Redo_Creation (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
@@ -2161,6 +2190,7 @@ package body Files_Suite.Operations is
 
    procedure Test_Recovery_Registry_Bounded (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
    procedure Test_Registry_Changes_Wait_For_Its_Lock (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
+   procedure Test_Sweep_Leaves_Registry_Open (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 
    procedure Test_Owed_Reloads (T : in out AUnit.Test_Cases.Test_Case'Class) is separate;
 

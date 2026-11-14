@@ -1,9 +1,11 @@
+with Ada.Calendar;
 with Ada.Containers.Vectors;
 with Ada.Real_Time;
 with Ada.Strings.Unbounded;
 
 with Files.File_System;
 with Files.Process_Jobs;
+with Files.Types;
 
 --  Folder-size measurement in a cancellable helper process: one helper per
 --  batch of directories (Max_Batch), each result published as it finishes.
@@ -18,12 +20,37 @@ package Files.Folder_Size is
       Element_Type => Ada.Strings.Unbounded.Unbounded_String,
       "="          => Ada.Strings.Unbounded."=");
 
+   --  When each directory was listed as it is now (its modification time
+   --  in the listing), in the order of the directories it goes with: a
+   --  measurement keeps the time its directory was asked for with, so one
+   --  taken before the directory changed is told apart from a current one.
+   package Time_Vectors is new Ada.Containers.Vectors
+     (Index_Type   => Positive,
+      Element_Type => Ada.Calendar.Time,
+      "="          => Ada.Calendar."=");
+
    --  One window's independent queue and helper ownership.
    type Session is private;
 
+   --  A running helper is kept only while every directory it has still to
+   --  report is wanted, as listed when it was asked for: one listed anew
+   --  since is asked for again.
+   --
    --  @param Scan Window-owned measurements.
    --  @param Paths Selected uncached directories.
-   procedure Set_Targets (Scan : in out Session; Paths : Path_Vectors.Vector);
+   --  @param Listed Each one's listed time, or empty when none is known.
+   procedure Set_Targets
+     (Scan   : in out Session;
+      Paths  : Path_Vectors.Vector;
+      Listed : Time_Vectors.Vector := Time_Vectors.Empty_Vector);
+
+   --  Ask again for one directory whose measurement came back stale (taken
+   --  before the directory was listed as Listed), keeping the other targets.
+   --
+   --  @param Scan Window-owned measurements.
+   --  @param Path Absolute path of the directory.
+   --  @param Listed Its listed time now.
+   procedure Measure_Again (Scan : in out Session; Path : String; Listed : Ada.Calendar.Time);
 
    --  @param Scan Measurements to abandon without waiting.
    procedure Cancel (Scan : in out Session);
@@ -34,10 +61,12 @@ package Files.Folder_Size is
    --  @param Scan Window-owned measurements to poll.
    procedure Step (Scan : in out Session);
 
-   --  One finished measurement.
+   --  One finished measurement: Listed is the time its directory was asked
+   --  for with (Files.Types.Unknown_Time when the caller gave none).
    type Measurement is record
       Path   : Ada.Strings.Unbounded.Unbounded_String;
       Result : Files.File_System.Directory_Size_Result;
+      Listed : Ada.Calendar.Time := Files.Types.Unknown_Time;
    end record;
 
    package Measurement_Vectors is new Ada.Containers.Vectors
@@ -108,9 +137,12 @@ private
       --  The running helper's directories, in its order, and the index of
       --  the next result it will publish (result-<index>).
       Batch       : Path_Vectors.Vector;
+      Batch_Listed : Time_Vectors.Vector;
       Next_Result : Positive := 1;
-      --  Requested directories not yet given to a helper.
+      --  Requested directories not yet given to a helper, and when each was
+      --  listed (Batch_Listed and Target_Listed run beside their paths).
       Targets     : Path_Vectors.Vector;
+      Target_Listed : Time_Vectors.Vector;
       Done_Queue  : Measurement_Vectors.Vector;
       Handed_At   : Ada.Real_Time.Time := Ada.Real_Time.Time_First;
       Set_For_Rows      : Natural := Natural'Last;

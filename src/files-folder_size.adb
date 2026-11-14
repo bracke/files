@@ -1,11 +1,10 @@
 with Files.Diagnostics;
 with Files.Helper_Modes;
 with Ada.Directories;
-with Ada.Containers.Hashed_Sets;
+with Ada.Containers.Hashed_Maps;
 with Ada.IO_Exceptions;
 with Ada.Streams;
 with Ada.Strings.Unbounded.Hash;
-with Files.Types;
 with Files.Bounded_Streams;
 with Files.Job_Context;
 with Files.Exclusive_Streams;
@@ -18,11 +17,6 @@ with Files.Path_Checks;
 package body Files.Folder_Size is
    use Ada.Strings.Unbounded;
    use type Hostkit.Lease_Files.Open_Outcome;
-
-   package Path_Sets is new Ada.Containers.Hashed_Sets
-     (Element_Type        => Unbounded_String,
-      Hash                => Ada.Strings.Unbounded.Hash,
-      Equivalent_Elements => Ada.Strings.Unbounded."=");
 
    Max_Request_Path_Length : constant := Files.Bounded_Streams.Max_Path_Length;
    Max_Record_Bytes : constant := 64 * 1024;
@@ -157,14 +151,28 @@ package body Files.Folder_Size is
       return Files.File_System.Directory_Size_Result is
      (Read_Result_Record (Path, Result_Header, Long_Long_Integer (Max_Record_Bytes)));
 
-   function Is_Queued (Scan : Session; Path : Unbounded_String) return Boolean is
-     (for some Done of Scan.Done_Queue => Done.Path = Path);
+   --  Whether a finished measurement of Path, asked for as listed at Listed,
+   --  waits to be handed over: one of an older listing does not count.
+   function Is_Queued (Scan : Session; Path : Unbounded_String; Listed : Ada.Calendar.Time) return Boolean is
+     (for some Done of Scan.Done_Queue => Done.Path = Path and then Ada.Calendar."=" (Done.Listed, Listed));
+
+   --  The Index-th of Listed, or Unknown_Time past its end (no time given).
+   function Listed_At (Listed : Time_Vectors.Vector; Index : Positive) return Ada.Calendar.Time is
+     (if Index <= Natural (Listed.Length) then Listed (Index) else Files.Types.Unknown_Time);
+
+   --  The batch's Index-th directory answered: Result, as asked for.
+   function Answer
+     (Scan   : Session;
+      Index  : Positive;
+      Result : Files.File_System.Directory_Size_Result) return Measurement is
+     ((Path => Scan.Batch (Index), Result => Result, Listed => Listed_At (Scan.Batch_Listed, Index)));
 
    procedure Start_Next (Scan : in out Session) is
       File  : aliased Files.Exclusive_Streams.Output_Stream;
       Bytes : Natural := 0;
    begin
       Scan.Batch.Clear;
+      Scan.Batch_Listed.Clear;
       Scan.Next_Result := 1;
       --  As many as fit one request.
       while not Scan.Targets.Is_Empty
@@ -173,7 +181,11 @@ package body Files.Folder_Size is
       loop
          Bytes := Bytes + Length (Scan.Targets.First_Element) + 64;
          Scan.Batch.Append (Scan.Targets.First_Element);
+         Scan.Batch_Listed.Append (Listed_At (Scan.Target_Listed, 1));
          Scan.Targets.Delete_First;
+         if not Scan.Target_Listed.Is_Empty then
+            Scan.Target_Listed.Delete_First;
+         end if;
       end loop;
       if Scan.Batch.Is_Empty then
          return;
@@ -189,36 +201,53 @@ package body Files.Folder_Size is
          Close (File);
          Files.Process_Jobs.Reset (Scan.Job);
          --  Every directory of the batch is answered, unmeasured.
-         for Path of Scan.Batch loop
-            Scan.Done_Queue.Append (Measurement'(Path => Path, Result => (others => <>)));
+         for Index in 1 .. Natural (Scan.Batch.Length) loop
+            Scan.Done_Queue.Append (Answer (Scan, Index, (others => <>)));
          end loop;
          Scan.Batch.Clear;
+         Scan.Batch_Listed.Clear;
    end Start_Next;
 
-   procedure Set_Targets (Scan : in out Session; Paths : Path_Vectors.Vector) is
-      Requested : Path_Sets.Set;
+   procedure Set_Targets
+     (Scan   : in out Session;
+      Paths  : Path_Vectors.Vector;
+      Listed : Time_Vectors.Vector := Time_Vectors.Empty_Vector)
+   is
+      package Time_Maps is new Ada.Containers.Hashed_Maps
+        (Key_Type        => Unbounded_String,
+         Element_Type    => Ada.Calendar.Time,
+         Hash            => Ada.Strings.Unbounded.Hash,
+         Equivalent_Keys => Ada.Strings.Unbounded."=",
+         "="             => Ada.Calendar."=");
+      --  Each wanted directory, and when it was listed.
+      Requested : Time_Maps.Map;
       Keep      : Boolean;
    begin
-      for Path of Paths loop
-         if Request_Path_Is_Valid (To_String (Path)) then
-            Requested.Include (Path);
+      for Index in 1 .. Natural (Paths.Length) loop
+         if Request_Path_Is_Valid (To_String (Paths (Index))) then
+            Requested.Include (Paths (Index), Listed_At (Listed, Index));
          end if;
       end loop;
       --  The running helper is kept while it has directories left to report
-      --  and every one of them is still wanted; those are not asked again.
+      --  and every one of them is still wanted, as listed when it was asked
+      --  for; those are not asked again.
       Keep := Files.Process_Jobs.Active (Scan.Job)
         and then Scan.Next_Result <= Natural (Scan.Batch.Length)
         and then (for all Index in Scan.Next_Result .. Natural (Scan.Batch.Length) =>
-                    Requested.Contains (Scan.Batch (Index)));
+                    Requested.Contains (Scan.Batch (Index))
+                    and then Ada.Calendar."="
+                      (Requested.Element (Scan.Batch (Index)), Listed_At (Scan.Batch_Listed, Index)));
       if Keep then
          for Index in Scan.Next_Result .. Natural (Scan.Batch.Length) loop
             Requested.Exclude (Scan.Batch (Index));
          end loop;
       end if;
       Scan.Targets.Clear;
+      Scan.Target_Listed.Clear;
       for P of Paths loop
-         if Requested.Contains (P) and then not Is_Queued (Scan, P) then
+         if Requested.Contains (P) and then not Is_Queued (Scan, P, Requested.Element (P)) then
             Scan.Targets.Append (P);
+            Scan.Target_Listed.Append (Requested.Element (P));
             Requested.Delete (P);
          end if;
       end loop;
@@ -228,13 +257,35 @@ package body Files.Folder_Size is
       end if;
    end Set_Targets;
 
+   procedure Measure_Again (Scan : in out Session; Path : String; Listed : Ada.Calendar.Time) is
+      Item : constant Unbounded_String := To_Unbounded_String (Path);
+   begin
+      if not Request_Path_Is_Valid (Path)
+        or else Is_Queued (Scan, Item, Listed)
+        or else (for some Index in 1 .. Natural (Scan.Targets.Length) => Scan.Targets (Index) = Item)
+        or else (for some Index in Scan.Next_Result .. Natural (Scan.Batch.Length) =>
+                   Scan.Batch (Index) = Item
+                   and then Ada.Calendar."=" (Listed_At (Scan.Batch_Listed, Index), Listed))
+      then
+         return;
+      end if;
+      --  Behind the targets: Step starts it once the running helper stops.
+      while Natural (Scan.Target_Listed.Length) < Natural (Scan.Targets.Length) loop
+         Scan.Target_Listed.Append (Files.Types.Unknown_Time);
+      end loop;
+      Scan.Targets.Append (Item);
+      Scan.Target_Listed.Append (Listed);
+   end Measure_Again;
+
    procedure Cancel (Scan : in out Session) is
    begin
       Scan.Set_For_Rows := Natural'Last;
       Scan.Set_For_Selection := Natural'Last;
       Files.Process_Jobs.Reset (Scan.Job);
       Scan.Targets.Clear;
+      Scan.Target_Listed.Clear;
       Scan.Batch.Clear;
+      Scan.Batch_Listed.Clear;
       Scan.Next_Result := 1;
    end Cancel;
 
@@ -275,7 +326,7 @@ package body Files.Folder_Size is
                exit when not Finished;
                Result := (others => <>);
             end if;
-            Scan.Done_Queue.Append (Measurement'(Path => Scan.Batch (Scan.Next_Result), Result => Result));
+            Scan.Done_Queue.Append (Answer (Scan, Scan.Next_Result, Result));
             Scan.Next_Result := Scan.Next_Result + 1;
          end;
       end loop;
@@ -308,7 +359,7 @@ package body Files.Folder_Size is
       --  What a helper that stopped early did not measure is answered,
       --  unmeasured, so the window does not wait for it.
       for Index in Scan.Next_Result .. Natural (Scan.Batch.Length) loop
-         Scan.Done_Queue.Append (Measurement'(Path => Scan.Batch (Index), Result => (others => <>)));
+         Scan.Done_Queue.Append (Answer (Scan, Index, (others => <>)));
       end loop;
       Files.Process_Jobs.Reset (Scan.Job);
       Start_Next (Scan);

@@ -245,4 +245,7 @@ separate (Files.Application.Windows)
             end case;
          end;
       end loop;
+      --  A command a click ran (a menu's Open Containing Folder) may have
+      --  selected an item by name: it comes into view.
+      Reveal_Pending_Selection (Runtime);
    end Handle_Mouse;

@@ -135,4 +135,22 @@ package Files.Operations.Testing is
    --  @return The attempts counted since Count_Undo_Records (True).
    function Undo_Records return Natural;
 
+   --  Finish Model's armed paste as one whose failed move kept a copy at
+   --  Dest beside its still present Source, as the paste driver does.
+   --
+   --  @param Model Window whose paste finishes.
+   --  @param Settings Current settings.
+   --  @param Error_Key The move's own failure, or "" (cancelled).
+   --  @param Dest The kept copy.
+   --  @param Source The source that stayed.
+   --  @param Identity The copy's identity when it was made.
+   --  @param Tree_Revision The copy's tree revision when it was made.
+   --  @return The paste's result.
+   function Finalize_Paste_With_Kept_Copy
+     (Model     : in out Files.Model.Window_Model;
+      Settings  : Files.Settings.Settings_Model;
+      Error_Key : String;
+      Dest, Source, Identity, Tree_Revision : String)
+      return Operation_Result;
+
 end Files.Operations.Testing;

@@ -574,6 +574,22 @@ package Files.Model is
    procedure Clear_Search_Results
      (Model : in out Window_Model);
 
+   --  Apply changed listing settings to the items in view, in place, for a
+   --  view that cannot be read again (search results): hidden items go when
+   --  Settings hides them, and with Reclassify each item's type and icon are
+   --  worked out afresh from Settings' mappings (its details with them). The
+   --  items are ordered by the model's sort; the selection and the scroll
+   --  stay, and the view still holds search results. Hidden items a search
+   --  left out cannot come back without searching again.
+   --
+   --  @param Model Model to update.
+   --  @param Settings The settings now in force.
+   --  @param Reclassify Whether the type and icon mappings changed.
+   procedure Reapply_Listing_Settings
+     (Model      : in out Window_Model;
+      Settings   : Files.Settings.Settings_Model;
+      Reclassify : Boolean);
+
    --  Select a visible item by one-based visible index; it becomes the
    --  Range_Anchor a later shift-extended range grows from.
    --
@@ -1186,6 +1202,25 @@ package Files.Model is
      (Model : in out Window_Model;
       Lines : Natural);
 
+   --  After a refresh relisted the folder in view (which resets the info
+   --  pane): when the primary selection is still the item at Previous's
+   --  path, give the pane back its scroll (the renderer clamps it to the
+   --  pane), and -- with Keep_Extra, when the item's kind, type, size and
+   --  modification time are unchanged -- the extra details already read for
+   --  it, rather than dropping them and reading them again.
+   --
+   --  @param Model Model refreshed.
+   --  @param Previous The primary selected item before the refresh.
+   --  @param Scroll The info pane's scroll before the refresh.
+   --  @param Keep_Extra Whether details read before may still hold (False
+   --    when what they depend on besides the item, such as the hidden-files
+   --    setting, may have changed).
+   procedure Keep_Info_Pane
+     (Model      : in out Window_Model;
+      Previous   : Files.Items.Directory_Item;
+      Scroll     : Natural;
+      Keep_Extra : Boolean);
+
    type Palette_Mode is (Palette_Commands, Palette_Open_With);
 
    --  Return whether rename can start for the current selection.
@@ -1385,7 +1420,10 @@ package Files.Model is
      (Model : in out Window_Model;
       Items : Files.Items.Item_Vectors.Vector);
 
-   --  Select an item by name in the full loaded model.
+   --  Select an item by name in the full loaded model. A selection made so
+   --  (after a reload that names its item, Open Containing Folder, a new or
+   --  renamed item) asks the window to scroll it into view: see
+   --  Reveal_Is_Pending.
    --
    --  @param Model Model to update.
    --  @param Name Loaded item name to select.
@@ -1394,6 +1432,23 @@ package Files.Model is
      (Model : in out Window_Model;
       Name  : String)
       return Boolean;
+
+   --  Whether a selection was set by name since the window last scrolled the
+   --  selection into view: the window reveals it after the step that set it
+   --  (a reload, a mouse or menu command), not only after a key.
+   --
+   --  @param Model Model to inspect.
+   --  @return True when the selection still waits to be revealed.
+   function Reveal_Is_Pending
+     (Model : Window_Model)
+      return Boolean;
+
+   --  Note that the selection has been scrolled into view (or that there is
+   --  nothing to reveal).
+   --
+   --  @param Model Model to update.
+   procedure Clear_Reveal
+     (Model : in out Window_Model);
 
    subtype Context_Menu_Target is Files.Types.Context_Menu_Target;
 
@@ -1550,7 +1605,20 @@ package Files.Model is
       Change : not null access procedure (Scan : in out Files.Folder_Size.Session));
 
    --  Record finished measurements, those of directories still selected;
-   --  the selected directories are looked up once per batch.
+   --  the selected directories are looked up once per batch. A measurement
+   --  of a folder as it was before it changed (its listed time is not the
+   --  item's) is not recorded but handed back in Stale, with the item's
+   --  time, for the caller to measure again.
+   --
+   --  @param Model Window to update.
+   --  @param Measured The finished measurements.
+   --  @param Stale The folders to measure again.
+   procedure Note_Folder_Sizes
+     (Model    : in out Window_Model;
+      Measured : Files.Folder_Size.Measurement_Vectors.Vector;
+      Stale    : out Files.Folder_Size.Measurement_Vectors.Vector);
+
+   --  Note_Folder_Sizes, for a caller that measures nothing again.
    --
    --  @param Model Window to update.
    --  @param Measured The finished measurements.
@@ -1976,6 +2044,22 @@ package Files.Model is
      (Model : Window_Model)
       return String;
 
+   --  Add a second message to the error just recorded: something the user
+   --  must also learn (an Undo the failed operation could not record) that
+   --  is not the failure itself. The next Set_Error drops it.
+   --
+   --  @param Model Model to update.
+   --  @param Notice_Key Localized message key, without a {path}.
+   procedure Set_Error_Notice
+     (Model      : in out Window_Model;
+      Notice_Key : String);
+
+   --  @param Model Model to inspect.
+   --  @return The notice added to the last error, or "".
+   function Last_Error_Notice
+     (Model : Window_Model)
+      return String;
+
 private
 
    --  Cache a recursive folder-size measurement for a directory path.
@@ -2269,6 +2353,8 @@ private
       Scroll_Revision_Value : Natural := 0;
       Selection_Columns   : Positive := 1;
       Selection_Page_Rows_Value : Positive := 10;
+      --  Set by Select_By_Name, cleared once the window revealed it.
+      Reveal_Pending : Boolean := False;
       View_Value           : Files.Types.View_Mode := Files.Types.Small_Icons;
       Sort_Field_Value     : Files.Types.Sort_Field := Files.Types.Sort_Name;
       Sort_Ascending       : Boolean := True;
@@ -2295,6 +2381,7 @@ private
       Filter_Cursor        : Natural := 0;
       Last_Error           : UString;
       Last_Error_Path_Value : UString;
+      Last_Error_Notice_Key : UString;
       Clipboard             : Clipboard_State;
       History               : Undo_History_State;
       Folder_Sizes            : Folder_Size_Maps.Map;

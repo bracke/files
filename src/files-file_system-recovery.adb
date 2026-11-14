@@ -441,9 +441,17 @@ package body Files.File_System.Recovery is
    end Finalize;
 
    --  Take the registry lock under Root for this task, waiting for any
-   --  other holder. A host or volume without advisory locks goes on
-   --  unguarded, as every registry change did before the lock.
+   --  other holder. A host or volume without advisory locks (or one that
+   --  refuses this lock file) goes on unguarded, as every registry change did
+   --  before the lock: the outcome is traced, and nothing is claimed, so no
+   --  later hold in this task believes it is guarded and nothing is released.
+   --
+   --  Held only around reading and changing the registry itself, never
+   --  around the work a record leads to (a payload's move, a stage's
+   --  removal): Preserve registers from the window, which must not wait out a
+   --  sweep's trash move. The stage markers serialise that work instead.
    procedure Hold_Registry (Root : String; Hold : in out Registry_Hold) is
+      use type Hostkit.Locks.Lock_Outcome;
    begin
       if Root = "" or else Registry_Owner.Holds (Ada.Task_Identification.Current_Task) then
          return;
@@ -452,9 +460,12 @@ package body Files.File_System.Recovery is
          Outcome : constant Hostkit.Locks.Lock_Outcome := Hostkit.Locks.Acquire
            (Hostkit.Fs.Join (Root, Files.Protocol_Names.Recovery_Registry_Lock),
             Hostkit.Locks.Lock_Exclusive, Wait => True, Item => Hold.Lock);
-         pragma Unreferenced (Outcome);
       begin
-         null;
+         if Outcome /= Hostkit.Locks.Lock_Ok then
+            Files.Diagnostics.Trace
+              ("Files.File_System.Recovery", "registry_lock=" & Hostkit.Locks.Lock_Outcome'Image (Outcome));
+            return;
+         end if;
       end;
       Registry_Owner.Claim (Ada.Task_Identification.Current_Task);
       Hold.Outer := True;
@@ -1189,10 +1200,11 @@ package body Files.File_System.Recovery is
 
    procedure Sweep_Registry is
       Root : constant String := Registry_Root (Create => False);
-      Hold : Registry_Hold;
-      Seen : Path_Sets.Set;
+      --  Each live record the listing found, read under the registry lock:
+      --  its directory, the payload it names and the stage identity expected.
+      Directories, Payloads, Identities : Files.Types.String_Vectors.Vector;
 
-      procedure Check (Name : String; Stop : in out Boolean) is
+      procedure Collect (Name : String; Stop : in out Boolean) is
          pragma Unreferenced (Stop);
          Payload, Expected : UString;
          Directory : constant String := Hostkit.Fs.Join (Root, Name);
@@ -1204,33 +1216,88 @@ package body Files.File_System.Recovery is
          elsif Is_Stale_Record (Directory) then
             Delete_Registry_Record (Directory);
          elsif Read_Registry_Record (Directory, Payload, Expected) then
-            Resume_Interrupted_Release (To_String (Payload));
-            if Only_Stage_Left (To_String (Payload))
-              and then Stage_Matches (To_String (Payload), To_String (Expected))
-            then
-               --  A restore or release that stopped after the payload left:
-               --  finish it, and drop the record once the stage is gone.
-               if Finish_Stopped_Stage (To_String (Payload))
-                 and then not Files.Fs_Primitives.Entry_Exists
-                   (Files.Fs_Primitives.Parent_Directory (To_String (Payload)))
-               then
-                  Delete_Registry_Record (Directory);
-               end if;
-            elsif Seen.Contains (To_String (Payload)) then
-               --  A duplicate left by a reused stage name (see Register);
-               --  one record per payload is all Unregister and recovery need.
-               Delete_Registry_Record (Directory);
-            else
-               Seen.Include (To_String (Payload));
-            end if;
+            Directories.Append (To_Unbounded_String (Directory));
+            Payloads.Append (Payload);
+            Identities.Append (Expected);
          end if;
-      end Check;
+      end Collect;
+
+      --  Whether the record at Directory still names Payload in the stage
+      --  Expected: while the lock was let go another process may have
+      --  dropped it and reclaimed the slot for a payload of its own.
+      function Still_Names (Directory, Payload, Expected : String) return Boolean is
+         Recorded, Identity : UString;
+      begin
+         return Files.Fs_Primitives.Directory_Exists (Directory)
+           and then Read_Registry_Record (Directory, Recorded, Identity)
+           and then To_String (Recorded) = Payload
+           and then To_String (Identity) = Expected;
+      end Still_Names;
    begin
       if Root = "" then
          return;
       end if;
-      Hold_Registry (Root, Hold);
-      Files.Fs_Primitives.For_Each_Name (Root, Check'Access);
+      declare
+         Hold : Registry_Hold;
+      begin
+         Hold_Registry (Root, Hold);
+         Files.Fs_Primitives.For_Each_Name (Root, Collect'Access);
+      end;
+      declare
+         Count : constant Natural := Natural (Payloads.Length);
+         --  Stopped: a restore or release that stopped after the payload
+         --  left; Finished: its stage is gone now, so its record can go.
+         Stopped, Finished : array (1 .. Count) of Boolean := [others => False];
+         Seen : Path_Sets.Set;
+      begin
+         --  The work itself, without the lock (see Hold_Registry): each stage's
+         --  markers keep two sweeps, or a sweep and a live release, apart.
+         for Index in 1 .. Count loop
+            declare
+               Payload : constant String := To_String (Payloads.Element (Index));
+            begin
+               if During_Sweep_Work /= null then
+                  During_Sweep_Work (Payload);
+               end if;
+               Resume_Interrupted_Release (Payload);
+               if Only_Stage_Left (Payload)
+                 and then Stage_Matches (Payload, To_String (Identities.Element (Index)))
+               then
+                  Stopped (Index) := True;
+                  Finished (Index) := Finish_Stopped_Stage (Payload)
+                    and then not Files.Fs_Primitives.Entry_Exists (Files.Fs_Primitives.Parent_Directory (Payload));
+               end if;
+            end;
+         end loop;
+         --  The records again under the lock, each only while it still names
+         --  the payload the work was done for.
+         declare
+            Hold : Registry_Hold;
+         begin
+            Hold_Registry (Root, Hold);
+            for Index in 1 .. Count loop
+               declare
+                  Directory : constant String := To_String (Directories.Element (Index));
+                  Payload   : constant String := To_String (Payloads.Element (Index));
+                  Expected  : constant String := To_String (Identities.Element (Index));
+               begin
+                  if Stopped (Index) then
+                     if Finished (Index) and then Still_Names (Directory, Payload, Expected) then
+                        Delete_Registry_Record (Directory);
+                     end if;
+                  elsif Seen.Contains (Payload) then
+                     --  A duplicate left by a reused stage name (see Register);
+                     --  one record per payload is all Unregister and recovery need.
+                     if Still_Names (Directory, Payload, Expected) then
+                        Delete_Registry_Record (Directory);
+                     end if;
+                  else
+                     Seen.Include (Payload);
+                  end if;
+               end;
+            end loop;
+         end;
+      end;
    exception
       when Failure : others =>
          Files.Diagnostics.Note (Failure, "Files.File_System.Recovery");

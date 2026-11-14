@@ -131,8 +131,9 @@ package body Files.Operations is
    is separate;
 
    function Refresh
-     (Model    : in out Files.Model.Window_Model;
-      Settings : Files.Settings.Settings_Model)
+     (Model         : in out Files.Model.Window_Model;
+      Settings      : Files.Settings.Settings_Model;
+      Measure_Again : Boolean := True)
       return Operation_Result is separate;
 
    function Refresh_If_Changed
@@ -305,18 +306,6 @@ package body Files.Operations is
    is separate;
 
    Paste_Execution_First_Batch : constant := 32;
-
-   --  A failed move's copy that had to stay at its destination while its
-   --  source is still where it was: nothing moved, so its undo deletes the
-   --  copy, as a copy's does, instead of moving it back onto the source.
-   type Kept_Copy is record
-      Dest_Path     : Files.Types.UString;
-      Source_Path   : Files.Types.UString;
-      Identity      : Files.Types.UString;
-      Tree_Revision : Files.Types.UString;
-   end record;
-
-   No_Kept_Copy : constant Kept_Copy := (others => <>);
 
    function Finalize_Paste_Execution
      (Model     : in out Files.Model.Window_Model;
@@ -637,7 +626,21 @@ package body Files.Operations is
       end Poll;
    begin
       Files.Model.Update_Folder_Scan (Model, Poll'Access);
-      Files.Model.Note_Folder_Sizes (Model, Taken);
+      declare
+         Stale : Files.Folder_Size.Measurement_Vectors.Vector;
+
+         procedure Measure_Again (Scan : in out Files.Folder_Size.Session) is
+         begin
+            for Folder of Stale loop
+               Files.Folder_Size.Measure_Again (Scan, To_String (Folder.Path), Folder.Listed);
+            end loop;
+         end Measure_Again;
+      begin
+         Files.Model.Note_Folder_Sizes (Model, Taken, Stale);
+         if not Stale.Is_Empty then
+            Files.Model.Update_Folder_Scan (Model, Measure_Again'Access);
+         end if;
+      end;
    end Poll_Folder_Sizes;
 
    procedure Cancel_Folder_Scan (Model : in out Files.Model.Window_Model) is
@@ -688,6 +691,9 @@ package body Files.Operations is
       then
          declare
             Targets : Files.Folder_Size.Path_Vectors.Vector;
+            --  When each was listed, so a size measured before it changed
+            --  is told apart (Files.Model.Note_Folder_Sizes).
+            Listed  : Files.Folder_Size.Time_Vectors.Vector;
 
             --  Read in place: a copy of a large selection, on every change.
             procedure Add (Item : Files.Items.Directory_Item) is
@@ -696,6 +702,7 @@ package body Files.Operations is
                  and then not Files.Model.Folder_Size_Cached_For (Model, To_String (Item.Full_Path))
                then
                   Targets.Append (Item.Full_Path);
+                  Listed.Append (Item.Modified_Time);
                end if;
             end Add;
          begin
@@ -707,7 +714,7 @@ package body Files.Operations is
 
                procedure Retarget (Scan : in out Files.Folder_Size.Session) is
                begin
-                  Files.Folder_Size.Set_Targets (Scan, Targets);
+                  Files.Folder_Size.Set_Targets (Scan, Targets, Listed);
                   Files.Folder_Size.Note_Targets_Set_For (Scan, Rows, Selection);
                end Retarget;
             begin
